@@ -1,0 +1,28 @@
+000001                    ;; This is the very first QNICE-FPGA test program which is and was used during the
+000002                    ;; initial development of QNICE-FPGA by sy2002.
+000003                    ;;
+000004                    ;; It is based on vaxman's original test program "til_count.asm" that displays
+000005                    ;; a count on the TIL-311 display on the original QNICE/A evaluation board.
+000006                    
+000007                    IO$TIL_BASE     .EQU    0xFF10                  ; Address of TIL-display
+000008                    WAIT_CYCLES     .EQU    0x0010                  ; Number of wait iterations to be done for a slowly incrementing display
+000009                    ;;
+000010                                    .ORG    0x0000                  ; Start address
+000011  0000  0F80  0000                  MOVE    0x0000, R0              ; Clear R0
+000012  0002  0F84  FF10                  MOVE    IO$TIL_BASE, R1         ; Base address of TIL-display for output
+000013  0004  0005        LOOP            MOVE    R0, @R1                 ; Write contents of R0 to the TIL-display
+000014  0005  0F88  0010                  MOVE    WAIT_CYCLES, R2
+000015  0007  3F88  0001  WAIT_LOOP       SUB     1, R2                   ; Decrement loop counter
+000016  0009  FFAB  FFFC                  RBRA    WAIT_LOOP, !Z           ; If not zero, perform next loop
+000017  000B  1F80  0001                  ADD     1, R0                   ; Increment R0
+000018  000D  FFAB  FFF5                  RBRA    LOOP, !Z                ; Unconditional jump to display the next value
+000019  000F  E000                        HALT
+
+
+EQU-list:
+--------------------------------------------------------------------------------------------------------
+IO$TIL_BASE             : 0xFF10    WAIT_CYCLES             : 0x0010    
+
+Label-list:
+--------------------------------------------------------------------------------------------------------
+LOOP                    : 0x0004    WAIT_LOOP               : 0x0007    
