@@ -6,23 +6,26 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.all;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 entity QNICE_CPU is
 port (
-	-- clock
-	CLK				: in std_logic;
-	RESET				: in std_logic;
-	
-	ADDR				: out std_logic_vector(15 downto 0);		-- 16 bit address bus
-	
-	-- tristate 16 bit data bus
-	DATA  			: inout std_logic_vector(15 downto 0);		-- send/receive data
-	DATA_DIR			: out std_logic;									-- 1=DATA is sending, 0=DATA is receiving
-	DATA_VALID		: out std_logic;									-- while DATA_DIR = 1: DATA contains valid data
-	
-	-- debug output
-	dbg_cpustate	: out std_logic_vector(2 downto 0)
+   -- clock
+   CLK            : in std_logic;
+   RESET          : in std_logic;
+   
+   ADDR           : out std_logic_vector(15 downto 0);      -- 16 bit address bus
+   
+   -- tristate 16 bit data bus
+   DATA           : inout std_logic_vector(15 downto 0);    -- send/receive data
+   DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
+   DATA_VALID     : out std_logic                           -- while DATA_DIR = 1: DATA contains valid data
+   
+   -- debug input / output
+--   dbg_cpustate   : out std_logic_vector(2 downto 0)
+--   dbg_reg_ra1    : in std_logic_vector(3 downto 0);
+--   dbg_reg_da1    : out std_logic_vector(15 downto 0)
 );
 end QNICE_CPU;
 
@@ -31,157 +34,352 @@ architecture beh of QNICE_CPU is
 -- TriState buffer/driver
 component TriState_Buffer is
 generic (
-	DATA_WIDTH				: integer range 1 to 32
+   DATA_WIDTH           : integer range 1 to 32
 );
 port (
-	I_CLK                : in    std_logic;  -- synchronized with bidir bus
-	I_DIR_CTRL           : in    std_logic;  -- 3-state enable input, high=output, low=input
-	
-	IO_DATA              : inout std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to/from external pin on bidir bus
-	
-	I_DATA_TO_EXTERNAL   : in    std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to send over bidir bus
-	O_DATA_FROM_EXTERNAL : out   std_logic_vector(DATA_WIDTH - 1 downto 0)   -- data received over bidir bus	
+   I_CLK                : in    std_logic;  -- synchronized with bidir bus
+   I_DIR_CTRL           : in    std_logic;  -- 3-state enable input, high=output, low=input
+   
+   IO_DATA              : inout std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to/from external pin on bidir bus
+   
+   I_DATA_TO_EXTERNAL   : in    std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to send over bidir bus
+   O_DATA_FROM_EXTERNAL : out   std_logic_vector(DATA_WIDTH - 1 downto 0)   -- data received over bidir bus 
 );
 end component;
 
+-- QNICE specific register file
+component register_file is
+port (
+   clk         : in  std_logic;   -- clock: writing occurs at the rising edge
+   
+   -- input status register (SR) and program counter (PC) so that they can
+   -- conveniently be read when adressing 14 (SR) or 15 (PC)
+   SR          : in std_logic_vector(15 downto 0);
+   PC          : in std_logic_vector(15 downto 0);   
+   
+   -- select the appropriate register window for the lower 8 registers
+   sel_rbank   : in  std_logic_vector(7 downto 0);
+      
+   -- read register addresses and read result
+   read_addr1  : in  std_logic_vector(3 downto 0);
+   read_addr2  : in  std_logic_vector(3 downto 0);
+   read_data1  : out std_logic_vector(15 downto 0);
+   read_data2  : out std_logic_vector(15 downto 0);
+   
+   -- write register address & data and write enable
+   write_addr  : in  std_logic_vector(3 downto 0);
+   write_data  : in  std_logic_vector(15 downto 0);
+   write_en    : in  std_logic 
+);
+end component;
 
-type tCPU_States is (cs_poweron,
-							cs_reset,
+-- opcodes
+constant opcMOVE  : std_logic_vector(3 downto 0) := x"0";
+constant opcADD   : std_logic_vector(3 downto 0) := x"1";
+constant opcADDC  : std_logic_vector(3 downto 0) := x"2";
+constant opcSUB   : std_logic_vector(3 downto 0) := x"3";
+constant opcSUBC  : std_logic_vector(3 downto 0) := x"4";
+constant opcSHL   : std_logic_vector(3 downto 0) := x"5";
+constant opcSHR   : std_logic_vector(3 downto 0) := x"6";
+constant opcSWAP  : std_logic_vector(3 downto 0) := x"7";
+constant opcNOT   : std_logic_vector(3 downto 0) := x"8";
+constant opcAND   : std_logic_vector(3 downto 0) := x"9";
+constant opcOR    : std_logic_vector(3 downto 0) := x"A";
+constant opcXOR   : std_logic_vector(3 downto 0) := x"B";
+constant opcCMP   : std_logic_vector(3 downto 0) := x"C";
+constant opcNoOpc : std_logic_vector(3 downto 0) := x"D";
+constant opcHALT  : std_logic_vector(3 downto 0) := x"E";
+constant opcBRA   : std_logic_vector(3 downto 0) := x"F";
 
-							cs_fetch_start,
-							cs_fetch_dbg,
-							cs_fetch_dbg2,
-							
-							cs_decode,
-							cs_execute,
-							cs_halt);
+-- addressing modes
+constant amDirect       : std_logic_vector(1 downto 0) := "00"; -- use the specified register directly
+constant amIndirect     : std_logic_vector(1 downto 0) := "01"; -- use the memory address specified by the register
+constant amIndirPostInc : std_logic_vector(1 downto 0) := "10"; -- perform amIndirect and increment the register afterwards
+constant amIndirPreDec  : std_logic_vector(1 downto 0) := "11"; -- decrement the register and then perform amIndirect
 
-signal cpu_state				: tCPU_States := cs_reset;
-signal cpu_state_next		: tCPU_States;
+-- CPU's main state machine
+type tCPU_States is (cs_reset,
+                     cs_fetch,
+                     cs_decode,
 
-signal DATA_Dir_Ctrl			: std_logic;
-signal DATA_To_Bus		 	: std_logic_vector(15 downto 0);
-signal DATA_From_Bus			: std_logic_vector(15 downto 0);
+                     cs_execute_SrcDir_DstDir,
+                     cs_execute_SrcIndirPostInc_DstDir,
+                     cs_execute_SrcIndirPostInc_DstDir2,                     
+                     
+                     cs_debugout,
+                     cs_debugout2,
+                     
+                     cs_halt,
+                     cs_std_seq     -- continue with standard sequence, used by fsmNextCpuState
+                    );
+signal cpu_state           : tCPU_States := cs_reset;
+signal cpu_state_next      : tCPU_States;
 
-signal PC						: std_logic_vector(15 downto 0); -- program counter
+-- CPU i/o signals
+signal ADDR_Bus            : std_logic_vector(15 downto 0);
+signal DATA_Dir_Ctrl       : std_logic := '0';
+signal DATA_To_Bus         : std_logic_vector(15 downto 0);
+signal DATA_From_Bus       : std_logic_vector(15 downto 0) := (others => '0');
+
+-- register bank signals for accessing R0 .. R13
+signal reg_read_addr1      : std_logic_vector(3 downto 0) := "0000";
+signal reg_read_addr2      : std_logic_vector(3 downto 0) := "0000";
+signal reg_read_data1      : std_logic_vector(15 downto 0);
+signal reg_read_data2      : std_logic_vector(15 downto 0);   
+signal reg_write_addr      : std_logic_vector(3 downto 0) := "0000";
+signal reg_write_data      : std_logic_vector(15 downto 0);
+signal reg_write_en        : std_logic := '0';   
+
+-- registers R14 (SR) and R15 (PC) are directly modeled within the CPU
+signal SR                  : std_logic_vector(15 downto 0) := x"0000"; -- status register, R14
+signal PC                  : std_logic_vector(15 downto 0) := x"0000"; -- program counter, R15
+
+-- intstruction related internal CPU registers
+signal Instruction         : std_logic_vector(15 downto 0); -- current instruction word
+signal Opcode              : std_logic_vector(3 downto 0);  -- current opcode, equals bits 15 .. 12
+signal Src_RegNo           : std_logic_vector(3 downto 0);  -- current source register, equals bits 11 .. 8
+signal Src_Mode            : std_logic_vector(1 downto 0);  -- current source mode, equals bits 7 .. 6
+signal Src_Value           : std_logic_vector(15 downto 0); -- the value is coming from a register or from memory
+signal Dst_RegNo           : std_logic_vector(3 downto 0);  -- current destination register, equals bits 5 .. 2
+signal Dst_Mode            : std_logic_vector(1 downto 0);  -- current destination mode, equals bits 1 .. 0
+signal Dst_Value           : std_logic_vector(15 downto 0); -- the value is coming from a register or from memory
 
 -- state machine output buffers
+signal fsmDataToBus        : std_logic_vector(15 downto 0);
+signal fsmCpuAddr          : std_logic_vector(15 downto 0);
+signal fsmCpuDataDirCtrl   : std_logic;
+signal fsmCpuDataValid     : std_logic;
+signal fsmSR               : std_logic_vector(15 downto 0);
+signal fsmPC               : std_logic_vector(15 downto 0);
+signal fsmNextCpuState     : tCPU_States;
 
-signal fsmDataToBus			: std_logic_vector(15 downto 0);
-signal fsmPC					: std_logic_vector(15 downto 0);
-signal fsmCpuAddr				: std_logic_vector(15 downto 0);
-signal fsmCpuDataDirCtrl	: std_logic;
-signal fsmCpuDataValid		: std_logic;
+signal fsmInstruction      : std_logic_vector(15 downto 0);
+signal fsm_reg_read_addr1  : std_logic_vector(3 downto 0);
+signal fsm_reg_read_addr2  : std_logic_vector(3 downto 0);
+signal fsm_reg_write_addr  : std_logic_vector(3 downto 0);
+signal fsm_reg_write_data  : std_logic_vector(15 downto 0);
+signal fsm_reg_write_en    : std_logic := '0';
+signal fsmSrc_Value        : std_logic_vector(15 downto 0);
+signal fsmDst_Value        : std_logic_vector(15 downto 0);
+
 
 begin
 
-	-- TriState buffer/driver for the 16 bit DATA bus
-	DATA_driver : TriState_Buffer
-		generic map
-		(
-			DATA_WIDTH => 16
-		)
-		port map
-		(
-			I_CLK => CLK,
-			I_DIR_CTRL => DATA_Dir_Ctrl,
-			IO_DATA => DATA,
-			I_DATA_TO_EXTERNAL => DATA_To_Bus,
-			O_DATA_FROM_EXTERNAL => DATA_From_Bus
-		);
-	
-	-- state machine: advance to next state and transfer output values
-	fsm_advance_state : process (CLK)
-	begin
-		if rising_edge(CLK) then
-			if RESET = '1' then
-				cpu_state <= cs_reset;
-				
-				DATA_To_Bus <= (others => 'U');
-				PC <= (others => '0');
-				ADDR <= (others => '0');
-				DATA_DIR <= '0';
-				DATA_Dir_Ctrl <= '0';
-				DATA_VALID <= '0';				
-			else
-				cpu_state <= cpu_state_next;
-				
-				DATA_To_Bus <= fsmDataToBus;
-				PC <= fsmPC;
-				ADDR <= fsmCpuAddr;
-				DATA_DIR <= fsmCpuDataDirCtrl;
-				DATA_Dir_Ctrl <= fsmCpuDataDirCtrl;
-				DATA_VALID <= fsmCpuDataValid;
-			end if;
-		end if;
-	end process;
-	
-	fsm_output_decode : process (cpu_state, PC, DATA_From_Bus)
-	begin
-		-- as fsm_advance_state is clocking the values on rising edges,
-		-- the below-mentioned output decoding is to be read as:
-		-- "what will be the output variables at the NEXT state (after the current state)"
-		case cpu_state is
-			when cs_reset =>
-				fsmDataToBus <= (others => 'U');
-				fsmPC <= (others => '0');
-				fsmCpuAddr <= (others => '0');
-				fsmCpuDataDirCtrl <= '0';
-				fsmCpuDataValid <= '0';
-										
-			-- as the previous state cs_reset sets the direction control to read and the address to 0,
-			-- the DATA_driver will take care, that at the falling edge of cs_fetch_start's
-			-- clock cycle, DATA_From_Bus will be valid to be read at the next state (cs_fetch_dbg)
-			when cs_fetch_start =>
-				fsmDataToBus <= DATA_From_Bus; -- will be valid from the falling edge on
-				fsmPC <= PC;						 
-				fsmCpuAddr <= x"8000";
-				fsmCpuDataDirCtrl <= '1';
-				fsmCpuDataValid <= '0';
-				
-			-- DATA_driver is writing on rising edge, i.e. we need to hold the data to be
-			-- written for one more cycle after cs_fetch_dbg
-			when cs_fetch_dbg =>
-				fsmDataToBus <= DATA_From_Bus;
-				fsmPC <= PC;
-				fsmCpuAddr <= x"8000";
-				fsmCpuDataDirCtrl <= '1';
-				fsmCpuDataValid <= '1';
-			
-			when cs_fetch_dbg2 =>
-				fsmDataToBus <= (others => 'U');
-				fsmPC <= std_logic_vector(unsigned(PC) + 1);
-				fsmCpuAddr <= fsmPC;
-				fsmCpuDataDirCtrl <= '0';
-				fsmCpuDataValid <= '0';
-			
-			when others =>
-				fsmDataToBus <= (others => 'U');
-				fsmPC <= (others => 'U');
-				fsmCpuAddr <= (others => 'U');
-				fsmCpuDataDirCtrl <= 'U';
-				fsmCpuDataValid <= 'U';
-				
-		end case;
-	end process;
-	
-	-- main CPU state machine that runs through the enum cpu_state
-	fsm_next_state_decode : process (cpu_state)
-	begin
-		case cpu_state is
-			when cs_reset 			=> cpu_state_next <= cs_fetch_start;						
-			when cs_fetch_start 	=> cpu_state_next <= cs_fetch_dbg;
-			when cs_fetch_dbg 	=> cpu_state_next <= cs_fetch_dbg2;
-			when cs_fetch_dbg2	=> cpu_state_next <= cs_fetch_start;
-			when others 			=> cpu_state_next <= cpu_state;
-		end case;
-	end process;
-						
-	with cpu_state select
-		dbg_cpustate <= "000" when cs_reset,
-							 "001" when cs_fetch_start,
-							 "010" when cs_fetch_dbg,
-							 "011" when cs_fetch_dbg2,
-							 "111" when others;	
+   -- TriState buffer/driver for the 16 bit DATA bus
+   DATA_driver : TriState_Buffer
+      generic map
+      (
+         DATA_WIDTH => 16
+      )
+      port map
+      (
+         I_CLK       => CLK,
+         I_DIR_CTRL  => DATA_Dir_Ctrl,
+         IO_DATA     => DATA,
+         I_DATA_TO_EXTERNAL => DATA_To_Bus,
+         O_DATA_FROM_EXTERNAL => DATA_From_Bus
+      );
+      
+   -- Registers
+   Registers : register_file
+      port map
+      (
+         clk         => CLK,
+         SR          => SR,
+         PC          => PC,
+         sel_rbank   => SR(7 downto 0),
+         read_addr1  => reg_read_addr1,
+         read_addr2  => reg_read_addr2,
+         read_data1  => reg_read_data1,
+         read_data2  => reg_read_data2,
+         write_addr  => reg_write_addr,
+         write_data  => reg_write_data,
+         write_en    => reg_write_en
+      );
+   
+   -- state machine: advance to next state and transfer output values
+   fsm_advance_state : process (CLK)
+   begin
+      if rising_edge(CLK) then
+         if RESET = '1' then
+            cpu_state <= cs_reset;
+            
+            DATA_To_Bus <= (others => '0');
+            ADDR_Bus <= x"0000";
+            DATA_DIR <= '0';
+            DATA_Dir_Ctrl <= '0';
+            DATA_VALID <= '0';
+            
+            SR <= x"0000";
+            PC <= x"0000";
+            
+            Instruction <= (others => '0');            
+            Src_Value <= (others => '0');
+            Dst_Value <= (others => '0');
+            
+            reg_read_addr1 <= (others => '0');
+            reg_read_addr2 <= (others => '0');
+            reg_write_addr <= (others => '0');
+            reg_write_data <= (others => '0');
+            reg_write_en <= '0';           
+         else
+            if fsmNextCpuState = cs_std_seq then
+               cpu_state <= cpu_state_next;
+            else
+               cpu_state <= fsmNextCpuState;
+            end if;
+                        
+            DATA_To_Bus <= fsmDataToBus;
+            ADDR_Bus <= fsmCpuAddr;
+            DATA_DIR <= fsmCpuDataDirCtrl;
+            DATA_Dir_Ctrl <= fsmCpuDataDirCtrl;
+            DATA_VALID <= fsmCpuDataValid;
+            
+            SR <= fsmSR;
+            PC <= fsmPC;
+            
+            Instruction <= fsmInstruction;
+            Src_Value <= fsmSrc_Value;
+            Dst_Value <= fsmDst_Value;
+            
+            reg_read_addr1 <= fsm_reg_read_addr1;
+            reg_read_addr2 <= fsm_reg_read_addr2;            
+            reg_write_addr <= fsm_reg_write_addr;
+            reg_write_data <= fsm_reg_write_data;
+            reg_write_en <= fsm_reg_write_en;            
+         end if;
+      end if;
+   end process;
+   
+   fsm_output_decode : process (cpu_state, ADDR_Bus, SR, PC, DATA_From_Bus, Instruction,
+                                Opcode, Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
+                                reg_read_addr1, reg_read_data1, reg_read_addr2, reg_read_data2,
+                                reg_write_addr, reg_write_data, reg_write_en)
+   begin   
+      fsmDataToBus <= (others => '0');
+      fsmSR <= SR;
+      fsmPC <= PC;
+      fsmCpuAddr <= ADDR_Bus;
+      fsmCpuDataDirCtrl <= '0';
+      fsmCpuDataValid <= '0';
+      fsmNextCpuState <= cs_std_seq;
+      fsmInstruction <= Instruction;
+      fsmSrc_Value <= Src_Value;
+      fsmDst_Value <= Dst_Value;
+      fsm_reg_read_addr1 <= reg_read_addr1;
+      fsm_reg_read_addr2 <= reg_read_addr2;
+      fsm_reg_write_addr <= reg_write_addr;
+      fsm_reg_write_data <= reg_write_data;
+      fsm_reg_write_en <= '0';
+   
+      -- as fsm_advance_state is clocking the values on rising edges,
+      -- the below-mentioned output decoding is to be read as:
+      -- "what will be the output variables at the NEXT state (after the current state)"
+      case cpu_state is
+         when cs_reset =>
+            fsmSR <= x"0000";
+            fsmPC <= x"0000";
+            fsmCpuAddr <= x"0000";
+            fsmCpuDataDirCtrl <= '0';
+            fsmCpuDataValid <= '0';
+            fsmNextCpuState <= cs_std_seq;
+            fsmInstruction <= (others => '0');
+                              
+         -- as the previous state sets the direction control to read and the address to a meaningful value
+         -- (i.e. 0 after cs_reset or current PC afterwards), the DATA_driver will take care, that at the
+         -- falling edge of cs_fetch's clock cycle, DATA_From_Bus will contain the next opcode
+         when cs_fetch =>
+            fsmInstruction <= DATA_From_Bus; -- valid at falling edge
+            fsmPC <= PC + 1;
+            fsm_reg_read_addr1 <= DATA_From_Bus(11 downto 8); -- read Src register number
+            fsm_reg_read_addr2 <= DATA_From_Bus(5 downto 2);  -- rest Dst register number
+                        
+         when cs_decode =>         
+            if Src_Mode = amDirect and Dst_Mode = amDirect then
+                  fsmNextCpuState <= cs_execute_SrcDir_DstDir;
+            end if;
+            
+            if Src_Mode = amIndirPostInc and Dst_Mode = amDirect then
+                  fsmCpuAddr <= reg_read_data1;
+                  fsmNextCpuState <= cs_execute_SrcIndirPostInc_DstDir;
+            end if;
+            
+         when cs_execute_SrcIndirPostInc_DstDir =>
+            fsmSrc_Value <= DATA_FROM_Bus;
+            fsmNextCpuState <= cs_execute_SrcIndirPostInc_DstDir2;
+            case Src_RegNo is
+               when x"E" => fsmSR <= SR + 1;
+               when x"F" => fsmPC <= PC + 1;
+               when others =>
+                  fsm_reg_write_addr <= Src_RegNo;
+                  fsm_reg_write_data <= DATA_FROM_Bus + 1;
+                  fsm_reg_write_en <= '1';
+            end case;
+            
+         when cs_execute_SrcIndirPostInc_DstDir2 =>
+            case Opcode is
+               when opcMOVE =>
+                  if Dst_RegNo = x"F" then      -- program counter
+                     fsmPC <= Src_Value;
+                  elsif Dst_RegNo = x"E" then   -- status register
+                     fsmSR <= Src_Value;
+                  else
+                     fsm_reg_write_addr <= Dst_RegNo;
+                     fsm_reg_write_data <= Src_Value;
+                     fsm_reg_write_en <= '1';
+                  end if;
+                     
+               when others =>
+            end case;
+
+            fsmCpuAddr <= x"8000";
+            fsmDataToBus <= Src_RegNo & Dst_RegNo & Src_Value(7 downto 0);
+            fsmCpuDataDirCtrl <= '1';
+            fsmCpuDataValid <= '0';            
+            fsmNextCpuState <= cs_debugout;
+             
+         when cs_debugout =>            
+            fsmCpuDataDirCtrl <= '1';
+            fsmCpuDataValid <= '1';
+            
+         when cs_debugout2 =>
+            fsmCpuAddr <= PC;
+             
+         when others =>
+            fsmPC <= (others => '0');
+            fsmCpuAddr <= (others => '0');
+            fsmCpuDataDirCtrl <= '0';
+            fsmCpuDataValid <= '0';
+            
+      end case;
+   end process;
+   
+   -- main CPU state machine that runs through the enum cpu_state
+   fsm_next_state_decode : process (cpu_state)
+   begin
+      case cpu_state is
+         when cs_reset              => cpu_state_next <= cs_fetch;         
+         when cs_fetch              => cpu_state_next <= cs_decode;
+         when cs_debugout           => cpu_state_next <= cs_debugout2;
+         when cs_debugout2          => cpu_state_next <= cs_fetch;
+         when others                => cpu_state_next <= cpu_state;
+      end case;
+   end process;
+               
+--   dbg_reg_da1 <= reg_read_data1;
+
+   ADDR        <= ADDR_Bus;
+   
+   Opcode      <= Instruction(15 downto 12);
+   Src_RegNo   <= Instruction(11 downto 8);
+   Src_Mode    <= Instruction(7 downto 6);
+   Dst_RegNo   <= Instruction(5 downto 2);
+   Dst_Mode    <= Instruction(1 downto 0);
+            
+--   with cpu_state select
+--      dbg_cpustate <= "000" when cs_reset,
+--                      "001" when cs_fetch,
+--                      "010" when cs_execute,
+--                      "111" when others;  
 end beh;
 

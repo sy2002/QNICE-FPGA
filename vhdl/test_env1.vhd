@@ -42,7 +42,7 @@ ARCHITECTURE behavior OF test_env1 IS
     COMPONENT env1
     PORT(
          CLK : IN  std_logic;
-			RESET_N : IN std_logic;
+         RESET_N : IN std_logic;
          SSEG_AN : OUT  std_logic_vector(7 downto 0);
          SSEG_CA : OUT  std_logic_vector(7 downto 0)
         );
@@ -52,7 +52,7 @@ ARCHITECTURE behavior OF test_env1 IS
    --Inputs
    signal CLK : std_logic := '0';
 
- 	--Outputs
+   --Outputs
    signal SSEG_AN : std_logic_vector(7 downto 0);
    signal SSEG_CA : std_logic_vector(7 downto 0);
 
@@ -61,10 +61,10 @@ ARCHITECTURE behavior OF test_env1 IS
  
 BEGIN
  
-	-- Instantiate the Unit Under Test (UUT)
+   -- Instantiate the Unit Under Test (UUT)
    uut: env1 PORT MAP (
           CLK => CLK,
-			 RESET_N => '1',
+          RESET_N => '1',
           SSEG_AN => SSEG_AN,
           SSEG_CA => SSEG_CA
         );
@@ -72,18 +72,18 @@ BEGIN
    -- Clock process definitions
    CLK_process :process
    begin
-		CLK <= '0';
-		wait for CLK_period/2;
-		CLK <= '1';
-		wait for CLK_period/2;
+      CLK <= '0';
+      wait for CLK_period/2;
+      CLK <= '1';
+      wait for CLK_period/2;
    end process;
  
 
    -- Stimulus process
    stim_proc: process
-   begin		
+   begin    
       -- hold reset state for 100 ns.
-      wait for 100 ns;	
+      wait for 100 ns;  
 
       wait for CLK_period*10;
 

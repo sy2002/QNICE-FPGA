@@ -15,16 +15,16 @@ use ieee.std_logic_1164.all;
 
 entity TriState_Buffer is
 generic (
-	DATA_WIDTH				: integer range 1 to 32
+   DATA_WIDTH           : integer range 1 to 32
 );
 port (
-	I_CLK                : in    std_logic;  -- synchronized with bidir bus
-	I_DIR_CTRL           : in    std_logic;  -- 3-state enable input, high=output, low=input
-	
-	IO_DATA              : inout std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to/from external pin on bidir bus
-	
-	I_DATA_TO_EXTERNAL   : in    std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to send over bidir bus
-	O_DATA_FROM_EXTERNAL : out   std_logic_vector(DATA_WIDTH - 1 downto 0)   -- data received over bidir bus	
+   I_CLK                : in    std_logic;  -- synchronized with bidir bus
+   I_DIR_CTRL           : in    std_logic;  -- 3-state enable input, high=output, low=input
+   
+   IO_DATA              : inout std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to/from external pin on bidir bus
+   
+   I_DATA_TO_EXTERNAL   : in    std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to send over bidir bus
+   O_DATA_FROM_EXTERNAL : out   std_logic_vector(DATA_WIDTH - 1 downto 0)   -- data received over bidir bus 
 );
 end entity TriState_Buffer;
 
@@ -48,8 +48,8 @@ begin
          data_out <= I_DATA_TO_EXTERNAL;
       end if;
    end process Register_Output;
-	
-	Handle_Direction : process (I_DIR_CTRL, IO_DATA, data_out)
+   
+   Handle_Direction : process (I_DIR_CTRL, IO_DATA, data_out)
    begin 
       if I_DIR_CTRL = '0' then 
          IO_DATA <= (others => 'Z'); 
@@ -57,6 +57,6 @@ begin
          IO_DATA <= data_out; 
       end if; 
       data_in <= IO_DATA;
-	end process;
+   end process;
 
 end architecture beh;
