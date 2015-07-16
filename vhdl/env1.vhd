@@ -3,8 +3,9 @@
 -- board environment. Features:
 --
 --    * the original layout: lower 32kB are ROM, upper 32kB are RAM
---    * memory mapped IO beginning at 0xFFF0
---    * TIL-311 display at 0xFF10
+--    * memory mapped IO beginning at 0xFF00
+--    * 4 TIL-311 displays at 0xFF10: 0xFF10 is the value to be displayed
+--                                    0xFF11 lower 4 bit are a display bit mask
 -- 
 -- done in 2015 by sy2002
 ----------------------------------------------------------------------------------
@@ -19,11 +20,7 @@ port (
    
    -- 7 segment display: common anode and cathode
    SSEG_AN     : out std_logic_vector(7 downto 0);  -- common anode: selects digit
-   SSEG_CA     : out std_logic_vector(7 downto 0)   -- cathode: selects segment within a digit
-   
-   -- debug
---   RegAddr1    : in std_logic_vector(3 downto 0);
---   RegData1    : out std_logic_vector(15 downto 0)
+   SSEG_CA     : out std_logic_vector(7 downto 0)   -- cathode: selects segment within a digit   
 ); 
 end env1;
 
@@ -41,12 +38,7 @@ port (
    --tristate 16 bit data bus
    DATA        : inout std_logic_vector(15 downto 0);    -- send/receive data
    DATA_DIR    : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
-   DATA_VALID  : out std_logic                           -- while DATA_DIR = 1: DATA contains valid data
-   
-   -- debug output
---   dbg_cpustate   : out std_logic_vector(2 downto 0)
---   dbg_reg_ra1    : in std_logic_vector(3 downto 0);
---   dbg_reg_da1    : out std_logic_vector(15 downto 0)   
+   DATA_VALID  : out std_logic                           -- while DATA_DIR = 1: DATA contains valid data   
 );
 end component;
 
@@ -106,13 +98,10 @@ signal cpu_data               : std_logic_vector(15 downto 0);
 signal cpu_data_dir           : std_logic;
 signal cpu_data_valid         : std_logic;
 
---signal cpu_dbg_cpustate       : std_logic_vector(2 downto 0);
---signal cpu_dbg_reg_da1        : std_logic_vector(15 downto 0);   
-
 signal slow_clock             : std_logic := '0';
 signal slow_clock_trigger     : std_logic := '0';
 
-signal dbg_data               : std_logic_vector(15 downto 0);
+signal TIL_311_buffer         : std_logic_vector(15 downto 0) := x"0000";
 
 begin
 
@@ -120,7 +109,7 @@ begin
    slowclock : SyTargetCounter
       generic map
       (
-         COUNTER_FINISH => 100000000,
+         COUNTER_FINISH => 25000000,
 --         COUNTER_FINISH => 4,
          COUNTER_WIDTH => 28
       )
@@ -148,19 +137,7 @@ begin
          DATA => cpu_data,
          DATA_DIR => cpu_data_dir,
          DATA_VALID => cpu_data_valid
---         dbg_cpustate => cpu_dbg_cpustate
---         dbg_reg_ra1 => RegAddr1,
---         dbg_reg_da1 => cpu_dbg_reg_da1
       );
-
-   debug_out : process (cpu_data, cpu_addr, cpu_data_valid)
-   begin
-      if cpu_addr = x"8000" and cpu_data_valid = '1' then
-         dbg_data <= cpu_data;
-      else
-         dbg_data <= x"FFFF";
-      end if;
-   end process;
 
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
    rom : ROM_FROM_FILE
@@ -186,12 +163,20 @@ begin
       port map
       (
          clk => CLK,
-         digits => cpu_addr & dbg_data,
-         mask => "11111111",
+         digits => x"0000" & TIL_311_buffer,
+         mask => "00001111",
          SSEG_AN => SSEG_AN,
          SSEG_CA => SSEG_CA
       );
-
---   RegData1 <= cpu_dbg_reg_da1;
+      
+   til_driver : process(slow_clock, cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid)
+   begin
+      if falling_edge(slow_clock) then
+         if cpu_data_valid = '1' and cpu_data_dir = '1' and cpu_addr = x"FF10" then
+            TIL_311_buffer <= cpu_data;            
+         end if;
+      end if;
+   end process;
+   
 end beh;
 

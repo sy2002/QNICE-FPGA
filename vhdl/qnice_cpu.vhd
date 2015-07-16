@@ -8,6 +8,9 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_ARITH.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+use work.cpu_constants.all;
 
 entity QNICE_CPU is
 port (
@@ -73,41 +76,35 @@ port (
 );
 end component;
 
--- opcodes
-constant opcMOVE  : std_logic_vector(3 downto 0) := x"0";
-constant opcADD   : std_logic_vector(3 downto 0) := x"1";
-constant opcADDC  : std_logic_vector(3 downto 0) := x"2";
-constant opcSUB   : std_logic_vector(3 downto 0) := x"3";
-constant opcSUBC  : std_logic_vector(3 downto 0) := x"4";
-constant opcSHL   : std_logic_vector(3 downto 0) := x"5";
-constant opcSHR   : std_logic_vector(3 downto 0) := x"6";
-constant opcSWAP  : std_logic_vector(3 downto 0) := x"7";
-constant opcNOT   : std_logic_vector(3 downto 0) := x"8";
-constant opcAND   : std_logic_vector(3 downto 0) := x"9";
-constant opcOR    : std_logic_vector(3 downto 0) := x"A";
-constant opcXOR   : std_logic_vector(3 downto 0) := x"B";
-constant opcCMP   : std_logic_vector(3 downto 0) := x"C";
-constant opcNoOpc : std_logic_vector(3 downto 0) := x"D";
-constant opcHALT  : std_logic_vector(3 downto 0) := x"E";
-constant opcBRA   : std_logic_vector(3 downto 0) := x"F";
-
--- addressing modes
-constant amDirect       : std_logic_vector(1 downto 0) := "00"; -- use the specified register directly
-constant amIndirect     : std_logic_vector(1 downto 0) := "01"; -- use the memory address specified by the register
-constant amIndirPostInc : std_logic_vector(1 downto 0) := "10"; -- perform amIndirect and increment the register afterwards
-constant amIndirPreDec  : std_logic_vector(1 downto 0) := "11"; -- decrement the register and then perform amIndirect
+-- ALU
+component alu is
+port (
+   opcode      : in std_logic_vector(3 downto 0);
+   input1      : in IEEE.NUMERIC_STD.signed(15 downto 0);
+   input2      : in IEEE.NUMERIC_STD.signed(15 downto 0);
+   result      : out IEEE.NUMERIC_STD.signed(15 downto 0)
+);
+end component;
 
 -- CPU's main state machine
 type tCPU_States is (cs_reset,
-                     cs_fetch,
-                     cs_decode,
-
-                     cs_execute_SrcDir_DstDir,
-                     cs_execute_SrcIndirPostInc_DstDir,
-                     cs_execute_SrcIndirPostInc_DstDir2,                     
                      
-                     cs_debugout,
-                     cs_debugout2,
+                     cs_fetch,
+
+                     -- depending of adressing modes of the instruction, we
+                     -- have a variable length execution that either jumps
+                     -- directly from cs_decode to cs_execute (src and dst adressing
+                     -- are direct) or run through either one of or both of the
+                     -- cs_exeprep_get_* states
+                     cs_decode,
+                     
+                     cs_exeprep_get_src_indirect,
+                     cs_exeprep_get_dst_indirect,
+                     
+                     cs_execute,
+                     
+                     cs_exepost_store_dst_indirect,
+                     cs_exepost_prepfetch,                     
                      
                      cs_halt,
                      cs_std_seq     -- continue with standard sequence, used by fsmNextCpuState
@@ -159,8 +156,12 @@ signal fsm_reg_read_addr2  : std_logic_vector(3 downto 0);
 signal fsm_reg_write_addr  : std_logic_vector(3 downto 0);
 signal fsm_reg_write_data  : std_logic_vector(15 downto 0);
 signal fsm_reg_write_en    : std_logic := '0';
+
 signal fsmSrc_Value        : std_logic_vector(15 downto 0);
 signal fsmDst_Value        : std_logic_vector(15 downto 0);
+
+-- ALU signals are purely combinatorical
+signal Alu_Result          : IEEE.NUMERIC_STD.signed(15 downto 0); -- execution result
 
 
 begin
@@ -195,6 +196,16 @@ begin
          write_addr  => reg_write_addr,
          write_data  => reg_write_data,
          write_en    => reg_write_en
+      );
+      
+   -- ALU
+   QNICE_ALU : alu
+      port map
+      (
+         opcode      => Opcode,
+         input1      => IEEE.NUMERIC_STD.signed(Src_Value),
+         input2      => IEEE.NUMERIC_STD.signed(Dst_Value),
+         result      => Alu_Result
       );
    
    -- state machine: advance to next state and transfer output values
@@ -254,7 +265,8 @@ begin
    fsm_output_decode : process (cpu_state, ADDR_Bus, SR, PC, DATA_From_Bus, Instruction,
                                 Opcode, Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 reg_read_addr1, reg_read_data1, reg_read_addr2, reg_read_data2,
-                                reg_write_addr, reg_write_data, reg_write_en)
+                                reg_write_addr, reg_write_data, reg_write_en,
+                                Alu_Result)
    begin   
       fsmDataToBus <= (others => '0');
       fsmSR <= SR;
@@ -294,55 +306,143 @@ begin
             fsm_reg_read_addr1 <= DATA_From_Bus(11 downto 8); -- read Src register number
             fsm_reg_read_addr2 <= DATA_From_Bus(5 downto 2);  -- rest Dst register number
                         
-         when cs_decode =>         
-            if Src_Mode = amDirect and Dst_Mode = amDirect then
-                  fsmNextCpuState <= cs_execute_SrcDir_DstDir;
-            end if;
+         when cs_decode =>
+            -- source and destination values in case of direct register addressing modes
+            -- no special handling of SR and PC needed, as this a a read-only activity
+            -- and the registerfile contains a convenience function for that
+            fsmSrc_Value <= reg_read_data1;
+            fsmDst_Value <= reg_read_data2;
             
-            if Src_Mode = amIndirPostInc and Dst_Mode = amDirect then
-                  fsmCpuAddr <= reg_read_data1;
-                  fsmNextCpuState <= cs_execute_SrcIndirPostInc_DstDir;
-            end if;
-            
-         when cs_execute_SrcIndirPostInc_DstDir =>
-            fsmSrc_Value <= DATA_FROM_Bus;
-            fsmNextCpuState <= cs_execute_SrcIndirPostInc_DstDir2;
-            case Src_RegNo is
-               when x"E" => fsmSR <= SR + 1;
-               when x"F" => fsmPC <= PC + 1;
-               when others =>
-                  fsm_reg_write_addr <= Src_RegNo;
-                  fsm_reg_write_data <= DATA_FROM_Bus + 1;
-                  fsm_reg_write_en <= '1';
-            end case;
-            
-         when cs_execute_SrcIndirPostInc_DstDir2 =>
-            case Opcode is
-               when opcMOVE =>
-                  if Dst_RegNo = x"F" then      -- program counter
-                     fsmPC <= Src_Value;
-                  elsif Dst_RegNo = x"E" then   -- status register
-                     fsmSR <= Src_Value;
-                  else
-                     fsm_reg_write_addr <= Dst_RegNo;
-                     fsm_reg_write_data <= Src_Value;
-                     fsm_reg_write_en <= '1';
-                  end if;
-                     
-               when others =>
-            end case;
+            -- decode addressing modes for source and destination
+            -- if source is alrady indirect, then ignore destination for now
+            -- (will be decoded within cs_exeprep_get_src_indirect)
+            if Src_Mode /= amDirect then
+               fsmNextCpuState <= cs_exeprep_get_src_indirect;
+               
+               -- perform pre decrement, if necessary and then put
+               -- the address on the data bus for reading
+               if Src_Mode = amIndirPreDec then
+               
+                  -- put pre decremented address on the data bus for reading
+                  fsmCpuAddr <= reg_read_data1 - 1;
+                  
+                  -- write back the decremented values
+                  -- special handling of SR and PC as they are not stored in the register file
+                  case Src_RegNo is
+                     when x"E" => fsmSR <= SR - 1;
+                     when x"F" => fsmPC <= PC - 1;
+                     when others =>
+                        fsm_reg_write_addr <= Src_RegNo;
+                        fsm_reg_write_data <= reg_read_data1 - 1;
+                        fsm_reg_write_en <= '1';               
+                  end case;                  
+               else
+                  fsmCpuAddr <= reg_read_data1; -- normal (non decremented) address on the bus for reading
+               end if;
+           
+            elsif Dst_Mode /= amDirect then
+               fsmNextCpuState <= cs_exeprep_get_dst_indirect;
+               
+               -- pre decrement for destination register
+               if Dst_Mode = amIndirPreDec then
+                  fsmCpuAddr <= reg_read_data2 - 1;
+                  case Dst_RegNo is
+                     when x"E" => fsmSR <= SR - 1;
+                     when x"F" => fsmPC <= PC - 1;
+                     when others =>
+                        fsm_reg_write_addr <= Dst_RegNo;
+                        fsm_reg_write_data <= reg_read_data2 - 1;
+                        fsm_reg_write_en <= '1';
+                  end case;
+               
+               -- normal (non decremented) address on the bus for reading
+               else
+                  fsmCpuAddr <= reg_read_data2;
+               end if;
+            end if;            
 
-            fsmCpuAddr <= x"8000";
-            fsmDataToBus <= Src_RegNo & Dst_RegNo & Src_Value(7 downto 0);
-            fsmCpuDataDirCtrl <= '1';
-            fsmCpuDataValid <= '0';            
-            fsmNextCpuState <= cs_debugout;
-             
-         when cs_debugout =>            
+         when cs_exeprep_get_src_indirect =>
+            -- read the indirect value from the bus and store it
+            fsmSrc_Value <= DATA_FROM_Bus;
+            
+            -- perform post increment
+            if Src_Mode = amIndirPostInc then
+               -- special handling of SR and PC as they are not stored in the register file
+               case Src_RegNo is
+                  when x"E" => fsmSR <= SR + 1;
+                  when x"F" => fsmPC <= PC + 1;
+                  when others =>
+                     fsm_reg_write_addr <= Src_RegNo;
+                     fsm_reg_write_data <= Src_Value + 1;
+                     fsm_reg_write_en <= '1';               
+               end case;
+            end if;
+                              
+            -- decode the destination addressing mode
+            if Dst_Mode /= amDirect then
+               -- this code is nearly identical to the above-mentioned code
+               -- within "elsif Dst_Mode /= amDirect then"
+               fsmNextCpuState <= cs_exeprep_get_dst_indirect;                  
+               if Dst_Mode = amIndirPreDec then
+                  fsmCpuAddr <= reg_read_data2 - 1;
+                  case Dst_RegNo is
+                     when x"E" => fsmSR <= SR - 1;
+                     when x"F" => fsmPC <= PC - 1;
+                     when others =>
+                        fsm_reg_write_addr <= Dst_RegNo;
+                        fsm_reg_write_data <= Dst_Value - 1; -- here, the code is not identical
+                        fsm_reg_write_en <= '1';
+                  end case;
+               else
+                  fsmCpuAddr <= reg_read_data2;
+               end if;               
+            end if;
+
+         when cs_exeprep_get_dst_indirect =>
+            -- read the indirect value from the bus and store it
+            fsmDst_Value <= DATA_FROM_Bus;
+            
+            -- perform post increment
+            if Dst_Mode = amIndirPostInc then
+               -- special handling of SR and PC as they are not stored in the register file
+               case Dst_RegNo is
+                  when x"E" => fsmSR <= SR + 1;
+                  when x"F" => fsmPC <= PC + 1;
+                  when others =>
+                     fsm_reg_write_addr <= Dst_RegNo;
+                     fsm_reg_write_data <= Dst_Value + 1;
+                     fsm_reg_write_en <= '1';               
+               end case;
+            end if;
+            
+         when cs_execute =>
+            
+            -- As the ALU is a purely combinatorical circuit, ALU's calculation is
+            -- immediatelly done, when cs_execute i entered. We need to make sure,
+            -- that all ALU inputs contain valid data at this moment in time
+            
+            if Dst_Mode = amDirect then
+            
+               -- store result in register
+               fsm_reg_write_addr <= Dst_RegNo;
+               fsm_reg_write_data <= std_logic_vector(Alu_Result);
+               fsm_reg_write_en <= '1';
+               
+               -- prepare next fetch by outputting the next instruction's address
+               fsmCpuAddr <= PC;
+            else
+               fsmNextCpuState <= cs_exepost_store_dst_indirect;
+               fsmCpuAddr <= reg_read_data2;
+               fsmDataToBus <= std_logic_vector(Alu_Result);
+               fsmCpuDataDirCtrl <= '1';
+               fsmCpuDataValid <='0';
+            end if;
+                               
+        when cs_exepost_store_dst_indirect =>
             fsmCpuDataDirCtrl <= '1';
             fsmCpuDataValid <= '1';
-            
-         when cs_debugout2 =>
+        
+        when cs_exepost_prepfetch =>
             fsmCpuAddr <= PC;
              
          when others =>
@@ -358,11 +458,15 @@ begin
    fsm_next_state_decode : process (cpu_state)
    begin
       case cpu_state is
-         when cs_reset              => cpu_state_next <= cs_fetch;         
-         when cs_fetch              => cpu_state_next <= cs_decode;
-         when cs_debugout           => cpu_state_next <= cs_debugout2;
-         when cs_debugout2          => cpu_state_next <= cs_fetch;
-         when others                => cpu_state_next <= cpu_state;
+         when cs_reset                       => cpu_state_next <= cs_fetch;         
+         when cs_fetch                       => cpu_state_next <= cs_decode;
+         when cs_decode                      => cpu_state_next <= cs_execute;
+         when cs_exeprep_get_src_indirect    => cpu_state_next <= cs_execute;
+         when cs_exeprep_get_dst_indirect    => cpu_state_next <= cs_execute;
+         when cs_execute                     => cpu_state_next <= cs_fetch;
+         when cs_exepost_store_dst_indirect  => cpu_state_next <= cs_exepost_prepfetch;
+         when cs_exepost_prepfetch           => cpu_state_next <= cs_fetch;         
+         when others                         => cpu_state_next <= cpu_state;
       end case;
    end process;
                
