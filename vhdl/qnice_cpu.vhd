@@ -23,12 +23,7 @@ port (
    -- tristate 16 bit data bus
    DATA           : inout std_logic_vector(15 downto 0);    -- send/receive data
    DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
-   DATA_VALID     : out std_logic                           -- while DATA_DIR = 1: DATA contains valid data
-   
-   -- debug input / output
---   dbg_cpustate   : out std_logic_vector(2 downto 0)
---   dbg_reg_ra1    : in std_logic_vector(3 downto 0);
---   dbg_reg_da1    : out std_logic_vector(15 downto 0)
+   DATA_VALID     : out std_logic                           -- while DATA_DIR = 1: DATA contains valid data   
 );
 end QNICE_CPU;
 
@@ -80,11 +75,23 @@ end component;
 component alu is
 port (
    opcode      : in std_logic_vector(3 downto 0);
+   
+   -- input1 is meant to be source (Src) and input2 is meant to be destination (Dst)
+   -- c_in is carry in
    input1      : in IEEE.NUMERIC_STD.signed(15 downto 0);
    input2      : in IEEE.NUMERIC_STD.signed(15 downto 0);
-   result      : out IEEE.NUMERIC_STD.signed(15 downto 0)
+   c_in        : in std_logic;
+   
+   -- ALU operation result and flags
+   result      : out IEEE.NUMERIC_STD.signed(15 downto 0);
+   X           : out std_logic;
+   C           : out std_logic;
+   Z           : out std_logic;
+   N           : out std_logic;
+   V           : out std_logic
 );
-end component;
+end component;      
+
 
 -- CPU's main state machine
 type tCPU_States is (cs_reset,
@@ -127,9 +134,10 @@ signal reg_write_addr      : std_logic_vector(3 downto 0) := "0000";
 signal reg_write_data      : std_logic_vector(15 downto 0);
 signal reg_write_en        : std_logic := '0';   
 
--- registers R14 (SR) and R15 (PC) are directly modeled within the CPU
-signal SR                  : std_logic_vector(15 downto 0) := x"0000"; -- status register, R14
-signal PC                  : std_logic_vector(15 downto 0) := x"0000"; -- program counter, R15
+-- register R14 (SR) and R15 (PC) are directly modeled within the CPU
+-- but also read-only accessible via the register file
+signal SR                  : std_logic_vector(15 downto 0) := x"0001"; -- status register (R14)
+signal PC                  : std_logic_vector(15 downto 0) := x"0000"; -- program counter (R15)
 
 -- intstruction related internal CPU registers
 signal Instruction         : std_logic_vector(15 downto 0); -- current instruction word
@@ -140,6 +148,9 @@ signal Src_Value           : std_logic_vector(15 downto 0); -- the value is comi
 signal Dst_RegNo           : std_logic_vector(3 downto 0);  -- current destination register, equals bits 5 .. 2
 signal Dst_Mode            : std_logic_vector(1 downto 0);  -- current destination mode, equals bits 1 .. 0
 signal Dst_Value           : std_logic_vector(15 downto 0); -- the value is coming from a register or from memory
+signal Bra_Mode            : std_logic_vector(1 downto 0);  -- branch mode (branch type)
+signal Bra_Neg             : std_logic;                     -- branch condition negated
+signal Bra_Condition       : std_logic_vector(2 downto 0);  -- flag number within lower 8 bits of SR
 
 -- state machine output buffers
 signal fsmDataToBus        : std_logic_vector(15 downto 0);
@@ -162,6 +173,11 @@ signal fsmDst_Value        : std_logic_vector(15 downto 0);
 
 -- ALU signals are purely combinatorical
 signal Alu_Result          : IEEE.NUMERIC_STD.signed(15 downto 0); -- execution result
+signal Alu_X               : std_logic;
+signal Alu_C               : std_logic;
+signal Alu_Z               : std_logic;
+signal Alu_N               : std_logic;
+signal Alu_V               : std_logic;
 
 
 begin
@@ -188,7 +204,7 @@ begin
          clk         => CLK,
          SR          => SR,
          PC          => PC,
-         sel_rbank   => SR(7 downto 0),
+         sel_rbank   => SR(15 downto 8),
          read_addr1  => reg_read_addr1,
          read_addr2  => reg_read_addr2,
          read_data1  => reg_read_data1,
@@ -205,9 +221,15 @@ begin
          opcode      => Opcode,
          input1      => IEEE.NUMERIC_STD.signed(Src_Value),
          input2      => IEEE.NUMERIC_STD.signed(Dst_Value),
-         result      => Alu_Result
+         c_in        => SR(2),
+         result      => Alu_Result,
+         X           => Alu_X,
+         C           => Alu_C,
+         Z           => Alu_Z,
+         N           => Alu_N,
+         V           => Alu_V
       );
-   
+             
    -- state machine: advance to next state and transfer output values
    fsm_advance_state : process (CLK)
    begin
@@ -221,7 +243,7 @@ begin
             DATA_Dir_Ctrl <= '0';
             DATA_VALID <= '0';
             
-            SR <= x"0000";
+            SR <= x"0001";
             PC <= x"0000";
             
             Instruction <= (others => '0');            
@@ -246,7 +268,7 @@ begin
             DATA_Dir_Ctrl <= fsmCpuDataDirCtrl;
             DATA_VALID <= fsmCpuDataValid;
             
-            SR <= fsmSR;
+            SR <= fsmSR(15 downto 1) & "1";
             PC <= fsmPC;
             
             Instruction <= fsmInstruction;
@@ -262,14 +284,16 @@ begin
       end if;
    end process;
    
-   fsm_output_decode : process (cpu_state, ADDR_Bus, SR, PC, DATA_From_Bus, Instruction,
-                                Opcode, Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
+   fsm_output_decode : process (cpu_state, ADDR_Bus, SR, PC, DATA_From_Bus,
+                                Instruction, Opcode,
+                                Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
+                                Bra_Mode, Bra_Condition, Bra_Neg,
                                 reg_read_addr1, reg_read_data1, reg_read_addr2, reg_read_data2,
                                 reg_write_addr, reg_write_data, reg_write_en,
-                                Alu_Result)
-   begin   
+                                Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                                                
+   begin
       fsmDataToBus <= (others => '0');
-      fsmSR <= SR;
+      fsmSR <= SR(15 downto 1) & "1";
       fsmPC <= PC;
       fsmCpuAddr <= ADDR_Bus;
       fsmCpuDataDirCtrl <= '0';
@@ -289,7 +313,7 @@ begin
       -- "what will be the output variables at the NEXT state (after the current state)"
       case cpu_state is
          when cs_reset =>
-            fsmSR <= x"0000";
+            fsmSR <= x"0001";
             fsmPC <= x"0000";
             fsmCpuAddr <= x"0000";
             fsmCpuDataDirCtrl <= '0';
@@ -305,7 +329,7 @@ begin
             fsmPC <= PC + 1;
             fsm_reg_read_addr1 <= DATA_From_Bus(11 downto 8); -- read Src register number
             fsm_reg_read_addr2 <= DATA_From_Bus(5 downto 2);  -- rest Dst register number
-                        
+                                    
          when cs_decode =>
             -- source and destination values in case of direct register addressing modes
             -- no special handling of SR and PC needed, as this a a read-only activity
@@ -340,7 +364,8 @@ begin
                   fsmCpuAddr <= reg_read_data1; -- normal (non decremented) address on the bus for reading
                end if;
            
-            elsif Dst_Mode /= amDirect then
+            -- in case of a branch, Dst_Mode would contain garbage, therefore perform an explicit check
+            elsif Opcode /= opcBRA and Dst_Mode /= amDirect then
                fsmNextCpuState <= cs_exeprep_get_dst_indirect;
                
                -- pre decrement for destination register
@@ -378,8 +403,8 @@ begin
                end case;
             end if;
                               
-            -- decode the destination addressing mode
-            if Dst_Mode /= amDirect then
+            -- decode the destination addressing mode (and avoid garbage due to a branch opcode)
+            if Opcode /= opcBRA and Dst_Mode /= amDirect then
                -- this code is nearly identical to the above-mentioned code
                -- within "elsif Dst_Mode /= amDirect then"
                fsmNextCpuState <= cs_exeprep_get_dst_indirect;                  
@@ -416,26 +441,65 @@ begin
             end if;
             
          when cs_execute =>
-            
-            -- As the ALU is a purely combinatorical circuit, ALU's calculation is
-            -- immediatelly done, when cs_execute i entered. We need to make sure,
-            -- that all ALU inputs contain valid data at this moment in time
-            
-            if Dst_Mode = amDirect then
-            
-               -- store result in register
-               fsm_reg_write_addr <= Dst_RegNo;
-               fsm_reg_write_data <= std_logic_vector(Alu_Result);
-               fsm_reg_write_en <= '1';
-               
-               -- prepare next fetch by outputting the next instruction's address
+         
+            -- execute branches
+            if Opcode = opcBRA then
+               fsmNextCpuState <= cs_fetch;
+               fsmSR <= SR(15 downto 8) & "00000001"; -- clear flags
                fsmCpuAddr <= PC;
+               
+               if SR(conv_integer(Bra_Condition)) = not Bra_Neg then             
+                  case Bra_Mode is
+                     when bmABRA =>
+                        fsmPC <= Src_Value;
+                        fsmCpuAddr <= Src_Value;
+                  
+                     when bmRBRA =>
+                        fsmPC <= PC + Src_Value;
+                        fsmCpuAddr <= PC + Src_Value;
+                        
+                     when others =>
+                        fsmNextCpuState <= cs_halt;
+                  end case;
+               end if;
+            
+            -- execute all comands other than branches
             else
-               fsmNextCpuState <= cs_exepost_store_dst_indirect;
-               fsmCpuAddr <= reg_read_data2;
-               fsmDataToBus <= std_logic_vector(Alu_Result);
-               fsmCpuDataDirCtrl <= '1';
-               fsmCpuDataValid <='0';
+            
+               -- As the ALU is a purely combinatorical circuit, ALU's calculation is
+               -- immediatelly done, when cs_execute i entered. We need to make sure,
+               -- that all ALU inputs contain valid data at this moment in time
+               
+               -- store flags
+               fsmSR <= SR(15 downto 8) & "00" & Alu_V & Alu_N & Alu_Z & Alu_C & Alu_X & "1";
+               
+               -- store result: direct
+               if Dst_Mode = amDirect then
+               
+                  -- store result in register
+                  case Dst_RegNo is
+                     when x"E" =>
+                        fsmSR <= std_logic_vector(Alu_Result);
+                     when x"F" =>
+                        fsmPC <= std_logic_vector(Alu_Result);
+                        fsmCpuAddr <= std_logic_vector(Alu_Result);
+                     when others =>
+                        fsm_reg_write_addr <= Dst_RegNo;
+                        fsm_reg_write_data <= std_logic_vector(Alu_Result);
+                        fsm_reg_write_en <= '1';
+                 end case;
+                  
+                  -- prepare next fetch by outputting the next instruction's address
+                  fsmCpuAddr <= PC;
+                  
+               -- store result: indirect
+               else
+                  fsmNextCpuState <= cs_exepost_store_dst_indirect;
+                  fsmCpuAddr <= reg_read_data2;
+                  fsmDataToBus <= std_logic_vector(Alu_Result);
+                  fsmCpuDataDirCtrl <= '1';
+                  fsmCpuDataValid <='0';
+               end if;               
             end if;
                                
         when cs_exepost_store_dst_indirect =>
@@ -470,20 +534,15 @@ begin
       end case;
    end process;
                
---   dbg_reg_da1 <= reg_read_data1;
-
-   ADDR        <= ADDR_Bus;
+   ADDR           <= ADDR_Bus;
    
-   Opcode      <= Instruction(15 downto 12);
-   Src_RegNo   <= Instruction(11 downto 8);
-   Src_Mode    <= Instruction(7 downto 6);
-   Dst_RegNo   <= Instruction(5 downto 2);
-   Dst_Mode    <= Instruction(1 downto 0);
-            
---   with cpu_state select
---      dbg_cpustate <= "000" when cs_reset,
---                      "001" when cs_fetch,
---                      "010" when cs_execute,
---                      "111" when others;  
+   Opcode         <= Instruction(15 downto 12);
+   Src_RegNo      <= Instruction(11 downto 8);
+   Src_Mode       <= Instruction(7 downto 6);
+   Dst_RegNo      <= Instruction(5 downto 2);
+   Dst_Mode       <= Instruction(1 downto 0);
+   Bra_Mode       <= Instruction(5 downto 4);
+   Bra_Neg        <= Instruction(3);
+   Bra_Condition  <= Instruction(2 downto 0);   
 end beh;
 

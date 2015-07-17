@@ -33,6 +33,12 @@ constant amIndirect     : std_logic_vector(1 downto 0) := "01"; -- use the memor
 constant amIndirPostInc : std_logic_vector(1 downto 0) := "10"; -- perform amIndirect and increment the register afterwards
 constant amIndirPreDec  : std_logic_vector(1 downto 0) := "11"; -- decrement the register and then perform amIndirect
 
+-- branch modes / branch types
+constant bmABRA         : std_logic_vector(1 downto 0) := "00"; -- absolute branch ("jump")
+constant bmASUB         : std_logic_vector(1 downto 0) := "01"; -- absolute subroutine ("jsr")
+constant bmRBRA         : std_logic_vector(1 downto 0) := "10"; -- relative branch
+constant bmRSUB         : std_logic_vector(1 downto 0) := "11"; -- relative subroutine
+
 end cpu_constants;
 
 package body cpu_constants is

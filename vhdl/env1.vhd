@@ -78,19 +78,19 @@ end component;
 
 -- this component counts to the specified value COUNTER_FINISH,
 -- then it fires 'overflow' for one clock cycle and then it restarts at zero
-component SyTargetCounter is
-generic (
-   COUNTER_FINISH : integer;
-   COUNTER_WIDTH  : integer range 2 to 32 
-);
-port (
-   clk     : in std_logic;
-   reset   : in std_logic;
-   
-   cnt       :  out std_logic_vector(COUNTER_WIDTH - 1 downto 0);
-   overflow  : out std_logic := '0'
-);
-end component;
+--component SyTargetCounter is
+--generic (
+--   COUNTER_FINISH : integer;
+--   COUNTER_WIDTH  : integer range 2 to 32 
+--);
+--port (
+--   clk     : in std_logic;
+--   reset   : in std_logic;
+--   
+--   cnt       :  out std_logic_vector(COUNTER_WIDTH - 1 downto 0);
+--   overflow  : out std_logic := '0'
+--);
+--end component;
 
 
 signal cpu_addr               : std_logic_vector(15 downto 0);
@@ -98,40 +98,40 @@ signal cpu_data               : std_logic_vector(15 downto 0);
 signal cpu_data_dir           : std_logic;
 signal cpu_data_valid         : std_logic;
 
-signal slow_clock             : std_logic := '0';
-signal slow_clock_trigger     : std_logic := '0';
+--signal slow_clock             : std_logic := '0';
+--signal slow_clock_trigger     : std_logic := '0';
 
 signal TIL_311_buffer         : std_logic_vector(15 downto 0) := x"0000";
 
 begin
 
-   -- Slow Clock: for "single stepping" the CPU
-   slowclock : SyTargetCounter
-      generic map
-      (
-         COUNTER_FINISH => 25000000,
+--   -- Slow Clock: for "single stepping" the CPU
+--   slowclock : SyTargetCounter
+--      generic map
+--      (
+----         COUNTER_FINISH => 25000000,
 --         COUNTER_FINISH => 4,
-         COUNTER_WIDTH => 28
-      )
-      port map
-      (
-         clk => CLK,
-         reset => '0',
-         overflow => slow_clock_trigger
-      );
-      
-   slowclock_driver : process(slow_clock_trigger)
-   begin
-      if slow_clock_trigger'event and slow_clock_trigger = '1' then
-         slow_clock <= not slow_clock;
-      end if;        
-   end process;
+--         COUNTER_WIDTH => 28
+--      )
+--      port map
+--      (
+--         clk => CLK,
+--         reset => '0',
+--         overflow => slow_clock_trigger
+--      );
+--      
+--   slowclock_driver : process(slow_clock_trigger)
+--   begin
+--      if slow_clock_trigger'event and slow_clock_trigger = '1' then
+--         slow_clock <= not slow_clock;
+--      end if;        
+--   end process;
 
    -- QNICE CPU
    cpu : QNICE_CPU
       port map
       (
-         CLK => slow_clock,
+         CLK => CLK,
          RESET => not RESET_N,
          ADDR => cpu_addr,
          DATA => cpu_data,
@@ -145,7 +145,7 @@ begin
       (
          ADDR_WIDTH => 16,
          DATA_WIDTH => 16,
-         SIZE       => 16,
+         SIZE       => 21,
          FILE_NAME  => "../test_programs/til_count.rom"                                      
       )
       port map(
@@ -169,9 +169,9 @@ begin
          SSEG_CA => SSEG_CA
       );
       
-   til_driver : process(slow_clock, cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid)
+   til_driver : process(CLK, cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid)
    begin
-      if falling_edge(slow_clock) then
+      if falling_edge(CLK) then
          if cpu_data_valid = '1' and cpu_data_dir = '1' and cpu_addr = x"FF10" then
             TIL_311_buffer <= cpu_data;            
          end if;

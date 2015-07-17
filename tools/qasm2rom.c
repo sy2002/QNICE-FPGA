@@ -42,16 +42,18 @@ int main(int argc, char *argv[])
     input_file = fopen(argv[1], "r");
     if (!input_file)
     {
-        printf("input file %s could not be opened\n", argv[1]);
+        printf("qasm2rom: input file %s could not be opened\n", argv[1]);
         return -2;
     }
 
     output_file = fopen(argv[2], "w+");
     if (!output_file)
     {
-        printf("output file %s could not be created\n", argv[2]);
+        printf("qasm2rom: output file %s could not be created\n", argv[2]);
         return -3;
     }
+
+    int rom_line_counter = 0;
 
     while (fgets(pib, 20, input_file))
     {
@@ -60,11 +62,14 @@ int main(int argc, char *argv[])
             for (int i = 9; i < 13; ++i)          
                 fprintf(output_file, "%s", (char*) &binary[strchr(digits, pib[i]) - digits]);
             fprintf(output_file, "\n");
+            rom_line_counter++;
         }
     }
 
     fclose(input_file);
     fclose(output_file);
+
+    printf("qasm2rom: %i ROM lines written.\n", rom_line_counter);
 
     return 0;
 }
