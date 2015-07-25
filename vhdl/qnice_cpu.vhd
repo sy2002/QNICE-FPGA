@@ -486,7 +486,12 @@ begin
                   -- store result in register
                   case Dst_RegNo is
                      when x"E" =>
-                        fsmSR <= std_logic_vector(Alu_Result);
+                        -- not all parts of the SR are writeable: only the upper 8 bit plus
+                        -- the M, C and X register are writeable, 
+                        fsmSR(15 downto 8) <= std_logic_vector(Alu_Result(15 downto 8));
+                        fsmSR(7) <= std_logic(Alu_Result(7)); -- M
+                        fsmSR(2) <= std_logic(Alu_Result(2)); -- C
+                        fsmSR(1) <= std_logic(Alu_Result(1)); -- X
                      when x"F" =>
                         fsmPC <= std_logic_vector(Alu_Result);
                         fsmCpuAddr <= std_logic_vector(Alu_Result);

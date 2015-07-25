@@ -165,8 +165,8 @@ begin
       (
          ADDR_WIDTH => 16,
          DATA_WIDTH => 16,
-         SIZE       => 45,
-         FILE_NAME  => "../test_programs/til_count.rom"                                      
+         SIZE       => 51,
+         FILE_NAME  => "../test_programs/moves.rom"                                      
       )
       port map(
          en => rom_enable, -- enable ROM if lower 32k word and CPU in read mode
