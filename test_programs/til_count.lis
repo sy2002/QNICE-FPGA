@@ -1,38 +1,67 @@
 000001                    ;; This is the very first "real" QNICE-FPGA test program which is and was used during the
-000002                    ;; initial development of QNICE-FPGA by sy2002.
+000002                    ;; initial development of QNICE-FPGA by sy2002 in July 2015.
 000003                    ;;
 000004                    ;; It is inspired by vaxman's original test program "til_count.asm" that displays
 000005                    ;; a count on the TIL-311 display on the original QNICE/A evaluation board.
 000006                    
 000007                    IO$TIL_BASE     .EQU    0xFF10                  ; Address of TIL-display
-000008                    
-000009                    ; QNICE-FPGA in the current early stage of development is running at about 20 MIPS. As the
-000010                    ; inner loop consists of two instructions, we need to count to about 10.000.000 for having
-000011                    ; the effect of an 1 Hz incrementing counter on the TIL.
-000012                    ; So we choose WAIT_CYCLES1 as 5.000 equ 0x1388 and WAIT_CYCLES2 as 2.000 equ 0x07D0
-000013                    WAIT_CYCLES1    .EQU    0x1388
-000014                    WAIT_CYCLES2    .EQU    0x07D0
-000015                    
-000016                                    .ORG    0x0000                  ; Start address
-000017  0000  0F80  0000                  MOVE    0x0000, R0              ; Clear R0
-000018  0002  0F84  FF10                  MOVE    IO$TIL_BASE, R1         ; Base address of TIL-display for output
-000019  0004  0005        LOOP            MOVE    R0, @R1                 ; Write contents of R0 to the TIL-display
-000020                    
-000021  0005  0F8C  07D0                  MOVE    WAIT_CYCLES2, R3
-000022  0007  0F88  1388  WAIT_LOOP2      MOVE    WAIT_CYCLES1, R2
-000023  0009  3F88  0001  WAIT_LOOP1      SUB     1, R2                   ; Decrement loop counter
-000024  000B  FFAB  FFFC                  RBRA    WAIT_LOOP1, !Z           ; If not zero, perform next loop
-000025  000D  3F8C  0001                  SUB     1, R3
-000026  000F  FFAB  FFF6                  RBRA    WAIT_LOOP2, !Z
+000008                    IO$TIL_MASK     .EQU    0xFF11                  ; Mask register of TIL display
+000009                    
+000010                    FLAG_C_SET      .EQU    0x0004                  ; bit pattern for setting the carry flag with OR
+000011                    FLAG_C_CLEAR    .EQU    0xFFFB                  ; bit pattern for clearing the carry flag with AND
+000012                    
+000013                    ; QNICE-FPGA in the current early stage of development is running at about 20 MIPS. As the
+000014                    ; inner loop consists of two instructions, we need to count to about 10.000.000 for having
+000015                    ; the effect of an ~1 Hz incrementing counter on the TIL.
+000016                    ; So we choose WAIT_CYCLES1 as 5.000 equ 0x1388 and WAIT_CYCLES2 as 2.000 equ 0x07D0
+000017                    WAIT_CYCLES1    .EQU    0x1388
+000018                    WAIT_CYCLES2    .EQU    0x07D0
+000019                    
+000020                                    .ORG    0x0000                  ; Start address
+000021  0000  0F80  0000                  MOVE    0x0000, R0              ; Clear R0
+000022  0002  0F84  FF10                  MOVE    IO$TIL_BASE, R1         ; Base address of TIL-display for output
+000023  0004  0FA4  FF11                  MOVE    IO$TIL_MASK, R9         ; Mask register of TIL-display for selecting which TIL is lit
+000024                    
+000025                                    ; Write contents of R0 to the TIL-display
+000026  0006  0005        LOOP            MOVE    R0, @R1
 000027                    
-000028  0011  1F80  0001                  ADD     1, R0                   ; Increment R0
-000029  0013  FFAB  FFEF                  RBRA    LOOP, !Z                ; Unconditional jump to display the next value
+000028                                    ; Create mask for TIL digits, so that only those TILs are lit, that are displaying non zero digits
+000029  0007  0F90  000F                  MOVE    0x000F, R4              ; R4 is the resulting mask; at first, we assume all four digits are lit
+000030  0009  0F94  F000                  MOVE    0xF000, R5              ; R5 is the bit parttern to check, if a certain digit shall be lit
+000031  000B  0F9C  0003                  MOVE    0x0003, R7              ; R7 is the loop counter
+000032                    
+000033  000D  0518        CREATE_MASK     MOVE    R5, R6                  ; use the pattern and ...
+000034  000E  9018                        AND     R0, R6                  ; ... check if one of the bits is set at the digit position implied the mask
+000035  000F  FFAB  000A                  RBRA    MASK_READY, !Z          ; if bits are set, then mask is ready
+000036  0011  9FB8  FFFB                  AND     FLAG_C_CLEAR, R14       ; clear C because SHR fills with C (not necessarry, because C is never set before)
+000037  0013  6F90  0001                  SHR     1, R4                   ; make the mask smaller by one bit
+000038  0015  6F94  0004                  SHR     4, R5                   ; move the "scanner pattern" to the next digit (i.e. 4 bits)
+000039  0017  3F9C  0001                  SUB     1, R7                   ; reduce counter (counter necessary to avoid endless loop in case of R0 == 0)
+000040  0019  FFAB  FFF2                  RBRA    CREATE_MASK, !Z         ; next iteration
+000041                    
+000042                                    ; Set mask register of TIL-display
+000043  001B  0425        MASK_READY      MOVE    R4, @R9
+000044                    
+000045                                    ; waste cycles to approximate a 1 Hz execution
+000046  001C  0F8C  07D0                  MOVE    WAIT_CYCLES2, R3
+000047  001E  0F88  1388  WAIT_LOOP2      MOVE    WAIT_CYCLES1, R2
+000048  0020  3F88  0001  WAIT_LOOP1      SUB     1, R2                   ; Decrement loop counter
+000049  0022  FFAB  FFFC                  RBRA    WAIT_LOOP1, !Z          ; If not zero, perform next loop
+000050  0024  3F8C  0001                  SUB     1, R3
+000051  0026  FFAB  FFF6                  RBRA    WAIT_LOOP2, !Z
+000052                    
+000053  0028  1F80  0001                  ADD     1, R0                   ; Increment R0
+000054  002A  FFAB  FFDA                  RBRA    LOOP, !Z                ; Unconditional jump to display the next value
+000055                    
+000056  002C  E000                        HALT                            ; stop the CPU
 
 
 EQU-list:
 --------------------------------------------------------------------------------------------------------
-IO$TIL_BASE             : 0xFF10    WAIT_CYCLES1            : 0x1388    WAIT_CYCLES2            : 0x07D0    
+IO$TIL_BASE             : 0xFF10    IO$TIL_MASK             : 0xFF11    FLAG_C_SET              : 0x0004    
+FLAG_C_CLEAR            : 0xFFFB    WAIT_CYCLES1            : 0x1388    WAIT_CYCLES2            : 0x07D0    
 
 Label-list:
 --------------------------------------------------------------------------------------------------------
-LOOP                    : 0x0004    WAIT_LOOP2              : 0x0007    WAIT_LOOP1              : 0x0009    
+LOOP                    : 0x0006    CREATE_MASK             : 0x000D    MASK_READY              : 0x001B    
+WAIT_LOOP2              : 0x001E    WAIT_LOOP1              : 0x0020    

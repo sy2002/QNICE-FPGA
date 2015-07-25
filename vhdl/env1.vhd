@@ -58,7 +58,6 @@ port (
 );
 end component;
 
-
 -- Nexys 4 DDR specific 7 segment display driver
 component drive_7digits
 generic (
@@ -73,6 +72,21 @@ port (
    -- 7 segment display needs multiplexed approach due to common anode
    SSEG_AN     : out std_logic_vector(7 downto 0); -- common anode: selects digit
    SSEG_CA     : out std_logic_vector(7 downto 0) -- cathode: selects segment within a digit 
+);
+end component;
+
+-- multiplexer to control the data bus (enable/disable the different parties)
+component mmio_mux is
+port (
+   -- input from CPU
+   addr              : in std_logic_vector(15 downto 0);
+   data_dir          : in std_logic;
+   data_valid        : in std_logic;
+   
+   -- ROM is enabled when the address is < $8000 and the CPU is reading
+   rom_enable        : out std_logic;
+   til_reg0_enable   : out std_logic;
+   til_reg1_enable   : out std_logic   
 );
 end component;
 
@@ -102,6 +116,12 @@ signal cpu_data_valid         : std_logic;
 --signal slow_clock_trigger     : std_logic := '0';
 
 signal TIL_311_buffer         : std_logic_vector(15 downto 0) := x"0000";
+signal TIL_311_mask           : std_logic_vector(3 downto 0)  := "1111";
+
+-- MMIO control signals
+signal rom_enable             : std_logic;
+signal til_reg0_enable        : std_logic;
+signal til_reg1_enable        : std_logic;
 
 begin
 
@@ -145,15 +165,15 @@ begin
       (
          ADDR_WIDTH => 16,
          DATA_WIDTH => 16,
-         SIZE       => 21,
+         SIZE       => 45,
          FILE_NAME  => "../test_programs/til_count.rom"                                      
       )
       port map(
-         en => (not cpu_addr(15)) and (not cpu_data_dir), -- enable ROM if lower 32k word and CPU in read mode
+         en => rom_enable, -- enable ROM if lower 32k word and CPU in read mode
          addr => "0" & cpu_addr(14 downto 0),
          data => cpu_data
       );
-
+     
    -- 7 segment display
    disp_7seg : drive_7digits
       generic map
@@ -164,16 +184,33 @@ begin
       (
          clk => CLK,
          digits => x"0000" & TIL_311_buffer,
-         mask => "00001111",
+         mask => "0000" & TIL_311_mask,
          SSEG_AN => SSEG_AN,
          SSEG_CA => SSEG_CA
+      );      
+      
+   -- memory mapped i/o controller
+   mmio_controller : mmio_mux
+      port map
+      (
+         addr => cpu_addr,
+         data_dir => cpu_data_dir,
+         data_valid => cpu_data_valid,
+         rom_enable => rom_enable,
+         til_reg0_enable => til_reg0_enable,
+         til_reg1_enable => til_reg1_enable
       );
       
-   til_driver : process(CLK, cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid)
+   -- clock-in the current to-be-displayed value and mask into a FF for the TIL
+   til_driver : process(CLK)
    begin
       if falling_edge(CLK) then
-         if cpu_data_valid = '1' and cpu_data_dir = '1' and cpu_addr = x"FF10" then
+         if til_reg0_enable = '1' then
             TIL_311_buffer <= cpu_data;            
+         end if;
+         
+         if til_reg1_enable = '1' then
+            TIL_311_mask <= cpu_data(3 downto 0);
          end if;
       end if;
    end process;

@@ -78,12 +78,13 @@ port (
    
    -- input1 is meant to be source (Src) and input2 is meant to be destination (Dst)
    -- c_in is carry in
-   input1      : in IEEE.NUMERIC_STD.signed(15 downto 0);
-   input2      : in IEEE.NUMERIC_STD.signed(15 downto 0);
+   input1      : in IEEE.NUMERIC_STD.unsigned(15 downto 0);
+   input2      : in IEEE.NUMERIC_STD.unsigned(15 downto 0);
    c_in        : in std_logic;
+   x_in        : in std_logic;
    
    -- ALU operation result and flags
-   result      : out IEEE.NUMERIC_STD.signed(15 downto 0);
+   result      : out IEEE.NUMERIC_STD.unsigned(15 downto 0);
    X           : out std_logic;
    C           : out std_logic;
    Z           : out std_logic;
@@ -172,7 +173,7 @@ signal fsmSrc_Value        : std_logic_vector(15 downto 0);
 signal fsmDst_Value        : std_logic_vector(15 downto 0);
 
 -- ALU signals are purely combinatorical
-signal Alu_Result          : IEEE.NUMERIC_STD.signed(15 downto 0); -- execution result
+signal Alu_Result          : IEEE.NUMERIC_STD.unsigned(15 downto 0); -- execution result
 signal Alu_X               : std_logic;
 signal Alu_C               : std_logic;
 signal Alu_Z               : std_logic;
@@ -219,9 +220,10 @@ begin
       port map
       (
          opcode      => Opcode,
-         input1      => IEEE.NUMERIC_STD.signed(Src_Value),
-         input2      => IEEE.NUMERIC_STD.signed(Dst_Value),
+         input1      => IEEE.NUMERIC_STD.unsigned(Src_Value),
+         input2      => IEEE.NUMERIC_STD.unsigned(Dst_Value),
          c_in        => SR(2),
+         x_in        => SR(1),
          result      => Alu_Result,
          X           => Alu_X,
          C           => Alu_C,
@@ -384,7 +386,12 @@ begin
                else
                   fsmCpuAddr <= reg_read_data2;
                end if;
-            end if;            
+            end if;
+
+            -- halt the CPU
+            if Opcode = opcHalt then
+               fsmNextCpuState <= cs_halt;
+            end if;
 
          when cs_exeprep_get_src_indirect =>
             -- read the indirect value from the bus and store it
@@ -529,7 +536,8 @@ begin
          when cs_exeprep_get_dst_indirect    => cpu_state_next <= cs_execute;
          when cs_execute                     => cpu_state_next <= cs_fetch;
          when cs_exepost_store_dst_indirect  => cpu_state_next <= cs_exepost_prepfetch;
-         when cs_exepost_prepfetch           => cpu_state_next <= cs_fetch;         
+         when cs_exepost_prepfetch           => cpu_state_next <= cs_fetch;
+         when cs_halt                        => cpu_state_next <= cs_halt;
          when others                         => cpu_state_next <= cpu_state;
       end case;
    end process;
