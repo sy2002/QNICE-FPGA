@@ -165,8 +165,8 @@ begin
       (
          ADDR_WIDTH => 16,
          DATA_WIDTH => 16,
-         SIZE       => 51,
-         FILE_NAME  => "../test_programs/moves.rom"                                      
+         SIZE       => 20,
+         FILE_NAME  => "../test_programs/ramstacksub.rom"                                      
       )
       port map(
          en => rom_enable, -- enable ROM if lower 32k word and CPU in read mode
