@@ -31,7 +31,7 @@ end BRAM;
 architecture beh of BRAM is
 
 type bram_t is array (0 to BLOCK_RAM_SIZE - 1) of std_logic_vector(15 downto 0);
-signal bram : bram_t := (others => x"0000");
+signal bram : bram_t := (others => x"baba");
 
 signal output : std_logic_vector(15 downto 0);
 
@@ -44,7 +44,7 @@ begin
    -- process for read and write operation on the rising clock edge
    ram_readwrite : process (clk)
    begin
-      if rising_edge(clk) then
+      if falling_edge(clk) then
          if we = '1' and ce = '1' then
             bram(conv_integer(address)) <= data_i;
          end if;

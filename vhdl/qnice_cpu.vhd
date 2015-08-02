@@ -110,12 +110,21 @@ type tCPU_States is (cs_reset,
                      cs_decode,
                      
                      cs_exeprep_get_src_indirect,
+                     cs_exeprep_get_src_indirect2,
+                     cs_exeprep_get_src_indirect3,
                      cs_exeprep_get_dst_indirect,
+                     cs_exeprep_get_dst_indirect2,
+                     cs_exeprep_get_dst_indirect3,                     
                      
                      cs_execute,
                      
                      cs_exepost_store_dst_indirect,
+                     cs_exepost_store_dst_indirect2,
+                     cs_exepost_store_dst_indirect3,
+
                      cs_exepost_sub,                     
+                     cs_exepost_sub2,
+                     cs_exepost_sub3,                     
                      cs_exepost_prepfetch,
                      
                      cs_halt,
@@ -406,13 +415,16 @@ begin
                fsmNextCpuState <= cs_halt;
             end if;
 
-         when cs_exeprep_get_src_indirect =>
+         when cs_exeprep_get_src_indirect  =>
+               fsmSrc_Value <= DATA_FROM_Bus;
+
+         when cs_exeprep_get_src_indirect2 =>
             -- add wait cycles, if necessary (e.g. due to slow RAM)
-            if WAIT_FOR_DATA = '1' then
-               fsmNextCpuState <= cs_exeprep_get_src_indirect;
+            --if WAIT_FOR_DATA = '1' then
+               --fsmNextCpuState <= cs_exeprep_get_src_indirect;
                
             -- data from bus is available
-            else
+            --else
                -- read the indirect value from the bus and store it
                fsmSrc_Value <= DATA_FROM_Bus;
                
@@ -451,20 +463,20 @@ begin
                      fsmCpuAddr <= reg_read_data2;
                   end if;               
                end if;
-            end if;
+            --end if;
 
-         when cs_exeprep_get_dst_indirect =>
+         when cs_exeprep_get_dst_indirect | cs_exeprep_get_dst_indirect2 | cs_exeprep_get_dst_indirect3 =>
             -- add wait cycles, if necessary (e.g. due to slow RAM)
             -- optimization for MOVE: the dst value is discarded in a "move to indirect"
             -- scenario, so we can spare one CPU cycle in this case by ignoring WAIT_FOR_DATA
-            if WAIT_FOR_DATA = '1' and Opcode /= opcMOVE then
-               fsmNextCpuState <= cs_exeprep_get_dst_indirect;
+            --if WAIT_FOR_DATA = '1' and Opcode /= opcMOVE then
+               --fsmNextCpuState <= cs_exeprep_get_dst_indirect;
                
             -- data from bus is available
-            else         
+            --else         
                -- read the indirect value from the bus and store it
                fsmDst_Value <= DATA_FROM_Bus;
-            end if;                        
+            --end if;                        
                         
          when cs_execute =>
          
@@ -573,9 +585,14 @@ begin
                      fsm_reg_write_data <= reg_read_data2 + 1;
                      fsm_reg_write_en <= '1';               
                end case;
-            end if;            
+            end if;
+
+         when cs_exepost_store_dst_indirect2 | cs_exepost_store_dst_indirect3  =>
+            fsmDataToBus <= DATA_To_Bus;
+            fsmCpuDataDirCtrl <= '1';
+            fsmCpuDataValid <= '1';        
                 
-         when cs_exepost_sub =>
+         when cs_exepost_sub | cs_exepost_sub2 | cs_exepost_sub3 =>
             fsmDataToBus <= DATA_To_Bus;
             fsmCpuDataDirCtrl <= '1';
             fsmCpuDataValid <= '1';
@@ -606,11 +623,19 @@ begin
          when cs_reset                       => cpu_state_next <= cs_fetch;         
          when cs_fetch                       => cpu_state_next <= cs_decode;
          when cs_decode                      => cpu_state_next <= cs_execute;
-         when cs_exeprep_get_src_indirect    => cpu_state_next <= cs_execute;
-         when cs_exeprep_get_dst_indirect    => cpu_state_next <= cs_execute;
+         when cs_exeprep_get_src_indirect    => cpu_state_next <= cs_exeprep_get_src_indirect2;
+         --when cs_exeprep_get_src_indirect2   => cpu_state_next <= cs_exeprep_get_src_indirect3;
+         when cs_exeprep_get_src_indirect2   => cpu_state_next <= cs_execute;
+         when cs_exeprep_get_dst_indirect    => cpu_state_next <= cs_exeprep_get_dst_indirect2;
+         --when cs_exeprep_get_dst_indirect2   => cpu_state_next <= cs_exeprep_get_dst_indirect3;
+         when cs_exeprep_get_dst_indirect2   => cpu_state_next <= cs_execute;
          when cs_execute                     => cpu_state_next <= cs_fetch;
-         when cs_exepost_store_dst_indirect  => cpu_state_next <= cs_exepost_prepfetch;
-         when cs_exepost_sub                 => cpu_state_next <= cs_exepost_prepfetch;         
+         when cs_exepost_store_dst_indirect  => cpu_state_next <= cs_exepost_store_dst_indirect2;
+         --when cs_exepost_store_dst_indirect2 => cpu_state_next <= cs_exepost_store_dst_indirect3;
+         when cs_exepost_store_dst_indirect2 => cpu_state_next <= cs_exepost_prepfetch;
+         when cs_exepost_sub                 => cpu_state_next <= cs_exepost_sub2;
+         --when cs_exepost_sub2                => cpu_state_next <= cs_exepost_sub3;
+         when cs_exepost_sub2                => cpu_state_next <= cs_exepost_prepfetch;         
          when cs_exepost_prepfetch           => cpu_state_next <= cs_fetch;
          when cs_halt                        => cpu_state_next <= cs_halt;
          when others                         => cpu_state_next <= cpu_state;

@@ -16,8 +16,8 @@
 IO$TIL_BASE     .EQU    0xFF10              ; Address of TIL-display
 
 ; about 10.000.000 cycles are needed to delay 1 sec
-WAIT_CYCLES1    .EQU    0x0001              ; 0x1388 = decimal 5.000
-WAIT_CYCLES2    .EQU    0x0001              ; 0x07D0 = decimal 2.000
+WAIT_CYCLES1    .EQU    0x1388              ; 0x1388 = decimal 5.000
+WAIT_CYCLES2    .EQU    0x07D0              ; 0x07D0 = decimal 2.000
 
 NEXT_BANK       .EQU    0x0100              ; added to SR: switch to next bank
 

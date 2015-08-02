@@ -4,9 +4,9 @@
 000004                    ; result registers, showing the actual value, then subtracting the correct
 000005                    ; value, so that next a "0" should be shown.
 000006                    ;
-000007                    ; Also, a simple RAM check is included, as this test program uses RSUB
-000008                    ; to call the delay routine, therefore a super small stack on RAM is utilized
-000009                    ; using two nested function calls
+000007                    ; Also, a simple RAM check is included, as this test program does subtractions
+000008                    ; in RAM and furtheron uses RSUB to call the delay routine, therefore a super
+000009                    ; small stack on RAM is utilized using two nested function calls
 000010                    ;
 000011                    ; Everything works correct, if the TIL displays the following sequence in
 000012                    ; a loop: 8080, 0000, 1700, 0000
@@ -16,8 +16,8 @@
 000016                    IO$TIL_BASE     .EQU    0xFF10              ; Address of TIL-display
 000017                    
 000018                    ; about 10.000.000 cycles are needed to delay 1 sec
-000019                    WAIT_CYCLES1    .EQU    0x0001              ; 0x1388 = decimal 5.000
-000020                    WAIT_CYCLES2    .EQU    0x0001              ; 0x07D0 = decimal 2.000
+000019                    WAIT_CYCLES1    .EQU    0x1388              ; 0x1388 = decimal 5.000
+000020                    WAIT_CYCLES2    .EQU    0x07D0              ; 0x07D0 = decimal 2.000
 000021                    
 000022                    NEXT_BANK       .EQU    0x0100              ; added to SR: switch to next bank
 000023                    
@@ -109,8 +109,8 @@
 000109                    
 000110                    ; sub routine to wait for about 1sec
 000111  004C  1FB8  0100  DELAY           ADD     NEXT_BANK, R14      ; next register bank
-000112  004E  0F84  0001                  MOVE    WAIT_CYCLES2, R1    ; outer wait cycles (2.000)
-000113  0050  0F80  0001  WAIT_LOOP2      MOVE    WAIT_CYCLES1, R0    ; inner wait cycles (5.000)
+000112  004E  0F84  07D0                  MOVE    WAIT_CYCLES2, R1    ; outer wait cycles (2.000)
+000113  0050  0F80  1388  WAIT_LOOP2      MOVE    WAIT_CYCLES1, R0    ; inner wait cycles (5.000)
 000114  0052  3F80  0001  WAIT_LOOP1      SUB     1, R0               ; dec inner wait cycles and ...
 000115  0054  FFAB  FFFC                  RBRA    WAIT_LOOP1, !Z      ; ... repeat if not zero
 000116  0056  3F84  0001                  SUB     1, R1               ; dec outer wait cycles and ...
@@ -122,7 +122,7 @@
 
 EQU-list:
 --------------------------------------------------------------------------------------------------------
-IO$TIL_BASE             : 0xFF10    WAIT_CYCLES1            : 0x0001    WAIT_CYCLES2            : 0x0001    
+IO$TIL_BASE             : 0xFF10    WAIT_CYCLES1            : 0x1388    WAIT_CYCLES2            : 0x07D0    
 NEXT_BANK               : 0x0100    CHECK_R0                : 0x8080    CHECK_R1                : 0x1700    
 STACK_TOP               : 0x8020    VAR_DIFF                : 0x8000    
 

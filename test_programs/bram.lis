@@ -1,0 +1,21 @@
+000001                    ; simple Block RAM test done by sy2002 in August 2015
+000002                    
+000003                    IO$TIL_BASE     .EQU    0xFF10              ; address of TIL-display
+000004                    RAM_VARIABLE    .EQU    0x8000              ; address of a variable in RAM
+000005                    
+000006  0000  0FB0  FF10                  MOVE IO$TIL_BASE, R12
+000007  0002  0F80  8000                  MOVE RAM_VARIABLE, R0
+000008                    
+000009  0004  0F81  2300                  MOVE 0x2300, @R0            ; write 0x2300 to BRAM's 0x8000
+000010  0006  1F81  0009                  ADD 0x0009, @R0             ; add 9 to BRAM's 0x8000
+000011  0008  0071                        MOVE @R0, @R12              ; display 0x2309 on the TIL
+000012                    
+000013  0009  E000                        HALT
+
+
+EQU-list:
+--------------------------------------------------------------------------------------------------------
+IO$TIL_BASE             : 0xFF10    RAM_VARIABLE            : 0x8000    
+
+Label-list:
+--------------------------------------------------------------------------------------------------------
