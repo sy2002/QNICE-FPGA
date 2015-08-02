@@ -18,6 +18,8 @@ port (
    CLK            : in std_logic;
    RESET          : in std_logic;
    
+   WAIT_FOR_DATA  : in std_logic;                           -- 1=CPU adds wait cycles while re-reading from bus
+   
    ADDR           : out std_logic_vector(15 downto 0);      -- 16 bit address bus
    
    -- tristate 16 bit data bus
@@ -286,7 +288,8 @@ begin
       end if;
    end process;
    
-   fsm_output_decode : process (cpu_state, ADDR_Bus, SR, PC, DATA_From_Bus,
+   fsm_output_decode : process (cpu_state, ADDR_Bus, SR, PC,
+                                DATA_To_Bus, DATA_From_Bus, WAIT_FOR_DATA,
                                 Instruction, Opcode,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
@@ -394,59 +397,63 @@ begin
             end if;
 
          when cs_exeprep_get_src_indirect =>
-            -- read the indirect value from the bus and store it
-            fsmSrc_Value <= DATA_FROM_Bus;
-            
-            -- perform post increment
-            if Src_Mode = amIndirPostInc then
-               -- special handling of SR and PC as they are not stored in the register file
-               case Src_RegNo is
-                  when x"E" => fsmSR <= SR + 1;
-                  when x"F" => fsmPC <= PC + 1;
-                  when others =>
-                     fsm_reg_write_addr <= Src_RegNo;
-                     fsm_reg_write_data <= Src_Value + 1;
-                     fsm_reg_write_en <= '1';               
-               end case;
-            end if;
-                              
-            -- decode the destination addressing mode (and avoid garbage due to a branch opcode)
-            if Opcode /= opcBRA and Dst_Mode /= amDirect then
-               -- this code is nearly identical to the above-mentioned code
-               -- within "elsif Dst_Mode /= amDirect then"
-               fsmNextCpuState <= cs_exeprep_get_dst_indirect;                  
-               if Dst_Mode = amIndirPreDec then
-                  fsmCpuAddr <= reg_read_data2 - 1;
-                  case Dst_RegNo is
-                     when x"E" => fsmSR <= SR - 1;
-                     when x"F" => fsmPC <= PC - 1;
+            -- add wait cycles, if necessary (e.g. due to slow RAM)
+            if WAIT_FOR_DATA = '1' then
+               fsmNextCpuState <= cs_exeprep_get_src_indirect;
+               
+            -- data from bus is available
+            else
+               -- read the indirect value from the bus and store it
+               fsmSrc_Value <= DATA_FROM_Bus;
+               
+               
+               -- perform post increment
+               if Src_Mode = amIndirPostInc then
+                  -- special handling of SR and PC as they are not stored in the register file
+                  case Src_RegNo is
+                     when x"E" => fsmSR <= SR + 1;
+                     when x"F" => fsmPC <= PC + 1;
                      when others =>
-                        fsm_reg_write_addr <= Dst_RegNo;
-                        fsm_reg_write_data <= Dst_Value - 1; -- here, the code is not identical
-                        fsm_reg_write_en <= '1';
+                        fsm_reg_write_addr <= Src_RegNo;
+                        fsm_reg_write_data <= Src_Value + 1;
+                        fsm_reg_write_en <= '1';               
                   end case;
-               else
-                  fsmCpuAddr <= reg_read_data2;
-               end if;               
+               end if;
+                                 
+               -- decode the destination addressing mode (and avoid garbage due to a branch opcode)
+               if Opcode /= opcBRA and Dst_Mode /= amDirect then
+                  -- this code is nearly identical to the above-mentioned code
+                  -- within "elsif Dst_Mode /= amDirect then"
+                  fsmNextCpuState <= cs_exeprep_get_dst_indirect;                  
+                  if Dst_Mode = amIndirPreDec then
+                     fsmCpuAddr <= reg_read_data2 - 1;
+                     case Dst_RegNo is
+                        when x"E" => fsmSR <= SR - 1;
+                        when x"F" => fsmPC <= PC - 1;
+                        when others =>
+                           fsm_reg_write_addr <= Dst_RegNo;
+                           fsm_reg_write_data <= Dst_Value - 1; -- here, the code is not identical
+                           fsm_reg_write_en <= '1';
+                     end case;
+                  else
+                     fsmCpuAddr <= reg_read_data2;
+                  end if;               
+               end if;
             end if;
 
          when cs_exeprep_get_dst_indirect =>
-            -- read the indirect value from the bus and store it
-            fsmDst_Value <= DATA_FROM_Bus;
-            
-            -- perform post increment
-            if Dst_Mode = amIndirPostInc then
-               -- special handling of SR and PC as they are not stored in the register file
-               case Dst_RegNo is
-                  when x"E" => fsmSR <= SR + 1;
-                  when x"F" => fsmPC <= PC + 1;
-                  when others =>
-                     fsm_reg_write_addr <= Dst_RegNo;
-                     fsm_reg_write_data <= Dst_Value + 1;
-                     fsm_reg_write_en <= '1';               
-               end case;
-            end if;
-            
+            -- add wait cycles, if necessary (e.g. due to slow RAM)
+            -- optimization for MOVE: the dst value is discarded in a "move to indirect"
+            -- scenario, so we can spare one CPU cycle in this case by ignoring WAIT_FOR_DATA
+            if WAIT_FOR_DATA = '1' and Opcode /= opcMOVE then
+               fsmNextCpuState <= cs_exeprep_get_dst_indirect;
+               
+            -- data from bus is available
+            else         
+               -- read the indirect value from the bus and store it
+               fsmDst_Value <= DATA_FROM_Bus;
+            end if;                        
+                        
          when cs_execute =>
          
             -- execute branches
@@ -515,8 +522,23 @@ begin
             end if;
                                
         when cs_exepost_store_dst_indirect =>
+            fsmDataToBus <= DATA_To_Bus;
             fsmCpuDataDirCtrl <= '1';
             fsmCpuDataValid <= '1';
+            
+            -- perform post increment
+            if Dst_Mode = amIndirPostInc then
+               -- special handling of SR and PC as they are not stored in the register file
+               case Dst_RegNo is
+                  when x"E" => fsmSR <= SR + 1;
+                  when x"F" => fsmPC <= PC + 1;
+                  when others =>
+                     fsm_reg_write_addr <= Dst_RegNo;
+                     fsm_reg_write_data <= reg_read_data2 + 1;
+                     fsm_reg_write_en <= '1';               
+               end case;
+            end if;
+            
         
         when cs_exepost_prepfetch =>
             fsmCpuAddr <= PC;

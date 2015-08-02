@@ -17,6 +17,8 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
+use work.env1_globals.all;
+
 entity register_file is
 port (
    clk         : in  std_logic;   -- clock: writing occurs at the rising edge
@@ -43,8 +45,6 @@ port (
 end register_file;
 
 architecture beh of register_file is
-
-constant SHADOW_REGFILE_SIZE : integer := 16;
 
 type upper_register_array is array(8 to 13) of std_logic_vector(15 downto 0);
 
