@@ -7,7 +7,7 @@
 -- (the QNICE registers 14 (status register, SR) and 15 (program counter, PC)
 -- are not implemented in this register bank but directly within the CPU
 -- special behaviour when reading the registers 14 and 15: when reading
--- register 14 or 15 then SR (when 14) or PC (when 15) is output
+-- register 13, 14 or 15 then SP (when 13), SR (when 14) or PC (when 15) is output
 --
 -- to save tons of logic, there is no reset line to set all registers to zero
 --
@@ -23,8 +23,9 @@ entity register_file is
 port (
    clk         : in  std_logic;   -- clock: writing occurs at the rising edge
    
-   -- input status register (SR) and program counter (PC) so that they can
-   -- conveniently be read when adressing 14 (SR) or 15 (PC)
+   -- input stack pointer (SP) status register (SR) and program counter (PC) so
+   -- that they can conveniently be read when adressing 13 (SP), 14 (SR), 15 (PC)
+   SP          : in std_logic_vector(15 downto 0);
    SR          : in std_logic_vector(15 downto 0);
    PC          : in std_logic_vector(15 downto 0);
    
@@ -46,7 +47,7 @@ end register_file;
 
 architecture beh of register_file is
 
-type upper_register_array is array(8 to 13) of std_logic_vector(15 downto 0);
+type upper_register_array is array(8 to 12) of std_logic_vector(15 downto 0);
 
 -- two dimensional array to model the lower register bank (windowed)
 type rega is array (0 to 7) of std_logic_vector(15 downto 0);
@@ -70,12 +71,13 @@ begin
       end if;
    end process;
    
-   read_register1 : process(read_addr1, LowerRegisterWindow, UpperRegisters, sel_rbank, SR, PC)
+   read_register1 : process(read_addr1, LowerRegisterWindow, UpperRegisters, sel_rbank, SP, SR, PC)
    begin
       if read_addr1(3) = '0' then
          read_data1 <= LowerRegisterWindow(conv_integer(sel_rbank))(conv_integer(read_addr1));
       else
          case read_addr1 is
+            when x"D" =>   read_data1 <= SP;
             when x"E" =>   read_data1 <= SR;
             when X"F" =>   read_data1 <= PC;
             when others => read_data1 <= UpperRegisters(conv_integer(read_addr1)); 
@@ -83,12 +85,13 @@ begin
       end if;   
    end process;
    
-   read_register2 : process(read_addr2, LowerRegisterWindow, UpperRegisters, sel_rbank, SR, PC)
+   read_register2 : process(read_addr2, LowerRegisterWindow, UpperRegisters, sel_rbank, SP, SR, PC)
    begin
       if read_addr2(3) = '0' then
          read_data2 <= LowerRegisterWindow(conv_integer(sel_rbank))(conv_integer(read_addr2));
       else
          case read_addr2 is
+            when x"D" =>   read_data2 <= SP;
             when x"E" =>   read_data2 <= SR;
             when x"F" =>   read_data2 <= PC;
             when others => read_data2 <= UpperRegisters(conv_integer(read_addr2));

@@ -6,18 +6,18 @@
 000006                    ;
 000007                    ; Also, a simple RAM check is included, as this test program uses RSUB
 000008                    ; to call the delay routine, therefore a super small stack on RAM is utilized
-000009                    ;
-000010                    ; Everything works correct, if the TIL displays the following sequence in
-000011                    ; a loop: 8080, 0000, 1700, 0000
-000012                    ;
-000013                    ; done by sy2002 on August, 1st 2015
-000014                    
-000015                    ; TIL display
+000009                    ; using two nested function calls
+000010                    ;
+000011                    ; Everything works correct, if the TIL displays the following sequence in
+000012                    ; a loop: 8080, 0000, 1700, 0000
+000013                    ;
+000014                    ; done by sy2002 on August, 1st/2nd 2015
+000015                    
 000016                    IO$TIL_BASE     .EQU    0xFF10              ; Address of TIL-display
 000017                    
 000018                    ; about 10.000.000 cycles are needed to delay 1 sec
-000019                    WAIT_CYCLES1    .EQU    0x1388              ; decimal 5.000
-000020                    WAIT_CYCLES2    .EQU    0x07D0              ; decimal 2.000
+000019                    WAIT_CYCLES1    .EQU    0x0001              ; 0x1388 = decimal 5.000
+000020                    WAIT_CYCLES2    .EQU    0x0001              ; 0x07D0 = decimal 2.000
 000021                    
 000022                    NEXT_BANK       .EQU    0x0100              ; added to SR: switch to next bank
 000023                    
@@ -25,57 +25,109 @@
 000025                    CHECK_R0        .EQU    0x8080              ; sum(1..256) = 32.896 = 0x8080
 000026                    CHECK_R1        .EQU    0x1700              ; 256 x 23 = 5.888 = 0x1700
 000027                    
-000028                                    .ORG    0x0000
-000029                    
-000030  0000  AFB8  FF00                  OR      0xFF00, R14         ; activate highest register page
-000031  0002  0FA0  0100                  MOVE    0x0100, R8          ; loop through 256 banks
-000032  0004  0FA4  0001                  MOVE    0x0001, R9          ; we need to sub 1 often
-000033  0006  0FA8  0100                  MOVE    NEXT_BANK, R10      ; we need to sub 0x100 often
-000034  0008  0FAC  0017                  MOVE    23, R11             ; we need to move 23 often
+000028                    ; memory locations
+000029                    STACK_TOP       .EQU    0x8020              ; top of the stack, initial SP
+000030                    VAR_DIFF        .EQU    0x8000              ; variable in memory to store the
+000031                                                                ; difference between a register
+000032                                                                ; value and the expected value
+000033                    
+000034                                    .ORG    0x0000
 000035                    
-000036                    ; fill registers throughout 256 registerbanks with meaningful values
-000037  000A  0800        BANK_LOOP       MOVE    R8, R0              ; move 256 downto 1 in all R0's
-000038  000B  0B04                        MOVE    R11, R1             ; move 23 in all R1's
-000039  000C  3A38                        SUB     R10, R14            ; previous register bank
-000040  000D  3920                        SUB     R9, R8              ; decrease loop counter
-000041  000E  FFAB  FFFA                  RBRA    BANK_LOOP, !Z       ; loop 256 downto 1 (0 exits)
-000042                    
-000043                    ; calculate check sums over all registers and store the results in bank 0
-000044  0010  0FA0  00FF                  MOVE    0x00FF, R8          ; loop only through 255 as we
-000045  0012  9FB8  00FF                  AND     0x00FF, R14         ; are adding everything to bank 0
-000046                    
-000047  0014  1A38        CHECK_LOOP      ADD     R10, R14            ; next bank
-000048                    
-000049  0015  0030                        MOVE    R0, R12             ; use R12 as temp for R0
-000050  0016  0E2C                        MOVE    R14, R11            ; save current bank page
-000051  0017  9FB8  00FF                  AND     0x00FF, R14         ; back to bank 0
-000052  0019  1C00                        ADD     R12, R0             ; accumulate check sum in R0
-000053  001A  0B38                        MOVE    R11, R14            ; restore current bank page
+000036  0000  0FB4  8020                  MOVE    0x8020, R13         ; setup stack pointer
+000037                    
+000038  0002  0F80  1111                  MOVE    0x1111, R0
+000039  0004  0F84  2222                  MOVE    0x2222, R1
+000040  0006  FFA0  0024                  RBRA    DISPLAY_LOOP, 1
+000041                    
+000042  0008  AFB8  FF00                  OR      0xFF00, R14         ; activate highest register page
+000043  000A  0FA0  0100                  MOVE    0x0100, R8          ; loop through 256 banks
+000044  000C  0FA4  0001                  MOVE    0x0001, R9          ; we need to sub 1 often
+000045  000E  0FA8  0100                  MOVE    NEXT_BANK, R10      ; we need to sub 0x100 often
+000046  0010  0FAC  0017                  MOVE    23, R11             ; we need to move 23 often
+000047                    
+000048                    ; fill registers throughout 256 registerbanks with meaningful values
+000049  0012  0800        BANK_LOOP       MOVE    R8, R0              ; move 256 downto 1 in all R0's
+000050  0013  0B04                        MOVE    R11, R1             ; move 23 in all R1's
+000051  0014  3A38                        SUB     R10, R14            ; previous register bank
+000052  0015  3920                        SUB     R9, R8              ; decrease loop counter
+000053  0016  FFAB  FFFA                  RBRA    BANK_LOOP, !Z       ; loop 256 downto 1 (0 exits)
 000054                    
-000055  001B  0130                        MOVE    R1, R12             ; use R12 as temp for R1
-000056  001C  0E2C                        MOVE    R14, R11            ; save current bank page
-000057  001D  9FB8  00FF                  AND     0x00FF, R14         ; back to bank 0
-000058  001F  1C04                        ADD     R12, R1             ; accumulate check sum in R1
-000059  0020  0B38                        MOVE    R11, R14            ; restore current bank page
+000055                    ; calculate check sums over all registers and store the results in bank 0
+000056  0018  0FA0  00FF                  MOVE    0x00FF, R8          ; loop only through 255 as we
+000057  001A  9FB8  00FF                  AND     0x00FF, R14         ; are adding everything to bank 0
+000058                    
+000059  001C  1A38        CHECK_LOOP      ADD     R10, R14            ; next bank
 000060                    
-000061  0021  3920                        SUB     R9, R8              ; decrease loop counter
-000062  0022  FFAB  FFF0                  RBRA    CHECK_LOOP, !Z     ; loop 255 downto 1 (0 exits)
-000063                    
-000064                    
-000065                    ; output results to TIL
-000066  0024  9FB8  00FF                  AND     0x00FF, R14
-000067  0026  0FB0  FF10                  MOVE    IO$TIL_BASE, R12
-000068                    
-000069  0028  0031                        MOVE    R0, @R12
-000070                    
-000071  0029  E000                        HALT
+000061  001D  0030                        MOVE    R0, R12             ; use R12 as temp for R0
+000062  001E  0E2C                        MOVE    R14, R11            ; save current bank page
+000063  001F  9FB8  00FF                  AND     0x00FF, R14         ; back to bank 0
+000064  0021  1C00                        ADD     R12, R0             ; accumulate check sum in R0
+000065  0022  0B38                        MOVE    R11, R14            ; restore current bank page
+000066                    
+000067  0023  0130                        MOVE    R1, R12             ; use R12 as temp for R1
+000068  0024  0E2C                        MOVE    R14, R11            ; save current bank page
+000069  0025  9FB8  00FF                  AND     0x00FF, R14         ; back to bank 0
+000070  0027  1C04                        ADD     R12, R1             ; accumulate check sum in R1
+000071  0028  0B38                        MOVE    R11, R14            ; restore current bank page
+000072                    
+000073  0029  3920                        SUB     R9, R8              ; decrease loop counter
+000074  002A  FFAB  FFF0                  RBRA    CHECK_LOOP, !Z      ; loop 255 downto 1 (0 exits)
+000075                    
+000076                    
+000077                    ; output results to TIL
+000078  002C  9FB8  00FF  DISPLAY_LOOP    AND     0x00FF, R14         ; switch back to reg bank 0
+000079  002E  0FB0  FF10                  MOVE    IO$TIL_BASE, R12    ; TIL MMIO display address
+000080                    
+000081                                    ; display register R0 and the difference to the expected value
+000082  0030  0020                        MOVE    R0, R8              ; register = R8
+000083  0031  0FA4  8080                  MOVE    CHECK_R0, R9        ; expected value = R9
+000084  0033  FFB0  0008                  RSUB    DISPLAY_REG, 1      ; call sub routine
+000085                    
+000086                                    ; dito R1
+000087  0035  0120                        MOVE    R1, R8
+000088  0036  0FA4  1700                  MOVE    CHECK_R1, R9
+000089  0038  FFB0  0003                  RSUB    DISPLAY_REG, 1
+000090                    
+000091  003A  FFA0  FFF0                  RBRA    DISPLAY_LOOP, 1
+000092                    
+000093  003C  E000                        HALT
+000094                    
+000095                    ; sub routine to display the register value and the expected value
+000096                    ; the sub routine uses another sub routine so this is also a nice first
+000097                    ; test of stacked sub routine calls
+000098                    ; input: R8 = register, R9 = expected value, R12 = TIL BASE
+000099  003D  1FB8  0100  DISPLAY_REG     ADD     NEXT_BANK, R14      ; next register bank
+000100  003F  0831                        MOVE    R8, @R12            ; display value on TIL
+000101  0040  FFB0  000A                  RSUB    DELAY, 1            ; wait 1 second
+000102  0042  0F80  8000                  MOVE    VAR_DIFF, R0        ; memory location of variable
+000103  0044  0801                        MOVE    R8, @R0             ; store register value in var
+000104  0045  3901                        SUB     R9, @R0             ; subtract expected value
+000105  0046  0071                        MOVE    @R0, @R12           ; display difference reg vs. expct
+000106  0047  FFB0  0003                  RSUB    DELAY, 1            ; wait 1 second
+000107  0049  3FB8  0100                  SUB     NEXT_BANK, R14      ; previous register bank
+000108  004B  0DBC                        MOVE    @R13++, R15         ; return from sub routine
+000109                    
+000110                    ; sub routine to wait for about 1sec
+000111  004C  1FB8  0100  DELAY           ADD     NEXT_BANK, R14      ; next register bank
+000112  004E  0F84  0001                  MOVE    WAIT_CYCLES2, R1    ; outer wait cycles (2.000)
+000113  0050  0F80  0001  WAIT_LOOP2      MOVE    WAIT_CYCLES1, R0    ; inner wait cycles (5.000)
+000114  0052  3F80  0001  WAIT_LOOP1      SUB     1, R0               ; dec inner wait cycles and ...
+000115  0054  FFAB  FFFC                  RBRA    WAIT_LOOP1, !Z      ; ... repeat if not zero
+000116  0056  3F84  0001                  SUB     1, R1               ; dec outer wait cycles and ...
+000117  0058  FFAB  FFF6                  RBRA    WAIT_LOOP2, !Z      ; ... repeat if not zero
+000118  005A  3FB8  0100                  SUB     NEXT_BANK, R14      ; previous register bank
+000119  005C  0DBC                        MOVE    @R13++, R15         ; return from sub routine
+000120                    
 
 
 EQU-list:
 --------------------------------------------------------------------------------------------------------
-IO$TIL_BASE             : 0xFF10    WAIT_CYCLES1            : 0x1388    WAIT_CYCLES2            : 0x07D0    
+IO$TIL_BASE             : 0xFF10    WAIT_CYCLES1            : 0x0001    WAIT_CYCLES2            : 0x0001    
 NEXT_BANK               : 0x0100    CHECK_R0                : 0x8080    CHECK_R1                : 0x1700    
+STACK_TOP               : 0x8020    VAR_DIFF                : 0x8000    
 
 Label-list:
 --------------------------------------------------------------------------------------------------------
-BANK_LOOP               : 0x000A    CHECK_LOOP              : 0x0014    
+BANK_LOOP               : 0x0012    CHECK_LOOP              : 0x001C    DISPLAY_LOOP            : 0x002C    
+DISPLAY_REG             : 0x003D    DELAY                   : 0x004C    WAIT_LOOP2              : 0x0050    
+WAIT_LOOP1              : 0x0052    

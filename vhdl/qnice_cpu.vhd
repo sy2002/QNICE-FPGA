@@ -52,8 +52,9 @@ component register_file is
 port (
    clk         : in  std_logic;   -- clock: writing occurs at the rising edge
    
-   -- input status register (SR) and program counter (PC) so that they can
-   -- conveniently be read when adressing 14 (SR) or 15 (PC)
+   -- input stack pointer (SP) status register (SR) and program counter (PC) so
+   -- that they can conveniently be read when adressing 13 (SP), 14 (SR), 15 (PC)
+   SP          : in std_logic_vector(15 downto 0);   
    SR          : in std_logic_vector(15 downto 0);
    PC          : in std_logic_vector(15 downto 0);   
    
@@ -114,7 +115,8 @@ type tCPU_States is (cs_reset,
                      cs_execute,
                      
                      cs_exepost_store_dst_indirect,
-                     cs_exepost_prepfetch,                     
+                     cs_exepost_sub,                     
+                     cs_exepost_prepfetch,
                      
                      cs_halt,
                      cs_std_seq     -- continue with standard sequence, used by fsmNextCpuState
@@ -137,8 +139,9 @@ signal reg_write_addr      : std_logic_vector(3 downto 0) := "0000";
 signal reg_write_data      : std_logic_vector(15 downto 0);
 signal reg_write_en        : std_logic := '0';   
 
--- register R14 (SR) and R15 (PC) are directly modeled within the CPU
+-- registers R13 (SP), R14 (SR) and R15 (PC) are directly modeled within the CPU
 -- but also read-only accessible via the register file
+signal SP                  : std_logic_vector(15 downto 0) := x"0000"; -- stack pointer (R13)
 signal SR                  : std_logic_vector(15 downto 0) := x"0001"; -- status register (R14)
 signal PC                  : std_logic_vector(15 downto 0) := x"0000"; -- program counter (R15)
 
@@ -160,6 +163,7 @@ signal fsmDataToBus        : std_logic_vector(15 downto 0);
 signal fsmCpuAddr          : std_logic_vector(15 downto 0);
 signal fsmCpuDataDirCtrl   : std_logic;
 signal fsmCpuDataValid     : std_logic;
+signal fsmSP               : std_logic_vector(15 downto 0);
 signal fsmSR               : std_logic_vector(15 downto 0);
 signal fsmPC               : std_logic_vector(15 downto 0);
 signal fsmNextCpuState     : tCPU_States;
@@ -205,6 +209,7 @@ begin
       port map
       (
          clk         => CLK,
+         SP          => SP,
          SR          => SR,
          PC          => PC,
          sel_rbank   => SR(15 downto 8),
@@ -247,6 +252,7 @@ begin
             DATA_Dir_Ctrl <= '0';
             DATA_VALID <= '0';
             
+            SP <= x"0000";
             SR <= x"0001";
             PC <= x"0000";
             
@@ -272,6 +278,7 @@ begin
             DATA_Dir_Ctrl <= fsmCpuDataDirCtrl;
             DATA_VALID <= fsmCpuDataValid;
             
+            SP <= fsmSP;
             SR <= fsmSR(15 downto 1) & "1";
             PC <= fsmPC;
             
@@ -288,7 +295,7 @@ begin
       end if;
    end process;
    
-   fsm_output_decode : process (cpu_state, ADDR_Bus, SR, PC,
+   fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC,
                                 DATA_To_Bus, DATA_From_Bus, WAIT_FOR_DATA,
                                 Instruction, Opcode,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
@@ -298,6 +305,7 @@ begin
                                 Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                                                
    begin
       fsmDataToBus <= (others => '0');
+      fsmSP <= SP;
       fsmSR <= SR(15 downto 1) & "1";
       fsmPC <= PC;
       fsmCpuAddr <= ADDR_Bus;
@@ -358,6 +366,7 @@ begin
                   -- write back the decremented values
                   -- special handling of SR and PC as they are not stored in the register file
                   case Src_RegNo is
+                     when x"D" => fsmSP <= SP - 1;
                      when x"E" => fsmSR <= SR - 1;
                      when x"F" => fsmPC <= PC - 1;
                      when others =>
@@ -377,6 +386,7 @@ begin
                if Dst_Mode = amIndirPreDec then
                   fsmCpuAddr <= reg_read_data2 - 1;
                   case Dst_RegNo is
+                     when x"D" => fsmSP <= SP - 1;
                      when x"E" => fsmSR <= SR - 1;
                      when x"F" => fsmPC <= PC - 1;
                      when others =>
@@ -411,6 +421,7 @@ begin
                if Src_Mode = amIndirPostInc then
                   -- special handling of SR and PC as they are not stored in the register file
                   case Src_RegNo is
+                     when x"D" => fsmSP <= SP + 1;
                      when x"E" => fsmSR <= SR + 1;
                      when x"F" => fsmPC <= PC + 1;
                      when others =>
@@ -428,6 +439,7 @@ begin
                   if Dst_Mode = amIndirPreDec then
                      fsmCpuAddr <= reg_read_data2 - 1;
                      case Dst_RegNo is
+                        when x"D" => fsmSP <= SP - 1;
                         when x"E" => fsmSR <= SR - 1;
                         when x"F" => fsmPC <= PC - 1;
                         when others =>
@@ -472,6 +484,17 @@ begin
                         fsmPC <= PC + Src_Value;
                         fsmCpuAddr <= PC + Src_Value;
                         
+                     when bmASUB | bmRSUB =>
+                        -- decrease stack pointer and store the current program
+                        -- counter to the memory address where the decreased
+                        -- stack pointer is pointing to
+                        fsmSP <= SP - 1;
+                        fsmCpuAddr <= SP - 1;
+                        fsmDataToBus <= PC;
+                        fsmCpuDataDirCtrl <= '1';
+                        fsmCpuDataValid <='0';
+                        fsmNextCpuState <= cs_exepost_sub;
+                                               
                      when others =>
                         fsmNextCpuState <= cs_halt;
                   end case;
@@ -492,6 +515,11 @@ begin
                
                   -- store result in register
                   case Dst_RegNo is
+                     -- R13 aka SP
+                     when x"D" =>
+                        fsmSP <= std_logic_vector(Alu_Result);
+                     
+                     -- R14 aka SR
                      when x"E" =>
                         -- not all parts of the SR are writeable: only the upper 8 bit plus
                         -- the M, C and X register are writeable, 
@@ -499,17 +527,24 @@ begin
                         fsmSR(7) <= std_logic(Alu_Result(7)); -- M
                         fsmSR(2) <= std_logic(Alu_Result(2)); -- C
                         fsmSR(1) <= std_logic(Alu_Result(1)); -- X
+                        
+                     -- R15 aka PC
                      when x"F" =>
                         fsmPC <= std_logic_vector(Alu_Result);
                         fsmCpuAddr <= std_logic_vector(Alu_Result);
+                        
+                     -- R0 .. R12
                      when others =>
                         fsm_reg_write_addr <= Dst_RegNo;
                         fsm_reg_write_data <= std_logic_vector(Alu_Result);
                         fsm_reg_write_en <= '1';
-                 end case;
+                  end case;
                   
                   -- prepare next fetch by outputting the next instruction's address
-                  fsmCpuAddr <= PC;
+                  -- but only, if the target register of this operation was not the PC (R15)
+                  if (Dst_RegNo /= x"F") then
+                     fsmCpuAddr <= PC;
+                  end if;
                   
                -- store result: indirect
                else
@@ -521,15 +556,16 @@ begin
                end if;               
             end if;
                                
-        when cs_exepost_store_dst_indirect =>
+         when cs_exepost_store_dst_indirect =>
             fsmDataToBus <= DATA_To_Bus;
             fsmCpuDataDirCtrl <= '1';
             fsmCpuDataValid <= '1';
             
             -- perform post increment
             if Dst_Mode = amIndirPostInc then
-               -- special handling of SR and PC as they are not stored in the register file
+               -- special handling of SP, SR and PC as they are not stored in the register file
                case Dst_RegNo is
+                  when x"D" => fsmSP <= SP + 1;
                   when x"E" => fsmSR <= SR + 1;
                   when x"F" => fsmPC <= PC + 1;
                   when others =>
@@ -537,12 +573,23 @@ begin
                      fsm_reg_write_data <= reg_read_data2 + 1;
                      fsm_reg_write_en <= '1';               
                end case;
-            end if;
+            end if;            
+                
+         when cs_exepost_sub =>
+            fsmDataToBus <= DATA_To_Bus;
+            fsmCpuDataDirCtrl <= '1';
+            fsmCpuDataValid <= '1';
             
-        
-        when cs_exepost_prepfetch =>
+            -- absolute or relative?
+            if Bra_Mode = bmASUB then
+               fsmPC <= Src_Value;
+            else
+               fsmPC <= PC + Src_Value;
+            end if;
+
+         when cs_exepost_prepfetch =>
             fsmCpuAddr <= PC;
-             
+        
          when others =>
             fsmPC <= (others => '0');
             fsmCpuAddr <= (others => '0');
@@ -563,6 +610,7 @@ begin
          when cs_exeprep_get_dst_indirect    => cpu_state_next <= cs_execute;
          when cs_execute                     => cpu_state_next <= cs_fetch;
          when cs_exepost_store_dst_indirect  => cpu_state_next <= cs_exepost_prepfetch;
+         when cs_exepost_sub                 => cpu_state_next <= cs_exepost_prepfetch;         
          when cs_exepost_prepfetch           => cpu_state_next <= cs_fetch;
          when cs_halt                        => cpu_state_next <= cs_halt;
          when others                         => cpu_state_next <= cpu_state;

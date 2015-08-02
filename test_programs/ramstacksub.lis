@@ -1,26 +1,53 @@
 000001                    ; tests RAM, stack and the sub routine calls ASUB and RSUB
 000002                    ; expects RAM to start at $8000, so works for example in environment "env1"
-000003                    ; done by sy2002 on August, 1st 2015
+000003                    ; done by sy2002 on August, 2nd 2015
 000004                    
-000005  0000  0F80  8000          MOVE 0x8000, R0
-000006  0002  0F82  5DA8          MOVE 0x5DA8, @R0++
-000007  0004  0F82  1000          MOVE 0x1000, @R0++
-000008  0006  0F82  0100          MOVE 0x0100, @R0++
-000009  0008  0F82  0010          MOVE 0x0010, @R0++
-000010  000A  0F82  0001          MOVE 0x0001, @R0++
-000011  000C  0F82  1111          MOVE 0x1111, @R0++
-000012  000E  0F82  FFFF          MOVE 0xFFFF, @R0++
-000013                    
-000014  0010  0F80  8000          MOVE 0x8000, R0
-000015  0012  0F84  8010          MOVE 0x8010, R1
-000016  0014  0F88  0007          MOVE 0x0007, R2
-000017  0016  0F8C  0001          MOVE 0x0001, R3
+000005  0000  0FB4  8020          MOVE 0x8020, R13        ; setup stack pointer
+000006                    
+000007  0002  0FA0  8000          MOVE 0x8000, R8         ; source memory area
+000008  0004  0FA4  800A          MOVE 0x800A, R9         ; destination memory area
+000009  0006  FFB0  0013          RSUB MEMFILL, 1
+000010                    
+000011  0008  0F80  1111          MOVE 0x1111, R0
+000012  000A  0F84  2222          MOVE 0x2222, R1
+000013  000C  0F88  3333          MOVE 0x3333, R2
+000014                    
+000015  000E  0FA0  8020          MOVE 0x8020, R8
+000016  0010  0FA4  802A          MOVE 0x802A, R9
+000017  0012  FFB0  0007          RSUB MEMFILL, 1
 000018                    
-000019  0018  0086        COPY    MOVE @R0++, @R1++
-000020  0019  3308                SUB R3, R2
-000021  001A  FFAB  FFFC          RBRA COPY, !Z
+000019  0014  0F8C  4444          MOVE 0x4444, R3
+000020  0016  0F90  5555          MOVE 0x5555, R4
+000021  0018  0F94  6666          MOVE 0x6666, R5
 000022                    
-000023  001C  E000        HALT
+000023  001A  E000                HALT
+000024                    
+000025                    
+000026  001B  1FB8  0100  MEMFILL ADD 0x0100, R14         ; save register bank
+000027                    
+000028                            ;fill some data beginning at R8
+000029  001D  0800                MOVE R8, R0
+000030  001E  0F82  5DA8          MOVE 0x5DA8, @R0++
+000031  0020  0F82  1000          MOVE 0x1000, @R0++
+000032  0022  0F82  0100          MOVE 0x0100, @R0++
+000033  0024  0F82  0010          MOVE 0x0010, @R0++
+000034  0026  0F82  0001          MOVE 0x0001, @R0++
+000035  0028  0F82  1111          MOVE 0x1111, @R0++
+000036  002A  0F82  FFFF          MOVE 0xFFFF, @R0++
+000037                    
+000038                            ; copy the data from R8 to R9
+000039  002C  0800                MOVE R8, R0
+000040  002D  0904                MOVE R9, R1
+000041  002E  0F88  0007          MOVE 0x0007, R2
+000042  0030  0F8C  0001          MOVE 0x0001, R3
+000043                    
+000044  0032  0086        COPY    MOVE @R0++, @R1++
+000045  0033  3308                SUB R3, R2
+000046  0034  FFAB  FFFC          RBRA COPY, !Z
+000047                    
+000048  0036  3FB8  0100          SUB 0x0100, R14        ; restore register bank
+000049  0038  0DBC                MOVE @R13++, R15       ; return from sub routine
+000050                    
 
 
 EQU-list:
@@ -28,4 +55,4 @@ EQU-list:
 
 Label-list:
 --------------------------------------------------------------------------------------------------------
-COPY                    : 0x0018    
+MEMFILL                 : 0x001B    COPY                    : 0x0032    

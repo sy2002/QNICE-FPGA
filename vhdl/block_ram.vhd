@@ -31,7 +31,7 @@ end BRAM;
 architecture beh of BRAM is
 
 type bram_t is array (0 to BLOCK_RAM_SIZE - 1) of std_logic_vector(15 downto 0);
-signal bram : bram_t := (others => x"BABA");
+signal bram : bram_t := (others => x"0000");
 
 signal output : std_logic_vector(15 downto 0);
 
@@ -49,7 +49,11 @@ begin
             bram(conv_integer(address)) <= data_i;
          end if;
          
-         output <= bram(conv_integer(address));
+         if ce = '1' then
+            output <= bram(conv_integer(address));
+         else
+            output <= (others => 'U');
+         end if;
          
          address_old <= address;
       end if;
@@ -69,7 +73,7 @@ begin
    -- the read delay that this block RAM is having
    -- output high impedance when ce = 0 so that the busy line can be
    -- part of a bus
-   manage_busy : process (clk, ce, we, counter, address)
+   manage_busy : process (clk, ce, we, counter, address, address_old)
    begin
       if rising_edge(ce) and we = '0' and counter = "00" then
          counter <= "01";
