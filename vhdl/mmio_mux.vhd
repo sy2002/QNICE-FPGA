@@ -85,8 +85,8 @@ begin
    -- RAM is enabled when the address is in ($8000..$FEFF) and
    -- when a write attempt only occurs while the data is valid
    ram_enable_i <= addr(15)
-                   and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8))
-                   and not (data_dir and not data_valid);                                      
+                   and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8));
+                   -- and not (data_dir and not data_valid);                                      
    ram_enable <= ram_enable_i;
                     
 end Behavioral;

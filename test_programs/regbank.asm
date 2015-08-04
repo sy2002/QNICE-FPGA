@@ -11,7 +11,7 @@
 ; Everything works correct, if the TIL displays the following sequence in 
 ; a loop: 8080, 0000, 1700, 0000 
 ;
-; done by sy2002 on August, 1st/2nd 2015
+; done by sy2002 on August 2015
 
 IO$TIL_BASE     .EQU    0xFF10              ; Address of TIL-display
 
@@ -27,17 +27,13 @@ CHECK_R1        .EQU    0x1700              ; 256 x 23 = 5.888 = 0x1700
 
 ; memory locations
 STACK_TOP       .EQU    0x8020              ; top of the stack, initial SP
-VAR_DIFF        .EQU    0x8000              ; variable in memory to store the
+VAR_DIFF        .EQU    0x8000              ; variable in RAM to store the
                                             ; difference between a register
                                             ; value and the expected value
 
                 .ORG    0x0000
 
                 MOVE    0x8020, R13         ; setup stack pointer
-
-                MOVE    0x1111, R0
-                MOVE    0x2222, R1
-                RBRA    DISPLAY_LOOP, 1 
 
                 OR      0xFF00, R14         ; activate highest register page
                 MOVE    0x0100, R8          ; loop through 256 banks
@@ -75,11 +71,11 @@ CHECK_LOOP      ADD     R10, R14            ; next bank
 
 
 ; output results to TIL
-DISPLAY_LOOP    AND     0x00FF, R14         ; switch back to reg bank 0                
+                AND     0x00FF, R14         ; switch back to reg bank 0                
                 MOVE    IO$TIL_BASE, R12    ; TIL MMIO display address
 
                 ; display register R0 and the difference to the expected value
-                MOVE    R0, R8              ; register = R8          
+ DISPLAY_LOOP   MOVE    R0, R8              ; register = R8          
                 MOVE    CHECK_R0, R9        ; expected value = R9
                 RSUB    DISPLAY_REG, 1      ; call sub routine
 

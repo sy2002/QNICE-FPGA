@@ -1,8 +1,10 @@
 -- Block RAM (synchronous)
--- read and write on rising clock edge
--- the RAM is initialized to zero on system start
--- can be directly connected to a bus, as it goes high impedance on low chip enable and on writing
--- can directly control the CPU's WAIT_FOR_DATA line
+-- * read and write on falling clock edge; falling edge is chosen, because QNICE CPU's FSM
+--   is generating control signals on rising edges; so there is enough time for the signals to settle
+--   and therefore we do not need to waste a cycle
+-- * the RAM is initialized to zero on system start
+-- * can be directly connected to a bus, as it goes high impedance on low chip enable and on writing
+-- * can directly control the CPU's (or any bus arbiter's) WAIT_FOR_DATA line 
 -- inspired by http://vhdlguru.blogspot.de/2011/01/block-and-distributed-rams-on-xilinx.html
 -- done by sy2002 in August 2015
 
@@ -35,9 +37,10 @@ signal bram : bram_t := (others => x"baba");
 
 signal output : std_logic_vector(15 downto 0);
 
-signal counter : std_logic_vector(1 downto 0) := "00";
-
+signal counter : std_logic := '1'; -- important to be initialized to one
 signal address_old : std_logic_vector(15 downto 0) := (others => 'U');
+signal we_old : std_logic := '0';
+signal async_reset : std_logic;
 
 begin
 
@@ -56,6 +59,7 @@ begin
          end if;
          
          address_old <= address;
+         we_old <= we;
       end if;
    end process;
    
@@ -71,25 +75,40 @@ begin
    
    -- generate a busy signal for one clock cycle, because this is
    -- the read delay that this block RAM is having
-   -- output high impedance when ce = 0 so that the busy line can be
-   -- part of a bus
-   manage_busy : process (clk, ce, we, counter, address, address_old)
+   manage_busy : process (clk, async_reset)
    begin
-      if rising_edge(ce) and we = '0' and counter = "00" then
-         counter <= "01";
-      elsif falling_edge(clk) and counter = "01" then
-         counter <= "10";
-      elsif rising_edge(clk) and counter = "10" then
-         counter <= "00";
-      elsif address_old /= address and we = '0' and counter = "00" then
-         counter <= "01";
+      if rising_edge(clk) then
+         if ce = '1' then
+            counter <= not counter;
+         else
+            counter <= '1'; -- reverse logic because busy needs to be "immediatelly" one when needed
+         end if;
       end if;
-      
-      if ce = '1' then
-         busy <= counter(0) or counter(1);
-      else
-         busy <= 'Z';
+
+      if async_reset = '1' then
+         counter <= '1';
       end if;
    end process;
+   
+   -- address changes or changes between reading and writing are
+   -- re-triggering the busy-cycle as this means a new operation for the BRAM
+   manage_busy_on_changes : process (ce, we, we_old, address, address_old)
+   begin
+      if ce = '1' then
+         if we /= we_old then
+            async_reset <= '1';
+         elsif address /= address_old then
+            async_reset <= '1';
+         else
+            async_reset <= '0';
+         end if;
+      else
+         async_reset <= '0';
+      end if;      
+   end process;
+                  
+   with ce select
+      busy <= counter when '1',
+              'Z' when others;
    
 end beh;
