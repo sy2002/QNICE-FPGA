@@ -1,0 +1,1796 @@
+000001                    
+000002                    ;
+000003                    ;  This file contains the necessary definitions for the simple QNICE-monitor.
+000004                    ;
+000005                    
+000006                    ;
+000007                    ;  Some assembler macros which make life much easier:
+000008                    ;
+000009                    
+000010                    
+000011                    
+000012                    
+000013                    ;
+000014                    ;  Some register short names:
+000015                    ;
+000016                    
+000017                    
+000018                    
+000019                    
+000020                    ;
+000021                    ;  IO-page addresses:
+000022                    ;
+000023                    IO$BASE          .EQU 0xFC00
+000024                    IO$UART0_BASE    .EQU 0xFC00
+000025                    
+000026                    ;
+000027                    ;  UART-registers:
+000028                    ;
+000029                    IO$UART_SRA      .EQU 0x0001 ; Status register (relative to base address)
+000030                    IO$UART_RHRA     .EQU 0x0003 ; Receiving register (relative to base address)
+000031                    IO$UART_THRA     .EQU 0x0003 ; Transmitting register (relative to base address)
+000032                    
+000033                    
+000034                    ;;
+000035                    ;; QMON - a simple monitor for the QNICE processor
+000036                    ;;
+000037                    ;; The labels and constants of each subsystem are prefixed with a short name denoting the particular
+000038                    ;; subsystem, followed by a dollar sign. Examples for this are IO$BASE or STR$STRMP etc. Labels
+000039                    ;; within a routine follow this prefix style but have an additional underscore following the dollar
+000040                    ;; sign to denote that these labels should normally not be the target of a branch or subroutine call
+000041                    ;; from outside code areas.
+000042                    ;;
+000043                    ;; B. Ulmann fecit
+000044                    ;;
+000045                    ;;  17-DEC-2007: Begin of coding
+000046                    ;;  03-AUG-2015: After upgrading the emulator and fixing some (serious) bugs the work on the
+000047                    ;;               monitor continues
+000048                    ;;  06-AUG-2015: Basic monitor functions implemented
+000049                    ;;
+000050                    ;; Known bugs:
+000051                    ;;
+000052                    ;; Bits and pieces:
+000053                    ;;   - All functions expect their input parameters in the registers R8, R9 and maybe R10.
+000054                    ;;   - The result of a function is returned in the first non-used high numbered register, so if a
+000055                    ;;     function expects its parameters in R8 and R9, it will return its result in R10. If it only
+000056                    ;;     expects one parameter, the result will be
+000057                    ;;     returned in R9 respectively.
+000058                    ;;   - Every function name starts with its subsection name followed by a dollar sign, so all string
+000059                    ;;     routines have names starting with "STR$".
+000060                    ;;   - Labels within a function always have an underscore following the subsystem name, so a label
+000061                    ;;     within the routine STR$CMP would have the form "STR$_CMP...". So never jump to a label of the
+000062                    ;;     form "<SSN>$_..." since this will be a label buried inside a function.
+000063                    ;;   - Every subsystem (string routines, IO routines etc.) has its own constants which are always
+000064                    ;;     located after the code for the routines.
+000065                    ;;   - To assemble this monitor just call the "asm" shell script which will use the C preprocessor
+000066                    ;;     to include the necessary library files.
+000067                    ;;
+000068                                    .ORG 0x0000                ; The monitor begins at address 0x0000, so the lower
+000069                                                               ; address EPROMs should be mapped into memory by hardware
+000070                                                               ; default on power up.
+000071                    ;
+000072                    ; Some useful constants
+000073                    ;
+000074                    
+000075                    ;
+000076                    ; Main program
+000077                    ;
+000078  0000  0FB4  FC00  QMON$COLDSTART  MOVE    IO$BASE, R13             ; Set up stack pointer
+000079  0002  0FA0  0119                  MOVE    QMON$WELCOME, R8        ; Print welcome message
+000080  0004  FFB0  0601                  RSUB    IO$PUTS, 1
+000081  0006  0FA0  06E7                  MOVE    QMON$LAST_ADDR, R8      ; Clear memory after the monitor
+000082  0008  1FA0  0001                  ADD     0x0001, R8              ; Start address
+000083  000A  0FA4  FC00                  MOVE    IO$BASE, R9             ; Determine length of memory area
+000084  000C  3824                        SUB     R8, R9                  ;   to be cleared
+000085  000D  3FA4  0001                  SUB     0x0001, R9              ; We need one stack cell for the following call
+000086  000F  BA28                        XOR     R10, R10                ; Clear with zero words
+000087  0010  FFB0  06B6                  RSUB    MEM$FILL, 1             ; Clear
+000088                    ;;TODO: Clear registers
+000089  0012  0FB4  FC00  QMON$WARMSTART  MOVE    IO$BASE, R13             ; Set up stack pointer
+000090  0014  9FB8  00FF                  AND     0x00FF, R14              ; Reset register bank to zero
+000091  0016  FFB0  0600                  RSUB    IO$PUT_CRLF, 1
+000092  0018  0FA0  01A0  QMON$MAIN_LOOP  MOVE    QMON$PROMPT, R8         ; Print monitor prompt
+000093  001A  FFB0  05EB                  RSUB    IO$PUTS, 1
+000094  001C  FFB0  05BE                  RSUB    IO$GETCHAR, 1           ; Wait for a key being pressed
+000095  001E  FFB0  0625                  RSUB    CHR$TO_UPPER, 1         ; Convert it into an uppercase letter
+000096  0020  FFB0  0605                  RSUB    IO$PUTCHAR, 1           ; Echo the character
+000097  0022  CFA0  0043                  CMP     'C', R8                 ; Control group?
+000098  0024  FFAB  002E                  RBRA    QMON$MAYBE_M, !Z        ; No
+000099                    ; Control group
+000100  0026  0FA0  035A                  MOVE    QMON$CG_C, R8
+000101  0028  FFB0  05DD                  RSUB    IO$PUTS, 1
+000102  002A  FFB0  05B0                  RSUB    IO$GETCHAR, 1           ; Get command character
+000103  002C  FFB0  0617                  RSUB    CHR$TO_UPPER, 1
+000104  002E  CFA0  0043                  CMP     'C', R8                 ; Cold start?
+000105  0030  FFAB  0006                  RBRA    QMON$C_MAYBE_H, !Z      ; No...
+000106                    ; CONTROL/COLDSTART:
+000107  0032  0FA0  0362                  MOVE    QMON$CG_C_C, R8
+000108  0034  FFB0  05D1                  RSUB    IO$PUTS, 1
+000109  0036  FFA0  FFC8                  RBRA    QMON$COLDSTART, 1       ; Yes!
+000110  0038  CFA0  0048  QMON$C_MAYBE_H  CMP     'H', R8                 ; Halt?
+000111  003A  FFAB  0005                  RBRA    QMON$MAYBE_R, !Z
+000112                    ; CONTROL/HALT:
+000113  003C  0FA0  036D                  MOVE    QMON$CG_C_H, R8
+000114  003E  FFB0  05C7                  RSUB    IO$PUTS, 1
+000115  0040  E000                        HALT
+000116  0041  CFA0  0052  QMON$MAYBE_R    CMP     'R', R8                 ; Run?
+000117  0043  FFAB  0009                  RBRA    QMON$C_ILLEGAL, !Z      ; No
+000118                    ; CONTROL/RUN:
+000119  0045  0FA0  0376                  MOVE    QMON$CG_C_R, R8
+000120  0047  FFB0  05BE                  RSUB    IO$PUTS, 1
+000121  0049  FFB0  0546                  RSUB    IO$GET_W_HEX, 1         ; Get address
+000122  004B  FFB0  05CB                  RSUB    IO$PUT_CRLF, 1
+000123  004D  F800                        ABRA    R8, 1                   ; Jump to address specified
+000124  004E  0FA0  01C8  QMON$C_ILLEGAL  MOVE    QMON$ILLCMD, R8         ; Control group C, illegal command
+000125  0050  FFB0  05B5                  RSUB    IO$PUTS, 1
+000126  0052  FFA0  FFC4                  RBRA    QMON$MAIN_LOOP, 1
+000127  0054  CFA0  004D  QMON$MAYBE_M    CMP     'M', R8                 ; Compare with 'M'
+000128  0056  FFAB  00B1                  RBRA    QMON$MAYBE_H, !Z        ; No M, try next...
+000129                    ; Memory control group:
+000130  0058  0FA0  0383                  MOVE    QMON$CG_M, R8           ; Print control group name
+000131  005A  FFB0  05AB                  RSUB    IO$PUTS, 1
+000132  005C  FFB0  057E                  RSUB    IO$GETCHAR, 1           ; Get command character
+000133  005E  FFB0  05E5                  RSUB    CHR$TO_UPPER, 1         ; ...convert it to upper case
+000134  0060  CFA0  0043                  CMP     'C', R8                 ; 'Change'?
+000135  0062  FFAB  0019                  RBRA    QMON$M_MAYBE_D, !Z
+000136                    ; MEMORY/CHANGE:
+000137  0064  0FA0  038A                  MOVE    QMON$CG_M_C, R8         ; Print prompt for address
+000138  0066  FFB0  059F                  RSUB    IO$PUTS, 1
+000139  0068  FFB0  0527                  RSUB    IO$GET_W_HEX, 1         ; Read in address
+000140  006A  0800                        MOVE    R8, R0
+000141  006B  0FA0  039A                  MOVE    QMON$CG_M_C1, R8        ; Prepare output of current value
+000142  006D  FFB0  0598                  RSUB    IO$PUTS, 1
+000143  006F  0060                        MOVE    @R0, R8                 ; Get current value
+000144  0070  FFB0  054A                  RSUB    IO$PUT_W_HEX, 1         ; Print current value
+000145  0072  0FA0  03AA                  MOVE    QMON$CG_M_C2, R8        ; Prompt for new value
+000146  0074  FFB0  0591                  RSUB    IO$PUTS, 1
+000147  0076  FFB0  0519                  RSUB    IO$GET_W_HEX, 1
+000148  0078  0801                        MOVE    R8, @R0
+000149  0079  FFB0  059D                  RSUB    IO$PUT_CRLF, 1
+000150  007B  FFA0  FF9B                  RBRA    QMON$MAIN_LOOP, 1
+000151  007D  CFA0  0044  QMON$M_MAYBE_D  CMP     'D', R8
+000152  007F  FFAB  0017                  RBRA    QMON$M_MAYBE_E, !Z      ; No D, try next...
+000153                    ; MEMORY/DUMP:
+000154  0081  0FA0  03B6                  MOVE    QMON$CG_M_D, R8         ; Print prompt for start address
+000155  0083  FFB0  0582                  RSUB    IO$PUTS, 1
+000156  0085  FFB0  050A                  RSUB    IO$GET_W_HEX, 1         ; Get start address
+000157  0087  0800                        MOVE    R8, R0                  ; Remember start address in R8
+000158  0088  0FA0  03CA                  MOVE    QMON$CG_M_D2, R8        ; Print prompt for end address
+000159  008A  FFB0  057B                  RSUB    IO$PUTS, 1
+000160  008C  FFB0  0503                  RSUB    IO$GET_W_HEX, 1         ; Get end address
+000161  008E  FFB0  0588                  RSUB    IO$PUT_CRLF, 1
+000162  0090  0824                        MOVE    R8, R9
+000163  0091  0020                        MOVE    R0, R8
+000164  0092  FFB0  04D2                  RSUB    IO$DUMP_MEMORY, 1       ; Dump memory contents
+000165  0094  FFB0  0582                  RSUB    IO$PUT_CRLF, 1
+000166  0096  FFA0  FF80                  RBRA    QMON$MAIN_LOOP, 1
+000167  0098  CFA0  0045  QMON$M_MAYBE_E  CMP     'E', R8                 ; Is it an 'E'?
+000168  009A  FFAB  0012                  RBRA    QMON$M_MAYBE_F, !Z      ; No...
+000169                    ; MEMORY/EXAMINE:
+000170  009C  0FA0  03D8                  MOVE    QMON$CG_M_E, R8         ; Print prompt for address
+000171  009E  FFB0  0567                  RSUB    IO$PUTS, 1
+000172  00A0  FFB0  04EF                  RSUB    IO$GET_W_HEX, 1         ; Read address
+000173  00A2  0800                        MOVE    R8, R0
+000174  00A3  0FA0  0020                  MOVE    ' ', R8
+000175  00A5  FFB0  0580                  RSUB    IO$PUTCHAR, 1
+000176  00A7  0060                        MOVE    @R0, R8
+000177  00A8  FFB0  0512                  RSUB    IO$PUT_W_HEX, 1
+000178  00AA  FFB0  056C                  RSUB    IO$PUT_CRLF, 1
+000179  00AC  FFA0  FF6A                  RBRA    QMON$MAIN_LOOP, 1
+000180  00AE  CFA0  0046  QMON$M_MAYBE_F  CMP     'F', R8
+000181  00B0  FFAB  0020                  RBRA    QMON$M_MAYBE_L, !Z
+000182                    ; MEMORY/FILL:
+000183  00B2  0FA0  03E9                  MOVE    QMON$CG_M_F, R8
+000184  00B4  FFB0  0551                  RSUB    IO$PUTS, 1
+000185  00B6  FFB0  04D9                  RSUB    IO$GET_W_HEX, 1
+000186  00B8  0800                        MOVE    R8, R0
+000187  00B9  0FA0  03FD                  MOVE    QMON$CG_M_F2, R8
+000188  00BB  FFB0  054A                  RSUB    IO$PUTS, 1
+000189  00BD  FFB0  04D2                  RSUB    IO$GET_W_HEX, 1
+000190  00BF  0804                        MOVE    R8, R1
+000191  00C0  0FA0  040B                  MOVE    QMON$CG_M_F3, R8
+000192  00C2  FFB0  0543                  RSUB    IO$PUTS, 1
+000193  00C4  FFB0  04CB                  RSUB    IO$GET_W_HEX, 1
+000194  00C6  0828                        MOVE    R8, R10
+000195  00C7  0020                        MOVE    R0, R8
+000196  00C8  3004                        SUB     R0, R1
+000197  00C9  1F84  0001                  ADD     0x0001, R1
+000198  00CB  0124                        MOVE    R1, R9
+000199  00CC  FFB0  05FA                  RSUB    MEM$FILL, 1
+000200  00CE  FFB0  0548                  RSUB    IO$PUT_CRLF, 1
+000201  00D0  FFA0  FF46                  RBRA    QMON$MAIN_LOOP, 1
+000202  00D2  CFA0  004C  QMON$M_MAYBE_L  CMP     'L', R8
+000203  00D4  FFAB  000C                  RBRA    QMON$M_MAYBE_M, !Z
+000204                    ; MEMORY/LOAD:
+000205  00D6  0FA0  0413                  MOVE    QMON$CG_M_L, R8
+000206  00D8  FFB0  052D                  RSUB    IO$PUTS, 1
+000207  00DA  FFB0  04B5  _QMON$ML_LOOP   RSUB    IO$GET_W_HEX, 1             ; Get address
+000208  00DC  0800                        MOVE    R8, R0
+000209  00DD  FFB0  04B2                  RSUB    IO$GET_W_HEX, 1             ; Get value
+000210  00DF  0801                        MOVE    R8, @R0
+000211  00E0  FFA0  FFF8                  RBRA    _QMON$ML_LOOP, 1
+000212  00E2  CFA0  004D  QMON$M_MAYBE_M  CMP     'M', R8
+000213  00E4  FFAB  001D                  RBRA    QMON$M_ILLEGAL, !Z
+000214                    ; MEMORY/MOVE:
+000215  00E6  0FA0  044D                  MOVE    QMON$CG_M_M, R8
+000216  00E8  FFB0  051D                  RSUB    IO$PUTS, 1
+000217  00EA  FFB0  04A5                  RSUB    IO$GET_W_HEX, 1
+000218  00EC  0800                        MOVE    R8, R0
+000219  00ED  0FA0  0458                  MOVE    QMON$CG_M_M2, R8
+000220  00EF  FFB0  0516                  RSUB    IO$PUTS, 1
+000221  00F1  FFB0  049E                  RSUB    IO$GET_W_HEX, 1
+000222  00F3  0804                        MOVE    R8, R1
+000223  00F4  0FA0  045D                  MOVE    QMON$CG_M_M3, R8
+000224  00F6  FFB0  050F                  RSUB    IO$PUTS, 1
+000225  00F8  FFB0  0497                  RSUB    IO$GET_W_HEX, 1
+000226  00FA  0828                        MOVE    R8, R10
+000227  00FB  0020                        MOVE    R0, R8
+000228  00FC  0124                        MOVE    R1, R9
+000229  00FD  FFB0  05D8                  RSUB    MEM$MOVE, 1
+000230  00FF  FFB0  0517                  RSUB    IO$PUT_CRLF, 1
+000231  0101  FFA0  FF15                  RBRA    QMON$MAIN_LOOP, 1
+000232  0103  0FA0  01C8  QMON$M_ILLEGAL  MOVE    QMON$ILLCMD, R8
+000233  0105  FFB0  0500                  RSUB    IO$PUTS, 1
+000234  0107  FFA0  FF0F                  RBRA    QMON$MAIN_LOOP, 1
+000235  0109  CFA0  0048  QMON$MAYBE_H    CMP     'H', R8
+000236  010B  FFAB  0006                  RBRA    QMON$NOT_H, !Z          ; No H, try next...
+000237                    ; HELP:
+000238  010D  0FA0  01E3                  MOVE    QMON$HELP, R8           ; H(elp) - print help text
+000239  010F  FFB0  04F6                  RSUB    IO$PUTS, 1
+000240  0111  FFA0  FF05                  RBRA    QMON$MAIN_LOOP, 1
+000241  0113  0FA0  01A7  QMON$NOT_H      MOVE    QMON$ILLCMDGRP, R8A     ; Illegal command group
+000242  0115  FFB0  04F0                  RSUB    IO$PUTS, 1
+000243  0117  FFA0  FEFF                  RBRA    QMON$MAIN_LOOP, 1
+000244                    
+000245  0119  000D        QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.2 (Bernd Ulmann, August 2015)\n"
+        011A  000A
+        011B  000D
+        011C  000A
+        011D  0053
+        011E  0069
+        011F  006D
+        0120  0070
+        0121  006C
+        0122  0065
+        0123  0020
+        0124  0051
+        0125  004E
+        0126  0049
+        0127  0043
+        0128  0045
+        0129  002D
+        012A  006D
+        012B  006F
+        012C  006E
+        012D  0069
+        012E  0074
+        012F  006F
+        0130  0072
+        0131  0020
+        0132  002D
+        0133  0020
+        0134  0056
+        0135  0065
+        0136  0072
+        0137  0073
+        0138  0069
+        0139  006F
+        013A  006E
+        013B  0020
+        013C  0030
+        013D  002E
+        013E  0032
+        013F  0020
+        0140  0028
+        0141  0042
+        0142  0065
+        0143  0072
+        0144  006E
+        0145  0064
+        0146  0020
+        0147  0055
+        0148  006C
+        0149  006D
+        014A  0061
+        014B  006E
+        014C  006E
+        014D  002C
+        014E  0020
+        014F  0041
+        0150  0075
+        0151  0067
+        0152  0075
+        0153  0073
+        0154  0074
+        0155  0020
+        0156  0032
+        0157  0030
+        0158  0031
+        0159  0035
+        015A  0029
+        015B  000D
+        015C  000A
+000246  015D  002D                        .ASCII_W    "--------------------------------------------------------------\n\n"
+        015E  002D
+        015F  002D
+        0160  002D
+        0161  002D
+        0162  002D
+        0163  002D
+        0164  002D
+        0165  002D
+        0166  002D
+        0167  002D
+        0168  002D
+        0169  002D
+        016A  002D
+        016B  002D
+        016C  002D
+        016D  002D
+        016E  002D
+        016F  002D
+        0170  002D
+        0171  002D
+        0172  002D
+        0173  002D
+        0174  002D
+        0175  002D
+        0176  002D
+        0177  002D
+        0178  002D
+        0179  002D
+        017A  002D
+        017B  002D
+        017C  002D
+        017D  002D
+        017E  002D
+        017F  002D
+        0180  002D
+        0181  002D
+        0182  002D
+        0183  002D
+        0184  002D
+        0185  002D
+        0186  002D
+        0187  002D
+        0188  002D
+        0189  002D
+        018A  002D
+        018B  002D
+        018C  002D
+        018D  002D
+        018E  002D
+        018F  002D
+        0190  002D
+        0191  002D
+        0192  002D
+        0193  002D
+        0194  002D
+        0195  002D
+        0196  002D
+        0197  002D
+        0198  002D
+        0199  002D
+        019A  002D
+        019B  000D
+        019C  000A
+        019D  000D
+        019E  000A
+        019F  0000
+000247  01A0  0051        QMON$PROMPT     .ASCII_W    "QMON> "
+        01A1  004D
+        01A2  004F
+        01A3  004E
+        01A4  003E
+        01A5  0020
+        01A6  0000
+000248  01A7  0020        QMON$ILLCMDGRP  .ASCII_W    " *** Illegal command group ***\n"
+        01A8  002A
+        01A9  002A
+        01AA  002A
+        01AB  0020
+        01AC  0049
+        01AD  006C
+        01AE  006C
+        01AF  0065
+        01B0  0067
+        01B1  0061
+        01B2  006C
+        01B3  0020
+        01B4  0063
+        01B5  006F
+        01B6  006D
+        01B7  006D
+        01B8  0061
+        01B9  006E
+        01BA  0064
+        01BB  0020
+        01BC  0067
+        01BD  0072
+        01BE  006F
+        01BF  0075
+        01C0  0070
+        01C1  0020
+        01C2  002A
+        01C3  002A
+        01C4  002A
+        01C5  000D
+        01C6  000A
+        01C7  0000
+000249  01C8  0020        QMON$ILLCMD     .ASCII_W    " *** Illegal command ***\n"
+        01C9  002A
+        01CA  002A
+        01CB  002A
+        01CC  0020
+        01CD  0049
+        01CE  006C
+        01CF  006C
+        01D0  0065
+        01D1  0067
+        01D2  0061
+        01D3  006C
+        01D4  0020
+        01D5  0063
+        01D6  006F
+        01D7  006D
+        01D8  006D
+        01D9  0061
+        01DA  006E
+        01DB  0064
+        01DC  0020
+        01DD  002A
+        01DE  002A
+        01DF  002A
+        01E0  000D
+        01E1  000A
+        01E2  0000
+000250  01E3  0045        QMON$HELP       .ASCII_P    "ELP:\n\n"
+        01E4  004C
+        01E5  0050
+        01E6  003A
+        01E7  000D
+        01E8  000A
+        01E9  000D
+        01EA  000A
+000251  01EB  0020                        .ASCII_P    "    C(control group):\n"
+        01EC  0020
+        01ED  0020
+        01EE  0020
+        01EF  0043
+        01F0  0028
+        01F1  0063
+        01F2  006F
+        01F3  006E
+        01F4  0074
+        01F5  0072
+        01F6  006F
+        01F7  006C
+        01F8  0020
+        01F9  0067
+        01FA  0072
+        01FB  006F
+        01FC  0075
+        01FD  0070
+        01FE  0029
+        01FF  003A
+        0200  000D
+        0201  000A
+000252  0202  0020                        .ASCII_P    "        C(old start) H(alt) R(un)\n"
+        0203  0020
+        0204  0020
+        0205  0020
+        0206  0020
+        0207  0020
+        0208  0020
+        0209  0020
+        020A  0043
+        020B  0028
+        020C  006F
+        020D  006C
+        020E  0064
+        020F  0020
+        0210  0073
+        0211  0074
+        0212  0061
+        0213  0072
+        0214  0074
+        0215  0029
+        0216  0020
+        0217  0048
+        0218  0028
+        0219  0061
+        021A  006C
+        021B  0074
+        021C  0029
+        021D  0020
+        021E  0052
+        021F  0028
+        0220  0075
+        0221  006E
+        0222  0029
+        0223  000D
+        0224  000A
+000253  0225  0020                        .ASCII_P    "    H(elp)\n"
+        0226  0020
+        0227  0020
+        0228  0020
+        0229  0048
+        022A  0028
+        022B  0065
+        022C  006C
+        022D  0070
+        022E  0029
+        022F  000D
+        0230  000A
+000254  0231  0020                        .ASCII_P    "    M(emory group):\n"
+        0232  0020
+        0233  0020
+        0234  0020
+        0235  004D
+        0236  0028
+        0237  0065
+        0238  006D
+        0239  006F
+        023A  0072
+        023B  0079
+        023C  0020
+        023D  0067
+        023E  0072
+        023F  006F
+        0240  0075
+        0241  0070
+        0242  0029
+        0243  003A
+        0244  000D
+        0245  000A
+000255  0246  0020                        .ASCII_P    "        C(hange) D(ump) E(xamine) F(ill) L(oad) M(ove)\n"
+        0247  0020
+        0248  0020
+        0249  0020
+        024A  0020
+        024B  0020
+        024C  0020
+        024D  0020
+        024E  0043
+        024F  0028
+        0250  0068
+        0251  0061
+        0252  006E
+        0253  0067
+        0254  0065
+        0255  0029
+        0256  0020
+        0257  0044
+        0258  0028
+        0259  0075
+        025A  006D
+        025B  0070
+        025C  0029
+        025D  0020
+        025E  0045
+        025F  0028
+        0260  0078
+        0261  0061
+        0262  006D
+        0263  0069
+        0264  006E
+        0265  0065
+        0266  0029
+        0267  0020
+        0268  0046
+        0269  0028
+        026A  0069
+        026B  006C
+        026C  006C
+        026D  0029
+        026E  0020
+        026F  004C
+        0270  0028
+        0271  006F
+        0272  0061
+        0273  0064
+        0274  0029
+        0275  0020
+        0276  004D
+        0277  0028
+        0278  006F
+        0279  0076
+        027A  0065
+        027B  0029
+        027C  000D
+        027D  000A
+000256  027E  000D                        .ASCII_P    "\n    General: CTRL-E performs a warm start whenever an\n"
+        027F  000A
+        0280  0020
+        0281  0020
+        0282  0020
+        0283  0020
+        0284  0047
+        0285  0065
+        0286  006E
+        0287  0065
+        0288  0072
+        0289  0061
+        028A  006C
+        028B  003A
+        028C  0020
+        028D  0043
+        028E  0054
+        028F  0052
+        0290  004C
+        0291  002D
+        0292  0045
+        0293  0020
+        0294  0070
+        0295  0065
+        0296  0072
+        0297  0066
+        0298  006F
+        0299  0072
+        029A  006D
+        029B  0073
+        029C  0020
+        029D  0061
+        029E  0020
+        029F  0077
+        02A0  0061
+        02A1  0072
+        02A2  006D
+        02A3  0020
+        02A4  0073
+        02A5  0074
+        02A6  0061
+        02A7  0072
+        02A8  0074
+        02A9  0020
+        02AA  0077
+        02AB  0068
+        02AC  0065
+        02AD  006E
+        02AE  0065
+        02AF  0076
+        02B0  0065
+        02B1  0072
+        02B2  0020
+        02B3  0061
+        02B4  006E
+        02B5  000D
+        02B6  000A
+000257  02B7  0020                        .ASCII_P    "        input from keyboard is expected.\n"
+        02B8  0020
+        02B9  0020
+        02BA  0020
+        02BB  0020
+        02BC  0020
+        02BD  0020
+        02BE  0020
+        02BF  0069
+        02C0  006E
+        02C1  0070
+        02C2  0075
+        02C3  0074
+        02C4  0020
+        02C5  0066
+        02C6  0072
+        02C7  006F
+        02C8  006D
+        02C9  0020
+        02CA  006B
+        02CB  0065
+        02CC  0079
+        02CD  0062
+        02CE  006F
+        02CF  0061
+        02D0  0072
+        02D1  0064
+        02D2  0020
+        02D3  0069
+        02D4  0073
+        02D5  0020
+        02D6  0065
+        02D7  0078
+        02D8  0070
+        02D9  0065
+        02DA  0063
+        02DB  0074
+        02DC  0065
+        02DD  0064
+        02DE  002E
+        02DF  000D
+        02E0  000A
+000258  02E1  000D                        .ASCII_P    "\n    M(emory)L(oad) can be used to load assembler output\n"
+        02E2  000A
+        02E3  0020
+        02E4  0020
+        02E5  0020
+        02E6  0020
+        02E7  004D
+        02E8  0028
+        02E9  0065
+        02EA  006D
+        02EB  006F
+        02EC  0072
+        02ED  0079
+        02EE  0029
+        02EF  004C
+        02F0  0028
+        02F1  006F
+        02F2  0061
+        02F3  0064
+        02F4  0029
+        02F5  0020
+        02F6  0063
+        02F7  0061
+        02F8  006E
+        02F9  0020
+        02FA  0062
+        02FB  0065
+        02FC  0020
+        02FD  0075
+        02FE  0073
+        02FF  0065
+        0300  0064
+        0301  0020
+        0302  0074
+        0303  006F
+        0304  0020
+        0305  006C
+        0306  006F
+        0307  0061
+        0308  0064
+        0309  0020
+        030A  0061
+        030B  0073
+        030C  0073
+        030D  0065
+        030E  006D
+        030F  0062
+        0310  006C
+        0311  0065
+        0312  0072
+        0313  0020
+        0314  006F
+        0315  0075
+        0316  0074
+        0317  0070
+        0318  0075
+        0319  0074
+        031A  000D
+        031B  000A
+000259  031C  0020                        .ASCII_P    "        by pasting it to the terminal. CTRL-E terminates.\n"
+        031D  0020
+        031E  0020
+        031F  0020
+        0320  0020
+        0321  0020
+        0322  0020
+        0323  0020
+        0324  0062
+        0325  0079
+        0326  0020
+        0327  0070
+        0328  0061
+        0329  0073
+        032A  0074
+        032B  0069
+        032C  006E
+        032D  0067
+        032E  0020
+        032F  0069
+        0330  0074
+        0331  0020
+        0332  0074
+        0333  006F
+        0334  0020
+        0335  0074
+        0336  0068
+        0337  0065
+        0338  0020
+        0339  0074
+        033A  0065
+        033B  0072
+        033C  006D
+        033D  0069
+        033E  006E
+        033F  0061
+        0340  006C
+        0341  002E
+        0342  0020
+        0343  0043
+        0344  0054
+        0345  0052
+        0346  004C
+        0347  002D
+        0348  0045
+        0349  0020
+        034A  0074
+        034B  0065
+        034C  0072
+        034D  006D
+        034E  0069
+        034F  006E
+        0350  0061
+        0351  0074
+        0352  0065
+        0353  0073
+        0354  002E
+        0355  000D
+        0356  000A
+000260  0357  000D                        .ASCII_W    "\n"
+        0358  000A
+        0359  0000
+000261  035A  004F        QMON$CG_C       .ASCII_W    "ONTROL/"
+        035B  004E
+        035C  0054
+        035D  0052
+        035E  004F
+        035F  004C
+        0360  002F
+        0361  0000
+000262  0362  0043        QMON$CG_C_C     .ASCII_W    "COLD START"
+        0363  004F
+        0364  004C
+        0365  0044
+        0366  0020
+        0367  0053
+        0368  0054
+        0369  0041
+        036A  0052
+        036B  0054
+        036C  0000
+000263  036D  0048        QMON$CG_C_H     .ASCII_W    "HALT\n\n"
+        036E  0041
+        036F  004C
+        0370  0054
+        0371  000D
+        0372  000A
+        0373  000D
+        0374  000A
+        0375  0000
+000264  0376  0052        QMON$CG_C_R     .ASCII_W    "RUN ADDRESS="
+        0377  0055
+        0378  004E
+        0379  0020
+        037A  0041
+        037B  0044
+        037C  0044
+        037D  0052
+        037E  0045
+        037F  0053
+        0380  0053
+        0381  003D
+        0382  0000
+000265  0383  0045        QMON$CG_M       .ASCII_W    "EMORY/"
+        0384  004D
+        0385  004F
+        0386  0052
+        0387  0059
+        0388  002F
+        0389  0000
+000266  038A  0043        QMON$CG_M_C     .ASCII_W    "CHANGE ADDRESS="
+        038B  0048
+        038C  0041
+        038D  004E
+        038E  0047
+        038F  0045
+        0390  0020
+        0391  0041
+        0392  0044
+        0393  0044
+        0394  0052
+        0395  0045
+        0396  0053
+        0397  0053
+        0398  003D
+        0399  0000
+000267  039A  0020        QMON$CG_M_C1    .ASCII_W    " CURRENT VALUE="
+        039B  0043
+        039C  0055
+        039D  0052
+        039E  0052
+        039F  0045
+        03A0  004E
+        03A1  0054
+        03A2  0020
+        03A3  0056
+        03A4  0041
+        03A5  004C
+        03A6  0055
+        03A7  0045
+        03A8  003D
+        03A9  0000
+000268  03AA  0020        QMON$CG_M_C2    .ASCII_W    " NEW VALUE="
+        03AB  004E
+        03AC  0045
+        03AD  0057
+        03AE  0020
+        03AF  0056
+        03B0  0041
+        03B1  004C
+        03B2  0055
+        03B3  0045
+        03B4  003D
+        03B5  0000
+000269  03B6  0044        QMON$CG_M_D     .ASCII_W    "DUMP START ADDRESS="
+        03B7  0055
+        03B8  004D
+        03B9  0050
+        03BA  0020
+        03BB  0053
+        03BC  0054
+        03BD  0041
+        03BE  0052
+        03BF  0054
+        03C0  0020
+        03C1  0041
+        03C2  0044
+        03C3  0044
+        03C4  0052
+        03C5  0045
+        03C6  0053
+        03C7  0053
+        03C8  003D
+        03C9  0000
+000270  03CA  0020        QMON$CG_M_D2    .ASCII_W    " END ADDRESS="
+        03CB  0045
+        03CC  004E
+        03CD  0044
+        03CE  0020
+        03CF  0041
+        03D0  0044
+        03D1  0044
+        03D2  0052
+        03D3  0045
+        03D4  0053
+        03D5  0053
+        03D6  003D
+        03D7  0000
+000271  03D8  0045        QMON$CG_M_E     .ASCII_W    "EXAMINE ADDRESS="
+        03D9  0058
+        03DA  0041
+        03DB  004D
+        03DC  0049
+        03DD  004E
+        03DE  0045
+        03DF  0020
+        03E0  0041
+        03E1  0044
+        03E2  0044
+        03E3  0052
+        03E4  0045
+        03E5  0053
+        03E6  0053
+        03E7  003D
+        03E8  0000
+000272  03E9  0046        QMON$CG_M_F     .ASCII_W    "FILL START ADDRESS="
+        03EA  0049
+        03EB  004C
+        03EC  004C
+        03ED  0020
+        03EE  0053
+        03EF  0054
+        03F0  0041
+        03F1  0052
+        03F2  0054
+        03F3  0020
+        03F4  0041
+        03F5  0044
+        03F6  0044
+        03F7  0052
+        03F8  0045
+        03F9  0053
+        03FA  0053
+        03FB  003D
+        03FC  0000
+000273  03FD  0020        QMON$CG_M_F2    .ASCII_W    " END ADDRESS="
+        03FE  0045
+        03FF  004E
+        0400  0044
+        0401  0020
+        0402  0041
+        0403  0044
+        0404  0044
+        0405  0052
+        0406  0045
+        0407  0053
+        0408  0053
+        0409  003D
+        040A  0000
+000274  040B  0020        QMON$CG_M_F3    .ASCII_W    " VALUE="
+        040C  0056
+        040D  0041
+        040E  004C
+        040F  0055
+        0410  0045
+        0411  003D
+        0412  0000
+000275  0413  004C        QMON$CG_M_L     .ASCII_W    "LOAD - ENTER ADDRESS/VALUE PAIRS, TERMINATE WITH CTRL-E\n"
+        0414  004F
+        0415  0041
+        0416  0044
+        0417  0020
+        0418  002D
+        0419  0020
+        041A  0045
+        041B  004E
+        041C  0054
+        041D  0045
+        041E  0052
+        041F  0020
+        0420  0041
+        0421  0044
+        0422  0044
+        0423  0052
+        0424  0045
+        0425  0053
+        0426  0053
+        0427  002F
+        0428  0056
+        0429  0041
+        042A  004C
+        042B  0055
+        042C  0045
+        042D  0020
+        042E  0050
+        042F  0041
+        0430  0049
+        0431  0052
+        0432  0053
+        0433  002C
+        0434  0020
+        0435  0054
+        0436  0045
+        0437  0052
+        0438  004D
+        0439  0049
+        043A  004E
+        043B  0041
+        043C  0054
+        043D  0045
+        043E  0020
+        043F  0057
+        0440  0049
+        0441  0054
+        0442  0048
+        0443  0020
+        0444  0043
+        0445  0054
+        0446  0052
+        0447  004C
+        0448  002D
+        0449  0045
+        044A  000D
+        044B  000A
+        044C  0000
+000276  044D  004D        QMON$CG_M_M     .ASCII_W    "MOVE FROM="
+        044E  004F
+        044F  0056
+        0450  0045
+        0451  0020
+        0452  0046
+        0453  0052
+        0454  004F
+        0455  004D
+        0456  003D
+        0457  0000
+000277  0458  0020        QMON$CG_M_M2    .ASCII_W    " TO="
+        0459  0054
+        045A  004F
+        045B  003D
+        045C  0000
+000278  045D  0020        QMON$CG_M_M3    .ASCII_W    " LENGTH="
+        045E  004C
+        045F  0045
+        0460  004E
+        0461  0047
+        0462  0054
+        0463  0048
+        0464  003D
+        0465  0000
+000279                    ;
+000280  0466  0000        QMON$COMMAND    .BLOCK 0x0100              ; Reserve some memory for holding a command line
+        0467  0000
+        0468  0000
+        0469  0000
+        046A  0000
+        046B  0000
+        046C  0000
+        046D  0000
+        046E  0000
+        046F  0000
+        0470  0000
+        0471  0000
+        0472  0000
+        0473  0000
+        0474  0000
+        0475  0000
+        0476  0000
+        0477  0000
+        0478  0000
+        0479  0000
+        047A  0000
+        047B  0000
+        047C  0000
+        047D  0000
+        047E  0000
+        047F  0000
+        0480  0000
+        0481  0000
+        0482  0000
+        0483  0000
+        0484  0000
+        0485  0000
+        0486  0000
+        0487  0000
+        0488  0000
+        0489  0000
+        048A  0000
+        048B  0000
+        048C  0000
+        048D  0000
+        048E  0000
+        048F  0000
+        0490  0000
+        0491  0000
+        0492  0000
+        0493  0000
+        0494  0000
+        0495  0000
+        0496  0000
+        0497  0000
+        0498  0000
+        0499  0000
+        049A  0000
+        049B  0000
+        049C  0000
+        049D  0000
+        049E  0000
+        049F  0000
+        04A0  0000
+        04A1  0000
+        04A2  0000
+        04A3  0000
+        04A4  0000
+        04A5  0000
+        04A6  0000
+        04A7  0000
+        04A8  0000
+        04A9  0000
+        04AA  0000
+        04AB  0000
+        04AC  0000
+        04AD  0000
+        04AE  0000
+        04AF  0000
+        04B0  0000
+        04B1  0000
+        04B2  0000
+        04B3  0000
+        04B4  0000
+        04B5  0000
+        04B6  0000
+        04B7  0000
+        04B8  0000
+        04B9  0000
+        04BA  0000
+        04BB  0000
+        04BC  0000
+        04BD  0000
+        04BE  0000
+        04BF  0000
+        04C0  0000
+        04C1  0000
+        04C2  0000
+        04C3  0000
+        04C4  0000
+        04C5  0000
+        04C6  0000
+        04C7  0000
+        04C8  0000
+        04C9  0000
+        04CA  0000
+        04CB  0000
+        04CC  0000
+        04CD  0000
+        04CE  0000
+        04CF  0000
+        04D0  0000
+        04D1  0000
+        04D2  0000
+        04D3  0000
+        04D4  0000
+        04D5  0000
+        04D6  0000
+        04D7  0000
+        04D8  0000
+        04D9  0000
+        04DA  0000
+        04DB  0000
+        04DC  0000
+        04DD  0000
+        04DE  0000
+        04DF  0000
+        04E0  0000
+        04E1  0000
+        04E2  0000
+        04E3  0000
+        04E4  0000
+        04E5  0000
+        04E6  0000
+        04E7  0000
+        04E8  0000
+        04E9  0000
+        04EA  0000
+        04EB  0000
+        04EC  0000
+        04ED  0000
+        04EE  0000
+        04EF  0000
+        04F0  0000
+        04F1  0000
+        04F2  0000
+        04F3  0000
+        04F4  0000
+        04F5  0000
+        04F6  0000
+        04F7  0000
+        04F8  0000
+        04F9  0000
+        04FA  0000
+        04FB  0000
+        04FC  0000
+        04FD  0000
+        04FE  0000
+        04FF  0000
+        0500  0000
+        0501  0000
+        0502  0000
+        0503  0000
+        0504  0000
+        0505  0000
+        0506  0000
+        0507  0000
+        0508  0000
+        0509  0000
+        050A  0000
+        050B  0000
+        050C  0000
+        050D  0000
+        050E  0000
+        050F  0000
+        0510  0000
+        0511  0000
+        0512  0000
+        0513  0000
+        0514  0000
+        0515  0000
+        0516  0000
+        0517  0000
+        0518  0000
+        0519  0000
+        051A  0000
+        051B  0000
+        051C  0000
+        051D  0000
+        051E  0000
+        051F  0000
+        0520  0000
+        0521  0000
+        0522  0000
+        0523  0000
+        0524  0000
+        0525  0000
+        0526  0000
+        0527  0000
+        0528  0000
+        0529  0000
+        052A  0000
+        052B  0000
+        052C  0000
+        052D  0000
+        052E  0000
+        052F  0000
+        0530  0000
+        0531  0000
+        0532  0000
+        0533  0000
+        0534  0000
+        0535  0000
+        0536  0000
+        0537  0000
+        0538  0000
+        0539  0000
+        053A  0000
+        053B  0000
+        053C  0000
+        053D  0000
+        053E  0000
+        053F  0000
+        0540  0000
+        0541  0000
+        0542  0000
+        0543  0000
+        0544  0000
+        0545  0000
+        0546  0000
+        0547  0000
+        0548  0000
+        0549  0000
+        054A  0000
+        054B  0000
+        054C  0000
+        054D  0000
+        054E  0000
+        054F  0000
+        0550  0000
+        0551  0000
+        0552  0000
+        0553  0000
+        0554  0000
+        0555  0000
+        0556  0000
+        0557  0000
+        0558  0000
+        0559  0000
+        055A  0000
+        055B  0000
+        055C  0000
+        055D  0000
+        055E  0000
+        055F  0000
+        0560  0000
+        0561  0000
+        0562  0000
+        0563  0000
+        0564  0000
+        0565  0000
+000281                    
+000282                    ;
+000283                    ;;=======================================================================================
+000284                    ;; The collection of input/output related function starts here
+000285                    ;;=======================================================================================
+000286                    ;
+000287                    ; Define io system specific constants and memory areas etc. It is expected that the
+000288                    ; basic definitions from sysdef.asm have been included somewhere before!
+000289                    ;
+000290                    ;***************************************************************************************
+000291                    ;* IO$DUMP_MEMORY prints a hexadecimal memory dump of a specified memory region.
+000292                    ;*
+000293                    ;* R8:  Contains the start address
+000294                    ;* R9:  Contains the end address (inclusive)
+000295                    ;*
+000296                    ;* The contents of R8 and R9 are preserved during the run of this function.
+000297                    ;***************************************************************************************
+000298                    ;
+000299  0566  1FB8  0100  IO$DUMP_MEMORY          ADD     0x0100, R14                           ; Get a new register page
+000300  0568  0800                                MOVE R8, R0                     ; R0 will be the loop counter
+000301  0569  0804                                MOVE R8, R1                     ; This will be needed to restore R8 later
+000302  056A  090C                                MOVE R9, R3
+000303  056B  1F8C  0001                          ADD 0x0001, R3                  ; That is necessary since we want the last
+000304                                                                            ; address printed, too
+000305  056D  0F90  FFFF                          MOVE 0xFFFF, R4                 ; Set R4 - this is the column counter - to -1
+000306  056F  0008        _IO$DUMP_MEMORY_LOOP    MOVE R0, R2                     ; Have we reached the end of the memory area?
+000307  0570  3308                                SUB R3, R2
+000308  0571  FFA3  0018                          RBRA _IO$DUMP_MEMORY_EXIT, Z    ; Yes - that is it, so exit this routine
+000309  0573  1F90  0001                          ADD 0x0001, R4                  ; Next column
+000310  0575  9F90  0007                          AND 0x0007, R4                  ; We compute mod 8
+000311  0577  FFAB  0009                          RBRA _IO$DUMP_MEMORY_CONTENT, !Z; if the result is not equal 0 we do not
+000312                                                                            ; need an address printed
+000313  0579  FFB0  009D                          RSUB IO$PUT_CRLF, 1             ; Print a CR/LF pair
+000314  057B  0020                                MOVE R0, R8                     ; Print address
+000315  057C  FFB0  003E                          RSUB IO$PUT_W_HEX, 1
+000316  057E  0FA0  0642                          MOVE IO$COLON_DELIMITER, R8     ; Print a colon followed by a space
+000317  0580  FFB0  0085                          RSUB IO$PUTS, 1
+000318  0582  00A0        _IO$DUMP_MEMORY_CONTENT MOVE @R0++, R8                  ; Print the memory contents of this location
+000319  0583  FFB0  0037                          RSUB IO$PUT_W_HEX, 1
+000320  0585  0FA0  0020                          MOVE ' ', R8             ; Print a space
+000321  0587  FFB0  009E                          RSUB IO$PUTCHAR, 1
+000322  0589  FFA0  FFE4                          RBRA _IO$DUMP_MEMORY_LOOP, 1    ; Continue the print loop
+000323  058B  FFB0  008B  _IO$DUMP_MEMORY_EXIT    RSUB IO$PUT_CRLF, 1             ; Print a last CR/LF pair
+000324  058D  0120                                MOVE R1, R8                     ; Restore R8,
+000325  058E  3FB8  0100                          SUB     0x0100, R14                           ; switch back to the correct register page
+000326  0590  0DBC                                            MOVE        @R13++, R15
+000327                    ;
+000328                    ;***************************************************************************************
+000329                    ;* IO$GET_W_HEX reads four hex nibbles from stdin and returns the corresponding
+000330                    ;* value in R8
+000331                    ;*
+000332                    ;* Illegal characters (not 1-9A-F or a-f) will generate a bell signal. The only
+000333                    ;* exception to this behaviour is the character 'x' which will erase any input
+000334                    ;* up to this point. This has the positive effect that a hexadecimal value can
+000335                    ;* be entered as 0x.... or just as ....
+000336                    ;***************************************************************************************
+000337                    ;
+000338  0591  1FB8  0100  IO$GET_W_HEX        ADD         0x0100, R14                                   ; Get a new register page
+000339  0593  B000        _IO$GET_W_HEX_REDO  XOR     R0, R0                          ; Clear R0
+000340  0594  0F84  0004                      MOVE    4, R1                           ; We need four characters
+000341  0596  0FA4  0631                      MOVE    IO$HEX_NIBBLES, R9              ; Pointer to list of valid chars
+000342  0598  FFB0  0042  _IO$GET_W_HEX_INPUT RSUB    IO$GETCHAR, 1                   ; Read a character into R8
+000343  059A  FFA3  FA76                      RBRA    QMON$WARMSTART, Z
+000344  059C  FFB0  00A7                      RSUB    CHR$TO_UPPER, 1                 ; Convert to upper case
+000345  059E  CFA0  0058                      CMP     'X', R8                         ; Was it an 'X'?
+000346  05A0  FFA3  FFF1                      RBRA    _IO$GET_W_HEX_REDO, Z           ; Yes - redo from start :-)
+000347  05A2  FFB0  010F                      RSUB    STR$STRCHR, 1                   ; Is it a valid character?
+000348  05A4  0A28                            MOVE    R10, R10                        ; Result equal zero?
+000349  05A5  FFAB  0006                      RBRA    _IO$GET_W_HEX_VALID, !Z         ; No
+000350  05A7  0FA0  0007                      MOVE    7, R8                           ; Yes - generate a beep :-)
+000351  05A9  FFB0  007C                      RSUB    IO$PUTCHAR, 1
+000352  05AB  FFA0  FFEB                      RBRA    _IO$GET_W_HEX_INPUT, 1          ; Retry
+000353  05AD  FFB0  0078  _IO$GET_W_HEX_VALID RSUB    IO$PUTCHAR, 1                   ; Echo character
+000354  05AF  3FA8  0631                      SUB     IO$HEX_NIBBLES, R10             ; Get number of character
+000355  05B1  5F80  0004                      SHL     4, R0
+000356  05B3  1A00                            ADD     R10, R0
+000357  05B4  3F84  0001                      SUB     0x0001, R1
+000358  05B6  FFAB  FFE0                      RBRA    _IO$GET_W_HEX_INPUT, !Z         ; Read next character
+000359  05B8  0020                            MOVE    R0, R8
+000360  05B9  3FB8  0100                      SUB 0x0100, R14                                   ; Restore previous register page
+000361  05BB  0DBC                            MOVE        @R13++, R15
+000362                    ;
+000363                    ;***************************************************************************************
+000364                    ;* IO$PUT_W_HEX prints a machine word in hexadecimal notation.
+000365                    ;*
+000366                    ;* R8: Contains the machine word to be printed in hex notation.
+000367                    ;*
+000368                    ;* The contents of R8 are being preserved during the run of this function.
+000369                    ;***************************************************************************************
+000370                    ;
+000371  05BC  1FB8  0100  IO$PUT_W_HEX    ADD     0x0100, R14                   ; Get a new register page
+000372  05BE  0F80  0004                  MOVE 0x0004, R0         ; Save constant for nibble shifting
+000373  05C0  0010                        MOVE R0, R4             ; Set loop counter to four
+000374  05C1  0814                        MOVE R8, R5             ; Copy contents of R8 for later restore
+000375  05C2  0F84  0631                  MOVE IO$HEX_NIBBLES, R1 ; Create a pointer to the list of nibbles
+000376                                                            ; Push four ASCII characters to the stack
+000377  05C4  0108        _IO$PWH_SCAN    MOVE R1, R2             ; and create a scratch copy of this pointer
+000378  05C5  080C                        MOVE R8, R3             ; Create a local copy of the machine word
+000379  05C6  9F8C  000F                  AND 0x000f, R3          ; Only the four LSBs are of interest
+000380  05C8  1308                        ADD R3, R2              ; Adjust pointer to the desired nibble
+000381  05C9  0277                        MOVE @R2, @--R13         ; and save the ASCII character to the stack
+000382  05CA  6FA0  0004                  SHR 4, R8               ; Shift R8 four places right
+000383  05CC  3F90  0001                  SUB 0x0001, R4          ; Decrement loop counter
+000384  05CE  FFAB  FFF4                  RBRA _IO$PWH_SCAN, !Z   ; and continue with the next nibble
+000385                                                            ; Now read these characters back and print them
+000386  05D0  0010                        MOVE R0, R4             ; Initialize loop counter
+000387  05D1  0DA0        _IO$PWH_PRINT   MOVE @R13++, R8          ; Fetch a character from the stack
+000388  05D2  FFB0  0053                  RSUB IO$PUTCHAR, 1      ; and print it
+000389  05D4  3F90  0001                  SUB 0x0001, R4          ; Decrement loop counter
+000390  05D6  FFAB  FFF9                  RBRA _IO$PWH_PRINT, !Z  ; and continue with the next character
+000391                                                            ; That is all...
+000392  05D8  0520                        MOVE R5, R8             ; Restore contents of R8
+000393  05D9  3FB8  0100                  SUB     0x0100, R14                   ; Restore correct register page
+000394  05DB  0DBC                                MOVE    @R13++, R15
+000395                    ;
+000396                    ;***************************************************************************************
+000397                    ;* IO$GETCHAR reads a character from the first UART in the system.
+000398                    ;*
+000399                    ;* R8 will contain the character read in its lower eight bits
+000400                    ;***************************************************************************************
+000401                    ;
+000402  05DC  1FB8  0100  IO$GETCHAR      ADD     0x0100, R14
+000403  05DE  0F80  FC00                  MOVE    IO$UART0_BASE, R0
+000404  05E0  0004                        MOVE    R0, R1
+000405  05E1  1F80  0001                  ADD     IO$UART_SRA, R0     ; R0 contains the address of the status register
+000406  05E3  1F84  0003                  ADD     IO$UART_RHRA, R1    ; R1 contains the address of the receiver reg.
+000407  05E5  0048        _IO$GETC_LOOP   MOVE    @R0, R2             ; Read status register
+000408  05E6  9F88  0001                  AND     0x0001, R2          ; Only bit 0 is of interest
+000409  05E8  FFA3  FFFB                  RBRA    _IO$GETC_LOOP, Z    ; Loop until a character has been received
+000410  05EA  0160                        MOVE    @R1, R8             ; Get the character from the receiver register
+000411  05EB  3FB8  0100                  SUB     0x0100, R14
+000412  05ED  CFA0  0005                  CMP     0x0005, R8          ; CTRL-E?
+000413  05EF  FFA3  FA21                  RBRA    QMON$WARMSTART, Z
+000414  05F1  0DBC                                MOVE    @R13++, R15
+000415                    ;
+000416                    ;***************************************************************************************
+000417                    ;* IO$GETS reads a CR/LF terminated string from the serial line
+000418                    ;*
+000419                    ;* R8 has to point to a preallocated memory area to store the input line
+000420                    ;***************************************************************************************
+000421                    ;
+000422  05F2  1FB8  0100  IO$GETS         ADD     0x0100, R14                  ; Get a new register page
+000423  05F4  0800                        MOVE R8, R0            ; Save parameters
+000424  05F5  0804                        MOVE R8, R1
+000425  05F6  FFB0  FFE4  _IO$GETS_LOOP   RSUB IO$GETCHAR, 1     ; Get a single character from the serial line
+000426  05F8  0802                        MOVE R8, @R0++         ; Store it into the buffer area
+000427  05F9  FFB0  002C                  RSUB IO$PUTCHAR, 1     ; Echo the character
+000428  05FB  3FA0  000A                  SUB 0x000A, R8         ; Was it a LF character?
+000429  05FD  FFAB  FFF7                  RBRA _IO$GETS_LOOP, !Z ; No -> continue reading characters
+000430  05FF  0F82  000D                  MOVE 0x000D, @R0++     ; Extend the string with a CR and
+000431  0601  0F81  0000                  MOVE 0x0000, @R0       ; terminate it with a null word
+000432  0603  0120                        MOVE R1, R8            ; Restore R8 which will now point to the string
+000433  0604  3FB8  0100                  SUB     0x0100, R14                  ; Restore the register page
+000434  0606  0DBC                                MOVE    @R13++, R15
+000435                    ;
+000436                    ;***************************************************************************************
+000437                    ;* IO$PUTS prints a null terminated string.
+000438                    ;*
+000439                    ;* R8: Pointer to the string to be printed. Of each word only the lower eight bits
+000440                    ;*     will be printed. The terminating word has to be zero.
+000441                    ;*
+000442                    ;* The contents of R8 are being preserved during the run of this function.
+000443                    ;***************************************************************************************
+000444                    ;
+000445  0607  1FB8  0100  IO$PUTS         ADD     0x0100, R14                   ; Get a new register page
+000446  0609  0804                        MOVE R8, R1             ; Save contents of R8
+000447  060A  0800                        MOVE R8, R0             ; Local copy of the string pointer
+000448  060B  00A0        _IO$PUTS_LOOP   MOVE @R0++, R8          ; Get a character from the string
+000449  060C  9FA0  00FF                  AND 0x00FF, R8          ; Only the lower eight bits are relevant
+000450  060E  FFA3  0004                  RBRA _IO$PUTS_END, Z    ; Return when the string end has been reached
+000451  0610  FFB0  0015                  RSUB IO$PUTCHAR, 1      ; Print this character
+000452  0612  FFA0  FFF7                  RBRA _IO$PUTS_LOOP, 1   ; Continue with the next character
+000453  0614  0120        _IO$PUTS_END    MOVE R1, R8             ; Restore contents of R8
+000454  0615  3FB8  0100                  SUB     0x0100, R14                   ; Restore correct register page
+000455  0617  0DBC                                MOVE    @R13++, R15
+000456                    ;
+000457                    ;***************************************************************************************
+000458                    ;* IO$PUT_CRLF prints actually a LF/CR (the reason for this is that curses on the
+000459                    ;*             MAC, where the emulation currently runs, has problems with CR/LF, but
+000460                    ;*             not with LF/CR)
+000461                    ;***************************************************************************************
+000462                    ;
+000463  0618  1FB8  0100  IO$PUT_CRLF     ADD     0x0100, R14                   ; Get a new register page
+000464  061A  0800                        MOVE R8, R0             ; Save contents of R8
+000465  061B  0FA0  000A                  MOVE 0x0A, R8
+000466  061D  FFB0  0008                  RSUB IO$PUTCHAR, 1
+000467  061F  0FA0  000D                  MOVE 0x0D, R8
+000468  0621  FFB0  0004                  RSUB IO$PUTCHAR, 1
+000469  0623  0020                        MOVE R0, R8             ; Restore contents of R8
+000470  0624  3FB8  0100                  SUB     0x0100, R14                   ; Return to previous register page
+000471  0626  0DBC                                MOVE    @R13++, R15
+000472                    ;
+000473                    ;***************************************************************************************
+000474                    ;* IO$PUTCHAR prints a single character.
+000475                    ;*
+000476                    ;* R8: Contains the character to be printed
+000477                    ;
+000478                    ;* The contents of R8 are being preserved during the run of this function.
+000479                    ;*
+000480                    ;* TODO: This routine is way too simple and only works with the simple
+000481                    ;*       UART emulation. To use a real 16550 this routine will require a complete
+000482                    ;*       rewrite!
+000483                    ;***************************************************************************************
+000484                    ;
+000485  0627  1FB8  0100  IO$PUTCHAR      ADD     0x0100, R14                   ; Get a new register page
+000486  0629  0F80  FC00                  MOVE IO$UART0_BASE, R0
+000487  062B  1F80  0003                  ADD IO$UART_THRA, R0    ; R0 now points to the THRA register
+000488  062D  0801                        MOVE R8, @R0            ; Print character
+000489  062E  3FB8  0100                  SUB     0x0100, R14                   ; Restore the old page
+000490  0630  0DBC                                MOVE    @R13++, R15
+000491                    ;
+000492                    ;***************************************************************************************
+000493                    ; Constants, etc.
+000494                    ;***************************************************************************************
+000495                    ;
+000496  0631  0030        IO$HEX_NIBBLES      .ASCII_W "0123456789ABCDEF"
+        0632  0031
+        0633  0032
+        0634  0033
+        0635  0034
+        0636  0035
+        0637  0036
+        0638  0037
+        0639  0038
+        063A  0039
+        063B  0041
+        063C  0042
+        063D  0043
+        063E  0044
+        063F  0045
+        0640  0046
+        0641  0000
+000497  0642  003A        IO$COLON_DELIMITER  .ASCII_W ": "
+        0643  0020
+        0644  0000
+000498                    
+000499                    ;
+000500                    ;;=======================================================================================
+000501                    ;; The collection of string related functions starts here
+000502                    ;;=======================================================================================
+000503                    ;
+000504                    ;***************************************************************************************
+000505                    ;* CHR$TO_UPPER expects a character to be converted to upper case in R8
+000506                    ;***************************************************************************************
+000507                    ;
+000508  0645  1FB8  0100  CHR$TO_UPPER            ADD     0x0100, R14
+000509  0647  0800                                MOVE    R8, R0                  ; Save character
+000510  0648  3F80  0061                          SUB     'a', R0                 ; Less than 'a'?
+000511  064A  FFA4  0009                          RBRA    _CHR$TO_UPPER_EXIT, N   ; Yes - nothing to do
+000512  064C  0F80  007A                          MOVE    'z', R0                 ; Check if greater than 'z'
+000513  064E  3800                                SUB     R8, R0
+000514  064F  FFA4  0004                          RBRA    _CHR$TO_UPPER_EXIT, N   ; Yes - nothing to do
+000515  0651  3FA0  0061                          SUB     'a', R8                 ; Perform the conversion
+000516  0653  1FA0  0041                          ADD     'A', R8
+000517  0655  3FB8  0100  _CHR$TO_UPPER_EXIT      SUB     0x0100, R14
+000518  0657  0DBC                                MOVE    @R13++, R15
+000519                    ;
+000520                    ;***************************************************************************************
+000521                    ;* STR$TO_UPPER expects the address of a string to be converted to upper case in R8
+000522                    ;***************************************************************************************
+000523                    ;
+000524  0658  1FB8  0100  STR$TO_UPPER            ADD     0x0100, R14                       ; Get a new scratch register page
+000525  065A  0800                                MOVE R8, R0                 ; Do not destroy parameters
+000526  065B  0044        _STR$TO_UPPER_LOOP      MOVE @R0, R1                ; Null terminator found?
+000527  065C  FFA3  0013                          RBRA _STR$TO_UPPER_END, Z   ; Yes - that is it
+000528  065E  0108                                MOVE R1, R2
+000529  065F  3F88  0061                          SUB 'a', R2                 ; Less than 'a'?
+000530  0661  FFA4  000A                          RBRA _STR$TO_UPPER_NEXT, N  ; Yes
+000531  0663  0F88  007A                          MOVE 'z', R2                ; Greater than 'z'?
+000532  0665  3108                                SUB R1, R2
+000533  0666  FFA4  0005                          RBRA _STR$TO_UPPER_NEXT, N  ; Yes
+000534  0668  3F84  0061                          SUB 'a', R1                 ; Now convert the LC char to UC
+000535  066A  1F84  0041                          ADD 'A', R1
+000536  066C  0101                                MOVE R1, @R0                ; Store it back into the string
+000537  066D  1F80  0001  _STR$TO_UPPER_NEXT      ADD 0x001, R0
+000538  066F  FFA0  FFEA                          RBRA _STR$TO_UPPER_LOOP, 1  ; Process next character
+000539  0671  3FB8  0100  _STR$TO_UPPER_END       SUB     0x0100, R14                       ; Restore old register page
+000540  0673  0DBC                                MOVE    @R13++, R15
+000541                    ;
+000542                    ;***************************************************************************************
+000543                    ;* STR$LEN expects the address of a string in R8 and returns its length in R9
+000544                    ;***************************************************************************************
+000545                    ;
+000546  0674  1FB8  0100  STR$LEN          ADD    0x0100, R14                     ; Get a new scratch register page
+000547  0676  0800                         MOVE R8, R0               ; Do not work with the original pointer
+000548  0677  0FA4  FFFF                   MOVE 0xFFFF, R9           ; R9 = -1
+000549  0679  1FA4  0001  _STR$LEN_LOOP    ADD 0x0001, R9            ; One character found
+000550  067B  0084                         MOVE @R0++, R1            ; Was it the terminating null word?
+000551  067C  FFAB  FFFB                   RBRA _STR$LEN_LOOP, !Z    ; No?
+000552  067E  3FB8  0100                   SUB    0x0100, R14
+000553  0680  0DBC                         MOVE   @R13++, R15
+000554                    ;
+000555                    ;***************************************************************************************
+000556                    ;* STR$CHOMP removes a trailing LF/CR from a string pointed to by R8
+000557                    ;***************************************************************************************
+000558                    ;
+000559  0681  1FB8  0100  STR$CHOMP        ADD    0x0100, R14                    ; Get a new register page
+000560  0683  0800                         MOVE R8, R0              ; Save the start address of the string
+000561  0684  0904                         MOVE R9, R1              ; R9 will be used later
+000562  0685  0808                         MOVE R8, R2              ; R2 will be used as a working pointer
+000563  0686  FFB0  FFEC                   RSUB STR$LEN, 1          ; Determine the length of the string
+000564  0688  0924                         MOVE R9, R9              ; Is the string empty?
+000565  0689  FFA3  0011                   RBRA _STR$CHOMP_EXIT, Z  ; Yes
+000566  068B  1908                         ADD R9, R2               ; R2 now points to the last string character
+000567  068C  02CC                         MOVE @--R2, R3           ; Get a character
+000568  068D  3F8C  000D                   SUB 0x000D, R3           ; Is it a CR (we are working from right!)
+000569  068F  FFAB  0004                   RBRA _STR$CHOMP_1, !Z    ; No, so nothing to do so far
+000570  0691  0F89  0000                   MOVE 0x0000, @R2         ; Yes, replace it with a null word
+000571  0693  3F88  0001                   SUB 0x0001, R2           ; Proceed to second last character
+000572  0695  024C        _STR$CHOMP_1     MOVE @R2, R3             ; Now test for a line feed
+000573  0696  3F8C  000A                   SUB 0x000A, R3
+000574  0698  FFAB  0002                   RBRA _STR$CHOMP_EXIT, !Z ; Nothing to do
+000575  069A  0F89  0000                   MOVE 0x0000, @R2         ; Replace the LF with a null word
+000576  069C  0124        _STR$CHOMP_EXIT  MOVE R1, R9              ; Restore R9
+000577  069D  3FB8  0100                   SUB    0x0100, R14                    ; Restore register bank
+000578  069F  0DBC                         MOVE   @R13++, R15
+000579                    ;
+000580                    ;***************************************************************************************
+000581                    ;* STR$CMP compares two strings
+000582                    ;*
+000583                    ;* R8: Pointer to the first string (S0),
+000584                    ;* R9: Pointer to the second string (S1),
+000585                    ;*
+000586                    ;* R10: negative if (S0 < S1), zero if (S0 == S1), positive if (S0 > S1)
+000587                    ;
+000588                    ;* The contents of R8 and R9 are being preserved during the run of this function
+000589                    ;***************************************************************************************
+000590                    ;
+000591  06A0  1FB8  0100  STR$CMP         ADD     0x0100, R14                       ; Get a new register page
+000592  06A2  0800                        MOVE R8, R0                 ; Save arguments
+000593  06A3  0904                        MOVE R9, R1
+000594  06A4  0068        _STR$CMP_LOOP   MOVE @R0, R10               ; while (*s1 == *s2++)
+000595  06A5  0188                        MOVE @R1++, R2
+000596  06A6  3A08                        SUB R10, R2
+000597  06A7  FFAB  0005                  RBRA _STR$CMP_END, !Z
+000598  06A9  00A8                        MOVE @R0++, R10             ; if (*s1++ == 0)
+000599  06AA  FFA3  0004                  RBRA _STR$CMP_EXIT, Z       ;   return 0;
+000600  06AC  FFA0  FFF6                  RBRA _STR$CMP_LOOP, 1       ; end-of-while-loop
+000601  06AE  01C8        _STR$CMP_END    MOVE @--R1, R2              ; return (*s1 - (--*s2));
+000602  06AF  3228                        SUB R2, R10
+000603  06B0  3FB8  0100  _STR$CMP_EXIT   SUB     0x0100, R14                       ; Restore previous register page
+000604  06B2  0DBC                        MOVE    @R13++, R15
+000605                    ;
+000606                    ;***************************************************************************************
+000607                    ;* STR$STRCHR seaches for the first occurrence of the character stored in R8 in a
+000608                    ;* string pointed to by R9.
+000609                    ;*
+000610                    ;* R8: Pointer to the string
+000611                    ;* R9: Character to be searched
+000612                    ;*
+000613                    ;* R10: Zero if the character has not been found, otherwise it contains a pointer
+000614                    ;*      to the first occurrence of the character in the string
+000615                    ;
+000616                    ;* The contents of R8 and R9 are being preserved during the run of this function
+000617                    ;***************************************************************************************
+000618                    ;
+000619  06B3  1FB8  0100  STR$STRCHR          ADD         0x0100, R14
+000620  06B5  0900                            MOVE    R9, R0
+000621  06B6  BA28                            XOR     R10, R10
+000622  06B7  CF81  0000  _STR$STRCHR_LOOP    CMP     0x0000, @R0         ; while (*string)
+000623  06B9  FFA3  000A                      RBRA    _STR$STRCHR_EXIT, Z
+000624  06BB  C801                            CMP     R8, @R0             ; if (*string == R8)
+000625  06BC  FFAB  0003                      RBRA    _STR$STRCHR_NEXT, !Z
+000626  06BE  0028                            MOVE    R0, R10
+000627  06BF  FFA0  0004                      RBRA    _STR$STRCHR_EXIT, 1
+000628  06C1  1F80  0001  _STR$STRCHR_NEXT    ADD     0x0001, R0          ; string++
+000629  06C3  FFA0  FFF2                      RBRA    _STR$STRCHR_LOOP, 1
+000630  06C5  3FB8  0100  _STR$STRCHR_EXIT    SUB 0x0100, R14
+000631  06C7  0DBC                            MOVE        @R13++, R15
+000632                    
+000633                    ;
+000634                    ;;=============================================================================
+000635                    ;; The collection of memory related functions starts here
+000636                    ;;=============================================================================
+000637                    ;
+000638                    ;******************************************************************************
+000639                    ;* MEM$FILL fills a block of memory running from the address stored in R8.
+000640                    ;* R9 contains the number of words to be written. R10 contains the value to
+000641                    ;* be stored in the memory area.
+000642                    ;******************************************************************************
+000643  06C8  1FB8  0100  MEM$FILL        ADD     0x0100, R14
+000644  06CA  0800                        MOVE    R8, R0
+000645  06CB  0904                        MOVE    R9, R1
+000646  06CC  0104        _MEM$FILL_LOOP  MOVE    R1, R1              ; Zero length left?
+000647  06CD  FFA3  0005                  RBRA    _MEM$FILL_EXIT, Z   ; Yes, done...
+000648  06CF  0A02                        MOVE    R10, @R0++
+000649  06D0  3F84  0001                  SUB     0x0001, R1
+000650  06D2  FFA0  FFF8                  RBRA    _MEM$FILL_LOOP, 1
+000651  06D4  3FB8  0100  _MEM$FILL_EXIT  SUB     0x0100, R14
+000652  06D6  0DBC                        MOVE    @R13++, R15
+000653                    ;
+000654                    ;******************************************************************************
+000655                    ;* MEM$MOVE moves the memory area starting at the address contained in R8
+000656                    ;* to the area starting at the address contained in R9. R10 contains the
+000657                    ;* number of words to be moved.
+000658                    ;******************************************************************************
+000659                    ;
+000660  06D7  1FB8  0100  MEM$MOVE        ADD     0x0100, R14
+000661  06D9  0800                        MOVE    R8, R0
+000662  06DA  0904                        MOVE    R9, R1
+000663  06DB  0A08                        MOVE    R10, R2
+000664  06DC  0208        _MEM$MOVE_LOOP  MOVE    R2, R2              ; Zero length left?
+000665  06DD  FFA3  0005                  RBRA    _MEM$MOVE_EXIT, Z   ; Yes, done...
+000666  06DF  0086                        MOVE    @R0++, @R1++
+000667  06E0  3F88  0001                  SUB     0x0001, R2
+000668  06E2  FFA0  FFF8                  RBRA    _MEM$MOVE_LOOP, 1
+000669  06E4  3FB8  0100  _MEM$MOVE_EXIT  SUB     0x0100, R14
+000670  06E6  0DBC                        MOVE    @R13++, R15
+000671                    ;;
+000672  06E7  E000        QMON$LAST_ADDR  HALT
+000673                    
+
+
+EQU-list:
+--------------------------------------------------------------------------------------------------------
+IO$BASE                 : 0xFC00    IO$UART0_BASE           : 0xFC00    IO$UART_SRA             : 0x0001    
+IO$UART_RHRA            : 0x0003    IO$UART_THRA            : 0x0003    
+
+Label-list:
+--------------------------------------------------------------------------------------------------------
+QMON$COLDSTART          : 0x0000    QMON$WARMSTART          : 0x0012    QMON$MAIN_LOOP          : 0x0018    
+QMON$C_MAYBE_H          : 0x0038    QMON$MAYBE_R            : 0x0041    QMON$C_ILLEGAL          : 0x004E    
+QMON$MAYBE_M            : 0x0054    QMON$M_MAYBE_D          : 0x007D    QMON$M_MAYBE_E          : 0x0098    
+QMON$M_MAYBE_F          : 0x00AE    QMON$M_MAYBE_L          : 0x00D2    _QMON$ML_LOOP           : 0x00DA    
+QMON$M_MAYBE_M          : 0x00E2    QMON$M_ILLEGAL          : 0x0103    QMON$MAYBE_H            : 0x0109    
+QMON$NOT_H              : 0x0113    QMON$WELCOME            : 0x0119    QMON$PROMPT             : 0x01A0    
+QMON$ILLCMDGRP          : 0x01A7    QMON$ILLCMD             : 0x01C8    QMON$HELP               : 0x01E3    
+QMON$CG_C               : 0x035A    QMON$CG_C_C             : 0x0362    QMON$CG_C_H             : 0x036D    
+QMON$CG_C_R             : 0x0376    QMON$CG_M               : 0x0383    QMON$CG_M_C             : 0x038A    
+QMON$CG_M_C1            : 0x039A    QMON$CG_M_C2            : 0x03AA    QMON$CG_M_D             : 0x03B6    
+QMON$CG_M_D2            : 0x03CA    QMON$CG_M_E             : 0x03D8    QMON$CG_M_F             : 0x03E9    
+QMON$CG_M_F2            : 0x03FD    QMON$CG_M_F3            : 0x040B    QMON$CG_M_L             : 0x0413    
+QMON$CG_M_M             : 0x044D    QMON$CG_M_M2            : 0x0458    QMON$CG_M_M3            : 0x045D    
+QMON$COMMAND            : 0x0466    IO$DUMP_MEMORY          : 0x0566    _IO$DUMP_MEMORY_LOOP    : 0x056F    
+_IO$DUMP_MEMORY_CONTENT : 0x0582    _IO$DUMP_MEMORY_EXIT    : 0x058B    IO$GET_W_HEX            : 0x0591    
+_IO$GET_W_HEX_REDO      : 0x0593    _IO$GET_W_HEX_INPUT     : 0x0598    _IO$GET_W_HEX_VALID     : 0x05AD    
+IO$PUT_W_HEX            : 0x05BC    _IO$PWH_SCAN            : 0x05C4    _IO$PWH_PRINT           : 0x05D1    
+IO$GETCHAR              : 0x05DC    _IO$GETC_LOOP           : 0x05E5    IO$GETS                 : 0x05F2    
+_IO$GETS_LOOP           : 0x05F6    IO$PUTS                 : 0x0607    _IO$PUTS_LOOP           : 0x060B    
+_IO$PUTS_END            : 0x0614    IO$PUT_CRLF             : 0x0618    IO$PUTCHAR              : 0x0627    
+IO$HEX_NIBBLES          : 0x0631    IO$COLON_DELIMITER      : 0x0642    CHR$TO_UPPER            : 0x0645    
+_CHR$TO_UPPER_EXIT      : 0x0655    STR$TO_UPPER            : 0x0658    _STR$TO_UPPER_LOOP      : 0x065B    
+_STR$TO_UPPER_NEXT      : 0x066D    _STR$TO_UPPER_END       : 0x0671    STR$LEN                 : 0x0674    
+_STR$LEN_LOOP           : 0x0679    STR$CHOMP               : 0x0681    _STR$CHOMP_1            : 0x0695    
+_STR$CHOMP_EXIT         : 0x069C    STR$CMP                 : 0x06A0    _STR$CMP_LOOP           : 0x06A4    
+_STR$CMP_END            : 0x06AE    _STR$CMP_EXIT           : 0x06B0    STR$STRCHR              : 0x06B3    
+_STR$STRCHR_LOOP        : 0x06B7    _STR$STRCHR_NEXT        : 0x06C1    _STR$STRCHR_EXIT        : 0x06C5    
+MEM$FILL                : 0x06C8    _MEM$FILL_LOOP          : 0x06CC    _MEM$FILL_EXIT          : 0x06D4    
+MEM$MOVE                : 0x06D7    _MEM$MOVE_LOOP          : 0x06DC    _MEM$MOVE_EXIT          : 0x06E4    
+QMON$LAST_ADDR          : 0x06E7    

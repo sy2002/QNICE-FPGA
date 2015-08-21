@@ -7,3 +7,5 @@ impact.xsl
 impact_impact.xwbt
 qasm2rom
 register_file.sym
+qnice
+qasm

@@ -2,6 +2,8 @@
 ; expects RAM to start at $8000, so works for example in environment "env1"
 ; done by sy2002 on August, 2nd 2015
 
+        .ORG    0x0000                  ; Start address
+
         MOVE 0x8020, R13        ; setup stack pointer
 
         MOVE 0x8000, R8         ; source memory area

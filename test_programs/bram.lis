@@ -1,21 +1,58 @@
-000001                    ; simple Block RAM test done by sy2002 in August 2015
-000002                    
-000003                    IO$TIL_BASE     .EQU    0xFF10              ; address of TIL-display
-000004                    RAM_VARIABLE    .EQU    0x8000              ; address of a variable in RAM
-000005                    
-000006  0000  0FB0  FF10                  MOVE IO$TIL_BASE, R12
-000007  0002  0F80  8000                  MOVE RAM_VARIABLE, R0
+000001                    ; Block RAM test that includes running an application from RAM
+000002                    ; done by sy2002 in August 2015
+000003                    
+000004                    IO$TIL_BASE     .EQU    0xFF10              ; address of TIL-display
+000005                    RAM_VARIABLE    .EQU    0x8000              ; address of a variable in RAM
+000006                    STACK_TOP       .EQU    0x8010              ; top of the stack
+000007                    EXE_START       .EQU    0x8011              ; start address of code in RAM
 000008                    
-000009  0004  0F81  2300                  MOVE 0x2300, @R0            ; write 0x2300 to BRAM's 0x8000
-000010  0006  1F81  0009                  ADD 0x0009, @R0             ; add 9 to BRAM's 0x8000
-000011  0008  0071                        MOVE @R0, @R12              ; display 0x2309 on the TIL
-000012                    
-000013  0009  E000                        HALT
+000009                                    .ORG    0x0000
+000010                    
+000011                                    ; copy source code to RAM to execute it there
+000012                                    ; this tests multiple things, also, if relative jumps
+000013                                    ; are really working and if opcode fetches also work in RAM
+000014                    
+000015  0000  0F80  0021                  MOVE CODE_END, R0           ; end of "to-be-copied-code"
+000016  0002  0F84  000F                  MOVE CODE_START, R1         ; run variable for copying: source
+000017  0004  0F88  8011                  MOVE EXE_START, R2          ; run variable for copying: dest
+000018  0006  0F8C  0001                  MOVE 1, R3                  ; we need to subtract 1 often
+000019  0008  3100                        SUB R1, R0                  ; how many bytes to copy - 1
+000020                                                                ; as the last opcode 2 bytes
+000021                    
+000022  0009  018A        COPY_CODE       MOVE @R1++, @R2++           ; copy from src to dst
+000023  000A  3300                        SUB R3, R0                  ; one less item to go
+000024  000B  FFAC  FFFC                  RBRA COPY_CODE, !N          ; R0 is #bytes-1, so check for !N
+000025                                                                ; instead of checking for !Z
+000026                    
+000027  000D  FF80  8011                  ABRA EXE_START, 1           ; execute code from RAM
+000028                    
+000029                                    ; this is the test code that tests BRAM operations
+000030                                    ; and the stack and sub routine calls
+000031                                    ; it should show 0x2309 on the TIL on success
+000032                    
+000033  000F  0FB0  FF10  CODE_START      MOVE IO$TIL_BASE, R12       ; TIL display address
+000034  0011  0F80  8000                  MOVE RAM_VARIABLE, R0       ; address of a variable in RAM
+000035  0013  0FB4  8010                  MOVE STACK_TOP, R13         ; setup stack pointer
+000036                    
+000037  0015  0F81  22EE                  MOVE 0x22EE, @R0            ; write 0x22EE to variable in BRAM
+000038  0017  FFB0  0006                  RSUB ADD_IT, 1              ; use a sub routine to add 0x09
+000039  0019  FFB0  0004                  RSUB ADD_IT, 1              ; ... multiple times ...
+000040  001B  FFB0  0002                  RSUB ADD_IT, 1              ; ... to the variable in BRAM
+000041                    
+000042  001D  0071                        MOVE @R0, @R12              ; display 0x2309 on the TIL
+000043                    
+000044  001E  E000                        HALT
+000045                    
+000046  001F  1F81  0009  ADD_IT          ADD 0x0009, @R0             ; add 9 to BRAM's 0x8000
+000047  0021  0DBC        CODE_END        MOVE @R13++, R15            ; return from sub routine
 
 
 EQU-list:
 --------------------------------------------------------------------------------------------------------
-IO$TIL_BASE             : 0xFF10    RAM_VARIABLE            : 0x8000    
+IO$TIL_BASE             : 0xFF10    RAM_VARIABLE            : 0x8000    STACK_TOP               : 0x8010    
+EXE_START               : 0x8011    
 
 Label-list:
 --------------------------------------------------------------------------------------------------------
+COPY_CODE               : 0x0009    CODE_START              : 0x000F    ADD_IT                  : 0x001F    
+CODE_END                : 0x0021    
