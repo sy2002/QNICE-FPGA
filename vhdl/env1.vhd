@@ -13,6 +13,11 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
+--temp delit
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
 use work.env1_globals.all;
 
 entity env1 is
@@ -22,7 +27,11 @@ port (
    
    -- 7 segment display: common anode and cathode
    SSEG_AN     : out std_logic_vector(7 downto 0);  -- common anode: selects digit
-   SSEG_CA     : out std_logic_vector(7 downto 0)   -- cathode: selects segment within a digit   
+   SSEG_CA     : out std_logic_vector(7 downto 0);  -- cathode: selects segment within a digit 
+
+   -- serial communication
+   UART_RXD    : in std_logic;                      -- receive data
+   UART_TXD    : out std_logic                      -- send data
 ); 
 end env1;
 
@@ -94,6 +103,30 @@ port (
 );
 end component;
 
+-- UART
+component basic_uart is
+generic (
+   DIVISOR: natural                           -- see UART_DIVISOR in env1_globals.vhd
+);
+port (
+   clk: in std_logic;                       
+   reset: in std_logic;
+
+   -- client interface: receive data
+   rx_data: out std_logic_vector(7 downto 0); -- received byte
+   rx_enable: out std_logic;                  -- validates received byte (1 system clock spike)
+   
+   -- client interface: send data
+   tx_data: in std_logic_vector(7 downto 0);  -- byte to send
+   tx_enable: in std_logic;                   -- validates byte to send if tx_ready is '1'
+   tx_ready: out std_logic;                   -- if '1', we can send a new byte, otherwise we won't take it
+
+   -- physical interface
+   rx: in std_logic;
+   tx: out std_logic
+);
+end component;
+
 -- multiplexer to control the data bus (enable/disable the different parties)
 component mmio_mux is
 port (
@@ -120,9 +153,19 @@ signal cpu_data_dir           : std_logic;
 signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
 
+-- TIL display control signals
 signal TIL_311_buffer         : std_logic_vector(15 downto 0) := x"0000";
 signal TIL_311_mask           : std_logic_vector(3 downto 0)  := "1111";
 
+-- UART control signals
+signal uart_rx_data           : std_logic_vector(7 downto 0);
+signal uart_rx_enable         : std_logic;
+signal uart_tx_data           : std_logic_vector(7 downto 0);
+signal uart_tx_enable         : std_logic;
+signal uart_tx_ready          : std_logic;
+
+signal temp : std_logic_vector(7 downto 0);
+ 
 -- MMIO control signals
 signal rom_enable             : std_logic;
 signal ram_enable             : std_logic;
@@ -185,8 +228,30 @@ begin
          mask => "0000" & TIL_311_mask,
          SSEG_AN => SSEG_AN,
          SSEG_CA => SSEG_CA
-      );      
+      );
       
+   -- UART
+   uart : basic_uart
+      generic map
+      (
+         DIVISOR => UART_DIVISOR
+      )
+      port map
+      (
+         clk => CLK,
+         reset => not RESET_N,
+         rx_data => uart_rx_data,
+         rx_enable => uart_rx_enable,
+         tx_data => uart_tx_data,
+         tx_enable => uart_tx_enable,
+         tx_ready => uart_tx_ready,
+         rx => UART_RXD,
+         tx => UART_TXD
+      );
+      
+   uart_tx_data <= x"37" + TIL_311_buffer(15 downto 12);
+   uart_tx_enable <= uart_tx_ready;
+         
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
       port map

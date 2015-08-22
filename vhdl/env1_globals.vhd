@@ -21,6 +21,16 @@ constant SHADOW_REGFILE_SIZE  : integer   := 16;
 -- set to 256 during development for tracability during simulation
 constant BLOCK_RAM_SIZE       : integer   := 256;
 
+-- UART is in 8-N-1 mode
+-- assuming a 100 MHz system clock, set the baud rate by selecting the following divisors according to this formula:
+-- UART_DIVISOR = 100,000,000 / (16 x BAUD_RATE)
+--    2400 -> 2604
+--    9600 -> 651
+--    115200 -> 54
+--    1562500 -> 4
+--    2083333 -> 3
+constant UART_DIVISOR          : natural  := 651;
+
 end env1_globals;
 
 package body env1_globals is
