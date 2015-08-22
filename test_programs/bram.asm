@@ -16,25 +16,37 @@ EXE_START       .EQU    0x8011              ; start address of code in RAM
                 MOVE CODE_START, R1         ; run variable for copying: source
                 MOVE EXE_START, R2          ; run variable for copying: dest
                 MOVE 1, R3                  ; we need to subtract 1 often
-                SUB R1, R0                  ; how many bytes to copy - 1
-                                            ; as the last opcode 2 bytes
+                SUB R1, R0                  ; how many words to copy - 1
+                                            ; as the last opcode 2 words
                 
 COPY_CODE       MOVE @R1++, @R2++           ; copy from src to dst
                 SUB R3, R0                  ; one less item to go
-                RBRA COPY_CODE, !N          ; R0 is #bytes-1, so check for !N
+                RBRA COPY_CODE, !N          ; R0 is #words-1, so check for !N
                                             ; instead of checking for !Z
 
                 ABRA EXE_START, 1           ; execute code from RAM
 
                 ; this is the test code that tests BRAM operations
                 ; and the stack and sub routine calls
-                ; it should show 0x2309 on the TIL on success
+                ; it should show 0x2309 on the TIL on success as it calculates
+                ; 0x22DD + 0x11 + 0x9 + 0x9 + 0x9 = 0x2309
 
 CODE_START      MOVE IO$TIL_BASE, R12       ; TIL display address
                 MOVE RAM_VARIABLE, R0       ; address of a variable in RAM
                 MOVE STACK_TOP, R13         ; setup stack pointer
 
-                MOVE 0x22EE, @R0            ; write 0x22EE to variable in BRAM
+                MOVE 0x22DD, @R0++          ; write 0x22DD to variable in BRAM
+                MOVE 0x0011, @R0            ; write 0x011 to another variable
+                MOVE R0, R8                 ; remember the other variable
+
+                ADD @R8, @--R0              ; nice "borderline case", as this
+                                            ; is executed in BRAM (not in ROM)
+                                            ; and uses a BRAM var. that is
+                                            ; added to a BRAM variable
+                                            ; plus there is a pre-decrement
+                                            ; so that R0 points back to the
+                                            ; original variable
+
                 RSUB ADD_IT, 1              ; use a sub routine to add 0x09
                 RSUB ADD_IT, 1              ; ... multiple times ...   
                 RSUB ADD_IT, 1              ; ... to the variable in BRAM

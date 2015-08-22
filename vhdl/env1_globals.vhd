@@ -11,7 +11,7 @@ package env1_globals is
 
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
 constant ROM_FILE             : string    := "../test_programs/bram.rom";
-constant ROM_SIZE             : integer   := 34;
+constant ROM_SIZE             : integer   := 38;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.

@@ -9,3 +9,6 @@ qasm2rom
 register_file.sym
 qnice
 qasm
+*.lis
+*.out
+*.rom
