@@ -73,7 +73,7 @@ typedef struct statistic_data
 
 int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$verbose = FALSE,
     gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, gbl$enable_uart = TRUE,
-    gbl$ctrl_c = FALSE;
+    gbl$ctrl_c = FALSE, gbl$breakpoint = -1;
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                                 "NOT", "AND", "OR", "XOR", "CMP", "", "HALT"},
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
@@ -550,28 +550,28 @@ int execute()
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       destination = source_0 + source_1;
       update_status_bits(destination, source_0, source_1, MODIFY_ALL); 
-      write_destination(destination_mode, destination_regaddr, destination, FALSE);
+      write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 2: /* ADDC */
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       destination = source_0 + source_1 + ((read_register(14) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
-      write_destination(destination_mode, destination_regaddr, destination, FALSE);
+      write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 3: /* SUB */
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       destination = source_0 - source_1;
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
-      write_destination(destination_mode, destination_regaddr, destination, FALSE);
+      write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 4: /* SUBC */
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       destination = source_0 - source_1 - ((read_register(14) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
-      write_destination(destination_mode, destination_regaddr, destination, FALSE);
+      write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 5: /* SHL */
       source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
@@ -612,21 +612,21 @@ int execute()
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       destination = source_0 & source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
-      write_destination(destination_mode, destination_regaddr, destination, FALSE);
+      write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 10: /* OR */
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       destination = source_0 | source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
-      write_destination(destination_mode, destination_regaddr, destination, FALSE);
+      write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 11: /* XOR */
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       destination = source_0 ^ source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
-      write_destination(destination_mode, destination_regaddr, destination, FALSE);
+      write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 12: /* CMP */
       source_0 = read_source_operand(destination_mode, destination_regaddr, FALSE);
@@ -681,6 +681,13 @@ int execute()
       printf("PANIK: Illegal instruction found: Opcode %0X at address %04X.\n", opcode, address);
       return TRUE;
   }
+
+  if (read_register(15) == gbl$breakpoint)
+  {
+    printf("Breakpoint reached: %04X\n", address);
+    return TRUE;
+  }
+
 
 /*  write_register(15, read_register(15) + 1); */ /* Update program counter */
   return FALSE; /* No HALT instruction executed */
@@ -858,6 +865,10 @@ int main(int argc, char **argv)
     {
       if (!strcmp(token, "QUIT") || !strcmp(token, "EXIT"))
         return 0;
+      else if (!strcmp(token, "CB"))
+        gbl$breakpoint = -1;
+      else if (!strcmp(token, "SB"))
+        printf("Breakpoint set to %04X\n", gbl$breakpoint = str2int(tokenize(NULL, delimiters)));
       else if (!strcmp(token, "DUMP"))
       {
         start = str2int(tokenize(NULL, delimiters));
@@ -949,6 +960,7 @@ int main(int argc, char **argv)
       }
       else if (!strcmp(token, "HELP"))
         printf("\n\
+CB                             Clear Breakpoint\n\
 DEBUG                          Toggle debug mode (for development only)\n\
 DIS  <START>, <STOP>           Disassemble a memory region\n\
 DUMP <START>, <STOP>           Dump a memory area, START and STOP can be\n\
@@ -958,8 +970,9 @@ QUIT/EXIT                      Stop the emulator and return to the shell\n\
 RESET                          Reset the whole machine\n\
 RDUMP                          Print a register dump\n\
 RUN [<ADDR>]                   Run a program beginning at ADDR\n\
-SET <REG|ADDR> <VALUE>         Either set a register of a memory cell\n\
+SET <REG|ADDR> <VALUE>         Either set a register or a memory cell\n\
 SAVE <FILENAME> <START> <STOP> Create a loadable binary file\n\
+SB <ADDR>                      Set breakpoint to an address\n\
 STAT                           Displays some execution statistics\n\
 STEP [<ADDR>]                  Executes a single instruction at address\n\
                                ADDR. If not address is specified the current\n\

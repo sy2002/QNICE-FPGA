@@ -22,6 +22,10 @@
 IO$BASE          .EQU 0xFC00
 IO$UART0_BASE    .EQU 0xFC00
 
+IO$TIL_BASE      .EQU 0xFF10 ; Address of TIL-display
+IO$TIL_MASK      .EQU 0xFF11 ; Mask register of TIL display
+
+
 ;
 ;  UART-registers:
 ;

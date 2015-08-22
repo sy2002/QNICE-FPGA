@@ -16,13 +16,17 @@ EXE_START       .EQU    0x8011              ; start address of code in RAM
                 MOVE CODE_START, R1         ; run variable for copying: source
                 MOVE EXE_START, R2          ; run variable for copying: dest
                 MOVE 1, R3                  ; we need to subtract 1 often
-                SUB R1, R0                  ; how many words to copy - 1
-                                            ; as the last opcode 2 words
+                SUB R1, R0                  ; how many words to copy
+                                            ; caution: if the last opcode
+                                            ; consists of two words, this 
+                                            ; needs to be incremented or
+                                            ; the label needs to be put one
+                                            ; line below
                 
 COPY_CODE       MOVE @R1++, @R2++           ; copy from src to dst
                 SUB R3, R0                  ; one less item to go
-                RBRA COPY_CODE, !N          ; R0 is #words-1, so check for !N
-                                            ; instead of checking for !Z
+                RBRA COPY_CODE, !N          ; R0 is decremented one time too
+                                            ; often so check for !N instead !Z
 
                 ABRA EXE_START, 1           ; execute code from RAM
 

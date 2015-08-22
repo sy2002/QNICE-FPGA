@@ -190,6 +190,12 @@ signal Alu_V               : std_logic;
 
 begin
 
+-- @TODO (priority 2): Completely re-do the Tristate buffer topic. The lenghty wait-state and the #0000 situation when
+-- writing are not necessary! As we have enough flip-flops, the Tristate handling can be done in "real-time".
+-- as this has probably some pretty far reaching impact, the question is when to implement this. On the other hand,
+-- the longer we wait, the bigger the impact will be. Some analysis with some MOVE, ADD & Co indirect @memory read/write
+-- scenario will for sure help and create a more clear view.
+
    -- TriState buffer/driver for the 16 bit DATA bus
    DATA_driver : TriState_Buffer
       generic map
@@ -335,23 +341,6 @@ begin
             fsmNextCpuState <= cs_std_seq;
             fsmInstruction <= (others => '0');
               
--- BTW: as soon as all this works, plus some more unit tests especially for some to be found complicated BRAM borderline
--- cases (e.g. ADD @R1, @R2, everything in RAM plus before and after some instructions that challenge the asyncreset),
--- I should checkin the ISA V1.2 docu PDF (create a qnice/doc folder)
--- check in the current assembler and stuff (inside the qnice folder), the emulator (within qnice folder, and the other
--- material from there) and call it "V1.0" (before nerd session), because this is then a fully fledged 
--- QNICE CPU working in the initival ENV1 scenario. V1.1 could then be: plus UART plus Bernd's monitor is running.
--- Later, V2.0 might be the new ISA plus another scenario than env1, e.g. QBM-1.
--- the tagging in GIT/GITHUB is important, so that in a later "retro" session, we can compare ISA 1.2 in env1 with
--- a full "QBM-1" computer having the new ISA (e.g. new CMP command, etc.).
--- Update all tools in qnice folder to vaxman's latest material from SourceForge.
-
--- @TODO (priority 2): Completely re-do the Tristate buffer topic. The lenghty wait-state and the #0000 situation when
--- writing are not necessary! As we have enough flip-flops, the Tristate handling can be done in "real-time".
--- as this has probably some pretty far reaching impact, the question is when to implement this. On the other hand,
--- the longer we wait, the bigger the impact will be. Some analysis with some MOVE, ADD & Co indirect @memory read/write
--- scenario will for sure help and create a more clear view.
-
          -- as the previous state sets the direction control to read and the address to a meaningful value
          -- (i.e. 0 after cs_reset or current PC afterwards), the DATA_driver will take care, that at the
          -- falling edge of cs_fetch's clock cycle, DATA_From_Bus will contain the next opcode

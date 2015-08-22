@@ -548,8 +548,8 @@ int decode_operand(char *operand, int *op_code)
 */
 int assemble()
 {
-  int opcode, type, line_counter, address, i, error_counter = 0, number_of_operands, negate, flag, value, size,
-    special_char;
+  int opcode, type, line_counter, address = 0, i, error_counter = 0, number_of_operands, negate, flag, value, size,
+    special_char, org_found = 0;
   char line[STRING_LENGTH], *p, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
   data_structure *entry;
 
@@ -557,7 +557,7 @@ int assemble()
 #ifdef DEBUG
   printf("assemble: Starting first pass.\n");
 #endif
-  for (address = line_counter = 1, entry = gbl$data; entry; entry = entry->next, line_counter++)
+  for (line_counter = 1, entry = gbl$data; entry; entry = entry->next, line_counter++)
   {
     strcpy(line, entry->source);           /* Get a local copy of the line and clean it up */
     entry->state = STATE$NOTHING_YET_DONE; /* Still a lot to do */
