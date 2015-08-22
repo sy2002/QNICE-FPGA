@@ -13,11 +13,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
---temp delit
-use IEEE.STD_LOGIC_ARITH.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
-use IEEE.NUMERIC_STD.ALL;
-
 use work.env1_globals.all;
 
 entity env1 is
@@ -164,8 +159,17 @@ signal uart_tx_data           : std_logic_vector(7 downto 0);
 signal uart_tx_enable         : std_logic;
 signal uart_tx_ready          : std_logic;
 
-signal temp : std_logic_vector(7 downto 0);
- 
+-- temp
+type fsm_state_t is (idle, received, emitting);
+type state_t is
+record
+  fsm_state: fsm_state_t; -- FSM state
+  tx_data: std_logic_vector(7 downto 0);
+  tx_enable: std_logic;
+end record;
+
+signal uart_state, uart_state_next : state_t;
+
 -- MMIO control signals
 signal rom_enable             : std_logic;
 signal ram_enable             : std_logic;
@@ -248,10 +252,52 @@ begin
          rx => UART_RXD,
          tx => UART_TXD
       );
-      
-   uart_tx_data <= x"37" + TIL_311_buffer(15 downto 12);
-   uart_tx_enable <= uart_tx_ready;
-         
+            
+   uart_fsm_clk : process(CLK, RESET_N)
+   begin
+      if RESET_N = '0' then
+         uart_state.fsm_state <= idle;
+         uart_state.tx_data <= (others => '0');
+         uart_state.tx_enable <= '0';
+      else
+         if rising_edge(CLK) then
+            uart_state <= uart_state_next;
+         end if;
+      end if;      
+   end process;
+   
+   uart_fsm_next : process(uart_state, uart_rx_enable, uart_rx_data, uart_tx_ready)
+   begin
+      uart_state_next <= uart_state;
+      case uart_state.fsm_state is
+
+         when idle =>
+            if uart_rx_enable = '1' then
+              uart_state_next.tx_data <= uart_rx_data;
+              uart_state_next.tx_enable <= '0';
+              uart_state_next.fsm_state <= received;
+            end if;
+
+         when received =>
+            if uart_tx_ready = '1' then
+              uart_state_next.tx_enable <= '1';
+              uart_state_next.fsm_state <= emitting;
+            end if;
+
+         when emitting =>
+            if uart_tx_ready = '0' then
+              uart_state_next.tx_enable <= '0';
+              uart_state_next.fsm_state <= idle;
+            end if;
+      end case;
+   end process;
+   
+   uart_fsm_output: process(uart_state) is
+   begin  
+      uart_tx_enable <= uart_state.tx_enable;
+      uart_tx_data <= uart_state.tx_data;
+   end process;   
+                        
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
       port map
