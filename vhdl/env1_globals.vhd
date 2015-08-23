@@ -10,8 +10,8 @@ use IEEE.STD_LOGIC_1164.all;
 package env1_globals is
 
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
-constant ROM_FILE             : string    := "../test_programs/brborder.rom";
-constant ROM_SIZE             : integer   := 101;
+constant ROM_FILE             : string    := "../test_programs/uart.rom";
+constant ROM_SIZE             : integer   := 32;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.

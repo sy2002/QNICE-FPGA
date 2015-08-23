@@ -170,6 +170,10 @@ end record;
 
 signal uart_state, uart_state_next : state_t;
 
+signal rx_latch : std_logic := '0';
+signal rx_resetlatch: std_logic := '0';
+signal rx_buf : std_logic_vector(7 downto 0);
+
 -- MMIO control signals
 signal rom_enable             : std_logic;
 signal ram_enable             : std_logic;
@@ -252,51 +256,103 @@ begin
          rx => UART_RXD,
          tx => UART_TXD
       );
-            
-   uart_fsm_clk : process(CLK, RESET_N)
-   begin
-      if RESET_N = '0' then
-         uart_state.fsm_state <= idle;
-         uart_state.tx_data <= (others => '0');
-         uart_state.tx_enable <= '0';
-      else
-         if rising_edge(CLK) then
-            uart_state <= uart_state_next;
+      
+      uart_latch_rx : process(uart_rx_enable, uart_rx_data, rx_resetlatch)
+      begin
+         if rx_resetlatch = '1' then
+            rx_latch <= '0';
+            rx_buf <= (others => 'U');
+         else
+            if rising_edge(uart_rx_enable) then
+               rx_buf <= uart_rx_data;
+               rx_latch <= '1';
+            end if;
          end if;
-      end if;      
-   end process;
-   
-   uart_fsm_next : process(uart_state, uart_rx_enable, uart_rx_data, uart_tx_ready)
-   begin
-      uart_state_next <= uart_state;
-      case uart_state.fsm_state is
-
-         when idle =>
-            if uart_rx_enable = '1' then
-              uart_state_next.tx_data <= uart_rx_data;
-              uart_state_next.tx_enable <= '0';
-              uart_state_next.fsm_state <= received;
-            end if;
-
-         when received =>
-            if uart_tx_ready = '1' then
-              uart_state_next.tx_enable <= '1';
-              uart_state_next.fsm_state <= emitting;
-            end if;
-
-         when emitting =>
-            if uart_tx_ready = '0' then
-              uart_state_next.tx_enable <= '0';
-              uart_state_next.fsm_state <= idle;
-            end if;
-      end case;
-   end process;
-   
-   uart_fsm_output: process(uart_state) is
-   begin  
-      uart_tx_enable <= uart_state.tx_enable;
-      uart_tx_data <= uart_state.tx_data;
-   end process;   
+      end process;
+      
+      uart_mmio : process(cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid, rx_buf)
+      begin
+         cpu_data <= (others => 'Z');
+         uart_tx_data <= (others => 'Z');
+         rx_resetlatch <= '0';
+         uart_tx_enable <= '0';
+         
+         if cpu_addr(15 downto 4) = x"FF2" then
+            case cpu_addr(3 downto 0) is
+               when x"1" =>
+                  if cpu_data_dir = '0' then
+                     cpu_data <= x"000" & "00" & uart_tx_ready & rx_latch;
+                  else
+                     if cpu_data_valid = '1' and cpu_data(0) = '0' then
+                        rx_resetlatch <= '1';
+                     end if;
+                  end if;
+                  
+               when x"2" =>
+                  if cpu_data_dir = '0' then
+                     cpu_data <= x"00" & rx_buf;
+                  end if;
+                  
+               when x"3" =>
+                  if cpu_data_dir = '1' and cpu_data_valid = '1' then
+                     uart_tx_data <= cpu_data(7 downto 0);
+                     uart_tx_enable <= '1';
+                  end if;
+                  
+               when others =>
+                  cpu_data <= (others => 'Z');
+                  uart_tx_data <= (others => 'Z');
+                  rx_resetlatch <= '0';
+                  uart_tx_enable <= '0';
+                                          
+            end case;
+         end if;
+      end process;
+            
+--   uart_fsm_clk : process(CLK, RESET_N)
+--   begin
+--      if RESET_N = '0' then
+--         uart_state.fsm_state <= idle;
+--         uart_state.tx_data <= (others => '0');
+--         uart_state.tx_enable <= '0';
+--      else
+--         if rising_edge(CLK) then
+--            uart_state <= uart_state_next;
+--         end if;
+--      end if;      
+--   end process;
+--   
+--   uart_fsm_next : process(uart_state, uart_rx_enable, uart_rx_data, uart_tx_ready)
+--   begin
+--      uart_state_next <= uart_state;
+--      case uart_state.fsm_state is
+--
+--         when idle =>
+--            if uart_rx_enable = '1' then
+--              uart_state_next.tx_data <= uart_rx_data;
+--              uart_state_next.tx_enable <= '0';
+--              uart_state_next.fsm_state <= received;
+--            end if;
+--
+--         when received =>
+--            if uart_tx_ready = '1' then
+--              uart_state_next.tx_enable <= '1';
+--              uart_state_next.fsm_state <= emitting;
+--            end if;
+--
+--         when emitting =>
+--            if uart_tx_ready = '0' then
+--              uart_state_next.tx_enable <= '0';
+--              uart_state_next.fsm_state <= idle;
+--            end if;
+--      end case;
+--   end process;
+--   
+--   uart_fsm_output: process(uart_state) is
+--   begin  
+--      uart_tx_enable <= uart_state.tx_enable;
+--      uart_tx_data <= uart_state.tx_data;
+--   end process;   
                         
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
