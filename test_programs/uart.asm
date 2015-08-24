@@ -1,4 +1,5 @@
-; basic UART test
+; very basic UART test which echos all input chars back to the terminal
+; plus it displays the ASCII code of the character on the TIL
 ; by sy2002 in August 2015
 
                 .ORG 0x0000
@@ -27,7 +28,7 @@ _IO$SETC_WAIT   MOVE    @R0, R3             ; read status register
                 AND     0x0002, R3          ; ready to transmit?
                 RBRA    _IO$SETC_WAIT, Z    ; loop until ready
 
-                MOVE    R8, @R2             ; echo character back to terminal 
+                MOVE    R8, @R2             ; echo character back to terminal
 
                 RBRA    _IO$GETC_LOOP, 1    ; next char
 

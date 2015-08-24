@@ -17,8 +17,13 @@ then
 fi
 
 assembler=`dirname $0`/qasm
+makerom=`dirname $0`/qasm2rom
 
 destination=${1/.asm/}.out
+romfile=${1/.asm/}.rom
+
+rm $destination 2> /dev/null
+rm $romfile 2> /dev/null
 
 #
 #  We use the standard C-preprocessor to perform the necessary 
@@ -29,5 +34,6 @@ destination=${1/.asm/}.out
 cpp -E $1 | sed '/^#.*/d' > $temp_file
 
 $assembler $temp_file $destination
-
 rm $temp_file
+
+$makerom $destination $romfile

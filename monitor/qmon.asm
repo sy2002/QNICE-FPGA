@@ -42,18 +42,20 @@
 ;
 ; Main program
 ;
-QMON$COLDSTART  MOVE    IO$BASE, SP             ; Set up stack pointer
+QMON$COLDSTART  MOVE    0x8400, SP             ; Set up stack pointer
                 MOVE    QMON$WELCOME, R8        ; Print welcome message
                 RSUB    IO$PUTS, 1
-                MOVE    QMON$LAST_ADDR, R8      ; Clear memory after the monitor
-                ADD     0x0001, R8              ; Start address
-                MOVE    IO$BASE, R9             ; Determine length of memory area 
-                SUB     R8, R9                  ;   to be cleared
-                SUB     0x0001, R9              ; We need one stack cell for the following call
-                XOR     R10, R10                ; Clear with zero words
-                RSUB    MEM$FILL, 1             ; Clear
+
+                ;MOVE    QMON$LAST_ADDR, R8      ; Clear memory after the monitor
+                ;ADD     0x0001, R8              ; Start address
+                ;MOVE    IO$BASE, R9             ; Determine length of memory area 
+                ;SUB     R8, R9                  ;   to be cleared
+                ;SUB     0x0001, R9              ; We need one stack cell for the following call
+                ;XOR     R10, R10                ; Clear with zero words
+                ;RSUB    MEM$FILL, 1             ; Clear
+
 ;;TODO: Clear registers
-QMON$WARMSTART  MOVE    IO$BASE, SP             ; Set up stack pointer
+QMON$WARMSTART  MOVE    0x8400, SP              ; Set up stack pointer
                 AND     0x00FF, SR              ; Reset register bank to zero
                 RSUB    IO$PUT_CRLF, 1
 QMON$MAIN_LOOP  MOVE    QMON$PROMPT, R8         ; Print monitor prompt
