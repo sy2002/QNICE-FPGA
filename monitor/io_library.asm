@@ -59,7 +59,6 @@ _IO$GET_W_HEX_REDO  XOR     R0, R0                          ; Clear R0
                     MOVE    4, R1                           ; We need four characters
                     MOVE    IO$HEX_NIBBLES, R9              ; Pointer to list of valid chars
 _IO$GET_W_HEX_INPUT RSUB    IO$GETCHAR, 1                   ; Read a character into R8
-                    ;MH RBRA    QMON$WARMSTART, Z
                     RSUB    CHR$TO_UPPER, 1                 ; Convert to upper case
                     CMP     'X', R8                         ; Was it an 'X'?
                     RBRA    _IO$GET_W_HEX_REDO, Z           ; Yes - redo from start :-)
@@ -127,10 +126,9 @@ _IO$GETC_LOOP   MOVE    @R0, R2             ; Read status register
                 AND     0x0001, R2          ; Only bit 0 is of interest
                 RBRA    _IO$GETC_LOOP, Z    ; Loop until a character has been received
                 MOVE    @R1, R8             ; Get the character from the receiver register
-
-                ;MH TEMP
+#ifdef FPGA
                 MOVE    0, @R0              ; clear read latch
-
+#endif
                 DECRB
                 CMP     0x0005, R8          ; CTRL-E?
                 RBRA    QMON$WARMSTART, Z
@@ -206,9 +204,8 @@ IO$PUT_CRLF     INCRB                   ; Get a new register page
 ;***************************************************************************************
 ;
 IO$PUTCHAR      INCRB                       ; Get a new register page
-
-                ;MH TEMP
                 MOVE IO$UART0_BASE, R0
+#ifdef FPGA
                 MOVE R0, R1
                 ADD IO$UART_SRA, R0         ; R0: address of status register                
                 ADD IO$UART_THRA, R1        ; R1: address of transmit register
@@ -216,9 +213,10 @@ IO$PUTCHAR      INCRB                       ; Get a new register page
 _IO$PUTC_WAIT   MOVE    @R0, R2             ; read status register
                 AND     0x0002, R2          ; ready to transmit?
                 RBRA    _IO$PUTC_WAIT, Z    ; loop until ready
-
+#else
+                ADD IO$UART_THRA, R0    ; R0 now points to the THRA register
+#endif
                 MOVE R8, @R1                ; Print character
-                
                 DECRB                       ; Restore the old page
 		        RET
 ;

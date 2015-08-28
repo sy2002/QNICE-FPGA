@@ -1,3 +1,5 @@
+#define FPGA 1
+;;
 #include "sysdef.asm"
 #include "qmon.asm"
 #include "io_library.asm"
