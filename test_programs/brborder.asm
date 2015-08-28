@@ -5,7 +5,7 @@
 ; following sequence of numbers having about 1 sec delay in between
 ; ABAB, CDCD, EFEF, ACDC, CCCC, ACDC, EFEF, CDCD, FFFF, .... (repeat)
 
-                .ORG 0x0000
+                .ORG 0x8000
 
 #include "../monitor/sysdef.asm"                
 

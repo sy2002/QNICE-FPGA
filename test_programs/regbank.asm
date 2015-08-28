@@ -31,7 +31,7 @@ VAR_DIFF        .EQU    0x8000              ; variable in RAM to store the
                                             ; difference between a register
                                             ; value and the expected value
 
-                .ORG    0x0000
+                .ORG    0x8100
 
                 MOVE    0x8020, R13         ; setup stack pointer
 
