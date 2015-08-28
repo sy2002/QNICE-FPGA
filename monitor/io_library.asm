@@ -205,18 +205,19 @@ IO$PUT_CRLF     INCRB                   ; Get a new register page
 ;
 IO$PUTCHAR      INCRB                       ; Get a new register page
                 MOVE IO$UART0_BASE, R0
-#ifdef FPGA
                 MOVE R0, R1
+#ifdef FPGA
                 ADD IO$UART_SRA, R0         ; R0: address of status register                
                 ADD IO$UART_THRA, R1        ; R1: address of transmit register
 
 _IO$PUTC_WAIT   MOVE    @R0, R2             ; read status register
                 AND     0x0002, R2          ; ready to transmit?
                 RBRA    _IO$PUTC_WAIT, Z    ; loop until ready
-#else
-                ADD IO$UART_THRA, R0    ; R0 now points to the THRA register
-#endif
                 MOVE R8, @R1                ; Print character
+#else
+                ADD IO$UART_THRA, R0        ; R0 now points to the THRA register
+                MOVE R8, @R0                ; Print character
+#endif
                 DECRB                       ; Restore the old page
 		        RET
 ;

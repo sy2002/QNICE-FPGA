@@ -19,18 +19,26 @@
 ;
 ;  IO-page addresses:
 ;
+#ifdef FPGA
 IO$BASE         .EQU 0xFF00
 IO$UART0_BASE   .EQU 0xFF20
 
 IO$TIL_BASE     .EQU 0xFF10 ; Address of TIL-display
 IO$TIL_MASK     .EQU 0xFF11 ; Mask register of TIL display
-
+#else
+IO$BASE         .EQU 0xFC00
+IO$UART0_BASE   .EQU 0xFC00
+#endif
 
 ;
 ;  UART-registers:
 ;
 IO$UART_SRA     .EQU 0x0001 ; Status register (relative to base address)
+#ifdef FPGA
 IO$UART_RHRA    .EQU 0x0002 ; Receiving register (relative to base address)
+#else
+IO$UART_RHRA    .EQU 0x003
+#endif
 IO$UART_THRA    .EQU 0x0003 ; Transmitting register (relative to base address)
 
 ;
