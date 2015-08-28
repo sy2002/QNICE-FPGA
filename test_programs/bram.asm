@@ -6,7 +6,7 @@ RAM_VARIABLE    .EQU    0x8000              ; address of a variable in RAM
 STACK_TOP       .EQU    0x8010              ; top of the stack
 EXE_START       .EQU    0x8011              ; start address of code in RAM
 
-                .ORG    0x0000
+                .ORG    0x8000
 
                 ; copy source code to RAM to execute it there
                 ; this tests multiple things, also, if relative jumps

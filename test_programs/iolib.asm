@@ -2,7 +2,7 @@
 ; and for the monitor's io_library in particular
 ; done by vaxman, sy2002 in August 2015
 
-                .ORG    0x0000
+                .ORG    0x8000
 
 #include "../monitor/sysdef.asm"
 

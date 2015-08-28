@@ -2,7 +2,7 @@
 ; plus it displays the ASCII code of the character on the TIL
 ; by sy2002 in August 2015
 
-                .ORG 0x0000
+                .ORG 0x8000
 
 #include "../monitor/sysdef.asm"
 
@@ -32,4 +32,4 @@ _IO$SETC_WAIT   MOVE    @R0, R3             ; read status register
 
                 RBRA    _IO$GETC_LOOP, 1    ; next char
 
-                HALT
+                ABRA    0, 1

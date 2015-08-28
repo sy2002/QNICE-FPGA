@@ -17,7 +17,7 @@ FLAG_C_CLEAR    .EQU    0xFFFB                  ; bit pattern for clearing the c
 WAIT_CYCLES1    .EQU    0x1388
 WAIT_CYCLES2    .EQU    0x07D0
 
-                .ORG    0x0000                  ; Start address
+                .ORG    0x8000                  ; Start address
                 MOVE    0x0000, R0              ; Clear R0
                 MOVE    IO$TIL_BASE, R1         ; Base address of TIL-display for output
                 MOVE    IO$TIL_MASK, R9         ; Mask register of TIL-display for selecting which TIL is lit

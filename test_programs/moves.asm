@@ -1,7 +1,7 @@
 ; MOVE and register unit tests including bank switching and some flag tests
 ; by sy2002, July/August 2015
 
-        .ORG    0x0000                  ; Start address
+        .ORG    0x8000                  ; Start address
         
 ; in both cases, R14 should be 0x0009, i.e. Z and 1 flag set
 ; as you cannot clear the status register
