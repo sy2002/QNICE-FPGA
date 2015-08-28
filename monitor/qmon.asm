@@ -188,7 +188,7 @@ _QMON$ML_LOOP   RSUB    IO$GET_W_HEX, 1             ; Get address
                 MOVE    R8, @R0
                 RBRA    _QMON$ML_LOOP, 1
 QMON$M_MAYBE_M  CMP     'M', R8
-                RBRA    QMON$M_ILLEGAL, !Z
+                RBRA    QMON$M_MAYBE_S, !Z
 ; MEMORY/MOVE:
                 MOVE    QMON$CG_M_M, R8
                 RSUB    IO$PUTS, 1
@@ -206,6 +206,24 @@ QMON$M_MAYBE_M  CMP     'M', R8
                 MOVE    R1, R9
                 RSUB    MEM$MOVE, 1
                 RSUB    IO$PUT_CRLF, 1
+                RBRA    QMON$MAIN_LOOP, 1
+QMON$M_MAYBE_S  CMP     'S', R8
+                RBRA    QMON$M_ILLEGAL, !Z
+; MEMORY/DISASSEMBLE:
+                MOVE    QMON$CG_M_S, R8         ; Print prompt for start address
+                RSUB    IO$PUTS, 1
+                RSUB    IO$GET_W_HEX, 1         ; Get start address
+                MOVE    R8, R0                  ; Remember start address in R8
+                MOVE    QMON$CG_M_S2, R8        ; Print prompt for end address
+                RSUB    IO$PUTS, 1
+                RSUB    IO$GET_W_HEX, 1         ; Get end address
+                RSUB    IO$PUT_CRLF, 1
+                MOVE    R8, R9                  ; R9 contains the end address
+                MOVE    R0, R8                  ; R8 contains the start address
+_QMON$MS_LOOP   RSUB    DBG$DISASM, 1           ; Disassemble one instruction at 
+                                                ; addr. R8 - this increments R8!
+                CMP     R8, R9                  ; End reached?
+                RBRA    _QMON$MS_LOOP, !N       ; No, next instruction
                 RBRA    QMON$MAIN_LOOP, 1
 QMON$M_ILLEGAL  MOVE    QMON$ILLCMD, R8
                 RSUB    IO$PUTS, 1
@@ -231,6 +249,7 @@ QMON$HELP       .ASCII_P    "ELP:\n\n"
                 .ASCII_P    "    H(elp)\n"
                 .ASCII_P    "    M(emory group):\n"
                 .ASCII_P    "        C(hange) D(ump) E(xamine) F(ill) L(oad) M(ove)\n"
+                .ASCII_P    "        di(S)assemble\n"
                 .ASCII_P    "\n    General: CTRL-E performs a warm start whenever an\n"
                 .ASCII_P    "        input from keyboard is expected.\n"
                 .ASCII_P    "\n    M(emory)L(oad) can be used to load assembler output\n"
@@ -254,5 +273,7 @@ QMON$CG_M_L     .ASCII_W    "LOAD - ENTER ADDRESS/VALUE PAIRS, TERMINATE WITH CT
 QMON$CG_M_M     .ASCII_W    "MOVE FROM="
 QMON$CG_M_M2    .ASCII_W    " TO="
 QMON$CG_M_M3    .ASCII_W    " LENGTH="
+QMON$CG_M_S     .ASCII_W    "DISASSEMBLE START ADDRESS="
+QMON$CG_M_S2    .ASCII_W    " END ADDRESS="
 ;
 QMON$COMMAND    .BLOCK 0x0100              ; Reserve some memory for holding a command line

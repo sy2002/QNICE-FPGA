@@ -5,9 +5,10 @@
 ;
 ;  Some assembler macros which make life much easier:
 ;
-#define RET	MOVE 	@R13++, R15
+#define RET	    MOVE 	@R13++, R15
 #define INCRB	ADD 	0x0100, R14
-#define DECRB	SUB	0x0100, R14
+#define DECRB	SUB	    0x0100, R14
+#define NOP     MOVE    R0,     R0  ; Be careful this will change the SR bits!
 
 ;
 ;  Some register short names:
@@ -45,3 +46,4 @@ IO$UART_THRA    .EQU 0x0003 ; Transmitting register (relative to base address)
 ;  Some useful constants:
 ;
 CHR$BELL        .EQU 0x0007 ; ASCII-BELL character
+CHR$TAB         .EQU 0x0009 ; ASCII-TAB character
