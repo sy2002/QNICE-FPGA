@@ -44,7 +44,12 @@ ARCHITECTURE behavior OF test_env1 IS
          CLK : IN  std_logic;
          RESET_N : IN std_logic;
          SSEG_AN : OUT  std_logic_vector(7 downto 0);
-         SSEG_CA : OUT  std_logic_vector(7 downto 0)
+         SSEG_CA : OUT  std_logic_vector(7 downto 0);
+         
+         -- serial communication
+         UART_RXD    : in std_logic;                      -- receive data
+         UART_TXD    : out std_logic                      -- send data
+         
         );
     END COMPONENT;
     
@@ -66,7 +71,8 @@ BEGIN
           CLK => CLK,
           RESET_N => '1',
           SSEG_AN => SSEG_AN,
-          SSEG_CA => SSEG_CA
+          SSEG_CA => SSEG_CA,
+          UART_RXD => '0'
         );
 
    -- Clock process definitions

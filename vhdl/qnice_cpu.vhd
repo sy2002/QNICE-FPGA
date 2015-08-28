@@ -449,7 +449,7 @@ begin
                -- decode the destination addressing mode (and avoid garbage due to a branch opcode)
                -- optimization: in case of MOVE the destination value is ignored anyway, so we can skip
                -- the whole indirect parameter fetch in this case               
-               if Opcode /= opcBRA and Dst_Mode /= amDirect and Opcode /= opcMOVE then
+               if Opcode /= opcBRA and Dst_Mode /= amDirect and (Opcode /= opcMOVE or Dst_Mode = amIndirPreDec) then
                   -- this code is nearly identical to the above-mentioned code
                   -- within "elsif Dst_Mode /= amDirect then"
                   fsmNextCpuState <= cs_exeprep_get_dst_indirect;                  

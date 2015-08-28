@@ -1,6 +1,6 @@
 ; test and development program for the UART routines in general
 ; and for the monitor's io_library in particular
-; done by sy2002 in August 2015
+; done by vaxman, sy2002 in August 2015
 
                 .ORG    0x0000
 
@@ -9,6 +9,10 @@
                 MOVE    0x8400, SP          ; setup stack pointer
                 MOVE    IO$TIL_BASE, R12    ; use R12 to output values on TIL
                 MOVE    0xFFAA, @R12        ; display something on TIL
+
+                RSUB    IO$GET_W_HEX, 1
+                RSUB    IO$PUT_W_HEX, 1
+                HALT
 
                 RSUB    IO$GETCHAR, 1
                 MOVE    R8, @R12

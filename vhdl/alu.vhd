@@ -55,6 +55,9 @@ end component;
 -- use a 17 bit signal for working with 16 bit inputs for having the carry in the topmost bit
 signal res : unsigned(16 downto 0);
 
+-- reuse adders, subtractors, ...
+signal r_sub : unsigned(16 downto 0);
+
 -- results from the shifter
 signal shifter_result : unsigned(15 downto 0);
 signal shifter_c_out : std_logic;
@@ -88,10 +91,10 @@ begin
             res <= ("0" & input2) + ("0" & input1) + ("0000000000000000" & c_in);
             
          when opcSUB =>
-            res <= ("0" & input2) - ("0" & input1);
+            res <= r_sub;
             
          when opcSUBC =>
-            res <= ("0" & input2) - ("0" & input1) - ("0000000000000000" & c_in);
+            res <= r_sub - ("0000000000000000" & c_in);
 
          when opcSHL =>
             res <= shifter_c_out & shifter_result;
@@ -115,7 +118,7 @@ begin
             res <= ("0" & input1) xor ("0" & input2);
                      
          when opcCMP =>
-            res <= "0" & unsigned(- signed(input1));
+            res <= "0" & input2;
                      
          when others =>
             res <= (others => '0');
@@ -123,11 +126,18 @@ begin
    end process;
    
    manage_flags : process (res, opcode, input1, input2, shifter_x_out)
+   variable xres : unsigned(16 downto 0);
    begin
+      if opcode /= opcCMP then
+         xres := res;
+      else
+         xres := r_sub;
+      end if;
+   
       -- the X register is context sensitive
       if opcode /= opcSHR then
          -- X is true if result is FFFF
-         if res(15 downto 0) = x"FFFF" then
+         if xres(15 downto 0) = x"FFFF" then
             X <= '1';
          else
             X <= '0';
@@ -137,14 +147,14 @@ begin
       end if;
       
       -- Z is true if result is 0000
-      if res(15 downto 0) = x"0000" then
+      if xres(15 downto 0) = x"0000" then
          Z <= '1';
       else
          Z <= '0';
       end if;
       
       -- N is true if result is < 0
-      if signed(res(15 downto 0)) < 0 then
+      if signed(xres(15 downto 0)) < 0 then
          N <= '1';
       else
          N <= '0';
@@ -153,8 +163,8 @@ begin
       -- V is true if adding/subtracting two negative numbers yields a positive
       -- number or if adding/subtracting two positive numbers yields a negative number
       if Opcode = opcADD or Opcode = opcADDC or Opcode = opcSUB or Opcode = opcSUBC then
-         if (signed(input1) > 0 and signed(input2) > 0 and signed(res(15 downto 0)) < 0) or
-            (signed(input1) < 0 and signed(input2) < 0 and signed(res(15 downto 0)) > 0)
+         if (signed(input1) > 0 and signed(input2) > 0 and signed(xres(15 downto 0)) < 0) or
+            (signed(input1) < 0 and signed(input2) < 0 and signed(xres(15 downto 0)) > 0)
          then
             V <= '1';
          else
@@ -164,6 +174,10 @@ begin
          V <= '0';
       end if;
    end process;
+
+
+
+r_sub <= ("0" & input2) - ("0" & input1);
 
 result <= res(15 downto 0);
 C <= res(16);

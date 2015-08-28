@@ -132,9 +132,8 @@ _IO$GETC_LOOP   MOVE    @R0, R2             ; Read status register
                 MOVE    0, @R0              ; clear read latch
 
                 DECRB
-                ;MH
-                ;CMP     0x0005, R8          ; CTRL-E?
-                ;RBRA    QMON$WARMSTART, Z
+                CMP     0x0005, R8          ; CTRL-E?
+                RBRA    QMON$WARMSTART, Z
 		        RET
 ;
 ;***************************************************************************************
