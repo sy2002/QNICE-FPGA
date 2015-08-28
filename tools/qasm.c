@@ -4,9 +4,6 @@
 **
 ** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015
 **
-** Todo:
-**  More constant-formats: 'xy', -0x1234, 0b1010010, -b010010
-**
 ** Known bugs:
 **
 **   04-JUN-2008: Line numbers in error messages are sometimes a bit off reality (up to -5 has been observed)
@@ -25,7 +22,8 @@
 #undef  VERBOSE
 #undef  DEBUG
 
-#define STRING_LENGTH 255
+#define STRING_LENGTH  255
+#define MAX_DW_ENTRIES 255
 
 #define COMMENT_CHAR ';'
 
@@ -160,7 +158,7 @@ int translate_mnemonic(char *string, int *opcode, int *type)
   static char *normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                               "NOT", "AND", "OR", "XOR", "CMP", "RSRVD", "HALT", 0},
     *branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB", 0},
-    *directives[] = {".ORG", ".ASCII_W", ".ASCII_P", ".EQU", ".BLOCK", 0};
+    *directives[] = {".ORG", ".ASCII_W", ".ASCII_P", ".EQU", ".BLOCK", ".DW", 0};
 
   if (!string)
     return FALSE;
@@ -548,8 +546,8 @@ int decode_operand(char *operand, int *op_code)
 */
 int assemble()
 {
-  int opcode, type, line_counter, address = 0, i, error_counter = 0, number_of_operands, negate, flag, value, size,
-    special_char, org_found = 0;
+  int opcode, type, line_counter, address = 0, i, j, error_counter = 0, number_of_operands, negate, flag, value, size,
+    special_char, org_found = 0, dw_entry[MAX_DW_ENTRIES];
   char line[STRING_LENGTH], *p, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
   data_structure *entry;
 
@@ -605,6 +603,22 @@ int assemble()
         token = tokenize((char *) 0, delimiters); /* Get new address */
         entry->address = -1;
         address = str2int(token) - 1; /* - 1 since the address will be incremented later */
+      }
+      else if (!strcmp(entry->mnemonic, ".DW"))
+      {
+        i = 0;
+        while ((token = tokenize((char *) 0, delimiters)))
+          dw_entry[i++] = str2int(token);
+
+        if (!(entry->data = (int *) malloc(i * sizeof(int))))
+        {
+          printf("assemble (.DW): Out of memory, could not allocate %d words of memory!", (int) strlen(p));
+          return -1;
+        }
+
+        entry->number_of_words = i;
+        for (j = 0; j < i; j++)
+          *(entry->data + j) = dw_entry[j] & 0xffff;
       }
       else if (!strcmp(entry->mnemonic, ".ASCII_W") || !strcmp(entry->mnemonic, ".ASCII_P"))
       {

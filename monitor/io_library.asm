@@ -65,7 +65,7 @@ _IO$GET_W_HEX_INPUT RSUB    IO$GETCHAR, 1                   ; Read a character i
                     RSUB    STR$STRCHR, 1                   ; Is it a valid character?
                     MOVE    R10, R10                        ; Result equal zero?
                     RBRA    _IO$GET_W_HEX_VALID, !Z         ; No
-                    MOVE    7, R8                           ; Yes - generate a beep :-)
+                    MOVE    CHR$BELL, R8                    ; Yes - generate a beep :-)
                     RSUB    IO$PUTCHAR, 1
                     RBRA    _IO$GET_W_HEX_INPUT, 1          ; Retry
 _IO$GET_W_HEX_VALID RSUB    IO$PUTCHAR, 1                   ; Echo character

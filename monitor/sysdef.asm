@@ -19,17 +19,21 @@
 ;
 ;  IO-page addresses:
 ;
-IO$BASE          .EQU 0xFF00
-IO$UART0_BASE    .EQU 0xFF20
+IO$BASE         .EQU 0xFF00
+IO$UART0_BASE   .EQU 0xFF20
 
-IO$TIL_BASE      .EQU 0xFF10 ; Address of TIL-display
-IO$TIL_MASK      .EQU 0xFF11 ; Mask register of TIL display
+IO$TIL_BASE     .EQU 0xFF10 ; Address of TIL-display
+IO$TIL_MASK     .EQU 0xFF11 ; Mask register of TIL display
 
 
 ;
 ;  UART-registers:
 ;
-IO$UART_SRA      .EQU 0x0001 ; Status register (relative to base address)
-IO$UART_RHRA     .EQU 0x0002 ; Receiving register (relative to base address)
-IO$UART_THRA     .EQU 0x0003 ; Transmitting register (relative to base address)
+IO$UART_SRA     .EQU 0x0001 ; Status register (relative to base address)
+IO$UART_RHRA    .EQU 0x0002 ; Receiving register (relative to base address)
+IO$UART_THRA    .EQU 0x0003 ; Transmitting register (relative to base address)
 
+;
+;  Some useful constants:
+;
+CHR$BELL        .EQU 0x0007 ; ASCII-BELL character
