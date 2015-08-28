@@ -72,7 +72,7 @@ port (
    clk      : in std_logic;                        -- read and write on rising clock edge
    ce       : in std_logic;                        -- chip enable, when low then high impedance
    
-   address  : in std_logic_vector(15 downto 0);    -- address is for now 16 bit hard coded
+   address  : in std_logic_vector(14 downto 0);    -- address is for now 16 bit hard coded
    we       : in std_logic;                        -- write enable
    data_i   : in std_logic_vector(15 downto 0);    -- write data
    data_o   : out std_logic_vector(15 downto 0);   -- read data
@@ -81,44 +81,43 @@ port (
 );
 end component;
 
--- Nexys 4 DDR specific 7 segment display driver
-component drive_7digits
-generic (
-   CLOCK_DIVIDER        : integer                  -- clock divider: clock cycles per digit cycle
-);
+-- TIL display emulation (4 digits)
+component til_display is
 port (
-   clk    : in std_logic;                          -- clock signal divided by above mentioned divider
+   clk               : in std_logic;
+   reset             : in std_logic;
    
-   digits : in std_logic_vector(31 downto 0);      -- the actual information to be shown on the display
-   mask   : in std_logic_vector(7 downto 0);       -- control individual digits ('1' = digit is lit)  
+   til_reg0_enable   : in std_logic;      -- data register
+   til_reg1_enable   : in std_logic;      -- mask register (each bit equals one digit)
+   
+   data_in           : in std_logic_vector(15 downto 0);
    
    -- 7 segment display needs multiplexed approach due to common anode
-   SSEG_AN     : out std_logic_vector(7 downto 0); -- common anode: selects digit
-   SSEG_CA     : out std_logic_vector(7 downto 0) -- cathode: selects segment within a digit 
+   SSEG_AN           : out std_logic_vector(7 downto 0); -- common anode: selects digit
+   SSEG_CA           : out std_logic_vector(7 downto 0) -- cathode: selects segment within a digit 
 );
 end component;
 
 -- UART
-component basic_uart is
+component fifo_uart is
 generic (
-   DIVISOR: natural                           -- see UART_DIVISOR in env1_globals.vhd
+   DIVISOR: natural                                -- see UART_DIVISOR in env1_globals.vhd
 );
 port (
-   clk: in std_logic;                       
-   reset: in std_logic;
-
-   -- client interface: receive data
-   rx_data: out std_logic_vector(7 downto 0); -- received byte
-   rx_enable: out std_logic;                  -- validates received byte (1 system clock spike)
-   
-   -- client interface: send data
-   tx_data: in std_logic_vector(7 downto 0);  -- byte to send
-   tx_enable: in std_logic;                   -- validates byte to send if tx_ready is '1'
-   tx_ready: out std_logic;                   -- if '1', we can send a new byte, otherwise we won't take it
+   clk            : in std_logic;                       
+   reset          : in std_logic;
 
    -- physical interface
-   rx: in std_logic;
-   tx: out std_logic
+   rx             : in std_logic;
+   tx             : out std_logic;
+   
+   -- conntect to CPU's address and data bus (data high impedance when en=0)
+   cpu_addr       : in std_logic_vector(15 downto 0);
+   cpu_data_dir   : in std_logic;
+   cpu_data_valid : in std_logic;
+   
+   cpu_data_in    : in std_logic_vector(15 downto 0);
+   cpu_data_out   : out std_logic_vector(15 downto 0)   
 );
 end component;
 
@@ -148,32 +147,6 @@ signal cpu_data_dir           : std_logic;
 signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
 
--- TIL display control signals
-signal TIL_311_buffer         : std_logic_vector(15 downto 0) := x"0000";
-signal TIL_311_mask           : std_logic_vector(3 downto 0)  := "1111";
-
--- UART control signals
-signal uart_rx_data           : std_logic_vector(7 downto 0);
-signal uart_rx_enable         : std_logic;
-signal uart_tx_data           : std_logic_vector(7 downto 0);
-signal uart_tx_enable         : std_logic;
-signal uart_tx_ready          : std_logic;
-
--- temp
-type fsm_state_t is (idle, received, emitting);
-type state_t is
-record
-  fsm_state: fsm_state_t; -- FSM state
-  tx_data: std_logic_vector(7 downto 0);
-  tx_enable: std_logic;
-end record;
-
-signal uart_state, uart_state_next : state_t;
-
-signal rx_latch : std_logic := '0';
-signal rx_resetlatch: std_logic := '0';
-signal rx_buf : std_logic_vector(7 downto 0);
-
 -- MMIO control signals
 signal rom_enable             : std_logic;
 signal ram_enable             : std_logic;
@@ -200,14 +173,14 @@ begin
    rom : ROM_FROM_FILE
       generic map
       (
-         ADDR_WIDTH => 16,
+         ADDR_WIDTH => 15,
          DATA_WIDTH => 16,
          SIZE       => ROM_SIZE,
          FILE_NAME  => ROM_FILE                                      
       )
       port map(
          en => rom_enable, -- enable ROM if lower 32k word and CPU in read mode
-         addr => "0" & cpu_addr(14 downto 0),
+         addr => cpu_addr(14 downto 0),
          data => cpu_data
       );
      
@@ -216,30 +189,27 @@ begin
       port map (
          clk => CLK,
          ce => ram_enable,
-         address => "0" & cpu_addr(14 downto 0),
+         address => cpu_addr(14 downto 0),
          we => cpu_data_dir,         
          data_i => cpu_data,
          data_o => cpu_data,
          busy => ram_busy         
       );
-        
-   -- 7 segment display
-   disp_7seg : drive_7digits
-      generic map
-      (
-         CLOCK_DIVIDER => 200000 -- 200.000 clock cycles @ 100 MHz = 2ms per digit
-      )
-      port map
-      (
+
+   -- TIL display emulation (4 digits)
+   til_leds : til_display
+      port map (
          clk => CLK,
-         digits => x"0000" & TIL_311_buffer,
-         mask => "0000" & TIL_311_mask,
+         reset => not RESET_N,
+         til_reg0_enable => til_reg0_enable,
+         til_reg1_enable => til_reg1_enable,
+         data_in => cpu_data,
          SSEG_AN => SSEG_AN,
          SSEG_CA => SSEG_CA
       );
-      
-   -- UART
-   uart : basic_uart
+
+   -- special UART with FIFO that can be directly connected to the CPU bus
+   uart : fifo_uart
       generic map
       (
          DIVISOR => UART_DIVISOR
@@ -248,111 +218,14 @@ begin
       (
          clk => CLK,
          reset => not RESET_N,
-         rx_data => uart_rx_data,
-         rx_enable => uart_rx_enable,
-         tx_data => uart_tx_data,
-         tx_enable => uart_tx_enable,
-         tx_ready => uart_tx_ready,
          rx => UART_RXD,
-         tx => UART_TXD
+         tx => UART_TXD,
+         cpu_addr => cpu_addr,
+         cpu_data_valid => cpu_data_valid,
+         cpu_data_dir => cpu_data_dir,
+         cpu_data_in => cpu_data,
+         cpu_data_out => cpu_data
       );
-      
-      uart_latch_rx : process(uart_rx_enable, uart_rx_data, rx_resetlatch)
-      begin
-         if rx_resetlatch = '1' then
-            rx_latch <= '0';
-            rx_buf <= (others => 'U');
-         else
-            if rising_edge(uart_rx_enable) then
-               rx_buf <= uart_rx_data;
-               rx_latch <= '1';
-            end if;
-         end if;
-      end process;
-      
-      uart_mmio : process(cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid, rx_buf)
-      begin
-         cpu_data <= (others => 'Z');
-         uart_tx_data <= (others => 'Z');
-         rx_resetlatch <= '0';
-         uart_tx_enable <= '0';
-         
-         if cpu_addr(15 downto 4) = x"FF2" then
-            case cpu_addr(3 downto 0) is
-               when x"1" =>
-                  if cpu_data_dir = '0' then
-                     cpu_data <= x"000" & "00" & uart_tx_ready & rx_latch;
-                  else
-                     if cpu_data_valid = '1' and cpu_data(0) = '0' then
-                        rx_resetlatch <= '1';
-                     end if;
-                  end if;
-                  
-               when x"2" =>
-                  if cpu_data_dir = '0' then
-                     cpu_data <= x"00" & rx_buf;
-                  end if;
-                  
-               when x"3" =>
-                  if cpu_data_dir = '1' and cpu_data_valid = '1' then
-                     uart_tx_data <= cpu_data(7 downto 0);
-                     uart_tx_enable <= '1';
-                  end if;
-                  
-               when others =>
-                  cpu_data <= (others => 'Z');
-                  uart_tx_data <= (others => 'Z');
-                  rx_resetlatch <= '0';
-                  uart_tx_enable <= '0';
-                                          
-            end case;
-         end if;
-      end process;
-            
---   uart_fsm_clk : process(CLK, RESET_N)
---   begin
---      if RESET_N = '0' then
---         uart_state.fsm_state <= idle;
---         uart_state.tx_data <= (others => '0');
---         uart_state.tx_enable <= '0';
---      else
---         if rising_edge(CLK) then
---            uart_state <= uart_state_next;
---         end if;
---      end if;      
---   end process;
---   
---   uart_fsm_next : process(uart_state, uart_rx_enable, uart_rx_data, uart_tx_ready)
---   begin
---      uart_state_next <= uart_state;
---      case uart_state.fsm_state is
---
---         when idle =>
---            if uart_rx_enable = '1' then
---              uart_state_next.tx_data <= uart_rx_data;
---              uart_state_next.tx_enable <= '0';
---              uart_state_next.fsm_state <= received;
---            end if;
---
---         when received =>
---            if uart_tx_ready = '1' then
---              uart_state_next.tx_enable <= '1';
---              uart_state_next.fsm_state <= emitting;
---            end if;
---
---         when emitting =>
---            if uart_tx_ready = '0' then
---              uart_state_next.tx_enable <= '0';
---              uart_state_next.fsm_state <= idle;
---            end if;
---      end case;
---   end process;
---   
---   uart_fsm_output: process(uart_state) is
---   begin  
---      uart_tx_enable <= uart_state.tx_enable;
---      uart_tx_data <= uart_state.tx_data;
---   end process;   
                         
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
@@ -368,20 +241,6 @@ begin
          til_reg0_enable => til_reg0_enable,
          til_reg1_enable => til_reg1_enable
       );
-      
-   -- clock-in the current to-be-displayed value and mask into a FF for the TIL
-   til_driver : process(CLK)
-   begin
-      if falling_edge(CLK) then
-         if til_reg0_enable = '1' then
-            TIL_311_buffer <= cpu_data;            
-         end if;
-         
-         if til_reg1_enable = '1' then
-            TIL_311_mask <= cpu_data(3 downto 0);
-         end if;
-      end if;
-   end process;
-   
+  
 end beh;
 

@@ -1,0 +1,152 @@
+-- UART with FIFO
+-- meant to be connected with the QNICE CPU as data I/O is through MMIO
+-- tristate outputs go high impedance when not enabled
+-- 8-N-1, no error state handling, no flow control
+-- DIVISOR assumes a 100 MHz system clock
+-- done by sy2002 and vaxman in August 2015
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity fifo_uart is
+generic (
+   DIVISOR: natural                           -- DIVISOR = 100,000,000 / (16 x BAUD_RATE)
+   -- 2400 -> 2604
+   -- 9600 -> 651
+   -- 115200 -> 54
+   -- 1562500 -> 4
+   -- 2083333 -> 3
+);
+port (
+   clk            : in std_logic;                       
+   reset          : in std_logic;
+
+   -- physical interface
+   rx             : in std_logic;
+   tx             : out std_logic;
+   
+   -- conntect to CPU's address and data bus (data high impedance when en=0)
+   cpu_addr       : in std_logic_vector(15 downto 0);
+   cpu_data_dir   : in std_logic;
+   cpu_data_valid : in std_logic;
+   
+   cpu_data_in    : in std_logic_vector(15 downto 0);
+   cpu_data_out   : out std_logic_vector(15 downto 0)   
+);
+end fifo_uart;
+
+architecture beh of fifo_uart is
+
+component basic_uart is
+generic (
+   DIVISOR: natural
+);
+port (
+   clk: in std_logic;                       
+   reset: in std_logic;
+
+   -- client interface: receive data
+   rx_data: out std_logic_vector(7 downto 0); -- received byte
+   rx_enable: out std_logic;                  -- validates received byte (1 system clock spike)
+   
+   -- client interface: send data
+   tx_data: in std_logic_vector(7 downto 0);  -- byte to send
+   tx_enable: in std_logic;                   -- validates byte to send if tx_ready is '1'
+   tx_ready: out std_logic;                   -- if '1', we can send a new byte, otherwise we won't take it
+
+   -- physical interface
+   rx: in std_logic;
+   tx: out std_logic   
+);
+end component;
+
+-- UART control signals
+signal uart_rx_data           : std_logic_vector(7 downto 0);
+signal uart_rx_enable         : std_logic;
+signal uart_tx_data           : std_logic_vector(7 downto 0);
+signal uart_tx_enable         : std_logic;
+signal uart_tx_ready          : std_logic;
+
+-- recieve buffer / latch (to-be-replaced by a real FIFO)
+signal rx_latch : std_logic := '0';
+signal rx_resetlatch: std_logic := '0';
+signal rx_buf : std_logic_vector(7 downto 0);
+
+begin
+
+   -- UART
+   uart : basic_uart
+      generic map
+      (
+         DIVISOR => DIVISOR
+      )
+      port map
+      (
+         clk => CLK,
+         reset => reset,
+         rx_data => uart_rx_data,
+         rx_enable => uart_rx_enable,
+         tx_data => uart_tx_data,
+         tx_enable => uart_tx_enable,
+         tx_ready => uart_tx_ready,
+         rx => rx,
+         tx => tx
+      );
+
+   uart_latch_rx : process(uart_rx_enable, uart_rx_data, rx_resetlatch)
+   begin
+      if rx_resetlatch = '1' then
+         rx_latch <= '0';
+         rx_buf <= (others => 'U');
+      else
+         if rising_edge(uart_rx_enable) then
+            rx_buf <= uart_rx_data;
+            rx_latch <= '1';
+         end if;
+      end if;
+   end process;
+
+   uart_mmio : process(cpu_addr, cpu_data_in, cpu_data_dir, cpu_data_valid, rx_buf)
+   begin
+      cpu_data_out <= (others => 'Z');
+      uart_tx_data <= (others => 'Z');
+      rx_resetlatch <= '0';
+      uart_tx_enable <= '0';
+      
+      if cpu_addr(15 downto 4) = x"FF2" then
+         case cpu_addr(3 downto 0) is
+         
+            -- register 1: status register
+            when x"1" =>
+               if cpu_data_dir = '0' then
+                  cpu_data_out <= x"000" & "00" & uart_tx_ready & rx_latch;
+               else
+                  if cpu_data_valid = '1' and cpu_data_in(0) = '0' then
+                     rx_resetlatch <= '1';
+                  end if;
+               end if;
+               
+            -- register 2: read register
+            when x"2" =>
+               if cpu_data_dir = '0' then
+                  cpu_data_out <= x"00" & rx_buf;
+               end if;
+               
+            -- register 3: write register
+            when x"3" =>
+               if cpu_data_dir = '1' and cpu_data_valid = '1' then
+                  uart_tx_data <= cpu_data_in(7 downto 0);
+                  uart_tx_enable <= '1';
+               end if;
+               
+            when others =>
+               cpu_data_out <= (others => 'Z');
+               uart_tx_data <= (others => 'Z');
+               rx_resetlatch <= '0';
+               uart_tx_enable <= '0';                                          
+         end case;
+      end if;
+   end process;        
+   
+end beh;
+

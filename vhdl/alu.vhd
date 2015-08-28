@@ -78,7 +78,7 @@ begin
          x_out => shifter_x_out
       );
 
-   calculate : process (opcode, input1, input2, c_in, shifter_result, shifter_c_out)
+   calculate : process (opcode, input1, input2, r_sub, c_in, shifter_result, shifter_c_out)
    begin
       case opcode is
          when opcMOVE =>
@@ -125,7 +125,7 @@ begin
       end case;
    end process;
    
-   manage_flags : process (res, opcode, input1, input2, shifter_x_out)
+   manage_flags : process (res, opcode, input1, input2, r_sub, shifter_x_out)
    variable xres : unsigned(16 downto 0);
    begin
       if opcode /= opcCMP then
