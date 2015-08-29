@@ -125,15 +125,6 @@ _IO$GETC_LOOP   MOVE    @R0, R2             ; Read status register
                 AND     0x0001, R2          ; Only bit 0 is of interest
                 RBRA    _IO$GETC_LOOP, Z    ; Loop until a character has been received
                 MOVE    @R1, R8             ; Get the character from the receiver register
-#ifdef FPGA
-                MOVE    0, @R0              ; clear read latch
-#endif
-#ifdef DEBUG
-# ifdef FPGA
-                MOVE    IO$TIL_BASE, R0
-                MOVE    R8, @R0
-# endif
-#endif
                 DECRB
                 CMP     0x0005, R8          ; CTRL-E?
                 RBRA    QMON$WARMSTART, Z
@@ -214,7 +205,6 @@ IO$PUTCHAR      INCRB                       ; Get a new register page
 #ifdef FPGA
                 ADD IO$UART_SRA, R0         ; R0: address of status register                
                 ADD IO$UART_THRA, R1        ; R1: address of transmit register
-
 _IO$PUTC_WAIT   MOVE    @R0, R2             ; read status register
                 AND     0x0002, R2          ; ready to transmit?
                 RBRA    _IO$PUTC_WAIT, Z    ; loop until ready
