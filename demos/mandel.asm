@@ -12,7 +12,7 @@ X_STEP          .EQU    0x000A              ; 10
 Y_START         .EQU    -0x0100             ; -256
 Y_END           .EQU    0x0100              ; 256
 Y_STEP          .EQU    0x0019              ; 25
-ITERATION       .EQU    0x000A              ; Number of iterations
+ITERATION       .EQU    0x001A              ; Number of iterations
 ;
 ; for (y = y_start; y <= y_end; y += y_step)
 ; {
