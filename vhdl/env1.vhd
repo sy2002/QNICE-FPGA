@@ -30,7 +30,7 @@ port (
    UART_RTS    : in std_logic;                      -- (active low) equals cts from dte, i.e. fpga is allowed to send to dte
    UART_CTS    : out std_logic;                     -- (active low) clear to send (dte is allowed to send to fpga)
    
-   cts_led        : out std_logic   
+   cts_led     : out std_logic   
 ); 
 end env1;
 

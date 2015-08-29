@@ -43,11 +43,7 @@
 ; Main program
 ;
 QMON$COLDSTART  MOVE    QMON$WELCOME, R8        ; Print welcome message
-#ifdef FPGA
-                MOVE    0x8400, SP              ; Set up stack pointer
-#else
                 MOVE    IO$BASE, SP
-#endif
                 RSUB    IO$PUTS, 1
 
 #ifndef FPGA
