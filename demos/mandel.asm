@@ -1,4 +1,6 @@
-                .ORG    0x0000
+                .ORG    0x8000
+
+#define         FPGA
 ;
 #define         POINTER R12
 ;
