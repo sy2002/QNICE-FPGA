@@ -34,16 +34,34 @@ DBG$DISASM          INCRB
                     MOVE    _DBG$MNEMONICS, R8  ; Get address of mnemonic array
                     ADD     R2, R8              ; Get pointer to mnemonic
                     RSUB    IO$PUTS, 1          ; Print mnemonic
+                    CMP     0x0070, R2          ; Is it HALT (shifted 3 to the left)?
+                    RBRA    _DBG$DISASM_EXIT, Z ; Yes, do not fetch operands
                     MOVE    CHR$TAB, R8         ; Print a TAB character
                     RSUB    IO$PUTCHAR, 1
                     RSUB    _DBG$HANDLE_SOURCE, 1
                     RSUB    _DBG$HANDLE_DEST, 1
-                    RBRA    _DBG$DISASM_EXIT, 1
-; Tread branches and subroutine calls:
-_DBG$DISASM_BRSU    MOVE    _DBG$BRSU_MNEMONICS, R8
-                    RSUB    IO$PUTS, 1
-; TODO: Treat branches/sr calls...
-
+                    RBRA    _DBG$DISASM_EXIT, 1 ; Finished...
+; Treat branches and subroutine calls:
+_DBG$DISASM_BRSU    MOVE    R1, R2              ; Determine branch/call type
+                    SHR     0x0001, R2
+                    AND     0x0018, R2          ; 00...00MM000, M = mode
+                    MOVE    _DBG$BRSU_MNEMONICS, R8
+                    ADD     R2, R8
+                    RSUB    IO$PUTS, 1          ; Print mnemonic
+                    MOVE    CHR$TAB, R8         ; Print a TAB character
+                    RSUB    IO$PUTCHAR, 1
+                    RSUB    _DBG$HANDLE_SOURCE, 1
+                    MOVE    R1, R2              ; Reread instruction
+                    AND     0x0008, R2          ; Determine negation flag
+                    RBRA    _DBG$NO_NEGATE, Z   ; No negation
+                    MOVE    '!', R8
+                    RSUB    IO$PUTCHAR, 1
+_DBG$NO_NEGATE      MOVE    R1, R2              ; No side effects...
+                    AND     0x0007, R2          ; Get condition codes
+                    MOVE    _DBG$CONDITIONCODES, R3
+                    ADD     R2, R3
+                    MOVE    @R3, R8
+                    RSUB    IO$PUTCHAR, 1       ; Print condition code
 _DBG$DISASM_EXIT    RSUB    IO$PUT_CRLF, 1
                     MOVE    R0, R8              ; Restore address
                     DECRB
@@ -118,6 +136,7 @@ _DBG$BRSU_MNEMONICS .ASCII_W    "ABRA   "
                     .ASCII_W    "ASUB   "
                     .ASCII_W    "RBRA   "
                     .ASCII_W    "RSUB   "
+_DBG$CONDITIONCODES .ASCII_P    "1XCZNVIM"      ; Condition codes for branches/calls
 ; Register Names are expected to be four bytes long (including a 0-terminator)
 _DBG$REGISTERS      .ASCII_W    "R0 "
                     .ASCII_W    "R1 "
