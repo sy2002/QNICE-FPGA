@@ -1,4 +1,4 @@
-; Checks, if all register banks are working by putting data in all registers
+    ; Checks, if all register banks are working by putting data in all registers
 ; then generating a check sum for each register. The validity of the check sum
 ; for each register is shown on the emulated TIL by cycling through all 8
 ; result registers, showing the actual value, then subtracting the correct
@@ -26,14 +26,14 @@ CHECK_R0        .EQU    0x8080              ; sum(1..256) = 32.896 = 0x8080
 CHECK_R1        .EQU    0x1700              ; 256 x 23 = 5.888 = 0x1700
 
 ; memory locations
-STACK_TOP       .EQU    0x8020              ; top of the stack, initial SP
+STACK_TOP       .EQU    0x8200              ; top of the stack, initial SP
 VAR_DIFF        .EQU    0x8000              ; variable in RAM to store the
                                             ; difference between a register
                                             ; value and the expected value
 
-                .ORG    0x8100
+                .ORG    0x0000
 
-                MOVE    0x8020, R13         ; setup stack pointer
+                MOVE    STACK_TOP, R13      ; setup stack pointer
 
                 OR      0xFF00, R14         ; activate highest register page
                 MOVE    0x0100, R8          ; loop through 256 banks

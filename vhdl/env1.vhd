@@ -244,14 +244,14 @@ begin
          til_reg1_enable => til_reg1_enable
       );
       
---   generate_slow_clock : process (CLK)
---   begin
---      if rising_edge(CLK) then
---         SLOW_CLOCK <= not SLOW_CLOCK;
---      end if;
---   end process;
+   generate_slow_clock : process (CLK)
+   begin
+      if rising_edge(CLK) then
+         SLOW_CLOCK <= not SLOW_CLOCK;
+      end if;
+   end process;
 
-      SLOW_CLOCK <= CLK;
+   --SLOW_CLOCK <= CLK;
 
 end beh;
 

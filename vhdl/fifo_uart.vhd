@@ -113,7 +113,7 @@ begin
       end if;
    end process;
 
-   uart_mmio : process(cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid, rx_buf)
+   uart_mmio : process(cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid, rx_buf, uart_tx_ready, rx_latch)
    begin
       cpu_data <= (others => 'Z');
       uart_tx_data <= (others => 'Z');

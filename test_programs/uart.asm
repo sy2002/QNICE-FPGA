@@ -4,6 +4,7 @@
 
                 .ORG 0x8000
 
+#define FPGA
 #include "../monitor/sysdef.asm"
 
                 MOVE    IO$TIL_BASE, R12

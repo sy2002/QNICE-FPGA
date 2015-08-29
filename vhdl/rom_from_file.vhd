@@ -26,6 +26,7 @@ end ROM_FROM_FILE;
 architecture beh of ROM_FROM_FILE is
 
 type romtype is array(0 to SIZE - 1) of bit_vector(DATA_WIDTH - 1 downto 0);
+--type romtype is array(0 to 32767) of bit_vector(DATA_WIDTH - 1 downto 0);
 
 impure function read_romfile(rom_file_name : in string) return romtype is
    file     rom_file  : text is in rom_file_name;                       
