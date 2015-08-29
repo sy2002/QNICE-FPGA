@@ -27,12 +27,16 @@ port (
    -- physical interface
    rx             : in std_logic;
    tx             : out std_logic;
+   rts            : in std_logic;
+   cts            : out std_logic;
    
    -- conntect to CPU's address and data bus (data high impedance when en=0)
    cpu_addr       : in std_logic_vector(15 downto 0);
    cpu_data_dir   : in std_logic;
    cpu_data_valid : in std_logic;  
-   cpu_data       : inout std_logic_vector(15 downto 0)
+   cpu_data       : inout std_logic_vector(15 downto 0);
+   
+   cts_led        : out std_logic
 );
 end fifo_uart;
 
@@ -62,10 +66,10 @@ port (
 end component;
 
 -- FIFO
-type FIFO_RAM is array(0 to FIFO_SIZE - 1) of std_logic_vector(15 downto 0);
+type FIFO_RAM is array(0 to FIFO_SIZE - 1) of std_logic_vector(8 downto 0);
 signal FIFO : FIFO_RAM;
-signal FIFO_WP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) downto 0);
-signal FIFO_RP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) downto 0);
+signal FIFO_WP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) - 1 downto 0) := (others => '0');
+signal FIFO_RP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) - 1 downto 0) := (others => '0');
 
 -- UART control signals
 signal uart_rx_data           : std_logic_vector(7 downto 0);
@@ -74,10 +78,7 @@ signal uart_tx_data           : std_logic_vector(7 downto 0);
 signal uart_tx_enable         : std_logic;
 signal uart_tx_ready          : std_logic;
 
--- recieve buffer / latch (to-be-replaced by a real FIFO)
-signal rx_latch : std_logic := '0';
-signal rx_resetlatch: std_logic := '0';
-signal rx_buf : std_logic_vector(7 downto 0);
+signal rx_resetvalid          : std_logic := '0';
 
 begin
 
@@ -99,25 +100,49 @@ begin
          rx => rx,
          tx => tx
       );
-
-   uart_latch_rx : process(uart_rx_enable, uart_rx_data, rx_resetlatch)
+   
+   uart_rx : process(uart_rx_enable, uart_rx_data, rx_resetvalid, FIFO_RP, FIFO_WP)
    begin
-      if rx_resetlatch = '1' then
-         rx_latch <= '0';
-         rx_buf <= (others => 'U');
+      if rx_resetvalid = '1' then
+         FIFO(to_integer(FIFO_RP))(8) <= '0';
       else
          if rising_edge(uart_rx_enable) then
-            rx_buf <= uart_rx_data;
-            rx_latch <= '1';
+            FIFO(to_integer(FIFO_WP))(7 downto 0) <= uart_rx_data;
+            FIFO(to_integer(FIFO_WP))(8) <= '1';
          end if;
       end if;
    end process;
-
-   uart_mmio : process(cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid, rx_buf, uart_tx_ready, rx_latch)
+         
+   uart_inc_wp : process(uart_rx_enable, FIFO_WP)
+   begin
+      if falling_edge(uart_rx_enable) then
+         FIFO_WP <= FIFO_WP + 1;
+      end if;
+   end process;
+      
+   uart_inc_rp : process(rx_resetvalid, FIFO_RP)
+   begin      
+      if falling_edge(rx_resetvalid) then
+         FIFO_RP <= FIFO_RP + 1;
+      end if;
+   end process;
+   
+   uart_cts_controller : process (FIFO_RP, FIFO_WP)
+   begin
+      if abs(signed(FIFO_RP) - signed(FIFO_WP)) > 4 then
+         cts <= '1';
+         cts_led <= '1';
+      else
+         cts <= '0';
+         cts_led <= '0';
+      end if;
+   end process;
+               
+   uart_mmio : process(cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid, uart_tx_ready, FIFO, FIFO_RP, FIFO_WP)
    begin
       cpu_data <= (others => 'Z');
       uart_tx_data <= (others => 'Z');
-      rx_resetlatch <= '0';
+      rx_resetvalid <= '0';
       uart_tx_enable <= '0';
       
       if cpu_addr(15 downto 4) = x"FF2" then
@@ -126,17 +151,14 @@ begin
             -- register 1: status register
             when x"1" =>
                if cpu_data_dir = '0' then
-                  cpu_data <= x"000" & "00" & uart_tx_ready & rx_latch;
-               else
-                  if cpu_data_valid = '1' and cpu_data(0) = '0' then
-                     rx_resetlatch <= '1';
-                  end if;
+                  cpu_data <= x"000" & "00" & uart_tx_ready & FIFO(to_integer(FIFO_RP))(8);
                end if;
                
             -- register 2: read register
             when x"2" =>
                if cpu_data_dir = '0' then
-                  cpu_data <= x"00" & rx_buf;
+                  cpu_data <= x"00" & FIFO(to_integer(FIFO_RP))(7 downto 0);
+                  rx_resetvalid <= '1';
                end if;
                
             -- register 3: write register
@@ -149,11 +171,11 @@ begin
             when others =>
                cpu_data <= (others => 'Z');
                uart_tx_data <= (others => 'Z');
-               rx_resetlatch <= '0';
+               rx_resetvalid <= '0';
                uart_tx_enable <= '0';                                          
          end case;
       end if;
-   end process;        
+   end process;
    
 end beh;
 

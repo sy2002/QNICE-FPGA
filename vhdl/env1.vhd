@@ -26,7 +26,11 @@ port (
 
    -- serial communication
    UART_RXD    : in std_logic;                      -- receive data
-   UART_TXD    : out std_logic                      -- send data
+   UART_TXD    : out std_logic;                     -- send data
+   UART_RTS    : in std_logic;                      -- (active low) equals cts from dte, i.e. fpga is allowed to send to dte
+   UART_CTS    : out std_logic;                     -- (active low) clear to send (dte is allowed to send to fpga)
+   
+   cts_led        : out std_logic   
 ); 
 end env1;
 
@@ -46,7 +50,7 @@ port (
    --tristate 16 bit data bus
    DATA           : inout std_logic_vector(15 downto 0);    -- send/receive data
    DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
-   DATA_VALID     : out std_logic                           -- while DATA_DIR = 1: DATA contains valid data   
+   DATA_VALID     : out std_logic                           -- while DATA_DIR = 1: DATA contains valid data      
 );
 end component;
 
@@ -109,9 +113,14 @@ port (
    clk            : in std_logic;                       
    reset          : in std_logic;
 
+   -- debug leds
+   cts_led        : out std_logic;
+
    -- physical interface
    rx             : in std_logic;
    tx             : out std_logic;
+   rts            : in std_logic;
+   cts            : out std_logic;   
    
    -- conntect to CPU's address and data bus (data high impedance when en=0)
    cpu_addr       : in std_logic_vector(15 downto 0);
@@ -228,10 +237,14 @@ begin
          reset => not RESET_N,
          rx => UART_RXD,
          tx => UART_TXD,
+         rts => UART_RTS,
+         cts => UART_CTS,
          cpu_addr => cpu_addr,
          cpu_data_valid => cpu_data_valid,
          cpu_data_dir => cpu_data_dir,
-         cpu_data => cpu_data
+         cpu_data => cpu_data,
+         
+         cts_led => cts_led
       );
                         
    -- memory mapped i/o controller
@@ -250,14 +263,12 @@ begin
          til_reg1_enable => til_reg1_enable
       );
       
---   generate_slow_clock : process (CLK)
---   begin
---      if rising_edge(CLK) then
---         SLOW_CLOCK <= not SLOW_CLOCK;
---      end if;
---   end process;
+   generate_slow_clock : process (CLK)
+   begin
+      if rising_edge(CLK) then
+         SLOW_CLOCK <= not SLOW_CLOCK;
+      end if;
+   end process;
    
-   SLOW_CLOCK <= CLK;
-
 end beh;
 
