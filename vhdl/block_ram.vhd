@@ -19,7 +19,7 @@ port (
    clk      : in std_logic;                        -- read and write on rising clock edge
    ce       : in std_logic;                        -- chip enable, when low then high impedance on output
    
-   address  : in std_logic_vector(15 downto 0);    -- address is for now 16 bit hard coded
+   address  : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
    we       : in std_logic;                        -- write enable
    data_i   : in std_logic_vector(15 downto 0);    -- write data
    data_o   : out std_logic_vector(15 downto 0);   -- read data
@@ -38,7 +38,7 @@ signal bram : bram_t := (others => x"baba");
 signal output : std_logic_vector(15 downto 0);
 
 signal counter : std_logic := '1'; -- important to be initialized to one
-signal address_old : std_logic_vector(15 downto 0) := (others => 'U');
+signal address_old : std_logic_vector(14 downto 0) := (others => 'U');
 signal we_old : std_logic := '0';
 signal async_reset : std_logic;
 
