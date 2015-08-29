@@ -51,18 +51,19 @@ port (
 end component;
 
 -- ROM
-component ROM_FROM_FILE is
+component BROM is
 generic (
-   ADDR_WIDTH : integer range 2 to 64;    -- address width
-   DATA_WIDTH : integer range 2 to 64;    -- word width of ROM output port (aka DATA)
-   SIZE       : integer;                  -- amount of words (aka lines in input file)
-   FILE_NAME  : string                    -- name of input file; input file format:
-                                          -- DATA_WIDTH bits, written as 0 and 1 in each line
+   FILE_NAME   : string;
+   ROM_LINES   : integer
 );
 port (
-   en    : in std_logic;                                 -- new values only if enable is 1
-   addr  : in std_logic_vector(ADDR_WIDTH - 1 downto 0); -- address
-   data  : out std_logic_vector(DATA_WIDTH - 1 downto 0) -- data located at address
+   clk         : in std_logic;                        -- read and write on rising clock edge
+   ce          : in std_logic;                        -- chip enable, when low then high impedance on output
+   
+   address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
+   data        : out std_logic_vector(15 downto 0);   -- read data
+   
+   busy        : out std_logic                        -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA               
 );
 end component;
 
@@ -134,7 +135,8 @@ port (
    -- ROM is enabled when the address is < $8000 and the CPU is reading
    rom_enable        : out std_logic;
    ram_enable        : out std_logic;
-   ram_busy          : in std_logic;   
+   rom_busy          : in std_logic;
+   ram_busy          : in std_logic;
    til_reg0_enable   : out std_logic;
    til_reg1_enable   : out std_logic   
 );
@@ -150,10 +152,11 @@ signal cpu_wait_for_data      : std_logic;
 signal rom_enable             : std_logic;
 signal ram_enable             : std_logic;
 signal ram_busy               : std_logic;
+signal rom_busy               : std_logic;
 signal til_reg0_enable        : std_logic;
 signal til_reg1_enable        : std_logic;
 
--- 50 MHz as long as we did not solve the timing issues (MRAM/BRAM?)
+-- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
 
 begin
@@ -171,19 +174,21 @@ begin
          DATA_VALID => cpu_data_valid
       );
 
+
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
-   rom : ROM_FROM_FILE
+   rom : BROM
       generic map
       (
-         ADDR_WIDTH => 15,
-         DATA_WIDTH => 16,
-         SIZE       => ROM_SIZE,
-         FILE_NAME  => ROM_FILE                                      
+         FILE_NAME   => ROM_FILE,
+         ROM_LINES   => ROM_SIZE
       )
-      port map(
-         en => rom_enable, -- enable ROM if lower 32k word and CPU in read mode
-         addr => cpu_addr(14 downto 0),
-         data => cpu_data
+      port map
+      (
+         clk         => SLOW_CLOCK,
+         ce          => rom_enable,
+         address     => cpu_addr(14 downto 0),
+         data        => cpu_data,
+         busy        => rom_busy
       );
      
    -- RAM: up to 64kB consisting of up to 32.000 16 bit words
@@ -238,20 +243,21 @@ begin
          data_valid => cpu_data_valid,
          cpu_wait_for_data => cpu_wait_for_data,
          rom_enable => rom_enable,
+         rom_busy => rom_busy,
          ram_enable => ram_enable,
          ram_busy => ram_busy,
          til_reg0_enable => til_reg0_enable,
          til_reg1_enable => til_reg1_enable
       );
       
-   generate_slow_clock : process (CLK)
-   begin
-      if rising_edge(CLK) then
-         SLOW_CLOCK <= not SLOW_CLOCK;
-      end if;
-   end process;
-
-   --SLOW_CLOCK <= CLK;
+--   generate_slow_clock : process (CLK)
+--   begin
+--      if rising_edge(CLK) then
+--         SLOW_CLOCK <= not SLOW_CLOCK;
+--      end if;
+--   end process;
+   
+   SLOW_CLOCK <= CLK;
 
 end beh;
 

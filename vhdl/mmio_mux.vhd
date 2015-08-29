@@ -22,6 +22,7 @@ port (
    
    -- ROM is enabled when the address is < $8000 and the CPU is reading
    rom_enable        : out std_logic;
+   rom_busy          : in std_logic;
    
    -- RAM is enabled when the address is in ($8000..$FEFF)
    ram_enable        : out std_logic;
@@ -38,6 +39,7 @@ end mmio_mux;
 architecture Behavioral of mmio_mux is
 
 signal ram_enable_i : std_logic;
+signal rom_enable_i : std_logic;
 
 begin
 
@@ -70,9 +72,11 @@ begin
    -- CPU wait, this simple implementation is good enough
    -- otherwise, a "req_busy" bus could be built (replacing the ram_busy input)
    -- the block_ram's busy line is already a tri state, so it is ready for such a bus
-   cpu_wait_control : process (ram_enable_i, ram_busy)
+   cpu_wait_control : process (ram_enable_i, ram_busy, rom_busy)
    begin
       if ram_enable_i = '1' and ram_busy = '1' then
+         cpu_wait_for_data <= '1';
+      elsif rom_enable_i = '1' and rom_busy = '1' then
          cpu_wait_for_data <= '1';
       else
          cpu_wait_for_data <= '0';
@@ -80,14 +84,16 @@ begin
    end process;
 
    -- ROM is enabled when the address is < $8000 and the CPU is reading
-   rom_enable <= not addr(15) and not data_dir;
+   rom_enable_i <= not addr(15) and not data_dir;
    
    -- RAM is enabled when the address is in ($8000..$FEFF) and
    -- when a write attempt only occurs while the data is valid
    ram_enable_i <= addr(15)
                    and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8));
                    -- and not (data_dir and not data_valid);                                      
+                   
    ram_enable <= ram_enable_i;
+   rom_enable <= rom_enable_i;
                     
 end Behavioral;
 
