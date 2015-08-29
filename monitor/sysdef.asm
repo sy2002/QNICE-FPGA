@@ -8,7 +8,7 @@
 #define RET	    MOVE 	@R13++, R15
 #define INCRB	ADD 	0x0100, R14
 #define DECRB	SUB	    0x0100, R14
-#define NOP     RBRA    R15, 1
+#define NOP     ABRA    R15, 1
 
 ;
 ;  Some register short names:
