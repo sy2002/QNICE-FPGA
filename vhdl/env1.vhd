@@ -101,7 +101,8 @@ end component;
 -- UART
 component fifo_uart is
 generic (
-   DIVISOR: natural                                -- see UART_DIVISOR in env1_globals.vhd
+   DIVISOR        : natural;              -- see UART_DIVISOR in env1_globals.vhd
+   FIFO_SIZE      : natural               -- size of the FIFO in words
 );
 port (
    clk            : in std_logic;                       
@@ -115,9 +116,7 @@ port (
    cpu_addr       : in std_logic_vector(15 downto 0);
    cpu_data_dir   : in std_logic;
    cpu_data_valid : in std_logic;
-   
-   cpu_data_in    : in std_logic_vector(15 downto 0);
-   cpu_data_out   : out std_logic_vector(15 downto 0)   
+   cpu_data       : inout std_logic_vector(15 downto 0)
 );
 end component;
 
@@ -212,7 +211,8 @@ begin
    uart : fifo_uart
       generic map
       (
-         DIVISOR => UART_DIVISOR
+         DIVISOR => UART_DIVISOR,
+         FIFO_SIZE => UART_FIFO_SIZE
       )
       port map
       (
@@ -223,8 +223,7 @@ begin
          cpu_addr => cpu_addr,
          cpu_data_valid => cpu_data_valid,
          cpu_data_dir => cpu_data_dir,
-         cpu_data_in => cpu_data,
-         cpu_data_out => cpu_data
+         cpu_data => cpu_data
       );
                         
    -- memory mapped i/o controller

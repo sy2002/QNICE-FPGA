@@ -7,15 +7,17 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 entity fifo_uart is
 generic (
-   DIVISOR: natural                           -- DIVISOR = 100,000,000 / (16 x BAUD_RATE)
+   DIVISOR: natural;             -- DIVISOR = 100,000,000 / (16 x BAUD_RATE)
    -- 2400 -> 2604
    -- 9600 -> 651
    -- 115200 -> 54
    -- 1562500 -> 4
    -- 2083333 -> 3
+   FIFO_SIZE: natural            -- choose one of these values: 8, 16, 32, 64, ...
 );
 port (
    clk            : in std_logic;                       
@@ -28,10 +30,8 @@ port (
    -- conntect to CPU's address and data bus (data high impedance when en=0)
    cpu_addr       : in std_logic_vector(15 downto 0);
    cpu_data_dir   : in std_logic;
-   cpu_data_valid : in std_logic;
-   
-   cpu_data_in    : in std_logic_vector(15 downto 0);
-   cpu_data_out   : out std_logic_vector(15 downto 0)   
+   cpu_data_valid : in std_logic;  
+   cpu_data       : inout std_logic_vector(15 downto 0)
 );
 end fifo_uart;
 
@@ -59,6 +59,11 @@ port (
    tx: out std_logic   
 );
 end component;
+
+-- FIFO
+type FIFO_RAM is array(0 to FIFO_SIZE - 1) of std_logic_vector(15 downto 0);
+signal FIFO : FIFO_RAM;
+--signal FIFO_WP : unsigned(
 
 -- UART control signals
 signal uart_rx_data           : std_logic_vector(7 downto 0);
@@ -106,9 +111,9 @@ begin
       end if;
    end process;
 
-   uart_mmio : process(cpu_addr, cpu_data_in, cpu_data_dir, cpu_data_valid, rx_buf)
+   uart_mmio : process(cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid, rx_buf)
    begin
-      cpu_data_out <= (others => 'Z');
+      cpu_data <= (others => 'Z');
       uart_tx_data <= (others => 'Z');
       rx_resetlatch <= '0';
       uart_tx_enable <= '0';
@@ -119,9 +124,9 @@ begin
             -- register 1: status register
             when x"1" =>
                if cpu_data_dir = '0' then
-                  cpu_data_out <= x"000" & "00" & uart_tx_ready & rx_latch;
+                  cpu_data <= x"000" & "00" & uart_tx_ready & rx_latch;
                else
-                  if cpu_data_valid = '1' and cpu_data_in(0) = '0' then
+                  if cpu_data_valid = '1' and cpu_data(0) = '0' then
                      rx_resetlatch <= '1';
                   end if;
                end if;
@@ -129,18 +134,18 @@ begin
             -- register 2: read register
             when x"2" =>
                if cpu_data_dir = '0' then
-                  cpu_data_out <= x"00" & rx_buf;
+                  cpu_data <= x"00" & rx_buf;
                end if;
                
             -- register 3: write register
             when x"3" =>
                if cpu_data_dir = '1' and cpu_data_valid = '1' then
-                  uart_tx_data <= cpu_data_in(7 downto 0);
+                  uart_tx_data <= cpu_data(7 downto 0);
                   uart_tx_enable <= '1';
                end if;
                
             when others =>
-               cpu_data_out <= (others => 'Z');
+               cpu_data <= (others => 'Z');
                uart_tx_data <= (others => 'Z');
                rx_resetlatch <= '0';
                uart_tx_enable <= '0';                                          

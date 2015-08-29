@@ -1,4 +1,4 @@
-#undef FPGA
+#define FPGA
 ;;
 #include "sysdef.asm"
 #include "qmon.asm"

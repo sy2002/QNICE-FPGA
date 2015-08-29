@@ -30,6 +30,7 @@ constant BLOCK_RAM_SIZE       : integer   := 1024;
 --    1562500 -> 4
 --    2083333 -> 3
 constant UART_DIVISOR          : natural  := 651;
+constant UART_FIFO_SIZE        : natural  := 16;
 
 end env1_globals;
 
