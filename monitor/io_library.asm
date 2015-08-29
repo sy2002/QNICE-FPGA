@@ -22,9 +22,8 @@ IO$DUMP_MEMORY          INCRB                           ; Get a new register pag
                         ADD 0x0001, R3                  ; That is necessary since we want the last 
                                                         ; address printed, too
                         MOVE 0xFFFF, R4                 ; Set R4 - this is the column counter - to -1
-_IO$DUMP_MEMORY_LOOP    MOVE R0, R2                     ; Have we reached the end of the memory area?
-                        SUB R3, R2
-                        RBRA _IO$DUMP_MEMORY_EXIT, Z    ; Yes - that is it, so exit this routine
+_IO$DUMP_MEMORY_LOOP    CMP R3, R0                      ; Have we reached the end of the memory area?
+                        RBRA _IO$DUMP_MEMORY_EXIT, !N   ; Yes - that is it, so exit this routine
                         ADD 0x0001, R4                  ; Next column
                         AND 0x0007, R4                  ; We compute mod 8
                         RBRA _IO$DUMP_MEMORY_CONTENT, !Z; if the result is not equal 0 we do not 
@@ -36,7 +35,7 @@ _IO$DUMP_MEMORY_LOOP    MOVE R0, R2                     ; Have we reached the en
                         RSUB IO$PUTS, 1
 _IO$DUMP_MEMORY_CONTENT MOVE @R0++, R8                  ; Print the memory contents of this location
                         RSUB IO$PUT_W_HEX, 1
-                        MOVE ' ', R8             ; Print a space
+                        MOVE ' ', R8                    ; Print a space
                         RSUB IO$PUTCHAR, 1
                         RBRA _IO$DUMP_MEMORY_LOOP, 1    ; Continue the print loop
 _IO$DUMP_MEMORY_EXIT    RSUB IO$PUT_CRLF, 1             ; Print a last CR/LF pair
@@ -128,6 +127,12 @@ _IO$GETC_LOOP   MOVE    @R0, R2             ; Read status register
                 MOVE    @R1, R8             ; Get the character from the receiver register
 #ifdef FPGA
                 MOVE    0, @R0              ; clear read latch
+#endif
+#ifdef DEBUG
+# ifdef FPGA
+                MOVE    IO$TIL_BASE, R0
+                MOVE    R8, @R0
+# endif
 #endif
                 DECRB
                 CMP     0x0005, R8          ; CTRL-E?
