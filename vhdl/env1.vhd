@@ -153,13 +153,16 @@ signal ram_busy               : std_logic;
 signal til_reg0_enable        : std_logic;
 signal til_reg1_enable        : std_logic;
 
+-- 50 MHz as long as we did not solve the timing issues (MRAM/BRAM?)
+signal SLOW_CLOCK             : std_logic := '0';
+
 begin
 
    -- QNICE CPU
    cpu : QNICE_CPU
       port map
       (
-         CLK => CLK,
+         CLK => SLOW_CLOCK,
          RESET => not RESET_N,
          WAIT_FOR_DATA => cpu_wait_for_data,
          ADDR => cpu_addr,
@@ -186,7 +189,7 @@ begin
    -- RAM: up to 64kB consisting of up to 32.000 16 bit words
    ram : BRAM
       port map (
-         clk => CLK,
+         clk => SLOW_CLOCK,
          ce => ram_enable,
          address => cpu_addr(14 downto 0),
          we => cpu_data_dir,         
@@ -198,7 +201,7 @@ begin
    -- TIL display emulation (4 digits)
    til_leds : til_display
       port map (
-         clk => CLK,
+         clk => SLOW_CLOCK,
          reset => not RESET_N,
          til_reg0_enable => til_reg0_enable,
          til_reg1_enable => til_reg1_enable,
@@ -216,7 +219,7 @@ begin
       )
       port map
       (
-         clk => CLK,
+         clk => SLOW_CLOCK,
          reset => not RESET_N,
          rx => UART_RXD,
          tx => UART_TXD,
@@ -240,6 +243,15 @@ begin
          til_reg0_enable => til_reg0_enable,
          til_reg1_enable => til_reg1_enable
       );
-  
+      
+--   generate_slow_clock : process (CLK)
+--   begin
+--      if rising_edge(CLK) then
+--         SLOW_CLOCK <= not SLOW_CLOCK;
+--      end if;
+--   end process;
+
+      SLOW_CLOCK <= CLK;
+
 end beh;
 

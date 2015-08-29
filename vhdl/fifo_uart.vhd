@@ -8,6 +8,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
+use IEEE.MATH_REAL.ALL;
 
 entity fifo_uart is
 generic (
@@ -63,7 +64,8 @@ end component;
 -- FIFO
 type FIFO_RAM is array(0 to FIFO_SIZE - 1) of std_logic_vector(15 downto 0);
 signal FIFO : FIFO_RAM;
---signal FIFO_WP : unsigned(
+signal FIFO_WP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) downto 0);
+signal FIFO_RP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) downto 0);
 
 -- UART control signals
 signal uart_rx_data           : std_logic_vector(7 downto 0);

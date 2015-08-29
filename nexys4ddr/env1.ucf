@@ -4,7 +4,8 @@
 ## Clock signal
 NET "CLK"   LOC = "E3"  | IOSTANDARD = "LVCMOS33";             #Bank = 35, Pin name = #IO_L12P_T1_MRCC_35, Sch name = clk100mhz
 NET "CLK" TNM_NET = sys_clk_pin;
-TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 100 MHz HIGH 50%; 
+##TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 100 MHz HIGH 50%; 
+TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 50 MHz HIGH 50%; 
 
 ## Reset button
 NET "RESET_N"              LOC = C12 | IOSTANDARD = LVCMOS33;
