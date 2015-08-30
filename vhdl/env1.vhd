@@ -151,6 +151,20 @@ port (
 );
 end component;
 
+component SyTargetCounter is
+generic (
+   COUNTER_FINISH : integer;
+   COUNTER_WIDTH  : integer range 2 to 32 
+);
+port (
+   clk            : in std_logic;
+   reset          : in std_logic;
+   
+   cnt            : out std_logic_vector(COUNTER_WIDTH - 1 downto 0);
+   overflow       : out std_logic := '0'
+);
+end component;
+
 signal cpu_addr               : std_logic_vector(15 downto 0);
 signal cpu_data               : std_logic_vector(15 downto 0);
 signal cpu_data_dir           : std_logic;
@@ -167,6 +181,12 @@ signal til_reg1_enable        : std_logic;
 
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
+
+-- reset generator: either use the button or the initial reset counter
+--signal reset_sig              : std_logic;
+--signal reset_done             : std_logic := '0';
+--signal reset_cnt              : std_logic_vector(5 downto 0);
+--signal reset_overflow         : std_logic;
 
 begin
 
@@ -268,7 +288,33 @@ begin
       if rising_edge(CLK) then
          SLOW_CLOCK <= not SLOW_CLOCK;
       end if;
-   end process;
-   
+   end process; 
+ 
+--   reset_delay : SyTargetCounter
+--      generic map
+--      (
+--         COUNTER_FINISH => 63,
+--         COUNTER_WIDTH => 6
+--      )
+--      port map
+--      (
+--         clk => SLOW_CLOCK and not reset_done,
+--         reset => RESET_N,
+--         cnt => reset_cnt,
+--         overflow => reset_overflow
+--      );
+--      
+--   reset_done_handler : process (reset_overflow, RESET_N)
+--   begin
+--      if RESET_N = '0' then
+--         reset_done <= '0';
+--      else
+--         if rising_edge(reset_overflow) then
+--            reset_done <= '1';
+--         end if;
+--      end if;
+--   end process;
+-- 
+--   reset_sig <= reset_cnt(0) or reset_cnt(1) or reset_cnt(2) or reset_cnt(3) or reset_cnt(4) or reset_cnt(5);
 end beh;
 
