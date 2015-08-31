@@ -1,5 +1,6 @@
-                .ORG    0x0000
+                .ORG    0x8000
 ;
+#undef          FPGA
 #define         POINTER R12
 ;
 #include "../monitor/sysdef.asm"
@@ -7,10 +8,10 @@
 ;
 DIVERGENT       .EQU    0x0400              ; Constant for divergence test
 X_START         .EQU    -0x0200             ; -512 = - 2 * scale with scale = 256
-X_END           .EQU    0x0080              ; +128
+X_END           .EQU    0x0100              ; +128
 X_STEP          .EQU    0x000A              ; 10
-Y_START         .EQU    -0x0100             ; -256
-Y_END           .EQU    0x0100              ; 256
+Y_START         .EQU    -0x0180             ; -256
+Y_END           .EQU    0x0180              ; 256
 Y_STEP          .EQU    0x0019              ; 25
 ITERATION       .EQU    0x001A              ; Number of iterations
 ;
