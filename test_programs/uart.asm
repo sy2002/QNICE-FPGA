@@ -24,8 +24,7 @@ _IO$GETC_LOOP   MOVE    @R0, R3             ; read status register
 
                 MOVE    @R1, R8             ; store received character ...
                 MOVE    R8, @R12            ; ... and write it to TIL
-                --MOVE    0, @R0              ; clear read latch
-
+                
 _IO$SETC_WAIT   MOVE    @R0, R3             ; read status register
                 AND     0x0002, R3          ; ready to transmit?
                 RBRA    _IO$SETC_WAIT, Z    ; loop until ready

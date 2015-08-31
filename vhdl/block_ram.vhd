@@ -33,7 +33,7 @@ end BRAM;
 architecture beh of BRAM is
 
 type bram_t is array (0 to BLOCK_RAM_SIZE - 1) of std_logic_vector(15 downto 0);
-signal bram : bram_t := (others => x"baba");
+signal bram : bram_t := (others => x"0000");
 
 signal output : std_logic_vector(15 downto 0);
 

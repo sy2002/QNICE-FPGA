@@ -15,7 +15,7 @@ constant ROM_SIZE             : integer   := 2233;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.
-constant SHADOW_REGFILE_SIZE  : integer   := 16;
+constant SHADOW_REGFILE_SIZE  : integer   := 256;
 
 -- size of the block RAM in 16bit words: should be 32768
 -- set to 256 during development for tracability during simulation
@@ -26,10 +26,11 @@ constant BLOCK_RAM_SIZE       : integer   := 32768;
 -- UART_DIVISOR = 100,000,000 / (16 x BAUD_RATE)
 --    2400 -> 2604
 --    9600 -> 651
+--    19200 -> 326
 --    115200 -> 54
 --    1562500 -> 4
 --    2083333 -> 3
-constant UART_DIVISOR          : natural  := 325; -- as long as we are using SLOW_CLOCK with 50 MHz
+constant UART_DIVISOR          : natural  := 326; -- as long as we are using SLOW_CLOCK with 50 MHz
 constant UART_FIFO_SIZE        : natural  := 16;
 
 end env1_globals;

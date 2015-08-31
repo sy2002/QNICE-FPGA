@@ -67,7 +67,7 @@ end component;
 
 -- FIFO
 type FIFO_RAM is array(0 to FIFO_SIZE - 1) of std_logic_vector(8 downto 0);
-signal FIFO : FIFO_RAM;
+signal FIFO : FIFO_RAM := (others => "000000000");
 signal FIFO_WP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) - 1 downto 0) := (others => '0');
 signal FIFO_RP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) - 1 downto 0) := (others => '0');
 
@@ -101,10 +101,14 @@ begin
          tx => tx
       );
    
-   uart_rx : process(uart_rx_enable, uart_rx_data, rx_resetvalid, FIFO_RP, FIFO_WP)
+   uart_rx : process(uart_rx_enable, uart_rx_data, rx_resetvalid, FIFO_RP, FIFO_WP, reset)
    begin
-      if rx_resetvalid = '1' then
-         FIFO(to_integer(FIFO_RP))(8) <= '0';
+      if rx_resetvalid = '1' or reset = '1' then
+         if reset = '1' then
+            FIFO(0)(8) <= '0';
+         else
+            FIFO(to_integer(FIFO_RP))(8) <= '0';
+         end if;
       else
          if rising_edge(uart_rx_enable) then
             FIFO(to_integer(FIFO_WP))(7 downto 0) <= uart_rx_data;
@@ -113,23 +117,31 @@ begin
       end if;
    end process;
          
-   uart_inc_wp : process(uart_rx_enable, FIFO_WP)
+   uart_inc_wp : process(uart_rx_enable, FIFO_WP, reset)
    begin
-      if falling_edge(uart_rx_enable) then
-         FIFO_WP <= FIFO_WP + 1;
+      if reset = '1' then
+         FIFO_WP <= (others => '0');
+      else
+         if falling_edge(uart_rx_enable) then
+            FIFO_WP <= FIFO_WP + 1;
+         end if;
       end if;
    end process;
       
-   uart_inc_rp : process(rx_resetvalid, FIFO_RP)
-   begin      
-      if falling_edge(rx_resetvalid) then
-         FIFO_RP <= FIFO_RP + 1;
+   uart_inc_rp : process(rx_resetvalid, FIFO_RP, reset)
+   begin
+      if reset = '1' then
+         FIFO_RP <= (others => '0');
+      else
+         if falling_edge(rx_resetvalid) then
+            FIFO_RP <= FIFO_RP + 1;
+         end if;
       end if;
    end process;
    
    uart_cts_controller : process (FIFO_RP, FIFO_WP)
    begin
-      if abs(signed(FIFO_RP) - signed(FIFO_WP)) > 4 then
+      if abs(signed(FIFO_RP) - signed(FIFO_WP)) > (FIFO_SIZE / 4) then
          cts <= '1';
          cts_led <= '1';
       else
@@ -176,6 +188,8 @@ begin
          end case;
       end if;
    end process;
+   
+   
    
 end beh;
 
