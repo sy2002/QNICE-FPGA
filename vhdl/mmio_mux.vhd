@@ -35,7 +35,11 @@ port (
    til_reg1_enable   : out std_logic;
    
    -- SWITCHES is $FF12
-   switch_reg_enable : out std_logic
+   switch_reg_enable : out std_logic;
+   
+   -- Keyboard is $FF13 and $FF14
+   kbd_state_enable  : out std_logic;
+   kbd_data_enable   : out std_logic
 );
 end mmio_mux;
 
@@ -80,6 +84,22 @@ begin
          switch_reg_enable <= '1';
       else
          switch_reg_enable <= '0';
+      end if;
+   end process;
+   
+   -- Keyboard status register is FF13 and data register is FF14
+   keyboard_control : process(addr, data_dir, data_valid)
+   begin
+      if addr(15 downto 0) = x"FF13" and data_dir = '0' then
+         kbd_state_enable <= '1';
+      else
+         kbd_state_enable <= '0';
+      end if;
+      
+      if addr(15 downto 0) = x"FF14" and data_dir = '0' then
+         kbd_data_enable <= '1';
+      else
+         kbd_data_enable <= '0';
       end if;
    end process;
       

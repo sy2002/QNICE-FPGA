@@ -1,6 +1,6 @@
 ; Very basic USB keyboard test which echos all input chars back to 
 ; the terminal. It also displays the ASCII code of the character on 
-; the TIL by sy2002 in August 2015.
+; the TIL by vaxman in December 2015.
 
                 .ORG 0x8000
 

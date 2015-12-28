@@ -31,7 +31,14 @@ port (
    UART_CTS    : out std_logic;                     -- (active low) clear to send (dte is allowed to send to fpga)   
    
    -- switches
-   SWITCHES    : in std_logic_vector(15 downto 0)   -- 16 on/off "dip" switches
+   SWITCHES    : in std_logic_vector(15 downto 0);  -- 16 on/off "dip" switches
+   
+   -- keyboard
+   PS2_CLK     : in std_logic;
+   PS2_DAT     : in std_logic;
+   
+   -- debug leds
+   LEDS        : out std_logic_vector(7 downto 0)
 ); 
 end env1;
 
@@ -128,6 +135,29 @@ port (
 );
 end component;
 
+-- PS/2 keyboard
+component keyboard is
+generic (
+   clk_freq      : integer
+);
+port (
+   clk           : in std_logic;               -- system clock input
+   reset         : in std_logic;               -- system reset
+
+   -- PS/2
+   ps2_clk       : in std_logic;               -- clock signal from PS/2 keyboard
+   ps2_data      : in std_logic;               -- data signal from PS/2 keyboard
+   
+   -- conntect to CPU's data bus (data high impedance when all reg_* are 0)
+   cpu_data      : inout std_logic_vector(15 downto 0);
+   reg_state     : in std_logic;
+   reg_data      : in std_logic;
+   
+   -- debug leds
+   leds          : out std_logic_vector(7 downto 0)   
+);
+end component;
+
 -- multiplexer to control the data bus (enable/disable the different parties)
 component mmio_mux is
 port (
@@ -147,21 +177,9 @@ port (
    
    til_reg0_enable   : out std_logic;
    til_reg1_enable   : out std_logic;
-   switch_reg_enable : out std_logic  
-);
-end component;
-
-component SyTargetCounter is
-generic (
-   COUNTER_FINISH : integer;
-   COUNTER_WIDTH  : integer range 2 to 32 
-);
-port (
-   clk            : in std_logic;
-   reset          : in std_logic;
-   
-   cnt            : out std_logic_vector(COUNTER_WIDTH - 1 downto 0);
-   overflow       : out std_logic := '0'
+   switch_reg_enable : out std_logic;
+   kbd_state_enable  : out std_logic;
+   kbd_data_enable   : out std_logic   
 );
 end component;
 
@@ -179,15 +197,11 @@ signal rom_busy               : std_logic;
 signal til_reg0_enable        : std_logic;
 signal til_reg1_enable        : std_logic;
 signal switch_reg_enable      : std_logic;
+signal kbd_state_enable       : std_logic;
+signal kbd_data_enable        : std_logic;
 
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
-
--- reset generator: either use the button or the initial reset counter
---signal reset_sig              : std_logic;
---signal reset_done             : std_logic := '0';
---signal reset_cnt              : std_logic_vector(5 downto 0);
---signal reset_overflow         : std_logic;
 
 begin
 
@@ -203,7 +217,6 @@ begin
          DATA_DIR => cpu_data_dir,
          DATA_VALID => cpu_data_valid
       );
-
 
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
    rom : BROM
@@ -265,6 +278,24 @@ begin
          cpu_data_dir => cpu_data_dir,
          cpu_data => cpu_data         
       );
+      
+   -- PS/2 
+   kbd : keyboard
+      generic map
+      (
+         clk_freq => 50000000                 -- see @TODO in keyboard.vhd and TODO.txt
+      )
+      port map
+      (
+         clk => SLOW_CLOCK,
+         reset => not RESET_N,
+         ps2_clk => PS2_CLK,
+         ps2_data => PS2_DAT,
+         cpu_data => cpu_data,
+         reg_state => kbd_state_enable,
+         reg_data => kbd_data_enable,
+         leds => LEDS
+      );
                         
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
@@ -280,7 +311,9 @@ begin
          ram_busy => ram_busy,
          til_reg0_enable => til_reg0_enable,
          til_reg1_enable => til_reg1_enable,
-         switch_reg_enable => switch_reg_enable
+         switch_reg_enable => switch_reg_enable,
+         kbd_state_enable => kbd_state_enable,
+         kbd_data_enable => kbd_data_enable
       );
       
    switch_driver : process (switch_reg_enable)
@@ -299,31 +332,5 @@ begin
       end if;
    end process; 
  
---   reset_delay : SyTargetCounter
---      generic map
---      (
---         COUNTER_FINISH => 63,
---         COUNTER_WIDTH => 6
---      )
---      port map
---      (
---         clk => SLOW_CLOCK and not reset_done,
---         reset => RESET_N,
---         cnt => reset_cnt,
---         overflow => reset_overflow
---      );
---      
---   reset_done_handler : process (reset_overflow, RESET_N)
---   begin
---      if RESET_N = '0' then
---         reset_done <= '0';
---      else
---         if rising_edge(reset_overflow) then
---            reset_done <= '1';
---         end if;
---      end if;
---   end process;
--- 
---   reset_sig <= reset_cnt(0) or reset_cnt(1) or reset_cnt(2) or reset_cnt(3) or reset_cnt(4) or reset_cnt(5);
 end beh;
 

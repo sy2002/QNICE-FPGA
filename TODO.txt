@@ -1,0 +1,14 @@
+* Improve design to support 100 MHz
+
+* Fix tristate problem that slows down CPU by ~50%
+
+* keyboard: remove debouncer and hardcoded 18000 and leds
+
+* HALT-LED
+
+* UART address decoding in MMIO
+
+* single-step-mode in hardware incl. address/data display on 7-segs
+
+* 115k baud problem (redo FIFOs in UART?)
+
