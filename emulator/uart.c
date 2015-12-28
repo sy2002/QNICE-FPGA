@@ -1,16 +1,17 @@
 /*
-**  This module implements the emulation of a 2681 UART which will be eventually used in the actual hardware implementation
+**  This module implements the emulation of a generic UART which will be eventually used in the actual hardware implementation
 ** of QNICE.
 **
 ** 02-JUN-2008, B. Ulmann fecit.
 ** 03-AUG-2015, B. Ulmann Changed from curses to select-calls.
+** 28-DEC-2015, B. Ulmann Adapted to the current FPGA-implementation.
 */
 
 #undef TEST /* Define to perform stand alone test */
 #define VERBOSE
 #define DEBUG
 
-#include "uart_2681.h"
+#include "uart.h"
 #include <stdio.h>
 
 #include <unistd.h>
@@ -20,7 +21,7 @@
 /* Ugly global variable to hold the original tty state in order to restore it during rundown */
 struct termios tty_state_old, tty_state;
 
-unsigned int uart_read_register(uart_2681 *state, unsigned int address)
+unsigned int uart_read_register(uart *state, unsigned int address)
 {
   unsigned int value;
   char last_character;
@@ -47,7 +48,7 @@ unsigned int uart_read_register(uart_2681 *state, unsigned int address)
         /* Don't stop here as it might be caused by a catched CTRL-C signal! */
       }
       else if (!ret_val) /* No data available */
-        state->sra &= 0xfe;
+        state->sra &= 0xfe; /* Do not touch the transmit-ready bit! */
       else /* Data available */
         state->sra |= 1;
 
@@ -112,7 +113,7 @@ unsigned int uart_read_register(uart_2681 *state, unsigned int address)
   return value & 0xff;
 }
 
-void uart_write_register(uart_2681 *state, unsigned int address, unsigned int value)
+void uart_write_register(uart *state, unsigned int address, unsigned int value)
 {
   value &= 0xff;
   switch (address)
@@ -169,7 +170,7 @@ void uart_write_register(uart_2681 *state, unsigned int address, unsigned int va
   }
 }
 
-void uart_hardware_initialization(uart_2681 *state)
+void uart_hardware_initialization(uart *state)
 {
   /* Turn off buffering on STDIN and save original state for later */
   tcgetattr(STDIN_FILENO, &tty_state_old);
@@ -188,7 +189,9 @@ void uart_hardware_initialization(uart_2681 *state)
   */
   state->mr1a = state->mr1b = 0x13;
 
-  state->sra = state->srb = state->brg_test = state->rhra = state->ipcr = state->isr = state->ctu = state->ctl = 
+  state->sra = 0x0002; /* Transmit ready - since this is a simulation, this is always true. */
+
+  state->srb = state->brg_test = state->rhra = state->ipcr = state->isr = state->ctu = state->ctl = 
   state->x_x_test = state->rhrb = state->input_ports = state->start_counter = state->stop_counter =
   state->csra = state->cra = state->thra = state->acr = state->imr = state->crur = state->ctlr = state->csrb = state->crb =
   state->thrb = state->opcr = state->set_output_port = state->reset_output_port = (unsigned int) 0;
@@ -207,7 +210,7 @@ void uart_run_down()
 #ifdef TEST
 int main()
 {
-  uart_2681 my_uart;
+  uart my_uart;
   unsigned int sra, rhra = 0, i;
 
   /* Initialize UART (hardware reset) */

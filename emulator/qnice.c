@@ -21,11 +21,11 @@
 #include "ide_simulation.h"
 
 #ifdef USE_UART
-#include "uart_2681.h"
+#include "uart.h"
 
-unsigned int uart_read_register(uart_2681 *, int);
-void uart_write_register(uart_2681 *, unsigned int, unsigned int);
-void uart_hardware_initialization(uart_2681 *);
+unsigned int uart_read_register(uart *, int);
+void uart_write_register(uart *, unsigned int, unsigned int);
+void uart_hardware_initialization(uart *);
 void uart_run_down();
 #endif
 
@@ -46,10 +46,11 @@ void uart_run_down();
 #define MEMORY_SIZE            65536
 #define REGMEM_SIZE            4096
 
-/* The top most 1 kW of memory is reserverd for memory mapped IO devices */
-#define IO_AREA_START          0xfc00
-#define UART0_BASE_ADDRESS     0xfc00
-#define IDE_BASE_ADDRESS       0xfc10
+/* The top most 245 words of memory are reserverd for memory mapped IO devices */
+#define IO_AREA_START          0xff00
+#define SWITCH_REG             0xff12
+#define UART0_BASE_ADDRESS     0xff20
+#define IDE_BASE_ADDRESS       0xffe0
 
 #define NO_OF_INSTRUCTIONS     19
 #define NO_OF_ADDRESSING_MODES 4
@@ -72,7 +73,7 @@ typedef struct statistic_data
 } statistic_data;
 
 int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$verbose = FALSE,
-    gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, gbl$enable_uart = TRUE,
+    gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
     gbl$ctrl_c = FALSE, gbl$breakpoint = -1;
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                                 "NOT", "AND", "OR", "XOR", "CMP", "", "HALT"},
@@ -82,7 +83,7 @@ char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SH
 statistic_data gbl$stat;
 
 #ifdef USE_UART
-uart_2681 gbl$first_uart;
+uart gbl$first_uart;
 #endif
 
 /*
@@ -240,13 +241,12 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       if ((gbl$debug))
         printf("\tread_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
 
-#ifdef USE_UART
-      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8 && gbl$enable_uart) /* Some UART0 operation */
+      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
         value = uart_read_register(&gbl$first_uart, address - UART0_BASE_ADDRESS);
-#endif
-        
-      if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
+      else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
         value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
+      else if (address == SWITCH_REG) /* Read the switch register */
+        value = gbl$memory[SWITCH_REG];
     }
   }
   else if (operation == WRITE_MEMORY)
@@ -259,18 +259,16 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       if ((gbl$debug))
         printf("\twrite_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
 
-#ifdef USE_UART
-      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8 && gbl$enable_uart) /* Some UART0 operation */
+      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
       {
         if ((gbl$debug))
           printf("\twrite uart register: %04X, %02X\n\t", address, value & 0xff);
         uart_write_register(&gbl$first_uart, address - UART0_BASE_ADDRESS, value & 0xff);
       }
-      else
-#endif
-        
-      if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
+      else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
         writeIDEDeviceRegister(address - IDE_BASE_ADDRESS, value);
+      else if (address == SWITCH_REG) /* Read the switch register */
+        gbl$memory[SWITCH_REG] = value;
     }
   }
   else
@@ -696,19 +694,13 @@ int execute()
 void run()
 {
   gbl$ctrl_c = FALSE;
-#ifdef USE_UART
-  if (gbl$enable_uart)
-    uart_hardware_initialization(&gbl$first_uart);
-#endif
+  uart_hardware_initialization(&gbl$first_uart);
   gbl$gather_statistics = TRUE;
   while (!execute() && !gbl$ctrl_c);
   if (gbl$ctrl_c)
     printf("\n\tAborted by CTRL-C!\n");
   gbl$gather_statistics = FALSE;
-#ifdef USE_UART
-  if (gbl$enable_uart)
-    uart_run_down();
-#endif
+  uart_run_down();
 }
 
 void print_statistics()
@@ -839,11 +831,11 @@ int main(int argc, char **argv)
         return -1;
 
       run();
-      dump_registers();
-      print_statistics();
+//      dump_registers();
+//      print_statistics();
     }
 
-    return 0;
+//    return 0;
   }
 
   for (;;)
@@ -933,11 +925,6 @@ int main(int argc, char **argv)
         if ((gbl$verbose = TRUE - gbl$verbose))
           printf("New mode: verbose\n");
       }
-      else if (!strcmp(token, "UART"))
-      {
-        gbl$enable_uart = TRUE - gbl$enable_uart;
-        printf("New UART-mode: %sabled\n", gbl$enable_uart ? "en" : "dis");
-      }
       else if (!strcmp(token, "DIS"))
       {
         start = str2int(tokenize(NULL, delimiters));
@@ -951,6 +938,13 @@ int main(int argc, char **argv)
         if ((token = tokenize(NULL, delimiters)))
           write_register(15, str2int(token));
         execute();
+      }
+      else if (!strcmp(token, "SWITCH"))
+      {
+        if ((token = tokenize(NULL, delimiters)))
+          access_memory(SWITCH_REG, WRITE_MEMORY, str2int(token));
+
+        printf("Switch register contains: %04X\n", access_memory(SWITCH_REG, READ_MEMORY, 0));
       }
       else if (!strcmp(token, "RUN"))
       {
@@ -979,7 +973,7 @@ STEP [<ADDR>]                  Executes a single instruction at address\n\
                                program counter will be used instead.\n\
                                If the last command was step, an empty command\n\
                                string will perform the next step!\n\
-UART                           Toggle UART disable/enable\n\
+SWITCH [<VALUE>]               Set the switch register to a value\n\
 VERBOSE                        Toggle verbosity mode\n\
 ");
       else

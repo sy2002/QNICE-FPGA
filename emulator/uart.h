@@ -1,24 +1,24 @@
 /*
-**  This is the header file for the 2681 UART-emulation for the QNICE-emulator.
+**  This is the header file for the generic UART-emulation for the QNICE-emulator.
 **
 ** 02-JUN-2008, B. Ulmann fecit
 */
 
 /* This structure contains all register data of the emulated UART */
-typedef struct uart_2681
+typedef struct uart
 {
   unsigned int mr1a, sra, brg_test, rhra, ipcr, isr, ctu, ctl, mr1b, srb,
     x_x_test, rhrb, input_ports, start_counter, stop_counter,
     csra, cra, thra, acr, imr, crur, ctlr, csrb, crb, thrb, opcr, 
     set_output_port, reset_output_port;
-} uart_2681;
+} uart;
 
 /* The following registers can be read from and partially written to the UART */
 #define MR1A          0 /* Read/write */
 #define MR2A          0 /* Read/write */
 #define SRA           1
-#define BRG_TEST      2
-#define RHRA          3
+#define RHRA          2
+#define BRG_TEST      3
 #define IPCR          4
 #define ISR           5
 #define CTU           6
