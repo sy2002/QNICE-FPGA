@@ -34,9 +34,7 @@ port (
    cpu_addr       : in std_logic_vector(15 downto 0);
    cpu_data_dir   : in std_logic;
    cpu_data_valid : in std_logic;  
-   cpu_data       : inout std_logic_vector(15 downto 0);
-   
-   cts_led        : out std_logic
+   cpu_data       : inout std_logic_vector(15 downto 0) 
 );
 end fifo_uart;
 
@@ -143,10 +141,8 @@ begin
    begin
       if abs(signed(FIFO_RP) - signed(FIFO_WP)) > (FIFO_SIZE / 4) then
          cts <= '1';
-         cts_led <= '1';
       else
          cts <= '0';
-         cts_led <= '0';
       end if;
    end process;
                

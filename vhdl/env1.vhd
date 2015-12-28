@@ -28,9 +28,10 @@ port (
    UART_RXD    : in std_logic;                      -- receive data
    UART_TXD    : out std_logic;                     -- send data
    UART_RTS    : in std_logic;                      -- (active low) equals cts from dte, i.e. fpga is allowed to send to dte
-   UART_CTS    : out std_logic;                     -- (active low) clear to send (dte is allowed to send to fpga)
+   UART_CTS    : out std_logic;                     -- (active low) clear to send (dte is allowed to send to fpga)   
    
-   cts_led     : out std_logic   
+   -- switches
+   SWITCHES    : in std_logic_vector(15 downto 0)   -- 16 on/off "dip" switches
 ); 
 end env1;
 
@@ -113,9 +114,6 @@ port (
    clk            : in std_logic;                       
    reset          : in std_logic;
 
-   -- debug leds
-   cts_led        : out std_logic;
-
    -- physical interface
    rx             : in std_logic;
    tx             : out std_logic;
@@ -146,8 +144,10 @@ port (
    ram_enable        : out std_logic;
    rom_busy          : in std_logic;
    ram_busy          : in std_logic;
+   
    til_reg0_enable   : out std_logic;
-   til_reg1_enable   : out std_logic   
+   til_reg1_enable   : out std_logic;
+   switch_reg_enable : out std_logic  
 );
 end component;
 
@@ -178,6 +178,7 @@ signal ram_busy               : std_logic;
 signal rom_busy               : std_logic;
 signal til_reg0_enable        : std_logic;
 signal til_reg1_enable        : std_logic;
+signal switch_reg_enable      : std_logic;
 
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
@@ -262,9 +263,7 @@ begin
          cpu_addr => cpu_addr,
          cpu_data_valid => cpu_data_valid,
          cpu_data_dir => cpu_data_dir,
-         cpu_data => cpu_data,
-         
-         cts_led => cts_led
+         cpu_data => cpu_data         
       );
                         
    -- memory mapped i/o controller
@@ -280,8 +279,18 @@ begin
          ram_enable => ram_enable,
          ram_busy => ram_busy,
          til_reg0_enable => til_reg0_enable,
-         til_reg1_enable => til_reg1_enable
+         til_reg1_enable => til_reg1_enable,
+         switch_reg_enable => switch_reg_enable
       );
+      
+   switch_driver : process (switch_reg_enable)
+   begin
+      if switch_reg_enable = '1' then
+         cpu_data <= SWITCHES;
+      else
+         cpu_data <= (others => 'Z');
+      end if;
+   end process;
       
    generate_slow_clock : process (CLK)
    begin

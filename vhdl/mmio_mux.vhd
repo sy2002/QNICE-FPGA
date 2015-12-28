@@ -32,7 +32,10 @@ port (
    
    -- TIL base is $FF10
    til_reg0_enable   : out std_logic;
-   til_reg1_enable   : out std_logic
+   til_reg1_enable   : out std_logic;
+   
+   -- SWITCHES is $FF12
+   switch_reg_enable : out std_logic
 );
 end mmio_mux;
 
@@ -50,24 +53,36 @@ begin
    begin
       if addr(15 downto 4) = x"FF1" and data_dir = '1' and data_valid = '1' then
       
+         -- TIL register 0
          if addr(3 downto 0) = x"0" then
             til_reg0_enable <= '1';
          else
             til_reg0_enable <= '0';
          end if;
          
+         -- TIL register 1
          if addr(3 downto 0) = x"1" then
             til_reg1_enable <= '1';
          else
             til_reg1_enable <= '0';
          end if;
-         
+                  
       else
          til_reg0_enable <= '0';
          til_reg1_enable <= '0';
       end if;
    end process;
    
+   -- SWITCH register is FF12
+   switch_control : process(addr, data_dir, data_valid)
+   begin
+      if addr(15 downto 0) = x"FF12" and data_dir = '0' then
+         switch_reg_enable <= '1';
+      else
+         switch_reg_enable <= '0';
+      end if;
+   end process;
+      
    -- as long as the RAM is the only device on the bus that can make the
    -- CPU wait, this simple implementation is good enough
    -- otherwise, a "req_busy" bus could be built (replacing the ram_busy input)
