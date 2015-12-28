@@ -1,6 +1,6 @@
                 .ORG    0x8000
 ;
-#define         FPGA
+#undef          FPGA
 #define         POINTER R12
 ;
 #include "../monitor/sysdef.asm"
