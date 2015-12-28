@@ -6,13 +6,11 @@
 
 #include "../monitor/sysdef.asm"
 
-                MOVE    IO$TIL_BASE, R12
+                MOVE    IO$TIL_DISPLAY, R12
                 MOVE    0xFFAA, @R12
 
-                MOVE    IO$UART0_BASE, R0 
-                MOVE    R0, R1 
-                ADD     IO$UART_SRA, R0     ; R0: address of UART status register
-                ADD     IO$UART_THRA, R1    ; R1: address of transmit register
+                MOVE    IO$UART_SRA, R0     ; R0: address of UART status register
+                MOVE    IO$UART_THRA, R1    ; R1: address of transmit register
 
                 MOVE    IO$KBD_STATE, R4    ; Status register of USB keyboard
                 MOVE    IO$KBD_DATA, R5     ; Data from USB keyboard
