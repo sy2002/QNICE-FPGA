@@ -111,16 +111,24 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 		        RET
 ;
 ;***************************************************************************************
-;* IO$GETCHAR reads a character from the first UART in the system.
+;* IO$GETCHAR reads a character either from the first UART in the system or from an
+;* attached USB keyboard. This depends on the setting of bit 0 of the switch register.
+;* If SR[0] == 0, then the character is read from the UART, otherwise it is read from
+;* the keyboard data register.
 ;*
 ;* R8 will contain the character read in its lower eight bits
 ;***************************************************************************************
 ;
 IO$GETCHAR      INCRB
-                MOVE    IO$UART0_BASE, R0 
-                MOVE    R0, R1
-                ADD     IO$UART_SRA, R0     ; R0 contains the address of the status register
-                ADD     IO$UART_RHRA, R1    ; R1 contains the address of the receiver reg.
+                MOVE    IO$SWITCH_REG, R0
+                MOVE    @R0, R0             ; Read the switch register
+                AND     0x0001, R0          ; Lowest bit set?
+                RBRA    _IO$GETC_UART, Z    ; No, read from UART
+                MOVE    IO$KBD_STATE, R0    ; R0 contains the address of the kbd status reg.
+                MOVE    IO$KBD_DATA, R1     ; R1 contains the kbd data register address
+                RBRA    _IO$GETC_LOOP, 1    ; Wait for first character
+_IO$GETC_UART   MOVE    IO$UART_SRA, R0     ; R0 contains the address of the status register
+                MOVE    IO$UART_RHRA, R1    ; R1 contains the address of the receiver reg.
 _IO$GETC_LOOP   MOVE    @R0, R2             ; Read status register
                 AND     0x0001, R2          ; Only bit 0 is of interest
                 RBRA    _IO$GETC_LOOP, Z    ; Loop until a character has been received
@@ -193,17 +201,11 @@ IO$PUT_CRLF     INCRB                   ; Get a new register page
 ;* R8: Contains the character to be printed
 ;
 ;* The contents of R8 are being preserved during the run of this function.
-;*
-;* TODO: This routine is way too simple and only works with the simple
-;*       UART emulation. To use a real 16550 this routine will require a complete
-;*       rewrite!
 ;***************************************************************************************
 ;
 IO$PUTCHAR      INCRB                       ; Get a new register page
-                MOVE IO$UART0_BASE, R0
-                MOVE R0, R1
-                ADD IO$UART_SRA, R0         ; R0: address of status register                
-                ADD IO$UART_THRA, R1        ; R1: address of transmit register
+                MOVE IO$UART_SRA, R0        ; R0: address of status register                
+                MOVE IO$UART_THRA, R1       ; R1: address of transmit register
 _IO$PUTC_WAIT   MOVE @R0, R2                ; read status register
                 AND 0x0002, R2              ; ready to transmit?
                 RBRA _IO$PUTC_WAIT, Z       ; loop until ready

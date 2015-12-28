@@ -21,18 +21,20 @@
 ;  IO-page addresses:
 ;
 IO$BASE         .EQU 0xFF00
-IO$UART0_BASE   .EQU 0xFF20
 
-IO$TIL_BASE     .EQU 0xFF10 ; Address of TIL-display
+IO$TIL_DISPLAY  .EQU 0xFF10 ; Address of TIL-display
 IO$TIL_MASK     .EQU 0xFF11 ; Mask register of TIL display
 IO$SWITCH_REG   .EQU 0xFF12 ; 16 binary keys
+
+IO$KBD_STATE    .EQU 0xFF13 ; Status register of USB keyboard
+IO$KBD_DATA     .EQU 0xFF14 ; Data register of USB keyboard
 
 ;
 ;  UART-registers:
 ;
-IO$UART_SRA     .EQU 0x0001 ; Status register (relative to base address)
-IO$UART_RHRA    .EQU 0x0002 ; Receiving register (relative to base address)
-IO$UART_THRA    .EQU 0x0003 ; Transmitting register (relative to base address)
+IO$UART_SRA     .EQU 0xFF21 ; Status register (relative to base address)
+IO$UART_RHRA    .EQU 0xFF22 ; Receiving register (relative to base address)
+IO$UART_THRA    .EQU 0xFF23 ; Transmitting register (relative to base address)
 
 ;
 ;  Some useful constants:
