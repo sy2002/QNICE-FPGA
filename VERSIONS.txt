@@ -1,0 +1,22 @@
+Version 1.0  August, 30 2015
+============================
+
+Classic "Environment 1" (aka env1), inspired by the classic
+QNICE/A evaluation board environment. Features:
+
+* the original address layout: lower 32kB are ROM, upper 32kB are RAM
+* 16bit words stored at each address word
+* 256 registers
+* memory mapped IO beginning at 0xFF00
+* 4 TIL-311 displays at 0xFF10:
+  0xFF10 is the value to be displayed
+  0xFF11 lower 4 bit are a display bit mask
+* Serial interface 8-N-1, 9600 baud, RTS/CTS beginning at FF20:
+  0xFF21 status register
+  0xFF22 read register
+  0xFF23 write register      
+
+The package contains a working monitor application (version 0.2) including
+the mandelbrot demo application.
+
+Furtheron, the assembler and the emulator are included.
