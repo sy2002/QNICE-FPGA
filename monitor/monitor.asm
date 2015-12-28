@@ -1,4 +1,3 @@
-#undef FPGA
 #define DEBUG
 ;
 #include "sysdef.asm"
