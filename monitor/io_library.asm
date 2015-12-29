@@ -113,16 +113,16 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;***************************************************************************************
 ;* IO$GETCHAR reads a character either from the first UART in the system or from an
 ;* attached USB keyboard. This depends on the setting of bit 0 of the switch register.
-;* If SR[0] == 0, then the character is read from the UART, otherwise it is read from
+;* If SW[0] == 0, then the character is read from the UART, otherwise it is read from
 ;* the keyboard data register.
 ;*
-;* R8 will contain the character read in its lower eight bits
+;* R8 will contain the character read in its lower eight bits.
 ;***************************************************************************************
 ;
 IO$GETCHAR      INCRB
                 MOVE    IO$SWITCH_REG, R0
-                MOVE    @R0, R0             ; Read the switch register
-                AND     0x0001, R0          ; Lowest bit set?
+                MOVE    @R0, R1             ; Read the switch register
+                AND     0x0001, R1          ; Lowest bit set?
                 RBRA    _IO$GETC_UART, Z    ; No, read from UART
                 MOVE    IO$KBD_STATE, R0    ; R0 contains the address of the kbd status reg.
                 MOVE    IO$KBD_DATA, R1     ; R1 contains the kbd data register address
@@ -135,7 +135,7 @@ _IO$GETC_LOOP   MOVE    @R0, R2             ; Read status register
                 MOVE    @R1, R8             ; Get the character from the receiver register
                 DECRB
                 CMP     0x0005, R8          ; CTRL-E?
-                RBRA    QMON$WARMSTART, Z
+                RBRA    QMON$WARMSTART, Z   ; Return to monitor immediately!
 		        RET
 ;
 ;***************************************************************************************
