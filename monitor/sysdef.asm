@@ -21,21 +21,28 @@
 ;  IO-page addresses:
 ;
 IO$BASE         .EQU 0xFF00
-
+;
 IO$TIL_DISPLAY  .EQU 0xFF10 ; Address of TIL-display
 IO$TIL_MASK     .EQU 0xFF11 ; Mask register of TIL display
 IO$SWITCH_REG   .EQU 0xFF12 ; 16 binary keys
-
+;
+; USB-keyboard-registers:
+;
 IO$KBD_STATE    .EQU 0xFF13 ; Status register of USB keyboard
 IO$KBD_DATA     .EQU 0xFF14 ; Data register of USB keyboard
-
+;
+; VGA-registers:
+;
+VGA$STATE       .EQU 0xFF15 ; VGA status register
+VGA$CR_X        .EQU 0xFF16 ; VGA cursor X position
+VGA$CR_Y        .EQU 0xFF17 ; VGA cursor Y position
+VGA$CHAR        .EQU 0xFF18 ; VGA character to be displayed
 ;
 ;  UART-registers:
 ;
 IO$UART_SRA     .EQU 0xFF21 ; Status register (relative to base address)
 IO$UART_RHRA    .EQU 0xFF22 ; Receiving register (relative to base address)
 IO$UART_THRA    .EQU 0xFF23 ; Transmitting register (relative to base address)
-
 ;
 ;  Some useful constants:
 ;

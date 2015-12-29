@@ -1,6 +1,6 @@
 ;
 ;;=======================================================================================
-;; The collection of input/output related function starts here
+;; The collection of input/output related functions starts here
 ;;=======================================================================================
 ;
 ; Define io system specific constants and memory areas etc. It is expected that the
