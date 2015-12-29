@@ -22,8 +22,27 @@
 ;
 IO$BASE         .EQU 0xFF00
 ;
+; VGA-registers:
+;
+VGA$STATE       .EQU 0xFF00 ; VGA status register
+    ; Bit 8: Scroll one line up
+    ; Bit 7: VGA enable
+    ; Bit 6: Hardware cursor enable
+    ; Bit 5: Hardware cursor blink enable
+    ; Bit 4: Hardware cursor mode: 0 - small
+    ;                                1 - large
+    ; Bit 2-0: Output color
+VGA$CR_X        .EQU 0xFF01 ; VGA cursor X position
+VGA$CR_Y        .EQU 0xFF02 ; VGA cursor Y position
+VGA$CHAR        .EQU 0xFF03 ; VGA character to be displayed
+;
+; Registers for TIL-display:
+;
 IO$TIL_DISPLAY  .EQU 0xFF10 ; Address of TIL-display
 IO$TIL_MASK     .EQU 0xFF11 ; Mask register of TIL display
+;
+; Switch-register:
+;
 IO$SWITCH_REG   .EQU 0xFF12 ; 16 binary keys
 ;
 ; USB-keyboard-registers:
@@ -33,20 +52,6 @@ IO$KBD_STATE    .EQU 0xFF13 ; Status register of USB keyboard
     ;        0 - No character present
 IO$KBD_DATA     .EQU 0xFF14 ; Data register of USB keyboard
     ; The lower eight bits contain the last ASCII character typed in
-;
-; VGA-registers:
-;
-VGA$STATE       .EQU 0xFF15 ; VGA status register
-    ; Bit 8: Scroll one line up
-    ; Bit 7: VGA enable
-    ; Bit 6: Hardware cursor enable
-    ; Bit 5: Hardware cursor blink enable
-    ; Bit 4: Hardware cursor mode: 0 - small
-    ;                                1 - large
-    ; Bit 2-0: Output color
-VGA$CR_X        .EQU 0xFF16 ; VGA cursor X position
-VGA$CR_Y        .EQU 0xFF17 ; VGA cursor Y position
-VGA$CHAR        .EQU 0xFF18 ; VGA character to be displayed
 ;
 ;  UART-registers:
 ;

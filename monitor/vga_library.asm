@@ -11,6 +11,8 @@
 ;
 VGA$MAX_X               .EQU    79                      ; Max. X-coordinate in decimal!
 VGA$MAX_Y               .EQU    39                      ; Max. Y-coordinate in decimal!
+VGA$MAX_CHARS           .EQU    3200                    ; VGA$MAX_X * VGA$MAX_Y
+;
 VGA$COLOR_RED           .EQU    0x0004
 VGA$COLOR_GREEN         .EQU    0x0002
 VGA$COLOR_BLUE          .EQU    0x0001
@@ -26,15 +28,16 @@ VGA$INIT                INCRB
                         MOVE    VGA$STATE, R0
                         OR      0x00F0, @R0             ; Enable everything
                         OR      VGA$COLOR_GREEN, @R0    ; Set font color to green
-                        XOR     R0, R0
-                        MOVE    _VGA$X, R1
-                        MOVE    R0, @R1                 ; Reset X coordinate
-                        MOVE    VGA$CR_X, R1            ; Store it in VGA$CR_X
-                        MOVE    R0, @R1                 ; ...and let the hardware know
-                        MOVE    _VGA$Y, R1
-                        MOVE    R0, @R1                 ; The same with Y...
-                        MOVE    VGA$CR_Y, R1
-                        MOVE    R0, @R1
+                        RSUB    VGA$CLS, 1              ; Clear the screen
+;                        XOR     R0, R0
+;                        MOVE    _VGA$X, R1
+;                        MOVE    R0, @R1                 ; Reset X coordinate
+;                        MOVE    VGA$CR_X, R1            ; Store it in VGA$CR_X
+;                        MOVE    R0, @R1                 ; ...and let the hardware know
+;                        MOVE    _VGA$Y, R1
+;                        MOVE    R0, @R1                 ; The same with Y...
+;                        MOVE    VGA$CR_Y, R1
+;                        MOVE    R0, @R1
                         DECRB
                         RET
 
@@ -105,6 +108,27 @@ _VGA$PUTC_END           MOVE    R4, @R0             ; Update the HW coordinates 
                         MOVE    R4, @R2             ; Store current coordinates in 
                         MOVE    R5, @R3             ; _VGA$X and _VGA$Y
 ;
+                        DECRB
+                        RET
+
+;
+;***************************************************************************************
+;* VGA$CLS
+;*
+;* Clear the VGA-screen and place the cursor in the upper left corner.
+;***************************************************************************************
+;
+VGA$CLS                 INCRB
+                        XOR     R0, R0
+                        MOVE    _VGA$X, R1          ; Clear the SW X-register
+                        MOVE    R0, @R1
+                        MOVE    _VGA$Y, R2          ; Clear the SW Y-register
+                        MOVE    R0, @R2
+                        MOVE    ' ', R8             ; Print spaces
+                        MOVE    VGA$MAX_CHARS, R0   ; How many characters?
+_VGA$CLS_LOOP           RSUB    VGA$PUTCHAR, 1      ; Print a space character
+                        SUB     0x0001, R0
+                        RBRA    _VGA$CLS_LOOP, !Z   ; Not done?
                         DECRB
                         RET
 
