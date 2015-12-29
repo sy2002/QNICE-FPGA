@@ -16,6 +16,7 @@ use ieee.numeric_std.all;
 entity vga_textmode is
 port (
    reset    : in std_logic;     -- async reset
+   clk      : in std_logic;     -- system clock
    clk50MHz : in std_logic;     -- needs to be a 50 MHz clock
 
    -- VGA registers
@@ -100,10 +101,10 @@ signal vmem_data  : std_logic_vector(7 downto 0);
 signal vmem_we    : std_logic;
 
 -- VGA control signals
-signal vga_x      : std_logic_vector(7 downto 0) := x"00";
-signal vga_y      : std_logic_vector(6 downto 0) := "0000000";
-signal vga_ctl    : std_logic_vector(7 downto 0) := "00000000";
-signal vga_char   : std_logic_vector(7 downto 0) := x"00";
+signal vga_x      : std_logic_vector(7 downto 0);
+signal vga_y      : std_logic_vector(6 downto 0);
+signal vga_ctl    : std_logic_vector(7 downto 0);
+signal vga_char   : std_logic_vector(7 downto 0);
 
 -- operation
 type cmd_type is (c_idle, c_start, c_store);
@@ -190,39 +191,87 @@ begin
       end if;      
    end process;
    
-   manage_registers : process (en, we, reg, data)
+--   manage_registers : process (en, we, reg, data)
+--   begin
+--      data <= (others => 'Z');
+--      cmd_store_en <= '0';
+--
+--      if rising_edge(en) then
+--         if we = '1' and reg = x"0" then
+--            vga_ctl <= data(7 downto 0);
+--         end if;
+--      end if;
+--      
+--      if rising_edge(en) then
+--         if we = '1' and reg = x"1" then
+--            vga_x <= data(7 downto 0);
+--         end if;
+--      end if;
+--      
+--      if rising_edge(en) then
+--         if we = '1' and reg = x"2" then
+--            vga_y <= data(6 downto 0);
+--         end if;
+--      end if;
+--      
+--      if rising_edge(en) then
+--         if we = '1' and reg = x"3" then
+--            vga_char <= data(7 downto 0);
+--         end if;
+--      end if;
+--      
+--      if en = '1' and we = '1' and reg = x"3" then
+--         cmd_store_en <= '1';
+--      end if;
+--   end process;
+   
+   vga_register_driver : process(clk, reset)
    begin
-      data <= (others => 'Z');
-      cmd_store_en <= '0';
-
-      if rising_edge(en) then
-         if we = '1' and reg = x"0" then
-            vga_ctl <= data(7 downto 0);
+      if reset = '1' then
+         vga_x <= x"00";
+         vga_y <= "0000000";
+         vga_ctl <= "00000000";
+         vga_char <= x"00";
+      
+      else
+         if falling_edge(clk) then
+            if en = '1' and we = '1' then
+               case reg is
+                  -- status register
+                  when x"0" => vga_ctl <= data(7 downto 0);
+                  
+                  -- cursor x register
+                  
+                  -- cursor y register
+                  
+                  -- character paint register
+                  
+                  when others => null;
+               end case;
+            end if;
          end if;
       end if;
-      
-      if rising_edge(en) then
-         if we = '1' and reg = x"1" then
-            vga_x <= data(7 downto 0);
-         end if;
-      end if;
-      
-      if rising_edge(en) then
-         if we = '1' and reg = x"2" then
-            vga_y <= data(6 downto 0);
-         end if;
-      end if;
-      
-      if rising_edge(en) then
-         if we = '1' and reg = x"3" then
-            vga_char <= data(7 downto 0);
-         end if;
-      end if;
-      
-      if en = '1' and we = '1' and reg = x"3" then
-         cmd_store_en <= '1';
-      end if;
-   end process;         
+   end process;
+   
+   
+--   -- clock-in the current to-be-displayed value and mask into a FF for the TIL
+--   til_driver : process(clk, reset)
+--   begin
+--      if reset = '1' then
+--         TIL_311_buffer <= x"0000";
+--         TIL_311_mask <= "1111";
+--      else
+--         if falling_edge(clk) then
+--            if til_reg0_enable = '1' then
+--               TIL_311_buffer <= data_in;            
+--            end if;
+--            
+--            if til_reg1_enable = '1' then
+--               TIL_311_mask <= data_in(3 downto 0);
+--            end if;
+--         end if;
+--      end if;
+--   end process;   
 
    clk25MHz <= '0' when reset = '1' else
                not clk25MHz when rising_edge(clk50MHz);

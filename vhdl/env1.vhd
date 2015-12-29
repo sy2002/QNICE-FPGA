@@ -102,6 +102,7 @@ end component;
 component vga_textmode
 port (
    reset    : in  std_logic;     -- async reset
+   clk      : in std_logic;      -- system clock
    clk50MHz : in  std_logic;     -- needs to be a 50 MHz clock
 
    -- VGA registers
@@ -282,6 +283,7 @@ begin
    vga_screen : vga_textmode
       port map (
          reset => not RESET_N,
+         clk => clk,
          clk50MHz => SLOW_CLOCK,
          R => vga_r,
          G => vga_g,
