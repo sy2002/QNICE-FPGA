@@ -135,6 +135,7 @@ IO$GETCHAR          INCRB
 ;                    RBRA    _IO$GETCHAR_END, 1  ; Finished...
 ;_IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1     ; Read from UART
 ;_IO$GETCHAR_END     DECRB
+                    DECRB
                     CMP     0x0005, R8          ; CTRL-E?
                     RBRA    QMON$WARMSTART, Z   ; Return to monitor immediately!
 		            RET
