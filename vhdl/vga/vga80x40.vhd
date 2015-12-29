@@ -283,10 +283,10 @@ begin
     signal slowclk : std_logic;
     signal curpos  : std_logic;
     signal yint    : std_logic;
-    signal crx_tmp : integer range 079 downto 0;
-    signal cry_tmp : integer range 039 downto 0;
-    signal crx     : integer range 079 downto 0;
-    signal cry     : integer range 039 downto 0;
+    signal crx_tmp : integer range 79 downto 0;
+    signal cry_tmp : integer range 39 downto 0;
+    signal crx     : integer range 79 downto 0;
+    signal cry     : integer range 39 downto 0;
     signal counter : unsigned(22 downto 0);  
   begin
 
@@ -294,7 +294,9 @@ begin
     counter <= counter + 1 when rising_edge(clk25MHz);
 	 slowclk <= counter(22); --2.98Hz
 
-    crx <= TO_INTEGER(unsigned(ocrx(6 downto 0)));
+-- sy2002 30/12/15 cursor position fix
+--    crx <= TO_INTEGER(unsigned(ocrx(6 downto 0)));
+    crx <= TO_INTEGER(unsigned(ocrx(6 downto 0))) + 1 when (TO_INTEGER(unsigned(ocrx)) < 79) else 0;
     cry <= TO_INTEGER(unsigned(ocry(5 downto 0)));
 
     --
