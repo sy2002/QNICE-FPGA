@@ -28,7 +28,14 @@ port (
    ram_enable        : out std_logic;
    ram_busy          : in std_logic;
    
-   -- MMIO starts at $FF00
+   -- VGA starts at $FF00
+   --   state register is reg 0
+   --   cursor x is reg 1
+   --   cursor y is reg 2
+   --   char is reg 3
+   vga_en            : out std_logic;
+   vga_we            : out std_logic;
+   vga_reg           : out std_logic_vector(3 downto 0);
    
    -- TIL base is $FF10
    til_reg0_enable   : out std_logic;
@@ -100,6 +107,19 @@ begin
          kbd_data_enable <= '1';
       else
          kbd_data_enable <= '0';
+      end if;
+   end process;
+   
+   vga_control : process(addr, data_dir, data_valid)
+   begin
+      if addr(15 downto 4) = x"FF0" then
+         vga_en <= '1';
+         vga_we <= data_dir and data_valid;
+         vga_reg <= addr(3 downto 0);
+      else
+         vga_en <= '0';
+         vga_we <= '0';
+         vga_reg <= x"0";
       end if;
    end process;
       
