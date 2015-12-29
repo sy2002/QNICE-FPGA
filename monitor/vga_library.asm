@@ -26,7 +26,7 @@ VGA$COLOR_WHITE         .EQU    0x0007
 ;
 VGA$INIT                INCRB
                         MOVE    VGA$STATE, R0
-                        OR      0x00F0, @R0             ; Enable everything
+                        MOVE    0x00F0, @R0             ; Enable everything
                         OR      VGA$COLOR_GREEN, @R0    ; Set font color to green
 ;                        RSUB    VGA$CLS, 1              ; Clear the screen
                         XOR     R0, R0
@@ -131,11 +131,3 @@ _VGA$CLS_LOOP           RSUB    VGA$PUTCHAR, 1      ; Print a space character
                         RBRA    _VGA$CLS_LOOP, !Z   ; Not done?
                         DECRB
                         RET
-
-;
-;***************************************************************************************
-;* VGA control block
-;***************************************************************************************
-;
-_VGA$X                  .BLOCK  0x0001                  ; Current X coordinate
-_VGA$Y                  .BLOCK  0x0001                  ; Current Y coordinate
