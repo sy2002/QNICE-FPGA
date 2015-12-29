@@ -123,7 +123,8 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;       modify the address of the input routine to be used during a warm-start 
 ;       in order to avoid the many tests for the switch register.
 ;
-IO$GETCHAR          RSUB    UART$GETCHAR, 1
+IO$GETCHAR      .EQU    UART$GETCHAR
+;IO$GETCHAR          RSUB    UART$GETCHAR, 1
 ; Currently not active!
 ;                    INCRB
 ;                    MOVE    IO$SWITCH_REG, R0
@@ -206,17 +207,18 @@ IO$PUT_CRLF     INCRB                   ; Get a new register page
 ; TODO: This is highly unelegant and inefficient - it would be a better idea to
 ;       modify the address of the input routine to be used during a warm-start 
 ;       in order to avoid the many tests for the switch register.
-IO$PUTCHAR          RBRA    UART$PUTCHAR, 1
+IO$PUTCHAR      .EQU    UART$PUTCHAR
+;IO$PUTCHAR          RSUB    UART$PUTCHAR, 1
 ; Currently not active:
-                    INCRB
-                    MOVE    IO$SWITCH_REG, R0
-                    MOVE    @R0, R1             ; Read the switch register
-                    AND     0x0002, R1          ; Bit 1 set?
-                    RBRA    _IO$PUTCHAR_UART, Z ; No, write to UART
-                    RSUB    VGA$PUTCHAR, 1      ; Yes, write to VGA-controller
-                    RBRA    _IO$PUTCHAR_END, 1  ; Finish
-_IO$PUTCHAR_UART    RSUB    UART$PUTCHAR, 1
-_IO$PUTCHAR_END     DECRB
+;                    INCRB
+;                    MOVE    IO$SWITCH_REG, R0
+;                    MOVE    @R0, R1             ; Read the switch register
+;                    AND     0x0002, R1          ; Bit 1 set?
+;                    RBRA    _IO$PUTCHAR_UART, Z ; No, write to UART
+;                    RSUB    VGA$PUTCHAR, 1      ; Yes, write to VGA-controller
+;                    RBRA    _IO$PUTCHAR_END, 1  ; Finish
+;_IO$PUTCHAR_UART    RSUB    UART$PUTCHAR, 1
+;_IO$PUTCHAR_END     DECRB
                     RET
 ;
 ;***************************************************************************************
