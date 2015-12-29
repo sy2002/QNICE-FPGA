@@ -123,8 +123,8 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;       modify the address of the input routine to be used during a warm-start 
 ;       in order to avoid the many tests for the switch register.
 ;
-IO$GETCHAR      .EQU    UART$GETCHAR
-;IO$GETCHAR          RSUB    UART$GETCHAR, 1
+IO$GETCHAR          INCRB
+                    RSUB    UART$GETCHAR, 1
 ; Currently not active!
 ;                    INCRB
 ;                    MOVE    IO$SWITCH_REG, R0
@@ -207,8 +207,8 @@ IO$PUT_CRLF     INCRB                   ; Get a new register page
 ; TODO: This is highly unelegant and inefficient - it would be a better idea to
 ;       modify the address of the input routine to be used during a warm-start 
 ;       in order to avoid the many tests for the switch register.
-IO$PUTCHAR      .EQU    UART$PUTCHAR
-;IO$PUTCHAR          RSUB    UART$PUTCHAR, 1
+IO$PUTCHAR          INCRB
+                    RSUB    UART$PUTCHAR, 1
 ; Currently not active:
 ;                    INCRB
 ;                    MOVE    IO$SWITCH_REG, R0
@@ -218,7 +218,7 @@ IO$PUTCHAR      .EQU    UART$PUTCHAR
 ;                    RSUB    VGA$PUTCHAR, 1      ; Yes, write to VGA-controller
 ;                    RBRA    _IO$PUTCHAR_END, 1  ; Finish
 ;_IO$PUTCHAR_UART    RSUB    UART$PUTCHAR, 1
-;_IO$PUTCHAR_END     DECRB
+_IO$PUTCHAR_END     DECRB
                     RET
 ;
 ;***************************************************************************************
