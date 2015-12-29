@@ -123,7 +123,9 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;       modify the address of the input routine to be used during a warm-start 
 ;       in order to avoid the many tests for the switch register.
 ;
-IO$GETCHAR          INCRB
+IO$GETCHAR          RBRA    UART$GETCHAR, 1
+; Currently not active!
+                    INCRB
                     MOVE    IO$SWITCH_REG, R0
                     MOVE    @R0, R1             ; Read the switch register
                     AND     0x0001, R1          ; Lowest bit set?
@@ -204,7 +206,9 @@ IO$PUT_CRLF     INCRB                   ; Get a new register page
 ; TODO: This is highly unelegant and inefficient - it would be a better idea to
 ;       modify the address of the input routine to be used during a warm-start 
 ;       in order to avoid the many tests for the switch register.
-IO$PUTCHAR          INCRB
+IO$PUTCHAR          RBRA    UART$PUTCHAR, 1
+; Currently not active:
+                    INCRB
                     MOVE    IO$SWITCH_REG, R0
                     MOVE    @R0, R1             ; Read the switch register
                     AND     0x0002, R1          ; Bit 1 set?
