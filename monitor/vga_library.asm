@@ -28,16 +28,16 @@ VGA$INIT                INCRB
                         MOVE    VGA$STATE, R0
                         OR      0x00F0, @R0             ; Enable everything
                         OR      VGA$COLOR_GREEN, @R0    ; Set font color to green
-                        RSUB    VGA$CLS, 1              ; Clear the screen
-;                        XOR     R0, R0
-;                        MOVE    _VGA$X, R1
-;                        MOVE    R0, @R1                 ; Reset X coordinate
-;                        MOVE    VGA$CR_X, R1            ; Store it in VGA$CR_X
-;                        MOVE    R0, @R1                 ; ...and let the hardware know
-;                        MOVE    _VGA$Y, R1
-;                        MOVE    R0, @R1                 ; The same with Y...
-;                        MOVE    VGA$CR_Y, R1
-;                        MOVE    R0, @R1
+;                        RSUB    VGA$CLS, 1              ; Clear the screen
+                        XOR     R0, R0
+                        MOVE    _VGA$X, R1
+                        MOVE    R0, @R1                 ; Reset X coordinate
+                        MOVE    VGA$CR_X, R1            ; Store it in VGA$CR_X
+                        MOVE    R0, @R1                 ; ...and let the hardware know
+                        MOVE    _VGA$Y, R1
+                        MOVE    R0, @R1                 ; The same with Y...
+                        MOVE    VGA$CR_Y, R1
+                        MOVE    R0, @R1
                         DECRB
                         RET
 
