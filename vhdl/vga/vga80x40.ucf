@@ -1,0 +1,13 @@
+# Restrictions for Spartan3 Starter Kit
+
+NET "clk50MHz" LOC = "T9" ; 
+NET "reset" LOC = "L14" ;
+
+NET "R" LOC = "R12" ;
+NET "G" LOC = "T12" ;
+NET "B" LOC = "R11" ;
+
+NET "hsync" LOC = "R9" ;
+NET "vsync" LOC = "T10" ;
+
+

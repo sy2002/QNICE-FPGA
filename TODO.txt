@@ -2,7 +2,9 @@
 
 * Fix tristate problem that slows down CPU by ~50%
 
-* keyboard: remove debouncer and hardcoded 18000 and leds
+* Extend FF13 to be write-able to switch to DE keyboard layout
+
+* keyboard: remove hardcoded debounce "8" and hardcoded 18000
 
 * HALT-LED
 

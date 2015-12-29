@@ -33,12 +33,9 @@ port (
    -- switches
    SWITCHES    : in std_logic_vector(15 downto 0);  -- 16 on/off "dip" switches
    
-   -- keyboard
+   -- PS/2 keyboard
    PS2_CLK     : in std_logic;
-   PS2_DAT     : in std_logic;
-   
-   -- debug leds
-   LEDS        : out std_logic_vector(7 downto 0)
+   PS2_DAT     : in std_logic   
 ); 
 end env1;
 
@@ -151,10 +148,7 @@ port (
    -- conntect to CPU's data bus (data high impedance when all reg_* are 0)
    cpu_data      : inout std_logic_vector(15 downto 0);
    reg_state     : in std_logic;
-   reg_data      : in std_logic;
-   
-   -- debug leds
-   leds          : out std_logic_vector(7 downto 0)   
+   reg_data      : in std_logic   
 );
 end component;
 
@@ -279,7 +273,7 @@ begin
          cpu_data => cpu_data         
       );
       
-   -- PS/2 
+   -- PS/2 keyboard
    kbd : keyboard
       generic map
       (
@@ -293,8 +287,7 @@ begin
          ps2_data => PS2_DAT,
          cpu_data => cpu_data,
          reg_state => kbd_state_enable,
-         reg_data => kbd_data_enable,
-         leds => LEDS
+         reg_data => kbd_data_enable
       );
                         
    -- memory mapped i/o controller

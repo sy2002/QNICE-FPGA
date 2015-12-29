@@ -32,8 +32,7 @@ ENTITY ps2_keyboard_to_ascii IS
       ps2_clk    : IN  STD_LOGIC;                     --clock signal from PS2 keyboard
       ps2_data   : IN  STD_LOGIC;                     --data signal from PS2 keyboard
       ascii_new  : OUT STD_LOGIC;                     --output flag indicating new ASCII value
-      ascii_code : OUT STD_LOGIC_VECTOR(6 DOWNTO 0);  --ASCII value
-      leds       : out std_logic_vector(7 downto 0)      
+      ascii_code : OUT STD_LOGIC_VECTOR(6 DOWNTO 0)   --ASCII value
       ); 
 END ps2_keyboard_to_ascii;
 
@@ -62,8 +61,7 @@ ARCHITECTURE behavior OF ps2_keyboard_to_ascii IS
       ps2_clk      : IN  STD_LOGIC;                     --clock signal from PS2 keyboard
       ps2_data     : IN  STD_LOGIC;                     --data signal from PS2 keyboard
       ps2_code_new : OUT STD_LOGIC;                     --flag that new PS/2 code is available on ps2_code bus
-      ps2_code     : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);  --code received from PS/2
-      leds         : out std_logic_vector(7 downto 0)
+      ps2_code     : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)   --code received from PS/2
     );
   END COMPONENT;
 
@@ -72,7 +70,7 @@ BEGIN
   --instantiate PS2 keyboard interface logic
   ps2_keyboard_0:  ps2_keyboard
     GENERIC MAP(clk_freq => clk_freq, debounce_counter_size => ps2_debounce_counter_size)
-    PORT MAP(clk => clk, ps2_clk => ps2_clk, ps2_data => ps2_data, ps2_code_new => ps2_code_new, ps2_code => ps2_code, leds => leds);
+    PORT MAP(clk => clk, ps2_clk => ps2_clk, ps2_data => ps2_data, ps2_code_new => ps2_code_new, ps2_code => ps2_code);
   
   PROCESS(clk)
   BEGIN

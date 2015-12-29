@@ -12,10 +12,10 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity keyboard is
 generic (
-   clk_freq      : integer
+   clk_freq      : integer                     -- system clock frequency
 );
 port (
-   clk           : in std_logic;               -- system clock input
+   clk           : in std_logic;               -- system clock
    reset         : in std_logic;               -- system reset
    
    -- PS/2
@@ -44,9 +44,7 @@ port (
    ps2_clk       : in std_logic;               -- clock signal from PS2 keyboard
    ps2_data      : in std_logic;               -- data signal from PS2 keyboard
    ascii_new     : out std_logic;              -- output flag indicating new ASCII value
-   ascii_code    : out std_logic_vector(6 downto 0);  -- ASCII value
-   
-   leds          : out std_logic_vector(7 downto 0)
+   ascii_code    : out std_logic_vector(6 downto 0)  -- ASCII value   
 );
 end component;
 
@@ -61,15 +59,14 @@ begin
    kbd : ps2_keyboard_to_ascii
       generic map (
          clk_freq => clk_freq,
-         ps2_debounce_counter_size => 19       -- @TODO implement as formula: set such that 2^size/clk_freq = 5us (size = 8 for 50MHz)
+         ps2_debounce_counter_size => 8       -- @TODO implement as formula: set such that 2^size/clk_freq = 5us (size = 8 for 50MHz)
       )
       port map (
          clk => clk,
          ps2_clk => ps2_clk,
          ps2_data => ps2_data,
          ascii_new => ascii_new,
-         ascii_code => ascii_code,
-         leds => leds
+         ascii_code => ascii_code
       );
       
    latch_ctrl : process(ascii_new, reset, reset_new)

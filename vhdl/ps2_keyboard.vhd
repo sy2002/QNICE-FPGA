@@ -32,8 +32,7 @@ ENTITY ps2_keyboard IS
     ps2_clk      : IN  STD_LOGIC;                     --clock signal from PS/2 keyboard
     ps2_data     : IN  STD_LOGIC;                     --data signal from PS/2 keyboard
     ps2_code_new : OUT STD_LOGIC;                     --flag that new PS/2 code is available on ps2_code bus
-    ps2_code     : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);  --code received from PS/2
-    leds         : out std_logic_vector(7 downto 0)
+    ps2_code     : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)   --code received from PS/2
   );
 END ps2_keyboard;
 
@@ -66,16 +65,18 @@ BEGIN
   END PROCESS;
 
 
---  --debounce PS2 input signals
---  debounce_ps2_clk: debounce
---    GENERIC MAP(counter_size => debounce_counter_size)
---    PORT MAP(clk => clk, button => sync_ffs(0), result => ps2_clk_int);
---  debounce_ps2_data: debounce
---    GENERIC MAP(counter_size => debounce_counter_size)
---    PORT MAP(clk => clk, button => sync_ffs(1), result => ps2_data_int);
+  --debounce PS2 input signals
+  debounce_ps2_clk: debounce
+    GENERIC MAP(counter_size => debounce_counter_size)
+    PORT MAP(clk => clk, button => sync_ffs(0), result => ps2_clk_int);
+  debounce_ps2_data: debounce
+    GENERIC MAP(counter_size => debounce_counter_size)
+    PORT MAP(clk => clk, button => sync_ffs(1), result => ps2_data_int);
 
-  ps2_clk_int <= sync_ffs(0);
-  ps2_data_int <= sync_ffs(1);
+   -- comment this in and comment out the above-mentioned "debounce PS2 input signals" section,
+   -- if you want to deactivate debouncing
+--  ps2_clk_int <= sync_ffs(0);
+--  ps2_data_int <= sync_ffs(1);
 
   --input PS2 data
   PROCESS(ps2_clk_int)
@@ -89,8 +90,6 @@ BEGIN
   error <= NOT (NOT ps2_word(0) AND ps2_word(10) AND (ps2_word(9) XOR ps2_word(8) XOR
         ps2_word(7) XOR ps2_word(6) XOR ps2_word(5) XOR ps2_word(4) XOR ps2_word(3) XOR 
         ps2_word(2) XOR ps2_word(1)));  
-
-  --leds <= ps2_word(8 DOWNTO 1);
 
   --determine if PS2 port is idle (i.e. last transaction is finished) and output result
   PROCESS(clk)
