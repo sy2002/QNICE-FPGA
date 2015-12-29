@@ -87,6 +87,22 @@ port (
 );
 end component;
 
+component SyTargetCounter is
+generic (
+   COUNTER_FINISH : integer;                 -- target value
+   COUNTER_WIDTH  : integer range 2 to 32    -- bit width of target value
+);
+port (
+   clk       : in std_logic;                 -- clock
+   reset     : in std_logic;                 -- async reset
+   
+   cnt       : out std_logic_vector(COUNTER_WIDTH -1 downto 0); -- current value
+   overflow  : out std_logic := '0' -- true for one clock cycle when the counter wraps around
+);
+end component;
+
+
+-- VGA specific clock, also used for video ram and font rom
 signal clk25MHz   : std_logic;
 
 -- signals for wiring video and font ram with the vga80x40 component
@@ -99,17 +115,14 @@ signal vga_font_d : std_logic_vector(7 downto 0);
 signal vmem_addr  : std_logic_vector(11 downto 0);
 signal vmem_data  : std_logic_vector(7 downto 0);
 signal vmem_we    : std_logic;
+signal reset_vmem_we : std_logic;
+signal reset_vmem_cnt : std_logic;
 
 -- VGA control signals
 signal vga_x      : std_logic_vector(7 downto 0);
 signal vga_y      : std_logic_vector(6 downto 0);
 signal vga_ctl    : std_logic_vector(7 downto 0);
 signal vga_char   : std_logic_vector(7 downto 0);
-
--- operation
-type cmd_type is (c_idle, c_start, c_store);
-signal cmd_store_en : std_logic := '0';
-signal cmd_store  : cmd_type := c_idle;
 
 begin
 
@@ -135,7 +148,7 @@ begin
       generic map (
          SIZE_BYTES => 3200,                             -- 80 columns x 40 lines = 3.200 bytes
          CONTENT_FILE => "testscreen.rom",               -- @TODO remove test image -- don't specify a file, so this is RAM
-         FILE_LINES => 120,
+         FILE_LINES => 163,
          DEFAULT_VALUE => x"20"                          -- ACSII code of the space character
       )
       port map (
@@ -163,76 +176,32 @@ begin
          data_i => vmem_data -- will be ignored since we is '0'
       );
       
-   manage_cmd_store : process (cmd_store_en, cmd_store, clk25MHz, vga_char, vga_x, vga_y)
+   write_counter : SyTargetCounter
+      generic map (
+         COUNTER_FINISH => 2,
+         COUNTER_WIDTH => 2
+      )
+      port map (
+         clk => clk25MHz,
+         reset => reset_vmem_cnt,
+         overflow => reset_vmem_we
+      );
+      
+   vga_register_driver : process(clk, reset, reset_vmem_we)
    variable tmp : IEEE.NUMERIC_STD.unsigned(13 downto 0);
-   variable tsl : std_logic_vector(13 downto 0);
+   variable tsl : std_logic_vector(13 downto 0);   
    begin
-      vmem_we <= '0';
-      vmem_addr <= (others => '0');
-      vmem_data <= vga_char;
-      
-      if cmd_store_en ='1' or cmd_store = c_start or cmd_store = c_store then
-         vmem_we <= '1';
-         tmp := IEEE.NUMERIC_STD.unsigned(vga_x) + (IEEE.NUMERIC_STD.unsigned(vga_y) * 80);
-         tsl := std_logic_vector(tmp);
-         vmem_addr <= tsl(11 downto 0);
-         
-         if cmd_store_en = '1' then
-            cmd_store <= c_start;
+      if reset = '1' or reset_vmem_we = '1' then
+         if reset = '1' then
+            vga_x <= (others => '0');
+            vga_y <= (others => '0');
+            vga_ctl <= (others => '0');
+            vga_char <= (others => '0');
+            vmem_addr <= (others => '0');
          end if;
-         
-         if rising_edge(clk25MHz) then
-            if cmd_store = c_start then
-               cmd_store <= c_store;
-            elsif cmd_store = c_store then
-               cmd_store <= c_idle;
-            end if;
+         if reset_vmem_we = '1' then
+            vmem_we <= '0';
          end if;
-      end if;      
-   end process;
-   
---   manage_registers : process (en, we, reg, data)
---   begin
---      data <= (others => 'Z');
---      cmd_store_en <= '0';
---
---      if rising_edge(en) then
---         if we = '1' and reg = x"0" then
---            vga_ctl <= data(7 downto 0);
---         end if;
---      end if;
---      
---      if rising_edge(en) then
---         if we = '1' and reg = x"1" then
---            vga_x <= data(7 downto 0);
---         end if;
---      end if;
---      
---      if rising_edge(en) then
---         if we = '1' and reg = x"2" then
---            vga_y <= data(6 downto 0);
---         end if;
---      end if;
---      
---      if rising_edge(en) then
---         if we = '1' and reg = x"3" then
---            vga_char <= data(7 downto 0);
---         end if;
---      end if;
---      
---      if en = '1' and we = '1' and reg = x"3" then
---         cmd_store_en <= '1';
---      end if;
---   end process;
-   
-   vga_register_driver : process(clk, reset)
-   begin
-      if reset = '1' then
-         vga_x <= x"00";
-         vga_y <= "0000000";
-         vga_ctl <= "00000000";
-         vga_char <= x"00";
-      
       else
          if falling_edge(clk) then
             if en = '1' and we = '1' then
@@ -241,10 +210,19 @@ begin
                   when x"0" => vga_ctl <= data(7 downto 0);
                   
                   -- cursor x register
+                  when x"1" => vga_x <= data(7 downto 0);                                 
                   
                   -- cursor y register
+                  when x"2" => vga_y <= data(6 downto 0);
                   
                   -- character paint register
+                  when x"3" =>
+                     vga_char <= data(7 downto 0);
+                     tmp := IEEE.NUMERIC_STD.unsigned(vga_x) + (IEEE.NUMERIC_STD.unsigned(vga_y) * 80);
+                     tsl := std_logic_vector(tmp);
+                     vmem_addr <= tsl(11 downto 0);
+                     vmem_we <= '1';
+                     reset_vmem_cnt <= '1';
                   
                   when others => null;
                end case;
@@ -275,5 +253,7 @@ begin
 
    clk25MHz <= '0' when reset = '1' else
                not clk25MHz when rising_edge(clk50MHz);
+               
+   vmem_data <= vga_char;
 end beh;
 
