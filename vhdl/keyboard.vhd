@@ -25,10 +25,7 @@ port (
    -- conntect to CPU's data bus (data high impedance when all reg_* are 0)
    cpu_data      : inout std_logic_vector(15 downto 0);
    reg_state     : in std_logic;
-   reg_data      : in std_logic;
-   
-   -- debug leds
-   leds          : out std_logic_vector(7 downto 0)
+   reg_data      : in std_logic
 );
 end keyboard;
 
@@ -80,7 +77,7 @@ begin
       end if;
    end process;
       
-   bus_driver : process(reg_state, reg_data)
+   bus_driver : process(reg_state, reg_data, latched_new, ascii_code)
    begin
       reset_new <= '0';
    

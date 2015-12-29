@@ -68,3 +68,20 @@ NET "PS2_DAT"              LOC=B2  |IOSTANDARD = LVCMOS33;
 #NET "LEDS<5>"              LOC=V17 |IOSTANDARD = LVCMOS33;
 #NET "LEDS<6>"              LOC=U17 |IOSTANDARD = LVCMOS33;
 #NET "LEDS<7>"              LOC=U16 |IOSTANDARD = LVCMOS33;
+
+## VGA
+# VGA Signals
+NET "vga_red[0]"           LOC = "A3" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_red[1]"           LOC = "B4" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_red[2]"           LOC = "C5" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_red[3]"           LOC = "A4" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_blue[0]"          LOC = "B7" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_blue[1]"          LOC = "C7" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_blue[2]"          LOC = "D7" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_blue[3]"          LOC = "D8" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_green[0]"         LOC = "C6" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_green[1]"         LOC = "A5" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_green[2]"         LOC = "B6" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_green[3]"         LOC = "A6" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_hs"               LOC = "B11" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";
+NET "vga_vs"               LOC = "B12" |IOSTANDARD = "LVCMOS33" |SLEW = "FAST";

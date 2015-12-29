@@ -35,7 +35,14 @@ port (
    
    -- PS/2 keyboard
    PS2_CLK     : in std_logic;
-   PS2_DAT     : in std_logic   
+   PS2_DAT     : in std_logic;
+
+   -- VGA
+   vga_red     : out std_logic_vector(3 downto 0);
+   vga_green   : out std_logic_vector(3 downto 0);
+   vga_blue    : out std_logic_vector(3 downto 0);
+   vga_hs      : out std_logic;
+   vga_vs      : out std_logic
 ); 
 end env1;
 
@@ -88,6 +95,27 @@ port (
    data_o   : out std_logic_vector(15 downto 0);   -- read data
    
    busy     : out std_logic                        -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA   
+);
+end component;
+
+-- VGA 80x40 monoschrome screen
+component vga_textmode
+port (
+   reset    : in  std_logic;     -- async reset
+   clk50MHz : in  std_logic;     -- needs to be a 50 MHz clock
+
+   -- VGA registers
+   en       : in std_logic;     -- enable for reading from or writing to the bus
+   we       : in std_logic;     -- write to VGA's registers via system's data bus
+   reg      : in std_logic_vector(3 downto 0);     -- register selector
+   data     : inout std_logic_vector(15 downto 0); -- system's data bus
+   
+   -- VGA signals, monochrome only
+   R        : out std_logic;
+   G        : out std_logic;
+   B        : out std_logic;
+   hsync    : out std_logic;
+   vsync    : out std_logic
 );
 end component;
 
@@ -173,7 +201,10 @@ port (
    til_reg1_enable   : out std_logic;
    switch_reg_enable : out std_logic;
    kbd_state_enable  : out std_logic;
-   kbd_data_enable   : out std_logic   
+   kbd_data_enable   : out std_logic;
+   vga_en            : out std_logic;
+   vga_we            : out std_logic;
+   vga_reg           : out std_logic_vector(3 downto 0)  
 );
 end component;
 
@@ -193,6 +224,14 @@ signal til_reg1_enable        : std_logic;
 signal switch_reg_enable      : std_logic;
 signal kbd_state_enable       : std_logic;
 signal kbd_data_enable        : std_logic;
+
+-- VGA control signals
+signal vga_r                  : std_logic;
+signal vga_g                  : std_logic;
+signal vga_b                  : std_logic;
+signal vga_en                 : std_logic;
+signal vga_we                 : std_logic;
+signal vga_reg                : std_logic_vector(3 downto 0);
 
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
@@ -238,6 +277,21 @@ begin
          data_i => cpu_data,
          data_o => cpu_data,
          busy => ram_busy         
+      );
+      
+   vga_screen : vga_textmode
+      port map (
+         reset => not RESET_N,
+         clk50MHz => SLOW_CLOCK,
+         R => vga_r,
+         G => vga_g,
+         B => vga_b,
+         hsync => vga_hs,
+         vsync => vga_vs,
+         en => vga_en,
+         we => vga_we,
+         reg => vga_reg,
+         data => cpu_data
       );
 
    -- TIL display emulation (4 digits)
@@ -306,10 +360,13 @@ begin
          til_reg1_enable => til_reg1_enable,
          switch_reg_enable => switch_reg_enable,
          kbd_state_enable => kbd_state_enable,
-         kbd_data_enable => kbd_data_enable
+         kbd_data_enable => kbd_data_enable,
+         vga_en => vga_en,
+         vga_we => vga_we,
+         vga_reg => vga_reg         
       );
       
-   switch_driver : process (switch_reg_enable)
+   switch_driver : process (switch_reg_enable, SWITCHES)
    begin
       if switch_reg_enable = '1' then
          cpu_data <= SWITCHES;
@@ -325,5 +382,8 @@ begin
       end if;
    end process; 
  
+   vga_red <= vga_r & vga_r & vga_r & vga_r;
+   vga_green <= vga_g & vga_g & vga_g & vga_g;
+   vga_blue <= vga_b & vga_b & vga_b & vga_b;
 end beh;
 
