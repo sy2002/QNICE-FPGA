@@ -14,4 +14,5 @@
 #include "test_library.asm"
 ;
 QMON$LAST_ADDR  HALT
-
+;
+#include "variables.asm"
