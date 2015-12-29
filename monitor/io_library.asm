@@ -119,24 +119,22 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;* R8 will contain the character read in its lower eight bits.
 ;***************************************************************************************
 ;
-IO$GETCHAR      INCRB
-                MOVE    IO$SWITCH_REG, R0
-                MOVE    @R0, R1             ; Read the switch register
-                AND     0x0001, R1          ; Lowest bit set?
-                RBRA    _IO$GETC_UART, Z    ; No, read from UART
-                MOVE    IO$KBD_STATE, R0    ; R0 contains the address of the kbd status reg.
-                MOVE    IO$KBD_DATA, R1     ; R1 contains the kbd data register address
-                RBRA    _IO$GETC_LOOP, 1    ; Wait for first character
-_IO$GETC_UART   MOVE    IO$UART_SRA, R0     ; R0 contains the address of the status register
-                MOVE    IO$UART_RHRA, R1    ; R1 contains the address of the receiver reg.
-_IO$GETC_LOOP   MOVE    @R0, R2             ; Read status register
-                AND     0x0001, R2          ; Only bit 0 is of interest
-                RBRA    _IO$GETC_LOOP, Z    ; Loop until a character has been received
-                MOVE    @R1, R8             ; Get the character from the receiver register
-                DECRB
-                CMP     0x0005, R8          ; CTRL-E?
-                RBRA    QMON$WARMSTART, Z   ; Return to monitor immediately!
-		        RET
+; TODO: This is highly unelegant and inefficient - it would be a better idea to
+;       modify the address of the input routine to be used during a warm-start 
+;       in order to avoid the many tests for the switch register.
+;
+IO$GETCHAR          INCRB
+                    MOVE    IO$SWITCH_REG, R0
+                    MOVE    @R0, R1             ; Read the switch register
+                    AND     0x0001, R1          ; Lowest bit set?
+                    RBRA    _IO$GETCHAR_UART, Z ; No, read from UART
+                    RSUB    KBD$GETCHAR, 1      ; Yes, read from USB-keyboard
+                    RBRA    _IO$GETCHAR_END, 1  ; Finished...
+_IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1     ; Read from UART
+_IO$GETCHAR_END     DECRB
+                    CMP     0x0005, R8          ; CTRL-E?
+                    RBRA    QMON$WARMSTART, Z   ; Return to monitor immediately!
+		            RET
 ;
 ;***************************************************************************************
 ;* IO$GETS reads a CR/LF terminated string from the serial line
@@ -203,15 +201,19 @@ IO$PUT_CRLF     INCRB                   ; Get a new register page
 ;* The contents of R8 are being preserved during the run of this function.
 ;***************************************************************************************
 ;
-IO$PUTCHAR      INCRB                       ; Get a new register page
-                MOVE IO$UART_SRA, R0        ; R0: address of status register                
-                MOVE IO$UART_THRA, R1       ; R1: address of transmit register
-_IO$PUTC_WAIT   MOVE @R0, R2                ; read status register
-                AND 0x0002, R2              ; ready to transmit?
-                RBRA _IO$PUTC_WAIT, Z       ; loop until ready
-                MOVE R8, @R1                ; Print character
-                DECRB                       ; Restore the old page
-		        RET
+; TODO: This is highly unelegant and inefficient - it would be a better idea to
+;       modify the address of the input routine to be used during a warm-start 
+;       in order to avoid the many tests for the switch register.
+IO$PUTCHAR          INCRB
+                    MOVE    IO$SWITCH_REG, R0
+                    MOVE    @R0, R1             ; Read the switch register
+                    AND     0x0002, R1          ; Bit 1 set?
+                    RBRA    _IO$PUTCHAR_UART, Z ; No, write to UART
+                    RSUB    VGA$PUTCHAR, 1      ; Yes, write to VGA-controller
+                    RBRA    _IO$PUTCHAR_END, 1  ; Finish
+_IO$PUTCHAR_UART    RSUB    UART$PUTCHAR, 1
+_IO$PUTCHAR_END     DECRB
+                    RET
 ;
 ;***************************************************************************************
 ; Constants, etc.

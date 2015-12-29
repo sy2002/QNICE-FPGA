@@ -56,6 +56,7 @@ QMON$COLDSTART  MOVE    QMON$WELCOME, R8        ; Print welcome message
 ;;TODO: Clear registers
 QMON$WARMSTART  AND     0x00FF, SR              ; Reset register bank to zero
                 MOVE    IO$BASE, SP             ; Set up stack pointer
+                RSUB    VGA$INIT, 1             ; Initialize VGA-controller
                 RSUB    IO$PUT_CRLF, 1
 QMON$MAIN_LOOP  MOVE    QMON$PROMPT, R8         ; Print monitor prompt
                 RSUB    IO$PUTS, 1
