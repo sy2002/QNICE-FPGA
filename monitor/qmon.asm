@@ -55,7 +55,7 @@ QMON$COLDSTART  MOVE    QMON$WELCOME, R8        ; Print welcome message
 ;                RSUB    MEM$FILL, 1             ; Clear
 ;;TODO: Clear registers
 QMON$WARMSTART  AND     0x00FF, SR              ; Reset register bank to zero
-                MOVE    IO$BASE, SP             ; Set up stack pointer to highest available address
+                MOVE    VAR$STACK_START, SP     ; Set up stack pointer to highest available address
                 RSUB    VGA$INIT, 1             ; Initialize VGA-controller
                 RSUB    IO$PUT_CRLF, 1
 QMON$MAIN_LOOP  MOVE    QMON$PROMPT, R8         ; Print monitor prompt
@@ -266,5 +266,3 @@ QMON$CG_M_M2    .ASCII_W    " TO="
 QMON$CG_M_M3    .ASCII_W    " LENGTH="
 QMON$CG_M_S     .ASCII_W    "DISASSEMBLE START ADDRESS="
 QMON$CG_M_S2    .ASCII_W    " END ADDRESS="
-;
-QMON$COMMAND    .BLOCK 0x0100              ; Reserve some memory for holding a command line
