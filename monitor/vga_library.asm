@@ -26,8 +26,8 @@ VGA$COLOR_WHITE         .EQU    0x0007
 ;
 VGA$INIT                INCRB
                         MOVE    VGA$STATE, R0
-                        MOVE    0x00E2, @R0             ; Enable everything
-;                        OR      VGA$COLOR_GREEN, @R0    ; Set font color to green
+                        MOVE    0x00E0, @R0             ; Enable everything
+                        OR      VGA$COLOR_GREEN, @R0    ; Set font color to green
 ;                        RSUB    VGA$CLS, 1              ; Clear the screen
                         XOR     R0, R0
                         MOVE    _VGA$X, R1
