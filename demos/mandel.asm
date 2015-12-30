@@ -8,10 +8,10 @@
 DIVERGENT       .EQU    0x0400              ; Constant for divergence test
 X_START         .EQU    -0x0200             ; -512 = - 2 * scale with scale = 256
 X_END           .EQU    0x0100              ; +128
-X_STEP          .EQU    0x0006              ; 10
+X_STEP          .EQU    0x000B              ; was 0x0006 == 10
 Y_START         .EQU    -0x0180             ; -256
 Y_END           .EQU    0x0180              ; 256
-Y_STEP          .EQU    0x000F              ; 25
+Y_STEP          .EQU    0x0013              ; was 0x000F == 25
 ITERATION       .EQU    0x001A              ; Number of iterations
 ;
 ; for (y = y_start; y <= y_end; y += y_step)
@@ -108,7 +108,8 @@ BREAK           MOVE    DISPLAY, R7
                 AND     0x0007, R6
                 ADD     R6, R7
                 MOVE    @R7, R8
-                RSUB    IO$PUTCHAR, 1
+;                RSUB    IO$PUTCHAR, 1
+                RSUB    VGA$PUTCHAR, 1
                 ADD     X_STEP, R1          ; x += x_step
                 RBRA    INNER_LOOP, 1
 ;   }
@@ -131,5 +132,18 @@ Z1SQUARE_HIGH   .BLOCK      1
 #include "../monitor/io_library.asm"
 #include "../monitor/string_library.asm"
 #include "../monitor/math_library.asm"
+#include "../monitor/uart_library.asm"
+#include "../monitor/vga_library.asm"
 ;
 QMON$WARMSTART  HALT                        ; Dummy
+;
+                .ORG    0xFEFD
+;
+;***************************************************************************************
+;* VGA control block
+;***************************************************************************************
+;
+VAR$STACK_START         .BLOCK  0x0001                  ; Here comes the stack...
+_VGA$X                  .BLOCK  0x0001                  ; Current X coordinate
+_VGA$Y                  .BLOCK  0x0001                  ; Current Y coordinate
+
