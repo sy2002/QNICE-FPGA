@@ -90,7 +90,7 @@ VGA$PUTCHAR             INCRB
                         MOVE    R4, @R0             ; Set the HW X-coordinate
                         MOVE    R5, @R1             ; Set the HW Y-coordinate
                         MOVE    VGA$CHAR, R6        ; R6 points to the HW char-register
-                        MOVE    R8, @R0             ; Output the character
+                        MOVE    R8, @R6             ; Output the character
 ; Now update the X- and Y-coordinate still contained in R4 and R5:
                         CMP     VGA$MAX_X, R4       ; Have we reached the EOL?
                         RBRA    _VGA$PUTC_1, !Z     ; No
