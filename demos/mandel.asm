@@ -114,11 +114,17 @@ BREAK           MOVE    DISPLAY, R7
                 RBRA    INNER_LOOP, 1
 ;   }
 ;   printf("\n");
-INNER_LOOP_END  RSUB    IO$PUT_CRLF, 1
+INNER_LOOP_END  RSUB    PUT_CRLF, 1
                 ADD     Y_STEP, R0
                 RBRA    OUTER_LOOP, 1
 ; }
-MANDEL_END      RSUB    IO$PUT_CRLF, 1
+MANDEL_END      RSUB    PUT_CRLF, 1
+
+PUT_CRLF        MOVE    0x000D, R8
+                RSUB    VGA$PUTCHAR, 1
+                MOVE    0x000A, R8
+                RSUB    VGA$PUTCHAR, 1
+                RET
 
 
                 HALT
