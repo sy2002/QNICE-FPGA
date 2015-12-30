@@ -33,13 +33,6 @@
 ;;   - To assemble this monitor just call the "asm" shell script which will use the C preprocessor 
 ;;     to include the necessary library files.
 ;;
-                .ORG 0x0000                ; The monitor begins at address 0x0000, so the lower 
-                                           ; address EPROMs should be mapped into memory by hardware 
-                                           ; default on power up.
-;
-; Some useful constants
-;
-
 ;
 ; Main program
 ;
@@ -56,8 +49,8 @@ QMON$COLDSTART  AND     0x00FF, SR              ; Make sure we are in register b
 ;                XOR     R10, R10                ; Clear with zero words
 ;                RSUB    MEM$FILL, 1             ; Clear
 ;;TODO: Clear registers
-QMON$WARMSTART  AND     0x00FF, SR              ; Reset register bank to zero
-                MOVE    VAR$STACK_START, SP     ; Set up stack pointer to highest available address
+;QMON$WARMSTART  AND     0x00FF, SR              ; Reset register bank to zero
+;                MOVE    VAR$STACK_START, SP     ; Set up stack pointer to highest available address
                 RSUB    IO$PUT_CRLF, 1
 QMON$MAIN_LOOP  MOVE    QMON$PROMPT, R8         ; Print monitor prompt
                 RSUB    IO$PUTS, 1
@@ -235,8 +228,8 @@ QMON$NOT_H      MOVE    QMON$ILLCMDGRP, R8A     ; Illegal command group
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
 
-QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.2 (Bernd Ulmann, August 2015)\n"
-                .ASCII_W    "--------------------------------------------------------------\n\n"
+QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.3 (Bernd Ulmann, Dezember 2015)\n"
+                .ASCII_W    "----------------------------------------------------------------\n\n"
 QMON$PROMPT     .ASCII_W    "QMON> "
 QMON$ILLCMDGRP  .ASCII_W    " *** Illegal command group ***\n"
 QMON$ILLCMD     .ASCII_W    " *** Illegal command ***\n"

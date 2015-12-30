@@ -124,6 +124,8 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;       in order to avoid the many tests for the switch register.
 ;
 IO$GETCHAR          INCRB
+    MOVE    IO$TIL_DISPLAY, R0
+    MOVE    SP, @R0
 ;                    RSUB    UART$GETCHAR, 1
 ;                    RSUB    KBD$GETCHAR, 1
 ; Currently not active!
@@ -136,7 +138,7 @@ IO$GETCHAR          INCRB
 _IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1     ; Read from UART
 _IO$GETCHAR_END     DECRB
                     CMP     0x0005, R8          ; CTRL-E?
-                    RBRA    QMON$WARMSTART, Z   ; Return to monitor immediately!
+                    RBRA    QMON$COLDSTART, Z   ; Return to monitor immediately!
 		            RET
 ;
 ;***************************************************************************************
