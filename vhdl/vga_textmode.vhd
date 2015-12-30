@@ -141,7 +141,7 @@ signal vga_char         : std_logic_vector(7 downto 0);
 
 -- clearscreen command execution
 signal vga_clrscr       : std_logic;                     -- ff: clearscreen currently active
-signal reset_vga_clrscr : std_logic;
+signal reset_vga_clrscr : std_logic := '0';
 signal reset_clrscr_cnt : std_logic;
 signal clrscr_address   : std_logic_vector(11 downto 0);
 signal clrscr_we        : std_logic;
@@ -220,8 +220,8 @@ begin
       port map (
          clk => clk25MHz,
          cnt => clrscr_address,
-         reset => reset_clrscr_cnt,
-         overflow => reset_vga_clrscr
+         reset => reset_clrscr_cnt
+         --overflow => reset_vga_clrscr
       );
          
    -- generate the right we, address and data signal for the vram
@@ -238,7 +238,7 @@ begin
       elsif vga_clrscr = '1' then
          vmem_sel_we <= '1';
          vmem_sel_addr <= clrscr_address;
-         vmem_sel_data <= (others => '0');
+         vmem_sel_data <= x"20"; -- ascii 0x20 = space character
          
       -- undefined mode
       else
@@ -308,7 +308,9 @@ begin
    begin   
       if en = '1' and we = '0' then
          case reg is            
-            when x"0" => data <= "0000000" & vga_clrscr & vga_ctl;   -- status register
+            when x"0" => data <= "0000000"      &                    -- status register 
+                                 vga_clrscr     &
+                                 vga_ctl;   
             when x"1" => data <= x"00" & vga_x;                      -- cursor x register
             when x"2" => data <= x"00" & '0' & vga_y;                -- cursor y register
             when x"3" => data <= x"00" & vga_char;                   -- character print register
