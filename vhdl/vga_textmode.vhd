@@ -232,16 +232,18 @@ begin
       end if;
    end process;
    
-   read_vga_registers : process(en, we, reg, data)
-   begin
+   read_vga_registers : process(en, we, reg, data, vga_ctl, vga_x, vga_y, vga_char)
+   begin   
       if en = '1' and we = '0' then
          case reg is            
-            when x"0" => data <= x"00" & vga_ctl;  -- status register
-            when x"1" => data <= x"00" & vga_x;    -- cursor x register
-            when x"2" => data <= x"00" & vga_y;    -- cursor y register
-            when x"3" => data <= x"00" & vga_char; -- character print register
-            when others => null;
+            when x"0" => data <= x"00" & vga_ctl;        -- status register
+            when x"1" => data <= x"00" & vga_x;          -- cursor x register
+            when x"2" => data <= x"00" & '0' & vga_y;    -- cursor y register
+            when x"3" => data <= x"00" & vga_char;       -- character print register
+            when others => data <= (others => '0');
          end case;
+      else
+         data <= (others => 'Z');
       end if;
    end process;
    
