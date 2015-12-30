@@ -186,8 +186,9 @@ begin
          reset => reset_vmem_cnt,
          overflow => reset_vmem_we
       );
-      
-   vga_register_driver : process(clk, reset, reset_vmem_we)
+   
+   
+   write_vga_registers : process(clk, reset, reset_vmem_we)
    variable tmp : IEEE.NUMERIC_STD.unsigned(13 downto 0);
    variable tsl : std_logic_vector(13 downto 0);   
    begin
@@ -215,7 +216,7 @@ begin
                   -- cursor y register
                   when x"2" => vga_y <= data(6 downto 0);
                   
-                  -- character paint register
+                  -- character print register
                   when x"3" =>
                      vga_char <= data(7 downto 0);
                      tmp := IEEE.NUMERIC_STD.unsigned(vga_x) + (IEEE.NUMERIC_STD.unsigned(vga_y) * 80);
@@ -231,26 +232,19 @@ begin
       end if;
    end process;
    
+   read_vga_registers : process(en, we, reg, data)
+   begin
+      if en = '1' and we = '0' then
+         case reg is            
+            when x"0" => data <= x"00" & vga_ctl;  -- status register
+            when x"1" => data <= x"00" & vga_x;    -- cursor x register
+            when x"2" => data <= x"00" & vga_y;    -- cursor y register
+            when x"3" => data <= x"00" & vga_char; -- character print register
+            when others => null;
+         end case;
+      end if;
+   end process;
    
---   -- clock-in the current to-be-displayed value and mask into a FF for the TIL
---   til_driver : process(clk, reset)
---   begin
---      if reset = '1' then
---         TIL_311_buffer <= x"0000";
---         TIL_311_mask <= "1111";
---      else
---         if falling_edge(clk) then
---            if til_reg0_enable = '1' then
---               TIL_311_buffer <= data_in;            
---            end if;
---            
---            if til_reg1_enable = '1' then
---               TIL_311_mask <= data_in(3 downto 0);
---            end if;
---         end if;
---      end if;
---   end process;   
-
    clk25MHz <= '0' when reset = '1' else
                not clk25MHz when rising_edge(clk50MHz);
                
