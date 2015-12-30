@@ -1,5 +1,7 @@
 * vga: allow reading of VRAM
 
+* remove ROM and replace by prefilled RAM
+
 * Improve design to support 100 MHz
 
 * Fix tristate problem that slows down CPU by ~50%
