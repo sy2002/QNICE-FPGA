@@ -1,3 +1,14 @@
+Version 1.1  December, 30 2015
+==============================
+
+By default, version 1.1 behaves like version 1.0, i.e. input/output is done
+via UART, 8-N-1, 9.600 baud, RTS/CTS. But from version 1.1 on, you can now
+route the input via a PS/2 keyboard and the output via a 640x480 VGA
+monitor (80x40 characters):
+
+* PS/2 keyboard support: enable via SW0
+* VGA support: enable via SW1
+
 Version 1.0  August, 30 2015
 ============================
 
@@ -11,7 +22,7 @@ QNICE/A evaluation board environment. Features:
 * 4 TIL-311 displays at 0xFF10:
   0xFF10 is the value to be displayed
   0xFF11 lower 4 bit are a display bit mask
-* Serial interface 8-N-1, 9600 baud, RTS/CTS beginning at FF20:
+* Serial interface 8-N-1, 9.600 baud, RTS/CTS beginning at FF20:
   0xFF21 status register
   0xFF22 read register
   0xFF23 write register      
