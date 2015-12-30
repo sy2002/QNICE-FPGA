@@ -13,7 +13,6 @@
 ;;  03-AUG-2015: After upgrading the emulator and fixing some (serious) bugs the work on the
 ;;               monitor continues
 ;;  06-AUG-2015: Basic monitor functions implemented
-;;  28..30-DEC-2015: VGA- and USB-support
 ;;
 ;; Known bugs: 
 ;;
@@ -43,14 +42,13 @@
 ;
 ; Main program
 ;
-QMON$COLDSTART  AND     0x00FF, SR              ; Make sure we are in register bank 0
-                MOVE    VAR$STACK_START, SP     ; Initialize stack pointer
-                RSUB    VGA$INIT, 1
-                MOVE    QMON$WELCOME, R8        ; Print welcome message
+QMON$COLDSTART  MOVE    QMON$WELCOME, R8        ; Print welcome message
+                MOVE    IO$BASE, SP
                 RSUB    IO$PUTS, 1
+
 ;                MOVE    QMON$LAST_ADDR, R8      ; Clear memory after the monitor
 ;                ADD     0x0001, R8              ; Start address
-;                MOVE    VAR$STACK_START, R9     ; Determine length of memory area 
+;                MOVE    IO$BASE, R9             ; Determine length of memory area 
 ;                SUB     R8, R9                  ;   to be cleared
 ;                SUB     0x0001, R9              ; We need one stack cell for the following call
 ;                XOR     R10, R10                ; Clear with zero words
@@ -58,6 +56,7 @@ QMON$COLDSTART  AND     0x00FF, SR              ; Make sure we are in register b
 ;;TODO: Clear registers
 QMON$WARMSTART  AND     0x00FF, SR              ; Reset register bank to zero
                 MOVE    VAR$STACK_START, SP     ; Set up stack pointer to highest available address
+                RSUB    VGA$INIT, 1             ; Initialize VGA-controller
                 RSUB    IO$PUT_CRLF, 1
 QMON$MAIN_LOOP  MOVE    QMON$PROMPT, R8         ; Print monitor prompt
                 RSUB    IO$PUTS, 1
@@ -78,24 +77,19 @@ QMON$MAIN_LOOP  MOVE    QMON$PROMPT, R8         ; Print monitor prompt
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$COLDSTART, 1       ; Yes!
 QMON$C_MAYBE_H  CMP     'H', R8                 ; Halt?
-                RBRA    QMON$C_MAYBE_R, !Z
+                RBRA    QMON$MAYBE_R, !Z
 ; CONTROL/HALT:
                 MOVE    QMON$CG_C_H, R8
                 RSUB    IO$PUTS, 1
                 HALT
-QMON$C_MAYBE_R  CMP     'R', R8                 ; Run?
-                RBRA    QMON$C_MAYBE_S, !Z      ; No
+QMON$MAYBE_R    CMP     'R', R8                 ; Run?
+                RBRA    QMON$C_ILLEGAL, !Z      ; No
 ; CONTROL/RUN:
                 MOVE    QMON$CG_C_R, R8
                 RSUB    IO$PUTS, 1
                 RSUB    IO$GET_W_HEX, 1         ; Get address
                 RSUB    IO$PUT_CRLF, 1
                 ABRA    R8, 1                   ; Jump to address specified
-; CONTROL/CLEAR SCREEN:
-QMON$C_MAYBE_S  CMP     'S', R8                 ; Clear screen?
-                RBRA    QMON$C_ILLEGAL, !Z      ; No
-                RSUB    VGA$CLS, 1              ; Yes, clear screen...
-                RBRA    QMON$MAIN_LOOP, 1       ; Return to main loop
 QMON$C_ILLEGAL  MOVE    QMON$ILLCMD, R8         ; Control group C, illegal command
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
@@ -242,7 +236,7 @@ QMON$ILLCMDGRP  .ASCII_W    " *** Illegal command group ***\n"
 QMON$ILLCMD     .ASCII_W    " *** Illegal command ***\n"
 QMON$HELP       .ASCII_P    "ELP:\n\n"
                 .ASCII_P    "    C(control group):\n"
-                .ASCII_P    "        C(old start) H(alt) R(un) Clear(S)creen\n"
+                .ASCII_P    "        C(old start) H(alt) R(un)\n"
                 .ASCII_P    "    H(elp)\n"
                 .ASCII_P    "    M(emory group):\n"
                 .ASCII_P    "        C(hange) D(ump) E(xamine) F(ill) L(oad) M(ove)\n"

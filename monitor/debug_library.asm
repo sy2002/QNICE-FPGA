@@ -18,12 +18,12 @@
 DBG$DISASM          INCRB
                     RSUB    IO$PUT_W_HEX, 1
                     MOVE    R8, R0              ; Remember the address
-                    MOVE    ' ', R8             ; Print a space character
+                    MOVE    CHR$TAB, R8         ; Print a TAB character
                     RSUB    IO$PUTCHAR, 1
                     MOVE    @R0++, R1           ; Fetch the instruction
                     MOVE    R1, R8              ; Print the instruction code
                     RSUB    IO$PUT_W_HEX, 1
-                    MOVE    ' ', R8             ; Print a space character
+                    MOVE    CHR$TAB, R8         ; Print a TAB character
                     RSUB    IO$PUTCHAR, 1
                     MOVE    R1, R2              ; R1 contains the instruction
                     SHR     0x0009, R2          ; Get opcode * 8
@@ -36,7 +36,7 @@ DBG$DISASM          INCRB
                     RSUB    IO$PUTS, 1          ; Print mnemonic
                     CMP     0x0070, R2          ; Is it HALT (shifted 3 to the left)?
                     RBRA    _DBG$DISASM_EXIT, Z ; Yes, do not fetch operands
-                    MOVE    ' ', R8             ; Print a TAB character
+                    MOVE    CHR$TAB, R8         ; Print a TAB character
                     RSUB    IO$PUTCHAR, 1
                     RSUB    _DBG$HANDLE_SOURCE, 1
                     RSUB    _DBG$HANDLE_DEST, 1
@@ -48,7 +48,7 @@ _DBG$DISASM_BRSU    MOVE    R1, R2              ; Determine branch/call type
                     MOVE    _DBG$BRSU_MNEMONICS, R8
                     ADD     R2, R8
                     RSUB    IO$PUTS, 1          ; Print mnemonic
-                    MOVE    ' ', R8             ; Print a space character
+                    MOVE    CHR$TAB, R8         ; Print a TAB character
                     RSUB    IO$PUTCHAR, 1
                     RSUB    _DBG$HANDLE_SOURCE, 1
                     MOVE    R1, R2              ; Reread instruction
@@ -105,7 +105,7 @@ _DBG$HSRC_0         AND     0x003C, R2          ; Get offset into register name 
                     RBRA    _DBG$HSRC_EXIT, !Z  ; No
                     MOVE    _DBG$INCREMENT, R8  ; Print '++'
                     RSUB    IO$PUTS, 1
-_DBG$HSRC_EXIT      MOVE    ' ', R8             ; Print delimiter
+_DBG$HSRC_EXIT      MOVE    CHR$TAB, R8         ; Print delimiter
                     RSUB    IO$PUTCHAR, 1
                     RET
 ;
