@@ -124,18 +124,19 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;       in order to avoid the many tests for the switch register.
 ;
 IO$GETCHAR          INCRB
-    MOVE    IO$TIL_DISPLAY, R0
-    MOVE    SR, @R0
-;                    RSUB    UART$GETCHAR, 1
-;                    RSUB    KBD$GETCHAR, 1
-; Currently not active!
-                    MOVE    IO$SWITCH_REG, R0
-                    MOVE    @R0, R1             ; Read the switch register
-                    AND     0x0001, R1          ; Lowest bit set?
-                    RBRA    _IO$GETCHAR_UART, Z ; No, read from UART
-                    RSUB    KBD$GETCHAR, 1      ; Yes, read from USB-keyboard
-                    RBRA    _IO$GETCHAR_END, 1  ; Finished...
-_IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1     ; Read from UART
+    RSUB    UART$GETCHAR, 1
+;    MOVE    IO$TIL_DISPLAY, R0
+;    MOVE    SR, @R0
+;;                    RSUB    UART$GETCHAR, 1
+;;                    RSUB    KBD$GETCHAR, 1
+;; Currently not active!
+;                    MOVE    IO$SWITCH_REG, R0
+;                    MOVE    @R0, R1             ; Read the switch register
+;                    AND     0x0001, R1          ; Lowest bit set?
+;                    RBRA    _IO$GETCHAR_UART, Z ; No, read from UART
+;                    RSUB    KBD$GETCHAR, 1      ; Yes, read from USB-keyboard
+;                    RBRA    _IO$GETCHAR_END, 1  ; Finished...
+;_IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1     ; Read from UART
 _IO$GETCHAR_END     DECRB
                     CMP     0x0005, R8          ; CTRL-E?
                     RBRA    QMON$COLDSTART, Z   ; Return to monitor immediately!
