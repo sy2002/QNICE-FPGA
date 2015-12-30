@@ -125,7 +125,7 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;
 IO$GETCHAR          INCRB
     MOVE    IO$TIL_DISPLAY, R0
-    MOVE    SP, @R0
+    MOVE    SR, @R0
 ;                    RSUB    UART$GETCHAR, 1
 ;                    RSUB    KBD$GETCHAR, 1
 ; Currently not active!
