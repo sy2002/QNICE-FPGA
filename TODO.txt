@@ -17,3 +17,5 @@
 * single-step-mode in hardware incl. address/data display on 7-segs
 
 * 115k baud problem (redo FIFOs in UART?)
+
+* Move assembler to its own folder
