@@ -3,6 +3,22 @@
 -- tristate outputs go high impedance when not enabled
 -- done by sy2002 in December 2015
 
+-- features and registers
+-- register 0: control register
+--    bit 9 scroll up: write 1, always reads 0
+--    bit 8 clear screen: write 1, always reads 0
+--    bit 7 VGA enable signal (1 = on, 0 switches off the vga signal generation)
+--    bit 6 HW cursor enable bit
+--    bit 5 is Blink HW cursor enable bit
+--    bit 4 is HW cursor mode (0 = big; 1 = small)
+--    bits(2:0) is the output color for the whole screen (3-bit rgb, 8 colors)
+-- register 1: cursor x position read/write (0..79)
+-- register 2: cusror y position read/write (0..39)
+-- register 3: print character written into this register at cursor x/y position
+--             @TODO reading this register currently is not intuitive: it outputs
+--             the last character written to the register instead of the character
+--             in the video ram at the cursor pos (how it should be)
+
 -- this is mainly a wrapper around Javier Valcarce's component
 -- http://www.javiervalcarce.eu/wiki/VHDL_Macro:_VGA80x40
 
@@ -61,11 +77,6 @@ port (
    ocry    : in  std_logic_vector(7 downto 0);
    
    -- control register
-   -- Bit 7 VGA enable signal
-   -- Bit 6 HW cursor enable bit
-   -- Bit 5 is Blink HW cursor enable bit
-   -- Bit 4 is HW cursor mode (0 = big; 1 = small)
-   -- Bits(2:0) is the output color.
    octl    : in  std_logic_vector(7 downto 0)
 );   
 end component;
@@ -232,7 +243,7 @@ begin
       end if;
    end process;
    
-   read_vga_registers : process(en, we, reg, data, vga_ctl, vga_x, vga_y, vga_char)
+   read_vga_registers : process(en, we, reg, vga_ctl, vga_x, vga_y, vga_char)
    begin   
       if en = '1' and we = '0' then
          case reg is            
