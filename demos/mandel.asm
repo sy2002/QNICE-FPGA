@@ -3,7 +3,7 @@
 #define         POINTER R12
 ;
 #include "../monitor/sysdef.asm"
-                MOVE    IO$BASE, SP
+                MOVE    VAR$STACK_START, SP
 ;
 DIVERGENT       .EQU    0x0400              ; Constant for divergence test
 X_START         .EQU    -0x0200             ; -512 = - 2 * scale with scale = 256
@@ -31,7 +31,7 @@ INNER_LOOP      CMP     X_END, R1           ; End reached?
 ;     {
                 MOVE    ITERATION, R6       ; i = i_max
 ;;;
-ITERATION_LOOP  MOVE R3, R8                 ; Computer z1 ** 2 for z2 = (z0 * z0 - z1 * z1) / 256
+ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 - z1 * z1) / 256
                 MOVE R3, R9
                 RSUB MTH$MUL, 1
 ;
