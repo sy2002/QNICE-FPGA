@@ -80,33 +80,47 @@ VGA$CHAR_AT_XY          INCRB
 ;* R8: Contains the character to be printed.
 ;***************************************************************************************
 ;
+; TODO: \t
+;
 VGA$PUTCHAR             INCRB
-                        MOVE    VGA$CR_X, R0        ; R0 points to the HW X-register
-                        MOVE    VGA$CR_Y, R1        ; R1 points to the HW Y-register
-                        MOVE    _VGA$X, R2          ; R2 points to the SW X-register
-                        MOVE    _VGA$Y, R3          ; R2 points to the SW X-register
-                        MOVE    @R2, R4             ; R4 contains the current X-coordinate
-                        MOVE    @R3, R5             ; R5 contains the current Y-coordinate
-                        MOVE    R4, @R0             ; Set the HW X-coordinate
-                        MOVE    R5, @R1             ; Set the HW Y-coordinate
-                        MOVE    VGA$CHAR, R6        ; R6 points to the HW char-register
-                        MOVE    R8, @R6             ; Output the character
+                        MOVE    VGA$CR_X, R0                ; R0 points to the HW X-register
+                        MOVE    VGA$CR_Y, R1                ; R1 points to the HW Y-register
+                        MOVE    _VGA$X, R2                  ; R2 points to the SW X-register
+                        MOVE    _VGA$Y, R3                  ; R2 points to the SW X-register
+                        MOVE    @R2, R4                     ; R4 contains the current X-coordinate
+                        MOVE    @R3, R5                     ; R5 contains the current Y-coordinate
+                        MOVE    R4, @R0                     ; Set the HW X-coordinate
+                        MOVE    R5, @R1                     ; Set the HW Y-coordinate
+; Before we output anything, let us check for 0x0A and 0x0D:
+                        CMP     0x000D, R8                  ; Is it a CR?
+                        RBRA    _VGA$PUTC_NO_CR, !Z         ; No
+                        XOR     R4, R4                      ; CR -> Reset X-coordinate
+                        RBRA    _VGA$PUTC_END, 1            ; Update registers and exit
+_VGA$PUTC_NO_CR         CMP     0x000A, R8                  ; Is it a LF?
+                        RBRA    _VGA$PUTC_NORMAL_CHAR, !Z   ; No, so just a normal character
+                        ADD     0x0001, R5                  ; Increment Y-coordinate
+                        CMP     VGA$MAX_Y, R5               ; EOScreen reached?
+                        RBRA    _VGA$PUTC_END, !Z           ; No, just update and exit
+                        XOR     R5, R5                      ; Yes, reset Y-coordinate
+                        RBRA    _VGA$PUTC_END, 1            ; Update registers and exit
+_VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the HW char-register
+                        MOVE    R8, @R6                     ; Output the character
 ; Now update the X- and Y-coordinate still contained in R4 and R5:
-                        CMP     VGA$MAX_X, R4       ; Have we reached the EOL?
-                        RBRA    _VGA$PUTC_1, !Z     ; No
-                        XOR     R4, R4              ; Yes, reset X-coordinate to 0 and
-                        CMP     VGA$MAX_Y, R5       ; check if we have reached EOScreen
-                        RBRA    _VGA$PUTC_2, !Z     ; No
-                        XOR     R5, R5              ; Yes, reset Y-coordinate to 0
-                        RBRA    _VGA$PUTC_END, 1    ; and finish
-_VGA$PUTC_1             ADD     0x0001, R4          ; Just increment the X-coordinate
-                        RBRA    _VGA$PUTC_END, 1    ; and finish 
-_VGA$PUTC_2             ADD     0x0001, R5          ; Increment Y-coordinate and finish
+                        CMP     VGA$MAX_X, R4               ; Have we reached the EOL?
+                        RBRA    _VGA$PUTC_1, !Z             ; No
+                        XOR     R4, R4                      ; Yes, reset X-coordinate to 0 and
+                        CMP     VGA$MAX_Y, R5               ; check if we have reached EOScreen
+                        RBRA    _VGA$PUTC_2, !Z             ; No
+                        XOR     R5, R5                      ; Yes, reset Y-coordinate to 0
+                        RBRA    _VGA$PUTC_END, 1            ; and finish
+_VGA$PUTC_1             ADD     0x0001, R4                  ; Just increment the X-coordinate
+                        RBRA    _VGA$PUTC_END, 1            ; and finish 
+_VGA$PUTC_2             ADD     0x0001, R5                  ; Increment Y-coordinate and finish
 ; Rundown of the function
-_VGA$PUTC_END           MOVE    R4, @R0             ; Update the HW coordinates to
-                        MOVE    R5, @R1             ; display cursor at next location
-                        MOVE    R4, @R2             ; Store current coordinates in 
-                        MOVE    R5, @R3             ; _VGA$X and _VGA$Y
+_VGA$PUTC_END           MOVE    R4, @R0                     ; Update the HW coordinates to
+                        MOVE    R5, @R1                     ; display cursor at next location
+                        MOVE    R4, @R2                     ; Store current coordinates in 
+                        MOVE    R5, @R3                     ; _VGA$X and _VGA$Y
 ;
                         DECRB
                         RET
