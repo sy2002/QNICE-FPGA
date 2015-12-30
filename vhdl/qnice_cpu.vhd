@@ -126,18 +126,18 @@ signal cpu_state           : tCPU_States := cs_reset;
 signal cpu_state_next      : tCPU_States;
 
 -- CPU i/o signals
-signal ADDR_Bus            : std_logic_vector(15 downto 0);
+signal ADDR_Bus            : std_logic_vector(15 downto 0) := (others => '0');
 signal DATA_Dir_Ctrl       : std_logic := '0';
-signal DATA_To_Bus         : std_logic_vector(15 downto 0);
+signal DATA_To_Bus         : std_logic_vector(15 downto 0) := (others => '0');
 signal DATA_From_Bus       : std_logic_vector(15 downto 0) := (others => '0');
 
 -- register bank signals for accessing R0 .. R13
-signal reg_read_addr1      : std_logic_vector(3 downto 0) := "0000";
-signal reg_read_addr2      : std_logic_vector(3 downto 0) := "0000";
+signal reg_read_addr1      : std_logic_vector(3 downto 0) := (others => '0');
+signal reg_read_addr2      : std_logic_vector(3 downto 0) := (others => '0');
 signal reg_read_data1      : std_logic_vector(15 downto 0);
 signal reg_read_data2      : std_logic_vector(15 downto 0);   
-signal reg_write_addr      : std_logic_vector(3 downto 0) := "0000";
-signal reg_write_data      : std_logic_vector(15 downto 0);
+signal reg_write_addr      : std_logic_vector(3 downto 0) := (others => '0');
+signal reg_write_data      : std_logic_vector(15 downto 0) := (others => '0');
 signal reg_write_en        : std_logic := '0';   
 
 -- registers R13 (SP), R14 (SR) and R15 (PC) are directly modeled within the CPU
@@ -147,14 +147,14 @@ signal SR                  : std_logic_vector(15 downto 0) := x"0001"; -- status
 signal PC                  : std_logic_vector(15 downto 0) := x"0000"; -- program counter (R15)
 
 -- intstruction related internal CPU registers
-signal Instruction         : std_logic_vector(15 downto 0); -- current instruction word
+signal Instruction         : std_logic_vector(15 downto 0) := (others => '0'); -- current instruction word
 signal Opcode              : std_logic_vector(3 downto 0);  -- current opcode, equals bits 15 .. 12
 signal Src_RegNo           : std_logic_vector(3 downto 0);  -- current source register, equals bits 11 .. 8
 signal Src_Mode            : std_logic_vector(1 downto 0);  -- current source mode, equals bits 7 .. 6
-signal Src_Value           : std_logic_vector(15 downto 0); -- the value is coming from a register or from memory
+signal Src_Value           : std_logic_vector(15 downto 0) := (others => '0'); -- the value is coming from a register or from memory
 signal Dst_RegNo           : std_logic_vector(3 downto 0);  -- current destination register, equals bits 5 .. 2
 signal Dst_Mode            : std_logic_vector(1 downto 0);  -- current destination mode, equals bits 1 .. 0
-signal Dst_Value           : std_logic_vector(15 downto 0); -- the value is coming from a register or from memory
+signal Dst_Value           : std_logic_vector(15 downto 0) := (others => '0'); -- the value is coming from a register or from memory
 signal Bra_Mode            : std_logic_vector(1 downto 0);  -- branch mode (branch type)
 signal Bra_Neg             : std_logic;                     -- branch condition negated
 signal Bra_Condition       : std_logic_vector(2 downto 0);  -- flag number within lower 8 bits of SR
