@@ -24,3 +24,18 @@ _MISC$WAIT_2    SUB     0x0001, R0
                 RBRA    _MISC$WAIT_1, 1
 _MISC$WAIT_END  DECRB
                 RET
+
+;
+;***************************************************************************************
+;* MISC$TIL
+;*
+;* Show a four nibble hex value on the TIL-display
+;*
+;* R8: Contains the value to be displayed
+;***************************************************************************************
+;
+MISC$TIL        INCRB
+                MOVE    IO$TIL_DISPLAY, R0
+                MOVE    R8, @R0
+                DECRB
+                RET

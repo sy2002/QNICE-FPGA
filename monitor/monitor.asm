@@ -1,4 +1,8 @@
-#define DEBUG
+                .ORG 0x0000                ; The monitor begins at address 0x0000, so the lower 
+                                           ; address EPROMs should be mapped into memory by hardware 
+                                           ; default on power up.
+;
+#undef DEBUG
 ;
 #include "sysdef.asm"
 #include "qmon.asm"
