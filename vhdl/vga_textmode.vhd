@@ -219,8 +219,8 @@ begin
       )
       port map (
          clk => clk25MHz,
-         cnt => clrscr_address,
-         reset => reset_clrscr_cnt
+         reset => reset_clrscr_cnt,
+         cnt => clrscr_address
          --overflow => reset_vga_clrscr
       );
          
@@ -229,13 +229,13 @@ begin
    handle_vmem : process(vmem_we, vmem_addr, vga_clrscr, clrscr_address, vga_char)
    begin
       -- putchar
-      if vmem_we = '1' then
+      if vmem_we = '1' and vga_clrscr = '0' then
          vmem_sel_we <= '1';
          vmem_sel_addr <= vmem_addr;
          vmem_sel_data <= vga_char;
       
       -- clear screen
-      elsif vga_clrscr = '1' then
+      elsif vga_clrscr = '1' and vmem_we = '0' then
          vmem_sel_we <= '1';
          vmem_sel_addr <= clrscr_address;
          vmem_sel_data <= x"20"; -- ascii 0x20 = space character
