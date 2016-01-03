@@ -243,6 +243,7 @@ begin
    end process;
    
    fsm_calc_state : process(vga_cmd, vga_print, vga_clrscr, clrscr_cnt)
+   variable new_clrscr_cnt : IEEE.NUMERIC_STD.unsigned(11 downto 0);
    begin
       fsm_next_vga_cmd <= vga_cmd;
       fsm_clrscr_cnt <= clrscr_cnt;
@@ -282,8 +283,9 @@ begin
             fsm_next_vga_cmd <= vc_clrscr_inc;
          
          when vc_clrscr_inc =>
-            fsm_clrscr_cnt <= clrscr_cnt + 1;
-            if fsm_clrscr_cnt = 3200 then
+            new_clrscr_cnt := clrscr_cnt + 1;
+            fsm_clrscr_cnt <= new_clrscr_cnt;
+            if new_clrscr_cnt = 3200 then
                reset_vga_clrscr <= '1';
                fsm_next_vga_cmd <= vc_idle;
             else
@@ -392,7 +394,7 @@ begin
       end if;
    end process;
          
-   read_vga_registers : process(en, we, reg, vga_ctl, vga_x, vga_y, vga_char, vmem_we)
+   read_vga_registers : process(en, we, reg, vga_ctl, vga_x, vga_y, vga_char, vga_busy, vga_clrscr, vga_read_data)
    begin   
       if en = '1' and we = '0' then
          case reg is            
