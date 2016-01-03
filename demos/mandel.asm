@@ -1,9 +1,24 @@
+;
+;  Generate a simple Mandelbrot-set display on a QNICE-system. Output is written 
+; to stdout, so it works with a serial line console as well as with an attached
+; VGA-display.
+;  This program also serves as an example for programming in the qnice-monitor
+; environment.
+;
+; 2015      B. Ulmann
+;
                 .ORG    0x8000
 ;
 #define         POINTER R12
 ;
+;  A typical program should always include the two following includes. sysdef.asm
+; contains the constant definitions used in building the monitor, while monitor.def
+; is an automatically generated file which contains all labels in form of constant
+; definitions (.EQU) of the monitor and thus defines the call-interface to the 
+; monitor.
+;
 #include "../monitor/sysdef.asm"
-                MOVE    VAR$STACK_START, SP
+#include "../monitor/monitor.def"
 ;
 DIVERGENT       .EQU    0x0400              ; Constant for divergence test
 X_START         .EQU    -0x0200             ; -512 = - 2 * scale with scale = 256
@@ -108,48 +123,20 @@ BREAK           MOVE    DISPLAY, R7
                 AND     0x0007, R6
                 ADD     R6, R7
                 MOVE    @R7, R8
-;                RSUB    IO$PUTCHAR, 1
-                RSUB    VGA$PUTCHAR, 1
+                RSUB    IO$PUTCHAR, 1
                 ADD     X_STEP, R1          ; x += x_step
                 RBRA    INNER_LOOP, 1
 ;   }
 ;   printf("\n");
-INNER_LOOP_END  RSUB    PUT_CRLF, 1
+INNER_LOOP_END  RSUB    IO$PUT_CRLF, 1
                 ADD     Y_STEP, R0
                 RBRA    OUTER_LOOP, 1
 ; }
-MANDEL_END      RSUB    PUT_CRLF, 1
-
-PUT_CRLF        MOVE    0x000D, R8
-                RSUB    VGA$PUTCHAR, 1
-                MOVE    0x000A, R8
-                RSUB    VGA$PUTCHAR, 1
-                RET
-
-
+MANDEL_END      RSUB    IO$PUT_CRLF, 1
                 HALT
+
 DISPLAY         .ASCII_P    " .-+*=#*"      ; Characters for the display
 Z0SQUARE_LOW    .BLOCK      1
 Z0SQUARE_HIGH   .BLOCK      1
 Z1SQUARE_LOW    .BLOCK      1
 Z1SQUARE_HIGH   .BLOCK      1
-;
-;
-#include "../monitor/io_library.asm"
-#include "../monitor/string_library.asm"
-#include "../monitor/math_library.asm"
-#include "../monitor/uart_library.asm"
-#include "../monitor/vga_library.asm"
-;
-QMON$WARMSTART  HALT                        ; Dummy
-;
-                .ORG    0xFEFD
-;
-;***************************************************************************************
-;* VGA control block
-;***************************************************************************************
-;
-VAR$STACK_START         .BLOCK  0x0001                  ; Here comes the stack...
-_VGA$X                  .BLOCK  0x0001                  ; Current X coordinate
-_VGA$Y                  .BLOCK  0x0001                  ; Current Y coordinate
-

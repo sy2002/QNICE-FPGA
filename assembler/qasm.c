@@ -2,7 +2,7 @@
 **  QNICE assembler: This program reads QNICE assembler code from a file and generates, as expected from an assembler :-), 
 ** valid machine code based on this input.
 **
-** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015
+** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015
 **
 ** Known bugs:
 **
@@ -942,12 +942,12 @@ int assemble()
 **  write_result scans the complete linked list containing the source code as well as the resulting binary code and creates a 
 ** (binary) output file and the corresponting listing file.
 */
-int write_result(char *output_file_name, char *listing_file_name)
+int write_result(char *output_file_name, char *listing_file_name, char *def_file_name)
 {
   int line_counter, i;
   char address_string[STRING_LENGTH], data_string[STRING_LENGTH], line[STRING_LENGTH], second_word[STRING_LENGTH];
   FILE *output_handle, /* file handle for binary output data */
-    *listing_handle;
+    *listing_handle, *def_handle;
   data_structure *entry;
   equ_structure *equ;
   
@@ -960,6 +960,12 @@ int write_result(char *output_file_name, char *listing_file_name)
   if (!(listing_handle = fopen(listing_file_name, "w")))
   {
     printf("write_result: Unable to open listing file >>%s<<!\n", listing_file_name);
+    return -1;
+  }
+
+  if (!(def_handle = fopen(def_file_name, "w")))
+  {
+    printf("write result: Unable to open definition file >>%s<<\n", def_file_name);
     return -1;
   }
 
@@ -1003,7 +1009,12 @@ int write_result(char *output_file_name, char *listing_file_name)
     fprintf(listing_handle, "%-24s: 0x%04X    ", equ->name, equ->value & 0xffff);
   }
   
-  /* Generate a list of labels */
+  /* Generate a list of labels as well as the definition file */
+  fprintf(def_handle, ";;\n\
+;; This is an automatically generated definition file!\n\
+;; Do NOT change manually!\n\
+;;\n");
+  
   fprintf(listing_handle, "\n\nLabel-list:\n--------------------------------------------------------------------------------------------------------");
   for (i = 0, entry = gbl$data; entry; entry = entry->next)
   {
@@ -1013,11 +1024,13 @@ int write_result(char *output_file_name, char *listing_file_name)
     if (!(i++ % 3))
       fprintf(listing_handle, "\n");
     fprintf(listing_handle, "%-24s: 0x%04X    ", entry->label, entry->address & 0xffff);
+    fprintf(def_handle, "%-30s\t.EQU\t0x%04X\n", entry->label, entry->address & 0xffff);
   }
   fprintf(listing_handle, "\n");
-  
+
   fclose(output_handle);
   fclose(listing_handle);
+  fclose(def_handle);
   
   return 0;
 }
@@ -1025,14 +1038,14 @@ int write_result(char *output_file_name, char *listing_file_name)
 int main(int argc, char **argv)
 {
   int rc;
-  char *source_file_name, output_file_name[STRING_LENGTH], listing_file_name[STRING_LENGTH];
+  char *source_file_name, output_file_name[STRING_LENGTH], listing_file_name[STRING_LENGTH], def_file_name[STRING_LENGTH];
     
   if (argc < 2 || argc > 4)
     print_help();
   else
   {
     source_file_name = argv[1];
-    *output_file_name = *listing_file_name = (char) 0;
+    *output_file_name = *listing_file_name = *def_file_name = (char) 0;
     
     if (argc > 2) /* Output file name explicitly stated */
     {
@@ -1043,14 +1056,11 @@ int main(int argc, char **argv)
 
     if (!*output_file_name)
       replace_extension(output_file_name, source_file_name, "bin");
+
+    replace_extension(def_file_name, output_file_name, "def");
       
     if (!*listing_file_name)
-    {
-      if (*output_file_name)
         replace_extension(listing_file_name, output_file_name, "lis");
-      else
-        replace_extension(listing_file_name, source_file_name, "lis");
-    }
 
 #ifdef VERBOSE
     printf("Reading >>%s<<, writing >>%s<< (bin) and >>%s<< (lis).\n",
@@ -1071,7 +1081,7 @@ int main(int argc, char **argv)
       return rc;
     }
     
-    if ((rc = write_result(output_file_name, listing_file_name)))
+    if ((rc = write_result(output_file_name, listing_file_name, def_file_name)))
       return rc;
   }
 

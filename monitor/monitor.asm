@@ -14,6 +14,7 @@
 #include "uart_library.asm"
 #include "usb_keyboard_library.asm"
 #include "vga_library.asm"
+#include "math_library.asm"
 ;
 #include "test_library.asm"
 ;
