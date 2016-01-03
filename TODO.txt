@@ -1,3 +1,5 @@
+HARDWARE:
+
 * remove ROM and replace by prefilled RAM
 
 * Improve design to support 100 MHz
@@ -15,3 +17,14 @@
 * single-step-mode in hardware incl. address/data display on 7-segs
 
 * 115k baud problem (redo FIFOs in UART?)
+
+ASSEMBLER:
+
+* allow the usage of a single quote like this: ; ... this won't work ...
+
+MONITOR:
+
+* fix "missing decrb" bug that occurs at multiple "CTRL+E" occasions, e.g.
+  when pressing CTRL+E after a "MEMORY/LOAD" or while anywhere in
+  "MEMORY/DUMP"
+

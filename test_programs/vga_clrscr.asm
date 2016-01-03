@@ -27,13 +27,22 @@ VGA_CY              .EQU    0xFF02
 
                     SHL     8, R2
                     OR      R3, R2
-                    MOVE    R2, @R7
+                    MOVE    R2, @R7     
                     RSUB    WAIT_KEY, 1
 
                     MOVE    @R1, @R7
                     RSUB    WAIT_KEY, 1
 
+                    ; execute the clear screen command and in parallel
+                    ; switch the font color to blue
                     MOVE    0x01E1, @R1
+
+                    ; As the execution of the clear screen takes a while,
+                    ; you will read the busy bit (bit 9) and the clear
+                    ; screen bit (bit 8) as '1' when reading the status
+                    ; register directly after issuing the clear screen
+                    ; command. Therefore, the value 3E1 should be shown
+                    ; on the TIL.
                     MOVE    @R1, @R7
                     RSUB    WAIT_KEY, 1
 

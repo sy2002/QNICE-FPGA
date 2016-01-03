@@ -242,7 +242,7 @@ begin
       end if;     
    end process;
    
-   fsm_calc_state : process(vga_cmd, en, we, reg, vga_print, vga_clrscr, clrscr_cnt)
+   fsm_calc_state : process(vga_cmd, vga_print, vga_clrscr, clrscr_cnt)
    begin
       fsm_next_vga_cmd <= vga_cmd;
       fsm_clrscr_cnt <= clrscr_cnt;
@@ -315,7 +315,7 @@ begin
       end case;
    end process;
       
-   write_vga_registers : process(clk, reset, en, we, reg, data)
+   write_vga_registers : process(clk, reset)
       variable vx : IEEE.NUMERIC_STD.unsigned(7 downto 0);
       variable vy : IEEE.NUMERIC_STD.unsigned(6 downto 0);
       variable memory_pos : std_logic_vector(13 downto 0); -- x + (80 * y)
@@ -366,7 +366,7 @@ begin
       end if;
    end process;
    
-   detect_vga_print : process(clk, reset, en, we, reg, reset_vga_print)
+   detect_vga_print : process(clk, reset, reset_vga_print)
    begin
       if reset = '1' or reset_vga_print = '1' then
          vga_print <= '0';
@@ -379,7 +379,7 @@ begin
       end if;
    end process;
    
-   detect_vga_clrscr : process(clk, reset, en, we, reg, data, reset_vga_clrscr)
+   detect_vga_clrscr : process(clk, reset, reset_vga_clrscr)
    begin
       if reset = '1' or reset_vga_clrscr = '1' then
          vga_clrscr <= '0';
