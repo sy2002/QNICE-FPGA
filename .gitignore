@@ -5,11 +5,12 @@ nexys4ddr/webtalk_impact.xml
 nexys4ddr/iseconfig
 impact.xsl
 impact_impact.xwbt
-tools/qasm2rom
+assembler/qasm
+assembler/qasm2rom
 register_file.sym
 emulator/qnice
-tools/qasm
 *.lis
 *.out
 *.rom
 *.bin
+*.def

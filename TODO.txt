@@ -28,3 +28,8 @@ MONITOR:
   when pressing CTRL+E after a "MEMORY/LOAD" or while anywhere in
   "MEMORY/DUMP"
 
+* use hardware clear screen
+
+* enhance sysdef.asm to mirror the actual vga registers, particularly the
+  new/enhanced meaning of the status/control register
+  
