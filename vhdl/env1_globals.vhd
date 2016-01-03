@@ -15,7 +15,7 @@ constant ROM_SIZE             : integer   := 2250;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.
-constant SHADOW_REGFILE_SIZE  : integer   := 256;
+constant SHADOW_REGFILE_SIZE  : integer   := 16;
 
 -- size of the block RAM in 16bit words: should be 32768
 -- set to 256 during development for tracability during simulation

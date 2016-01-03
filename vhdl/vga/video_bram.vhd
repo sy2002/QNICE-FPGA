@@ -3,6 +3,7 @@
 -- meant to be connected with vga80x40.vhd
 -- can be used as a ROM (in the sense of a prefilled RAM), if the string
 -- CONTENT_FILE is not empty and a valid .rom file is specified
+-- additionally, for performant reading, there is a separately clocked 32-bit data reading facility
 -- done by sy2002 in December 2015
 
 -- inspired by 
@@ -28,7 +29,12 @@ port (
    address_i      : in std_logic_vector(15 downto 0);
    address_o      : in std_logic_vector(15 downto 0);
    data_i         : in std_logic_vector(7 downto 0);
-   data_o         : out std_logic_vector(7 downto 0)
+   data_o         : out std_logic_vector(7 downto 0);
+   
+   -- performant reading facility
+   pr_clk         : in std_logic;
+   pr_addr        : in std_logic_vector(15 downto 0);
+   pr_data        : out std_logic_vector(31 downto 0)  -- contains 4 byte of data around pr_addr
 );
 end video_bram;
 
@@ -58,7 +64,7 @@ signal ram : ram_t := read_romfile(CONTENT_FILE);
 
 begin
 
---process for read and write operation.
+-- process for read and write operation
 process (clk)
 begin
     if rising_edge(clk) then
@@ -67,6 +73,17 @@ begin
         end if;
         data_o <= to_stdlogicvector(ram(conv_integer(address_o)));
     end if;
+end process;
+
+-- process for performant reading
+process(pr_clk)
+begin
+   if rising_edge(pr_clk) then
+      pr_data <= to_stdlogicvector(ram(conv_integer(pr_addr + 3))) &
+                 to_stdlogicvector(ram(conv_integer(pr_addr + 2))) &
+                 to_stdlogicvector(ram(conv_integer(pr_addr + 1))) &
+                 to_stdlogicvector(ram(conv_integer(pr_addr)));
+   end if;
 end process;
 
 end beh;

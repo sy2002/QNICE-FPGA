@@ -280,10 +280,11 @@ begin
          busy => ram_busy         
       );
       
+   -- VGA: 80x40 textmode VGA adaptor
    vga_screen : vga_textmode
       port map (
          reset => not RESET_N,
-         clk => clk,
+         clk => SLOW_CLOCK,
          clk50MHz => SLOW_CLOCK,
          R => vga_r,
          G => vga_g,

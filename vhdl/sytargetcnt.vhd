@@ -19,7 +19,7 @@ port (
    clk       : in std_logic;                 -- clock
    reset     : in std_logic;                 -- async reset
    
-   cnt       : out std_logic_vector(COUNTER_WIDTH -1 downto 0); -- current value
+   cnt       : out std_logic_vector(COUNTER_WIDTH - 1 downto 0); -- current value
    overflow  : out std_logic := '0' -- true for one clock cycle when the counter wraps around
 );
 end SyTargetCounter;

@@ -1,7 +1,7 @@
 ;; VGA clear screen test
 ;; done by sy2002 in December 2015
 
-QMON$MAIN_LOOP      .EQU    0x000E
+QMON$MAIN_LOOP      .EQU    0x000C
 IO$TIL_BASE         .EQU    0xFF10
 IO$UART_STATUS      .EQU    0xFF21
 IO$UART_RX          .EQU    0xFF22
