@@ -1,27 +1,35 @@
 -- 80x40 Textmode VGA
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
 -- tristate outputs go high impedance when not enabled
--- done by sy2002 in December 2015
+-- done by sy2002 in December 2015/January 2016
 
--- features and registers
+-- Features:
+-- * 80x40 text mode
+-- * one color for the whole screen
+-- * hardware cursor
+-- * large video memory: 64.000 bytes, stores 20 screens aka "pages" (selectable via global var VGA_RAM_SIZE)
+-- * hardware scrolling
+--
+-- Registers:
+--
 -- register 0: status and control register
---    bit 9 busy: vga is currently busy, e.g. clearing the screen, scrolling, printing, etc.
---          while busy, vga will ignore commands (they can be still written into the registers though)
---    bit 8 clear screen: write 1, read: 1 = clearscreen still active, 0 = ready
---    bit 7 VGA enable signal (1 = on, 0 switches off the vga signal generation)
---    bit 6 HW cursor enable bit
---    bit 5 is Blink HW cursor enable bit
---    bit 4 is HW cursor mode (0 = big; 1 = small)
---    bits(2:0) is the output color for the whole screen (3-bit rgb, 8 colors)
+--    bits(11:10) hardware scrolling / offset enable: enables the use of the offset registers 5 and 6 for
+--                reading/writing to the vram (bit 11 = 1, register 6) and/or
+--                for displaying vram contents (bit 10 = 1, register 5)
+--    bit 9       busy: vga is currently busy, e.g. clearing the screen, printing, etc.
+--                while busy, vga will ignore commands (they can be still written into the registers though)
+--    bit 8       clear screen: write 1, read: 1 = clearscreen still active, 0 = ready
+--    bit 7       VGA enable signal (1 = on, 0 switches off the vga signal generation)
+--    bit 6       HW cursor enable bit
+--    bit 5       blink HW cursor enable bit
+--    bit 4       HW cursor mode (0 = big; 1 = small)
+--    bits(2:0)   output color for the whole screen (3-bit rgb, 8 colors)
 -- register 1: cursor x position read/write (0..79)
 -- register 2: cusror y position read/write (0..39)
 -- register 3: write: print character written into this register's (7 downto 0) bits at cursor x/y position
 --             read: bits (7 downto 0) contains the character in video ram at address (cursor x, y)
---                   bits (15 downto 8) contains the character in video ram at address (cursor x + 1, y)
--- register 4: cannot be written
---             read bits (7 downto 0) contains the character in video ram at address (cursor x + 2, y)
---             read bits (15 downto 8) contains the character in video ram at address (cursor x + 3, y)
-
+-- register 4: vga display offset register used e.g. for hardware scrolling (0..63999)
+-- register 5: vga read/write offset register used for accessing the whole vram (0..63999)
 -- this component uses Javier Valcarce's vga core
 -- http://www.javiervalcarce.eu/wiki/VHDL_Macro:_VGA80x40
 
@@ -31,6 +39,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.env1_globals.all;
 
 entity vga_textmode is
 port (
@@ -102,7 +111,7 @@ port (
    -- performant reading facility
    pr_clk         : in std_logic;
    pr_addr        : in std_logic_vector(15 downto 0);
-   pr_data        : out std_logic_vector(31 downto 0)  -- contains 4 byte of data around pr_addr   
+   pr_data        : out std_logic_vector(7 downto 0)   
 );
 end component;
 
@@ -122,19 +131,19 @@ end component;
 
 
 -- VGA specific clock, also used for video ram and font rom
-signal clk25MHz         : std_logic;
+signal clk25MHz            : std_logic;
 
 -- signals for wiring video and font ram with the vga80x40 component
-signal vga_text_a       : std_logic_vector(11 downto 0);
-signal vga_text_d       : std_logic_vector(7 downto 0);
-signal vga_font_a       : std_logic_vector(11 downto 0);
-signal vga_font_d       : std_logic_vector(7 downto 0);
+signal vga_text_a          : std_logic_vector(11 downto 0);
+signal vga_text_d          : std_logic_vector(7 downto 0);
+signal vga_font_a          : std_logic_vector(11 downto 0);
+signal vga_font_d          : std_logic_vector(7 downto 0);
 
 -- VGA control flipflops
-signal vga_x            : std_logic_vector(7 downto 0);
-signal vga_y            : std_logic_vector(6 downto 0);
-signal vga_char         : std_logic_vector(7 downto 0);
-signal vga_ctl          : std_logic_vector(7 downto 0);
+signal vga_x               : std_logic_vector(7 downto 0);
+signal vga_y               : std_logic_vector(6 downto 0);
+signal vga_char            : std_logic_vector(7 downto 0);
+signal vga_ctl             : std_logic_vector(7 downto 0);
 
 type vga_command_type is ( vc_idle,          -- idle is not literally idle: the vram is constantly being painted
                            vc_print,         -- print a character aka transfer a byte into vram
@@ -144,32 +153,38 @@ type vga_command_type is ( vc_idle,          -- idle is not literally idle: the 
                            vc_clrscr_store,
                            vc_clrscr_inc
                          );
-signal vga_cmd          : vga_command_type := vc_idle;
-signal vga_busy         : std_logic;
+signal vga_cmd             : vga_command_type := vc_idle;
+signal vga_busy            : std_logic;
                       
--- memory read functionality
-signal vga_read_addr    : std_logic_vector(15 downto 0); -- ff: store current read address
-signal vga_read_data    : std_logic_vector(31 downto 0); -- ff: store current read values
+---- memory read functionality
+signal vga_read_data       : std_logic_vector(7 downto 0); -- ff: store current read values
                       
--- vram control signals generated by the process handle_vmem
-signal vmem_addr        : std_logic_vector(11 downto 0);
-signal vmem_we          : std_logic;
-signal vmem_data        : std_logic_vector(7 downto 0);
+-- vram control signals
+signal vmem_disp_addr      : std_logic_vector(15 downto 0); -- realtime vga display (the vga80x40 component scans it all the time)
+signal vmem_addr           : std_logic_vector(15 downto 0); -- accessing the vram via the cpu
+signal vmem_we             : std_logic;
+signal vmem_data           : std_logic_vector(7 downto 0);
+
+-- hardware scrolling and whole vram access
+signal vmem_offs_rw        : std_logic := '0';
+signal vmem_offs_display   : std_logic := '0';
+signal offs_display        : std_logic_vector(15 downto 0) := (others => '0');
+signal offs_rw             : std_logic_vector(15 downto 0) := (others => '0');
+signal print_addr_w_offs   : std_logic_vector(15 downto 0);
 
 -- command type: print char
-signal vga_print        : std_logic := '0';
-signal reset_vga_print  : std_logic;
-signal print_addr       : std_logic_vector(11 downto 0);
+signal vga_print           : std_logic := '0';
+signal reset_vga_print     : std_logic;
+signal print_addr          : std_logic_vector(11 downto 0);
 
 -- command type: clear screen
-signal clrscr_cnt       : IEEE.NUMERIC_STD.unsigned(11 downto 0);
-signal vga_clrscr       : std_logic := '0';
-signal reset_vga_clrscr : std_logic;
-
+signal clrscr_cnt          : IEEE.NUMERIC_STD.unsigned(15 downto 0);
+signal vga_clrscr          : std_logic := '0';
+signal reset_vga_clrscr    : std_logic;
 
 -- state machine signals
-signal fsm_next_vga_cmd : vga_command_type;
-signal fsm_clrscr_cnt   : IEEE.NUMERIC_STD.unsigned(11 downto 0);
+signal fsm_next_vga_cmd    : vga_command_type;
+signal fsm_clrscr_cnt      : IEEE.NUMERIC_STD.unsigned(15 downto 0);
 
 
 begin
@@ -194,7 +209,7 @@ begin
 
    video_ram : video_bram
       generic map (
-         SIZE_BYTES => 3200,                             -- 80 columns x 40 lines = 3.200 bytes
+         SIZE_BYTES => VGA_RAM_SIZE,                     -- see env1_globals.vhd
          CONTENT_FILE => "testscreen.rom",               -- @TODO remove test image -- don't specify a file, so this is RAM
          FILE_LINES => 163,
          DEFAULT_VALUE => x"20"                          -- ACSII code of the space character
@@ -202,12 +217,12 @@ begin
       port map (
          clk => clk25MHz,
          we => vmem_we,
-         address_o => "0000" & vga_text_a,
+         address_o => vmem_disp_addr,
          data_o => vga_text_d,
-         address_i => "0000" & vmem_addr,
+         address_i => vmem_addr,
          data_i => vmem_data,
          pr_clk => clk,
-         pr_addr => vga_read_addr,
+         pr_addr => print_addr_w_offs,
          pr_data => vga_read_data
       );
       
@@ -243,7 +258,7 @@ begin
    end process;
    
    fsm_calc_state : process(vga_cmd, vga_print, vga_clrscr, clrscr_cnt)
-   variable new_clrscr_cnt : IEEE.NUMERIC_STD.unsigned(11 downto 0);
+   variable new_clrscr_cnt : IEEE.NUMERIC_STD.unsigned(15 downto 0);
    begin
       fsm_next_vga_cmd <= vga_cmd;
       fsm_clrscr_cnt <= clrscr_cnt;
@@ -296,12 +311,12 @@ begin
       end case;      
    end process;
    
-   calc_vmem_signals : process(vga_cmd, print_addr, vga_char, clrscr_cnt)
+   calc_vmem_signals : process(vga_cmd, print_addr_w_offs, vga_char, clrscr_cnt)
    begin      
       case vga_cmd is
          when vc_print | vc_print_store  =>
             vmem_we <= '1';
-            vmem_addr <= print_addr;            
+            vmem_addr <= print_addr_w_offs;            
             vmem_data <= vga_char;
             
          when vc_clrscr_run | vc_clrscr_store =>
@@ -328,7 +343,10 @@ begin
          vga_ctl <= (others => '0');
          vga_char <= (others => '0');
          print_addr <= (others => '0');
-         vga_read_addr <= (others => '0');
+         vmem_offs_display <= '0';
+         vmem_offs_rw <= '0';         
+         offs_display <= (others => '0');
+         offs_rw <= (others => '0');
       else                  
          if falling_edge(clk) then
             if en = '1' and we = '1' then
@@ -336,6 +354,8 @@ begin
                   -- status register
                   when x"0" =>
                      vga_ctl <= data(7 downto 0);
+                     vmem_offs_display <= data(10);
+                     vmem_offs_rw <= data(11);
                      
                   -- cursor x register
                   when x"1" =>
@@ -343,7 +363,7 @@ begin
                      vx := IEEE.NUMERIC_STD.unsigned(data(7 downto 0));
                      vy := IEEE.NUMERIC_STD.unsigned(vga_y);
                      memory_pos := std_logic_vector(vx + (vy * 80));                     
-                     vga_read_addr <= "0000" & memory_pos(11 downto 0);
+                     print_addr <= memory_pos(11 downto 0);
                   
                   -- cursor y register
                   when x"2" =>
@@ -351,7 +371,7 @@ begin
                      vx := IEEE.NUMERIC_STD.unsigned(vga_x);
                      vy := IEEE.NUMERIC_STD.unsigned(data(6 downto 0));
                      memory_pos := std_logic_vector(vx + (vy * 80));
-                     vga_read_addr <= "0000" & memory_pos(11 downto 0);                     
+                     print_addr <= memory_pos(11 downto 0);
 
                   -- character print register
                   when x"3" =>
@@ -360,6 +380,10 @@ begin
                      vy := IEEE.NUMERIC_STD.unsigned(vga_y);
                      memory_pos := std_logic_vector(vx + (vy * 80));                  
                      print_addr <= memory_pos(11 downto 0);
+                     
+                  -- offset registers
+                  when x"4" => offs_display <= data;
+                  when x"5" => offs_rw <= data;
                   
                   when others => null;
                end case;
@@ -394,18 +418,22 @@ begin
       end if;
    end process;
          
-   read_vga_registers : process(en, we, reg, vga_ctl, vga_x, vga_y, vga_char, vga_busy, vga_clrscr, vga_read_data)
+   read_vga_registers : process(en, we, reg, vga_ctl, vga_x, vga_y, vga_char, vga_busy, vga_clrscr, vga_read_data,
+                                vmem_offs_rw, vmem_offs_display, offs_display, offs_rw)
    begin   
       if en = '1' and we = '0' then
          case reg is            
-            when x"0" => data <= "000000" &                             -- status register
+            when x"0" => data <= "0000" &                               -- status register
+                                 vmem_offs_rw &                         --    bit 11
+                                 vmem_offs_display &                    --    bit 10
                                  vga_busy &                             --    bit 9
                                  vga_clrscr &                           --    bit 8
                                  vga_ctl;                               --    bits 0..7
-            when x"1" => data <= x"00" & vga_x;                         -- cursor x register
+            when x"1" => data <= x"00"  & vga_x;                        -- cursor x register
             when x"2" => data <= x"00" & '0' & vga_y;                   -- cursor y register
-            when x"3" => data <= vga_read_data(15 downto 0);            -- character print/read register (bytes 1, 0)
-            when x"4" => data <= vga_read_data(31 downto 16);           -- character read register (bytes 3, 2)
+            when x"3" => data <= x"00"  & vga_read_data;                -- character print/read register
+            when x"4" => data <= offs_display;                          -- display offset register
+            when x"5" => data <= offs_rw;                               -- memory access (read/write) offset register
             when others => data <= (others => '0');
          end case;
       else
@@ -413,8 +441,44 @@ begin
       end if;
    end process;
    
+   calc_vmem_disp_addr : process(vmem_offs_display, offs_display, vga_text_a)
+      variable disp_addr : IEEE.NUMERIC_STD.unsigned(16 downto 0);
+      variable disp_offs : IEEE.NUMERIC_STD.unsigned(16 downto 0);
+   begin
+      if vmem_offs_display = '1' then
+         -- address for display = address generated by the vga80x40 component plus offset
+         disp_offs := "0" & IEEE.NUMERIC_STD.unsigned(offs_display);
+         disp_addr := disp_offs + IEEE.NUMERIC_STD.unsigned(vga_text_a);
+         
+         -- manual wrap around due to the (0..VGA_RAM_SIZE-1) memory size
+         if disp_addr > (VGA_RAM_SIZE - 1) then
+            disp_addr := disp_addr - VGA_RAM_SIZE;
+         end if;
+         
+         vmem_disp_addr <= std_logic_vector(disp_addr(15 downto 0));
+      else
+         vmem_disp_addr <= "0000" & vga_text_a;      
+      end if;
+   end process;
+   
+   calc_print_addr_w_offs : process(vmem_offs_rw, offs_rw, print_addr)
+      variable disp_addr : IEEE.NUMERIC_STD.unsigned(16 downto 0);
+      variable disp_offs : IEEE.NUMERIC_STD.unsigned(16 downto 0);   
+   begin
+      if vmem_offs_rw = '1' then
+         disp_offs := "0" & IEEE.NUMERIC_STD.unsigned(offs_rw);
+         disp_addr := disp_offs + IEEE.NUMERIC_STD.unsigned(print_addr);
+         if disp_addr > (VGA_RAM_SIZE - 1) then
+            disp_addr := disp_addr - VGA_RAM_SIZE;
+         end if;
+         
+         print_addr_w_offs <= std_logic_vector(disp_addr(15 downto 0));
+      else
+         print_addr_w_offs <= "0000" & print_addr;
+      end if;
+   end process;
+   
    clk25MHz <= '0' when reset = '1' else
                not clk25MHz when rising_edge(clk50MHz);
    vga_busy <= '0' when vga_cmd = vc_idle else '1';
 end beh;
-

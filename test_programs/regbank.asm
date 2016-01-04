@@ -43,8 +43,8 @@ VAR_DIFF        .EQU    0x8000              ; variable in RAM to store the
                 MOVE    23, R11             ; we need to move 23 often
 
 ; fill registers throughout 256 registerbanks with meaningful values
-BANK_LOOP       MOVE    R8, R0              ; move 256 downto 1 in all R0's
-                MOVE    R11, R1             ; move 23 in all R1's
+BANK_LOOP       MOVE    R8, R0              ; move 256 downto 1 in all R0s
+                MOVE    R11, R1             ; move 23 in all R1s
                 SUB     R10, R14            ; previous register bank
                 SUB     R9, R8              ; decrease loop counter
                 RBRA    BANK_LOOP, !Z       ; loop 256 downto 1 (0 exits)

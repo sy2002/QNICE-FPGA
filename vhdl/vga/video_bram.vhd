@@ -34,14 +34,12 @@ port (
    -- performant reading facility
    pr_clk         : in std_logic;
    pr_addr        : in std_logic_vector(15 downto 0);
-   pr_data        : out std_logic_vector(31 downto 0)  -- contains 4 byte of data around pr_addr
+   pr_data        : out std_logic_vector(7 downto 0)
 );
 end video_bram;
 
 architecture beh of video_bram is
 
---Declaration of type and signal of a 256 element RAM
---with each element being 8 bit wide.
 type ram_t is array (0 to SIZE_BYTES - 1) of bit_vector(7 downto 0);
 
 impure function read_romfile(rom_file_name : in string) return ram_t is
@@ -79,10 +77,7 @@ end process;
 process(pr_clk)
 begin
    if rising_edge(pr_clk) then
-      pr_data <= to_stdlogicvector(ram(conv_integer(pr_addr + 3))) &
-                 to_stdlogicvector(ram(conv_integer(pr_addr + 2))) &
-                 to_stdlogicvector(ram(conv_integer(pr_addr + 1))) &
-                 to_stdlogicvector(ram(conv_integer(pr_addr)));
+      pr_data <= to_stdlogicvector(ram(conv_integer(pr_addr)));
    end if;
 end process;
 

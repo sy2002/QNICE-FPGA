@@ -1,11 +1,12 @@
--- Hi Emacs, this is -*- mode: vhdl; -*-
 ----------------------------------------------------------------------------------------------------
 --
 -- Monocrome Text Mode Video Controller VHDL Macro
 -- 80x40 characters. Pixel resolution is 640x480/60Hz
 -- 
 -- Copyright (c) 2007 Javier Valcarce García, javier.valcarce@gmail.com
--- $Id$
+--
+-- Bugfixed by Proboscide99 at 31/08/08
+-- Enhanced and bugfixed by sy2002 in 2015/2016
 --
 ----------------------------------------------------------------------------------------------------
 -- This program is free software: you can redistribute it and/or modify
@@ -229,7 +230,7 @@ begin
     vctr_479 <= '1' when vctr = 479 else '0';
     chrx_007 <= '1' when chrx = 007 else '0';
     chry_011 <= '1' when chry = 011 else '0';
-    scrx_079 <= '1' when scrx = 079 else '0';
+--    scrx_079 <= '1' when scrx = 079 else '0'; -- removed by sy2002
 
     chrx_rs <= chrx_007 or hctr_639;
     chry_rs <= chry_011 or vctr_479;

@@ -15,11 +15,14 @@ constant ROM_SIZE             : integer   := 2303;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.
-constant SHADOW_REGFILE_SIZE  : integer   := 16;
+constant SHADOW_REGFILE_SIZE  : integer   := 256;
 
 -- size of the block RAM in 16bit words: should be 32768
 -- set to 256 during development for tracability during simulation
 constant BLOCK_RAM_SIZE       : integer   := 32768;
+
+-- VGA screen memory (should be a multiple of 80x40 = 3.200)
+constant VGA_RAM_SIZE         : integer   := 64000;
 
 -- UART is in 8-N-1 mode
 -- assuming a 100 MHz system clock, set the baud rate by selecting the following divisors according to this formula:
