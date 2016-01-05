@@ -97,6 +97,8 @@ _VGA$PUTC_NO_CR         CMP     0x000A, R8                  ; Is it a LF?
     XOR R9, R9
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, scroll one line up...
                         SUB     0x0001, R5                  ; ...and decrement Y-coordinate
+    XOR R9, R9
+    XOR R9, R9
                         RBRA    _VGA$PUTC_END, 1            ; Update registers and exit
 _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the HW char-register
                         MOVE    R8, @R6                     ; Output the character
@@ -110,6 +112,8 @@ _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the H
     XOR R9, R9
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, dcroll one line up...
                         SUB     0x0001, R5                  ; ...and decrement Y-coordinate
+    XOR R9, R9
+    XOR R9, R9
                         RBRA    _VGA$PUTC_END, 1            ; and finish
 _VGA$PUTC_1             ADD     0x0001, R4                  ; Just increment the X-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; and finish 
