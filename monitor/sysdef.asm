@@ -30,6 +30,7 @@ VGA$MAX_CHARS           .EQU    3200                    ; VGA$MAX_X * VGA$MAX_Y
 VGA$CHARS_PER_LINE      .EQU    80  
 
 VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling enable
+VGA$CLR_SCRN            .EQU    0x0100                  ; Clear screen
 
 ;
 VGA$COLOR_RED           .EQU    0x0004

@@ -170,11 +170,9 @@ VGA$CLS                 INCRB
                         MOVE    R0, @R1
                         MOVE    VGA$OFFS_RW, R1
                         MOVE    R0, @R1
+; Actually clear screen
+                        MOVE    VGA$STATE, R0
+                        OR      VGA$CLR_SCRN, @R0
 ;
-                        MOVE    ' ', R8             ; Print spaces
-                        MOVE    VGA$MAX_CHARS, R0   ; How many characters?
-_VGA$CLS_LOOP           RSUB    VGA$PUTCHAR, 1      ; Print a space character
-                        SUB     0x0001, R0
-                        RBRA    _VGA$CLS_LOOP, !Z   ; Not done?
                         DECRB
                         RET
