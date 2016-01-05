@@ -13,9 +13,9 @@
 -- Registers:
 --
 -- register 0: status and control register
---    bits(11:10) hardware scrolling / offset enable: enables the use of the offset registers 5 and 6 for
---                reading/writing to the vram (bit 11 = 1, register 6) and/or
---                for displaying vram contents (bit 10 = 1, register 5)
+--    bits(11:10) hardware scrolling / offset enable: enables the use of the offset registers 4 and 5 for
+--                reading/writing to the vram (bit 11 = 1, register 5) and/or
+--                for displaying vram contents (bit 10 = 1, register 4)
 --    bit 9       busy: vga is currently busy, e.g. clearing the screen, printing, etc.
 --                while busy, vga will ignore commands (they can be still written into the registers though)
 --    bit 8       clear screen: write 1, read: 1 = clearscreen still active, 0 = ready
@@ -30,6 +30,7 @@
 --             read: bits (7 downto 0) contains the character in video ram at address (cursor x, y)
 -- register 4: vga display offset register used e.g. for hardware scrolling (0..63999)
 -- register 5: vga read/write offset register used for accessing the whole vram (0..63999)
+--
 -- this component uses Javier Valcarce's vga core
 -- http://www.javiervalcarce.eu/wiki/VHDL_Macro:_VGA80x40
 

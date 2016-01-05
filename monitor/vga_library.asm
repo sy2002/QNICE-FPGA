@@ -12,6 +12,10 @@
 VGA$MAX_X               .EQU    79                      ; Max. X-coordinate in decimal!
 VGA$MAX_Y               .EQU    39                      ; Max. Y-coordinate in decimal!
 VGA$MAX_CHARS           .EQU    3200                    ; VGA$MAX_X * VGA$MAX_Y
+VGA$CHARS_PER_LINE      .EQU    80
+
+VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling enable
+
 ;
 VGA$COLOR_RED           .EQU    0x0004
 VGA$COLOR_GREEN         .EQU    0x0002
@@ -28,6 +32,7 @@ VGA$INIT                INCRB
                         MOVE    VGA$STATE, R0
                         MOVE    0x00E0, @R0             ; Enable everything
                         OR      VGA$COLOR_GREEN, @R0    ; Set font color to green
+                        OR      VGA$EN_HW_SCRL, @R0     ; Enable offset registers
 ;                        RSUB    VGA$CLS, 1              ; Clear the screen
                         XOR     R0, R0
                         MOVE    _VGA$X, R1
@@ -37,6 +42,10 @@ VGA$INIT                INCRB
                         MOVE    _VGA$Y, R1
                         MOVE    R0, @R1                 ; The same with Y...
                         MOVE    VGA$CR_Y, R1
+                        MOVE    R0, @R1
+                        MOVE    VGA$OFFS_DISPLAY, R1    ; Reset the display offset reg.
+                        MOVE    R0, @R1
+                        MOVE    VGA$OFFS_RW, R1         ; Reset the rw offset reg.
                         MOVE    R0, @R1
                         DECRB
                         RET

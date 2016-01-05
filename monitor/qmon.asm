@@ -48,10 +48,11 @@ QMON$COLDSTART  AND     0x00FF, SR              ; Make sure we are in register b
 ;                SUB     0x0001, R9              ; We need one stack cell for the following call
 ;                XOR     R10, R10                ; Clear with zero words
 ;                RSUB    MEM$FILL, 1             ; Clear
+                RBRA    QMON$MAIN_LOOP, 1       ; skip redundant warmstart commands
 ;;TODO: Clear registers
-;QMON$WARMSTART  AND     0x00FF, SR              ; Reset register bank to zero
-;                MOVE    VAR$STACK_START, SP     ; Set up stack pointer to highest available address
-QMON$WARMSTART  RSUB    IO$PUT_CRLF, 1
+QMON$WARMSTART  AND     0x00FF, SR              ; Reset register bank to zero
+                MOVE    VAR$STACK_START, SP     ; Set up stack pointer to highest available address
+                RSUB    IO$PUT_CRLF, 1
 QMON$MAIN_LOOP  MOVE    QMON$PROMPT, R8         ; Print monitor prompt
                 RSUB    IO$PUTS, 1
                 RSUB    IO$GETCHAR, 1           ; Wait for a key being pressed
