@@ -6,23 +6,6 @@
 
 ;
 ;***************************************************************************************
-;* Some constant definitions
-;***************************************************************************************
-;
-VGA$MAX_X               .EQU    79                      ; Max. X-coordinate in decimal!
-VGA$MAX_Y               .EQU    39                      ; Max. Y-coordinate in decimal!
-VGA$MAX_CHARS           .EQU    3200                    ; VGA$MAX_X * VGA$MAX_Y
-VGA$CHARS_PER_LINE      .EQU    80
-
-VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling enable
-
-;
-VGA$COLOR_RED           .EQU    0x0004
-VGA$COLOR_GREEN         .EQU    0x0002
-VGA$COLOR_BLUE          .EQU    0x0001
-VGA$COLOR_WHITE         .EQU    0x0007
-;
-;***************************************************************************************
 ;* VGA$INIT
 ;*
 ;* VGA on, hardware cursor on, large, blinking, reset current character coordinates
@@ -110,7 +93,8 @@ _VGA$PUTC_NO_CR         CMP     0x000A, R8                  ; Is it a LF?
                         ADD     0x0001, R5                  ; Increment Y-coordinate
                         CMP     VGA$MAX_Y, R5               ; EOScreen reached?
                         RBRA    _VGA$PUTC_END, !Z           ; No, just update and exit
-                        XOR     R5, R5                      ; Yes, reset Y-coordinate
+                        RSUB    VGA$SCROLL_UP_1, 1          ; Yes, scroll one line up...
+                        SUB     0x0001, R5                  ; ...and decrement Y-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; Update registers and exit
 _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the HW char-register
                         MOVE    R8, @R6                     ; Output the character
@@ -120,7 +104,8 @@ _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the H
                         XOR     R4, R4                      ; Yes, reset X-coordinate to 0 and
                         CMP     VGA$MAX_Y, R5               ; check if we have reached EOScreen
                         RBRA    _VGA$PUTC_2, !Z             ; No
-                        XOR     R5, R5                      ; Yes, reset Y-coordinate to 0
+                        RSUB    VGA$SCROLL_UP_1, 1          ; Yes, dcroll one line up...
+                        SUB     0x0001, R5                  ; ...and decrement Y-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; and finish
 _VGA$PUTC_1             ADD     0x0001, R4                  ; Just increment the X-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; and finish 
@@ -131,6 +116,22 @@ _VGA$PUTC_END           MOVE    R4, @R0                     ; Update the HW coor
                         MOVE    R4, @R2                     ; Store current coordinates in 
                         MOVE    R5, @R3                     ; _VGA$X and _VGA$Y
 ;
+                        DECRB
+                        RET
+
+;
+;***************************************************************************************
+;* VGA$SCROLL_UP_1
+;*
+;* Scroll one line up
+;***************************************************************************************
+;
+VGA$SCROLL_UP_1         INCRB
+                        MOVE    VGA$OFFS_DISPLAY, R0
+                        MOVE    VGA$OFFS_RW, R1
+                        MOVE    VGA$CHARS_PER_LINE, R2
+                        ADD     R2, @R0
+                        ADD     R2, @R1
                         DECRB
                         RET
 
