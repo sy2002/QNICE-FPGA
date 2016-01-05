@@ -17,8 +17,8 @@
 ; definitions (.EQU) of the monitor and thus defines the call-interface to the 
 ; monitor.
 ;
-#include "../monitor/sysdef.asm"
-#include "../monitor/monitor.def"
+#include "../dist_kit/sysdef.asm"
+#include "../dist_kit/monitor.def"
 ;
 DIVERGENT       .EQU    0x0400              ; Constant for divergence test
 X_START         .EQU    -0x0200             ; -512 = - 2 * scale with scale = 256
