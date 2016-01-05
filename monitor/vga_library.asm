@@ -93,12 +93,14 @@ _VGA$PUTC_NO_CR         CMP     0x000A, R8                  ; Is it a LF?
                         ADD     0x0001, R5                  ; Increment Y-coordinate
                         CMP     VGA$MAX_Y, R5               ; EOScreen reached?
                         RBRA    _VGA$PUTC_END, !Z           ; No, just update and exit
-    XOR R9, R9
-    XOR R9, R9
+    ; TODO: Remove
+    XOR R12, R12
+    XOR R12, R12
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, scroll one line up...
                         SUB     0x0001, R5                  ; ...and decrement Y-coordinate
-    XOR R9, R9
-    XOR R9, R9
+    ; TODO: Remove
+    XOR R12, R12
+    XOR R12, R12
                         RBRA    _VGA$PUTC_END, 1            ; Update registers and exit
 _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the HW char-register
                         MOVE    R8, @R6                     ; Output the character
@@ -108,12 +110,14 @@ _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the H
                         XOR     R4, R4                      ; Yes, reset X-coordinate to 0 and
                         CMP     VGA$MAX_Y, R5               ; check if we have reached EOScreen
                         RBRA    _VGA$PUTC_2, !Z             ; No
-    XOR R9, R9
-    XOR R9, R9
+    ; TODO: Remove
+    XOR R12, R12
+    XOR R12, R12
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, dcroll one line up...
                         SUB     0x0001, R5                  ; ...and decrement Y-coordinate
-    XOR R9, R9
-    XOR R9, R9
+    ; TODO: Remove
+    XOR R12, R12
+    XOR R12, R12
                         RBRA    _VGA$PUTC_END, 1            ; and finish
 _VGA$PUTC_1             ADD     0x0001, R4                  ; Just increment the X-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; and finish 
@@ -154,8 +158,19 @@ VGA$CLS                 INCRB
                         XOR     R0, R0
                         MOVE    _VGA$X, R1          ; Clear the SW X-register
                         MOVE    R0, @R1
-                        MOVE    _VGA$Y, R2          ; Clear the SW Y-register
-                        MOVE    R0, @R2
+                        MOVE    _VGA$Y, R1          ; Clear the SW Y-register
+                        MOVE    R0, @R1
+; Reset hardware cursor address
+                        MOVE    VGA$CR_X, R1        ; Store it in VGA$CR_X
+                        MOVE    R0, @R1             ; ...and let the hardware know
+                        MOVE    _VGA$Y, R1
+                        MOVE    R0, @R1             ; The same with Y...
+; Reset scrolling registers
+                        MOVE    VGA$OFFS_DISPLAY, R1
+                        MOVE    R0, @R1
+                        MOVE    VGA$OFFS_RW, R1
+                        MOVE    R0, @R1
+;
                         MOVE    ' ', R8             ; Print spaces
                         MOVE    VGA$MAX_CHARS, R0   ; How many characters?
 _VGA$CLS_LOOP           RSUB    VGA$PUTCHAR, 1      ; Print a space character

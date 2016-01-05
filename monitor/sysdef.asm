@@ -7,17 +7,17 @@
 ;*  Some assembler macros which make life much easier:
 ;***************************************************************************************
 ;
-#define RET	    MOVE 	@R13++, R15
-#define INCRB	ADD 	0x0100, R14
-#define DECRB	SUB	    0x0100, R14
+#define RET     MOVE    @R13++, R15
+#define INCRB   ADD     0x0100, R14
+#define DECRB   SUB     0x0100, R14
 #define NOP     ABRA    R15, 1
 
 ;
 ;  Some register short names:
 ;
-#define PC	R15
-#define SR	R14
-#define SP	R13
+#define PC  R15
+#define SR  R14
+#define SP  R13
 
 ;
 ;***************************************************************************************

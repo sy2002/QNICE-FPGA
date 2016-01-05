@@ -229,7 +229,7 @@ QMON$NOT_H      MOVE    QMON$ILLCMDGRP, R8A     ; Illegal command group
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
 
-QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.3 (Bernd Ulmann, Dezember 2015)\n"
+QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.4 (Bernd Ulmann, Dezember 2015)\n"
                 .ASCII_W    "----------------------------------------------------------------\n\n"
 QMON$PROMPT     .ASCII_W    "QMON> "
 QMON$ILLCMDGRP  .ASCII_W    " *** Illegal command group ***\n"

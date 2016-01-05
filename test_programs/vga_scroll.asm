@@ -7,8 +7,8 @@
 ;; is displayed on TIL
 ;; done by sy2002 in January 2016
 
-#include "../monitor/sysdef.asm"
-#include "../monitor/monitor.def"
+#include "../dist_kit/sysdef.asm"
+#include "../dist_kit/monitor.def"
 
 VGA_EN_DISP_OFFS    .EQU    0x400
 VGA_DISP_OFFS       .EQU    0xFF04

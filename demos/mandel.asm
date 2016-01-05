@@ -126,14 +126,23 @@ BREAK           MOVE    DISPLAY, R7
                 RSUB    IO$PUTCHAR, 1
                 ADD     X_STEP, R1          ; x += x_step
                 RBRA    INNER_LOOP, 1
+    ;TODO: remove
+    NOP
+    NOP
 ;   }
 ;   printf("\n");
 INNER_LOOP_END  RSUB    IO$PUT_CRLF, 1
                 ADD     Y_STEP, R0
                 RBRA    OUTER_LOOP, 1
+    ;TODO: remove
+    NOP
+    NOP
 ; }
 MANDEL_END      RSUB    IO$PUT_CRLF, 1
-                HALT
+    ;TODO: remove
+    NOP
+    NOP
+                RBRA    QMON$WARMSTART, 1
 
 DISPLAY         .ASCII_P    " .-+*=#*"      ; Characters for the display
 Z0SQUARE_LOW    .BLOCK      1

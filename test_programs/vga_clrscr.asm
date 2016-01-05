@@ -1,8 +1,8 @@
 ;; VGA clear screen test
 ;; done by sy2002 in December 2015
 
-#include "../monitor/sysdef.asm"
-#include "../monitor/monitor.def"
+#include "../dist_kit/sysdef.asm"
+#include "../dist_kit/monitor.def"
 
                     .ORG    0x8000
 
