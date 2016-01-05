@@ -93,6 +93,8 @@ _VGA$PUTC_NO_CR         CMP     0x000A, R8                  ; Is it a LF?
                         ADD     0x0001, R5                  ; Increment Y-coordinate
                         CMP     VGA$MAX_Y, R5               ; EOScreen reached?
                         RBRA    _VGA$PUTC_END, !Z           ; No, just update and exit
+    XOR R9, R9
+    XOR R9, R9
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, scroll one line up...
                         SUB     0x0001, R5                  ; ...and decrement Y-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; Update registers and exit
@@ -104,6 +106,8 @@ _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the H
                         XOR     R4, R4                      ; Yes, reset X-coordinate to 0 and
                         CMP     VGA$MAX_Y, R5               ; check if we have reached EOScreen
                         RBRA    _VGA$PUTC_2, !Z             ; No
+    XOR R9, R9
+    XOR R9, R9
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, dcroll one line up...
                         SUB     0x0001, R5                  ; ...and decrement Y-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; and finish
