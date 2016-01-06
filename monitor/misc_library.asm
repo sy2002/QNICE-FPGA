@@ -27,15 +27,10 @@ _MISC$WAIT_END  DECRB
 
 ;
 ;***************************************************************************************
-;* MISC$TIL
+;* MISC$EXIT
 ;*
-;* Show a four nibble hex value on the TIL-display
-;*
-;* R8: Contains the value to be displayed
+;* Exit a program and return to the QNICE monitor
 ;***************************************************************************************
 ;
-MISC$TIL        INCRB
-                MOVE    IO$TIL_DISPLAY, R0
-                MOVE    R8, @R0
-                DECRB
-                RET
+MISC$EXIT       ADD     0x0001, SP              ; Just out of paranoia
+                RBRA    QMON$WARMSTART, 1

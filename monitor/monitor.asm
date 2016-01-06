@@ -1,8 +1,13 @@
+#undef RAM_MONITOR
+#undef DEBUG
+;
+#ifdef RAM_MONITOR
+                .ORG    0x8000
+#else
                 .ORG 0x0000                ; The monitor begins at address 0x0000, so the lower 
                                            ; address EPROMs should be mapped into memory by hardware 
                                            ; default on power up.
-;
-#undef DEBUG
+#endif
 ;
 #include "sysdef.asm"
 #include "qmon.asm"

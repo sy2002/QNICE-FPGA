@@ -119,10 +119,6 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;* R8 will contain the character read in its lower eight bits.
 ;***************************************************************************************
 ;
-; TODO: This is highly unelegant and inefficient - it would be a better idea to
-;       modify the address of the input routine to be used during a warm-start 
-;       in order to avoid the many tests for the switch register.
-;
 IO$GETCHAR          INCRB
     MOVE    IO$TIL_DISPLAY, R0
     MOVE    SR, @R0
@@ -130,12 +126,6 @@ IO$GETCHAR          INCRB
                     MOVE    @R0, R1             ; Read the switch register
                     AND     0x0001, R1          ; Lowest bit set?
                     RBRA    _IO$GETCHAR_UART, Z ; No, read from UART
-; Caution: These two essential NOP instructions are necessary - otherwise
-;          all kinds of strange effects happen. This might (!) be an
-;          underlying hardware bug in the CPU implementation. It seems (!)
-;          to be triggered by an RBRA, followed by an RSUB...
-;        XOR R0, R0
-;        XOR R0, R0
                     RSUB    KBD$GETCHAR, 1      ; Yes, read from USB-keyboard
                     RBRA    _IO$GETCHAR_END, 1  ; Finished...
 _IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1     ; Read from UART
@@ -209,10 +199,6 @@ IO$PUT_CRLF     INCRB                   ; Get a new register page
 ;* The contents of R8 are being preserved during the run of this function.
 ;***************************************************************************************
 ;
-; TODO: This is highly unelegant and inefficient - it would be a better idea to
-;       modify the address of the input routine to be used during a warm-start 
-;       in order to avoid the many tests for the switch register.
-;
 IO$PUTCHAR          INCRB
                     MOVE    IO$SWITCH_REG, R0
                     MOVE    @R0, R1             ; Read the switch register
@@ -223,6 +209,20 @@ IO$PUTCHAR          INCRB
 _IO$PUTCHAR_UART    RSUB    UART$PUTCHAR, 1
 _IO$PUTCHAR_END     DECRB
                     RET
+;
+;***************************************************************************************
+;* IO$TIL
+;*
+;* Show a four nibble hex value on the TIL-display
+;*
+;* R8: Contains the value to be displayed
+;***************************************************************************************
+;
+IO$TIL          INCRB
+                MOVE    IO$TIL_DISPLAY, R0
+                MOVE    R8, @R0
+                DECRB
+                RET
 ;
 ;***************************************************************************************
 ; Constants, etc.

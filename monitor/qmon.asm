@@ -34,7 +34,45 @@
 ;;     to include the necessary library files.
 ;;
 ;
-; Main program
+; Main program:
+;
+;  The main program starts with the central dispatch table used to call monitor routines from 
+; external programs. This maybe considered as a light-weight-system-call. Although it is, of course,
+; possible to call any monitor routine directly from another program this would result in the 
+; need of reassembling everything after even the tiniest change in the monitor. Therefore all
+; routines accessible to other programs, the runtime-library, are not called directly but through
+; one level of indirection using the following dispatch table.
+;  This dispatch table consists of more than pure addresses - it contains branches which wastes
+; one word per entry but reduces the time penalty induced by this additional level of indirection.
+;  Please keep the following things in mind when changing/extending the monitor:
+;
+; - The absolute start address (0x000) of the dispatch table and the sequence of its entries must
+;   not be changed!
+; - If there are new subroutines exposed to external programs, their respective entries are just
+;   appended at the end of the dispatch table.
+; - The labels of the dispatch table entries are written in lower case and should match as closely
+;   as possible the standard names from a typical C-runtime library.
+;
+reset           RBRA    QMON$COLDSTART, 1       ; Skip the dispatch table on reset
+getc            RBRA    IO$GETCHAR, 1
+putc            RBRA    IO$PUTCHAR, 1
+gets            RBRA    IO$GETS, 1
+puts            RBRA    IO$PUTS, 1
+crlf            RBRA    IO$PUT_CRLF, 1
+til             RBRA    IO$TIL, 1
+mult            RBRA    MTH$MUL, 1
+memset          RBRA    MEM$FILL, 1
+memcpy          RBRA    MEM$MOVE, 1
+wait            RBRA    MISC$WAIT, 1
+exit            RBRA    MISC$EXIT, 1
+chr2upper       RBRA    CHR$TO_UPPER, 1
+str2upper       RBRA    STR$TO_UPPER, 1
+strlen          RBRA    STR$LEN, 1
+chomp           RBRA    STR$CHOMP, 1
+strcmp          RBRA    STR$CMP, 1
+strchr          RBRA    STR$STRCHR, 1
+;
+;  The actual monitor code starts here:
 ;
 QMON$COLDSTART  AND     0x00FF, SR              ; Make sure we are in register bank 0
                 MOVE    VAR$STACK_START, SP     ; Initialize stack pointer
@@ -230,6 +268,9 @@ QMON$NOT_H      MOVE    QMON$ILLCMDGRP, R8A     ; Illegal command group
                 RBRA    QMON$MAIN_LOOP, 1
 
 QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.4 (Bernd Ulmann, Dezember 2015)\n"
+#ifdef RAM_MONITOR
+                .ASCII_P    "Running in RAM!\n"
+#endif
                 .ASCII_W    "----------------------------------------------------------------\n\n"
 QMON$PROMPT     .ASCII_W    "QMON> "
 QMON$ILLCMDGRP  .ASCII_W    " *** Illegal command group ***\n"

@@ -548,7 +548,7 @@ int assemble()
 {
   int opcode, type, line_counter, address = 0, i, j, error_counter = 0, number_of_operands, negate, flag, value, size,
     special_char, org_found = 0, dw_entry[MAX_DW_ENTRIES];
-  char line[STRING_LENGTH], *p, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
+  char line[STRING_LENGTH], label[STRING_LENGTH], *p, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
   data_structure *entry;
 
   /* First pass: */
@@ -570,12 +570,13 @@ int assemble()
       
     tokenize(line, (char *) 0); /* Initialize tokenizing */
     token = tokenize((char *) 0, delimiters);
+    strcpy(label, token); /* Make a copy of the token in case it is a label to avoid implicit conversion to upper case */
     
     if (translate_mnemonic(token, &opcode, &type)) /* First token is a mnemonic or a directive */
       strcpy(entry->mnemonic, token);
     else /* If the first token is neither a mnemonic nor an opcode, assume it is a label */
     {
-      strcpy(entry->label, token);
+      strcpy(entry->label, label);
       token = tokenize((char *) 0, delimiters); /* Next token has to be a valid mnemonic or directive */
       if (!translate_mnemonic(token, &opcode, &type))
       {
