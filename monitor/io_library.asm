@@ -134,8 +134,8 @@ IO$GETCHAR          INCRB
 ;          all kinds of strange effects happen. This might (!) be an
 ;          underlying hardware bug in the CPU implementation. It seems (!)
 ;          to be triggered by an RBRA, followed by an RSUB...
-        XOR R0, R0
-        XOR R0, R0
+;        XOR R0, R0
+;        XOR R0, R0
                     RSUB    KBD$GETCHAR, 1      ; Yes, read from USB-keyboard
                     RBRA    _IO$GETCHAR_END, 1  ; Finished...
 _IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1     ; Read from UART
