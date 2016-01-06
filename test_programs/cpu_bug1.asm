@@ -1,7 +1,7 @@
 ; rsub-after-rbra cpu bug (?) testbed
 ; done by sy2002 in January 2016
 
-#define SIMULATOR
+#undef SIMULATOR
 
 #ifdef SIMULATOR
 
@@ -20,8 +20,6 @@
 
                 .ORG        0x8000
 #endif
-
-.ORG        0x8000
 
 #ifdef SIMULATOR
                 AND         0x00FF, SR
@@ -50,9 +48,6 @@ TST_LOOP        MOVE        R11, @R10
                 RSUB        WAIT_KEY, 1
                 ABRA        QMON$MAIN_LOOP, 1
 #endif 
-
-ABRA        0x0012, 1
-
 
 TESTBED         INCRB
                 MOVE        0x000A, @R10
