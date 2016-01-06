@@ -28,10 +28,6 @@ ASSEMBLER:
 
 MONITOR:
 
-* fix "missing decrb" bug that occurs at multiple "CTRL+E" occasions, e.g.
-  when pressing CTRL+E after a "MEMORY/LOAD" or while anywhere in
-  "MEMORY/DUMP"
-
 * use hardware clear screen
 
 * enhance sysdef.asm to mirror the actual vga registers, particularly the

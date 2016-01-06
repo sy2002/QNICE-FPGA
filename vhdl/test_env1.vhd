@@ -32,24 +32,19 @@ USE ieee.std_logic_1164.ALL;
 -- arithmetic functions with Signed or Unsigned values
 --USE ieee.numeric_std.ALL;
  
-ENTITY test_env1 IS
-END test_env1;
+ENTITY test_cpu_debug IS
+END test_cpu_debug;
  
-ARCHITECTURE behavior OF test_env1 IS 
+   ARCHITECTURE behavior OF test_cpu_debug IS 
  
     -- Component Declaration for the Unit Under Test (UUT)
  
-    COMPONENT env1
+    COMPONENT cpu_debug
     PORT(
          CLK : IN  std_logic;
          RESET_N : IN std_logic;
          SSEG_AN : OUT  std_logic_vector(7 downto 0);
-         SSEG_CA : OUT  std_logic_vector(7 downto 0);
-         
-         -- serial communication
-         UART_RXD    : in std_logic;                      -- receive data
-         UART_TXD    : out std_logic                      -- send data
-         
+         SSEG_CA : OUT  std_logic_vector(7 downto 0)                
         );
     END COMPONENT;
     
@@ -67,12 +62,11 @@ ARCHITECTURE behavior OF test_env1 IS
 BEGIN
  
    -- Instantiate the Unit Under Test (UUT)
-   uut: env1 PORT MAP (
+   uut: cpu_debug PORT MAP (
           CLK => CLK,
           RESET_N => '1',
           SSEG_AN => SSEG_AN,
-          SSEG_CA => SSEG_CA,
-          UART_RXD => '0'
+          SSEG_CA => SSEG_CA
         );
 
    -- Clock process definitions
@@ -85,17 +79,17 @@ BEGIN
    end process;
  
 
-   -- Stimulus process
-   stim_proc: process
-   begin    
-      -- hold reset state for 100 ns.
-      wait for 100 ns;  
-
-      wait for CLK_period*10;
-
-      -- insert stimulus here 
-
-      wait;
-   end process;
+--   -- Stimulus process
+--   stim_proc: process
+--   begin    
+--      -- hold reset state for 100 ns.
+--      wait for 100 ns;  
+--
+--      wait for CLK_period*10;
+--
+--      -- insert stimulus here 
+--
+--      wait;
+--   end process;
 
 END;

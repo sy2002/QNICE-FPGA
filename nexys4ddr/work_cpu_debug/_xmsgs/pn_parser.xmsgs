@@ -20,9 +20,6 @@
 <msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/alu_shifter.vhd&quot; into library work</arg>
 </msg>
 
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/basic_uart.vhd&quot; into library work</arg>
-</msg>
-
 <msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/block_ram.vhd&quot; into library work</arg>
 </msg>
 
@@ -32,28 +29,13 @@
 <msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/cpu_constants.vhd&quot; into library work</arg>
 </msg>
 
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/debounce.vhd&quot; into library work</arg>
-</msg>
-
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/env1.vhd&quot; into library work</arg>
+<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/cpu_debug.vhd&quot; into library work</arg>
 </msg>
 
 <msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/env1_globals.vhd&quot; into library work</arg>
 </msg>
 
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/fifo_uart.vhd&quot; into library work</arg>
-</msg>
-
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/keyboard.vhd&quot; into library work</arg>
-</msg>
-
 <msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/mmio_mux.vhd&quot; into library work</arg>
-</msg>
-
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/ps2_keyboard.vhd&quot; into library work</arg>
-</msg>
-
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/ps2_keyboard_to_ascii.vhd&quot; into library work</arg>
 </msg>
 
 <msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/qnice_cpu.vhd&quot; into library work</arg>
@@ -69,21 +51,6 @@
 </msg>
 
 <msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/tristate_buffer.vhd&quot; into library work</arg>
-</msg>
-
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/vga/ctrm.vhd&quot; into library work</arg>
-</msg>
-
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/vga/losr.vhd&quot; into library work</arg>
-</msg>
-
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/vga/vga80x40.vhd&quot; into library work</arg>
-</msg>
-
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/vga/video_bram.vhd&quot; into library work</arg>
-</msg>
-
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;Z:/Documents/Privat/GNR/dev/QNICE-FPGA/vhdl/vga_textmode.vhd&quot; into library work</arg>
 </msg>
 
 </messages>

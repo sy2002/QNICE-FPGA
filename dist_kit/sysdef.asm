@@ -7,17 +7,17 @@
 ;*  Some assembler macros which make life much easier:
 ;***************************************************************************************
 ;
-#define RET	    MOVE 	@R13++, R15
-#define INCRB	ADD 	0x0100, R14
-#define DECRB	SUB	    0x0100, R14
+#define RET     MOVE    @R13++, R15
+#define INCRB   ADD     0x0100, R14
+#define DECRB   SUB     0x0100, R14
 #define NOP     ABRA    R15, 1
 
 ;
 ;  Some register short names:
 ;
-#define PC	R15
-#define SR	R14
-#define SP	R13
+#define PC  R15
+#define SR  R14
+#define SP  R13
 
 ;
 ;***************************************************************************************
@@ -30,6 +30,7 @@ VGA$MAX_CHARS           .EQU    3200                    ; VGA$MAX_X * VGA$MAX_Y
 VGA$CHARS_PER_LINE      .EQU    80  
 
 VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling enable
+VGA$CLR_SCRN            .EQU    0x0100                  ; Clear screen
 
 ;
 VGA$COLOR_RED           .EQU    0x0004
