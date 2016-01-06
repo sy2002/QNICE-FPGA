@@ -170,9 +170,13 @@ VGA$CLS                 INCRB
                         MOVE    R0, @R1
                         MOVE    VGA$OFFS_RW, R1
                         MOVE    R0, @R1
-; Actually clear screen
+; Actually clear screen (and all screen pages in the video RAM)
                         MOVE    VGA$STATE, R0
                         OR      VGA$CLR_SCRN, @R0
-;
+; Wait until screen is cleared
+_VGA$CLS_WAIT           MOVE    @R0, R1
+                        AND     VGA$CLR_SCRN, R1
+                        RBRA    _VGA$CLS_WAIT, !Z
+
                         DECRB
                         RET

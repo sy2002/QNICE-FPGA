@@ -301,7 +301,7 @@ begin
          when vc_clrscr_inc =>
             new_clrscr_cnt := clrscr_cnt + 1;
             fsm_clrscr_cnt <= new_clrscr_cnt;
-            if new_clrscr_cnt = 3200 then
+            if new_clrscr_cnt = VGA_RAM_SIZE then
                reset_vga_clrscr <= '1';
                fsm_next_vga_cmd <= vc_idle;
             else
