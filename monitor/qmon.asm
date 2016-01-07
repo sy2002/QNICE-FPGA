@@ -53,24 +53,24 @@
 ; - The labels of the dispatch table entries are written in lower case and should match as closely
 ;   as possible the standard names from a typical C-runtime library.
 ;
-reset           RBRA    QMON$COLDSTART, 1       ; Skip the dispatch table on reset
-getc            RBRA    IO$GETCHAR, 1
-putc            RBRA    IO$PUTCHAR, 1
-gets            RBRA    IO$GETS, 1
-puts            RBRA    IO$PUTS, 1
-crlf            RBRA    IO$PUT_CRLF, 1
-til             RBRA    IO$TIL, 1
-mult            RBRA    MTH$MUL, 1
-memset          RBRA    MEM$FILL, 1
-memcpy          RBRA    MEM$MOVE, 1
-wait            RBRA    MISC$WAIT, 1
-exit            RBRA    MISC$EXIT, 1
-chr2upper       RBRA    CHR$TO_UPPER, 1
-str2upper       RBRA    STR$TO_UPPER, 1
-strlen          RBRA    STR$LEN, 1
-chomp           RBRA    STR$CHOMP, 1
-strcmp          RBRA    STR$CMP, 1
-strchr          RBRA    STR$STRCHR, 1
+reset!          RBRA    QMON$COLDSTART, 1       ; Skip the dispatch table on reset
+getc!           RBRA    IO$GETCHAR, 1
+putc!           RBRA    IO$PUTCHAR, 1
+gets!           RBRA    IO$GETS, 1
+puts!           RBRA    IO$PUTS, 1
+crlf!           RBRA    IO$PUT_CRLF, 1
+til!            RBRA    IO$TIL, 1
+mult!           RBRA    MTH$MUL, 1
+memset!         RBRA    MEM$FILL, 1
+memcpy!         RBRA    MEM$MOVE, 1
+wait!           RBRA    MISC$WAIT, 1
+exit!           RBRA    MISC$EXIT, 1
+chr2upper!      RBRA    CHR$TO_UPPER, 1
+str2upper!      RBRA    STR$TO_UPPER, 1
+strlen!         RBRA    STR$LEN, 1
+chomp!          RBRA    STR$CHOMP, 1
+strcmp!         RBRA    STR$CMP, 1
+strchr!         RBRA    STR$STRCHR, 1
 ;
 ;  The actual monitor code starts here:
 ;

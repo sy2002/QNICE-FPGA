@@ -2,7 +2,7 @@
 **  QNICE assembler: This program reads QNICE assembler code from a file and generates, as expected from an assembler :-), 
 ** valid machine code based on this input.
 **
-** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015
+** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016
 **
 ** Known bugs:
 **
@@ -54,6 +54,7 @@ typedef struct _data_entry
     dest_op[STRING_LENGTH],    /* Destination operand */
     error_text[STRING_LENGTH]; /* Text of error message if something went wrong during assembly */
   int address,                 /* Memory address for this instruction/directive */
+    export,                    /* Is the label to be exportet? */
     number_of_words,           /* How many words of data are necessary for this line? */
     *data,                     /* Pointer to a list of number_of_words-ints holding the resulting data */
     opcode, opcode_type,       /* Which opcode and which type* */
@@ -576,6 +577,12 @@ int assemble()
       strcpy(entry->mnemonic, token);
     else /* If the first token is neither a mnemonic nor an opcode, assume it is a label */
     {
+      if (label[strlen(label) - 1] == '!') /* This label should be exported! */
+      {
+        label[strlen(label) - 1] = (char) 0;
+        entry->export = 1;
+      }
+
       strcpy(entry->label, label);
       token = tokenize((char *) 0, delimiters); /* Next token has to be a valid mnemonic or directive */
       if (!translate_mnemonic(token, &opcode, &type))
@@ -942,13 +949,17 @@ int assemble()
 /*
 **  write_result scans the complete linked list containing the source code as well as the resulting binary code and creates a 
 ** (binary) output file and the corresponting listing file.
+**
+**  A .def-file will be written if there is at least one label that has been flagged to be exported which is denoted by an
+** exclamationmark following the label name ("L MOVE R0, R1" will generate a label "L" which will not be exported, while
+** "L! MOVE R0, R1" will generate a label "L" that will be listed in the .def-file).
 */
 int write_result(char *output_file_name, char *listing_file_name, char *def_file_name)
 {
   int line_counter, i;
   char address_string[STRING_LENGTH], data_string[STRING_LENGTH], line[STRING_LENGTH], second_word[STRING_LENGTH];
   FILE *output_handle, /* file handle for binary output data */
-    *listing_handle, *def_handle;
+    *listing_handle, *def_handle = (FILE *) 0;
   data_structure *entry;
   equ_structure *equ;
   
@@ -961,12 +972,6 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
   if (!(listing_handle = fopen(listing_file_name, "w")))
   {
     printf("write_result: Unable to open listing file >>%s<<!\n", listing_file_name);
-    return -1;
-  }
-
-  if (!(def_handle = fopen(def_file_name, "w")))
-  {
-    printf("write result: Unable to open definition file >>%s<<\n", def_file_name);
     return -1;
   }
 
@@ -1002,7 +1007,7 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
   
   /* Generate a list of defined EQUs */
   fprintf(listing_handle, 
-          "\n\nEQU-list:\n--------------------------------------------------------------------------------------------------------");
+    "\n\nEQU-list:\n--------------------------------------------------------------------------------------------------------");
   for (i = 0, equ = gbl$equs; equ; equ = equ->next, i++)
   {
     if (!(i % 3))
@@ -1011,12 +1016,9 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
   }
   
   /* Generate a list of labels as well as the definition file */
-  fprintf(def_handle, ";;\n\
-;; This is an automatically generated definition file!\n\
-;; Do NOT change manually!\n\
-;;\n");
   
-  fprintf(listing_handle, "\n\nLabel-list:\n--------------------------------------------------------------------------------------------------------");
+  fprintf(listing_handle, 
+    "\n\nLabel-list:\n--------------------------------------------------------------------------------------------------------");
   for (i = 0, entry = gbl$data; entry; entry = entry->next)
   {
     if(!*(entry->label))
@@ -1025,7 +1027,25 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
     if (!(i++ % 3))
       fprintf(listing_handle, "\n");
     fprintf(listing_handle, "%-24s: 0x%04X    ", entry->label, entry->address & 0xffff);
-    fprintf(def_handle, "%-30s\t.EQU\t0x%04X\n", entry->label, entry->address & 0xffff);
+
+    if (entry->export)
+    {
+      if (!def_handle)
+      {
+        if (!(def_handle = fopen(def_file_name, "w")))
+        {
+          printf("write result: Unable to open definition file >>%s<<\n", def_file_name);
+          return -1;
+        }
+
+        fprintf(def_handle, ";;\n\
+;; This is an automatically generated definition file!\n\
+;; Do NOT change manually!\n\
+;;\n");
+      }
+
+      fprintf(def_handle, "%-30s\t.EQU\t0x%04X\n", entry->label, entry->address & 0xffff);
+    }
   }
   fprintf(listing_handle, "\n");
 
