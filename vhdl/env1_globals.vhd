@@ -26,7 +26,7 @@ constant ROM_SIZE             : integer   := 2353;
 --    HDL: Resource Sharing OFF (was ON)
 --    Xilinx Specific: LUT Combining NO (was AUTO)
 --                     Optimize Privitives ON (was OFF)
-constant SHADOW_REGFILE_SIZE  : integer   := 16;
+constant SHADOW_REGFILE_SIZE  : integer   := 256;
 
 -- size of the block RAM in 16bit words: should be 32768
 -- set to 256 during development for tracability during simulation

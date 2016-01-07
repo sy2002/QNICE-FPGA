@@ -1,4 +1,4 @@
-    ; Checks, if all register banks are working by putting data in all registers
+; Checks, if all register banks are working by putting data in all registers
 ; then generating a check sum for each register. The validity of the check sum
 ; for each register is shown on the emulated TIL by cycling through all 8
 ; result registers, showing the actual value, then subtracting the correct
@@ -13,7 +13,7 @@
 ;
 ; done by sy2002 on August 2015
 
-#define FPGA
+
 IO$TIL_BASE     .EQU    0xFF10              ; Address of TIL-display
 
 ; about 10.000.000 cycles are needed to delay 1 sec
@@ -32,7 +32,7 @@ VAR_DIFF        .EQU    0x8000              ; variable in RAM to store the
                                             ; difference between a register
                                             ; value and the expected value
 
-                .ORG    0x8400
+                .ORG    0xB000
 
                 MOVE    STACK_TOP, R13      ; setup stack pointer
 

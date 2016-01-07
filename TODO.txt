@@ -22,13 +22,3 @@ HARDWARE:
 
 * 115k baud problem (redo FIFOs in UART?)
 
-ASSEMBLER:
-
-* allow the usage of a single quote like this: ; ... this won't work ...
-
-MONITOR:
-
-* use hardware clear screen
-
-* enhance sysdef.asm to mirror the actual vga registers, particularly the
-  new/enhanced meaning of the status/control register

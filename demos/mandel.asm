@@ -7,7 +7,7 @@
 ;
 ; 2015      B. Ulmann
 ;
-                .ORG    0x8000
+                .ORG    0xA000
 ;
 #define         POINTER R12
 ;
