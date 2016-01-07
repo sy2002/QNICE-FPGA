@@ -1,7 +1,7 @@
--- UART with FIFO
+-- BUS UART
 -- meant to be connected with the QNICE CPU as data I/O is through MMIO
 -- tristate outputs go high impedance when not enabled
--- 8-N-1, no error state handling, no flow control
+-- 8-N-1, no error state handling, CTS flow control
 -- DIVISOR assumes a 100 MHz system clock
 -- done by sy2002 and vaxman in August 2015
 
@@ -10,15 +10,14 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use IEEE.MATH_REAL.ALL;
 
-entity fifo_uart is
+entity bus_uart is
 generic (
-   DIVISOR: natural;             -- DIVISOR = 100,000,000 / (16 x BAUD_RATE)
+   DIVISOR: natural              -- DIVISOR = 100,000,000 / (16 x BAUD_RATE)
    -- 2400 -> 2604
    -- 9600 -> 651
    -- 115200 -> 54
    -- 1562500 -> 4
    -- 2083333 -> 3
-   FIFO_SIZE: natural            -- choose one of these values: 8, 16, 32, 64, ...
 );
 port (
    clk            : in std_logic;                       
@@ -36,9 +35,9 @@ port (
    uart_reg       : in std_logic_vector(1 downto 0);
    cpu_data       : inout std_logic_vector(15 downto 0) 
 );
-end fifo_uart;
+end bus_uart;
 
-architecture beh of fifo_uart is
+architecture beh of bus_uart is
 
 component basic_uart is
 generic (
@@ -62,9 +61,6 @@ port (
    tx: out std_logic   
 );
 end component;
-
-signal FIFO_WP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) - 1 downto 0) := (others => '0');
-signal FIFO_RP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) - 1 downto 0) := (others => '0');
 
 -- UART control signals
 signal uart_rx_data           : std_logic_vector(7 downto 0);
@@ -102,7 +98,6 @@ begin
          tx => tx
       );
    
-
    receive_byte : process(uart_rx_enable, uart_rx_data, reset)
    begin
       if reset = '1' then
@@ -189,5 +184,5 @@ begin
       end if;
    end process;
    
-   cts <= '0';
+   cts <= byte_rx_ready;
 end beh;

@@ -134,10 +134,9 @@ port (
 end component;
 
 -- UART
-component fifo_uart is
+component bus_uart is
 generic (
-   DIVISOR        : natural;              -- see UART_DIVISOR in env1_globals.vhd
-   FIFO_SIZE      : natural               -- size of the FIFO in words
+   DIVISOR        : natural               -- see UART_DIVISOR in env1_globals.vhd
 );
 port (
    clk            : in std_logic;                       
@@ -312,11 +311,10 @@ begin
       );
 
    -- special UART with FIFO that can be directly connected to the CPU bus
-   uart : fifo_uart
+   uart : bus_uart
       generic map
       (
-         DIVISOR => UART_DIVISOR,
-         FIFO_SIZE => UART_FIFO_SIZE
+         DIVISOR => UART_DIVISOR
       )
       port map
       (

@@ -44,8 +44,7 @@ constant VGA_RAM_SIZE         : integer   := 64000;
 --    115200 -> 54
 --    1562500 -> 4
 --    2083333 -> 3
-constant UART_DIVISOR          : natural  := 326; -- as long as we are using SLOW_CLOCK with 50 MHz
-constant UART_FIFO_SIZE        : natural  := 16;
+constant UART_DIVISOR          : natural  := 27; -- above mentioned / 2, as long as we are using SLOW_CLOCK with 50 MHz
 
 end env1_globals;
 
