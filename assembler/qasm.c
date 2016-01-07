@@ -52,6 +52,7 @@ typedef struct _data_entry
     mnemonic[STRING_LENGTH],   /* Undecoded mnemonic */
     src_op[STRING_LENGTH],     /* Source operand */
     dest_op[STRING_LENGTH],    /* Destination operand */
+    dw_data[STRING_LENGTH],    /* Arguments of a .DW-directive */
     error_text[STRING_LENGTH]; /* Text of error message if something went wrong during assembly */
   int address,                 /* Memory address for this instruction/directive */
     export,                    /* Is the label to be exported? */
@@ -548,7 +549,7 @@ int decode_operand(char *operand, int *op_code)
 int assemble()
 {
   int opcode, type, line_counter, address = 0, i, j, error_counter = 0, number_of_operands, negate, flag, value, size,
-    special_char, org_found = 0, dw_entry[MAX_DW_ENTRIES];
+    special_char, org_found = 0;
   char line[STRING_LENGTH], label[STRING_LENGTH], *p, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
   data_structure *entry;
 
@@ -615,8 +616,12 @@ int assemble()
       else if (!strcmp(entry->mnemonic, ".DW"))
       {
         i = 0;
-        while ((token = tokenize((char *) 0, delimiters)))
-          dw_entry[i++] = str2int(token);
+        p = strstr(line, ".DW") + strlen(".DW") + 1;
+        remove_leading_blanks(p);
+        strcpy(entry->dw_data, p);
+
+        while ((token = tokenize((char *) 0, delimiters))) /* How many words do we have to reserve? */
+          i++;
 
         if (!(entry->data = (int *) malloc(i * sizeof(int))))
         {
@@ -625,8 +630,6 @@ int assemble()
         }
 
         entry->number_of_words = i;
-        for (j = 0; j < i; j++)
-          *(entry->data + j) = dw_entry[j] & 0xffff;
       }
       else if (!strcmp(entry->mnemonic, ".ASCII_W") || !strcmp(entry->mnemonic, ".ASCII_P"))
       {
@@ -940,6 +943,20 @@ int assemble()
         }
         
       entry->data[i] = value;
+    }
+
+    if (!strcmp(entry->mnemonic, ".DW")) /* Postprocessing for .DW-directive */
+    {
+      i = 0;
+      tokenize(entry->dw_data, (char *) 0); /* Initialize tokenizing */
+      while ((token = tokenize((char *) 0, delimiters))) /* Resolve every single parameter */
+      {
+        if (search_equ_list(token, &value)) /* Returns -1 if unsuccessful */
+          if (find_label(token, &value)) /* Also returns -1 if unsuccessful */
+            value = str2int(token); /* Neither a EQU nor a LABEL... */
+
+        *(entry->data + i++) = value;
+      }
     }
   }
 
