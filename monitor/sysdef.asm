@@ -12,6 +12,8 @@
 #define DECRB   SUB     0x0100, R14
 #define NOP     ABRA    R15, 1
 
+#define SYSCALL(x,y)    ASUB    x, y
+
 ;
 ;  Some register short names:
 ;
