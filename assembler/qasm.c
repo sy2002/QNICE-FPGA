@@ -54,7 +54,7 @@ typedef struct _data_entry
     dest_op[STRING_LENGTH],    /* Destination operand */
     error_text[STRING_LENGTH]; /* Text of error message if something went wrong during assembly */
   int address,                 /* Memory address for this instruction/directive */
-    export,                    /* Is the label to be exportet? */
+    export,                    /* Is the label to be exported? */
     number_of_words,           /* How many words of data are necessary for this line? */
     *data,                     /* Pointer to a list of number_of_words-ints holding the resulting data */
     opcode, opcode_type,       /* Which opcode and which type* */

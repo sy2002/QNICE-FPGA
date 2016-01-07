@@ -1,13 +1,9 @@
 ----------------------------------------------------------------------------------
--- "Environment 1" (aka env1) is inspired by the classic QNICE/A evaluation
--- board environment. Features:
+-- @TODO: find name for the overall computer system (QBM-1?)
 --
---    * the original layout: lower 32kB are ROM, upper 32kB are RAM
---    * memory mapped IO beginning at 0xFF00
---    * 4 TIL-311 displays at 0xFF10: 0xFF10 is the value to be displayed
---                                    0xFF11 lower 4 bit are a display bit mask
+-- Top Module for synthesizing the whole machine
 -- 
--- done in 2015 by sy2002
+-- done on-again-off-again in 2015, 2016 by sy2002
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -154,9 +150,9 @@ port (
    cts            : out std_logic;   
    
    -- conntect to CPU's address and data bus (data high impedance when en=0)
-   cpu_addr       : in std_logic_vector(15 downto 0);
-   cpu_data_dir   : in std_logic;
-   cpu_data_valid : in std_logic;
+   uart_en        : in std_logic;
+   uart_we        : in std_logic;
+   uart_reg       : in std_logic_vector(1 downto 0);
    cpu_data       : inout std_logic_vector(15 downto 0)
 );
 end component;
@@ -205,7 +201,10 @@ port (
    kbd_data_enable   : out std_logic;
    vga_en            : out std_logic;
    vga_we            : out std_logic;
-   vga_reg           : out std_logic_vector(3 downto 0)  
+   vga_reg           : out std_logic_vector(3 downto 0);
+   uart_en           : out std_logic;
+   uart_we           : out std_logic;
+   uart_reg          : out std_logic_vector(1 downto 0)   
 );
 end component;
 
@@ -225,14 +224,17 @@ signal til_reg1_enable        : std_logic;
 signal switch_reg_enable      : std_logic;
 signal kbd_state_enable       : std_logic;
 signal kbd_data_enable        : std_logic;
+signal vga_en                 : std_logic;
+signal vga_we                 : std_logic;
+signal vga_reg                : std_logic_vector(3 downto 0);
+signal uart_en                : std_logic;
+signal uart_we                : std_logic;
+signal uart_reg               : std_logic_vector(1 downto 0);
 
 -- VGA control signals
 signal vga_r                  : std_logic;
 signal vga_g                  : std_logic;
 signal vga_b                  : std_logic;
-signal vga_en                 : std_logic;
-signal vga_we                 : std_logic;
-signal vga_reg                : std_logic_vector(3 downto 0);
 
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
@@ -324,9 +326,9 @@ begin
          tx => UART_TXD,
          rts => UART_RTS,
          cts => UART_CTS,
-         cpu_addr => cpu_addr,
-         cpu_data_valid => cpu_data_valid,
-         cpu_data_dir => cpu_data_dir,
+         uart_en => uart_en,
+         uart_we => uart_we,
+         uart_reg => uart_reg,
          cpu_data => cpu_data         
       );
       
@@ -366,7 +368,10 @@ begin
          kbd_data_enable => kbd_data_enable,
          vga_en => vga_en,
          vga_we => vga_we,
-         vga_reg => vga_reg         
+         vga_reg => vga_reg,
+         uart_en => uart_en,
+         uart_we => uart_we,
+         uart_reg => uart_reg         
       );
       
    switch_driver : process (switch_reg_enable, SWITCHES)

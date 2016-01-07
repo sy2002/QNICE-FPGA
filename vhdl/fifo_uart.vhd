@@ -31,9 +31,9 @@ port (
    cts            : out std_logic;
    
    -- conntect to CPU's address and data bus (data high impedance when en=0)
-   cpu_addr       : in std_logic_vector(15 downto 0);
-   cpu_data_dir   : in std_logic;
-   cpu_data_valid : in std_logic;  
+   uart_en        : in std_logic;
+   uart_we        : in std_logic;
+   uart_reg       : in std_logic_vector(1 downto 0);
    cpu_data       : inout std_logic_vector(15 downto 0) 
 );
 end fifo_uart;
@@ -63,9 +63,6 @@ port (
 );
 end component;
 
--- FIFO
-type FIFO_RAM is array(0 to FIFO_SIZE - 1) of std_logic_vector(8 downto 0);
-signal FIFO : FIFO_RAM := (others => "000000000");
 signal FIFO_WP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) - 1 downto 0) := (others => '0');
 signal FIFO_RP : unsigned(integer(ceil(log2(real(FIFO_SIZE)))) - 1 downto 0) := (others => '0');
 
@@ -76,7 +73,13 @@ signal uart_tx_data           : std_logic_vector(7 downto 0);
 signal uart_tx_enable         : std_logic;
 signal uart_tx_ready          : std_logic;
 
-signal rx_resetvalid          : std_logic := '0';
+-- registers
+signal byte_rx_ready          : std_logic := '0';
+signal reset_byte_rx_ready    : std_logic;
+signal byte_rx_data           : std_logic_vector(7 downto 0);
+signal byte_tx_ready          : std_logic := '0';
+signal reset_byte_tx_ready    : std_logic;
+signal byte_tx_data           : std_logic_vector(7 downto 0);
 
 begin
 
@@ -99,93 +102,92 @@ begin
          tx => tx
       );
    
-   uart_rx : process(uart_rx_enable, uart_rx_data, rx_resetvalid, FIFO_RP, FIFO_WP, reset)
+
+   receive_byte : process(uart_rx_enable, uart_rx_data, reset)
    begin
-      if rx_resetvalid = '1' or reset = '1' then
-         if reset = '1' then
-            FIFO(0)(8) <= '0';
-         else
-            FIFO(to_integer(FIFO_RP))(8) <= '0';
-         end if;
+      if reset = '1' then
+         byte_rx_data <= (others => '0');
       else
          if rising_edge(uart_rx_enable) then
-            FIFO(to_integer(FIFO_WP))(7 downto 0) <= uart_rx_data;
-            FIFO(to_integer(FIFO_WP))(8) <= '1';
-         end if;
-      end if;
-   end process;
-         
-   uart_inc_wp : process(uart_rx_enable, FIFO_WP, reset)
-   begin
-      if reset = '1' then
-         FIFO_WP <= (others => '0');
-      else
-         if falling_edge(uart_rx_enable) then
-            FIFO_WP <= FIFO_WP + 1;
-         end if;
-      end if;
-   end process;
-      
-   uart_inc_rp : process(rx_resetvalid, FIFO_RP, reset)
-   begin
-      if reset = '1' then
-         FIFO_RP <= (others => '0');
-      else
-         if falling_edge(rx_resetvalid) then
-            FIFO_RP <= FIFO_RP + 1;
+            byte_rx_data <= uart_rx_data;
          end if;
       end if;
    end process;
    
-   uart_cts_controller : process (FIFO_RP, FIFO_WP)
+   handle_byte_rx_ready : process(uart_rx_enable, reset, reset_byte_rx_ready)
    begin
-      if abs(signed(FIFO_RP) - signed(FIFO_WP)) > (FIFO_SIZE / 4) then
-         cts <= '1';
+      if reset = '1' or reset_byte_rx_ready = '1' then
+         byte_rx_ready <= '0';
       else
-         cts <= '0';
+         if rising_edge(uart_rx_enable) then
+            byte_rx_ready <= '1';
+         end if;
       end if;
    end process;
-               
-   uart_mmio : process(cpu_addr, cpu_data, cpu_data_dir, cpu_data_valid, uart_tx_ready, FIFO, FIFO_RP, FIFO_WP)
+
+   send_byte : process(uart_tx_ready, byte_tx_ready, byte_tx_data)
    begin
-      cpu_data <= (others => 'Z');
-      uart_tx_data <= (others => 'Z');
-      rx_resetvalid <= '0';
       uart_tx_enable <= '0';
-      
-      if cpu_addr(15 downto 4) = x"FF2" then
-         case cpu_addr(3 downto 0) is
+      uart_tx_data <= (others => '0');
+      reset_byte_tx_ready <= '0';   
+   
+      if uart_tx_ready = '1' and byte_tx_ready = '1' then
+         uart_tx_enable <= '1';
+         uart_tx_data <= byte_tx_data;
+      elsif uart_tx_ready = '0' and byte_tx_ready = '1' then
+         reset_byte_tx_ready <= '1';
+      end if;
+   end process;
+
+   read_registers : process(uart_en, uart_we, uart_reg, uart_tx_ready, byte_rx_ready, byte_rx_data)
+   begin
+      reset_byte_rx_ready <= '0';
+   
+      if uart_en = '1' and uart_we = '0' then
+         case uart_reg is
          
             -- register 1: status register
-            when x"1" =>
-               if cpu_data_dir = '0' then
-                  cpu_data <= x"000" & "00" & uart_tx_ready & FIFO(to_integer(FIFO_RP))(8);
-               end if;
-               
-            -- register 2: read register
-            when x"2" =>
-               if cpu_data_dir = '0' then
-                  cpu_data <= x"00" & FIFO(to_integer(FIFO_RP))(7 downto 0);
-                  rx_resetvalid <= '1';
-               end if;
-               
-            -- register 3: write register
-            when x"3" =>
-               if cpu_data_dir = '1' and cpu_data_valid = '1' then
-                  uart_tx_data <= cpu_data(7 downto 0);
-                  uart_tx_enable <= '1';
-               end if;
-               
-            when others =>
-               cpu_data <= (others => 'Z');
-               uart_tx_data <= (others => 'Z');
-               rx_resetvalid <= '0';
-               uart_tx_enable <= '0';                                          
+            when "01" => cpu_data <= x"000" & "00" & uart_tx_ready & byte_rx_ready;
+
+            -- register 2: receive (aka read) register
+            when "10" =>
+               cpu_data <= x"00" & byte_rx_data;
+               reset_byte_rx_ready <= '1';
+            
+            when others => cpu_data <= (others => '0');
          end case;
+      else
+         cpu_data <= (others => 'Z');
       end if;
    end process;
    
-   
-   
-end beh;
+   write_registers : process(clk, reset)
+   begin
+      if reset = '1' then
+         byte_tx_data <= (others => '0');
+      else
+         if rising_edge(clk) then
+            -- register 3: send (aka write) register
+            if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
+               byte_tx_data <= cpu_data(7 downto 0);
+            end if;
+         end if;
+      end if;
+   end process;
 
+   handle_tx_ready : process(clk, reset, reset_byte_tx_ready)
+   begin
+      if reset = '1' or reset_byte_tx_ready = '1' then
+         byte_tx_ready <= '0';
+      else
+         if rising_edge(clk) then
+            -- tx_ready listens to write operations to register 3
+            if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
+               byte_tx_ready <= '1';
+            end if;
+         end if;
+      end if;
+   end process;
+   
+   cts <= '0';
+end beh;

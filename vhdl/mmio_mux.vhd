@@ -46,7 +46,12 @@ port (
    
    -- Keyboard is $FF13 and $FF14
    kbd_state_enable  : out std_logic;
-   kbd_data_enable   : out std_logic
+   kbd_data_enable   : out std_logic;
+   
+   -- UART starts at $FF20
+   uart_en           : out std_logic;
+   uart_we           : out std_logic;
+   uart_reg          : out std_logic_vector(1 downto 0)
 );
 end mmio_mux;
 
@@ -120,6 +125,19 @@ begin
          vga_en <= '0';
          vga_we <= '0';
          vga_reg <= x"0";
+      end if;
+   end process;
+   
+   uart_control : process(addr, data_dir, data_valid)
+   begin
+      if addr(15 downto 4) = x"FF2" then
+         uart_en <= '1';
+         uart_we <= data_dir and data_valid;
+         uart_reg <= addr(1 downto 0);
+      else
+         uart_en <= '0';
+         uart_we <= '0';
+         uart_reg <= "00";
       end if;
    end process;
       

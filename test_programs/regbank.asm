@@ -11,8 +11,8 @@
 ; Everything works correct, if the TIL displays the following sequence in 
 ; a loop: 8080, 0000, 1700, 0000 
 ;
-; done by sy2002 on August 2015
-
+; done by sy2002 in August 2015
+; improved in January 2016
 
 IO$TIL_BASE     .EQU    0xFF10              ; Address of TIL-display
 
@@ -28,9 +28,6 @@ CHECK_R1        .EQU    0x1700              ; 256 x 23 = 5.888 = 0x1700
 
 ; memory locations
 STACK_TOP       .EQU    0x8200              ; top of the stack, initial SP
-VAR_DIFF        .EQU    0x8000              ; variable in RAM to store the
-                                            ; difference between a register
-                                            ; value and the expected value
 
                 .ORG    0xB000
 
@@ -115,3 +112,6 @@ WAIT_LOOP1      SUB     1, R0               ; dec inner wait cycles and ...
                 SUB     NEXT_BANK, R14      ; previous register bank
                 MOVE    @R13++, R15         ; return from sub routine
 
+VAR_DIFF        .BLOCK  0x0001              ; variable in RAM to store the
+                                            ; difference between a register
+                                            ; value and the expected value

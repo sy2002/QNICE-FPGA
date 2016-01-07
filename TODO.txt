@@ -1,9 +1,5 @@
 HARDWARE:
 
-* fix the supposed "rsub after rbra" cpu bug
-  (can e.g. be observed after mandel.asm did run or when "the xor's" are
-  removed from the IO$GETCHAR routine)
-
 * remove ROM and replace by prefilled RAM
 
 * Improve design to support 100 MHz
@@ -17,6 +13,8 @@ HARDWARE:
 * HALT-LED
 
 * UART address and register decoding in MMIO
+
+* Refactor MMIO for not having so many comperators
 
 * single-step-mode in hardware incl. address/data display on 7-segs
 

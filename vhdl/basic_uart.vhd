@@ -39,7 +39,7 @@ end basic_uart;
 
 architecture beh of basic_uart is
   constant COUNTER_BITS : natural := integer(ceil(log2(real(DIVISOR))));
-  type fsm_state_t is (idle, active); -- common to both RX and TX FSM
+  type fsm_state_t is (idle, active);      -- common to both RX and TX FSM
   type rx_state_t is
   record
     fsm_state: fsm_state_t;                -- FSM state

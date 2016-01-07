@@ -12,7 +12,7 @@ package env1_globals is
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
 --constant ROM_FILE             : string    := "../test_programs/cpu_bug1.rom";
 constant ROM_FILE             : string    := "../monitor/monitor.rom";
-constant ROM_SIZE             : integer   := 2353;
+constant ROM_SIZE             : integer   := 2385;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.
@@ -26,7 +26,7 @@ constant ROM_SIZE             : integer   := 2353;
 --    HDL: Resource Sharing OFF (was ON)
 --    Xilinx Specific: LUT Combining NO (was AUTO)
 --                     Optimize Privitives ON (was OFF)
-constant SHADOW_REGFILE_SIZE  : integer   := 256;
+constant SHADOW_REGFILE_SIZE  : integer   := 16;
 
 -- size of the block RAM in 16bit words: should be 32768
 -- set to 256 during development for tracability during simulation
