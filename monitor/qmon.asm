@@ -71,6 +71,9 @@ strlen!         RBRA    STR$LEN, 1
 chomp!          RBRA    STR$CHOMP, 1
 strcmp!         RBRA    STR$CMP, 1
 strchr!         RBRA    STR$STRCHR, 1
+gethex!         RBRA    IO$GET_W_HEX, 1
+puthex!         RBRA    IO$PUT_W_HEX, 1
+
 ;
 ;  The actual monitor code starts here:
 ;
