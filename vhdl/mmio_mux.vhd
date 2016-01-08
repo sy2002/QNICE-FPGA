@@ -44,27 +44,24 @@ port (
    pore_rom_enable   : out std_logic;
    pore_rom_busy     : in std_logic;
    
-   -- VGA starts at $FF00
-   --   state register is reg 0
-   --   cursor x is reg 1
-   --   cursor y is reg 2
-   --   char is reg 3
+   -- VGA register range $FF00..$FF0F
    vga_en            : out std_logic;
    vga_we            : out std_logic;
    vga_reg           : out std_logic_vector(3 downto 0);
    
-   -- TIL base is $FF10
+   -- TIL register rage: $FF10..$FF11
    til_reg0_enable   : out std_logic;
    til_reg1_enable   : out std_logic;
    
    -- SWITCHES is $FF12
    switch_reg_enable : out std_logic;
    
-   -- Keyboard is $FF13 and $FF14
-   kbd_state_enable  : out std_logic;
-   kbd_data_enable   : out std_logic;
+   -- Keyboard register range $FF13..$FF14
+   kbd_en            : out std_logic;
+   kbd_we            : out std_logic;
+   kbd_reg           : out std_logic_vector(1 downto 0);
    
-   -- UART starts at $FF20
+   -- UART register range $FF20..$FF23
    uart_en           : out std_logic;
    uart_we           : out std_logic;
    uart_reg          : out std_logic_vector(1 downto 0);
@@ -162,17 +159,21 @@ begin
    -- Keyboard status register is FF13 and data register is FF14
    keyboard_control : process(addr, data_dir, data_valid)
    begin
-      if addr(15 downto 0) = x"FF13" and data_dir = '0' then
-         kbd_state_enable <= '1';
-      else
-         kbd_state_enable <= '0';
+      kbd_en <= '0';
+      kbd_we <= '0';
+      kbd_reg <= "00";
+      
+      if addr = x"FF13" then
+         kbd_en <= '1';
+         kbd_we <= data_dir and data_valid;
+         kbd_reg <= "00";
       end if;
       
-      if addr(15 downto 0) = x"FF14" and data_dir = '0' then
-         kbd_data_enable <= '1';
-      else
-         kbd_data_enable <= '0';
-      end if;
+      if addr = x"FF14" then
+         kbd_en <= '1';
+         kbd_we <= data_dir and data_valid;
+         kbd_reg <= "01";
+      end if;      
    end process;
    
    -- VGA starts at FF00

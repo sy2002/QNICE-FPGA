@@ -26,6 +26,8 @@
 ;* Some constant definitions
 ;***************************************************************************************
 ;
+
+; ========== VGA ==========
 VGA$MAX_X               .EQU    79                      ; Max. X-coordinate in decimal!
 VGA$MAX_Y               .EQU    39                      ; Max. Y-coordinate in decimal!
 VGA$MAX_CHARS           .EQU    3200                    ; VGA$MAX_X * VGA$MAX_Y
@@ -34,12 +36,19 @@ VGA$CHARS_PER_LINE      .EQU    80
 VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling enable
 VGA$CLR_SCRN            .EQU    0x0100                  ; Clear screen
 
-;
 VGA$COLOR_RED           .EQU    0x0004
 VGA$COLOR_GREEN         .EQU    0x0002
 VGA$COLOR_BLUE          .EQU    0x0001
 VGA$COLOR_WHITE         .EQU    0x0007
 
+; ========== KEYBOARD ==========
+
+KBD$NEW_ASCII           .EQU    0x0001                  ; new ascii character available
+KBD$NEW_SPECIAL         .EQU    0x0002                  ; new special char. available
+
+KBD$LOCALES             .EQU    0x001C                  ; bit mask for checking locales
+KBD$LOCALE_US           .EQU    0x0000                  ; default: US keyboard layout
+KBD$LOCALE_DE           .EQU    0x0004                  ; DE: German keyboard layout
 ;
 ;***************************************************************************************
 ;*  IO-page addresses:
@@ -90,10 +99,17 @@ IO$SWITCH_REG   .EQU 0xFF12 ; 16 binary keys
 ; USB-keyboard-registers:
 ;
 IO$KBD_STATE    .EQU 0xFF13 ; Status register of USB keyboard
-    ; Bit 0: 1 - Character present
-    ;        0 - No character present
+;    Bit  0 (read only): New ASCII character avaiable for reading
+;                        (bits 7 downto 0 of Read register)
+;    Bit  1 (read only): New special key available for reading
+;                        (bits 15 downto 8 of Read register)
+;    Bits 2..4 (read/write): Locales: 000 = US English keyboard layout,
+;                            001 = German layout, others: reserved
+
 IO$KBD_DATA     .EQU 0xFF14 ; Data register of USB keyboard
-    ; The lower eight bits contain the last ASCII character typed in
+;    Contains the ASCII character in bits 7 downto 0  or the special key code
+;    in 15 downto 0. The "or" is meant exclusive, i.e. it cannot happen that
+;    one transmission contains an ASCII character PLUS a special character.
 ;
 ;  UART-registers:
 ;

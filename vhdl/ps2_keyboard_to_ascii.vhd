@@ -15,6 +15,8 @@
 --   ANY CLAIMS FOR INDEMNITY OR CONTRIBUTION, OR OTHER SIMILAR COSTS.
 --
 --   Version History
+--   Version 2.0 in January 2016 by sy2002
+--     Special locales and special key handling
 --   Version 1.0 11/29/2013 Scott Larson
 --     Initial Public Release
 --    
@@ -32,7 +34,11 @@ ENTITY ps2_keyboard_to_ascii IS
       ps2_clk    : IN  STD_LOGIC;                     --clock signal from PS2 keyboard
       ps2_data   : IN  STD_LOGIC;                     --data signal from PS2 keyboard
       ascii_new  : OUT STD_LOGIC;                     --output flag indicating new ASCII value
-      ascii_code : OUT STD_LOGIC_VECTOR(6 DOWNTO 0)   --ASCII value
+      ascii_code : OUT STD_LOGIC_VECTOR(6 DOWNTO 0);  --ASCII value
+      spec_new   : OUT STD_LOGIC;                     -- output flag indicating new special key value
+      spec_code  : OUT STD_LOGIC_VECTOR(4 downto 0);  -- special key value
+      locale     : IN  STD_LOGIC_VECTOR(2 downto 0)    -- locale will not be latched but eval. in real time
+      
       ); 
 END ps2_keyboard_to_ascii;
 
@@ -206,8 +212,23 @@ BEGIN
                   WHEN x"2A" => ascii <= x"76"; --v
                   WHEN x"1D" => ascii <= x"77"; --w
                   WHEN x"22" => ascii <= x"78"; --x
-                  WHEN x"35" => ascii <= x"79"; --y
-                  WHEN x"1A" => ascii <= x"7A"; --z
+                  
+                  -- y scancode: US locale: y / DE locale: z
+                  WHEN x"35" =>
+                     if locale = "001" then
+                        ascii <= x"7A"; -- z
+                     else
+                        ascii <= x"79"; -- y
+                     end if;
+                     
+                  -- z scancode: US locale: z / DE locale: y
+                  WHEN x"1A" =>
+                     if locale = "001" then
+                        ascii <= x"79"; -- y
+                     else
+                        ascii <= x"7A"; -- z
+                     end if;
+                  
                   WHEN OTHERS => NULL;
                 END CASE;
               ELSE                                     --letter is uppercase

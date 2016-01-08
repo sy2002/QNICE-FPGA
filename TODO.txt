@@ -8,10 +8,12 @@ HARDWARE:
 
 * keyboard: Extend FF13 to be write-able to switch to DE keyboard layout
 
-* keyboard: remove hardcoded debounce "8" and hardcoded 18000
+* keyboard: remove hardcoded hardcoded 18000
 
 * keyboard: support optional mapping of cursor and pgup/pgdown keys to
   non-used ASCII values as a prerequisite for a more conventient monitor.
+
+* Add a timer with 0,1us Resolution (10 MHz Frequency)
 
 * Refactor MMIO for not having so many comperators
 

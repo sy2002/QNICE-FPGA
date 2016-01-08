@@ -3,11 +3,15 @@
 
 * UART: 115.200 baud, 8-N-1, CTS from now on
 * VGA: now supports hardware scrolling
-* MONITOR: system call table, supports scrolling on VGA
+* MONITOR: system call table, supports scrolling on VGA,
+  supports special keys
+* KEYBOARD: support for US and German keyboard locales and support
+  for special keys like cursor keys, page-up/down, etc.
 * HALT LED implemented as LED #15
 * PORE system implemented. Most notably, this leads to not needing to
   press the reset-button after startup. Additionally, a reset message is
   displayed.
+* ASSEMBLER: bugfixes and .DW now supports .EQUs and labels as arguments
 
 Version 1.1  December, 30 2015
 ==============================

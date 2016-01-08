@@ -1,10 +1,11 @@
 ; Very basic USB keyboard test which echos all input chars back to 
 ; the terminal. It also displays the ASCII code of the character on 
-; the TIL by vaxman in December 2015.
+; the TIL by vaxman in December 2015 enhanched by sy2002 in January 2016
 
                 .ORG 0x8000
 
-#include "../monitor/sysdef.asm"
+#include "../dist_kit/sysdef.asm"
+#include "../dist_kit/monitor.def"
 
                 MOVE    IO$TIL_DISPLAY, R12
                 MOVE    0xFFAA, @R12
@@ -28,6 +29,6 @@ _IO$SETC_WAIT   MOVE    @R0, R3             ; read status register
 
                 MOVE    R8, @R1             ; echo character back to terminal
 
-                RBRA    _IO$GETC_LOOP, 1    ; next char
+                RBRA    _IO$GETC_LOOP, 1    ; next char/endless loop
 
-                ABRA    0, 1
+                

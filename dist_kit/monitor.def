@@ -20,3 +20,5 @@ strlen                        	.EQU	0x001C
 chomp                         	.EQU	0x001E
 strcmp                        	.EQU	0x0020
 strchr                        	.EQU	0x0022
+gethex                        	.EQU	0x0024
+puthex                        	.EQU	0x0026

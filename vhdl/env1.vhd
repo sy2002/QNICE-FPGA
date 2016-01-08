@@ -98,31 +98,6 @@ port (
 );
 end component;
 
--- ROM used for startup message (utilizes the video_bram component)
-component video_bram is
-generic (
-   SIZE_BYTES     : integer;
-   CONTENT_FILE   : string;
-   FILE_LINES     : integer;
-   DEFAULT_VALUE  : bit_vector
-);
-port (
-   clk            : in std_logic;
-
-   we             : in std_logic;
-   
-   address_i      : in std_logic_vector(15 downto 0);
-   address_o      : in std_logic_vector(15 downto 0);
-   data_i         : in std_logic_vector(7 downto 0);
-   data_o         : out std_logic_vector(7 downto 0);
-   
-   -- performant reading facility
-   pr_clk         : in std_logic;
-   pr_addr        : in std_logic_vector(15 downto 0);
-   pr_data        : out std_logic_vector(7 downto 0)
-);
-end component;
-
 -- VGA 80x40 monoschrome screen
 component vga_textmode
 port (
@@ -199,9 +174,10 @@ port (
    ps2_data      : in std_logic;               -- data signal from PS/2 keyboard
    
    -- conntect to CPU's data bus (data high impedance when all reg_* are 0)
-   cpu_data      : inout std_logic_vector(15 downto 0);
-   reg_state     : in std_logic;
-   reg_data      : in std_logic   
+   kbd_en        : in std_logic;
+   kbd_we        : in std_logic;
+   kbd_reg       : in std_logic_vector(1 downto 0);   
+   cpu_data      : inout std_logic_vector(15 downto 0)
 );
 end component;
 
@@ -230,11 +206,13 @@ port (
    pore_rom_enable   : out std_logic;
    pore_rom_busy     : in std_logic;   
    
+   -- signals for peripheral devices
    til_reg0_enable   : out std_logic;
    til_reg1_enable   : out std_logic;
    switch_reg_enable : out std_logic;
-   kbd_state_enable  : out std_logic;
-   kbd_data_enable   : out std_logic;
+   kbd_en            : out std_logic;
+   kbd_we            : out std_logic;
+   kbd_reg           : out std_logic_vector(1 downto 0);   
    vga_en            : out std_logic;
    vga_we            : out std_logic;
    vga_reg           : out std_logic_vector(3 downto 0);
@@ -264,8 +242,9 @@ signal pore_rom_busy          : std_logic;
 signal til_reg0_enable        : std_logic;
 signal til_reg1_enable        : std_logic;
 signal switch_reg_enable      : std_logic;
-signal kbd_state_enable       : std_logic;
-signal kbd_data_enable        : std_logic;
+signal kbd_en                 : std_logic;
+signal kbd_we                 : std_logic;
+signal kbd_reg                : std_logic_vector(1 downto 0);
 signal vga_en                 : std_logic;
 signal vga_we                 : std_logic;
 signal vga_reg                : std_logic_vector(3 downto 0);
@@ -400,9 +379,10 @@ begin
          reset => reset_ctl,
          ps2_clk => PS2_CLK,
          ps2_data => PS2_DAT,
-         cpu_data => cpu_data,
-         reg_state => kbd_state_enable,
-         reg_data => kbd_data_enable
+         kbd_en => kbd_en,
+         kbd_we => kbd_we,
+         kbd_reg => kbd_reg,
+         cpu_data => cpu_data
       );
                         
    -- memory mapped i/o controller
@@ -424,8 +404,9 @@ begin
          til_reg0_enable => til_reg0_enable,
          til_reg1_enable => til_reg1_enable,
          switch_reg_enable => switch_reg_enable,
-         kbd_state_enable => kbd_state_enable,
-         kbd_data_enable => kbd_data_enable,
+         kbd_en => kbd_en,
+         kbd_we => kbd_we,
+         kbd_reg => kbd_reg,
          vga_en => vga_en,
          vga_we => vga_we,
          vga_reg => vga_reg,
