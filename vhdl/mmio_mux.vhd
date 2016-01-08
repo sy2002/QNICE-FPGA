@@ -77,6 +77,17 @@ end mmio_mux;
 
 architecture Behavioral of mmio_mux is
 
+component debounce is
+generic (
+   counter_size  : integer
+);
+port (
+   clk           : in std_logic;
+   button        : in std_logic;
+   result        : out std_logic
+);
+end component;
+
 signal ram_enable_i : std_logic;
 signal rom_enable_i : std_logic;
 signal pore_rom_enable_i : std_logic;
@@ -100,6 +111,7 @@ constant RESET_COUNTER_BTS    : natural := integer(ceil(log2(real(RESET_DURATION
 
 signal global_state           : global_state_type := gsPowerOn;
 
+signal debounced_hw_reset     : std_logic;
 signal reset_ctl              : std_logic;
 signal boot_msg_char          : std_logic_vector(7 downto 0);
 signal reset_counter          : unsigned(RESET_COUNTER_BTS downto 0);
@@ -209,10 +221,21 @@ begin
       end if;
    end process;
 
+   -- debounce the reset button
+   reset_btn_debouncer : debounce
+      generic map (
+         counter_size => 19
+      )
+      port map (
+         clk => CLK,
+         button => HW_RESET,
+         result => debounced_hw_reset
+      );
+
    -- PORE state machine: advance state
-   fsm_advance_state : process (clk, HW_RESET)
+   fsm_advance_state : process (clk, debounced_hw_reset)
    begin
-      if HW_RESET = '1' then
+      if debounced_hw_reset = '1' then
          global_state <= gsReset;
          reset_counter <= (others => '0');
       else
@@ -287,7 +310,7 @@ begin
    pore_rom_enable <= pore_rom_enable_i;
    
    -- generate external reset signals
-   reset_pre_pore <= '1' when global_state = gsReset_execute else '0';
-   reset_post_pore <= '1' when global_state = gsPostPoreReset_execute else '0';
+   reset_pre_pore <= '1' when (global_state = gsReset or global_state = gsReset_execute) else '0';
+   reset_post_pore <= '1' when (global_state = gsPostPoreReset or global_state = gsPostPoreReset_execute) else '0';
 end Behavioral;
 

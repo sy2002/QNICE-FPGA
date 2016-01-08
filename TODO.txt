@@ -12,6 +12,8 @@ HARDWARE:
 
 * Refactor MMIO for not having so many comperators
 
+* Refactor TIL and TIL Mask to support 8 digits / 32 bits
+
 * avoid inferring two RAMs for video RAM
 
 * single-step-mode in hardware incl. address/data display on 7-segs

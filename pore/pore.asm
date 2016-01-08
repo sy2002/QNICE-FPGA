@@ -36,13 +36,14 @@
 PRINT_STRING    INCRB                           ; save register bank
                 MOVE    R9, R0                  ; leave R9 unmodified 
 _PRINT_LOOP     MOVE    @R0++, R8               ; actual character to R8
+                AND     0x00FF, R8              ; only lower 8bits relevant
+                RBRA    _PRINT_DONE, Z          ; zero termination detected
                 RSUB    UART$PUTCHAR, 1         ; print to UART
                 MOVE    R10, R2                 ; skip VGA ...
-                RBRA    _SKIP_VGA, !Z           ; ... if R10 is not zero
+                RBRA    _PRINT_LOOP, !Z         ; ... if R10 is not zero
                 RSUB    VGA$PUTCHAR, 1          ; print to VRAM
-_SKIP_VGA       MOVE    @R0, R1                 ; zero terminator reached?
-                RBRA    _PRINT_LOOP, !Z         ; no: continue printing
-                DECRB                           ; restore register bank
+_SKIP_VGA       RBRA    _PRINT_LOOP, 1          ; continue printing
+_PRINT_DONE     DECRB                           ; restore register bank
                 RET                             ; return to caller
 
 #include "boot_message.asm"
