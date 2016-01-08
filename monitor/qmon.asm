@@ -76,7 +76,8 @@ strchr!         RBRA    STR$STRCHR, 1
 ;
 QMON$COLDSTART  AND     0x00FF, SR              ; Make sure we are in register bank 0
                 MOVE    VAR$STACK_START, SP     ; Initialize stack pointer
-                RSUB    VGA$INIT, 1
+                RSUB    VGA$INIT, 1             ; Does not clear the screen, so that
+                                                ; the HW boot message stays visible
                 MOVE    QMON$WELCOME, R8        ; Print welcome message
                 RSUB    IO$PUTS, 1
 ;                MOVE    QMON$LAST_ADDR, R8      ; Clear memory after the monitor
@@ -108,6 +109,11 @@ QMON$MAIN_LOOP  MOVE    QMON$PROMPT, R8         ; Print monitor prompt
 ; CONTROL/COLDSTART:
                 MOVE    QMON$CG_C_C, R8
                 RSUB    IO$PUTS, 1
+                RSUB    VGA$CLS, 1              ; This manual clear screen is
+                                                ; needed because the power-on
+                                                ; cold start does not clear
+                                                ; the screen to keep the HW
+                                                ; startup message visible
                 RBRA    QMON$COLDSTART, 1       ; Yes!
 QMON$C_MAYBE_H  CMP     'H', R8                 ; Halt?
                 RBRA    QMON$C_MAYBE_R, !Z

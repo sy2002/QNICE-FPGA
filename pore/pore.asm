@@ -2,7 +2,8 @@
 ; Power On & Reset Execution ROM
 ;
 ; This code is executed on power on and on each reset of the system,
-; even before any standard operating system like the Monitor is loaded.
+; even before any standard operating system like the Monitor is being
+; executed from ROM address 0.
 ;
 ; The code relies on Monitor libraries and therefore directly includes
 ; them from the monitor subdirectory without using dist_kit.    

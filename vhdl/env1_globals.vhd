@@ -12,11 +12,11 @@ package env1_globals is
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
 --constant ROM_FILE             : string    := "../test_programs/cpu_bug1.rom";
 constant ROM_FILE             : string    := "../monitor/monitor.rom";
-constant ROM_SIZE             : natural   := 2385;
+constant ROM_SIZE             : natural   := 2387;
 
 -- file name of file and file size (in lines) of the file containing the Power On & Reset Execution (PORE) ROM
 constant PORE_ROM_FILE        : string    := "../pore/pore.rom";
-constant PORE_ROM_SIZE        : natural   := 318;
+constant PORE_ROM_SIZE        : natural   := 313;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.
@@ -51,7 +51,7 @@ constant VGA_RAM_SIZE         : natural   := 64000;
 constant UART_DIVISOR          : natural  := 27; -- above mentioned / 2, as long as we are using SLOW_CLOCK with 50 MHz
 
 -- Amount of CPU cycles, that the reset signal shall be active
-constant RESET_DURATION        : natural  := 7;
+constant RESET_DURATION        : natural  := 2;
 
 end env1_globals;
 

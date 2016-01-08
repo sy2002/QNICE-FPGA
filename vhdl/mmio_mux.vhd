@@ -94,7 +94,9 @@ type global_state_type is
    gsRun
 );
 
-constant RESET_COUNTER_BTS    : natural := integer(ceil(log2(real(RESET_DURATION)))) - 1;
+-- as we check for "= RESET_DURATION", we need one bit more,
+-- so RESET_COUNTER_BTS is not decremented by 1
+constant RESET_COUNTER_BTS    : natural := integer(ceil(log2(real(RESET_DURATION))));
 
 signal global_state           : global_state_type := gsPowerOn;
 
@@ -266,7 +268,10 @@ begin
    end process;
 
    -- PORE ROM is used in all global states other than gsRun
-   use_pore_rom_i <= '0' when global_state = gsRun else '1';
+   use_pore_rom_i <= '0' when (global_state = gsPostPoreReset or
+                               global_state = gsPostPoreReset_execute or
+                               global_state = gsRun)
+                         else '1';
    pore_rom_enable_i <= not addr(15) and not data_dir and use_pore_rom_i;
 
    -- ROM is enabled when the address is < $8000 and the CPU is reading

@@ -5,6 +5,9 @@
 * VGA: now supports hardware scrolling
 * MONITOR: system call table, supports scrolling on VGA
 * HALT LED implemented as LED #15
+* PORE system implemented. Most notably, this leads to not needing to
+  press the reset-button after startup. Additionally, a reset message is
+  displayed.
 
 Version 1.1  December, 30 2015
 ==============================
