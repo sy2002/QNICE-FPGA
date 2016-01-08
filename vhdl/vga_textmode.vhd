@@ -211,8 +211,8 @@ begin
    video_ram : video_bram
       generic map (
          SIZE_BYTES => VGA_RAM_SIZE,                     -- see env1_globals.vhd
-         CONTENT_FILE => "testscreen.rom",               -- @TODO remove test image -- don't specify a file, so this is RAM
-         FILE_LINES => 163,
+         CONTENT_FILE => "../vga_textmode.vhd",          -- dummy file that is not read ...
+         FILE_LINES => 0,                                -- ... because FILE_LINES = 0
          DEFAULT_VALUE => x"20"                          -- ACSII code of the space character
       )
       port map (

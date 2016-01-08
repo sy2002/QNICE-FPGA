@@ -26,8 +26,9 @@ port (
    UART_RTS    : in std_logic;                      -- (active low) equals cts from dte, i.e. fpga is allowed to send to dte
    UART_CTS    : out std_logic;                     -- (active low) clear to send (dte is allowed to send to fpga)   
    
-   -- switches
+   -- switches and LEDs
    SWITCHES    : in std_logic_vector(15 downto 0);  -- 16 on/off "dip" switches
+   LEDs        : out std_logic_vector(15 downto 0); -- 16 LEDs
    
    -- PS/2 keyboard
    PS2_CLK     : in std_logic;
@@ -58,7 +59,10 @@ port (
    --tristate 16 bit data bus
    DATA           : inout std_logic_vector(15 downto 0);    -- send/receive data
    DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
-   DATA_VALID     : out std_logic                           -- while DATA_DIR = 1: DATA contains valid data      
+   DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
+   
+   -- signals about the CPU state
+   HALT           : out std_logic                           -- 1=CPU halted due to the HALT command, 0=running   
 );
 end component;
 
@@ -91,6 +95,31 @@ port (
    data_o   : out std_logic_vector(15 downto 0);   -- read data
    
    busy     : out std_logic                        -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA   
+);
+end component;
+
+-- ROM used for startup message (utilizes the video_bram component)
+component video_bram is
+generic (
+   SIZE_BYTES     : integer;
+   CONTENT_FILE   : string;
+   FILE_LINES     : integer;
+   DEFAULT_VALUE  : bit_vector
+);
+port (
+   clk            : in std_logic;
+
+   we             : in std_logic;
+   
+   address_i      : in std_logic_vector(15 downto 0);
+   address_o      : in std_logic_vector(15 downto 0);
+   data_i         : in std_logic_vector(7 downto 0);
+   data_o         : out std_logic_vector(7 downto 0);
+   
+   -- performant reading facility
+   pr_clk         : in std_logic;
+   pr_addr        : in std_logic_vector(15 downto 0);
+   pr_data        : out std_logic_vector(7 downto 0)
 );
 end component;
 
@@ -179,10 +208,16 @@ end component;
 -- multiplexer to control the data bus (enable/disable the different parties)
 component mmio_mux is
 port (
+   -- input from hardware
+   HW_RESET          : in std_logic;
+   CLK               : in std_logic;
+
+   
    -- input from CPU
    addr              : in std_logic_vector(15 downto 0);
    data_dir          : in std_logic;
    data_valid        : in std_logic;
+   cpu_halt          : in std_logic;   
    
    -- let the CPU wait for data from the bus
    cpu_wait_for_data : out std_logic;   
@@ -192,6 +227,8 @@ port (
    ram_enable        : out std_logic;
    rom_busy          : in std_logic;
    ram_busy          : in std_logic;
+   pore_rom_enable   : out std_logic;
+   pore_rom_busy     : in std_logic;   
    
    til_reg0_enable   : out std_logic;
    til_reg1_enable   : out std_logic;
@@ -203,21 +240,27 @@ port (
    vga_reg           : out std_logic_vector(3 downto 0);
    uart_en           : out std_logic;
    uart_we           : out std_logic;
-   uart_reg          : out std_logic_vector(1 downto 0)   
+   uart_reg          : out std_logic_vector(1 downto 0);
+   reset_pre_pore    : out std_logic;
+   reset_post_pore   : out std_logic   
 );
 end component;
 
+-- CPU control signals
 signal cpu_addr               : std_logic_vector(15 downto 0);
 signal cpu_data               : std_logic_vector(15 downto 0);
 signal cpu_data_dir           : std_logic;
 signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
+signal cpu_halt               : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
 signal ram_enable             : std_logic;
 signal ram_busy               : std_logic;
 signal rom_busy               : std_logic;
+signal pore_rom_enable        : std_logic;
+signal pore_rom_busy          : std_logic;
 signal til_reg0_enable        : std_logic;
 signal til_reg1_enable        : std_logic;
 signal switch_reg_enable      : std_logic;
@@ -229,6 +272,8 @@ signal vga_reg                : std_logic_vector(3 downto 0);
 signal uart_en                : std_logic;
 signal uart_we                : std_logic;
 signal uart_reg               : std_logic_vector(1 downto 0);
+signal reset_pre_pore         : std_logic;
+signal reset_post_pore        : std_logic;
 
 -- VGA control signals
 signal vga_r                  : std_logic;
@@ -238,30 +283,31 @@ signal vga_b                  : std_logic;
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
 
+-- combined pre- and post pore reset
+signal reset_ctl              : std_logic;
+
 begin
 
    -- QNICE CPU
    cpu : QNICE_CPU
-      port map
-      (
+      port map (
          CLK => SLOW_CLOCK,
-         RESET => not RESET_N,
+         RESET => reset_ctl,
          WAIT_FOR_DATA => cpu_wait_for_data,
          ADDR => cpu_addr,
          DATA => cpu_data,
          DATA_DIR => cpu_data_dir,
-         DATA_VALID => cpu_data_valid
+         DATA_VALID => cpu_data_valid,
+         HALT => cpu_halt
       );
 
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
    rom : BROM
-      generic map
-      (
+      generic map (
          FILE_NAME   => ROM_FILE,
          ROM_LINES   => ROM_SIZE
       )
-      port map
-      (
+      port map (
          clk         => SLOW_CLOCK,
          ce          => rom_enable,
          address     => cpu_addr(14 downto 0),
@@ -272,19 +318,35 @@ begin
    -- RAM: up to 64kB consisting of up to 32.000 16 bit words
    ram : BRAM
       port map (
-         clk => SLOW_CLOCK,
-         ce => ram_enable,
-         address => cpu_addr(14 downto 0),
-         we => cpu_data_dir,         
-         data_i => cpu_data,
-         data_o => cpu_data,
-         busy => ram_busy         
+         clk         => SLOW_CLOCK,
+         ce          => ram_enable,
+         address     => cpu_addr(14 downto 0),
+         we          => cpu_data_dir,         
+         data_i      => cpu_data,
+         data_o      => cpu_data,
+         busy        => ram_busy         
       );
       
+   -- PORE ROM: Power On & Reset Execution ROM
+   -- contains code that is executed during power on and/or during reset
+   -- MMIO is managing the PORE process
+   pore_rom : BROM
+      generic map (
+         FILE_NAME   => PORE_ROM_FILE,
+         ROM_LINES   => PORE_ROM_SIZE
+      )
+      port map (
+         clk         => SLOW_CLOCK,
+         ce          => pore_rom_enable,
+         address     => cpu_addr(14 downto 0),
+         data        => cpu_data,
+         busy        => pore_rom_busy
+      );
+                 
    -- VGA: 80x40 textmode VGA adaptor
    vga_screen : vga_textmode
       port map (
-         reset => not RESET_N,
+         reset => reset_ctl,
          clk => SLOW_CLOCK,
          clk50MHz => SLOW_CLOCK,
          R => vga_r,
@@ -302,7 +364,7 @@ begin
    til_leds : til_display
       port map (
          clk => SLOW_CLOCK,
-         reset => not RESET_N,
+         reset => reset_ctl,
          til_reg0_enable => til_reg0_enable,
          til_reg1_enable => til_reg1_enable,
          data_in => cpu_data,
@@ -312,14 +374,12 @@ begin
 
    -- special UART with FIFO that can be directly connected to the CPU bus
    uart : bus_uart
-      generic map
-      (
+      generic map (
          DIVISOR => UART_DIVISOR
       )
-      port map
-      (
+      port map (
          clk => SLOW_CLOCK,
-         reset => not RESET_N,
+         reset => reset_ctl,
          rx => UART_RXD,
          tx => UART_TXD,
          rts => UART_RTS,
@@ -332,14 +392,12 @@ begin
       
    -- PS/2 keyboard
    kbd : keyboard
-      generic map
-      (
+      generic map (
          clk_freq => 50000000                 -- see @TODO in keyboard.vhd and TODO.txt
       )
-      port map
-      (
+      port map (
          clk => SLOW_CLOCK,
-         reset => not RESET_N,
+         reset => reset_ctl,
          ps2_clk => PS2_CLK,
          ps2_data => PS2_DAT,
          cpu_data => cpu_data,
@@ -349,16 +407,20 @@ begin
                         
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
-      port map
-      (
+      port map (
+         HW_RESET => not RESET_N,
+         CLK => clk,
          addr => cpu_addr,
          data_dir => cpu_data_dir,
          data_valid => cpu_data_valid,
          cpu_wait_for_data => cpu_wait_for_data,
+         cpu_halt => cpu_halt,
          rom_enable => rom_enable,
          rom_busy => rom_busy,
          ram_enable => ram_enable,
          ram_busy => ram_busy,
+         pore_rom_enable => pore_rom_enable,
+         pore_rom_busy => pore_rom_busy,       
          til_reg0_enable => til_reg0_enable,
          til_reg1_enable => til_reg1_enable,
          switch_reg_enable => switch_reg_enable,
@@ -369,9 +431,12 @@ begin
          vga_reg => vga_reg,
          uart_en => uart_en,
          uart_we => uart_we,
-         uart_reg => uart_reg         
+         uart_reg => uart_reg,
+         reset_pre_pore => reset_pre_pore,
+         reset_post_pore => reset_post_pore
       );
-      
+   
+   -- handle the toggle switches
    switch_driver : process (switch_reg_enable, SWITCHES)
    begin
       if switch_reg_enable = '1' then
@@ -380,16 +445,24 @@ begin
          cpu_data <= (others => 'Z');
       end if;
    end process;
-      
+   
+   -- clock divider: create a 50 MHz clock from the 100 MHz input
    generate_slow_clock : process (CLK)
    begin
       if rising_edge(CLK) then
          SLOW_CLOCK <= not SLOW_CLOCK;
       end if;
-   end process; 
- 
+   end process;
+       
+   -- HALT LED: LED #15
+   LEDs <= cpu_halt & "000000000000000";
+       
+   -- wire the simplified color system of the VGA component to the VGA outputs
    vga_red <= vga_r & vga_r & vga_r & vga_r;
    vga_green <= vga_g & vga_g & vga_g & vga_g;
    vga_blue <= vga_b & vga_b & vga_b & vga_b;
+   
+   -- generate the general reset signal
+   reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';
 end beh;
 

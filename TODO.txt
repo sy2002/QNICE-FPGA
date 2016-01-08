@@ -10,9 +10,8 @@ HARDWARE:
 
 * keyboard: remove hardcoded debounce "8" and hardcoded 18000
 
-* HALT-LED
-
 * Refactor MMIO for not having so many comperators
 
-* single-step-mode in hardware incl. address/data display on 7-segs
+* avoid inferring two RAMs for video RAM
 
+* single-step-mode in hardware incl. address/data display on 7-segs

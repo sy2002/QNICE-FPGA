@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------------
 -- FPGA implementation of the QNICE 16 bit CPU architecture version 1.2
 -- 
--- done in 2015 by sy2002
+-- done in 2015, 2016 by sy2002
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -25,7 +25,10 @@ port (
    -- tristate 16 bit data bus
    DATA           : inout std_logic_vector(15 downto 0);    -- send/receive data
    DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
-   DATA_VALID     : out std_logic                           -- while DATA_DIR = 1: DATA contains valid data   
+   DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
+   
+   -- signals about the CPU state
+   HALT           : out std_logic                           -- 1=CPU halted due to the HALT command, 0=running
 );
 end QNICE_CPU;
 
@@ -638,8 +641,7 @@ begin
       end case;
    end process;
                
-   ADDR           <= ADDR_Bus;
-   
+   -- internal signals
    Opcode         <= Instruction(15 downto 12);
    Src_RegNo      <= Instruction(11 downto 8);
    Src_Mode       <= Instruction(7 downto 6);
@@ -647,6 +649,11 @@ begin
    Dst_Mode       <= Instruction(1 downto 0);
    Bra_Mode       <= Instruction(5 downto 4);
    Bra_Neg        <= Instruction(3);
-   Bra_Condition  <= Instruction(2 downto 0);   
+   Bra_Condition  <= Instruction(2 downto 0);
+   
+   -- external signals
+   ADDR           <= ADDR_Bus;
+   HALT           <= '1' when cpu_state = cs_halt else '0';
+   
 end beh;
 

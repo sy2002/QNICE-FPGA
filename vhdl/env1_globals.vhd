@@ -12,7 +12,11 @@ package env1_globals is
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
 --constant ROM_FILE             : string    := "../test_programs/cpu_bug1.rom";
 constant ROM_FILE             : string    := "../monitor/monitor.rom";
-constant ROM_SIZE             : integer   := 2385;
+constant ROM_SIZE             : natural   := 2385;
+
+-- file name of file and file size (in lines) of the file containing the Power On & Reset Execution (PORE) ROM
+constant PORE_ROM_FILE        : string    := "../pore/pore.rom";
+constant PORE_ROM_SIZE        : natural   := 318;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.
@@ -26,14 +30,14 @@ constant ROM_SIZE             : integer   := 2385;
 --    HDL: Resource Sharing OFF (was ON)
 --    Xilinx Specific: LUT Combining NO (was AUTO)
 --                     Optimize Privitives ON (was OFF)
-constant SHADOW_REGFILE_SIZE  : integer   := 16;
+constant SHADOW_REGFILE_SIZE  : natural   := 16;
 
 -- size of the block RAM in 16bit words: should be 32768
 -- set to 256 during development for tracability during simulation
-constant BLOCK_RAM_SIZE       : integer   := 32768;
+constant BLOCK_RAM_SIZE       : natural   := 32768;
 
 -- VGA screen memory (should be a multiple of 80x40 = 3.200)
-constant VGA_RAM_SIZE         : integer   := 64000;
+constant VGA_RAM_SIZE         : natural   := 64000;
 
 -- UART is in 8-N-1 mode
 -- assuming a 100 MHz system clock, set the baud rate by selecting the following divisors according to this formula:
@@ -45,6 +49,9 @@ constant VGA_RAM_SIZE         : integer   := 64000;
 --    1562500 -> 4
 --    2083333 -> 3
 constant UART_DIVISOR          : natural  := 27; -- above mentioned / 2, as long as we are using SLOW_CLOCK with 50 MHz
+
+-- Amount of CPU cycles, that the reset signal shall be active
+constant RESET_DURATION        : natural  := 7;
 
 end env1_globals;
 

@@ -4,18 +4,30 @@
 --
 -- also implements the CPU's WAIT_FOR_DATA bus by setting it to a meaningful
 -- value (0) when a device is active, that has no own control facility
+--
+-- also implements the global state and reset management
 -- 
--- done in 2015 by sy2002
+-- done in 2015, 2016 by sy2002
 ----------------------------------------------------------------------------------
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+use IEEE.MATH_REAL.ALL;
+
+use work.env1_globals.all;
 
 entity mmio_mux is
 port (
+   -- input from hardware
+   HW_RESET          : in std_logic;
+   CLK               : in std_logic;
+
    -- input from CPU
    addr              : in std_logic_vector(15 downto 0);
    data_dir          : in std_logic;
    data_valid        : in std_logic;
+   cpu_halt          : in std_logic;
    
    -- let the CPU wait for data from the bus
    cpu_wait_for_data : out std_logic;
@@ -27,6 +39,10 @@ port (
    -- RAM is enabled when the address is in ($8000..$FEFF)
    ram_enable        : out std_logic;
    ram_busy          : in std_logic;
+   
+   -- PORE ROM (PowerOn & Reset Execution ROM)
+   pore_rom_enable   : out std_logic;
+   pore_rom_busy     : in std_logic;
    
    -- VGA starts at $FF00
    --   state register is reg 0
@@ -51,7 +67,11 @@ port (
    -- UART starts at $FF20
    uart_en           : out std_logic;
    uart_we           : out std_logic;
-   uart_reg          : out std_logic_vector(1 downto 0)
+   uart_reg          : out std_logic_vector(1 downto 0);
+   
+   -- global state and reset management
+   reset_pre_pore    : out std_logic;
+   reset_post_pore   : out std_logic
 );
 end mmio_mux;
 
@@ -59,6 +79,32 @@ architecture Behavioral of mmio_mux is
 
 signal ram_enable_i : std_logic;
 signal rom_enable_i : std_logic;
+signal pore_rom_enable_i : std_logic;
+signal use_pore_rom_i : std_logic;
+
+-- Reset and Power-On-Reset state machine
+type global_state_type is
+(
+   gsPowerOn,
+   gsReset,
+   gsReset_execute,
+   gsPORE,
+   gsPostPoreReset,
+   gsPostPoreReset_execute,
+   gsRun
+);
+
+constant RESET_COUNTER_BTS    : natural := integer(ceil(log2(real(RESET_DURATION)))) - 1;
+
+signal global_state           : global_state_type := gsPowerOn;
+
+signal reset_ctl              : std_logic;
+signal boot_msg_char          : std_logic_vector(7 downto 0);
+signal reset_counter          : unsigned(RESET_COUNTER_BTS downto 0);
+
+signal fsm_next_global_state  : global_state_type;
+signal fsm_reset_counter      : unsigned(RESET_COUNTER_BTS downto 0);
+
 
 begin
 
@@ -115,6 +161,7 @@ begin
       end if;
    end process;
    
+   -- VGA starts at FF00
    vga_control : process(addr, data_dir, data_valid)
    begin
       if addr(15 downto 4) = x"FF0" then
@@ -128,6 +175,7 @@ begin
       end if;
    end process;
    
+   -- UART starts at FF20
    uart_control : process(addr, data_dir, data_valid)
    begin
       if addr(15 downto 4) = x"FF2" then
@@ -140,33 +188,101 @@ begin
          uart_reg <= "00";
       end if;
    end process;
-      
+   
+   -- generate CPU wait signal   
    -- as long as the RAM is the only device on the bus that can make the
    -- CPU wait, this simple implementation is good enough
    -- otherwise, a "req_busy" bus could be built (replacing the ram_busy input)
    -- the block_ram's busy line is already a tri state, so it is ready for such a bus
-   cpu_wait_control : process (ram_enable_i, rom_enable_i, ram_busy, rom_busy)
+   cpu_wait_control : process (ram_enable_i, rom_enable_i, pore_rom_enable_i, ram_busy, rom_busy, pore_rom_busy)
    begin
       if ram_enable_i = '1' and ram_busy = '1' then
          cpu_wait_for_data <= '1';
       elsif rom_enable_i = '1' and rom_busy = '1' then
+         cpu_wait_for_data <= '1';
+      elsif pore_rom_enable_i = '1' and pore_rom_busy = '1' then
          cpu_wait_for_data <= '1';
       else
          cpu_wait_for_data <= '0';
       end if;
    end process;
 
-   -- ROM is enabled when the address is < $8000 and the CPU is reading
-   rom_enable_i <= not addr(15) and not data_dir;
+   -- PORE state machine: advance state
+   fsm_advance_state : process (clk, HW_RESET)
+   begin
+      if HW_RESET = '1' then
+         global_state <= gsReset;
+         reset_counter <= (others => '0');
+      else
+         if rising_edge(clk) then
+            global_state      <= fsm_next_global_state;
+            reset_counter     <= fsm_reset_counter;
+         end if;
+      end if;
+   end process;
    
-   -- RAM is enabled when the address is in ($8000..$FEFF) and
-   -- when a write attempt only occurs while the data is valid
+   -- PORE state machine: calculate next state
+   fsm_calc_state : process(global_state, reset_counter, cpu_halt)
+   begin
+      fsm_next_global_state   <= global_state;
+      fsm_reset_counter       <= reset_counter;
+            
+      case global_state is
+      
+         when gsPowerOn =>
+            fsm_next_global_state <= gsReset;
+            
+         when gsReset =>
+            fsm_reset_counter <= (others => '0');
+            fsm_next_global_state <= gsReset_execute;
+            
+         when gsReset_execute =>
+            if reset_counter = RESET_DURATION then
+               fsm_next_global_state <= gsPORE;
+            else
+               fsm_reset_counter <= reset_counter + 1;
+               fsm_next_global_state <= gsReset_execute;               
+            end if;
+            
+         when gsPORE =>
+            if cpu_halt = '1' then
+               fsm_next_global_state <= gsPostPoreReset;
+            end if;
+         
+         when gsPostPoreReset =>
+            fsm_reset_counter <= (others => '0');
+            fsm_next_global_state <= gsPostPoreReset_execute;
+            
+         when gsPostPoreReset_execute =>            
+            if reset_counter = RESET_DURATION then
+               fsm_next_global_state <= gsRun;
+            else
+               fsm_reset_counter <= reset_counter + 1;
+               fsm_next_global_state <= gsPostPoreReset_execute;               
+            end if;            
+
+         when gsRun => null;
+      end case;
+   end process;
+
+   -- PORE ROM is used in all global states other than gsRun
+   use_pore_rom_i <= '0' when global_state = gsRun else '1';
+   pore_rom_enable_i <= not addr(15) and not data_dir and use_pore_rom_i;
+
+   -- ROM is enabled when the address is < $8000 and the CPU is reading
+   rom_enable_i <= not addr(15) and not data_dir and not use_pore_rom_i;
+   
+   -- RAM is enabled when the address is in ($8000..$FEFF)
    ram_enable_i <= addr(15)
                    and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8));
-                   -- and not (data_dir and not data_valid);                                      
-                   
+               
+   -- generat external RAM/ROM/PORE enable signals
    ram_enable <= ram_enable_i;
    rom_enable <= rom_enable_i;
-                    
+   pore_rom_enable <= pore_rom_enable_i;
+   
+   -- generate external reset signals
+   reset_pre_pore <= '1' when global_state = gsReset_execute else '0';
+   reset_post_pore <= '1' when global_state = gsPostPoreReset_execute else '0';
 end Behavioral;
 

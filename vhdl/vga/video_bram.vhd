@@ -51,14 +51,17 @@ begin
       rom_v(i) := DEFAULT_VALUE;
    end loop;
    
-   for i in 0 to FILE_LINES - 1 loop  
-      readline(rom_file, line_v);                             
-      read(line_v, rom_v(i));                                  
-   end loop;                                                    
+   if FILE_LINES /= 0 then
+      for i in 0 to FILE_LINES - 1 loop  
+         readline(rom_file, line_v);                             
+         read(line_v, rom_v(i));                                  
+      end loop;
+   end if;
+   
    return rom_v;                                                  
 end function;
 
-signal ram : ram_t := read_romfile(CONTENT_FILE);
+shared variable ram : ram_t := read_romfile(CONTENT_FILE);
 
 begin
 
@@ -67,7 +70,7 @@ process (clk)
 begin
     if rising_edge(clk) then
         if(we = '1') then
-            ram(conv_integer(address_i)) <= to_bitvector(data_i);
+            ram(conv_integer(address_i)) := to_bitvector(data_i);
         end if;
         data_o <= to_stdlogicvector(ram(conv_integer(address_o)));
     end if;
