@@ -24,6 +24,13 @@
                 MOVE    0, R10
                 RSUB    PRINT_STRING, 1         ; ... on both devices
 
+                ; Let all async. processes settle
+                ; UART is very slow, so we need to wait a while
+                ; (at 115.200 baud: 27 x 16 = 432 cycles to be save)
+                MOVE    500, R0
+NOP_LOOP        SUB     1, R0
+                RBRA    NOP_LOOP, !Z
+
                 ; The HALT command triggers the PORE state machine to leave
                 ; the PORE ROM, reset the CPU and switch to normal execution
                 HALT
