@@ -6,9 +6,12 @@ HARDWARE:
 
 * Fix tristate problem that slows down CPU by ~50%
 
-* Extend FF13 to be write-able to switch to DE keyboard layout
+* keyboard: Extend FF13 to be write-able to switch to DE keyboard layout
 
 * keyboard: remove hardcoded debounce "8" and hardcoded 18000
+
+* keyboard: support optional mapping of cursor and pgup/pgdown keys to
+  non-used ASCII values as a prerequisite for a more conventient monitor.
 
 * Refactor MMIO for not having so many comperators
 
