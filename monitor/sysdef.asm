@@ -190,3 +190,6 @@ IO$UART_THRA    .EQU 0xFF23 ; Transmitting register (relative to base address)
 ;
 CHR$BELL        .EQU 0x0007 ; ASCII-BELL character
 CHR$TAB         .EQU 0x0009 ; ASCII-TAB character
+CHR$SPACE       .EQU 0x0020 ; ASCII-Space
+CHR$CR          .EQU 0x000d ; Carriage return
+CHR$LF          .EQU 0x000a ; Line feed
