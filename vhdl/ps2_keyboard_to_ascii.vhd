@@ -518,6 +518,8 @@ BEGIN
           
           IF spec /= x"00" THEN
             spec_new <= '1';
+            ascii_new <= '0';
+            ascii_code <= x"00";
           ELSE
             spec_new <= '0';
           END IF;

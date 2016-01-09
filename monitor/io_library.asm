@@ -130,7 +130,7 @@ IO$GETCHAR          INCRB
                     RBRA    _IO$GETCHAR_END, 1  ; Finished...
 _IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1     ; Read from UART
 _IO$GETCHAR_END     DECRB
-                    CMP     0x0005, R8          ; CTRL-E?
+                    CMP     KBD$CTRL_E, R8      ; CTRL-E?
                     RBRA    QMON$WARMSTART, Z   ; Return to monitor immediately!
 		            RET
 ;
@@ -200,6 +200,9 @@ IO$PUT_CRLF     INCRB                   ; Get a new register page
 ;***************************************************************************************
 ;
 IO$PUTCHAR          INCRB
+                    MOVE    R8, R2              ; Avoid printing a zero character in...
+                    AND     KBD$SPECIAL, R2     ; ...case somebody directly syscalls...
+                    RBRA    _IO$PUTCHAR_END, !Z ; ...here with a special key in R8
                     MOVE    IO$SWITCH_REG, R0
                     MOVE    @R0, R1             ; Read the switch register
                     AND     0x0002, R1          ; Bit 1 set?

@@ -44,9 +44,13 @@ VGA$COLOR_WHITE         .EQU    0x0007
 ; ========== KEYBOARD ==========
 
 KBD$NEW_ASCII           .EQU    0x0001                  ; new ascii character available
-KBD$NEW_SPECIAL         .EQU    0x0002                  ; new special char. available
+KBD$NEW_SPECIAL         .EQU    0x0002                  ; new special key available
+KBD$NEW_ANY             .EQU    0x0003                  ; any new key available 
 
-KBD$LOCALES             .EQU    0x001C                  ; bit mask for checking locales
+KBD$ASCII               .EQU    0x00FF                  ; mask the special keys
+KBD$SPECIAL             .EQU    0xFF00                  ; mask the ascii keys
+
+KBD$LOCALE              .EQU    0x001C                  ; bit mask for checking locales
 KBD$LOCALE_US           .EQU    0x0000                  ; default: US keyboard layout
 KBD$LOCALE_DE           .EQU    0x0004                  ; DE: German keyboard layout
 
@@ -73,6 +77,33 @@ KBD$POS1                .EQU    0x0016
 KBD$END                 .EQU    0x0017
 KBD$INS                 .EQU    0x0018
 KBD$DEL                 .EQU    0x0019
+
+KBD$CTRL_A              .EQU    0x0001 
+KBD$CTRL_B              .EQU    0x0002 
+KBD$CTRL_C              .EQU    0x0003 
+KBD$CTRL_D              .EQU    0x0004 
+KBD$CTRL_E              .EQU    0x0005 
+KBD$CTRL_F              .EQU    0x0006 
+KBD$CTRL_G              .EQU    0x0007 
+KBD$CTRL_H              .EQU    0x0008 
+KBD$CTRL_I              .EQU    0x0009 
+KBD$CTRL_J              .EQU    0x000A 
+KBD$CTRL_K              .EQU    0x000B 
+KBD$CTRL_L              .EQU    0x000C 
+KBD$CTRL_M              .EQU    0x000D 
+KBD$CTRL_N              .EQU    0x000E 
+KBD$CTRL_O              .EQU    0x000F 
+KBD$CTRL_P              .EQU    0x0010 
+KBD$CTRL_Q              .EQU    0x0011 
+KBD$CTRL_R              .EQU    0x0012 
+KBD$CTRL_S              .EQU    0x0013 
+KBD$CTRL_T              .EQU    0x0014 
+KBD$CTRL_U              .EQU    0x0015 
+KBD$CTRL_V              .EQU    0x0016 
+KBD$CTRL_W              .EQU    0x0017 
+KBD$CTRL_X              .EQU    0x0018 
+KBD$CTRL_Y              .EQU    0x0019 
+KBD$CTRL_Z              .EQU    0x001A 
 
 ;
 ;***************************************************************************************
