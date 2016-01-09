@@ -616,7 +616,9 @@ int assemble()
       else if (!strcmp(entry->mnemonic, ".DW"))
       {
         i = 0;
-        p = strstr(line, ".DW") + strlen(".DW") + 1;
+        if (!(p = strstr(line, ".DW"))) /* Upper case/lower case */
+          p = strstr(line, ".dw");
+        p += strlen(".DW") + 1;
         remove_leading_blanks(p);
         strcpy(entry->dw_data, p);
 
@@ -630,6 +632,7 @@ int assemble()
         }
 
         entry->number_of_words = i;
+        address += i;
       }
       else if (!strcmp(entry->mnemonic, ".ASCII_W") || !strcmp(entry->mnemonic, ".ASCII_P"))
       {
@@ -645,9 +648,16 @@ int assemble()
 
         /* ASCII constants are enclosed in double quotes! */
         if (!strcmp(entry->mnemonic, ".ASCII_W"))
-          p = strstr(line, ".ASCII_W") + strlen(".ASCII_W") + 1; /* Get begin of argument, including blanks, so no tokenize! */
+        {
+          if(!(p = strstr(line, ".ASCII_W")))
+            p = strstr(line, ".ascii_w");
+        }
         else
-          p = strstr(line, ".ASCII_P") + strlen(".ASCII_P") + 1; /* Get begin of argument, including blanks, so no tokenize! */
+        { 
+          if(!(p = strstr(line, ".ASCII_P")))
+            p = strstr(line, ".ascii_p");
+        }
+        p += strlen(".ASCII_W") + 1; /* Get begin of argument, including blanks, so no tokenize! */
 
         remove_leading_blanks(p);
         if (*p++ != '"') /* No double quote found! */
