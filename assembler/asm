@@ -34,6 +34,13 @@ rm $romfile 2> /dev/null
 cpp -E $1 | sed '/^#.*/d' > $temp_file
 
 $assembler $temp_file $destination
+if [ $? -ne 0 ]
+then
+  echo "An unrevoverable error occured!"
+  rm $temp_file
+  exit -1
+fi
+
 rm $temp_file
 
 $makerom $destination $romfile
