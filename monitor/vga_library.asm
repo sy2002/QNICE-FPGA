@@ -31,7 +31,6 @@ VGA$INIT                INCRB
                         MOVE    R0, @R1
                         DECRB
                         RET
-
 ;
 ;***************************************************************************************
 ;* VGA$CHAR_AT_XY
@@ -52,7 +51,6 @@ VGA$CHAR_AT_XY          INCRB
                         MOVE    R10, @R0
                         DECRB
                         RET
-
 ;
 ;***************************************************************************************
 ;* VGA$PUTCHAR
@@ -94,6 +92,10 @@ _VGA$PUTC_NO_CR         CMP     0x000A, R8                  ; Is it a LF?
                         RBRA    _VGA$PUTC_END, !Z           ; No, just update and exit
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, scroll one line up...
                         SUB     0x0001, R5                  ; ...and decrement Y-coordinate
+;
+                        MOVE    VGA$OFFS_RW, R7             ; Take care of the rw offset register
+                        ADD     VGA$CHARS_PER_LINE, @R7
+;
                         RBRA    _VGA$PUTC_END, 1            ; Update registers and exit
 _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the HW char-register
                         MOVE    R8, @R6                     ; Output the character
@@ -104,6 +106,10 @@ _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the H
                         CMP     VGA$MAX_Y, R5               ; check if we have reached EOScreen
                         RBRA    _VGA$PUTC_2, !Z             ; No
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, dcroll one line up...
+;
+                        MOVE    VGA$OFFS_RW, R7             ; Take care of the rw offset register
+                        ADD     VGA$CHARS_PER_LINE, @R7
+;
                         SUB     0x0001, R5                  ; ...and decrement Y-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; and finish
 _VGA$PUTC_1             ADD     0x0001, R4                  ; Just increment the X-coordinate
@@ -117,23 +123,31 @@ _VGA$PUTC_END           MOVE    R4, @R0                     ; Update the HW coor
 ;
                         DECRB
                         RET
-
 ;
 ;***************************************************************************************
 ;* VGA$SCROLL_UP_1
 ;*
-;* Scroll one line up
+;*  Scroll one line up - this function only takes care of the display offset, NOT
+;* of the read/write offset!
 ;***************************************************************************************
 ;
 VGA$SCROLL_UP_1         INCRB
                         MOVE    VGA$OFFS_DISPLAY, R0
-                        MOVE    VGA$OFFS_RW, R1
-                        MOVE    VGA$CHARS_PER_LINE, R2
-                        ADD     R2, @R0
-                        ADD     R2, @R1
+                        ADD     VGA$CHARS_PER_LINE, @R0
                         DECRB
                         RET
-
+;
+;***************************************************************************************
+;* VGA$SCROLL_DOWN_1
+;*
+;* Scroll one line down
+;***************************************************************************************
+;
+VGA$SCROLL_DOWN_1       INCRB
+                        MOVE    VGA$OFFS_DISPLAY, R0
+                        SUB     VGA$CHARS_PER_LINE, @R0
+                        DECRB
+                        RET
 ;
 ;***************************************************************************************
 ;* VGA$CLS

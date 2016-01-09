@@ -120,19 +120,25 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;***************************************************************************************
 ;
 IO$GETCHAR          INCRB
-    ;MOVE    IO$TIL_DISPLAY, R0
-    ;MOVE    SR, @R0
                     MOVE    IO$SWITCH_REG, R0
-                    MOVE    @R0, R1             ; Read the switch register
-                    AND     0x0001, R1          ; Lowest bit set?
-                    RBRA    _IO$GETCHAR_UART, Z ; No, read from UART
-                    RSUB    KBD$GETCHAR, 1      ; Yes, read from USB-keyboard
-                    RBRA    _IO$GETCHAR_END, 1  ; Finished...
-_IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1     ; Read from UART
-_IO$GETCHAR_END     DECRB
-                    CMP     KBD$CTRL_E, R8      ; CTRL-E?
-                    RBRA    QMON$WARMSTART, Z   ; Return to monitor immediately!
-		            RET
+_IO$GETCHAR_ENTRY   MOVE    @R0, R1                 ; Read the switch register
+                    AND     0x0001, R1              ; Lowest bit set?
+                    RBRA    _IO$GETCHAR_UART, Z     ; No, read from UART
+                    RSUB    KBD$GETCHAR, 1          ; Yes, read from USB-keyboard
+                    RBRA    _IO$GETCHAR_SPECIAL, 1  ; One char successfully read
+_IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1         ; Read from UART
+_IO$GETCHAR_SPECIAL CMP     KBD$CTRL_E, R8          ; CTRL-E?
+                    RBRA    QMON$WARMSTART, Z       ; Return to monitor immediately!
+                    CMP     KBD$CTRL_F, R8          ; CTRL-F?
+                    RBRA    _IO$GETCHAR_NO_F, !Z    ; No
+                    RSUB    VGA$SCROLL_UP_1, 1
+                    RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
+_IO$GETCHAR_NO_F    CMP     KBD$CTRL_B, R8          ; CTRL-B?
+                    RBRA    _IO$GETCHAR_FIN, !Z     ; No, just a normal character
+                    RSUB    VGA$SCROLL_DOWN_1, 1
+                    RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
+_IO$GETCHAR_FIN     DECRB
+                    RET
 ;
 ;***************************************************************************************
 ;* IO$GETS reads a CR/LF terminated string from the serial line

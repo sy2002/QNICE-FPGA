@@ -14,6 +14,7 @@
 ;;               monitor continues
 ;;  06-AUG-2015: Basic monitor functions implemented
 ;;  28..30-DEC-2015: VGA- and USB-support
+;;  JAN-2016:    Central dispatch table, scrolling support
 ;;
 ;; Known bugs: 
 ;;
@@ -276,11 +277,11 @@ QMON$NOT_H      MOVE    QMON$ILLCMDGRP, R8A     ; Illegal command group
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
 
-QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.4 (Bernd Ulmann, Dezember 2015)\n"
+QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.4 (Bernd Ulmann, January 2016)\n"
 #ifdef RAM_MONITOR
                 .ASCII_P    "Running in RAM!\n"
 #endif
-                .ASCII_W    "----------------------------------------------------------------\n\n"
+                .ASCII_W    "---------------------------------------------------------------\n\n"
 QMON$PROMPT     .ASCII_W    "QMON> "
 QMON$ILLCMDGRP  .ASCII_W    " *** Illegal command group ***\n"
 QMON$ILLCMD     .ASCII_W    " *** Illegal command ***\n"
