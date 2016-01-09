@@ -707,7 +707,8 @@ int assemble()
       else if (!strcmp(entry->mnemonic, ".BLOCK")) /* .BLOCK expects one argument being the size of the block to be reserved */
       {
         token = tokenize((char *) 0, delimiters); /* Get size of block */
-        size = str2int(token); 
+        if (search_equ_list(token, &size)) /* Returns -1 if nothing is found */
+          size = str2int(token); 
 
         if (!(entry->data = (int *) malloc(size * sizeof(int))))
         {
