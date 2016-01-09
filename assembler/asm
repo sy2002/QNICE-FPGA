@@ -37,3 +37,5 @@ $assembler $temp_file $destination
 rm $temp_file
 
 $makerom $destination $romfile
+
+cat $destination | pbcopy
