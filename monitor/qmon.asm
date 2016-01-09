@@ -84,6 +84,8 @@ QMON$COLDSTART  AND     0x00FF, SR              ; Make sure we are in register b
                                                 ; the HW boot message stays visible
                 MOVE    QMON$WELCOME, R8        ; Print welcome message
                 RSUB    IO$PUTS, 1
+                MOVE    IO$KBD_STATE, R8        ; Set DE keyboard locale as default    
+                OR      KBD$LOCALE_DE, @R8      
 ;                MOVE    QMON$LAST_ADDR, R8      ; Clear memory after the monitor
 ;                ADD     0x0001, R8              ; Start address
 ;                MOVE    VAR$STACK_START, R9     ; Determine length of memory area 
