@@ -56,7 +56,7 @@ port (
    -- SWITCHES is $FF12
    switch_reg_enable : out std_logic;
    
-   -- Keyboard register range $FF13..$FF14
+   -- Keyboard register range $FF13..$FF16
    kbd_en            : out std_logic;
    kbd_we            : out std_logic;
    kbd_reg           : out std_logic_vector(1 downto 0);
