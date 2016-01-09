@@ -1,6 +1,11 @@
-; Very simple USB keyboard test which echos all input chars back to 
-; the currently active terminal (UART or VGA). Additionally, the ASCII and
-; special key value is is being output to the TIL display.
+; Test program used during keyboard development
+; Reads an ascii or special key via PS/2 (USB), mirrors it to STDOUT and
+; additionally displays the ascii or special code on the TIL display:
+; digit 0..1 : ascii or special code
+; digit 2: modifiers
+; digit 3: 0 if ascii, 1 if special
+; (digits counting from right to left)
+; press CTRL+E to exit back to the monitor
 ; done by sy2002 in January 2016
 
                 .ORG 0xA000
@@ -9,11 +14,33 @@
 #include "../dist_kit/monitor.def"
 
                 MOVE    IO$TIL_DISPLAY, R0
+                MOVE    IO$KBD_STATE, R2
 
 MAIN_LOOP       RSUB    READ_KEYBOARD, 1    ; no syscall to ensure that we read USB
                 CMP     KBD$CTRL_E, R8      ; exit?
                 RBRA    END, Z              ; yes
-                MOVE    R8, @R0             ; display special key + ascii on TIL
+
+                MOVE    @R2, R1              
+                AND     KBD$MODIFIERS, R1   ; extract modifiers
+                SHL     3, R1               ; shift them to TIL digit 2
+                MOVE    R1, R7              ; R7 will be the display variable
+
+                ; special keys
+                MOVE    R8, R1              
+                AND     KBD$SPECIAL, R1
+                RBRA    _NO_SPECIAL, Z
+                SHR     8, R1               ; shift them to TIL digits 0..1
+                OR      R1, R7
+                OR      0x1000, R7          ; show flag in digit 3
+                RBRA    _DISPLAY, 1   
+
+                ; normal keys
+_NO_SPECIAL     MOVE    R8, R1
+                AND     KBD$ASCII, R1
+                OR      R1, R7
+
+_DISPLAY        MOVE    R7, @R0             ; display special key + ascii on TIL
+
                 SYSCALL(putc, 1)            ; print character
                 RBRA MAIN_LOOP, 1
 

@@ -43,6 +43,8 @@ VGA$COLOR_WHITE         .EQU    0x0007
 
 ; ========== KEYBOARD ==========
 
+; STATUS REGISTER
+
 KBD$NEW_ASCII           .EQU    0x0001                  ; new ascii character available
 KBD$NEW_SPECIAL         .EQU    0x0002                  ; new special key available
 KBD$NEW_ANY             .EQU    0x0003                  ; any new key available 
@@ -53,6 +55,13 @@ KBD$SPECIAL             .EQU    0xFF00                  ; mask the ascii keys
 KBD$LOCALE              .EQU    0x001C                  ; bit mask for checking locales
 KBD$LOCALE_US           .EQU    0x0000                  ; default: US keyboard layout
 KBD$LOCALE_DE           .EQU    0x0004                  ; DE: German keyboard layout
+
+KBD$MODIFIERS           .EQU    0x00E0                  ; bit mask for checking modifiers
+KBD$SHIFT               .EQU    0x0020                  ; modifier "SHIFT" pressed
+KBD$ALT                 .EQU    0x0040                  ; modifier "ALT" pressed
+KBD$CTRL                .EQU    0x0080                  ; modifier "CTRL" pressed
+
+; READ REGISTER: SPECIAL KEYS
 
 KBD$F1                  .EQU    0x0001   
 KBD$F2                  .EQU    0x0002
@@ -77,6 +86,8 @@ KBD$POS1                .EQU    0x0016
 KBD$END                 .EQU    0x0017
 KBD$INS                 .EQU    0x0018
 KBD$DEL                 .EQU    0x0019
+
+; READ REGISTER: CTRL + character is also mapped to an ASCII code
 
 KBD$CTRL_A              .EQU    0x0001 
 KBD$CTRL_B              .EQU    0x0002 
@@ -155,12 +166,14 @@ IO$SWITCH_REG   .EQU 0xFF12 ; 16 binary keys
 ; USB-keyboard-registers:
 ;
 IO$KBD_STATE    .EQU 0xFF13 ; Status register of USB keyboard
-;    Bit  0 (read only): New ASCII character avaiable for reading
-;                        (bits 7 downto 0 of Read register)
-;    Bit  1 (read only): New special key available for reading
-;                        (bits 15 downto 8 of Read register)
-;    Bits 2..4 (read/write): Locales: 000 = US English keyboard layout,
-;                            001 = German layout, others: reserved
+;    Bit  0 (read only):      New ASCII character avaiable for reading
+;                             (bits 7 downto 0 of Read register)
+;    Bit  1 (read only):      New special key available for reading
+;                             (bits 15 downto 8 of Read register)
+;    Bits 2..4 (read/write):  Locales: 000 = US English keyboard layout,
+;                             001 = German layout, others: reserved for more locales
+;    Bits 5..7 (read only):   Modifiers: 5 = shift, 6 = alt, 7 = ctrl
+;                             Only valid, when bits 0 and/or 1 are '1'
 
 IO$KBD_DATA     .EQU 0xFF14 ; Data register of USB keyboard
 ;    Contains the ASCII character in bits 7 downto 0  or the special key code

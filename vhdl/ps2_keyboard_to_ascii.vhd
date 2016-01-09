@@ -16,7 +16,10 @@
 --
 --   Version History
 --   Version 2.0 in January 2016 by sy2002
---     Special locales and special key handling
+--     Locales for DE and US/EN and special key handling
+--     Known issue: The numeric keypad is intentionally not supported,
+--     as it seems that the Nexys4 DDR generates wrong scancodes, e.g.
+--     the scancode for cursor left and for keypad 4 are identical.
 --   Version 1.0 11/29/2013 Scott Larson
 --     Initial Public Release
 --    
@@ -38,8 +41,8 @@ ENTITY ps2_keyboard_to_ascii IS
       ascii_code : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);  --ASCII value
       spec_new   : OUT STD_LOGIC;                     -- output flag indicating new special key value
       spec_code  : OUT STD_LOGIC_VECTOR(7 downto 0);  -- special key value
-      locale     : IN  STD_LOGIC_VECTOR(2 downto 0)   -- locale will not be latched but eval. in real time
-      
+      locale     : IN  STD_LOGIC_VECTOR(2 downto 0);  -- locale will not be latched but eval. in real time
+      modifiers  : OUT STD_LOGIC_VECTOR(2 downto 0)   -- modifiers: 0 = shift, 1 = alt, 2 = ctrl
       ); 
 END ps2_keyboard_to_ascii;
 
@@ -63,7 +66,7 @@ ARCHITECTURE behavior OF ps2_keyboard_to_ascii IS
   -- extensions by sy2002 to handle 256 ascii codes and special keys
   SIGNAL ascii_ext         : STD_LOGIC := '0';
   SIGNAL spec              : STD_LOGIC_VECTOR(7 DOWNTO 0) := x"00";
-
+  
   --declare PS2 keyboard interface component
   COMPONENT ps2_keyboard IS
     GENERIC(
@@ -151,35 +154,70 @@ BEGIN
                 END IF;
               WHEN OTHERS => NULL;
             END CASE;
-            
-            --F-keys
-            CASE ps2_code IS
-               WHEN x"05" => spec <= key_f1;
-               WHEN x"06" => spec <= key_f2;
-               WHEN x"04" => spec <= key_f3;
-               WHEN x"0C" => spec <= key_f4;
-               WHEN x"03" => spec <= key_f5;
-               WHEN x"0B" => spec <= key_f6;
-               WHEN x"83" => spec <= key_f7;
-               WHEN x"0A" => spec <= key_F8;
-               WHEN x"01" => spec <= key_F9;
-               WHEN x"09" => spec <= key_F10;
-               WHEN x"78" => spec <= key_F11;
-               WHEN x"07" => spec <= key_F12;
-               WHEN OTHERS => NULL;
-            END CASE;
-            
+                       
+            -- E0 encoded keys
+            IF e0_code = '1' THEN
+               -- Cursor and cursor control keys
+               CASE ps2_code IS
+                  WHEN x"75" => spec <= key_cur_up;
+                  WHEN x"72" => spec <= key_cur_down;
+                  WHEN x"6B" => spec <= key_cur_left;
+                  WHEN x"74" => spec <= key_cur_right;
+                  WHEN x"70" => spec <= key_ins;
+                  WHEN x"71" => spec <= key_del;
+                  WHEN x"6C" => spec <= key_pos1;
+                  WHEN x"69" => spec <= key_end;
+                  WHEN x"7D" => spec <= key_pg_up;
+                  WHEN x"7A" => spec <= key_pg_down;
+                  
+                  WHEN OTHERS => NULL;
+               END CASE;
+               
+            -- standard encoded keys
+            ELSE
+               CASE ps2_code IS
+                  -- @TODO: Known Issue with Nexys4 DDR USB to PS/2 translation:
+                  -- numeric keypad and cursor keys are having wrong codes, so we interpret
+                  -- the keypad codes also as cursor and cursor modification keys
+                  WHEN x"75" => spec <= key_cur_up;
+                  WHEN x"72" => spec <= key_cur_down;
+                  WHEN x"6B" => spec <= key_cur_left;
+                  WHEN x"74" => spec <= key_cur_right;
+                  WHEN x"70" => spec <= key_ins;
+                  WHEN x"71" => spec <= key_del;
+                  WHEN x"6C" => spec <= key_pos1;
+                  WHEN x"69" => spec <= key_end;
+                  WHEN x"7D" => spec <= key_pg_up;
+                  WHEN x"7A" => spec <= key_pg_down;
+               
+                  -- function keys
+                  WHEN x"05" => spec <= key_f1;
+                  WHEN x"06" => spec <= key_f2;
+                  WHEN x"04" => spec <= key_f3;
+                  WHEN x"0C" => spec <= key_f4;
+                  WHEN x"03" => spec <= key_f5;
+                  WHEN x"0B" => spec <= key_f6;
+                  WHEN x"83" => spec <= key_f7;
+                  WHEN x"0A" => spec <= key_F8;
+                  WHEN x"01" => spec <= key_F9;
+                  WHEN x"09" => spec <= key_F10;
+                  WHEN x"78" => spec <= key_F11;
+                  WHEN x"07" => spec <= key_F12;              
+                  
+                  WHEN OTHERS => NULL;
+               END CASE;
+            END IF;
+                       
             -- translate "Alt Gr" (equivalent to CTRL +left ALT) control codes for locale DE
             IF locale = loc_DE AND
                (alt_gr = '1' or (control_l = '1' and alt_l = '1' )) THEN
                
                CASE ps2_code IS
-               
-                  
+                                 
                   WHEN x"15" => ascii <= x"40"; -- Alt Gr + Q => @ (at sign)                                    
                   WHEN x"24" =>                 -- Alt Gr + E => € (Euro sign)
                      ascii_ext <= '1';
-                     ascii <= x"80" and x"7F"; 
+                     ascii <= x"A4" and x"7F"; 
                   WHEN x"5B" => ascii <= x"7E"; -- Alt Gr + + => ~
                   WHEN x"1E" =>                 -- Alt Gr + 2 => ² (to the square / second power)
                      ascii_ext <= '1';
@@ -255,21 +293,18 @@ BEGIN
                 WHEN OTHERS => NULL;
               END CASE;
             ELSE --if control keys are not pressed  
-            
-              --translate characters that do not depend on shift, or caps lock
-              CASE ps2_code IS
-                WHEN x"29" => ascii <= x"20"; --space
-                WHEN x"66" => ascii <= x"08"; --backspace (BS control code)
-                WHEN x"0D" => ascii <= x"09"; --tab (HT control code)
-                WHEN x"5A" => ascii <= x"0D"; --enter (CR control code)
-                WHEN x"76" => ascii <= x"1B"; --escape (ESC control code)
-                WHEN x"71" => 
-                  IF(e0_code = '1') THEN      --ps2 code for delete is a multi-key code
-                    ascii <= x"7F";             --delete
-                  END IF;
-                WHEN OTHERS => NULL;
-              END CASE;
-              
+                        
+               --translate characters that do not depend on shift, or caps lock
+               CASE ps2_code IS
+                  WHEN x"29" => ascii <= x"20"; --space
+                  WHEN x"66" => ascii <= x"08"; --backspace (BS control code)
+                  WHEN x"0D" => ascii <= x"09"; --tab (HT control code)
+                  WHEN x"5A" => ascii <= x"0D"; --enter (CR control code)
+                  WHEN x"76" => ascii <= x"1B"; --escape (ESC control code)
+                  
+                  WHEN OTHERS => NULL;
+               END CASE;               
+                                          
               --translate letters (these depend on both shift and caps lock)
               IF((shift_r = '0' AND shift_l = '0' AND caps_lock = '0') OR
                 ((shift_r = '1' OR shift_l = '1') AND caps_lock = '1')) THEN  --letter is lowercase
@@ -523,7 +558,11 @@ BEGIN
           ELSE
             spec_new <= '0';
           END IF;
-          spec_code <= spec;                   
+          spec_code <= spec;
+          
+          modifiers(mod_ctrl_bit)  <= control_l or control_r;
+          modifiers(mod_shift_bit) <= shift_l or shift_r;
+          modifiers(mod_alt_bit)   <= alt_l or alt_gr;
           
           state <= ready;                      --return to ready state to await next PS2 code
 

@@ -7,21 +7,24 @@
 -- https://eewiki.net/pages/viewpage.action?pageId=28279002
 -- which has been enhanced by sy2002 to support special keys and locales
 --
--- IMPORTANT: kbd_constants.vhd contains locales and special characters
+-- IMPORTANT: kbd_constants.vhd contains locales, special characters, modifiers
 --
 -- Registers:
 --
 -- Register $FF13: State register
---    Bit  0 (read only): New ASCII character avaiable for reading
---                        (bits 7 downto 0 of Read register)
---    Bit  1 (read only): New special key available for reading
---                        (bits 15 downto 8 of Read register)
---    Bits 2..4 (read/write): Locales: 000 = US English keyboard layout,
---                            001 = German layout, others: reserved for more locales
+--    Bit  0 (read only):      New ASCII character avaiable for reading
+--                             (bits 7 downto 0 of Read register)
+--    Bit  1 (read only):      New special key available for reading
+--                             (bits 15 downto 8 of Read register)
+--    Bits 2..4 (read/write):  Locales: 000 = US English keyboard layout,
+--                             001 = German layout, others: reserved for more locales
+--    Bits 5..7 (read only):   Modifiers: 5 = shift, 6 = alt, 7 = ctrl
+--                             Only valid, when bits 0 and/or 1 are '1'
 -- Register $FF14: Read register
 --    Contains the ASCII character in bits 7 downto 0  or the special key code
 --    in 15 downto 0. The "or" is meant exclusive, i.e. it cannot happen that
 --    one transmission contains an ASCII character PLUS a special character.
+
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -62,7 +65,8 @@ port (
    ascii_code    : out std_logic_vector(7 downto 0);  -- ASCII value
    spec_new      : out std_logic;                     -- output flag indicating new special key value
    spec_code     : out std_logic_vector(7 downto 0);  -- special key value
-   locale        : in std_logic_vector(2 downto 0)    -- locale will not be latched but eval. in real time
+   locale        : in std_logic_vector(2 downto 0);   -- locale will not be latched but eval. in real time
+   modifiers     : out STD_LOGIC_VECTOR(2 downto 0)   -- modifiers: 0 = shift, 1 = alt, 2 = ctrl   
 );
 end component;
 
@@ -78,6 +82,7 @@ signal reset_ff_ascii_new  : std_logic;
 signal ff_spec_new         : std_logic;
 signal reset_ff_spec_new   : std_logic;
 signal ff_locale           : std_logic_vector(2 downto 0);
+signal modifiers           : std_logic_vector(2 downto 0);
 
 begin
 
@@ -94,7 +99,8 @@ begin
          ascii_code => ascii_code,
          spec_new => spec_new,
          spec_code => spec_code,
-         locale => ff_locale
+         locale => ff_locale,
+         modifiers => modifiers
       );
       
    ff_ascii_new_handler : process(ascii_new, reset, reset_ff_ascii_new)
@@ -142,7 +148,11 @@ begin
          
             -- read status register
             when "00" =>
-               cpu_data <= "00000000000" & ff_locale & ff_spec_new & ff_ascii_new;
+               cpu_data <= "00000000" &
+                           modifiers & -- bits 7 .. 5: ctrl/alt/shift
+                           ff_locale &    -- bits 4 .. 2: 000 = US, 001 = DE
+                           ff_spec_new &  -- bit 1: new special key
+                           ff_ascii_new;  -- bit 0: new ascii key
                
             -- read data register
             when "01" =>

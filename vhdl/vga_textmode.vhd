@@ -234,7 +234,7 @@ begin
    font_rom : video_bram
       generic map (
          SIZE_BYTES => 3072,
-         CONTENT_FILE => "lat9w-12.rom",
+         CONTENT_FILE => "lat9w-12_sy2002.rom",
          FILE_LINES => 3072,
          DEFAULT_VALUE => x"00"
       )

@@ -6,19 +6,17 @@ HARDWARE:
 
 * Fix tristate problem that slows down CPU by ~50%
 
-* keyboard: Extend FF13 to be write-able to switch to DE keyboard layout
-
 * keyboard: remove hardcoded hardcoded 18000
 
-* keyboard: support optional mapping of cursor and pgup/pgdown keys to
-  non-used ASCII values as a prerequisite for a more conventient monitor.
-
-* Add a timer with 0,1us Resolution (10 MHz Frequency)
+* Add a timer with 0,1us Resolution (10 MHz frequency)
 
 * Refactor MMIO for not having so many comperators
 
 * Refactor TIL and TIL Mask to support 8 digits / 32 bits
 
-* avoid inferring two RAMs for video RAM
+* Refactor scancode conversion to be more table/ROM like and less
+  like a huge array of multiplexers
+
+* Refactor Video RAM: avoid inferring two RAMs for video RAM
 
 * single-step-mode in hardware incl. address/data display on 7-segs

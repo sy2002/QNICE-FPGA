@@ -14,7 +14,7 @@ package kbd_constants is
 constant loc_US         : std_logic_vector(2 downto 0) := "000";
 constant loc_DE         : std_logic_vector(2 downto 0) := "001";
 
--- special keys
+-- special keys (transmitted via 15 downto 8 of $FF14)
 
 constant key_f1         : std_logic_vector(7 downto 0) := x"01";
 constant key_f2         : std_logic_vector(7 downto 0) := x"02";
@@ -39,6 +39,11 @@ constant key_pos1       : std_logic_vector(7 downto 0) := x"16";
 constant key_end        : std_logic_vector(7 downto 0) := x"17";
 constant key_ins        : std_logic_vector(7 downto 0) := x"18";
 constant key_del        : std_logic_vector(7 downto 0) := x"19";
+
+-- bits for modifiers (in keyboard.vhd's output these are mapped in this ordering to 5 upto 7)
+constant mod_shift_bit  : natural := 0;
+constant mod_alt_bit    : natural := 1;
+constant mod_ctrl_bit   : natural := 2;
 
 end kbd_constants;
 
