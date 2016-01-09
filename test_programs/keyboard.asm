@@ -1,34 +1,27 @@
-; Very basic USB keyboard test which echos all input chars back to 
-; the terminal. It also displays the ASCII code of the character on 
-; the TIL by vaxman in December 2015 enhanched by sy2002 in January 2016
+; Very simple USB keyboard test which echos all input chars back to 
+; the currently active terminal (UART or VGA). Additionally, the ASCII and
+; special key value is is being output to the TIL display.
+; done by sy2002 in January 2016
 
                 .ORG 0x8000
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 
-                MOVE    IO$TIL_DISPLAY, R12
-                MOVE    0xFFAA, @R12
+                MOVE    IO$TIL_DISPLAY, R0
 
-                MOVE    IO$UART_SRA, R0     ; R0: address of UART status register
-                MOVE    IO$UART_THRA, R1    ; R1: address of transmit register
+MAIN_LOOP       RSUB    READ_KEYBOARD, 1
+                MOVE    R8, @R0
+                SYSCALL(putc, 1)
+                RBRA MAIN_LOOP, 1
 
-                MOVE    IO$KBD_STATE, R4    ; Status register of USB keyboard
-                MOVE    IO$KBD_DATA, R5     ; Data from USB keyboard
 
-_IO$GETC_LOOP   MOVE    @R4, R3             ; read status register
-                AND     0x0001, R3          ; character waiting in read latch?
-                RBRA    _IO$GETC_LOOP, Z    ; loop until a char. is received
-
-                MOVE    @R5, R8             ; store received character ...
-                MOVE    R8, @R12            ; ... and write it to TIL
-                
-_IO$SETC_WAIT   MOVE    @R0, R3             ; read status register
-                AND     0x0002, R3          ; ready to transmit?
-                RBRA    _IO$SETC_WAIT, Z    ; loop until ready
-
-                MOVE    R8, @R1             ; echo character back to terminal
-
-                RBRA    _IO$GETC_LOOP, 1    ; next char/endless loop
-
-                
+READ_KEYBOARD   INCRB
+                MOVE    IO$KBD_STATE, R0    ; R0 contains the address of the status register
+                MOVE    IO$KBD_DATA, R1     ; R1 contains the address of the receiver reg.
+_KBD$GETC_LOOP  MOVE    @R0, R2             ; Read status register
+                AND     0x0011, R2          ; Only bit 0 is of interest
+                RBRA    _KBD$GETC_LOOP, Z   ; Loop until a character has been received
+                MOVE    @R1, R8             ; Get the character from the receiver register
+                DECRB
+                RET

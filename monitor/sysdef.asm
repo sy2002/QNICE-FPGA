@@ -49,6 +49,31 @@ KBD$NEW_SPECIAL         .EQU    0x0002                  ; new special char. avai
 KBD$LOCALES             .EQU    0x001C                  ; bit mask for checking locales
 KBD$LOCALE_US           .EQU    0x0000                  ; default: US keyboard layout
 KBD$LOCALE_DE           .EQU    0x0004                  ; DE: German keyboard layout
+
+KBD$F1                  .EQU    0x0001   
+KBD$F2                  .EQU    0x0002
+KBD$F3                  .EQU    0x0003
+KBD$F4                  .EQU    0x0004
+KBD$F5                  .EQU    0x0005
+KBD$F6                  .EQU    0x0006
+KBD$F7                  .EQU    0x0007
+KBD$F8                  .EQU    0x0008
+KBD$F9                  .EQU    0x0009
+KBD$F10                 .EQU    0x000A
+KBD$F11                 .EQU    0x000B
+KBD$F12                 .EQU    0x000C
+
+KBD$CUR_UP              .EQU    0x0010
+KBD$CUR_DOWN            .EQU    0x0011
+KBD$CUR_LEFT            .EQU    0x0012
+KBD$CUR_RIGHT           .EQU    0x0013
+KBD$PG_UP               .EQU    0x0014
+KBD$PG_DOWN             .EQU    0x0015
+KBD$POS1                .EQU    0x0016
+KBD$END                 .EQU    0x0017
+KBD$INS                 .EQU    0x0018
+KBD$DEL                 .EQU    0x0019
+
 ;
 ;***************************************************************************************
 ;*  IO-page addresses:

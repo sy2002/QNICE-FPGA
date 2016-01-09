@@ -1,4 +1,3 @@
-#!/usr/bin/ruby 
 
 # Translate PSF (PostScript Font) files to XilinX COE file format 
 # for embbed a console font into a ROM (Xilinx read-only BRAM)

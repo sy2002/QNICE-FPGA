@@ -120,8 +120,8 @@ _IO$PWH_PRINT   MOVE @SP++, R8          ; Fetch a character from the stack
 ;***************************************************************************************
 ;
 IO$GETCHAR          INCRB
-    MOVE    IO$TIL_DISPLAY, R0
-    MOVE    SR, @R0
+    ;MOVE    IO$TIL_DISPLAY, R0
+    ;MOVE    SR, @R0
                     MOVE    IO$SWITCH_REG, R0
                     MOVE    @R0, R1             ; Read the switch register
                     AND     0x0001, R1          ; Lowest bit set?

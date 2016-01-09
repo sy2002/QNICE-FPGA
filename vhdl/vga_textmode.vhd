@@ -36,6 +36,10 @@
 
 -- how to make fonts, see http://nafe.sourceforge.net/
 -- then use the psf2coe.rb and then coe2rom.pl toolchain to generate .rom files
+-- in case the Source Forge link is not available: nafe-0.1.tar.gz is stored in the 'vga' subfolder
+-- alternative: as psf2coe.rb does not seem to work, use
+-- xxd -p -c 1 -u lat9w-12.psfu | sed -e '1,4d' > lat9w-12.coe
+-- to convert "type 1" psfu's that are made by nafe from the original Linux font files to create the .coe
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -230,7 +234,7 @@ begin
    font_rom : video_bram
       generic map (
          SIZE_BYTES => 3072,
-         CONTENT_FILE => "lat0-12.rom",
+         CONTENT_FILE => "lat9w-12.rom",
          FILE_LINES => 3072,
          DEFAULT_VALUE => x"00"
       )
