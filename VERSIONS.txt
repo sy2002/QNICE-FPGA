@@ -1,5 +1,5 @@
-[WIP] Version 1.2  January, 10 2016
-===================================
+Version 1.2  January, 10 2016
+=============================
 
 * UART: 115.200 baud, 8-N-1, CTS from now on
 * VGA: now supports hardware scrolling and the lat9w-12 font, which supports
