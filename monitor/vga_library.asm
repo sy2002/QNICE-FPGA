@@ -202,10 +202,7 @@ _VGA$SCROLL_UP_1_DOIT   ADD     VGA$CHARS_PER_LINE, @R0
                         OR      VGA$EN_HW_CURSOR, @R0
 
 _VGA$SCROLL_UP_1_NOP    MOVE 0, R8                          ; no clrscr happened
-_VGA$SCROLL_UP_1_END    MOVE VGA$OFFS_DISPLAY, R0 ; DEBUG ONLY
-                        MOVE IO$TIL_DISPLAY, R1   ; DEBUG ONLY
-                        MOVE @R0, @R1             ; DEBUG ONLY
-                        DECRB
+_VGA$SCROLL_UP_1_END    DECRB
                         RET
 
 ;
@@ -251,10 +248,7 @@ VGA$SCROLL_DOWN_1       INCRB
                         NOT     VGA$EN_HW_CURSOR, R1
                         AND     R1, @R0
 
-_VGA$SCROLL_DOWN_1_NOP  MOVE    VGA$OFFS_DISPLAY, R0 ; DEBUG ONLY
-                        MOVE    IO$TIL_DISPLAY, R1 ; DEBUG ONLY
-                        MOVE    @R0, @R1           ; DEBUG ONLY
-                        DECRB
+_VGA$SCROLL_DOWN_1_NOP  DECRB
                         RET
 ;
 ;***************************************************************************************
