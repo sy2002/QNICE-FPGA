@@ -53,11 +53,11 @@ NO_MIRROR_YET       RSUB    WAIT_KEY, 1             ; wait for a keypress
                     RSUB    WAIT_KEY, 1
 
                     ; switch off hw scrolling (resets viewport)
-                    NOT     VGA_EN_DISP_OFFS, R3
-                    AND     R3, @R5
+                    ;NOT     VGA_EN_DISP_OFFS, R3
+                    ;AND     R3, @R5
 
                     ; end of this program => back to monitor
-                    ABRA    QMON$MAIN_LOOP, 1
+                    SYSCALL(exit, 1)
 
 ; wait for a keypress on uart
 WAIT_KEY        INCRB                        ; next register bank

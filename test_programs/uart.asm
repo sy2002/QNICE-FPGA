@@ -5,18 +5,15 @@
                 .ORG 0x8000
 
 #define FPGA
-#include "../monitor/sysdef.asm"
+#include "../dist_kit/sysdef.asm"
 
 
-                MOVE    IO$TIL_BASE, R12
+                MOVE    IO$TIL_DISPLAY, R12
                 MOVE    0xFFAA, @R12
 
-                MOVE    IO$UART0_BASE, R0 
-                MOVE    R0, R1
-                MOVE    R0, R2 
-                ADD     IO$UART_SRA, R0     ; R0: address of status register
-                ADD     IO$UART_RHRA, R1    ; R1: address of receiver register
-                ADD     IO$UART_THRA, R2    ; R2: address of transmit register
+                MOVE   IO$UART_SRA, R0      ; R0: address of status register
+                MOVE   IO$UART_RHRA, R1     ; R1: address of receiver register
+                MOVE   IO$UART_THRA, R2     ; R2: address of transmit register
 
 _IO$GETC_LOOP   MOVE    @R0, R3             ; read status register
                 AND     0x0001, R3          ; character waiting in read latch?
