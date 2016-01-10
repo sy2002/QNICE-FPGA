@@ -71,11 +71,89 @@ XXXXXXX
         
         
 ++---005-0x05-''-
-X   X   
-X   X   
+        
+        
+        
+        
+        
+        
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+++---006-0x06-''-
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+        
+        
+        
+        
+        
+        
+++---007-0x07-''-
+        
+        
+        
+        
+  XXX
+ XX XX
+  XXX
+        
+        
+        
+        
+        
+++---008-0x08-''-
+XXXX    
+XXXX    
+XXXX    
+XXXX    
+XXXX    
+XXXX    
+XXXX    
+XXXX    
+XXXX    
+XXXX    
+XXXX    
+XXXX    
+++---009-0x09-''-
+    XXXX
+    XXXX
+    XXXX
+    XXXX
+    XXXX
+    XXXX
+    XXXX
+    XXXX
+    XXXX
+    XXXX
+    XXXX
+    XXXX
+++---010-0x0a-''-
+X       
+X       
+X       
+X       
 XXXXX   
+        
+  XXXXX 
+  X     
+  XXX   
+  X     
+  X     
+        
+++---011-0x0b-''-
 X   X   
 X   X   
+ X X    
+ X X    
+  X     
         
   XXXXX 
     X   
@@ -83,7 +161,7 @@ X   X
     X   
     X   
         
-++---006-0x06-''-
+++---012-0x0c-''-
 XXXXX   
 X       
 XXX     
@@ -96,7 +174,7 @@ X
   X     
   X     
         
-++---007-0x07-''-
+++---013-0x0d-''-
  XXXX   
 X       
 X       
@@ -109,148 +187,70 @@ X
   X  X  
   X   X 
         
-++---008-0x08-''-
-X       
-X       
-X       
-X       
-XXXXX   
-        
-  XXXXX 
-  X     
-  XXX   
-  X     
-  X     
-        
-++---009-0x09-''-
-  X   X 
-X   X   
-  X   X 
-X   X   
-  X   X 
-X   X   
-  X   X 
-X   X   
-  X   X 
-X   X   
-  X   X 
-X   X   
-++---010-0x0a-''-
- X X X X
-X X X X 
- X X X X
-X X X X 
- X X X X
-X X X X 
- X X X X
-X X X X 
- X X X X
-X X X X 
- X X X X
-X X X X 
-++---011-0x0b-''-
-XXX XXX 
-X XXX XX
-XXX XXX 
-X XXX XX
-XXX XXX 
-X XXX XX
-XXX XXX 
-X XXX XX
-XXX XXX 
-X XXX XX
-XXX XXX 
-X XXX XX
-++---012-0x0c-''-
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-++---013-0x0d-''-
-        
-        
-        
-        
-        
-        
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
 ++---014-0x0e-''-
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-XXXXXXXX
-        
-        
-        
-        
-        
-        
+  X   X 
+X   X   
+  X   X 
+X   X   
+  X   X 
+X   X   
+  X   X 
+X   X   
+  X   X 
+X   X   
+  X   X 
+X   X   
 ++---015-0x0f-''-
-XXXX    
-XXXX    
-XXXX    
-XXXX    
-XXXX    
-XXXX    
-XXXX    
-XXXX    
-XXXX    
-XXXX    
-XXXX    
-XXXX    
+ X X X X
+X X X X 
+ X X X X
+X X X X 
+ X X X X
+X X X X 
+ X X X X
+X X X X 
+ X X X X
+X X X X 
+ X X X X
+X X X X 
 ++---016-0x10-''-
-    XXXX
-    XXXX
-    XXXX
-    XXXX
-    XXXX
-    XXXX
-    XXXX
-    XXXX
-    XXXX
-    XXXX
-    XXXX
-    XXXX
+XXX XXX 
+X XXX XX
+XXX XXX 
+X XXX XX
+XXX XXX 
+X XXX XX
+XXX XXX 
+X XXX XX
+XXX XXX 
+X XXX XX
+XXX XXX 
+X XXX XX
 ++---017-0x11-''-
-X   X   
-XX  X   
-X X X   
-X  XX   
-X   X   
-        
-  X     
-  X     
-  X     
-  X     
-  XXXXX 
-        
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
+XXXXXXXX
 ++---018-0x12-''-
-X   X   
-X   X   
- X X    
- X X    
-  X     
         
-  XXXXX 
-    X   
-    X   
-    X   
-    X   
+        
+        
+        
+        
+   XX   
+   XX
+        
+        
+        
+        
         
 ++---019-0x13-''-
         

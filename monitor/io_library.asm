@@ -167,7 +167,17 @@ _IO$GETCHAR_NO_PGD  CMP     KBD$PG_UP, R8           ; Page Up?
                     MOVE    40, R8                  ; Yes: scroll down one screen
                     RSUB    VGA$SCROLL_DOWN, 1              
                     RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
-_IO$GETCHAR_NO_PGU  NOP                    
+_IO$GETCHAR_NO_PGU  CMP     KBD$HOME, R8            ; Home?
+                    RBRA    _IO$GETCHAR_NO_HM, !Z   ; No
+                    MOVE    0, R8                   ; Yes: scroll to the very top
+                    RSUB    VGA$SCROLL_HOME_END, 1
+                    RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
+_IO$GETCHAR_NO_HM   CMP     KBD$END, R8             ; End?
+                    RBRA    _IO$GETCHAR_FIN, !Z     ; No: Normal Key
+                    MOVE    1, R8                   ; Yes: scroll to the very bottom
+                    RSUB    VGA$SCROLL_HOME_END, 1
+                    RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
+
 _IO$GETCHAR_FIN     DECRB
                     RET
 ;

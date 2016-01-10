@@ -83,7 +83,7 @@ KBD$CUR_LEFT            .EQU    0x1200
 KBD$CUR_RIGHT           .EQU    0x1300
 KBD$PG_UP               .EQU    0x1400
 KBD$PG_DOWN             .EQU    0x1500
-KBD$POS1                .EQU    0x1600
+KBD$HOME                .EQU    0x1600
 KBD$END                 .EQU    0x1700
 KBD$INS                 .EQU    0x1800
 KBD$DEL                 .EQU    0x1900

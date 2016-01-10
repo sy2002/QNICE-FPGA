@@ -56,9 +56,9 @@ VGA$CHAR_AT_XY          INCRB
 ;* VGA$PUTCHAR
 ;*
 ;* Print a character to the VGA display. This routine automatically increments the
-;* X- and, if necessary, the Y-coordinate. No scrolling is currently implemented - 
-;* if the end of the screen is reached, the next character will be printed at location
-;* (0, 0) again. I.e. this functions implements a rather crude type-writer.
+;* X- and, if necessary, the Y-coordinate. Scrolling is implemented - if the end of the
+;* scroll buffer is reached after about 20 screen pages, the next character will cause
+;* a CLS and then will be printed at location (0, 0) on screen page 0 again.
 ;*
 ;* This routine relies on the stored coordinates VGA$X and VGA$Y which always contain
 ;* the coordinate of the next (!) character to be displayed and will be updated 
@@ -117,11 +117,9 @@ _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the H
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, scroll one line up...
                         CMP     1, R8                       ; Wrap-around/clrscr happened?
                         RBRA    _VGA$PUTC_END_SKIP, Z       ; Yes: Leave the function w/o rundown                        
-;
+
                         MOVE    VGA$OFFS_RW, R7             ; Take care of the rw offset register
                         ADD     VGA$CHARS_PER_LINE, @R7
-;
-                        SUB     0x0001, R5                  ; ...and decrement Y-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; and finish
 _VGA$PUTC_1             ADD     0x0001, R4                  ; Just increment the X-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; and finish 
@@ -185,10 +183,10 @@ _VGA$SCROLL_UP_1_CKR80  CMP     0, R8
 _VGA$SCROLL_UP_1_CKR81  CMP     1, R8
                         RBRA    _VGA$SCROLL_UP_1_NOP, Z
 
-                        ; avoid wrapping at 64.000: 63920 is the last offset
+                        ; avoid wrapping at 64.000: 60.800 is the last offset
                         ; we can support before resetting everything as
-                        ; 64.000 - VGA$CHARS_PER_LINE = 63.920
-                        CMP     63920, @R0                  ; display = 63920?
+                        ; 64.000 - (80 x 40) = 60.800
+                        CMP     60800, @R0                  ; display = 60800?
                         RBRA    _VGA$SCROLL_UP_1_DOIT, !Z   ; no: scroll
                         RSUB    VGA$CLS, 1                  ; yes: clear screen...
                         MOVE    1, R8                       ; set clrscr flag
@@ -203,8 +201,11 @@ _VGA$SCROLL_UP_1_DOIT   ADD     VGA$CHARS_PER_LINE, @R0
                         MOVE    VGA$STATE, R0
                         OR      VGA$EN_HW_CURSOR, @R0
 
-_VGA$SCROLL_UP_1_NOP    MOVE 0, R8
-_VGA$SCROLL_UP_1_END    DECRB
+_VGA$SCROLL_UP_1_NOP    MOVE 0, R8                          ; no clrscr happened
+_VGA$SCROLL_UP_1_END    MOVE VGA$OFFS_DISPLAY, R0 ; DEBUG ONLY
+                        MOVE IO$TIL_DISPLAY, R1   ; DEBUG ONLY
+                        MOVE @R0, @R1             ; DEBUG ONLY
+                        DECRB
                         RET
 
 ;
@@ -250,7 +251,10 @@ VGA$SCROLL_DOWN_1       INCRB
                         NOT     VGA$EN_HW_CURSOR, R1
                         AND     R1, @R0
 
-_VGA$SCROLL_DOWN_1_NOP  DECRB
+_VGA$SCROLL_DOWN_1_NOP  MOVE    VGA$OFFS_DISPLAY, R0 ; DEBUG ONLY
+                        MOVE    IO$TIL_DISPLAY, R1 ; DEBUG ONLY
+                        MOVE    @R0, @R1           ; DEBUG ONLY
+                        DECRB
                         RET
 ;
 ;***************************************************************************************
@@ -270,7 +274,42 @@ _VGA$SCROLL_DOWN_LOOP   RSUB    VGA$SCROLL_DOWN_1, 1        ; perform scrolling
                         RBRA    _VGA$SCROLL_DOWN_LOOP, !Z
 
                         DECRB
-                        RET                        
+                        RET
+;
+;***************************************************************************************
+;* VGA$SCROLL_HOME_END
+;*
+;* Uses the "_1" scroll routines to scroll to the very top ("Home") or to the very
+;* bottom("End"). As we are looping the "_1" functions, all special cases are
+;* automatically taken care of.
+;*
+;* R8 = 0: HOME  R8 = 1: END
+;***************************************************************************************
+;
+VGA$SCROLL_HOME_END     INCRB
+                        MOVE    VGA$OFFS_DISPLAY, R0
+                        MOVE    VGA$OFFS_RW, R1
+
+                        CMP     1, R8                       ; scroll to END?
+                        RBRA    _VGA$SCRL_HOME_END_E, Z
+
+                        ; Scroll to the very top ("Home")
+_VGA$SCRL_HOME_END_H    CMP     0, @R0                      ; Home reached?
+                        RBRA    _VGA$SCRL_HOME_END_EOF, Z   ; yes
+                        RSUB    VGA$SCROLL_DOWN_1, 1        ; no: scroll down
+                        RBRA    _VGA$SCRL_HOME_END_H, 1          
+
+                        RBRA _VGA$SCRL_HOME_END_EOF, 1
+
+                        ; Scroll to the very bottom ("End")                        
+_VGA$SCRL_HOME_END_E    CMP     @R1, @R0                    ; End reached?
+                        RBRA    _VGA$SCRL_HOME_END_EOF, Z   ; Yes
+                        MOVE    1, R8                       ; No: scroll up in ... 
+                        RSUB    VGA$SCROLL_UP_1, 1          ; ... "manual" scrolling mode
+                        RBRA    _VGA$SCRL_HOME_END_E, 1 
+
+_VGA$SCRL_HOME_END_EOF  DECRB
+                        RET
 ;
 ;***************************************************************************************
 ;* VGA$CLS

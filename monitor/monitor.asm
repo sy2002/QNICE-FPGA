@@ -1,4 +1,4 @@
-#define RAM_MONITOR
+#undef RAM_MONITOR
 #undef DEBUG
 ;
 #ifdef RAM_MONITOR
