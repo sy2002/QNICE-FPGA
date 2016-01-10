@@ -138,7 +138,7 @@ begin
       end if;
    end process;
       
-   read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new, ascii_code, spec_code)
+   read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new, ascii_code, spec_code, modifiers)
    begin
       reset_ff_ascii_new <= '0';
       reset_ff_spec_new <= '0';

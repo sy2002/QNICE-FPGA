@@ -33,6 +33,7 @@ VGA$MAX_Y               .EQU    39                      ; Max. Y-coordinate in d
 VGA$MAX_CHARS           .EQU    3200                    ; VGA$MAX_X * VGA$MAX_Y
 VGA$CHARS_PER_LINE      .EQU    80  
 
+VGA$EN_HW_CURSOR        .EQU    0x0040                  ; Show hardware cursor
 VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling enable
 VGA$CLR_SCRN            .EQU    0x0100                  ; Clear screen
 
@@ -63,29 +64,29 @@ KBD$CTRL                .EQU    0x0080                  ; modifier "CTRL" presse
 
 ; READ REGISTER: SPECIAL KEYS
 
-KBD$F1                  .EQU    0x0001   
-KBD$F2                  .EQU    0x0002
-KBD$F3                  .EQU    0x0003
-KBD$F4                  .EQU    0x0004
-KBD$F5                  .EQU    0x0005
-KBD$F6                  .EQU    0x0006
-KBD$F7                  .EQU    0x0007
-KBD$F8                  .EQU    0x0008
-KBD$F9                  .EQU    0x0009
-KBD$F10                 .EQU    0x000A
-KBD$F11                 .EQU    0x000B
-KBD$F12                 .EQU    0x000C
+KBD$F1                  .EQU    0x0100
+KBD$F2                  .EQU    0x0200
+KBD$F3                  .EQU    0x0300
+KBD$F4                  .EQU    0x0400
+KBD$F5                  .EQU    0x0500
+KBD$F6                  .EQU    0x0600
+KBD$F7                  .EQU    0x0700
+KBD$F8                  .EQU    0x0800
+KBD$F9                  .EQU    0x0900
+KBD$F10                 .EQU    0x0A00
+KBD$F11                 .EQU    0x0B00
+KBD$F12                 .EQU    0x0C00
 
-KBD$CUR_UP              .EQU    0x0010
-KBD$CUR_DOWN            .EQU    0x0011
-KBD$CUR_LEFT            .EQU    0x0012
-KBD$CUR_RIGHT           .EQU    0x0013
-KBD$PG_UP               .EQU    0x0014
-KBD$PG_DOWN             .EQU    0x0015
-KBD$POS1                .EQU    0x0016
-KBD$END                 .EQU    0x0017
-KBD$INS                 .EQU    0x0018
-KBD$DEL                 .EQU    0x0019
+KBD$CUR_UP              .EQU    0x1000
+KBD$CUR_DOWN            .EQU    0x1100
+KBD$CUR_LEFT            .EQU    0x1200
+KBD$CUR_RIGHT           .EQU    0x1300
+KBD$PG_UP               .EQU    0x1400
+KBD$PG_DOWN             .EQU    0x1500
+KBD$HOME                .EQU    0x1600
+KBD$END                 .EQU    0x1700
+KBD$INS                 .EQU    0x1800
+KBD$DEL                 .EQU    0x1900
 
 ; READ REGISTER: CTRL + character is also mapped to an ASCII code
 
@@ -190,3 +191,6 @@ IO$UART_THRA    .EQU 0xFF23 ; Transmitting register (relative to base address)
 ;
 CHR$BELL        .EQU 0x0007 ; ASCII-BELL character
 CHR$TAB         .EQU 0x0009 ; ASCII-TAB character
+CHR$SPACE       .EQU 0x0020 ; ASCII-Space
+CHR$CR          .EQU 0x000d ; Carriage return
+CHR$LF          .EQU 0x000a ; Line feed
