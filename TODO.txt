@@ -8,7 +8,8 @@ HARDWARE:
 
 * keyboard: remove hardcoded hardcoded 18000
 
-* Add a timer with 0,1us Resolution (10 MHz frequency)
+* Add a timer with 0,1us Resolution (10 MHz frequency), so that
+  we can measure performance (e.g. against the emulator)
 
 * Refactor MMIO for not having so many comperators
 

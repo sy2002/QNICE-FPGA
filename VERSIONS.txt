@@ -4,8 +4,8 @@
 * UART: 115.200 baud, 8-N-1, CTS from now on
 * VGA: now supports hardware scrolling and the lat9w-12 font, which supports
   besides the U.S. english charset also the German charset.
-* MONITOR: system call table, supports scrolling on VGA,
-  supports special keys
+* MONITOR: system call table, supports scrolling on VGA using CTRL+F(orward)
+  and CTRL+B(backward) and PgUp/PgDn
 * KEYBOARD: support for US and German keyboard locales and support
   for special keys like cursor keys, page-up/down, etc.
 * HALT LED implemented as LED #15

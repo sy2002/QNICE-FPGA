@@ -8,7 +8,7 @@
 ; press CTRL+E to exit back to the monitor
 ; done by sy2002 in January 2016
 
-                .ORG 0xA000
+                .ORG 0x8000
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"

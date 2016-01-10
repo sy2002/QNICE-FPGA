@@ -100,7 +100,9 @@ QMON$WARMSTART  AND     0x00FF, SR              ; Reset register bank to zero
                 RSUB    IO$PUT_CRLF, 1
 QMON$MAIN_LOOP  MOVE    QMON$PROMPT, R8         ; Print monitor prompt
                 RSUB    IO$PUTS, 1
-                RSUB    IO$GETCHAR, 1           ; Wait for a key being pressed
+QMON$NEXT_CHR   RSUB    IO$GETCHAR, 1           ; Wait for a key being pressed
+                AND     KBD$ASCII, R8           ; Ignore special keys like F-keys, cursor, etc.
+                RBRA    QMON$NEXT_CHR, Z
                 RSUB    CHR$TO_UPPER, 1         ; Convert it into an uppercase letter
                 RSUB    IO$PUTCHAR, 1           ; Echo the character
                 CMP     'C', R8                 ; Control group?
@@ -298,6 +300,9 @@ QMON$HELP       .ASCII_P    "ELP:\n\n"
                 .ASCII_P    "        input from keyboard is expected.\n"
                 .ASCII_P    "\n    M(emory)L(oad) can be used to load assembler output\n"
                 .ASCII_P    "        by pasting it to the terminal. CTRL-E terminates.\n"
+                .ASCII_P    "\n    Scrolling (VGA): CTRL-(F)orward or (CsrDown) / CTRL-(B)ackward or (CsrUp)\n"
+                .ASCII_P    "        One page: (PgDown), (PgUp)  /  10 lines: CTRL-(PgDown), CTRL-(PgUp)\n"
+                .ASCII_P    "        First page: (Home) / last page: (End)"
                 .ASCII_W    "\n"
 QMON$CG_C       .ASCII_W    "ONTROL/"
 QMON$CG_C_C     .ASCII_W    "COLD START"

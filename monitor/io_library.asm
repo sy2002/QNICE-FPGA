@@ -125,18 +125,49 @@ _IO$GETCHAR_ENTRY   MOVE    @R0, R1                 ; Read the switch register
                     AND     0x0001, R1              ; Lowest bit set?
                     RBRA    _IO$GETCHAR_UART, Z     ; No, read from UART
                     RSUB    KBD$GETCHAR, 1          ; Yes, read from USB-keyboard
+                    MOVE    IO$KBD_STATE, R3        ; Preserve modifier keys 
+                    MOVE    @R3, R2                  
                     RBRA    _IO$GETCHAR_SPECIAL, 1  ; One char successfully read
 _IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1         ; Read from UART
+                    MOVE    0, R2                   ; Make sure: no USB phantom modifiers
 _IO$GETCHAR_SPECIAL CMP     KBD$CTRL_E, R8          ; CTRL-E?
                     RBRA    QMON$WARMSTART, Z       ; Return to monitor immediately!
                     CMP     KBD$CTRL_F, R8          ; CTRL-F?
-                    RBRA    _IO$GETCHAR_NO_F, !Z    ; No
-                    RSUB    VGA$SCROLL_UP_1, 1
+                    RBRA    _IO$GETCHAR_SU1, Z      ; Yes: scroll up 1 line
+                    CMP     KBD$CUR_DOWN, R8        ; No: Cursor Down key?
+                    RBRA    _IO$GETCHAR_NO_FCD, !Z  ; No
+_IO$GETCHAR_SU1     MOVE    1, R8                   ; VGA$SCROLL_UP_1 in manual mode
+                    RSUB    VGA$SCROLL_UP_1, 1      ; Perform scroll up
                     RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
-_IO$GETCHAR_NO_F    CMP     KBD$CTRL_B, R8          ; CTRL-B?
-                    RBRA    _IO$GETCHAR_FIN, !Z     ; No, just a normal character
-                    RSUB    VGA$SCROLL_DOWN_1, 1
+_IO$GETCHAR_NO_FCD  CMP     KBD$CTRL_B, R8          ; CTRL-B?
+                    RBRA    _IO$GETCHAR_SD1, Z      ; Yes: scroll down 1 line
+                    CMP     KBD$CUR_UP, R8          ; No: Cursor Up key?
+                    RBRA    _IO$GETCHAR_NO_BCU, !Z  ; No                    
+_IO$GETCHAR_SD1     RSUB    VGA$SCROLL_DOWN_1, 1    ; Perform scroll down
                     RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
+_IO$GETCHAR_NO_BCU  AND     KBD$CTRL, R2            ; CTRL pressed?
+                    RBRA    _IO$GETCHAR_NO_CTRL, Z  ; No
+                    CMP     KBD$PG_DOWN, R8         ; Yes: CTRL+Page Down?
+                    RBRA    _IO$GETCHAR_NO_CPGD, !Z ; No
+                    MOVE    10, R8                  ; Yes: scroll up 10 lines
+                    RSUB    VGA$SCROLL_UP,1
+                    RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
+_IO$GETCHAR_NO_CPGD CMP     KBD$PG_UP, R8           ; CTRL+Page Up?
+                    RBRA    _IO$GETCHAR_NO_CTRL, !Z ; No
+                    MOVE    10, R8                  ; Yes: scroll down 10 lines
+                    RSUB    VGA$SCROLL_DOWN, 1
+                    RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
+_IO$GETCHAR_NO_CTRL CMP     KBD$PG_DOWN, R8         ; Page Down?
+                    RBRA    _IO$GETCHAR_NO_PGD, !Z  ; No
+                    MOVE    40, R8                  ; Yes: scroll up one screen
+                    RSUB    VGA$SCROLL_UP, 1
+                    RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
+_IO$GETCHAR_NO_PGD  CMP     KBD$PG_UP, R8           ; Page Up?
+                    RBRA    _IO$GETCHAR_NO_PGU, !Z  ; No
+                    MOVE    40, R8                  ; Yes: scroll down one screen
+                    RSUB    VGA$SCROLL_DOWN, 1              
+                    RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
+_IO$GETCHAR_NO_PGU  NOP                    
 _IO$GETCHAR_FIN     DECRB
                     RET
 ;
