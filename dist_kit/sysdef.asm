@@ -36,6 +36,7 @@ VGA$CHARS_PER_LINE      .EQU    80
 VGA$EN_HW_CURSOR        .EQU    0x0040                  ; Show hardware cursor
 VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling enable
 VGA$CLR_SCRN            .EQU    0x0100                  ; Clear screen
+VGA$BUSY                .EQU    0x0200                  ; VGA is currently performing a task
 
 VGA$COLOR_RED           .EQU    0x0004
 VGA$COLOR_GREEN         .EQU    0x0002
@@ -61,6 +62,13 @@ KBD$MODIFIERS           .EQU    0x00E0                  ; bit mask for checking 
 KBD$SHIFT               .EQU    0x0020                  ; modifier "SHIFT" pressed
 KBD$ALT                 .EQU    0x0040                  ; modifier "ALT" pressed
 KBD$CTRL                .EQU    0x0080                  ; modifier "CTRL" pressed
+
+; READ REGISTER: COMMON ASCII CODES
+KBD$SPACE               .EQU    0x0020
+KBD$ENTER               .EQU    0x000D
+KBD$ESC                 .EQU    0x001B
+KBD$TAB                 .EQU    0x0009
+KBD$BACKSPACE           .EQU    0x0008
 
 ; READ REGISTER: SPECIAL KEYS
 

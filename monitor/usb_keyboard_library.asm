@@ -7,7 +7,8 @@
 ;***************************************************************************************
 ;* KBD$GETCHAR reads a character from the USB-keyboard.
 ;*
-;* R8 will contain the character read in its lower eight bits.
+;* R8 will contain the character read in its lower eight bits and
+;* special keys in the upper 8 bits (mutually exclusive)
 ;***************************************************************************************
 ;
 KBD$GETCHAR     INCRB

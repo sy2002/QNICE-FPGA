@@ -12,7 +12,7 @@
                 MOVE    80, R0
 
                 MOVE    0, R3
-                MOVE    100, R2
+                MOVE    60000, R2
 
                 SUB     R2, R0
                 MOVE    R0, @R10
@@ -25,7 +25,7 @@
                 MOVE    80, R0
 
                 MOVE    0, R3
-                MOVE    100, R2
+                MOVE    60000, R2
 
                 SUB     R2, R0
                 SUBC    R3, R1
