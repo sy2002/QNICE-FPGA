@@ -21,3 +21,13 @@ HARDWARE:
 * Refactor Video RAM: avoid inferring two RAMs for video RAM
 
 * single-step-mode in hardware incl. address/data display on 7-segs
+
+SOFTWARE:
+
+* Backspace and CTRL-U support in IO$GETS
+
+* Basic mathematical routines * (exists), /, %
+
+* 32 bit arithmetic
+
+* Long term: Floating point support
