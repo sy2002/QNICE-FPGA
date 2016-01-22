@@ -270,7 +270,11 @@ _SAVE_NEXT_Y    MOVE    0x000D, R8              ; print CR
                 MOVE    TILE_WS_X, R8           ; reset column (hw x cursor)
                 MOVE    @R8, @R0
 
-_SAVE_NEXT_X    MOVE    @R2, R8                 ; read tile data from VRAM
+_SAVE_NEXT_X    MOVE    0x30, R8                ; print "0"
+                RSUB    UART_PUTCHAR, 1
+                MOVE    0x78, R8                ; print "x"
+                RSUB    UART_PUTCHAR, 1
+                MOVE    @R2, R8                 ; read tile data from VRAM
                 AND     0x00F0, R8              ; extract high nibble ...
                 SHR     4, R8
                 MOVE    HEX_DIGITS, R11         ; ... convert it to hex ...
@@ -756,8 +760,3 @@ TILE_WS_X       .BLOCK 1
 TILE_WS_Y       .BLOCK 1
 TILE_WS_X_MAX   .BLOCK 1
 TILE_WS_Y_MAX   .BLOCK 1
-
-                ; TILEMEM is a block reserved for the result of the work
-                ; maximum tile size is 44 x 36 = 1584
-;TILEMEM         .BLOCK 1584
-TILEMEM         NOP ; during development: avoid lengthy transfers
