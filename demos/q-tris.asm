@@ -9,6 +9,15 @@
 
                 .ORG 0x8000
 
+; ***** TEMP ********
+                RBRA    START, 1
+
+TEMP_SEQ_CNT    .DW 7
+TEMP_SEQ        .DW 0, 1, 2, 3, 4, 5, 6
+
+START           NOP
+; ***** TEMP ********
+
                 ; clear screen, switch of hw cursor
                 RSUB    CLRSCR, 1
                 MOVE    VGA$STATE, R0
@@ -16,53 +25,43 @@
                 AND     @R0, R1
                 MOVE    R1, @R0
 
-                ; initialize global variables
-                MOVE    RenderedNumber, R0
-                MOVE    0xFFFF, @R0
+                RSUB    INIT_GLOBALS, 1         ; init global variables
+                RSUB    PAINT_PLAYFIELD, 1      ; paint playfield & logo
 
-                RSUB    PAINT_PLAYFIELD, 1      ; playfield + logo
+                MOVE    0, R3                   ; R3: sequence position
 
-                MOVE    0, R10
-                MOVE    4, R11
+                ; calculate Tetromino positions and store them in global vars
+                ; R0|R1 = x|y
+MAIN_LOOP       MOVE    Tetromino_Y, R1
+                MOVE    -8, @R1                 ; y start pos = -8
+                MOVE    PLAYFIELD_X, R0         ; x start pos is the middle...
+                ADD     PLAYFIELD_W, R0         ; ... of the playfield ...
+                SHR     1, R0                   ; ..which is ((X+W) / 2) - 2
+                SUB     2, R0
+                MOVE    Tetromino_X, R1
+                MOVE    R0, @R1
+         
+                MOVE    TEMP_SEQ, R0
+                ADD     R3, R0
+                MOVE    @R0, R4                 ; R4: current Tetromino
 
-NEXT_TETROMINO  MOVE    R10, R8
+DROP            MOVE    R4, R8
                 MOVE    0, R9
-                CMP     4, R11
-                RBRA    _RENDER, Z
-                MOVE    2, R9
-
-_RENDER         RSUB    RENDER_TTR, 1
-
-                MOVE    -8, R1
-
-                MOVE    PLAYFIELD_X, R8
-_SLIDE_IN       MOVE    R1, R9
-                MOVE    R10, R0
                 MOVE    1, R10
-                RSUB    PAINT_TTR, 1
-                
-                SYSCALL(getc, 1)
+                MOVE    0, R11
+                RSUB    UPDATE_TTR, 1
+                RSUB    SPEED_DELAY, 1
 
-                MOVE    PLAYFIELD_X, R8
-                MOVE    R1, R9
-                MOVE    0, R10
-                RSUB    PAINT_TTR, 1
-                MOVE    R0, R10
+                MOVE    Tetromino_Y, R0
+                CMP     32, @R0
+                RBRA    DROP, !Z
 
-                ADD     1, R1
-                CMP     1, R1
-                RBRA    _SLIDE_IN, !Z
-
-                SUB     1, R11
-                RSUB    NEXT_TETROMINO, !Z
-                MOVE    4, R11
-
-                ADD     1, R10
-                CMP     7, R10
-                RBRA    NEXT_TETROMINO, !Z
+                ADD     1, R3
+                CMP     7, R3
+                RBRA    MAIN_LOOP, !Z
 
                 ; end Q-TRIS
-                SYSCALL(reset, 1)
+EXIT            SYSCALL(reset, 1)
   
 
 QTRIS_X     .EQU 25     ; x-pos on screen
@@ -112,6 +111,138 @@ TTR_OFFS    .DW 0, 1                       ; Tetromino "I"
             .DW 1, 2                       ; Tetromino "L"
             .DW 1, 2                       ; Tetromino "J"
 
+; Level speed table
+; speed is defined by wasted cycles, both numbers are multiplied
+LEVEL_SPEED .DW 200, 2000
+
+; ****************************************************************************
+; MULTITASK
+;   Perform tasks, that shall happen "all the time" in the "background", i.e.
+;   even when cycles are wasted.
+; ****************************************************************************
+
+MULTITASK       INCRB
+
+                ; inc the "random" number
+                MOVE    PseudoRandom, R0
+                ADD     1, @R0
+
+                ; check for key press and read key
+                MOVE    IO$KBD_STATE, R0        ; check keyboard state reg.
+                MOVE    KBD$NEW_ANY, R1
+                AND     @R0, R1                 ; any key pressed?
+                RBRA    _MT_RET, Z              ; no: return
+
+                ; key pressed: read key value
+                MOVE    IO$KBD_DATA, R0
+                MOVE    @R0, R0
+
+                ; save parameter registers
+                MOVE    R8, R1
+                MOVE    R9, R2
+                MOVE    R10, R3
+                MOVE    R11, R4
+
+                MOVE    RenderedNumber, R5
+                MOVE    @R5, R8
+                XOR     R9, R9
+                XOR     R10, R10
+                XOR     R11, R11
+
+                ; cursor left: move left
+                CMP     KBD$CUR_LEFT, R0
+                RBRA    _MT_N_LEFT, !Z
+                MOVE    -1, R9
+                RSUB    UPDATE_TTR, 1
+                RBRA    _MT_RET_REST, 1
+
+                ; cursor right: move right
+_MT_N_LEFT      CMP     KBD$CUR_RIGHT, R0       ; move right
+                RBRA    _MT_N_RIGHT, !Z
+                MOVE    1, R9
+                RSUB    UPDATE_TTR, 1
+                RBRA    _MT_RET_REST, 1
+
+                ; x: rotate left
+_MT_N_RIGHT     CMP     0x78, R0                ; "x" = ASCII 0x78
+                RBRA    _MT_N_x, !Z
+                MOVE    1, R11
+                RSUB    UPDATE_TTR, 1
+                RBRA    _MT_RET_REST, 1
+
+                ; c: rotate right
+_MT_N_x         CMP     0x63, R0                ; "c" = ASCII 0x63
+                RBRA    _MT_ELSE, !Z
+                MOVE    2, R11
+                RSUB    UPDATE_TTR, 1
+                RBRA    _MT_RET_REST, 1
+
+                ; CTRL+E or F12 exit
+_MT_ELSE        CMP     KBD$CTRL_E, R0
+                RBRA    EXIT, Z
+                CMP     KBD$F12, R0
+                RBRA    EXIT, Z
+                RBRA    _MT_RET_REST, 1
+
+                ; restore parameter registers
+_MT_RET_REST    MOVE    R1, R8
+                MOVE    R2, R9
+                MOVE    R3, R10
+                MOVE    R4, R11
+
+_MT_RET         DECRB
+                RET
+
+; ****************************************************************************
+; UPDATE_TTR
+;   Deletes the old Tetromino from the screen, re-renders it, if necessary
+;   due to a new Tetromino or due to rotation, updates the global coordinates
+;   and paints the new one.
+;   R8: new number of Tetromino
+;   R9: delta x
+;   R10: delta y
+;   R11: rotation
+; ****************************************************************************
+
+UPDATE_TTR      INCRB
+                
+                ; save original values of the parameter registers
+                MOVE    R8, R0
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+
+                ; delete old Tetromino
+                MOVE    Tetromino_X, R4
+                MOVE    @R4, R8
+                MOVE    Tetromino_Y, R4
+                MOVE    @R4, R9
+                MOVE    0, R10
+                RSUB    PAINT_TTR, 1
+
+                ; render new tetromino to render buffer
+                MOVE    R0, R8
+                MOVE    R3, R9
+                RSUB    RENDER_TTR, 1
+
+                ; paint new Tetromino
+                MOVE    Tetromino_X, R4
+                ADD     R1, @R4
+                MOVE    @R4, R8
+                MOVE    Tetromino_Y, R4
+                ADD     R2, @R4
+                MOVE    @R4, R9
+                MOVE    1, R10
+                RSUB    PAINT_TTR, 1
+
+                ; restore paramter registers
+                MOVE    R0, R8
+                MOVE    R1, R9
+                MOVE    R2, R10
+                MOVE    R3, R11
+
+                DECRB
+                RET
 
 ; ****************************************************************************
 ; PAINT_TTR
@@ -175,7 +306,7 @@ _PAINT_NEXT_LN  MOVE    R8, @R0                 ; yes: reset x-pos
 CLEAR_RBUF      INCRB
                 MOVE    R8, R0                  ; preserve R8s value
                 MOVE    64, R1                  ; 8x8 matrix to be cleared
-_CLEAR_RBUF_L   MOVE    0x2E, @R0++             ; clear current "pixel"
+_CLEAR_RBUF_L   MOVE    0x20, @R0++             ; clear current "pixel"
                 SUB     1, R1                   ; next "pixel"
                 RBRA    _CLEAR_RBUF_L, !Z       ; done? no: go on
                 DECRB
@@ -189,7 +320,7 @@ _CLEAR_RBUF_L   MOVE    0x2E, @R0++             ; clear current "pixel"
 ;   the resulting pattern. RenderedTemp is used temporarily and RenderedNumber
 ;   is used to remember, which tetromino has been rendered last time.
 ;   R8: number of tetromino between 0..TETROMINOS
-;   R9: angle: 0 = do not rotate, 1 = rotate left, 2 = rotate right
+;   R9: rotation: 0 = do not rotate, 1 = rotate left, 2 = rotate right
 ; ****************************************************************************
 
 RENDER_TTR      INCRB
@@ -398,6 +529,38 @@ _WAIT_FOR_VGAL  MOVE    @R0, R1
                 RET
 
 ; ****************************************************************************
+; SPEED_DELAY
+;   Wastes (a x b) iterations whereas a and b are determined by the level
+;   speed table (LEVEL_SPEED) and the current game level (Level).
+; ****************************************************************************
+
+SPEED_DELAY     INCRB
+
+                ; retrieve the two multipliers and store them to R0 and R1
+                MOVE    Level, R7
+                MOVE    @R7, R0
+                SUB     1, R0                   ; level counting starts with 1
+                SHL     1, R0                   ; 2 words per table entry
+                MOVE    LEVEL_SPEED, R7
+                ADD     R0, R7                  ; select table row
+                MOVE    @R7++, R0               ; R0 contains first multiplier
+                MOVE    @R7, R1                 ; R1 contains second mult.
+
+                MOVE    R1, R2                  ; remeber R1
+                MOVE    1, R3                   ; for more precise counting
+
+                ; waste cycles
+_SPEED_DELAY_L  RSUB    MULTITASK, 1
+                SUB     R3, R1
+                RBRA    _SPEED_DELAY_L, !Z
+                MOVE    R2, R1
+                SUB     R3, R0
+                RBRA    _SPEED_DELAY_L, !Z
+
+                DECRB
+                RET
+
+; ****************************************************************************
 ; CLRSCR
 ;   Clear the screen
 ; ****************************************************************************
@@ -410,11 +573,32 @@ CLRSCR          INCRB
                 RET
 
 ; ****************************************************************************
-; VARIABLES
+; INIT_GLOBALS
+;    Initialize global variables.
+; ****************************************************************************
+                
+INIT_GLOBALS    INCRB
+
+                MOVE    RenderedNumber, R0      ; make sure, that very first..
+                MOVE    0xFFFF, @R0             ; ..Tetromino is rendered
+                MOVE    Level, R0               ; start with Level 1
+                MOVE    1, @R0
+                MOVE    PseudoRandom, R0        ; Init PseudoRandom to 0
+                MOVE    0, @R0
+
+                DECRB
+                RET
+
+; ****************************************************************************
+; GLOBAL VARIABLES
 ; ****************************************************************************
 
 RenderedNumber  .BLOCK 1    ; Number of last Tetromino that was rendered
 RenderedTTR     .BLOCK 64   ; Tetromino rendered in the correct angle
 RenderedTemp    .BLOCK 64   ; Tetromino rendered in neutral position
 
+Level           .BLOCK 1    ; Current level (determines speed and score)
 PseudoRandom    .BLOCK 1    ; Pseudo random number is just a fast counter
+
+Tetromino_X     .BLOCK 1
+Tetromino_Y     .BLOCK 1
