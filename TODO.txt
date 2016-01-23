@@ -32,9 +32,4 @@ MONITOR and/or STANDARD LIBs:
 
 * Long term: Floating point support
 
-ASSEMBLER:
-
-* Fix the bug that occurs in the .out file, when you assemble this here:
-    BAD   .DW 0, -1
-    GOOD  .DW 0, 0
     

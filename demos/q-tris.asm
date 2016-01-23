@@ -23,9 +23,14 @@
                 MOVE    0, R10
                 MOVE    4, R11
 
-NEXT_TETROMINO  MOVE    R10, R8
-                MOVE    1, R9
-                RSUB    RENDER_TTR, 1
+NEXT_TETROMINO  RSUB    CLRSCR, 1
+                MOVE    R10, R8
+                MOVE    0, R9
+                CMP     4, R11
+                RBRA    _RENDER, Z
+                MOVE    2, R9
+
+_RENDER         RSUB    RENDER_TTR, 1
 
                 MOVE    0, R8
                 MOVE    0, R9
@@ -45,44 +50,58 @@ NEXT_TETROMINO  MOVE    R10, R8
                 SYSCALL(reset, 1)
   
 
-QTRIS_X     .EQU 25
-QTRIS_Y     .EQU 1
-QTRIS_H     .EQU 6
-QTRIS_W     .EQU 53
-QTRIS_0     .ASCII_W "  ____             _______   _____    _____    _____ "
-QTRIS_1     .ASCII_W " / __ \           |__   __| |  __ \  |_   _|  / ____|"
-QTRIS_2     .ASCII_W "| |  | |  ______     | |    | |__) |   | |   | (___  "
-QTRIS_3     .ASCII_W "| |  | | |______|    | |    |  _  /    | |    \___ \ "
-QTRIS_4     .ASCII_W "| |__| |             | |    | | \ \   _| |_   ____) |"
-QTRIS_5     .ASCII_W " \___\_\             |_|    |_|  \_\ |_____| |_____/ "
+QTRIS_X     .EQU 25     ; x-pos on screen
+QTRIS_Y     .EQU 1      ; y-pos on screen
+QTRIS_H     .EQU 6      ; height of the pattern in lines
+QTRIS_W     .EQU 53     ; width of the pattern in chars (without zero term.)
+QTRIS       .ASCII_W "  ____             _______   _____    _____    _____ "
+            .ASCII_W " / __ \           |__   __| |  __ \  |_   _|  / ____|"
+            .ASCII_W "| |  | |  ______     | |    | |__) |   | |   | (___  "
+            .ASCII_W "| |  | | |______|    | |    |  _  /    | |    \___ \ "
+            .ASCII_W "| |__| |             | |    | | \ \   _| |_   ____) |"
+            .ASCII_W " \___\_\             |_|    |_|  \_\ |_____| |_____/ "
 
+; characters for painting the left and the right wall
 WALL_L      .EQU 0x09
 WALL_R      .EQU 0x08
 
-PLAYFIELD_X .EQU 2
-PLAYFIELD_Y .EQU 0
-PLAYFIELD_H .EQU 40
-PLAYFIELD_W .EQU 20
+; specifications of the playfield
+PLAYFIELD_X .EQU 2      ; x-pos on screen
+PLAYFIELD_Y .EQU 0      ; y-pos on screen
+PLAYFIELD_H .EQU 40     ; width
+PLAYFIELD_W .EQU 20     ; height
 
-TETROMINOS  .EQU 7
-TTR_I_0     .DW 0x20, 0x20, 0x20, 0x20     ; Tetromino "I"
-TTR_I_1     .DW 0x00, 0x00, 0x00, 0x00
-TTR_O_0     .DW 0x20, 0x0E, 0x0E, 0x20     ; Tetromino "O"
-TTR_O_1     .DW 0x20, 0x0E, 0x0E, 0x20
-TTR_T_0     .DW 0x20, 0x10, 0x20, 0x20     ; Tetromino "T"
-TTR_T_1     .DW 0x10, 0x10, 0x10, 0x20
-TTR_S_0     .DW 0x20, 0xAE, 0xAE, 0x20     ; Tetromino "S"
-TTR_S_1     .DW 0xAE, 0xAE, 0x20, 0x20
-TTR_Z_0     .DW 0xA9, 0xA9, 0x20, 0x20     ; Tetromino "Z"
-TTR_Z_1     .DW 0x20, 0xA9, 0xA9, 0x20
-TTR_L_0     .DW 0x20, 0x20, 0x23, 0x20     ; Tetromino "L"
-TTR_L_1     .DW 0x23, 0x23, 0x23, 0x20
-TTR_J_0     .DW 0x4F, 0x20, 0x20, 0x20     ; Tetromino "J"
-TTR_J_1     .DW 0x4F, 0x4F, 0x4F, 0x20
+; Tetromino patterns
+TTR_AMOUNT  .EQU 7
+TETROMINOS  .DW 0x20, 0x20, 0x20, 0x20     ; Tetromino "I"
+            .DW 0x00, 0x00, 0x00, 0x00
+            .DW 0x20, 0x0E, 0x0E, 0x20     ; Tetromino "O"
+            .DW 0x20, 0x0E, 0x0E, 0x20
+            .DW 0x20, 0x10, 0x20, 0x20     ; Tetromino "T"
+            .DW 0x10, 0x10, 0x10, 0x20
+            .DW 0x20, 0xAE, 0xAE, 0x20     ; Tetromino "S"
+            .DW 0xAE, 0xAE, 0x20, 0x20
+            .DW 0xA9, 0xA9, 0x20, 0x20     ; Tetromino "Z"
+            .DW 0x20, 0xA9, 0xA9, 0x20
+            .DW 0x20, 0x20, 0x23, 0x20     ; Tetromino "L"
+            .DW 0x23, 0x23, 0x23, 0x20
+            .DW 0x4F, 0x20, 0x20, 0x20     ; Tetromino "J"
+            .DW 0x4F, 0x4F, 0x4F, 0x20
+
+; Tetromino painting offsets for centering them in the 8x8 box
+TTR_OFFS    .DW 0, 1                       ; Tetromino "I"
+            .DW 0, 2                       ; Tetromino "O"
+            .DW 1, 2                       ; Tetromino "T"
+            .DW 1, 2                       ; Tetromino "S"
+            .DW 1, 2                       ; Tetromino "Z"
+            .DW 1, 2                       ; Tetromino "L"
+            .DW 1, 2                       ; Tetromino "J"
+
 
 ; ****************************************************************************
 ; PAINT_TTR
-;   draws the tetromino at the specified xy-pos respecting "transparency"
+;   Draws the tetromino at the specified xy-pos respecting "transparency"
+;   which is defined as 0x20 ("space"). Uses RenderedTTR as source.
 ;   R8: x-pos
 ;   R9: y-pos
 ; ****************************************************************************
@@ -93,29 +112,50 @@ PAINT_TTR       INCRB
                 MOVE    VGA$CR_Y, R1            ; R1: hw cursor Y
                 MOVE    VGA$CHAR, R2            ; R2: print at hw cursor pos
 
-                MOVE    R8, @R0
-                MOVE    R9, @R1
+                MOVE    R8, @R0                 ; set hw x pos
+                MOVE    R9, @R1                 ; set hw y pos
 
                 MOVE    RenderedTTR, R3         ; source memory location
 
-                MOVE    8, R5
-_PAINT_TTR_YL   MOVE    8, R4
-_PAINT_TTR_XL   MOVE    @R3, @R2
-                ADD     1, R3
-                ADD     1, @R0
-                SUB     1, R4
-                RBRA    _PAINT_TTR_XL, !Z
-                MOVE    R8, @R0
-                ADD     1, @R1
-                SUB     1, R5
-                RBRA    _PAINT_TTR_YL, !Z
+                MOVE    8, R5                   ; 8x8 block represents one...
+_PAINT_TTR_YL   MOVE    8, R4                   ; ...Tetromino
+_PAINT_TTR_XL   CMP     0x20, @R3               ; transparent "pixel"?
+                RBRA    _PAINT_TTR_SKIP, Z      ; yes: skip painting
+                MOVE    @R3, @R2                ; no: paint
+_PAINT_TTR_SKIP ADD     1, R3                   ; next source "pixel"
+                ADD     1, @R0                  ; next screen x-pos
+                SUB     1, R4                   ; column counter
+                RBRA    _PAINT_TTR_XL, !Z       ; column done? no: go on
+                MOVE    R8, @R0                 ; yes: reset x-pos
+                ADD     1, @R1                  ; next line (inc y-pos)
+                SUB     1, R5                   ; line counter
+                RBRA    _PAINT_TTR_YL, !Z       ; all lines done? no: go on
 
                 DECRB
                 RET
 
 ; ****************************************************************************
+; CLEAR_RBUF
+;   Clears a 8x8 render buffer by filling it with spaces (ASCII 0x20).
+;   R8: pointer to render buffer
+; ****************************************************************************
+
+CLEAR_RBUF      INCRB
+                MOVE    R8, R0                  ; preserve R8s value
+                MOVE    64, R1                  ; 8x8 matrix to be cleared
+_CLEAR_RBUF_L   MOVE    0x2E, @R0++             ; clear current "pixel"
+                SUB     1, R1                   ; next "pixel"
+                RBRA    _CLEAR_RBUF_L, !Z       ; done? no: go on
+                DECRB
+                RET
+
+; ****************************************************************************
 ; RENDER_TTR
-;   renders the tetromino in the specified angle to memory at "RenderedTTR"
+;   Renders the tetromino and rotates it, if specified by R9.
+;   Automatically remembers the last tetromino and its position so that
+;   subsequent calls can be performed. The 8x8 buffer RenderedTTR contains
+;   the resulting pattern. RenderedTemp is used temporarily and RenderedNumber
+;   is used to remember, which tetromino has been rendered last time.
 ;   R8: number of tetromino between 0..TETROMINOS
 ;   R9: angle: 0 = do not rotate, 1 = rotate left, 2 = rotate right
 ; ****************************************************************************
@@ -123,90 +163,118 @@ _PAINT_TTR_XL   MOVE    @R3, @R2
 RENDER_TTR      INCRB
 
                 ; if no rotation necessary, do not use RenderedTemp
-                CMP     0, R9               ; do not rotate?
-                RBRA    _RTTR_ANY_ROT, !Z   ; no, so do rotate
-                MOVE    RenderedTTR, R4     ; yes, so do not rotate
+                ; the pointer to the buffer to be used will
+                ; be in R4 afterwards
+                CMP     0, R9                   ; do not rotate?
+                RBRA    _RTTR_ANY_ROT, !Z       ; no, so do rotate
+                MOVE    RenderedTTR, R4         ; yes, so do not rotate
                 RBRA    _RTTR_CHK_AR, 1
+_RTTR_ANY_ROT   MOVE    RenderedTemp, R4        ; do rotate, so use Temp
 
-_RTTR_ANY_ROT   MOVE    RenderedTemp, R4    ; do rotate, so use Temp
-
-_RTTR_CHK_AR    MOVE    RenderedNumber, R0  ; already rendered this one before
-                CMP     @R0, R8  
-                RBRA    _RTTR_BCLR, !Z      ; no: render it
-                MOVE    RenderedTTR, R0     ; copy TTR to Temp
-                MOVE    RenderedTemp, R1
-                MOVE    64, R3
-_RTTR_COPYLOOP  MOVE    @R0++, @R1++
+                ; check, if this tetromino has already been rendered before
+                ; and if yes, skip the rendering process and go directly
+                ; to the rotation part
+_RTTR_CHK_AR    MOVE    RenderedNumber, R0      ; did we already render the...
+                CMP     @R0, R8                 ; ...currently requested piece
+                RBRA    _RTTR_BCLR, !Z          ; no: render it now
+                MOVE    RenderedTTR, R0         ; yes: copy TTR to
+                MOVE    RenderedTemp, R1        ; ...Temp because the...
+                MOVE    64, R3                  ; ...rotation algorithm...
+_RTTR_COPYLOOP  MOVE    @R0++, @R1++            ; ...needs it to be there...
                 SUB     1, R3
                 RBRA    _RTTR_COPYLOOP, !Z
-                RBRA    _RTTR_ROTATE, 1         
+                RBRA    _RTTR_ROTATE, 1         ; ...and then directly rotate
 
                 ; clear old renderings
-_RTTR_BCLR      MOVE    R8, @R0             ;  RenderedNumber =  current #
-                MOVE    R4, R1
-                MOVE    64, R2
-_RTTR_CLR       MOVE    0x20, @R1++
-                SUB     1, R2
-                RBRA    _RTTR_CLR, !Z
+_RTTR_BCLR      MOVE    R8, @R0                 ; remember # in RenderedNumber
+                MOVE    R4, R8                  ; clear the correct buffer ...
+                RSUB    CLEAR_RBUF, 1           ; ... as R4 contains the value
+                MOVE    @R0, R8                 ; restore R8
 
                 ; calculate start address of Tetromino pattern
-                MOVE    TTR_I_0, R0         ; start address of patterns
-                MOVE    R8, R1              ; addr = (# x 8) + start
-                SHL     3, R1               ; SHL 3 means x 8
-                ADD     R1, R0              ; R0: source memory location
-                MOVE    R4, R1              ; R1: destination memory location
-                ADD     16, R1              ; Center in y direction
+                ; R0: contains the source memory location
+                MOVE    TETROMINOS, R0          ; start address of patterns
+                MOVE    R8, R1                  ; addr = (# x 8) + start
+                SHL     3, R1                   ; SHL 3 means x 8
+                ADD     R1, R0                  ; R0: source memory location
+
+                ; calculate the start address within the destination memory
+                ; location and take the TTR_OFFS table for centering the
+                ; Tetrominos within the 8x8 matrix into consideration
+                ; R1: contains the destination memory location
+                MOVE    R4, R1                  ; R1: destination mem. loc.
+                MOVE    R8, R3                  ; TTR_OFFS = # x 2
+                SHL     1, R3
+                ADD     TTR_OFFS, R3
+                MOVE    @R3++, R2               ; fetch x correction...
+                ADD     R2, R1                  ; and add it to the dest. mem.
+                MOVE    @R3, R2                 ; fetch y correction...
+                SHL     3, R2                   ; multiply by 8 because ...
+                ADD     R2, R1                  ; ... of 8 chars per ln
 
                 ; double the size of the Tetromino in x and y direction
                 ; i.e. "each source pixel times 4"
                 ; and render the Tetromino in neutral/up position
-                MOVE    2, R3               ; R3: source line counter
+                MOVE    2, R3                   ; R3: source line counter
 
-_RTTR_YL        MOVE    4, R2               ; R2: source column counter
-_RTTR_XL        MOVE    @R0, @R1++          ; source => dest x|y
-                MOVE    @R0, @R1            ; source => dest x+1|y
+_RTTR_YL        MOVE    4, R2                   ; R2: source column counter
+_RTTR_XL        MOVE    @R0, @R1++              ; source => dest x|y
+                MOVE    @R0, @R1                ; source => dest x+1|y
                 ADD     7, R1               
-                MOVE    @R0, @R1++          ; source => dest x|y+1
-                MOVE    @R0, @R1            ; source => dest x+1|y+1
+                MOVE    @R0, @R1++              ; source => dest x|y+1
+                MOVE    @R0, @R1                ; source => dest x+1|y+1
 
-                SUB     7, R1               ; next dest coord = x+2|y
-                ADD     1, R0               ; inc x
-                SUB     1, R2               ; column done?
-                RBRA    _RTTR_XL, !Z        ; no: go on
-                ADD     8, R1               ; next dest coord = x|y+1
-                SUB     1, R3               ; row done?
-                RBRA    _RTTR_YL, !Z        ; no: go on
+                SUB     7, R1                   ; next dest coord = x+2|y
+                ADD     1, R0                   ; inc x
+                SUB     1, R2                   ; column done?
+                RBRA    _RTTR_XL, !Z            ; no: go on
+                ADD     8, R1                   ; next dest coord = x|y+1
+                SUB     1, R3                   ; row done?
+                RBRA    _RTTR_YL, !Z            ; no: go on
 
-_RTTR_ROTATE    CMP     0, R9               ; do not rotate?
-                RBRA    _RTTR_END, Z        ; yes, do not rotate: end
+_RTTR_ROTATE    CMP     0, R9                   ; do not rotate?
+                RBRA    _RTTR_END, Z            ; yes, do not rotate: end
 
-                CMP     2, R9               ; rotate right?
-                RBRA    _RTTR_RR, Z         ; yes
+                CMP     2, R9                   ; rotate right?
+                RBRA    _RTTR_RR, Z             ; yes
 
                 ; rotate left
-                MOVE    RenderedTTR, R2     ; R3: dest.: rotated Tetromino
-                MOVE    7, R1               ; R1: source x                
-_RTTR_DYL       MOVE    RenderedTemp, R0    ; R0: source: raw Tetromino
-                ADD     R1, R0              ; select right source column
-                XOR     R3, R3              ; dest column counter
-_RTTR_DXL       MOVE    @R0, @R2++          ; copy "pixel"
-                ADD     8, R0               ; next source line
-                ADD     1, R3               ; next dest column
-                CMP     8, R3               ; end of source line?
+                MOVE    RenderedTTR, R2         ; R2: dest.: rotated Tetromino
+                MOVE    7, R1                   ; R1: source x                
+_RTTR_DYL       MOVE    RenderedTemp, R0        ; R0: source: raw Tetromino
+                ADD     R1, R0                  ; select right source column
+                XOR     R3, R3                  ; dest column counter
+_RTTR_DXL       MOVE    @R0, @R2++              ; copy "pixel"
+                ADD     8, R0                   ; next source line
+                ADD     1, R3                   ; next dest column
+                CMP     8, R3                   ; end of source line?
                 RBRA    _RTTR_DXL, !Z
                 SUB     1, R1
-                RBRA    _RTTR_DYL, !N       ; check for N for full all 8 cols
+                RBRA    _RTTR_DYL, !N           ; < 0 means 8 cols are done
                 RBRA    _RTTR_END, 1
 
                 ; rotate right
-_RTTR_RR        NOP
+_RTTR_RR        MOVE    RenderedTTR, R2         ; R2: dest.: rotated Tetromino
+                XOR     R3, R3                  ; R3: source column counter
+_RTTR_RR_DYL    MOVE    RenderedTemp, R0        ; R0: source: raw Tetromino
+                ADD     R3, R0
+                ADD     56, R0
+                MOVE    8, R4
+_RTTR_RR_DXL    MOVE    @R0, @R2++
+                SUB     8, R0
+                SUB     1, R4
+                RBRA    _RTTR_RR_DXL, !Z
+                ADD     1, R3
+                CMP     8, R3
+                RBRA    _RTTR_RR_DYL, !Z
 
 _RTTR_END       DECRB
                 RET
 
 ; ****************************************************************************
 ; PAINT_PLAYFIELD
-;   paint the actual playfield including the logo
+;   Paint the actual playfield including the logo.
+;   Registers are not preserved!
 ; ****************************************************************************
 
 PAINT_PLAYFIELD INCRB
@@ -229,13 +297,13 @@ _PPF_NEXT_LINE  MOVE    PLAYFIELD_X, @R0        ; hw cursor x = start x pos
                 RBRA    _PPF_NEXT_LINE, !Z      ; loop until all lines done
 
                 ; print Q-TRIS logo
-                MOVE    QTRIS_0, R8
-                MOVE    QTRIS_X, R9
-                MOVE    QTRIS_Y, R10
-                MOVE    QTRIS_H, R6
-_PPF_NEXT_QT    RSUB    PRINT_STR_AT, 1
-                ADD     QTRIS_W, R8
-                ADD     1, R8
+                MOVE    QTRIS, R8               ; pointer to pattern
+                MOVE    QTRIS_X, R9             ; start x-pos on screen
+                MOVE    QTRIS_Y, R10            ; start y-pos on screen
+                MOVE    QTRIS_H, R6             ; R6: height of pattern
+_PPF_NEXT_QT    RSUB    PRINT_STR_AT, 1         ; print string at x|y
+                ADD     QTRIS_W, R8             ; next line in pattern ...
+                ADD     1, R8                   ; ... add 1 due to zero term.
                 ADD     1, R10
                 SUB     1, R6
                 RBRA    _PPF_NEXT_QT, !Z
