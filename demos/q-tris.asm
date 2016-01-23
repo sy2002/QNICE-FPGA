@@ -12,8 +12,8 @@
 ; ***** TEMP ********
                 RBRA    START, 1
 
-TEMP_SEQ_CNT    .DW 7
-TEMP_SEQ        .DW 0, 1, 2, 3, 4, 5, 6
+TEMP_SEQ_CNT    .DW 10
+TEMP_SEQ        .DW 2, 2, 2, 0, 1, 2, 3, 4, 5, 6
 
 START           NOP
 ; ***** TEMP ********
@@ -30,39 +30,45 @@ START           NOP
 
                 MOVE    0, R3                   ; R3: sequence position
 
-                ; calculate Tetromino positions and store them in global vars
-                ; R0|R1 = x|y
-MAIN_LOOP       MOVE    Tetromino_Y, R1
+MAIN_LOOP       MOVE    TEMP_SEQ, R0
+                ADD     R3, R0
+                MOVE    @R0, R4                 ; R4: current Tetromino
+                MOVE    RenderedNumber, R0
+                MOVE    NEW_TTR, @R0
+
+                MOVE    Tetromino_Y, R1
                 MOVE    -8, @R1                 ; y start pos = -8
                 MOVE    PLAYFIELD_X, R0         ; x start pos is the middle...
                 ADD     PLAYFIELD_W, R0         ; ... of the playfield ...
-                SHR     1, R0                   ; ..which is ((X+W) / 2) - 2
-                SUB     2, R0
+                SHR     1, R0                   ; ..which is ((X+W) / 2) - of
+                MOVE    TTR_SX_OFFS, R1         ; of is taken from TTR_SX_OFFS
+                MOVE    R4, R2
+                ADD     R2, R1
+                ADD     @R1, R0
                 MOVE    Tetromino_X, R1
                 MOVE    R0, @R1
          
-                MOVE    TEMP_SEQ, R0
-                ADD     R3, R0
-                MOVE    @R0, R4                 ; R4: current Tetromino
-
-DROP            MOVE    R4, R8
+DROP            RSUB    DECIDE_DROP, 1
+                CMP     0, R8
+                RBRA    NEXT_TTR, Z
+                
+                MOVE    R4, R8
                 MOVE    0, R9
                 MOVE    1, R10
                 MOVE    0, R11
                 RSUB    UPDATE_TTR, 1
                 RSUB    SPEED_DELAY, 1
+                RBRA    DROP, 1
 
-                MOVE    Tetromino_Y, R0
-                CMP     32, @R0
-                RBRA    DROP, !Z
-
-                ADD     1, R3
+NEXT_TTR        ADD     1, R3
                 CMP     7, R3
                 RBRA    MAIN_LOOP, !Z
 
                 ; end Q-TRIS
 EXIT            SYSCALL(reset, 1)
   
+
+NEW_TTR     .EQU 0xFFFF ; signal value for RenderedNumber: new Tetromino
 
 QTRIS_X     .EQU 25     ; x-pos on screen
 QTRIS_Y     .EQU 1      ; y-pos on screen
@@ -111,9 +117,76 @@ TTR_OFFS    .DW 0, 1                       ; Tetromino "I"
             .DW 1, 2                       ; Tetromino "L"
             .DW 1, 2                       ; Tetromino "J"
 
+; Tetromino starting position x offset for centering them on screen
+TTR_SX_OFFS .DW -1                         ; Tetromino "I"
+            .DW -1                         ; Tetromino "O"
+            .DW -2                         ; Tetromino "T"
+            .DW -2                         ; Tetromino "S"
+            .DW -2                         ; Tetromino "Z"
+            .DW -2                         ; Tetromino "L"
+            .DW -2                         ; Tetromino "J"
+
+; When rotating a Tetromino, take care, that it still fits to the grid
+TTR_ROT_XO  .DW -1
+            .DW  0
+            .DW -1
+            .DW -1
+            .DW -1
+            .DW -1
+            .DW -1
+
 ; Level speed table
 ; speed is defined by wasted cycles, both numbers are multiplied
-LEVEL_SPEED .DW 200, 2000
+LEVEL_SPEED .DW 400, 400
+
+; ****************************************************************************
+; DECIDE_DROP
+;   Decides, if the current Tetromino can be dropped one more line down below.
+;   This is true, if there is no obstacle under each of the current Tetrominos
+;   "pixels" plus if we are not at the bottom, yet
+;   R8: returns 1 if true and 0 if falso
+; ****************************************************************************
+
+DECIDE_DROP     INCRB
+
+                MOVE    1, R8                   ; assume true for DECIDE_DROP
+
+                ; find the line number and the x-coordinate within the
+                ; 8x8 matrix of the current Tetromino, where there is at least
+                ; one "pixel" as we need to "look below" it
+                ; R6: x-coordinate (column)
+                ; R7: y-coordinate (line)
+                MOVE    7, R7                   ; search from bottom to top..
+                MOVE    RenderedTTR, R0
+                ADD     56, R0                  ; .. ditto buffer pointer
+_DD_NX_Y        XOR     R6, R6
+_DD_NX_X        CMP     0x20, @R0++             ; anything else but space?
+                RBRA    _DD_FOUND, !Z           ; yes
+                ADD     1, R6                   ; next column
+                CMP     8, R6                   ; all columns reached?
+                RBRA    _DD_NX_X, !Z            ; no: go on
+                SUB     16, R0                  ; yes: one line up ...
+                SUB     1, R7                   ; ... ditto buffer pointer
+                RBRA    _DD_NX_Y, 1             ; not an endless loop
+
+                ; check, if we reached the bottom of the screen, by
+                ; calculating the last coordinate of the playfield and
+                ; comparing it to the lowest line of the Tetromino
+_DD_FOUND       MOVE    R7, R1
+                MOVE    Tetromino_Y, R0
+                ADD     @R0, R1                 ; y-pos of lowest line                 
+                MOVE    PLAYFIELD_Y, R0         
+                ADD     PLAYFIELD_H, R0
+                SUB     1, R0                   ; y-pos of last playfield line
+                CMP     R0, R1                  ; hit it?
+                RBRA    _DD_CHK, !Z             ; no: go on checking
+                MOVE    0, R8                   ; yes: return false
+                RBRA    _DD_END, 1
+
+_DD_CHK         NOP                
+
+_DD_END         DECRB
+                RET
 
 ; ****************************************************************************
 ; MULTITASK
@@ -152,14 +225,14 @@ MULTITASK       INCRB
                 ; cursor left: move left
                 CMP     KBD$CUR_LEFT, R0
                 RBRA    _MT_N_LEFT, !Z
-                MOVE    -1, R9
+                MOVE    -2, R9
                 RSUB    UPDATE_TTR, 1
                 RBRA    _MT_RET_REST, 1
 
                 ; cursor right: move right
 _MT_N_LEFT      CMP     KBD$CUR_RIGHT, R0       ; move right
                 RBRA    _MT_N_RIGHT, !Z
-                MOVE    1, R9
+                MOVE    2, R9
                 RSUB    UPDATE_TTR, 1
                 RBRA    _MT_RET_REST, 1
 
@@ -220,13 +293,38 @@ UPDATE_TTR      INCRB
                 MOVE    0, R10
                 RSUB    PAINT_TTR, 1
 
+                ; if the current Tetromino is a new one, the rotate x-pos
+                ; compensation mechanism needs to be deactivated
+                MOVE    RenderedNumber, R4
+                CMP     NEW_TTR, @R4
+                RBRA    _UTTR_IGN_OLD, Z        ; new Tetromino
+                MOVE    Tetromino_HV, R4        ; existing: is it currently
+                MOVE    @R4, R5                 ; horizontal or vertical
+                RBRA    _UTTR_RENDER, 1
+
+_UTTR_IGN_OLD   MOVE    0, R5
+
                 ; render new tetromino to render buffer
-                MOVE    R0, R8
+_UTTR_RENDER    MOVE    R0, R8
                 MOVE    R3, R9
                 RSUB    RENDER_TTR, 1
 
+                ; if the Tetromino was rotated, we need to compensate
+                ; the x-axis position to still make it fit into the grid
+                MOVE    Tetromino_HV, R4        ; get new HV orientation
+                MOVE    @R4, R4                 
+                CMP     R4, R5
+                RBRA    _UTTR_PAINT, Z          ; orientation did not change
+                MOVE    TTR_ROT_XO, R6          ; look up compensation...
+                ADD     R8, R6                  ; ...per Tetromino
+                CMP     R5, 0                   ; if was horizontal before...
+                RBRA    _UTTR_WAS_H, Z
+                ADD     @R6, R1                 ; ...then we need to add
+                RBRA    _UTTR_PAINT, 1
+_UTTR_WAS_H     SUB     @R6, R1                 ; ...otherwise we need to sub
+
                 ; paint new Tetromino
-                MOVE    Tetromino_X, R4
+_UTTR_PAINT     MOVE    Tetromino_X, R4
                 ADD     R1, @R4
                 MOVE    @R4, R8
                 MOVE    Tetromino_Y, R4
@@ -354,6 +452,10 @@ _RTTR_BCLR      MOVE    R8, @R0                 ; remember # in RenderedNumber
                 RSUB    CLEAR_RBUF, 1           ; ... as R4 contains the value
                 MOVE    @R0, R8                 ; restore R8
 
+                ; all Tetrominos start horizontal
+                MOVE    Tetromino_HV, R0
+                MOVE    0, @R0
+
                 ; calculate start address of Tetromino pattern
                 ; R0: contains the source memory location
                 MOVE    TETROMINOS, R0          ; start address of patterns
@@ -397,6 +499,9 @@ _RTTR_XL        MOVE    @R0, @R1++              ; source => dest x|y
 
 _RTTR_ROTATE    CMP     0, R9                   ; do not rotate?
                 RBRA    _RTTR_END, Z            ; yes, do not rotate: end
+
+                MOVE    Tetromino_HV, R0        ; flip the orientation
+                XOR     1, @R0
 
                 CMP     2, R9                   ; rotate right?
                 RBRA    _RTTR_RR, Z             ; yes
@@ -456,7 +561,6 @@ PAINT_PLAYFIELD INCRB
                 MOVE    WALL_R, R4              ; R4: right boundary char
                 MOVE    PLAYFIELD_X, R5         ; R5: right boundary x-coord.
                 ADD     PLAYFIELD_W, R5
-                ADD     1, R5                   ; R5: right boundary x-coord.
                 MOVE    PLAYFIELD_H, R6         ; R6: playfield height
                 MOVE    PLAYFIELD_Y, @R1        ; hw cursor y = start y pos
 _PPF_NEXT_LINE  MOVE    PLAYFIELD_X, @R0        ; hw cursor x = start x pos
@@ -549,7 +653,7 @@ SPEED_DELAY     INCRB
                 MOVE    R1, R2                  ; remeber R1
                 MOVE    1, R3                   ; for more precise counting
 
-                ; waste cycles
+                ; waste cycles but continue to multitask while waiting
 _SPEED_DELAY_L  RSUB    MULTITASK, 1
                 SUB     R3, R1
                 RBRA    _SPEED_DELAY_L, !Z
@@ -580,7 +684,7 @@ CLRSCR          INCRB
 INIT_GLOBALS    INCRB
 
                 MOVE    RenderedNumber, R0      ; make sure, that very first..
-                MOVE    0xFFFF, @R0             ; ..Tetromino is rendered
+                MOVE    NEW_TTR, @R0            ; ..Tetromino is rendered
                 MOVE    Level, R0               ; start with Level 1
                 MOVE    1, @R0
                 MOVE    PseudoRandom, R0        ; Init PseudoRandom to 0
@@ -600,5 +704,6 @@ RenderedTemp    .BLOCK 64   ; Tetromino rendered in neutral position
 Level           .BLOCK 1    ; Current level (determines speed and score)
 PseudoRandom    .BLOCK 1    ; Pseudo random number is just a fast counter
 
-Tetromino_X     .BLOCK 1
-Tetromino_Y     .BLOCK 1
+Tetromino_X     .BLOCK 1    ; x-pos of current Tetromino on screen
+Tetromino_Y     .BLOCK 1    ; y-pos of current Tetromino on screen
+Tetromino_HV    .BLOCK 1    ; Tetromino currently horiz. (0) or vert. (1)
