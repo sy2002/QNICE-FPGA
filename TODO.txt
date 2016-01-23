@@ -22,7 +22,7 @@ HARDWARE:
 
 * single-step-mode in hardware incl. address/data display on 7-segs
 
-SOFTWARE:
+MONITOR and/or STANDARD LIBs:
 
 * Backspace and CTRL-U support in IO$GETS
 
@@ -31,3 +31,10 @@ SOFTWARE:
 * 32 bit arithmetic
 
 * Long term: Floating point support
+
+ASSEMBLER:
+
+* Fix the bug that occurs in the .out file, when you assemble this here:
+    BAD   .DW 0, -1
+    GOOD  .DW 0, 0
+    
