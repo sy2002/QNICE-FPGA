@@ -1,5 +1,7 @@
-; Q-TRIS is a Tetris clone and the first game ever developed for QNICE-FPGA
-; it uses the PS2/USB keyboard and VGA, no matter how STDIN/STDOUT are routed
+; Q-TRIS is a Tetris clone and the first game ever developed for QNICE-FPGA.
+; It uses the PS2/USB keyboard and VGA, no matter how STDIN/STDOUT are routed.
+; All speed calculations are based on a 50 MHz CPU that is equal to the CPU
+; revision contained in release V1.2.
 ; done by sy2002 in January 2016
 
 #include "../dist_kit/sysdef.asm"
@@ -23,8 +25,7 @@
                 MOVE    0, R10
                 MOVE    4, R11
 
-NEXT_TETROMINO  RSUB    CLRSCR, 1
-                MOVE    R10, R8
+NEXT_TETROMINO  MOVE    R10, R8
                 MOVE    0, R9
                 CMP     4, R11
                 RBRA    _RENDER, Z
@@ -32,11 +33,25 @@ NEXT_TETROMINO  RSUB    CLRSCR, 1
 
 _RENDER         RSUB    RENDER_TTR, 1
 
-                MOVE    0, R8
-                MOVE    0, R9
-                RSUB    PAINT_TTR, 1
+                MOVE    -8, R1
 
+                MOVE    PLAYFIELD_X, R8
+_SLIDE_IN       MOVE    R1, R9
+                MOVE    R10, R0
+                MOVE    1, R10
+                RSUB    PAINT_TTR, 1
+                
                 SYSCALL(getc, 1)
+
+                MOVE    PLAYFIELD_X, R8
+                MOVE    R1, R9
+                MOVE    0, R10
+                RSUB    PAINT_TTR, 1
+                MOVE    R0, R10
+
+                ADD     1, R1
+                CMP     1, R1
+                RBRA    _SLIDE_IN, !Z
 
                 SUB     1, R11
                 RSUB    NEXT_TETROMINO, !Z
@@ -65,7 +80,7 @@ QTRIS       .ASCII_W "  ____             _______   _____    _____    _____ "
 WALL_L      .EQU 0x09
 WALL_R      .EQU 0x08
 
-; specifications of the playfield
+; specifications of the net playfield (without walls)
 PLAYFIELD_X .EQU 2      ; x-pos on screen
 PLAYFIELD_Y .EQU 0      ; y-pos on screen
 PLAYFIELD_H .EQU 40     ; width
@@ -100,10 +115,13 @@ TTR_OFFS    .DW 0, 1                       ; Tetromino "I"
 
 ; ****************************************************************************
 ; PAINT_TTR
-;   Draws the tetromino at the specified xy-pos respecting "transparency"
-;   which is defined as 0x20 ("space"). Uses RenderedTTR as source.
+;   Draws or clears the tetromino at the specified xy-pos respecting
+;   "transparency" which is defined as 0x20 ("space"). Negative y-positions
+;   are possible to allow the "slide-in" effect for each new Tetromino.
+;   Uses RenderedTTR as source.
 ;   R8: x-pos
 ;   R9: y-pos
+;   R10: 0 = clear, 1 = paint
 ; ****************************************************************************
 
 PAINT_TTR       INCRB
@@ -113,23 +131,37 @@ PAINT_TTR       INCRB
                 MOVE    VGA$CHAR, R2            ; R2: print at hw cursor pos
 
                 MOVE    R8, @R0                 ; set hw x pos
-                MOVE    R9, @R1                 ; set hw y pos
 
                 MOVE    RenderedTTR, R3         ; source memory location
 
-                MOVE    8, R5                   ; 8x8 block represents one...
-_PAINT_TTR_YL   MOVE    8, R4                   ; ...Tetromino
+                MOVE    0, R5                   ; R5: line counter
+_PAINT_TTR_YL   MOVE    8, R4                   ; R4: column counter
+                MOVE    R9, R7                  ; is R9+R5 < 0, i.e. is the...
+                ADD     R5, R7                  ; y-pos negative?
+                CMP     0, R7
+                RBRA    _PAINT_TTR_XL, !N       ; no: go on painting
+                ADD     8, R3                   ; yes: skip line
+                RBRA    _PAINT_NEXT_LN, 1       
+
 _PAINT_TTR_XL   CMP     0x20, @R3               ; transparent "pixel"?
                 RBRA    _PAINT_TTR_SKIP, Z      ; yes: skip painting
-                MOVE    @R3, @R2                ; no: paint
+
+                MOVE    R7, @R1                 ; set hw cursor y-pos
+
+                CMP     0, R10                  ; no: check: clear or paint?
+                RBRA    _PAINT_CLEAR, Z         ; clear
+                MOVE    @R3, @R2                ; paint
+                RBRA    _PAINT_TTR_SKIP, 1
+_PAINT_CLEAR    MOVE    0x20, @R2               ; clear                
+
 _PAINT_TTR_SKIP ADD     1, R3                   ; next source "pixel"
                 ADD     1, @R0                  ; next screen x-pos
                 SUB     1, R4                   ; column counter
                 RBRA    _PAINT_TTR_XL, !Z       ; column done? no: go on
-                MOVE    R8, @R0                 ; yes: reset x-pos
-                ADD     1, @R1                  ; next line (inc y-pos)
-                SUB     1, R5                   ; line counter
-                RBRA    _PAINT_TTR_YL, !Z       ; all lines done? no: go on
+_PAINT_NEXT_LN  MOVE    R8, @R0                 ; yes: reset x-pos
+                ADD     1, R5                   ; line counter to next line
+                CMP     8, R5                   ; all lines done?
+                RBRA    _PAINT_TTR_YL, !Z       ; no: go on
 
                 DECRB
                 RET
@@ -238,7 +270,11 @@ _RTTR_ROTATE    CMP     0, R9                   ; do not rotate?
                 CMP     2, R9                   ; rotate right?
                 RBRA    _RTTR_RR, Z             ; yes
 
-                ; rotate left
+                ; rotate left:
+                ; walk through the source tile column by column starting from
+                ; the rightmost column and ending at the leftmost column
+                ; going through each column from top to bottom and copy
+                ; the resulting bytes from left to right to the destination
                 MOVE    RenderedTTR, R2         ; R2: dest.: rotated Tetromino
                 MOVE    7, R1                   ; R1: source x                
 _RTTR_DYL       MOVE    RenderedTemp, R0        ; R0: source: raw Tetromino
@@ -253,20 +289,24 @@ _RTTR_DXL       MOVE    @R0, @R2++              ; copy "pixel"
                 RBRA    _RTTR_DYL, !N           ; < 0 means 8 cols are done
                 RBRA    _RTTR_END, 1
 
-                ; rotate right
+                ; rotate right:
+                ; walk through the source tile column by column starting from
+                ; the leftmost column and ending at the rightmost column
+                ; going through each column from bottom to top and copy
+                ; the resulting bytes from left to right to the destination
 _RTTR_RR        MOVE    RenderedTTR, R2         ; R2: dest.: rotated Tetromino
                 XOR     R3, R3                  ; R3: source column counter
 _RTTR_RR_DYL    MOVE    RenderedTemp, R0        ; R0: source: raw Tetromino
-                ADD     R3, R0
-                ADD     56, R0
-                MOVE    8, R4
-_RTTR_RR_DXL    MOVE    @R0, @R2++
-                SUB     8, R0
-                SUB     1, R4
-                RBRA    _RTTR_RR_DXL, !Z
-                ADD     1, R3
-                CMP     8, R3
-                RBRA    _RTTR_RR_DYL, !Z
+                ADD     R3, R0                  ; select right source column
+                ADD     56, R0                  ; go to the last row
+                MOVE    8, R4                   ; 8 "pixels" per row
+_RTTR_RR_DXL    MOVE    @R0, @R2++              ; copy "pixel"
+                SUB     8, R0                   ; go up one row
+                SUB     1, R4                   ; all "pixels" copied in col.
+                RBRA    _RTTR_RR_DXL, !Z        ; no: go on
+                ADD     1, R3                   ; yes: next col
+                CMP     8, R3                   ; all cols copied?
+                RBRA    _RTTR_RR_DYL, !Z        ; no: go on
 
 _RTTR_END       DECRB
                 RET
@@ -289,6 +329,7 @@ PAINT_PLAYFIELD INCRB
                 MOVE    PLAYFIELD_H, R6         ; R6: playfield height
                 MOVE    PLAYFIELD_Y, @R1        ; hw cursor y = start y pos
 _PPF_NEXT_LINE  MOVE    PLAYFIELD_X, @R0        ; hw cursor x = start x pos
+                SUB     1, @R0                  ; PLAYFIELD_X is a net coord.
                 MOVE    R3, @R2                 ; print left boundary
                 MOVE    R5, @R0                 ; hw cursor to right x pos
                 MOVE    R4, @R2                 ; print right boundary
@@ -372,6 +413,8 @@ CLRSCR          INCRB
 ; VARIABLES
 ; ****************************************************************************
 
-RenderedNumber  .BLOCK 1
+RenderedNumber  .BLOCK 1    ; Number of last Tetromino that was rendered
 RenderedTTR     .BLOCK 64   ; Tetromino rendered in the correct angle
 RenderedTemp    .BLOCK 64   ; Tetromino rendered in neutral position
+
+PseudoRandom    .BLOCK 1    ; Pseudo random number is just a fast counter
