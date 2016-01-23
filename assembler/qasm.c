@@ -1028,8 +1028,8 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
     for (i = 1; i < entry->number_of_words; i++) /* If there is additional data as in .ASCII_W, write it */
     {
       if (entry->number_of_words > 2)
-        fprintf(listing_handle, "        %04X  %04X\n", entry->address + i, entry->data[i]);
-      fprintf(output_handle, "0x%04X 0x%04X\n", entry->address + i, entry->data[i]);
+        fprintf(listing_handle, "        %04X  %04X\n", entry->address + i, entry->data[i] & 0xffff);
+      fprintf(output_handle, "0x%04X 0x%04X\n", entry->address + i, entry->data[i] & 0xffff);
     }
   }
   
