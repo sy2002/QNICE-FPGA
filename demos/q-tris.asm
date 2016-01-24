@@ -12,8 +12,8 @@
 ; ***** TEMP ********
                 RBRA    START, 1
 
-TEMP_SEQ_CNT    .DW 10
-TEMP_SEQ        .DW 2, 2, 2, 0, 1, 2, 3, 4, 5, 6
+TEMP_SEQ_CNT    .EQU 11
+TEMP_SEQ        .DW 0, 2, 2, 2, 0, 1, 2, 3, 4, 5, 6
 
 START           NOP
 ; ***** TEMP ********
@@ -48,8 +48,9 @@ MAIN_LOOP       MOVE    TEMP_SEQ, R0
                 MOVE    Tetromino_X, R1
                 MOVE    R0, @R1
          
-DROP            RSUB    DECIDE_DROP, 1
-                CMP     0, R8
+DROP            MOVE    0, R8
+                RSUB    DECIDE_MOVE, 1
+                CMP     0, R9
                 RBRA    NEXT_TTR, Z
                 
                 MOVE    R4, R8
@@ -61,7 +62,7 @@ DROP            RSUB    DECIDE_DROP, 1
                 RBRA    DROP, 1
 
 NEXT_TTR        ADD     1, R3
-                CMP     7, R3
+                CMP     TEMP_SEQ_CNT, R3
                 RBRA    MAIN_LOOP, !Z
 
                 ; end Q-TRIS
@@ -137,55 +138,141 @@ TTR_ROT_XO  .DW -1
 
 ; Level speed table
 ; speed is defined by wasted cycles, both numbers are multiplied
-LEVEL_SPEED .DW 400, 400
+LEVEL_SPEED .DW 400, 200
 
 ; ****************************************************************************
-; DECIDE_DROP
-;   Decides, if the current Tetromino can be dropped one more line down below.
-;   This is true, if there is no obstacle under each of the current Tetrominos
-;   "pixels" plus if we are not at the bottom, yet
-;   R8: returns 1 if true and 0 if falso
+; DECIDE_MOVE
+;   Checks if a planned move in a certain direction (R8) is possible. It does
+;   so be checking, if for each pixel in the 8x8 Tetromino matrix there is
+;   room to move in the desired direction.
+;   R8: direction: 0 = down, 1 = left, 2 = right
+;   R9: returns true (1) is the move is OK and false (0) if not
 ; ****************************************************************************
 
-DECIDE_DROP     INCRB
+DECIDE_MOVE     INCRB
 
-                MOVE    1, R8                   ; assume true for DECIDE_DROP
+                MOVE    1, R9                   ; assume return true
 
-                ; find the line number and the x-coordinate within the
-                ; 8x8 matrix of the current Tetromino, where there is at least
-                ; one "pixel" as we need to "look below" it
-                ; R6: x-coordinate (column)
-                ; R7: y-coordinate (line)
-                MOVE    7, R7                   ; search from bottom to top..
-                MOVE    RenderedTTR, R0
-                ADD     56, R0                  ; .. ditto buffer pointer
-_DD_NX_Y        XOR     R6, R6
-_DD_NX_X        CMP     0x20, @R0++             ; anything else but space?
-                RBRA    _DD_FOUND, !Z           ; yes
-                ADD     1, R6                   ; next column
-                CMP     8, R6                   ; all columns reached?
-                RBRA    _DD_NX_X, !Z            ; no: go on
-                SUB     16, R0                  ; yes: one line up ...
-                SUB     1, R7                   ; ... ditto buffer pointer
-                RBRA    _DD_NX_Y, 1             ; not an endless loop
+                INCRB                           ; save R8, R10, R11, R12
+                MOVE    R8, R0
+                MOVE    R10, R1
+                MOVE    R11, R2
+                MOVE    R12, R3
+                DECRB
 
-                ; check, if we reached the bottom of the screen, by
-                ; calculating the last coordinate of the playfield and
-                ; comparing it to the lowest line of the Tetromino
-_DD_FOUND       MOVE    R7, R1
-                MOVE    Tetromino_Y, R0
-                ADD     @R0, R1                 ; y-pos of lowest line                 
-                MOVE    PLAYFIELD_Y, R0         
-                ADD     PLAYFIELD_H, R0
-                SUB     1, R0                   ; y-pos of last playfield line
-                CMP     R0, R1                  ; hit it?
-                RBRA    _DD_CHK, !Z             ; no: go on checking
-                MOVE    0, R8                   ; yes: return false
-                RBRA    _DD_END, 1
+                ; R0: hw x-cursor
+                ; R1: hw y-cursor
+                MOVE    VGA$CR_X, R0
+                MOVE    VGA$CR_Y, R1
 
-_DD_CHK         NOP                
+                ; R3: lowest possible y-position
+                MOVE    PLAYFIELD_Y, R3
+                ADD     PLAYFIELD_H, R3
+                SUB     1, R3
 
-_DD_END         DECRB
+                ; Set up an x and y "checking" offset: this offset is added
+                ; to the current Tetromino x|y position for checking if
+                ; the playfield is free there. Obviously depends on R8
+                ; R10: x-checking-offset
+                ; R11: y-checking-offset
+                CMP     0, R8                   ; look downwards?
+                RBRA    _DM_N_DN, !Z            ; no: continue to check
+                XOR     R10, R10                ; yes: x-offset is 0 then...
+                MOVE    1, R11                  ; ...and y-offset is 1
+                RBRA    _DM_START, 1
+_DM_N_DN        CMP     1, R8                   ; look left?
+                RBRA    _DM_N_LT, !Z            ; no: continue to check
+                MOVE    -1, R10                 ; yes: left means -1 as x-offs
+                XOR     R11, R11                ; and 0 as y-offs
+                RBRA    _DM_START, 1
+_DM_N_LT        CMP     2, R8                   ; look right?
+                RBRA    _DM_RET, !Z             ; no: illegal param., return
+                MOVE    1, R10                  ; yes: right means 1 as x-offs
+                XOR     R11, R11                ; and 0 as y offs
+
+                ; set HW cursor to the y start pos of the Tetromino
+                ; 8x8 matrix and apply the scanning offset
+                ; R8 is needed as @R1 is not able to store negative values
+                ; but as we slide in Tetrominos from negative y-positions, we
+                ; need to be able to handle negative values
+_DM_START       MOVE    Tetromino_Y, R6
+                MOVE    @R6, R8
+                ADD     R11, R8                 ; apply the y scanning offset
+                MOVE    R8, @R1                 ; set HW cursor to Tetromini_Y
+
+                MOVE    0, R4                   ; R4: line counter (y)
+_DM_LOOP_Y      MOVE    R4, R5                  ; R5: y offset = 8 x y
+                SHL     3, R5 
+                MOVE    Tetromino_X, R6         ; set hw cursor to x start...
+                MOVE    @R6, @R0                ; ...pos of Tetromino 8x8...
+                ADD     R10, @R0                ; matrix and aplly scan offs
+                MOVE    0, R6                   ; R6: column counter (x)
+_DM_LOOP_X      MOVE    RenderedTTR, R7         ; pointer to Tetromino pattern
+                ADD     R6, R7                  ; add x offset
+                ADD     R5, R7                  ; add y offset (R5 = 8 x R4)
+
+                ; basic idea: is there a pixel within the Tetromino pattern?
+                ; if yes, then first check, if we are still at negative y
+                ; values (sliding in) or if we reached the bottom of the scrn
+                ; and if both are false, then check, if below or right or
+                ; left (depending on the initial R8 parameter) of the pixel
+                ; there is an obstacle on the screen, that is not the
+                ; own pixel of the Tetromino
+
+                CMP     0x20, @R7               ; empty "pixel" in Tetromino?
+                RBRA    _DM_PX_FOUND, !Z        ; no: there is a pixel
+                RBRA    _DM_INCX, 1             ; yes: skip to next pixel
+
+_DM_PX_FOUND    CMP     0, R8                   ; negative y scanning coord?
+                RBRA    _DM_INCY, N             ; yes: skip line
+                CMP     @R1, R3                 ; maximum y-position reached?
+                RBRA    _DM_OBSTACLE, N         ; yes (@R1 > R3): return false
+                MOVE    VGA$CHAR, R2            ; hw register for reading scrn   
+                CMP     0x20, @R2               ; empty "pixel" on screen?
+                RBRA    _DM_IS_IT_OWN, !Z       ; no: check if it is an own px
+                RBRA    _DM_INCX, 1             ; yes: go to next checking pos
+
+_DM_IS_IT_OWN   MOVE    R4, R12                 ; current y position
+                ADD     R11, R12                ; apply y scanning offset
+                CMP     0, R12                  ; y negative out-of-bound?                
+                RBRA    _DM_INCX, N             ; yes: skip to next pixel
+                CMP     8, R12                  ; y positive out-of-bound?
+                RBRA    _DM_OBSTACLE, Z         ; yes: obstacle found
+                MOVE    R6, R2                  ; current x position
+                ADD     R10, R2                 ; apply x scanning offset
+                CMP     0, R2                   ; x negative out-of-bound?                
+                RBRA    _DM_OBSTACLE, N         ; yes: obstacle found
+                CMP     8, R2                   ; x positive out-of-bound?
+                RBRA    _DM_OBSTACLE, Z         ; yes: obstacle found
+                SHL     3, R12                  ; (R12 = y) x 8 (line offset)
+                ADD     R2, R12                 ; add (R2 = x)
+                ADD     RenderedTTR, R12        ; completing the offset
+                CMP     0x20, @R12              ; Tetromino empty here?
+                RBRA    _DM_OBSTACLE, Z         ; then obstacle is found
+                RBRA    _DM_INCX, 1             ; no obstacle: next pixel
+
+_DM_OBSTACLE    MOVE    0, R9                   ; obstacle detected ...
+                RBRA    _DM_RET, 1              ; ... return false
+
+_DM_INCX        ADD     1, R6                   ; next column...
+                ADD     1, @R0                  ; ...ditto for hardware cursor
+                CMP     8, R6                   ; line end reached?
+                RBRA    _DM_LOOP_X, !Z          ; no: go on
+
+_DM_INCY        ADD     1, R4                   ; next line, ditto for the..
+                ADD     1, R8                   ; ..hw crs buffer R8 and for..
+                MOVE    R8, @R1                 ; ..the hw cursor itself
+                CMP     8, R4                   ; Tetromino end reached?
+                RBRA    _DM_LOOP_Y, !Z          ; no go on
+
+_DM_RET         INCRB                           ; restore R8, R10, R11, R12
+                MOVE    R0, R8
+                MOVE    R1, R10
+                MOVE    R2, R11
+                MOVE    R3, R12
+                DECRB
+
+                DECRB
                 RET
 
 ; ****************************************************************************
@@ -225,14 +312,24 @@ MULTITASK       INCRB
                 ; cursor left: move left
                 CMP     KBD$CUR_LEFT, R0
                 RBRA    _MT_N_LEFT, !Z
-                MOVE    -2, R9
+                MOVE    1, R8
+                RSUB    DECIDE_MOVE, 1          ; can we move left?                
+                CMP     0, R9
+                RBRA    _MT_RET_REST, Z         ; no: return
+                MOVE    @R5, R8                 ; yes: restore R8 ...
+                MOVE    -2, R9                  ; ... and move left
                 RSUB    UPDATE_TTR, 1
                 RBRA    _MT_RET_REST, 1
 
                 ; cursor right: move right
-_MT_N_LEFT      CMP     KBD$CUR_RIGHT, R0       ; move right
+_MT_N_LEFT      CMP     KBD$CUR_RIGHT, R0
                 RBRA    _MT_N_RIGHT, !Z
-                MOVE    2, R9
+                MOVE    2, R8
+                RSUB    DECIDE_MOVE, 1          ; can we move right?
+                CMP     0, R9
+                RBRA    _MT_RET_REST, Z         ; no: return
+                MOVE    @R5, R8                 ; yes: restore R8 ...
+                MOVE    2, R9                   ; ... and move right
                 RSUB    UPDATE_TTR, 1
                 RBRA    _MT_RET_REST, 1
 
@@ -317,7 +414,7 @@ _UTTR_RENDER    MOVE    R0, R8
                 RBRA    _UTTR_PAINT, Z          ; orientation did not change
                 MOVE    TTR_ROT_XO, R6          ; look up compensation...
                 ADD     R8, R6                  ; ...per Tetromino
-                CMP     R5, 0                   ; if was horizontal before...
+                CMP     0, R5                   ; if was horizontal before...
                 RBRA    _UTTR_WAS_H, Z
                 ADD     @R6, R1                 ; ...then we need to add
                 RBRA    _UTTR_PAINT, 1
