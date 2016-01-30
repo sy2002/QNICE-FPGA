@@ -12,8 +12,8 @@
 ; ***** TEMP ********
                 RBRA    START, 1
 
-TEMP_SEQ_CNT    .EQU 11
-Temp_Seq        .DW 0, 2, 2, 2, 0, 1, 2, 3, 4, 5, 6
+TEMP_SEQ_CNT    .EQU 18
+Temp_Seq        .DW 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6
 
 START           NOP
 ; ***** TEMP ********
@@ -48,7 +48,7 @@ MAIN_LOOP       MOVE    Temp_Seq, R0
                 MOVE    Tetromino_X, R1
                 MOVE    R0, @R1
          
-DROP            MOVE    0, R8
+DROP            XOR     R8, R8
                 RSUB    DECIDE_MOVE, 1
                 CMP     0, R9
                 RBRA    HNDL_COMPL_ROWS, Z
@@ -539,6 +539,7 @@ MULTITASK       INCRB
                 MOVE    R9, R2
                 MOVE    R10, R3
                 MOVE    R11, R4
+                MOVE    R12, R5
 
                 MOVE    RenderedNumber, R5
                 MOVE    @R5, R8
@@ -579,8 +580,44 @@ _MT_N_RIGHT     CMP     0x78, R0                ; "x" = ASCII 0x78
 
                 ; c: rotate right
 _MT_N_x         CMP     0x63, R0                ; "c" = ASCII 0x63
-                RBRA    _MT_ELSE, !Z
+                RBRA    _MT_N_c, !Z
                 MOVE    2, R11
+                RSUB    UPDATE_TTR, 1
+                RBRA    _MT_RET_REST, 1
+
+                ; cursor down: move down one row
+_MT_N_c         CMP     KBD$CUR_DOWN, R0
+                RBRA    _MT_N_DOWN, !Z
+                XOR     R8, R8
+                RSUB    DECIDE_MOVE, 1          ; can we move down?
+                CMP     0, R9
+                RBRA    _MT_RET_REST, Z         ; no: return
+                MOVE    @R5, R8                 ; yes: restore R8
+                XOR     R9, R9
+                MOVE    1, R10                  ; move down
+                RSUB    UPDATE_TTR, 1
+                RBRA    _MT_RET_REST, 1
+
+                ; cursor up: drop
+_MT_N_DOWN      CMP     KBD$CUR_UP, R0
+                RBRA    _MT_ELSE, !Z
+                MOVE    Tetromino_Y, R11
+                MOVE    @R11, R12              
+                XOR     R10, R10
+                XOR     R8, R8
+_MT_DROP_DM     RSUB    DECIDE_MOVE, 1
+                CMP     1, R9
+                RBRA    _MT_DROP_CHK, !Z
+                ADD     1, R10
+                ADD     1, @R11
+                RBRA    _MT_DROP_DM, 1
+
+_MT_DROP_CHK    MOVE    R12, @R11
+                CMP     0, R10
+                RBRA    _MT_RET_REST, Z
+                MOVE    @R5, R8
+                XOR     R9, R9
+                XOR     R11, R11
                 RSUB    UPDATE_TTR, 1
                 RBRA    _MT_RET_REST, 1
 
@@ -596,6 +633,7 @@ _MT_RET_REST    MOVE    R1, R8
                 MOVE    R2, R9
                 MOVE    R3, R10
                 MOVE    R4, R11
+                MOVE    R5, R12
 
 _MT_RET         DECRB
                 RET
@@ -1005,6 +1043,8 @@ _WAIT_FOR_VGAL  MOVE    @R0, R1
 ;   speed table (Level_Speed) and the current game level (Level).
 ;   While wasting cycles, SPEED_DELAY can perform the "background tasks", 
 ;   that are defined in MULTITASK.
+;   In mode R8 = 0, the delay of the second multiplier is doubled for
+;   compensating the missing delay of the multitasking.
 ;   R8: 0 = no background tasks (MULTITASK); 1 = perform MULTITASK
 ; ****************************************************************************
 
@@ -1020,7 +1060,11 @@ SPEED_DELAY     INCRB
                 MOVE    @R7++, R0               ; R0 contains first multiplier
                 MOVE    @R7, R1                 ; R1 contains second mult.
 
-                MOVE    R1, R2                  ; remeber R1
+                CMP     1, R8                   ; in R8 = 1 mode ...
+                RBRA    _SPEED_DELAY_SS, Z      ; ... skip the doubling
+                SHL     1, R1                   ; double the second multiplier
+
+_SPEED_DELAY_SS MOVE    R1, R2                  ; remeber R1
                 MOVE    1, R3                   ; for more precise counting
 
                 ; waste cycles but continue to multitask while waiting

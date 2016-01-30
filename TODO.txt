@@ -36,4 +36,6 @@ MONITOR and/or STANDARD LIBs:
 
 * Long term: Floating point support
 
-    
+ASSEMBLER:
+
+* Issue a warning, when defining a label multiple times.
