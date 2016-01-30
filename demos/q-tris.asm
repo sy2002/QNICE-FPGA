@@ -138,20 +138,29 @@ TTR_ROT_XO  .DW -1
 
 ; Level speed table
 ; speed is defined by wasted cycles, both numbers are multiplied
-LEVEL_SPEED .DW 400, 200
+LEVEL_SPEED .DW 400, 400
 
 ; ****************************************************************************
 ; DECIDE_MOVE
 ;   Checks if a planned move in a certain direction (R8) is possible. It does
-;   so be checking, if for each pixel in the 8x8 Tetromino matrix there is
+;   so by checking, if for each pixel in the 8x8 Tetromino matrix there is
 ;   room to move in the desired direction.
-;   R8: direction: 0 = down, 1 = left, 2 = right
+;   R8: direction: 0 = down, 1 = left, 2 = right, 3 = actual pos. (rotation)
 ;   R9: returns true (1) is the move is OK and false (0) if not
 ; ****************************************************************************
 
 DECIDE_MOVE     INCRB
 
                 MOVE    1, R9                   ; assume return true
+
+                ; @MH CHECK SUSPECT: just for the sake of testing the CPU:
+                ; do the following register save on the stack instead of using
+                ; register pages. I am not sure any more, but I might have
+                ; seen a strange behaviour there, when doing
+                ; something like MOVE R8, @--SP. Maybe some preprocessor
+                ; issue and I should have written MOVE R8, @--R13?
+                ; Maybe no issue at all and I was just tired in the evening?
+                ; I added this to TODO.txt, so that we are not forgetting it.
 
                 INCRB                           ; save R8, R10, R11, R12
                 MOVE    R8, R0
@@ -186,9 +195,14 @@ _DM_N_DN        CMP     1, R8                   ; look left?
                 XOR     R11, R11                ; and 0 as y-offs
                 RBRA    _DM_START, 1
 _DM_N_LT        CMP     2, R8                   ; look right?
-                RBRA    _DM_RET, !Z             ; no: illegal param., return
+                RBRA    _DM_N_RT, !Z            ; no: continue to check
                 MOVE    1, R10                  ; yes: right means 1 as x-offs
                 XOR     R11, R11                ; and 0 as y offs
+                RBRA    _DM_START, 1
+_DM_N_RT        CMP     3, R8                   ; look at the actual position?
+                RBRA    _DM_RET, !Z             ; no: illegal param. => return
+                XOR     R10, R10                ; yes: x-offset is 0...
+                XOR     R11, R11                ; ... and y-offset is 0
 
                 ; set HW cursor to the y start pos of the Tetromino
                 ; 8x8 matrix and apply the scanning offset
@@ -249,7 +263,20 @@ _DM_IS_IT_OWN   MOVE    R4, R12                 ; current y position
                 ADD     RenderedTTR, R12        ; completing the offset
                 CMP     0x20, @R12              ; Tetromino empty here?
                 RBRA    _DM_OBSTACLE, Z         ; then obstacle is found
-                RBRA    _DM_INCX, 1             ; no obstacle: next pixel
+
+                ; Arriving here means: No obstacle found in the classical
+                ; movement situations, so we could jump to the next pixel
+                ; by branching to _DM_INCX. But there is a special case:
+                ; Rotation: if R10 == R11 == 0, then we have a rotation, and
+                ; in this case, we want to know, if "under" the pixels of the
+                ; potentially rotated Tetromino there are other pixels of
+                ; other elements, because then the rotation is not allowed
+                ; ("other elements" can also be the playfield borders)
+                CMP     0, R10                  ; R10 == 0?
+                RBRA    _DM_INCX, !Z            ; no rotation, no obstacle
+                CMP     0, R11                  ; R11 == 0?
+                RBRA    _DM_INCX, !Z            ; no rotation, no obstacle
+                RBRA    _DM_OBSTACLE, 1         ; rotation: obstacle found
 
 _DM_OBSTACLE    MOVE    0, R9                   ; obstacle detected ...
                 RBRA    _DM_RET, 1              ; ... return false
@@ -509,11 +536,20 @@ _CLEAR_RBUF_L   MOVE    0x20, @R0++             ; clear current "pixel"
 
 ; ****************************************************************************
 ; RENDER_TTR
-;   Renders the tetromino and rotates it, if specified by R9.
-;   Automatically remembers the last tetromino and its position so that
+;   Renders the Tetromino and rotates it, if specified by R9.
+;
+;   Automatically remembers the last Tetromino and its position so that
 ;   subsequent calls can be performed. The 8x8 buffer RenderedTTR contains
 ;   the resulting pattern. RenderedTemp is used temporarily and RenderedNumber
 ;   is used to remember, which tetromino has been rendered last time.
+;
+;   Additionally, when rotating, the routine checks, if the resulting,
+;   rendered Tetromino is still "valid", i.e. not outside the boundaries
+;   and also not overlapping with any existing piece; otherwise the rotation
+;   command is ignored and the old pattern in copied back from RenderedTemp.
+;   For the outside caller to know, if the rotation was performed or ignored,
+;   Tetromino_HV can be checked.
+;
 ;   R8: number of tetromino between 0..TETROMINOS
 ;   R9: rotation: 0 = do not rotate, 1 = rotate left, 2 = rotate right
 ; ****************************************************************************
@@ -597,9 +633,6 @@ _RTTR_XL        MOVE    @R0, @R1++              ; source => dest x|y
 _RTTR_ROTATE    CMP     0, R9                   ; do not rotate?
                 RBRA    _RTTR_END, Z            ; yes, do not rotate: end
 
-                MOVE    Tetromino_HV, R0        ; flip the orientation
-                XOR     1, @R0
-
                 CMP     2, R9                   ; rotate right?
                 RBRA    _RTTR_RR, Z             ; yes
 
@@ -620,7 +653,7 @@ _RTTR_DXL       MOVE    @R0, @R2++              ; copy "pixel"
                 RBRA    _RTTR_DXL, !Z
                 SUB     1, R1
                 RBRA    _RTTR_DYL, !N           ; < 0 means 8 cols are done
-                RBRA    _RTTR_END, 1
+                RBRA    _RTTR_ROT_DONE, 1
 
                 ; rotate right:
                 ; walk through the source tile column by column starting from
@@ -640,6 +673,33 @@ _RTTR_RR_DXL    MOVE    @R0, @R2++              ; copy "pixel"
                 ADD     1, R3                   ; yes: next col
                 CMP     8, R3                   ; all cols copied?
                 RBRA    _RTTR_RR_DYL, !Z        ; no: go on
+
+                ; after any rotation (left or right):
+                ; check if the rotated Tetromino is still "valid", i.e. not
+                ; outside the playfield and not obscuring existing "pixels"                
+_RTTR_ROT_DONE  MOVE    R8, R6                  ; save R8 & R9
+                MOVE    R9, R7
+                MOVE    3, R8                   ; check, if the rotation...
+                RSUB    DECIDE_MOVE, 1          ; ... is allowed
+                CMP     1, R9                   ; rotation allowed?
+                RBRA    _RTTR_END_ROTOK, Z      ; yes: flip HV orientation
+
+                ; in case of an invalid rotation: copy back the non-rotated
+                ; Tetromino shape, to RenderedTTR and undo the rotation
+                MOVE    RenderedTemp, R0
+                MOVE    RenderedTTR, R1
+                MOVE    64, R3
+                MOVE    1, R4
+_RTTR_COPYL2    MOVE    @R0++, @R1++
+                SUB     R4, R3
+                RBRA    _RTTR_COPYL2, !Z
+                RBRA    _RTTR_END_REST, 1
+
+_RTTR_END_ROTOK MOVE    Tetromino_HV, R0        ; each rotation flips... 
+                XOR     1, @R0                  ; ...the orientation
+                
+_RTTR_END_REST  MOVE    R6, R8                  ; restore R8 & R9
+                MOVE    R7, R9                            
 
 _RTTR_END       DECRB
                 RET

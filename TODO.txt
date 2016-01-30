@@ -1,5 +1,9 @@
 HARDWARE:
 
+* check: is there a CPU bug in the context of the stack like MOVE R8, @--SP?
+  maybe just a Fata Morgana, as the monitor works actively with the stack
+  but for being on the safe side: see q-tris.asm and search @MH CHECK SUSPECT
+
 * remove ROM and replace by prefilled RAM
 
 * Improve design to support 100 MHz
