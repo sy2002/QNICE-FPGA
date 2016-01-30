@@ -13,7 +13,7 @@
                 RBRA    START, 1
 
 TEMP_SEQ_CNT    .EQU 11
-TEMP_SEQ        .DW 0, 2, 2, 2, 0, 1, 2, 3, 4, 5, 6
+Temp_Seq        .DW 0, 2, 2, 2, 0, 1, 2, 3, 4, 5, 6
 
 START           NOP
 ; ***** TEMP ********
@@ -30,7 +30,7 @@ START           NOP
 
                 MOVE    0, R3                   ; R3: sequence position
 
-MAIN_LOOP       MOVE    TEMP_SEQ, R0
+MAIN_LOOP       MOVE    Temp_Seq, R0
                 ADD     R3, R0
                 MOVE    @R0, R4                 ; R4: current Tetromino
                 MOVE    RenderedNumber, R0
@@ -41,7 +41,7 @@ MAIN_LOOP       MOVE    TEMP_SEQ, R0
                 MOVE    PLAYFIELD_X, R0         ; x start pos is the middle...
                 ADD     PLAYFIELD_W, R0         ; ... of the playfield ...
                 SHR     1, R0                   ; ..which is ((X+W) / 2) - of
-                MOVE    TTR_SX_OFFS, R1         ; of is taken from TTR_SX_OFFS
+                MOVE    TTR_SX_Offs, R1         ; of is taken from TTR_SX_Offs
                 MOVE    R4, R2
                 ADD     R2, R1
                 ADD     @R1, R0
@@ -51,15 +51,18 @@ MAIN_LOOP       MOVE    TEMP_SEQ, R0
 DROP            MOVE    0, R8
                 RSUB    DECIDE_MOVE, 1
                 CMP     0, R9
-                RBRA    NEXT_TTR, Z
+                RBRA    HNDL_COMPL_ROWS, Z
                 
                 MOVE    R4, R8
                 MOVE    0, R9
                 MOVE    1, R10
                 MOVE    0, R11
                 RSUB    UPDATE_TTR, 1
+                MOVE    1, R8
                 RSUB    SPEED_DELAY, 1
                 RBRA    DROP, 1
+
+HNDL_COMPL_ROWS RSUB    COMPLETED_ROWS, 1
 
 NEXT_TTR        ADD     1, R3
                 CMP     TEMP_SEQ_CNT, R3
@@ -75,26 +78,27 @@ QTRIS_X     .EQU 25     ; x-pos on screen
 QTRIS_Y     .EQU 1      ; y-pos on screen
 QTRIS_H     .EQU 6      ; height of the pattern in lines
 QTRIS_W     .EQU 53     ; width of the pattern in chars (without zero term.)
-QTRIS       .ASCII_W "  ____             _______   _____    _____    _____ "
+QTris       .ASCII_W "  ____             _______   _____    _____    _____ "
             .ASCII_W " / __ \           |__   __| |  __ \  |_   _|  / ____|"
             .ASCII_W "| |  | |  ______     | |    | |__) |   | |   | (___  "
             .ASCII_W "| |  | | |______|    | |    |  _  /    | |    \___ \ "
             .ASCII_W "| |__| |             | |    | | \ \   _| |_   ____) |"
             .ASCII_W " \___\_\             |_|    |_|  \_\ |_____| |_____/ "
 
-; characters for painting the left and the right wall
-WALL_L      .EQU 0x09
-WALL_R      .EQU 0x08
+; special painting characters
+WALL_L      .EQU 0x09   ; left wall
+WALL_R      .EQU 0x08   ; right wall
+LN_COMPLETE .EQU 0x11   ; line(s) completed blink char (together with 0x20)
 
 ; specifications of the net playfield (without walls)
 PLAYFIELD_X .EQU 2      ; x-pos on screen
 PLAYFIELD_Y .EQU 0      ; y-pos on screen
-PLAYFIELD_H .EQU 40     ; width
-PLAYFIELD_W .EQU 20     ; height
+PLAYFIELD_H .EQU 40     ; height
+PLAYFIELD_W .EQU 20     ; width
 
 ; Tetromino patterns
 TTR_AMOUNT  .EQU 7
-TETROMINOS  .DW 0x20, 0x20, 0x20, 0x20     ; Tetromino "I"
+Tetrominos  .DW 0x20, 0x20, 0x20, 0x20     ; Tetromino "I"
             .DW 0x00, 0x00, 0x00, 0x00
             .DW 0x20, 0x0E, 0x0E, 0x20     ; Tetromino "O"
             .DW 0x20, 0x0E, 0x0E, 0x20
@@ -110,7 +114,7 @@ TETROMINOS  .DW 0x20, 0x20, 0x20, 0x20     ; Tetromino "I"
             .DW 0x4F, 0x4F, 0x4F, 0x20
 
 ; Tetromino painting offsets for centering them in the 8x8 box
-TTR_OFFS    .DW 0, 1                       ; Tetromino "I"
+TTR_Offs    .DW 0, 1                       ; Tetromino "I"
             .DW 0, 2                       ; Tetromino "O"
             .DW 1, 2                       ; Tetromino "T"
             .DW 1, 2                       ; Tetromino "S"
@@ -119,7 +123,7 @@ TTR_OFFS    .DW 0, 1                       ; Tetromino "I"
             .DW 1, 2                       ; Tetromino "J"
 
 ; Tetromino starting position x offset for centering them on screen
-TTR_SX_OFFS .DW -1                         ; Tetromino "I"
+TTR_SX_Offs .DW -1                         ; Tetromino "I"
             .DW -1                         ; Tetromino "O"
             .DW -2                         ; Tetromino "T"
             .DW -2                         ; Tetromino "S"
@@ -128,7 +132,7 @@ TTR_SX_OFFS .DW -1                         ; Tetromino "I"
             .DW -2                         ; Tetromino "J"
 
 ; When rotating a Tetromino, take care, that it still fits to the grid
-TTR_ROT_XO  .DW -1
+TTR_Rot_Xo  .DW -1
             .DW  0
             .DW -1
             .DW -1
@@ -138,7 +142,209 @@ TTR_ROT_XO  .DW -1
 
 ; Level speed table
 ; speed is defined by wasted cycles, both numbers are multiplied
-LEVEL_SPEED .DW 400, 400
+Level_Speed .DW 400, 200
+
+; ****************************************************************************
+; COMPLETED_ROWS
+;   Handle completed rows: The current Tetromino_Y position is the starting
+;   point, from where overall 8 lines on the screen (4 Tetromino "pixels") are
+;   checked. Completed rows are marked within the list "CompletedRows".
+;   Then the completed rows are visualzed by a blinking "graphics effect",
+;   which blinks as often as lines were cleard.
+;   After that they are cleared with space characters and then the whole
+;   playfield is compressed accordingly.
+; ****************************************************************************
+
+COMPLETED_ROWS  INCRB
+                MOVE    R8, R0                  ; save R8 .. R12
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+                MOVE    R12, R4
+
+                INCRB
+
+                MOVE    VGA$CR_X, R0            ; screen memory access
+                MOVE    VGA$CR_Y, R1
+                MOVE    VGA$CHAR, R2
+
+                MOVE    NumberOfCompl, R8       ; assume zero completed rows
+                MOVE    0, @R8
+                MOVE    CompletedRows, R7       ; list with all compl. rows
+
+                ; handle negative y values
+
+                MOVE    8, R4                   ; R4: how many y-lines visible
+                MOVE    Tetromino_Y, R3
+                MOVE    @R3, R3                 ; R3 = Tetromino Y start coord
+                CMP     0, R3                   ; is it < 0?
+                RBRA    _CRH_START, !N          ; no: start
+                MOVE    R3, R4                  ; yes: how many lines visible?
+                ADD     8, R4                   ; R4: how many y-lines visible
+                RBRA    _CRH_RET, Z             ; return, if no y-lines visib.
+                MOVE    0, R3                   ; R3: assume 0 as start coord
+
+                ; scan the environemnt of the recently dropped Tetromino
+                ; by checking, if whole screen lines are "non-spaces"
+                ; and if so, remember this line in @R7 (CompletedRows)
+
+_CRH_START      MOVE    R3, R11                 ; remember y-start coord
+                MOVE    R4, R12                 ; remember amount of visib. y
+_CRH_NEXT_Y     MOVE    0, @R7                  ; asumme: row is not completed
+                MOVE    Playfield_MY, R6        ; get maximum y-coord
+                CMP     R3, @R6                 ; current y > maximum y coord
+                RBRA    _CRH_NEXT_LINE, N       ; yes: skip line
+                MOVE    R3, @R1                 ; hw cursor y to the first row
+                MOVE    PLAYFIELD_X, @R0        ; hw cursor x to the left
+                MOVE    PLAYFIELD_W, R5         ; init column counter
+
+_CRH_NEXT_X     CMP     0x20, @R2               ; a single space is enough...
+                RBRA    _CRH_NEXT_LINE, Z       ; ...to detect non-completion
+                ADD     1, @R0                  ; next x-coordinate
+                SUB     1, R5                   ; dec width cnt, line done?
+                RBRA    _CRH_NEXT_X, !Z         ; loop if line is not done
+                MOVE    1, @R7                  ; line fully scanned: complete
+                ADD     1, @R8                  ; one more "blink"
+
+_CRH_NEXT_LINE  SUB     1, R4                   ; one less line to check
+                RBRA    _CRH_CHK_COMPL, Z       ; all lines scanned, now check
+                ADD     1, R3                   ; increase y counter
+                ADD     1, R7                   ; next element in compl. list
+                RBRA    _CRH_NEXT_Y, 1          ; scan next line
+
+                ; blink completed lines
+
+_CRH_CHK_COMPL  CMP     0, @R8                  ; any lines completed?
+                RBRA    _CRH_RET, Z             ; no: return
+
+                MOVE    R11, R9                 ; first scanned line on scrn
+                MOVE    R12, R10                ; amount of lines to process                
+                MOVE    @R8, R3                 ; amount of "blinks"
+                SHR     1, R3                   ; 2 screen pixels = 1 real row
+
+_CRH_BLINK      MOVE    LN_COMPLETE, R8         ; completion character
+                RSUB    PAINT_LN_COMPL, 1       ; paint it
+                MOVE    0, R8                   ; no "multitasking" while...
+                RSUB    SPEED_DELAY, 1          ; ...performing a delay
+                MOVE    0x20, R8                ; use the space character ...
+                RSUB    PAINT_LN_COMPL, 1       ; to clear the compl. char
+                MOVE    0, R8                   ; and again no "multitasking"
+                RSUB    SPEED_DELAY, 1          ; while waiting
+                SUB     1, R3                   ; done blinking?
+                RBRA    _CRH_BLINK, !Z          ; no: go on blinking
+
+                ; let the playfield fall down to fill the cleared lines
+
+                MOVE    R11, R3
+                MOVE    R12, R5
+
+CRH_PD_NEXT_Y   MOVE    Playfield_MY, R7
+                CMP     R3, @R7                 ; y > playfield size?
+                RBRA    _CRH_RET, N             ; yes: return
+
+                MOVE    R3, @R1                 ; hw cursor to y start line
+
+                MOVE    PLAYFIELD_X, @R0        ; hw cursor to x start column
+                MOVE    PLAYFIELD_W, R4         ; width of one column
+CRH_PD_NEXT_X   CMP     0x20, @R2               ; is there a space char?
+                RBRA    _CRH_PD_NEXT_LN, !Z     ; one non-space means: not clr
+                ADD     1, @R0                  ; yes: next column
+                SUB     1, R4                   ; column done?
+                RBRA    CRH_PD_NEXT_X, !Z       ; no: continue checking
+
+                MOVE    R3, R8                  ; line is cleared, so ...
+                RSUB    PF_FALL_DN, 1           ; let the playfield fall down
+                MOVE    0, R8                   ; no "multitasking"...
+                RSUB    SPEED_DELAY, 1          ; ...while delaying
+
+_CRH_PD_NEXT_LN ADD     1, R3                   ; scan again: one line deeper
+                SUB     1, R5                   ; whole Tetromino env. scanned
+                RBRA    CRH_PD_NEXT_Y, !Z       ; no: continue scanning
+
+_CRH_RET        DECRB
+                MOVE    R0, R8                  ; restore R8 .. R12
+                MOVE    R1, R9
+                MOVE    R2, R10
+                MOVE    R3, R11
+                MOVE    R4, R12
+
+                DECRB
+                RET
+
+; ****************************************************************************
+; PF_FALL_DN
+;   Let the whole playfield above line R8 let fall down into line R8.
+;   R8: the line that has been cleared and that should be filled now
+; ****************************************************************************
+
+PF_FALL_DN      INCRB
+
+                MOVE    VGA$CR_X, R0            ; screen memory access
+                MOVE    VGA$CR_Y, R1
+                MOVE    VGA$CHAR, R2
+
+                MOVE    R8, @R1                 ; hw y cursor to cleared ln
+
+_PFFD_NY        SUB     1, @R1                  ; take the line above it
+                RBRA    _PFFD_RET, N            ; return, if out of bounds
+                MOVE    PLAYFIELD_X, @R0        ; first column
+                MOVE    PLAYFIELD_W, R4         ; amount of chars per column
+
+_PFFD_NX        MOVE    @R2, R5                 ; take one char above
+                ADD     1, @R1                  ; go one line down
+                MOVE    R5, @R2                 ; copy the char from above
+                SUB     1, @R1                  ; go up one line for next char
+                ADD     1, @R0                  ; next x-position
+                SUB     1, R4                   ; any column left?
+                RBRA    _PFFD_NX, !Z            ; yes: go on
+                RBRA    _PFFD_NY, 1             ; no: next line
+
+_PFFD_RET       DECRB
+                RET
+
+; ****************************************************************************
+; PAINT_LN_COMPL
+;   Scans the list of completed lines in "CompletedRows" and paints all of
+;   these lines using the character submitted in R8 onto the screen.
+;   Note, that CompletedRows is always relative to the current Tetromino.
+;   R8: character to be painted
+;   R9: y-start position on screen (relative to the Tetromino)
+;   R10: amount of lines within the Tetromino to process
+; ****************************************************************************
+
+PAINT_LN_COMPL  INCRB
+
+                MOVE    VGA$CR_X, R0            ; screen memory access
+                MOVE    VGA$CR_Y, R1
+                MOVE    VGA$CHAR, R2
+
+                MOVE    CompletedRows, R7       ; list with all compl. rows
+                MOVE    R9, R3                  ; first scanned line on scrn
+                MOVE    R10, R4                 ; amount of lines to process                
+
+                MOVE    Playfield_MY, R6        ; current y line larger ...
+_PLN_NEXT_CLY   CMP     R3, @R6                 ; ... than maximum y position?
+                RBRA    _PLN_RET, N             ; yes: return
+
+                CMP     1, @R7                  ; current line completed?
+                RBRA    _PLN_N_COMPL_NY, !Z     ; no: next line
+
+                MOVE    PLAYFIELD_W, R5         ; yes: init column counter
+                MOVE    PLAYFIELD_X, @R0        ; hw cursor to start column
+                MOVE    R3, @R1                 ; hw cursor to correct y pos
+_PLN_NEXT_CLC   MOVE    R8, @R2                 ; paint completion char
+                ADD     1, @R0
+                SUB     1, R5
+                RBRA    _PLN_NEXT_CLC, !Z
+
+_PLN_N_COMPL_NY ADD     1, R3
+                ADD     1, R7
+                SUB     1, R4
+                RBRA    _PLN_NEXT_CLY, !Z
+
+_PLN_RET        DECRB
+                RET
+
 
 ; ****************************************************************************
 ; DECIDE_MOVE
@@ -161,6 +367,11 @@ DECIDE_MOVE     INCRB
                 ; issue and I should have written MOVE R8, @--R13?
                 ; Maybe no issue at all and I was just tired in the evening?
                 ; I added this to TODO.txt, so that we are not forgetting it.
+                ;
+                ; and by the way: the nested INCRB INCRB is dangerous like
+                ; this, because if we did a RSUB within DECIDE_MOVE, we would
+                ; end up in a mess: TODO refactor it like it is done int
+                ; COMPLETED_ROWS
 
                 INCRB                           ; save R8, R10, R11, R12
                 MOVE    R8, R0
@@ -175,9 +386,8 @@ DECIDE_MOVE     INCRB
                 MOVE    VGA$CR_Y, R1
 
                 ; R3: lowest possible y-position
-                MOVE    PLAYFIELD_Y, R3
-                ADD     PLAYFIELD_H, R3
-                SUB     1, R3
+                MOVE    Playfield_MY, R3
+                MOVE    @R3, R3
 
                 ; Set up an x and y "checking" offset: this offset is added
                 ; to the current Tetromino x|y position for checking if
@@ -439,7 +649,7 @@ _UTTR_RENDER    MOVE    R0, R8
                 MOVE    @R4, R4                 
                 CMP     R4, R5
                 RBRA    _UTTR_PAINT, Z          ; orientation did not change
-                MOVE    TTR_ROT_XO, R6          ; look up compensation...
+                MOVE    TTR_Rot_Xo, R6          ; look up compensation...
                 ADD     R8, R6                  ; ...per Tetromino
                 CMP     0, R5                   ; if was horizontal before...
                 RBRA    _UTTR_WAS_H, Z
@@ -550,7 +760,7 @@ _CLEAR_RBUF_L   MOVE    0x20, @R0++             ; clear current "pixel"
 ;   For the outside caller to know, if the rotation was performed or ignored,
 ;   Tetromino_HV can be checked.
 ;
-;   R8: number of tetromino between 0..TETROMINOS
+;   R8: number of tetromino between 0..<amount of Tetrominos>
 ;   R9: rotation: 0 = do not rotate, 1 = rotate left, 2 = rotate right
 ; ****************************************************************************
 
@@ -591,19 +801,19 @@ _RTTR_BCLR      MOVE    R8, @R0                 ; remember # in RenderedNumber
 
                 ; calculate start address of Tetromino pattern
                 ; R0: contains the source memory location
-                MOVE    TETROMINOS, R0          ; start address of patterns
+                MOVE    Tetrominos, R0          ; start address of patterns
                 MOVE    R8, R1                  ; addr = (# x 8) + start
                 SHL     3, R1                   ; SHL 3 means x 8
                 ADD     R1, R0                  ; R0: source memory location
 
                 ; calculate the start address within the destination memory
-                ; location and take the TTR_OFFS table for centering the
+                ; location and take the TTR_Offs table for centering the
                 ; Tetrominos within the 8x8 matrix into consideration
                 ; R1: contains the destination memory location
                 MOVE    R4, R1                  ; R1: destination mem. loc.
-                MOVE    R8, R3                  ; TTR_OFFS = # x 2
+                MOVE    R8, R3                  ; TTR_Offs = # x 2
                 SHL     1, R3
-                ADD     TTR_OFFS, R3
+                ADD     TTR_Offs, R3
                 MOVE    @R3++, R2               ; fetch x correction...
                 ADD     R2, R1                  ; and add it to the dest. mem.
                 MOVE    @R3, R2                 ; fetch y correction...
@@ -697,7 +907,7 @@ _RTTR_COPYL2    MOVE    @R0++, @R1++
 
 _RTTR_END_ROTOK MOVE    Tetromino_HV, R0        ; each rotation flips... 
                 XOR     1, @R0                  ; ...the orientation
-                
+
 _RTTR_END_REST  MOVE    R6, R8                  ; restore R8 & R9
                 MOVE    R7, R9                            
 
@@ -730,7 +940,7 @@ _PPF_NEXT_LINE  MOVE    PLAYFIELD_X, @R0        ; hw cursor x = start x pos
                 RBRA    _PPF_NEXT_LINE, !Z      ; loop until all lines done
 
                 ; print Q-TRIS logo
-                MOVE    QTRIS, R8               ; pointer to pattern
+                MOVE    QTris, R8               ; pointer to pattern
                 MOVE    QTRIS_X, R9             ; start x-pos on screen
                 MOVE    QTRIS_Y, R10            ; start y-pos on screen
                 MOVE    QTRIS_H, R6             ; R6: height of pattern
@@ -792,7 +1002,10 @@ _WAIT_FOR_VGAL  MOVE    @R0, R1
 ; ****************************************************************************
 ; SPEED_DELAY
 ;   Wastes (a x b) iterations whereas a and b are determined by the level
-;   speed table (LEVEL_SPEED) and the current game level (Level).
+;   speed table (Level_Speed) and the current game level (Level).
+;   While wasting cycles, SPEED_DELAY can perform the "background tasks", 
+;   that are defined in MULTITASK.
+;   R8: 0 = no background tasks (MULTITASK); 1 = perform MULTITASK
 ; ****************************************************************************
 
 SPEED_DELAY     INCRB
@@ -802,7 +1015,7 @@ SPEED_DELAY     INCRB
                 MOVE    @R7, R0
                 SUB     1, R0                   ; level counting starts with 1
                 SHL     1, R0                   ; 2 words per table entry
-                MOVE    LEVEL_SPEED, R7
+                MOVE    Level_Speed, R7
                 ADD     R0, R7                  ; select table row
                 MOVE    @R7++, R0               ; R0 contains first multiplier
                 MOVE    @R7, R1                 ; R1 contains second mult.
@@ -811,8 +1024,10 @@ SPEED_DELAY     INCRB
                 MOVE    1, R3                   ; for more precise counting
 
                 ; waste cycles but continue to multitask while waiting
-_SPEED_DELAY_L  RSUB    MULTITASK, 1
-                SUB     R3, R1
+_SPEED_DELAY_L  CMP     0, R8                   ; multitasking?
+                RBRA    _SPEED_DELAY_SM, Z      ; no: skip it
+                RSUB    MULTITASK, 1
+_SPEED_DELAY_SM SUB     R3, R1
                 RBRA    _SPEED_DELAY_L, !Z
                 MOVE    R2, R1
                 SUB     R3, R0
@@ -846,6 +1061,10 @@ INIT_GLOBALS    INCRB
                 MOVE    1, @R0
                 MOVE    PseudoRandom, R0        ; Init PseudoRandom to 0
                 MOVE    0, @R0
+                MOVE    Playfield_MY, R0        ; maximum playfield y pos
+                MOVE    PLAYFIELD_Y, @R0
+                ADD     PLAYFIELD_H, @R0
+                SUB     1, @R0
 
                 DECRB
                 RET
@@ -861,6 +1080,11 @@ RenderedTemp    .BLOCK 64   ; Tetromino rendered in neutral position
 Level           .BLOCK 1    ; Current level (determines speed and score)
 PseudoRandom    .BLOCK 1    ; Pseudo random number is just a fast counter
 
+Playfield_MY    .BLOCK 1    ; Maximum Y-Coord = PLAYFIELD_Y + PLAYFIELD_H - 1
+
 Tetromino_X     .BLOCK 1    ; x-pos of current Tetromino on screen
 Tetromino_Y     .BLOCK 1    ; y-pos of current Tetromino on screen
 Tetromino_HV    .BLOCK 1    ; Tetromino currently horiz. (0) or vert. (1)
+
+CompletedRows   .BLOCK 8    ; List that stores completed rows
+NumberOfCompl   .BLOCK 1    ; Amount of completed rows (equals blink amount)
