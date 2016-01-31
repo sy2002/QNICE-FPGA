@@ -1,40 +1,37 @@
-; Q-TRIS is a Tetris clone and the first game ever developed for QNICE-FPGA.
+; ****************************************************************************
+; Q-TRIS
+;
+; Tetris clone and the first game ever developed for QNICE-FPGA.
+;
 ; It uses the PS2/USB keyboard and VGA, no matter how STDIN/STDOUT are routed.
 ; All speed calculations are based on a 50 MHz CPU that is equal to the CPU
 ; revision contained in release V1.2.
-; done by sy2002 in January 2016
+;
+; done by sy2002 in January and February 2016
+; ****************************************************************************
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 
                 .ORG 0x8000
-
-; ***** TEMP ********
-                RBRA    START, 1
-
-TEMP_SEQ_CNT    .EQU 18
-Temp_Seq        .DW 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6
-
-START           NOP
-; ***** TEMP ********
-
-                ; clear screen, switch of hw cursor
-                RSUB    CLRSCR, 1
-                MOVE    VGA$STATE, R0
-                NOT     VGA$EN_HW_CURSOR, R1
-                AND     @R0, R1
-                MOVE    R1, @R0
-
+            
+                RSUB    INIT_SCREENHW, 1        ; clear screen, no hw cursor
                 RSUB    INIT_GLOBALS, 1         ; init global variables
                 RSUB    PAINT_PLAYFIELD, 1      ; paint playfield & logo
+                RSUB    HANDLE_PAUSE, 1         ; check space, inc pseudo rnd                
+                RSUB    DRAW_FROM_BAG, 1        ; randomizer algorithm
+                MOVE    R8, R3                  ; R3: result = next Tetromino
 
-                MOVE    0, R3                   ; R3: sequence position
+                ; use "draw from bag" algorithm to dice a new Tetromino
 
-MAIN_LOOP       MOVE    Temp_Seq, R0
-                ADD     R3, R0
-                MOVE    @R0, R4                 ; R4: current Tetromino
-                MOVE    RenderedNumber, R0
-                MOVE    NEW_TTR, @R0
+MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
+                MOVE    R3, R4                  ; R4: old "next" = new current
+                MOVE    R8, R3                  ; R3: dice result = new "next"
+                RSUB    PAINT_NEXT_TTR, 1       ; fill the preview window
+                MOVE    RenderedNumber, R0      ; make sure the renderer...
+                MOVE    NEW_TTR, @R0            ; ...treats this TTR as new
+
+                ; calculate the position where new Tetrominos emerge from
 
                 MOVE    Tetromino_Y, R1
                 MOVE    -8, @R1                 ; y start pos = -8
@@ -48,25 +45,34 @@ MAIN_LOOP       MOVE    Temp_Seq, R0
                 MOVE    Tetromino_X, R1
                 MOVE    R0, @R1
          
-DROP            XOR     R8, R8
-                RSUB    DECIDE_MOVE, 1
-                CMP     0, R9
-                RBRA    HNDL_COMPL_ROWS, Z
+                ; drop the Tetromino using the speed given from the current
+                ; Level: SPEED_DELAY uses a look up table for the speed and
+                ; executes the MULTITASK routine for keyboard handling while
+                ; wasting CPU cycles to slow down the game
+
+DROP            RSUB    HANDLE_PAUSE, 1         ; pause game, if needed
+                XOR     R8, R8                  ; R8 = 0 means move down
+                RSUB    DECIDE_MOVE, 1          ; can we move down?
+                CMP     0, R9                   
+                RBRA    HNDL_COMPL_ROWS, Z      ; no: handle completed rows
                 
-                MOVE    R4, R8
-                MOVE    0, R9
+                MOVE    R4, R8                  ; yes: move down one row
+                XOR     R9, R9
                 MOVE    1, R10
-                MOVE    0, R11
+                XOR     R11, R11
                 RSUB    UPDATE_TTR, 1
-                MOVE    1, R8
-                RSUB    SPEED_DELAY, 1
+                MOVE    1, R8                   ; multitask on while delay
+                RSUB    SPEED_DELAY, 1          ; game speed regulation
                 RBRA    DROP, 1
 
-HNDL_COMPL_ROWS RSUB    COMPLETED_ROWS, 1
+                ; handle completed rows and detect a potential game over
 
-NEXT_TTR        ADD     1, R3
-                CMP     TEMP_SEQ_CNT, R3
-                RBRA    MAIN_LOOP, !Z
+HNDL_COMPL_ROWS MOVE    Tetromino_Y, R1          
+                CMP     -5, @R1                 ; reached upper boundary?
+                RBRA    EXIT, N                 ; yes: end game
+                RSUB    COMPLETED_ROWS, 1       ; no: handle completed rows
+
+NEXT_TTR        RBRA    MAIN_LOOP, !Z           ; next iteration game
 
                 ; end Q-TRIS
 EXIT            SYSCALL(reset, 1)
@@ -74,16 +80,33 @@ EXIT            SYSCALL(reset, 1)
 
 NEW_TTR     .EQU 0xFFFF ; signal value for RenderedNumber: new Tetromino
 
+; Game logo
 QTRIS_X     .EQU 25     ; x-pos on screen
 QTRIS_Y     .EQU 1      ; y-pos on screen
-QTRIS_H     .EQU 6      ; height of the pattern in lines
 QTRIS_W     .EQU 53     ; width of the pattern in chars (without zero term.)
+QTRIS_H     .EQU 6      ; height of the pattern in lines
 QTris       .ASCII_W "  ____             _______   _____    _____    _____ "
             .ASCII_W " / __ \           |__   __| |  __ \  |_   _|  / ____|"
             .ASCII_W "| |  | |  ______     | |    | |__) |   | |   | (___  "
             .ASCII_W "| |  | | |______|    | |    |  _  /    | |    \___ \ "
             .ASCII_W "| |__| |             | |    | | \ \   _| |_   ____) |"
             .ASCII_W " \___\_\             |_|    |_|  \_\ |_____| |_____/ "
+
+; Credits and help text
+CAH_X       .EQU 41
+CAH_Y       .EQU 8
+CAH_W       .EQU 40
+CAH_H       .EQU 10
+CRE_A_HELP  .ASCII_W "Q-TRIS V0.8 by sy2002 in January 2016   "
+            .ASCII_W "                                        "
+            .ASCII_W "How to play:                            "
+            .ASCII_W "                                        "
+            .ASCII_W "* Space key starts game and pauses      "
+            .ASCII_W "* Cursor left / right / down to move    "
+            .ASCII_W "* Drop using cursor up                  "
+            .ASCII_W "* Rotate left using the 'x' key         "
+            .ASCII_W "* Rotate right using the 'c' key        "
+            .ASCII_W "* Exit the game using F12 or CTRL+E     "
 
 ; special painting characters
 WALL_L      .EQU 0x09   ; left wall
@@ -140,9 +163,263 @@ TTR_Rot_Xo  .DW -1
             .DW -1
             .DW -1
 
+; Preview window for next Tetromino
+PREVIEW_X   .EQU 25
+PREVIEW_Y   .EQU 10
+PREVIEW_W   .EQU 12
+PREVIEW_H   .EQU 8
+Preview_Win .DW 0x86, 0x8A, 0x8D, 0x4E, 0x65, 0x78, 0x74, 0x87, 0x8A, 0x8A, 0x8A, 0x8C, 0
+            .DW 0x85, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x85, 0
+            .DW 0x85, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x85, 0
+            .DW 0x85, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x85, 0
+            .DW 0x85, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x85, 0
+            .DW 0x85, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x85, 0
+            .DW 0x85, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x85, 0
+            .DW 0x83, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x89, 0
+
 ; Level speed table
 ; speed is defined by wasted cycles, both numbers are multiplied
 Level_Speed .DW 400, 200
+
+; ****************************************************************************
+; HANDLE_PAUSE
+;   If "Pause" == 1, then wait for space to be pressed again and while
+;   waiting, PseudoRandom is incremented.
+; ****************************************************************************
+
+HANDLE_PAUSE    INCRB
+
+                MOVE    R8, R7
+
+                ; skip this function if no pause mode
+                MOVE    Pause, R4
+                CMP     0, @R4
+                RBRA    _HP_RET, Z
+
+                ; check for key press and read key
+                MOVE    IO$KBD_STATE, R0        ; check keyboard state reg.                  
+                MOVE    PseudoRandom, R2                
+_HP_WAITFORKEY  ADD     1, @R2                  ; inc pseudo random number
+                MOVE    KBD$NEW_ANY, R1       
+                AND     @R0, R1                 ; any key pressed?
+                RBRA    _HP_WAITFORKEY, Z       ; no: loop
+
+                ; key pressed: space? yes, pause ends, no: loop goes on
+                MOVE    IO$KBD_DATA, R5                                
+                MOVE    @R5, R5                 ; read pressed key
+                CMP     KBD$SPACE, R5           ; space pressed?
+                RBRA    _HP_WAITFORKEY, !Z      ; no: loop
+
+                ; disable pause mode                
+                MOVE    0, @R4
+
+_HP_RET         MOVE    R7, R8
+                DECRB
+                RET
+
+; ****************************************************************************
+; PAINT_NEXT_TTR
+;   Fill the preview window by painting the next upcoming Tetromino.
+;   R8: number of upcoming Tetromino
+; ****************************************************************************
+
+PAINT_NEXT_TTR  INCRB
+                MOVE    R8, R0
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+                MOVE    R12, R4
+
+                INCRB
+
+                MOVE    R8, R0
+
+                ; print preview window
+                MOVE    Preview_Win, R8
+                MOVE    PREVIEW_X, R9
+                MOVE    PREVIEW_Y, R10
+                MOVE    PREVIEW_W, R11
+                MOVE    PREVIEW_H, R12
+                RSUB    PRINT_PATTERN, 1
+
+                ; render preview TTR
+                MOVE    RenderedNumber, R1      ; make sure the renderer...
+                MOVE    NEW_TTR, @R1            ; ...treats this TTR as new
+                MOVE    R0, R8                  ; original TTR to be shown                
+                XOR     R9, R9                  ; no rotation
+                RSUB    RENDER_TTR, 1
+
+                ; paint preview TTR
+                MOVE    PREVIEW_X, R8
+                ADD     2, R8
+                MOVE    PREVIEW_Y, R9
+                MOVE    1, R10
+                RSUB    PAINT_TTR, 1
+
+                DECRB
+                MOVE    R0, R8
+                MOVE    R1, R9
+                MOVE    R2, R10
+                MOVE    R3, R11
+                MOVE    R4, R12
+
+                DECRB
+                RET
+
+; ****************************************************************************
+; DRAW_FROM_BAG
+;   Implements the "Random Generator" according to the official
+;   Tetris Guideline, e.g. as seen here:
+;
+;   http://tetris.wikia.com/wiki/Random_Generator
+;
+;   Random Generator generates a sequence of all Tetrominos permuted randomly,
+;   as if they were drawn from a bag. Then it deals all seven Tetrominos to
+;   the piece sequence before generating another bag.
+;
+;   R8: Number between 0 and (TTR_AMOUNT - 1)
+; ****************************************************************************
+
+DRAW_FROM_BAG   INCRB
+
+                MOVE    Tetromino_BFill, R0     ; empty bag?
+                CMP     0, @R0
+                RBRA    _DFB_START, !Z
+
+                ; create new bag
+
+                MOVE    Tetromino_Bag, R1       ; R1: pointer to bag
+                XOR     R2, R2                  ; R2: counter to fill bag
+_DFB_FILL       MOVE    R2, @R1++               ; fill bag: 0, 1, 2, 3, ...
+                ADD     1, R2   
+                CMP     TTR_AMOUNT, R2          ; bag full?
+                RBRA    _DFB_FILL, !Z           ; no: go on filling
+                MOVE    TTR_AMOUNT, @R0         ; yes: store new bag size
+                RBRA    _DFB_MODULO, 1
+
+_DFB_START      CMP     TTR_AMOUNT, @R0         ; bag completely full?
+                RBRA    _DFB_MODULO, Z          ; yes
+
+                ; compress bag by filling all empty spots (marked by -1)
+                ; with their right neighbour
+
+                ;RSUB    TMP_DEBUGOUT, 1
+
+                MOVE    Tetromino_Bag, R1
+                XOR     R2, R2
+_DFB_CP_CMP     CMP     -1, @R1                 ; empty spot?
+                RBRA    _DFB_CP_ES, Z
+_DFB_CP_NEXT    ADD     1, R1
+                ADD     1, R2
+                CMP     TTR_AMOUNT, R2
+                RBRA    _DFB_CP_CMP, !Z
+                RBRA    _DFB_MODULO, 1
+
+_DFB_CP_ES      MOVE    R1, R3                  ; R3: bagpointer (saved)
+                MOVE    R2, R4                  ; R4: counter (saved)
+_DFB_CP_ESCP    CMP     TTR_AMOUNT, R4          ; end of bag reached?
+                RBRA    _DFB_CP_NEXT, Z         ; yes: back to upper loop
+                MOVE    R3, R5
+                ADD     1, R5
+                MOVE    @R5, @R3
+                ADD     1, R3
+                ADD     1, R4
+                RBRA    _DFB_CP_ESCP, 1
+
+                ; calculate last byte of "PseudoRandom" modulo the amount
+                ; of Tetrominos in the current compressed bag to draw
+                ; a Tetromino
+
+_DFB_MODULO     NOP;RSUB    TMP_DEBUGOUT, 1
+
+                MOVE    PseudoRandom, R1
+                MOVE    @R1, R1
+
+                ;MOVE    R1, R8
+                ;SYSCALL(til, 1)
+                ;SYSCALL(getc, 1)
+
+                AND     0x00FF, R1
+
+_DFB_DO_MOD_C   CMP     R1, @R0
+                RBRA    _DFB_DO_MOD_S, N
+                CMP     R1, @R0
+                RBRA    _DFB_DO_MOD_S, Z
+                RBRA    _DFB_DRAW, 1
+
+_DFB_DO_MOD_S   SUB     @R0, R1
+                RBRA    _DFB_DO_MOD_C, 1
+
+                ; draw a Tetromino
+
+_DFB_DRAW       NOP; MOVE    R1, R8
+                ;SYSCALL(til, 1)
+                ;SYSCALL(getc, 1)
+
+                MOVE    Tetromino_Bag, R2
+                ADD     R1, R2
+                MOVE    @R2, R8
+                MOVE    -1, @R2
+
+                RSUB    TMP_DEBUGOUT, 1
+
+                SUB     1, @R0                
+
+                DECRB
+                RET
+
+; TEMPORARY DEBUG OUTPUT FUNCTION
+; SHOWS THE CURRENT BAG OF TETROMINOS
+
+TMP_STR .BLOCK  50
+
+TMP_DEBUGOUT    INCRB
+                MOVE    R8, R0
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+                MOVE    R12, R4
+                INCRB
+
+                MOVE    TMP_STR, R1
+                MOVE    Tetromino_Bag, R2
+                MOVE    Tetromino_BFill, R3
+                MOVE    @R3, R3
+
+                ;MOVE    R3, R8
+                ;SYSCALL(til, 1)
+
+_TMP_FILL       MOVE    0x30, R4
+                ADD     @R2++, R4
+                CMP     0x2F, R4
+                RBRA    _TMP_POS, !Z
+                MOVE    0x2E, R4
+_TMP_POS        MOVE    R4, @R1++
+                MOVE    0x20, @R1++
+                SUB     1, R3
+                RBRA    _TMP_FILL, !Z
+
+                MOVE    10, R3
+_TMP_SPACES     MOVE    0x20, @R1++
+                SUB     1, R3
+                RBRA    _TMP_SPACES, !Z
+                MOVE    0x00, @R1
+
+                MOVE    TMP_STR, R8
+                MOVE    25, R9
+                MOVE    20, R10
+                RSUB    PRINT_STR_AT, 1
+
+                ;SYSCALL(getc, 1)
+
+                DECRB
+                MOVE    R0, R8
+                MOVE    R1, R9
+                MOVE    R2, R10
+                MOVE    R3, R11
+                MOVE    R4, R12
+                DECRB
+                RET
 
 ; ****************************************************************************
 ; COMPLETED_ROWS
@@ -530,7 +807,9 @@ MULTITASK       INCRB
                 AND     @R0, R1                 ; any key pressed?
                 RBRA    _MT_RET, Z              ; no: return
 
-                ; key pressed: read key value
+                ; key pressed: inc "random" value and read key value
+                MOVE    PseudoRandom, R0
+                ADD     1, @R0
                 MOVE    IO$KBD_DATA, R0
                 MOVE    @R0, R0
 
@@ -539,7 +818,6 @@ MULTITASK       INCRB
                 MOVE    R9, R2
                 MOVE    R10, R3
                 MOVE    R11, R4
-                MOVE    R12, R5
 
                 MOVE    RenderedNumber, R5
                 MOVE    @R5, R8
@@ -598,27 +876,34 @@ _MT_N_c         CMP     KBD$CUR_DOWN, R0
                 RSUB    UPDATE_TTR, 1
                 RBRA    _MT_RET_REST, 1
 
-                ; cursor up: drop
+                ; cursor up: drop Tetromino as far as possible
 _MT_N_DOWN      CMP     KBD$CUR_UP, R0
-                RBRA    _MT_ELSE, !Z
+                RBRA    _MT_N_UP, !Z
                 MOVE    Tetromino_Y, R11
-                MOVE    @R11, R12              
-                XOR     R10, R10
+                MOVE    @R11, R6                ; remember original y pos
+                XOR     R10, R10                ; R10: line counter = 0
                 XOR     R8, R8
-_MT_DROP_DM     RSUB    DECIDE_MOVE, 1
-                CMP     1, R9
-                RBRA    _MT_DROP_CHK, !Z
-                ADD     1, R10
-                ADD     1, @R11
+_MT_DROP_DM     RSUB    DECIDE_MOVE, 1          ; can we move down one more ln
+                CMP     1, R9                   
+                RBRA    _MT_DROP_CHK, !Z        ; no: check how many we could
+                ADD     1, R10                  ; yes: inc line counter
+                ADD     1, @R11                 ; inc y pos: check a ln deeper
                 RBRA    _MT_DROP_DM, 1
 
-_MT_DROP_CHK    MOVE    R12, @R11
-                CMP     0, R10
-                RBRA    _MT_RET_REST, Z
-                MOVE    @R5, R8
-                XOR     R9, R9
-                XOR     R11, R11
-                RSUB    UPDATE_TTR, 1
+_MT_DROP_CHK    MOVE    R6, @R11                ; restore original y pos
+                CMP     0, R10                  ; can we drop 1 or more lines?
+                RBRA    _MT_RET_REST, Z         ; no: return
+                MOVE    @R5, R8                 ; yes: restore Tetromino num.
+                XOR     R9, R9                  ; delta x = 0; dx still in R10
+                XOR     R11, R11                ; no rotation
+                RSUB    UPDATE_TTR, 1           ; drop by R10 lines
+                RBRA    _MT_RET_REST, 1
+
+                ; activate pause mode
+_MT_N_UP        CMP     KBD$SPACE, R0
+                RBRA    _MT_ELSE, !Z
+                MOVE    Pause, R8
+                MOVE    1, @R8
                 RBRA    _MT_RET_REST, 1
 
                 ; CTRL+E or F12 exit
@@ -633,7 +918,6 @@ _MT_RET_REST    MOVE    R1, R8
                 MOVE    R2, R9
                 MOVE    R3, R10
                 MOVE    R4, R11
-                MOVE    R5, R12
 
 _MT_RET         DECRB
                 RET
@@ -959,6 +1243,7 @@ _RTTR_END       DECRB
 ; ****************************************************************************
 
 PAINT_PLAYFIELD INCRB
+
                 MOVE    VGA$CR_X, R0            ; R0: hw cursor X
                 MOVE    VGA$CR_Y, R1            ; R1: hw cursor Y
                 MOVE    VGA$CHAR, R2            ; R2: print at hw cursor pos
@@ -981,15 +1266,61 @@ _PPF_NEXT_LINE  MOVE    PLAYFIELD_X, @R0        ; hw cursor x = start x pos
                 MOVE    QTris, R8               ; pointer to pattern
                 MOVE    QTRIS_X, R9             ; start x-pos on screen
                 MOVE    QTRIS_Y, R10            ; start y-pos on screen
-                MOVE    QTRIS_H, R6             ; R6: height of pattern
-_PPF_NEXT_QT    RSUB    PRINT_STR_AT, 1         ; print string at x|y
-                ADD     QTRIS_W, R8             ; next line in pattern ...
-                ADD     1, R8                   ; ... add 1 due to zero term.
-                ADD     1, R10
-                SUB     1, R6
-                RBRA    _PPF_NEXT_QT, !Z
+                MOVE    QTRIS_W, R11            ; width of pattern
+                MOVE    QTRIS_H, R12            ; height of pattern
+                RSUB    PRINT_PATTERN, 1
+
+                ; print preview window
+                MOVE    Preview_Win, R8
+                MOVE    PREVIEW_X, R9
+                MOVE    PREVIEW_Y, R10
+                MOVE    PREVIEW_W, R11
+                MOVE    PREVIEW_H, R12
+                RSUB    PRINT_PATTERN, 1
+
+                ; print credits and help text
+                MOVE    CRE_A_HELP, R8
+                MOVE    CAH_X, R9
+                MOVE    CAH_Y, R10
+                MOVE    CAH_W, R11
+                MOVE    CAH_H, R12
+                RSUB    PRINT_PATTERN, 1
+
                 DECRB
                 RET
+
+; ****************************************************************************
+; PRINT_PATTERN
+;   Prints a rectangular pattern consisting of zero terminated strings.
+;   R8: pointer to pattern
+;   R9: x-pos
+;   R10: y-pos
+;   R11: width
+;   R12: height
+; ****************************************************************************
+
+PRINT_PATTERN   INCRB
+
+                MOVE    R8, R0
+                MOVE    R10, R1
+                MOVE    R12, R2
+
+_PP_NEXT_Y      MOVE    R11, R3
+                RSUB    PRINT_STR_AT, 1
+                MOVE    R3, R11
+                SUB     1, R2
+                RBRA    _PP_RET, Z
+                ADD     R11, R8
+                ADD     1, R8
+                ADD     1, R10
+                RBRA    _PP_NEXT_Y, 1
+
+_PP_RET         MOVE    R0, R8
+                MOVE    R1, R10
+
+                DECRB
+                RET
+
 
 ; ****************************************************************************
 ; PRINT_STR_AT
@@ -1001,6 +1332,7 @@ _PPF_NEXT_QT    RSUB    PRINT_STR_AT, 1         ; print string at x|y
 ; ****************************************************************************
 
 PRINT_STR_AT    INCRB
+
                 MOVE    VGA$CR_Y, R0            ; set hw cursor to y-pos
                 MOVE    R10, @R0
 
@@ -1011,9 +1343,9 @@ PRINT_STR_AT    INCRB
 
 _PRINT_STR_LOOP MOVE    R4, @R0                 ; set x-pos
                 MOVE    @R3, @R1                ; print character
-                RSUB    WAIT_FOR_VGA, 1         ; VGA is slower than CPU   
-                ADD     1, R4                   ; increase x-pos
-                ADD     1, R3                   ; increase character pointer
+                RSUB    WAIT_FOR_VGA, 1         ; VGA is slower than CPU
+                ADD     1, R3                   ; next character in string                
+                ADD     1, R4                   ; increase x-pos on screen
                 CMP     0, @R3                  ; string end?
                 RBRA    _PRINT_STR_LOOP, !Z     ; no: continue printing
 
@@ -1093,6 +1425,20 @@ CLRSCR          INCRB
                 RET
 
 ; ****************************************************************************
+; INIT_SCREENHW
+;   Clear the screen and do not display the hardware cursor
+; ****************************************************************************
+
+INIT_SCREENHW   INCRB
+                RSUB    CLRSCR, 1
+                MOVE    VGA$STATE, R0
+                NOT     VGA$EN_HW_CURSOR, R1
+                AND     @R0, R1
+                MOVE    R1, @R0
+                DECRB
+                RET
+
+; ****************************************************************************
 ; INIT_GLOBALS
 ;    Initialize global variables.
 ; ****************************************************************************
@@ -1109,6 +1455,10 @@ INIT_GLOBALS    INCRB
                 MOVE    PLAYFIELD_Y, @R0
                 ADD     PLAYFIELD_H, @R0
                 SUB     1, @R0
+                MOVE    Tetromino_BFill, R0     ; bag is empty
+                MOVE    0, @R0
+                MOVE    Pause, R0               ; game starts paused
+                MOVE    1, @R0
 
                 DECRB
                 RET
@@ -1123,12 +1473,15 @@ RenderedTemp    .BLOCK 64   ; Tetromino rendered in neutral position
 
 Level           .BLOCK 1    ; Current level (determines speed and score)
 PseudoRandom    .BLOCK 1    ; Pseudo random number is just a fast counter
+Pause           .BLOCK 1    ; Game currently paused?
 
 Playfield_MY    .BLOCK 1    ; Maximum Y-Coord = PLAYFIELD_Y + PLAYFIELD_H - 1
 
 Tetromino_X     .BLOCK 1    ; x-pos of current Tetromino on screen
 Tetromino_Y     .BLOCK 1    ; y-pos of current Tetromino on screen
 Tetromino_HV    .BLOCK 1    ; Tetromino currently horiz. (0) or vert. (1)
+Tetromino_Bag   .BLOCK 7    ; Bag for the Random Generator
+Tetromino_BFill .BLOCK 1    ; How many Tetrominos are in the bag?
 
 CompletedRows   .BLOCK 8    ; List that stores completed rows
 NumberOfCompl   .BLOCK 1    ; Amount of completed rows (equals blink amount)
