@@ -31,6 +31,13 @@ MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 MOVE    RenderedNumber, R0      ; make sure the renderer...
                 MOVE    NEW_TTR, @R0            ; ...treats this TTR as new
 
+                ; TEMPORARY: as long as we do not have a real line and
+                ; score display: use til
+
+                MOVE    Lines, R8
+                MOVE    @R8, R8
+                SYSCALL(til, 1)
+
                 ; calculate the position where new Tetrominos emerge from
 
                 MOVE    Tetromino_Y, R1
@@ -189,8 +196,6 @@ Level_Speed .DW 400, 200
 
 HANDLE_PAUSE    INCRB
 
-                MOVE    R8, R7
-
                 ; skip this function if no pause mode
                 MOVE    Pause, R4
                 CMP     0, @R4
@@ -213,8 +218,7 @@ _HP_WAITFORKEY  ADD     1, @R2                  ; inc pseudo random number
                 ; disable pause mode                
                 MOVE    0, @R4
 
-_HP_RET         MOVE    R7, R8
-                DECRB
+_HP_RET         DECRB
                 RET
 
 ; ****************************************************************************
@@ -498,6 +502,9 @@ _CRH_CHK_COMPL  CMP     0, @R8                  ; any lines completed?
                 MOVE    R12, R10                ; amount of lines to process                
                 MOVE    @R8, R3                 ; amount of "blinks"
                 SHR     1, R3                   ; 2 screen pixels = 1 real row
+
+                MOVE    Lines, R8               ; increase line counter by...
+                ADD     R3, @R8                 ; ...amount of cleared lines
 
 _CRH_BLINK      MOVE    LN_COMPLETE, R8         ; completion character
                 RSUB    PAINT_LN_COMPL, 1       ; paint it
@@ -1459,6 +1466,8 @@ INIT_GLOBALS    INCRB
                 MOVE    0, @R0
                 MOVE    Pause, R0               ; game starts paused
                 MOVE    1, @R0
+                MOVE    Lines, R0               ; initialize amount of lines
+                MOVE    0, @R0
 
                 DECRB
                 RET
@@ -1472,6 +1481,7 @@ RenderedTTR     .BLOCK 64   ; Tetromino rendered in the correct angle
 RenderedTemp    .BLOCK 64   ; Tetromino rendered in neutral position
 
 Level           .BLOCK 1    ; Current level (determines speed and score)
+Lines           .BLOCK 1    ; Amount of completed lines in current game
 PseudoRandom    .BLOCK 1    ; Pseudo random number is just a fast counter
 Pause           .BLOCK 1    ; Game currently paused?
 
