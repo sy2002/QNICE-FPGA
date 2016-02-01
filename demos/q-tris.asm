@@ -31,12 +31,32 @@ MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 MOVE    RenderedNumber, R0      ; make sure the renderer...
                 MOVE    NEW_TTR, @R0            ; ...treats this TTR as new
 
-                ; TEMPORARY: as long as we do not have a real line and
-                ; score display: use til
+                ; TEMPORARY:
+                ; as long as we do not have a real line and score and level
+                ; display: just print the amount of completed lines
 
                 MOVE    Lines, R8
                 MOVE    @R8, R8
-                SYSCALL(til, 1)
+                MOVE    Level_Decimal, R9
+                RSUB    MAKE_DECIMAL, 1         ; convert lines to decimal
+                MOVE    Tmp_LData, R1
+                MOVE    5, R2
+_TMP_ASCII_CNV  MOVE    @R9++, @R1              ; ASCII conversion of digits
+                ADD     0x30, @R1++
+                SUB     1, R2
+                RBRA    _TMP_ASCII_CNV, !Z
+                MOVE    5, R2                   ; remove leading zeros
+                MOVE    Tmp_LData, R1
+_TMP_RM_LEAD_0s CMP     0x30, @R1
+                RBRA    _TMP_PRINT, !Z
+                SUB     1, R2
+                RBRA    _TMP_PRINT, Z                
+                MOVE    0x20, @R1++
+                RBRA    _TMP_RM_LEAD_0s, 1
+_TMP_PRINT      MOVE    Tmp_Level, R8           ; print at x=25, y=20
+                MOVE    25, R9
+                MOVE    20, R10
+                RSUB    PRINT_STR_AT, 1
 
                 ; calculate the position where new Tetrominos emerge from
 
@@ -114,6 +134,11 @@ CRE_A_HELP  .ASCII_W "Q-TRIS V0.8 by sy2002 in January 2016   "
             .ASCII_W "* Rotate left using the 'x' key         "
             .ASCII_W "* Rotate right using the 'c' key        "
             .ASCII_W "* Exit the game using F12 or CTRL+E     "
+
+; Temporary "completed lines" display
+Tmp_Level   .ASCII_P "Lines: "
+Tmp_LData   .BLOCK 5
+Tmp_LZT     .DW 0
 
 ; special painting characters
 WALL_L      .EQU 0x09   ; left wall
@@ -365,7 +390,7 @@ _DFB_DRAW       NOP; MOVE    R1, R8
                 MOVE    @R2, R8
                 MOVE    -1, @R2
 
-                RSUB    TMP_DEBUGOUT, 1
+                ;RSUB    TMP_DEBUGOUT, 1
 
                 SUB     1, @R0                
 
@@ -1420,6 +1445,89 @@ _SPEED_DELAY_SM SUB     R3, R1
                 RET
 
 ; ****************************************************************************
+; MAKE_DECIMAL
+;   16-bit decimal converter: Input a 16-bit number and receive a 5-element
+;   list of digits between 0 and 9. Highest decimal at the lowest
+;   memory address, unused leading decimals are filled with zero.
+;   No overflow or sanity checks are performed.
+;   performed.
+;   R8: 16-bit number
+;   R9: pointer to the 5-word list that will contain the decimal digits
+; ****************************************************************************
+
+MAKE_DECIMAL    INCRB
+
+                MOVE    R8, R6                  ; preserve R8 & R9
+                MOVE    R9, R7
+
+                MOVE    10, R4                  ; R4 = 10
+                XOR     R5, R5                  ; R5 = 0                
+
+                MOVE    R9, R0                  ; R0: points to result list
+                ADD     5, R0                   ; lowest digit at end of list
+
+_MD_LOOP        MOVE    R4, R9                  ; divide by 10
+                RSUB    DIV_AND_MODULO, 1       ; R8 = "shrinked" dividend
+                SUB     1, R0                   ; @TODO: PREDECREMENT CPU BUG!
+                MOVE    R9, @R0                 ; extract current digit place
+                CMP     R5, R8                  ; done?
+                RBRA    _MD_LOOP, !Z            ; no: next iteration
+
+_MD_LEADING_0   CMP     R7, R0                  ; enough leading "0" there?
+                RBRA    _MD_RET, Z              ; yes: return
+                SUB     1, R0                   ; @TODO: PREDECREMENT CPU BUG!
+                MOVE    0, @R0                  ; no: add a "0" digit
+                RBRA    _MD_LEADING_0, 1
+
+_MD_RET         MOVE    R6, R8                  ; restore R8 & R9
+                MOVE    R7, R9
+                DECRB
+                RET
+
+; ****************************************************************************
+; DIV_AND_MODULO
+;   16-bit integer division including modulo.
+;   Ignores the sign of the dividend and the divisor.
+;   Division by zero yields to an endless loop.
+;   Input:
+;      R8: Dividend
+;      R9: Divisor
+;   Output:
+;      R8: Integer quotient
+;      R9: Modulo
+; ****************************************************************************
+
+DIV_AND_MODULO  INCRB
+
+                XOR     R0, R0                  ; R0 = 0
+
+                CMP     R0, R8                  ; 0 divided by x = 0 ...
+                RBRA    _DAM_START, !Z
+                MOVE    R0, R9                  ; ... and the modulo is 0, too
+                RBRA    _DAM_RET, 1
+
+_DAM_START      MOVE    R9, R1                  ; R1: divisor
+                MOVE    R8, R9                  ; R9: modulo
+                MOVE    1, R2                   ; R2 is 1 for speeding up
+                XOR     R8, R8                  ; R8: resulting int quotient
+
+_DAM_LOOP       ADD     R2, R8                  ; calculate quotient
+                SUB     R1, R9                  ; division by repeated sub.
+                RBRA    _DAM_COR_OFS, V         ; wrap around: correct offset
+                CMP     R0, R9
+                RBRA    _DAM_RET, Z             ; zero: done and return
+                RBRA    _DAM_LOOP, 1
+
+                ; correct the values, as we did add 1 one time too much to the
+                ; quotient and subtracted the divisor one time too much from
+                ; the modulo for the sake of having a maxium tight inner loop
+_DAM_COR_OFS    SUB     R2, R8
+                ADD     R1, R9
+
+_DAM_RET        DECRB
+                RET
+
+; ****************************************************************************
 ; CLRSCR
 ;   Clear the screen
 ; ****************************************************************************
@@ -1481,6 +1589,7 @@ RenderedTTR     .BLOCK 64   ; Tetromino rendered in the correct angle
 RenderedTemp    .BLOCK 64   ; Tetromino rendered in neutral position
 
 Level           .BLOCK 1    ; Current level (determines speed and score)
+Level_Decimal   .BLOCK 5    ; 5 decimal digits representing the current level
 Lines           .BLOCK 1    ; Amount of completed lines in current game
 PseudoRandom    .BLOCK 1    ; Pseudo random number is just a fast counter
 Pause           .BLOCK 1    ; Game currently paused?

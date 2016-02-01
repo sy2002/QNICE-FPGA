@@ -1,8 +1,9 @@
 HARDWARE:
 
-* check: is there a CPU bug in the context of the stack like MOVE R8, @--SP?
-  maybe just a Fata Morgana, as the monitor works actively with the stack
-  but for being on the safe side: see q-tris.asm and search @MH CHECK SUSPECT
+* CPU BUG: Pre-decrement does not always seem to work. An example of the
+  problem can be found in test_programs/decimal.asm at the two spots marked
+  with "@TODO". After fixing this, correct the source of the test_program
+  and of demos/q-tris.asm
 
 * remove ROM and replace by prefilled RAM
 
@@ -39,3 +40,6 @@ MONITOR and/or STANDARD LIBs:
 ASSEMBLER:
 
 * Issue a warning, when defining a label multiple times.
+
+* Issue a warning when doing e.g. CMP R0, 0x20, as this won't work.
+  (comparing register or @register with constant).
