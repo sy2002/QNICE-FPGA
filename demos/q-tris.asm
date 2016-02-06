@@ -18,7 +18,8 @@
                 RSUB    INIT_SCREENHW, 1        ; clear screen, no hw cursor
                 RSUB    INIT_GLOBALS, 1         ; init global variables
                 RSUB    PAINT_PLAYFIELD, 1      ; paint playfield & logo
-                RSUB    HANDLE_PAUSE, 1         ; check space, inc pseudo rnd                
+                RSUB    PAINT_STATS, 1          ; paint score, level, etc.
+                RSUB    HANDLE_PAUSE, 1         ; check space, inc pseudo rnd
 NEXT_GAME       RSUB    DRAW_FROM_BAG, 1        ; randomizer algorithm
                 MOVE    R8, R3                  ; R3: result = next Tetromino
 
@@ -31,32 +32,9 @@ MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 MOVE    RenderedNumber, R0      ; make sure the renderer...
                 MOVE    NEW_TTR, @R0            ; ...treats this TTR as new
 
-                ; TEMPORARY (@TODO):
-                ; as long as we do not have a real line and score and level
-                ; display: just print the amount of completed lines
+                ; show stats
 
-                MOVE    Lines, R8
-                MOVE    @R8, R8
-                MOVE    Lines_Decimal, R9
-                RSUB    MAKE_DECIMAL, 1         ; convert lines to decimal
-                MOVE    Tmp_LData, R1
-                MOVE    5, R2
-_TMP_ASCII_CNV  MOVE    @R9++, @R1              ; ASCII conversion of digits
-                ADD     0x30, @R1++
-                SUB     1, R2
-                RBRA    _TMP_ASCII_CNV, !Z
-                MOVE    5, R2                   ; remove leading zeros
-                MOVE    Tmp_LData, R1
-_TMP_RM_LEAD_0s CMP     0x30, @R1
-                RBRA    _TMP_PRINT, !Z
-                SUB     1, R2
-                RBRA    _TMP_PRINT, Z                
-                MOVE    0x20, @R1++
-                RBRA    _TMP_RM_LEAD_0s, 1
-_TMP_PRINT      MOVE    Tmp_Level, R8           ; print at x=25, y=20
-                MOVE    25, R9
-                MOVE    20, R10
-                RSUB    PRINT_STR_AT, 1
+                RSUB    PAINT_STATS, 1
 
                 ; calculate the position where new Tetrominos emerge from
 
@@ -101,16 +79,33 @@ HNDL_COMPL_ROWS MOVE    Tetromino_Y, R1
 
 NEXT_TTR        RBRA    MAIN_LOOP, !Z           ; next iteration game
 
-END_GAME        MOVE    Pause, R0               ; Wait for space to be pressed
+                ; handle end of the game
+
+END_GAME        MOVE    QTRIS_X, R8             ; clear rect for game over
+                MOVE    QTRIS_Y, R9
+                MOVE    QTRIS_W, R10
+                MOVE    18, R11
+                RSUB    CLR_RECT, 1
+                MOVE    Game_Over, R8           ; print game over
+                MOVE    GAME_OVER_X, R9
+                MOVE    GAME_OVER_Y, R10
+                MOVE    GAME_OVER_W, R11
+                MOVE    GAME_OVER_H, R12
+                RSUB    PRINT_PATTERN, 1
+                MOVE    RestartMsg, R8          ; print restart message
+                MOVE    RESTMSG_X, R9
+                MOVE    RESTMSG_Y, R10
+                RSUB    PRINT_STR_AT, 1
+                MOVE    Pause, R0               ; Wait for space to be pressed
                 MOVE    1, @R0
                 RSUB    HANDLE_PAUSE, 1
-                RSUB    CLRSCR, 1               ; rebuild clean screen
+                RSUB    CLR_SCR, 1              ; rebuild clean screen
                 RSUB    PAINT_PLAYFIELD, 1
                 RSUB    RESTART_GAME, 1         ; reset global game variables
                 RBRA    NEXT_GAME, 1            ; play next game
 
                 ; end Q-TRIS
-EXIT            RSUB    CLRSCR, 1
+EXIT            RSUB    CLR_SCR, 1
                 SYSCALL(reset, 1)
   
 
@@ -128,6 +123,27 @@ QTris       .ASCII_W "  ____             _______   _____    _____    _____ "
             .ASCII_W "| |__| |             | |    | | \ \   _| |_   ____) |"
             .ASCII_W " \___\_\             |_|    |_|  \_\ |_____| |_____/ "
 
+; Game over logo and restart message
+GAME_OVER_X .EQU 33
+GAME_OVER_Y .EQU 2
+GAME_OVER_W .EQU 37
+GAME_OVER_H .EQU 12
+Game_Over   .ASCII_W "  _____              __  __   ______ "
+            .ASCII_W " / ____|     /\     |  \/  | |  ____|"
+            .ASCII_W "| |  __     /  \    | \  / | | |__   "
+            .ASCII_W "| | |_ |   / /\ \   | |\/| | |  __|  "
+            .ASCII_W "| |__| |  / ____ \  | |  | | | |____ "
+            .ASCII_W " \_____| /_/    \_\ |_|  |_| |______|"
+            .ASCII_W "  ____   __      __  ______   _____  "
+            .ASCII_W " / __ \  \ \    / / |  ____| |  __ \ "
+            .ASCII_W "| |  | |  \ \  / /  | |__    | |__) |"
+            .ASCII_W "| |  | |   \ \/ /   |  __|   |  _  / "
+            .ASCII_W "| |__| |    \  /    | |____  | | \ \ "
+            .ASCII_W " \____/      \/     |______| |_|  \_\ "
+RESTMSG_X   .EQU 25
+RESTMSG_Y   .EQU 16
+RestartMsg  .ASCII_W "Space key to restart game  F12 or CTRL+E to exit game"
+
 ; Credits and help text
 CAH_X       .EQU 41
 CAH_Y       .EQU 8
@@ -144,11 +160,119 @@ CRE_A_HELP  .ASCII_W "Q-TRIS V0.8 by sy2002 in January 2016   "
             .ASCII_W "* Rotate right using the 'c' key        "
             .ASCII_W "* Exit the game using F12 or CTRL+E     "
 
-; Temporary "completed lines" display (@TODO: remove these Tmp_ lines)
-Tmp_Level   .ASCII_P "Lines: "
-Tmp_LData   .BLOCK 5
-Tmp_LZT     .DW 0
+; Stats (_LX, _LY = label coordinates, _X, _Y = display coordinates)
+STSCORE_LX  .EQU 25                         
+STSCORE_LY  .EQU 20                         
+STSCORE_X   .EQU 25                            
+STSCORE_Y   .EQU 22                            
+Stat_Score  .ASCII_W "Score:"
+STLEVEL_LX  .EQU 70 
+STLEVEL_LY  .EQU 20
+STLEVEL_X   .EQU 70
+STLEVEL_Y   .EQU 22
+Stat_Level  .ASCII_W "Level:"
+STLINES_LX  .EQU 25
+STLINES_LY  .EQU 32
+STLINES_X   .EQU 33
+STLINES_Y   .EQU 32
+Stat_Lines  .ASCII_W "Lines:"
+STSINGLE_LX .EQU 25
+STSINGLE_LY .EQU 34
+STSINGLE_X  .EQU 33
+STSINGLE_Y  .EQU 34
+Stat_Single .ASCII_W "Single:"
+STDOUBLE_LX .EQU 25
+STDOUBLE_LY .EQU 35
+STDOUBLE_X  .EQU 33
+STDOUBLE_Y  .EQU 35
+Stat_Double .ASCII_W "Double:"
+STTRIPLE_LX .EQU 25
+STTRIPLE_LY .EQU 36
+STTRIPLE_X  .EQU 33
+STTRIPLE_Y  .EQU 36
+Stat_Triple .ASCII_W "Triple:"
+STQTRIS_LX  .EQU 25
+STQTRIS_LY  .EQU 37
+STQTRIS_X   .EQU 33
+STQTRIS_Y   .EQU 37
+Stat_QTris  .ASCII_W "Q-Tris:"
 
+; Digits 0..9
+DIGITS_DX   .EQU 7      ; width of one digit
+DIGITS_DY   .EQU 7      ; height of one digit
+DIGITS_WPD  .EQU 56     ; words per digits in memory (incl. zero terminator)
+DIGITS_XSP  .EQU 1      ; space between two digits on screen
+Digits      .ASCII_W "  ###  "
+            .ASCII_W " #   # "
+            .ASCII_W "#     #"
+            .ASCII_W "#     #"
+            .ASCII_W "#     #"
+            .ASCII_W " #   # "
+            .ASCII_W "  ###  "
+            .ASCII_W "   #   "
+            .ASCII_W "  ##   "
+            .ASCII_W " # #   "
+            .ASCII_W "   #   "
+            .ASCII_W "   #   "
+            .ASCII_W "   #   "
+            .ASCII_W " ##### "
+            .ASCII_W " ##### "
+            .ASCII_W "#     #"
+            .ASCII_W "      #"
+            .ASCII_W " ##### "
+            .ASCII_W "#      "
+            .ASCII_W "#      "
+            .ASCII_W "#######"
+            .ASCII_W " ##### "
+            .ASCII_W "#     #"
+            .ASCII_W "      #"
+            .ASCII_W " ##### "
+            .ASCII_W "      #"
+            .ASCII_W "#     #"
+            .ASCII_W " ##### "
+            .ASCII_W "#      "
+            .ASCII_W "#    # "
+            .ASCII_W "#    # "
+            .ASCII_W "#    # "
+            .ASCII_W "#######"
+            .ASCII_W "     # "
+            .ASCII_W "     # "
+            .ASCII_W "#######"
+            .ASCII_W "#      "
+            .ASCII_W "#      "
+            .ASCII_W "###### "
+            .ASCII_W "      #"
+            .ASCII_W "#     #"
+            .ASCII_W " ##### "
+            .ASCII_W " ##### "
+            .ASCII_W "#     #"
+            .ASCII_W "#      "
+            .ASCII_W "###### "
+            .ASCII_W "#     #"
+            .ASCII_W "#     #"
+            .ASCII_W " ##### "
+            .ASCII_W "#######"
+            .ASCII_W "#    # "
+            .ASCII_W "    #  "
+            .ASCII_W "   #   "
+            .ASCII_W "  #    "
+            .ASCII_W "  #    "
+            .ASCII_W "  #    "
+            .ASCII_W " ##### "
+            .ASCII_W "#     #"
+            .ASCII_W "#     #"
+            .ASCII_W " ##### "
+            .ASCII_W "#     #"
+            .ASCII_W "#     #"
+            .ASCII_W " ##### "
+            .ASCII_W " ##### "
+            .ASCII_W "#     #"
+            .ASCII_W "#     #"
+            .ASCII_W " ######"
+            .ASCII_W "      #"
+            .ASCII_W "#     #"
+            .ASCII_W " ##### "
+                                         
 ; special painting characters
 WALL_L      .EQU 0x09   ; left wall
 WALL_R      .EQU 0x08   ; right wall
@@ -671,7 +795,6 @@ _PLN_N_COMPL_NY ADD     1, R3
 
 _PLN_RET        DECRB
                 RET
-
 
 ; ****************************************************************************
 ; DECIDE_MOVE
@@ -1327,6 +1450,36 @@ _PPF_NEXT_LINE  MOVE    PLAYFIELD_X, @R0        ; hw cursor x = start x pos
                 MOVE    CAH_H, R12
                 RSUB    PRINT_PATTERN, 1
 
+                ; print stat labels
+                MOVE    Stat_Score, R8
+                MOVE    STSCORE_LX, R9
+                MOVE    STSCORE_LY, R10
+                RSUB    PRINT_STR_AT, 1
+                MOVE    Stat_Level, R8
+                MOVE    STLEVEL_LX, R9
+                MOVE    STLEVEL_LY, R10
+                RSUB    PRINT_STR_AT, 1
+                MOVE    Stat_Lines, R8
+                MOVE    STLINES_LX, R9
+                MOVE    STLINES_LY, R10
+                RSUB    PRINT_STR_AT, 1
+                MOVE    Stat_Single, R8
+                MOVE    STSINGLE_LX, R9
+                MOVE    STSINGLE_LY, R10
+                RSUB    PRINT_STR_AT, 1
+                MOVE    Stat_Double, R8
+                MOVE    STDOUBLE_LX, R9
+                MOVE    STDOUBLE_LY, R10
+                RSUB    PRINT_STR_AT, 1
+                MOVE    Stat_Triple, R8
+                MOVE    STTRIPLE_LX, R9
+                MOVE    STTRIPLE_LY, R10
+                RSUB    PRINT_STR_AT, 1
+                MOVE    Stat_QTris, R8
+                MOVE    STQTRIS_LX, R9
+                MOVE    STQTRIS_LY, R10
+                RSUB    PRINT_STR_AT, 1
+
                 DECRB
                 RET
 
@@ -1391,6 +1544,133 @@ _PRINT_STR_LOOP MOVE    R4, @R0                 ; set x-pos
                 RBRA    _PRINT_STR_LOOP, !Z     ; no: continue printing
 
                 MOVE    R4, R11
+
+                DECRB
+                RET
+
+; ****************************************************************************
+; PAINT_STATS
+;   Prints/paints the statistics, such as score, level, lines and the stats
+;   about the lines themselves: single, double, triple, QTris (quadruple)
+; ****************************************************************************
+
+PAINT_STATS     INCRB
+
+                ; level
+                MOVE    Level, R8
+                MOVE    @R8, R8
+                MOVE    STLEVEL_X, R9
+                MOVE    STLEVEL_Y, R10
+                RSUB    PAINT_DIGIT, 1
+
+                ; amount of completed lines
+                MOVE    Lines, R8
+                MOVE    @R8, R8
+                MOVE    STLINES_X, R9
+                MOVE    STLINES_Y, R10
+                RSUB    PRINT_DECIMAL, 1
+
+                DECRB
+                RET
+
+; ****************************************************************************
+; PRINT_DECIMAL
+;   Prints a 16-bit decimal number (max 5 digits) in a right-aligned form.
+;   No trailing zeros.
+;   R8: decimal number
+;   R9: x coordinate (of leftmost digit), due to right-alignment, the real
+;       coord. of the first printed digit might deviate
+;   R10: y coordinate
+; ****************************************************************************
+
+PRINT_DECIMAL   INCRB
+
+                MOVE    R8, R0                  ; save R8 .. R11
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+
+                INCRB
+
+                MOVE    _PD_DECIMAL, R9         ; result array
+                RSUB    MAKE_DECIMAL, 1         ; R9 now contains R8s digits
+                MOVE    _PD_DEC_STR_BUF, R1     ; zero terminated string buf.
+
+                ; ASCII converson of digits
+                MOVE    5, R2                   ; five digits hardcoded
+_PD_ASCII_CNV   MOVE    @R9++, @R1              ; ASCII conversion of digits:
+                ADD     0x30, @R1++             ; add ASCII code of "0"
+                SUB     1, R2
+                RBRA    _PD_ASCII_CNV, !Z 
+
+                ; remove leading zeros
+                MOVE    5, R2                  
+                MOVE    _PD_DEC_STR_BUF, R1
+_PD_RM_LEAD_0s  CMP     0x30, @R1
+                RBRA    _PD_PRINT, !Z
+                SUB     1, R2
+                RBRA    _PD_PRINT, Z
+                MOVE    0x20, @R1++
+                RBRA    _PD_RM_LEAD_0s, 1
+
+                ; print string
+_PD_PRINT       MOVE    _PD_DEC_STR_BUF, R8     ; str. buffer to be printed
+                DECRB
+                MOVE    R1, R9                  ; x coord (restore R9)
+                MOVE    R2, R10                 ; y coord (restore R10)
+                INCRB
+                RSUB    PRINT_STR_AT, 1         ; print
+
+                DECRB
+
+                MOVE    R0, R8                  ; only R8 & R11 need to be
+                MOVE    R3, R11                 ; restored (R9, R10 above)
+
+                DECRB
+                RET
+
+_PD_DECIMAL     .BLOCK 5                        ; array that stores the digits
+_PD_DEC_STR_BUF .BLOCK 5                        ; zero terminated string buf.
+                .DW 0
+
+; ****************************************************************************
+; PAINT_DIGIT
+;   Paints a decimal digit using the ASCII art font "Digits".
+;   R8: digit to print
+;   R9: x coordinate
+;   R10: y coordinate
+; ****************************************************************************
+
+PAINT_DIGIT     INCRB
+
+                MOVE    R8, R0                  ; save R8 .. R10
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+                MOVE    R12, R4
+
+                INCRB
+
+                MOVE    DIGITS_WPD, R9          ; calculate offset for digit
+                SYSCALL(mult, 1)                ; pattern: R8 x DIGITS_WPD
+
+                MOVE    Digits, R8              ; apply offset
+                ADD     R10, R8
+                DECRB
+                MOVE    R1, R9                  ; x-pos
+                MOVE    R2, R10                 ; y-pos
+                INCRB
+                MOVE    DIGITS_DX, R11          ; width
+                MOVE    DIGITS_DY, R12          ; height
+                RSUB    PRINT_PATTERN, 1        ; paint digit
+
+                DECRB
+
+                MOVE    R0, R8                  ; restore R8 .. R10
+                MOVE    R1, R9
+                MOVE    R2, R10
+                MOVE    R3, R11
+                MOVE    R4, R12
 
                 DECRB
                 RET
@@ -1537,14 +1817,48 @@ _DAM_RET        DECRB
                 RET
 
 ; ****************************************************************************
-; CLRSCR
+; CLR_SCR
 ;   Clear the screen
 ; ****************************************************************************
 
-CLRSCR          INCRB
+CLR_SCR         INCRB
                 MOVE    VGA$STATE, R0
                 OR      VGA$CLR_SCRN, @R0
                 RSUB    WAIT_FOR_VGA, 1
+                DECRB
+                RET
+
+; ****************************************************************************
+; CLR_RECT
+;   Clears the specified rectangle by printing spaces (0x20).
+;   Minimum width/height is 1. No sanity checks are performed.
+;   R8|R9:   x|y start coordinates
+;   R10|R11: width, height
+; ****************************************************************************
+
+CLR_RECT        INCRB
+                
+                MOVE    VGA$CR_X, R0            ; VGA register access
+                MOVE    VGA$CR_Y, R1
+                MOVE    VGA$CHAR, R2
+
+                MOVE    1, R3                   ; increase performance
+                MOVE    0x20, R4
+
+                MOVE    R10, R5                 ; calculate end coordinates
+                ADD     R8, R5                  ; R5: x end coordinate
+                MOVE    R11, R6
+                ADD     R9, R6                  ; R6: y end coordinate
+
+_CLR_RECT_YL    MOVE    R8, @R0                 ; set x hw cursor to x
+_CLR_RECT_XL    MOVE    R4, @R2                 ; clear position
+                ADD     R3, @R0                 ; next x
+                CMP     R5, @R0                 ; x end coordinate reached?
+                RBRA    _CLR_RECT_XL, !Z        ; no: continue looping x
+                ADD     R3, @R1                 ; next y
+                CMP     R6, @R1                 ; y end coordinate reached?
+                RBRA    _CLR_RECT_YL, !Z        ; no: conitnue looping y
+
                 DECRB
                 RET
 
@@ -1554,7 +1868,7 @@ CLRSCR          INCRB
 ; ****************************************************************************
 
 INIT_SCREENHW   INCRB
-                RSUB    CLRSCR, 1
+                RSUB    CLR_SCR, 1
                 MOVE    VGA$STATE, R0
                 NOT     VGA$EN_HW_CURSOR, R1
                 AND     @R0, R1
@@ -1612,7 +1926,6 @@ RenderedTemp    .BLOCK 64   ; Tetromino rendered in neutral position
 
 Level           .BLOCK 1    ; Current level (determines speed and score)
 Lines           .BLOCK 1    ; Amount of completed lines in current game
-Lines_Decimal   .BLOCK 5    ; 5 decimal digits representing the lines
 PseudoRandom    .BLOCK 1    ; Pseudo random number is just a fast counter
 Pause           .BLOCK 1    ; Game currently paused?
 
