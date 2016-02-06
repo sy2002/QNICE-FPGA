@@ -29,7 +29,9 @@ Getting Started
   download the bitstream file `dist_kit\env1.bit` on the SD card of the
   Nexys board and set the jumpers to read the FPGA configuration from the
   SD card. Attach an "old" USB keyboard supporting boot mode to the board
-  and attach a VGA monitor. Attach the Serial-to-USB cable.
+  and attach a VGA monitor. Attach the USB cable to your desktop computer,
+  so that you can setup a serial (terminal) connection between the desktop
+  and the FPGA.
 
 * On your host computer: Open a terminal and head to the root folder of the
   QNICE-FPGA GIT repository.
@@ -55,8 +57,15 @@ Getting Started
   prompt in your terminal program's window.
 
 * Enter `M` then `L` there. You should see something like "Memory/Load".
-  Paste the `demos/mandel.out` file to your terminal program's window.
-  Press CTRL+E to leave the memory loading routine.
+
+* Paste the `demos/mandel.out` file to your terminal program's window.
+  Alternatively, some terminal programs offer a "Send File" command.
+  (If you are using CoolTerm: Please do paste by using CTRL+V on Windows or
+  on a Mac by using CMD+V, because using the "Paste" menu command that is
+  available via the context menu is not always working properly, when it
+  comes to sending data.)
+
+* Press CTRL+E to leave the memory loading routine.
 
 * Enter `C` then `R` and then `A000` in the terminal window. You should
   now see a Mandelbrot output similar to the above-mentioned screenshot in

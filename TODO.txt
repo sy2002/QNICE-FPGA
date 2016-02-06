@@ -1,15 +1,26 @@
 HARDWARE:
 
-* CPU BUG: Pre-decrement does not always seem to work. An example of the
-  problem can be found in test_programs/decimal.asm at the two spots marked
-  with "@TODO". After fixing this, correct the source of the test_program
-  and of demos/q-tris.asm
+* Fix CPU BUG: Pre-decrement of the destination operand does not work,
+  if the source operand is used directly. But it works, if the source
+  operand is used indirectly. Example:
+    this works:         MOVE @R2, @--R0
+    this does not work: MOVE R2, @--R0
+  The bug will be presumably fixed, by changing
+    and Opcode /= opcMOVE
+  in vhdl/qnice_cpu.vhd line 401 to
+    and (Opcode /= opcMOVE or Dst_Mode = amIndirPreDec) 
+  and therefore making it very similar to line 455: The speed optimization
+  must be disabled in case of pre-decrement.
+  As soon as this is fixed, the fix can be e.g. tested by changing the two
+  spots marked with "@TODO" in test_programs/decimal.asm. As soon as
+  everything works, the code in this test program and also in demos/q-tris.asm
+  needs to be cleaned up accordingly.
 
 * remove ROM and replace by prefilled RAM
 
-* Improve design to support 100 MHz
-
 * Fix tristate problem that slows down CPU by ~50%
+
+* Improve design to support 100 MHz
 
 * keyboard: remove hardcoded hardcoded 18000
 
@@ -31,7 +42,9 @@ MONITOR and/or STANDARD LIBs:
 
 * Backspace and CTRL-U support in IO$GETS
 
-* Basic mathematical routines * (exists), /, %
+* Basic mathematical routines * (exists), / (from decimal.asm), % (ditto)
+
+* Decimal converter (from decimal.asm)
 
 * 32 bit arithmetic
 

@@ -19,7 +19,7 @@
                 RSUB    INIT_GLOBALS, 1         ; init global variables
                 RSUB    PAINT_PLAYFIELD, 1      ; paint playfield & logo
                 RSUB    HANDLE_PAUSE, 1         ; check space, inc pseudo rnd                
-                RSUB    DRAW_FROM_BAG, 1        ; randomizer algorithm
+NEXT_GAME       RSUB    DRAW_FROM_BAG, 1        ; randomizer algorithm
                 MOVE    R8, R3                  ; R3: result = next Tetromino
 
                 ; use "draw from bag" algorithm to dice a new Tetromino
@@ -31,13 +31,13 @@ MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 MOVE    RenderedNumber, R0      ; make sure the renderer...
                 MOVE    NEW_TTR, @R0            ; ...treats this TTR as new
 
-                ; TEMPORARY:
+                ; TEMPORARY (@TODO):
                 ; as long as we do not have a real line and score and level
                 ; display: just print the amount of completed lines
 
                 MOVE    Lines, R8
                 MOVE    @R8, R8
-                MOVE    Level_Decimal, R9
+                MOVE    Lines_Decimal, R9
                 RSUB    MAKE_DECIMAL, 1         ; convert lines to decimal
                 MOVE    Tmp_LData, R1
                 MOVE    5, R2
@@ -96,13 +96,22 @@ DROP            RSUB    HANDLE_PAUSE, 1         ; pause game, if needed
 
 HNDL_COMPL_ROWS MOVE    Tetromino_Y, R1          
                 CMP     -5, @R1                 ; reached upper boundary?
-                RBRA    EXIT, N                 ; yes: end game
+                RBRA    END_GAME, N             ; yes: end game
                 RSUB    COMPLETED_ROWS, 1       ; no: handle completed rows
 
 NEXT_TTR        RBRA    MAIN_LOOP, !Z           ; next iteration game
 
+END_GAME        MOVE    Pause, R0               ; Wait for space to be pressed
+                MOVE    1, @R0
+                RSUB    HANDLE_PAUSE, 1
+                RSUB    CLRSCR, 1               ; rebuild clean screen
+                RSUB    PAINT_PLAYFIELD, 1
+                RSUB    RESTART_GAME, 1         ; reset global game variables
+                RBRA    NEXT_GAME, 1            ; play next game
+
                 ; end Q-TRIS
-EXIT            SYSCALL(reset, 1)
+EXIT            RSUB    CLRSCR, 1
+                SYSCALL(reset, 1)
   
 
 NEW_TTR     .EQU 0xFFFF ; signal value for RenderedNumber: new Tetromino
@@ -135,7 +144,7 @@ CRE_A_HELP  .ASCII_W "Q-TRIS V0.8 by sy2002 in January 2016   "
             .ASCII_W "* Rotate right using the 'c' key        "
             .ASCII_W "* Exit the game using F12 or CTRL+E     "
 
-; Temporary "completed lines" display
+; Temporary "completed lines" display (@TODO: remove these Tmp_ lines)
 Tmp_Level   .ASCII_P "Lines: "
 Tmp_LData   .BLOCK 5
 Tmp_LZT     .DW 0
@@ -238,10 +247,15 @@ _HP_WAITFORKEY  ADD     1, @R2                  ; inc pseudo random number
                 MOVE    IO$KBD_DATA, R5                                
                 MOVE    @R5, R5                 ; read pressed key
                 CMP     KBD$SPACE, R5           ; space pressed?
-                RBRA    _HP_WAITFORKEY, !Z      ; no: loop
+                RBRA    _HP_END_PAUSE, Z        ; yes: end pause
+                CMP     KBD$CTRL_E, R5          ; CTRL+E pressed?
+                RBRA    EXIT, Z                 ; yes: exit game
+                CMP     KBD$F12, R5             ; F12 pressed?
+                RBRA    EXIT, Z                 ; yes: exit game
+                RBRA    _HP_WAITFORKEY, 1       ; unknown key: loop
 
                 ; disable pause mode                
-                MOVE    0, @R4
+_HP_END_PAUSE   MOVE    0, @R4
 
 _HP_RET         DECRB
                 RET
@@ -397,6 +411,10 @@ _DFB_DRAW       NOP; MOVE    R1, R8
                 DECRB
                 RET
 
+; @TODO: Finally do some qualitative "is the randomness OK" testing
+; and then remove the following temporary section as well as all
+; traces of the calls in above-mentioned code.
+
 ; TEMPORARY DEBUG OUTPUT FUNCTION
 ; SHOWS THE CURRENT BAG OF TETROMINOS
 
@@ -436,7 +454,7 @@ _TMP_SPACES     MOVE    0x20, @R1++
 
                 MOVE    TMP_STR, R8
                 MOVE    25, R9
-                MOVE    20, R10
+                MOVE    23, R10
                 RSUB    PRINT_STR_AT, 1
 
                 ;SYSCALL(getc, 1)
@@ -668,19 +686,10 @@ DECIDE_MOVE     INCRB
 
                 MOVE    1, R9                   ; assume return true
 
-                ; @MH CHECK SUSPECT: just for the sake of testing the CPU:
-                ; do the following register save on the stack instead of using
-                ; register pages. I am not sure any more, but I might have
-                ; seen a strange behaviour there, when doing
-                ; something like MOVE R8, @--SP. Maybe some preprocessor
-                ; issue and I should have written MOVE R8, @--R13?
-                ; Maybe no issue at all and I was just tired in the evening?
-                ; I added this to TODO.txt, so that we are not forgetting it.
-                ;
-                ; and by the way: the nested INCRB INCRB is dangerous like
-                ; this, because if we did a RSUB within DECIDE_MOVE, we would
-                ; end up in a mess: TODO refactor it like it is done int
-                ; COMPLETED_ROWS
+                ; @TODO: small refactor: nested INCRBs shall be done just like
+                ; in COMPLETED_ROWS otherwise it is a dangerous construction,
+                ; because if we did a RSUB within DECIDE_MOVE, we would
+                ; end up in a mess.
 
                 INCRB                           ; save R8, R10, R11, R12
                 MOVE    R8, R0
@@ -1555,25 +1564,38 @@ INIT_SCREENHW   INCRB
 
 ; ****************************************************************************
 ; INIT_GLOBALS
-;    Initialize global variables.
+;    Initialize global variables at startup.
 ; ****************************************************************************
                 
 INIT_GLOBALS    INCRB
 
-                MOVE    RenderedNumber, R0      ; make sure, that very first..
-                MOVE    NEW_TTR, @R0            ; ..Tetromino is rendered
-                MOVE    Level, R0               ; start with Level 1
-                MOVE    1, @R0
                 MOVE    PseudoRandom, R0        ; Init PseudoRandom to 0
                 MOVE    0, @R0
                 MOVE    Playfield_MY, R0        ; maximum playfield y pos
                 MOVE    PLAYFIELD_Y, @R0
                 ADD     PLAYFIELD_H, @R0
                 SUB     1, @R0
+                MOVE    Pause, R0               ; first game starts paused
+                MOVE    1, @R0                
+
+                RSUB    RESTART_GAME, 1         ; init game dependent vars.
+
+                DECRB
+                RET
+
+; ****************************************************************************
+; RESTART_GAME
+;    Reset all global variables, that are needed from game to game.
+; ****************************************************************************
+
+RESTART_GAME    INCRB
+
+                MOVE    RenderedNumber, R0      ; make sure, that very first..
+                MOVE    NEW_TTR, @R0            ; ..Tetromino is rendered
+                MOVE    Level, R0               ; start with Level 1
+                MOVE    1, @R0
                 MOVE    Tetromino_BFill, R0     ; bag is empty
                 MOVE    0, @R0
-                MOVE    Pause, R0               ; game starts paused
-                MOVE    1, @R0
                 MOVE    Lines, R0               ; initialize amount of lines
                 MOVE    0, @R0
 
@@ -1589,8 +1611,8 @@ RenderedTTR     .BLOCK 64   ; Tetromino rendered in the correct angle
 RenderedTemp    .BLOCK 64   ; Tetromino rendered in neutral position
 
 Level           .BLOCK 1    ; Current level (determines speed and score)
-Level_Decimal   .BLOCK 5    ; 5 decimal digits representing the current level
 Lines           .BLOCK 1    ; Amount of completed lines in current game
+Lines_Decimal   .BLOCK 5    ; 5 decimal digits representing the lines
 PseudoRandom    .BLOCK 1    ; Pseudo random number is just a fast counter
 Pause           .BLOCK 1    ; Game currently paused?
 
