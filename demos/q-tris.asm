@@ -32,7 +32,7 @@ MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 MOVE    RenderedNumber, R0      ; make sure the renderer...
                 MOVE    NEW_TTR, @R0            ; ...treats this TTR as new
 
-                ; show stats
+                ; show score, level, completed lines and detailed line stats
 
                 RSUB    PAINT_STATS, 1
 
@@ -149,7 +149,7 @@ CAH_X       .EQU 41
 CAH_Y       .EQU 8
 CAH_W       .EQU 40
 CAH_H       .EQU 10
-CRE_A_HELP  .ASCII_W "Q-TRIS V0.8 by sy2002 in January 2016   "
+CRE_A_HELP  .ASCII_W "Q-TRIS V0.9 by sy2002 in January 2016   "
             .ASCII_W "                                        "
             .ASCII_W "How to play:                            "
             .ASCII_W "                                        "
@@ -342,9 +342,100 @@ Preview_Win .DW 0x86, 0x8A, 0x8D, 0x4E, 0x65, 0x78, 0x74, 0x87, 0x8A, 0x8A, 0x8A
             .DW 0x85, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x85, 0
             .DW 0x83, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x8A, 0x89, 0
 
+; Level advancement table
+; how many lines does the player need to clear to advance one level
+Level_Thresh .DW    5       ;    5 Lines => Level 2
+             .DW   10       ;   10 Lines => Level 3
+             .DW   20       ;   20 Lines => Level 4
+             .DW   40       ;   40 Lines => Level 5
+             .DW   80       ;   80 Lines => Level 6
+             .DW  160       ;  160 Lines => Level 7
+             .DW  320       ;  320 Lines => Level 8
+             .DW  640       ;  640 Lines => Level 9
+             .DW 1000       ; 1000 Lines => Game Won
+
 ; Level speed table
 ; speed is defined by wasted cycles, both numbers are multiplied
-Level_Speed .DW 400, 200
+; second number is also used for blinking frequency, so adjust carefully
+; (preferably only adjust the first number)
+Level_Speed .DW 800, 200    ; Level 1
+            .DW 700, 200    ; Level 2
+            .DW 600, 200    ; Level 3
+            .DW 500, 200    ; Level 4
+            .DW 450, 200    ; Level 5
+            .DW 400, 200    ; Level 6
+            .DW 350, 200    ; Level 7
+            .DW 300, 200    ; Level 8
+            .DW 250, 200    ; Level 9
+
+; ****************************************************************************
+; HANDLE_STATS
+;   Uses the current level and the amount of cleared lines to update all
+;   global statistic variables including score, lines, line-stats. Also
+;   takes care that the level upgrade happens.
+;   R8: amount of cleared lines
+; ****************************************************************************
+
+HANDLE_STATS    INCRB
+
+                MOVE    R8, R0
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+
+                INCRB
+
+                CMP     0, R8                   ; no line cleared
+                RBRA    _H_STATS_RET, Z
+
+                ; update "how-many-lines-cleared" specific stat variables
+                ; (treat them like an array; as they are ordered linearily
+                ; in memory, we can do that)
+                MOVE    Lines_Single, R0        ; "pointer to the array"     
+                ADD     R8, R0                  ; index to "array"
+                SUB     1, R0                   ; 1 cleared = Lines_Single
+                ADD     1, @R0                  ; update stat
+
+                ; update line counter
+                MOVE    Lines, R0          
+                MOVE    Lines_Old, R1
+                MOVE    @R0, @R1                
+                ADD     R8, @R0
+
+                ; ascend the level ladder
+                MOVE    Level_Old, R2           ; for speed optimization
+                MOVE    Level_Thresh, R3        ; Level threshold table
+                MOVE    Level, R4               ; calculate next treshold ...
+                ADD     @R4, R3                 ; ... for current level
+                SUB     1, R3                   
+                CMP     @R3, @R0                ; lines < treshold?
+                RBRA    _H_STATS_SCORE, N       ; yes: go on, calculate score
+                MOVE    @R4, @R2                ; remember old (speed opt.)
+                ADD     1, @R4                  ; no: increase level
+
+                ; score += (squared amount of lines) x (level)
+                ; the amount of lines is squared, to reward the player
+                ; when clearing large blocks
+                ; the level is multipled to account for the higher difficulty
+                ; in higher levels
+_H_STATS_SCORE  MOVE    R8, R9                 
+                SYSCALL(mult, 1)
+                MOVE    R10, R8
+                MOVE    Level, R9
+                MOVE    @R9, R9
+                SYSCALL(mult, 1)
+                MOVE    Score, R0
+                ADD     R10, @R0
+
+_H_STATS_RET    DECRB
+
+                MOVE    R0, R8
+                MOVE    R1, R9
+                MOVE    R2, R10
+                MOVE    R3, R11
+
+                DECRB
+                RET
 
 ; ****************************************************************************
 ; HANDLE_PAUSE
@@ -470,8 +561,6 @@ _DFB_START      CMP     TTR_AMOUNT, @R0         ; bag completely full?
                 ; compress bag by filling all empty spots (marked by -1)
                 ; with their right neighbour
 
-                ;RSUB    TMP_DEBUGOUT, 1
-
                 MOVE    Tetromino_Bag, R1
                 XOR     R2, R2
 _DFB_CP_CMP     CMP     -1, @R1                 ; empty spot?
@@ -497,14 +586,8 @@ _DFB_CP_ESCP    CMP     TTR_AMOUNT, R4          ; end of bag reached?
                 ; of Tetrominos in the current compressed bag to draw
                 ; a Tetromino
 
-_DFB_MODULO     NOP;RSUB    TMP_DEBUGOUT, 1
-
-                MOVE    PseudoRandom, R1
+_DFB_MODULO     MOVE    PseudoRandom, R1
                 MOVE    @R1, R1
-
-                ;MOVE    R1, R8
-                ;SYSCALL(til, 1)
-                ;SYSCALL(getc, 1)
 
                 AND     0x00FF, R1
 
@@ -519,76 +602,13 @@ _DFB_DO_MOD_S   SUB     @R0, R1
 
                 ; draw a Tetromino
 
-_DFB_DRAW       NOP; MOVE    R1, R8
-                ;SYSCALL(til, 1)
-                ;SYSCALL(getc, 1)
-
-                MOVE    Tetromino_Bag, R2
+_DFB_DRAW       MOVE    Tetromino_Bag, R2
                 ADD     R1, R2
                 MOVE    @R2, R8
                 MOVE    -1, @R2
 
-                ;RSUB    TMP_DEBUGOUT, 1
-
                 SUB     1, @R0                
 
-                DECRB
-                RET
-
-; @TODO: Finally do some qualitative "is the randomness OK" testing
-; and then remove the following temporary section as well as all
-; traces of the calls in above-mentioned code.
-
-; TEMPORARY DEBUG OUTPUT FUNCTION
-; SHOWS THE CURRENT BAG OF TETROMINOS
-
-TMP_STR .BLOCK  50
-
-TMP_DEBUGOUT    INCRB
-                MOVE    R8, R0
-                MOVE    R9, R1
-                MOVE    R10, R2
-                MOVE    R11, R3
-                MOVE    R12, R4
-                INCRB
-
-                MOVE    TMP_STR, R1
-                MOVE    Tetromino_Bag, R2
-                MOVE    Tetromino_BFill, R3
-                MOVE    @R3, R3
-
-                ;MOVE    R3, R8
-                ;SYSCALL(til, 1)
-
-_TMP_FILL       MOVE    0x30, R4
-                ADD     @R2++, R4
-                CMP     0x2F, R4
-                RBRA    _TMP_POS, !Z
-                MOVE    0x2E, R4
-_TMP_POS        MOVE    R4, @R1++
-                MOVE    0x20, @R1++
-                SUB     1, R3
-                RBRA    _TMP_FILL, !Z
-
-                MOVE    10, R3
-_TMP_SPACES     MOVE    0x20, @R1++
-                SUB     1, R3
-                RBRA    _TMP_SPACES, !Z
-                MOVE    0x00, @R1
-
-                MOVE    TMP_STR, R8
-                MOVE    25, R9
-                MOVE    23, R10
-                RSUB    PRINT_STR_AT, 1
-
-                ;SYSCALL(getc, 1)
-
-                DECRB
-                MOVE    R0, R8
-                MOVE    R1, R9
-                MOVE    R2, R10
-                MOVE    R3, R11
-                MOVE    R4, R12
                 DECRB
                 RET
 
@@ -670,8 +690,8 @@ _CRH_CHK_COMPL  CMP     0, @R8                  ; any lines completed?
                 MOVE    @R8, R3                 ; amount of "blinks"
                 SHR     1, R3                   ; 2 screen pixels = 1 real row
 
-                MOVE    Lines, R8               ; increase line counter by...
-                ADD     R3, @R8                 ; ...amount of cleared lines
+                MOVE    R3, R8                  ; process cleared lines ...
+                RSUB    HANDLE_STATS, 1         ; ... by updating all stats
 
 _CRH_BLINK      MOVE    LN_COMPLETE, R8         ; completion character
                 RSUB    PAINT_LN_COMPL, 1       ; paint it
@@ -1515,7 +1535,6 @@ _PP_RET         MOVE    R0, R8
                 DECRB
                 RET
 
-
 ; ****************************************************************************
 ; PRINT_STR_AT
 ;   print a zero terminated string at x/y pos
@@ -1556,26 +1575,117 @@ _PRINT_STR_LOOP MOVE    R4, @R0                 ; set x-pos
 
 PAINT_STATS     INCRB
 
-                ; level
+                ; speed optimization: only when the level changes or the
+                ; amount of completed line changes, this routine shall be
+                ; executed
                 MOVE    Level, R8
+                MOVE    Level_Old, R9
+                CMP     @R8, @R9
+                RBRA    _P_STATS_START, !Z
+                MOVE    Lines, R8
+                MOVE    Lines_Old, R9
+                CMP     @R8, @R9
+                RBRA    _P_STATS_START, !Z
+                RBRA    _P_STATS_RET, 1
+
+                ; level
+_P_STATS_START  MOVE    Level, R8
                 MOVE    @R8, R8
                 MOVE    STLEVEL_X, R9
                 MOVE    STLEVEL_Y, R10
-                RSUB    PAINT_DIGIT, 1
+                RSUB    PAINT_DIGIT, 1          ; ASCII art painting
 
-                ; amount of completed lines
+                MOVE    Score, R8
+                MOVE    @R8, R8
+                MOVE    STSCORE_X, R9
+                MOVE    STSCORE_Y, R10
+                RSUB    PAINT_DECIMAL,1         ; ASCII art painting
+
+                ; amount of completed lines incl. detailed stats
                 MOVE    Lines, R8
                 MOVE    @R8, R8
                 MOVE    STLINES_X, R9
                 MOVE    STLINES_Y, R10
                 RSUB    PRINT_DECIMAL, 1
+                MOVE    Lines_Single, R8
+                MOVE    @R8, R8
+                MOVE    STSINGLE_X, R9
+                MOVE    STSINGLE_Y, R10
+                RSUB    PRINT_DECIMAL, 1
+                MOVE    Lines_Double, R8
+                MOVE    @R8, R8
+                MOVE    STDOUBLE_X, R9
+                MOVE    STDOUBLE_Y, R10
+                RSUB    PRINT_DECIMAL, 1
+                MOVE    Lines_Triple, R8
+                MOVE    @R8, R8
+                MOVE    STTRIPLE_X, R9
+                MOVE    STTRIPLE_Y, R10
+                RSUB    PRINT_DECIMAL, 1
+                MOVE    Lines_QTris, R8
+                MOVE    @R8, R8
+                MOVE    STQTRIS_X, R9
+                MOVE    STQTRIS_Y, R10
+                RSUB    PRINT_DECIMAL, 1
+
+_P_STATS_RET    DECRB
+                RET
+
+; ****************************************************************************
+; PAINT_DECIMAL
+;   Paints a 16-bit decimal number (max 5 digits) using the ASCII art font
+;   "Digits" in a left-aligned way. No trailing zeros.
+;   R8: decimal number
+;   R9: x coordinate
+;   R10: y coordinate
+; ****************************************************************************
+
+PAINT_DECIMAL   INCRB
+
+                MOVE    R8, R0                  ; save R8 .. R10
+                MOVE    R9, R1
+                MOVE    R10, R2
+
+                INCRB
+
+                MOVE    R9, R1
+
+                ; decimal conversion
+                MOVE    _PD_DECIMAL, R9         ; result array
+                RSUB    MAKE_DECIMAL, 1         ; R9 now contains R8s digits
+
+                ; remove trailing zeros                
+                MOVE    5, R0                   ; how many digits to paint?
+_PAINT_D_RTZ    CMP     0, @R9                  ; current digit zero?
+                RBRA    _PAINT_D_NTZ, !Z        ; no: trailing zeros removed
+                CMP     1, R0                   ; special case: R8 = 0
+                RBRA    _PAINT_D_NTZ, Z         ; paint the 0
+                ADD     1, R9                   ; skip this 0
+                SUB     1, R0                   ; one less digit to be painted
+                RBRA    _PAINT_D_RTZ, 1
+
+_PAINT_D_NTZ    MOVE    R9, R2                  ; save pointer to R8s digits
+                MOVE    R1, R9                  ; restore x-coordinate                
+_PAINT_D_LOOP   MOVE    @R2, R8                 ; dereference pointer
+                RSUB    PAINT_DIGIT, 1          ; ASCII art paiting
+                ADD     DIGITS_DX, R9           ; x-coord: skip to end of char
+                ADD     DIGITS_XSP, R9          ; space between chars
+                ADD     1, R2                   ; increase pointer, next digit
+                SUB     1, R0                   ; any digits left?
+                RBRA    _PAINT_D_LOOP, !Z       ; yes: loop, next digit
+
+                DECRB
+
+                MOVE    R0, R8                  ; restore R8 .. R10
+                MOVE    R1, R9
+                MOVE    R2, R10
 
                 DECRB
                 RET
 
 ; ****************************************************************************
 ; PRINT_DECIMAL
-;   Prints a 16-bit decimal number (max 5 digits) in a right-aligned form.
+;   Prints a 16-bit decimal number (max 5 digits) in a right-aligned way.
 ;   No trailing zeros.
 ;   R8: decimal number
 ;   R9: x coordinate (of leftmost digit), due to right-alignment, the real
@@ -1908,9 +2018,23 @@ RESTART_GAME    INCRB
                 MOVE    NEW_TTR, @R0            ; ..Tetromino is rendered
                 MOVE    Level, R0               ; start with Level 1
                 MOVE    1, @R0
+                MOVE    Level_Old, R0
+                MOVE    0, @R0
                 MOVE    Tetromino_BFill, R0     ; bag is empty
                 MOVE    0, @R0
-                MOVE    Lines, R0               ; initialize amount of lines
+                MOVE    Score, R0               ; initialize stats
+                MOVE    0, @R0
+                MOVE    Lines, R0               
+                MOVE    0, @R0
+                MOVE    Lines_Old, R0
+                MOVE    -1, @R0
+                MOVE    Lines_Single, R0
+                MOVE    0, @R0
+                MOVE    Lines_Double, R0
+                MOVE    0, @R0
+                MOVE    Lines_Triple, R0
+                MOVE    0, @R0
+                MOVE    Lines_QTris, R0
                 MOVE    0, @R0
 
                 DECRB
@@ -1924,8 +2048,15 @@ RenderedNumber  .BLOCK 1    ; Number of last Tetromino that was rendered
 RenderedTTR     .BLOCK 64   ; Tetromino rendered in the correct angle
 RenderedTemp    .BLOCK 64   ; Tetromino rendered in neutral position
 
+Score           .BLOCK 1    ; Score of the player in current game
 Level           .BLOCK 1    ; Current level (determines speed and score)
-Lines           .BLOCK 1    ; Amount of completed lines in current game
+Level_Old       .BLOCK 1    ; Speed optimization when painting stats
+Lines           .BLOCK 1    ; Amount of completed lines in current game:
+Lines_Old       .BLOCK 1    ; Speed optimization when painting stats
+Lines_Single    .BLOCK 1    ; ... cleared as single
+Lines_Double    .BLOCK 1    ; ... cleared as double (needs to follow Single)
+Lines_Triple    .BLOCK 1    ; ... cleared as triples (needs to follow Double)
+Lines_QTris     .BLOCK 1    ; ... cleared as quadruples aka Q-Tris (fllw Trpl)
 PseudoRandom    .BLOCK 1    ; Pseudo random number is just a fast counter
 Pause           .BLOCK 1    ; Game currently paused?
 
