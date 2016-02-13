@@ -398,7 +398,7 @@ begin
             -- in case of a branch, Dst_Mode would contain garbage, therefore perform an explicit check
             -- optimization: in case of MOVE the destination value is ignored anyway, so we can skip
             -- the whole indirect parameter fetch in this case
-            elsif Opcode /= opcBRA and Dst_Mode /= amDirect and Opcode /= opcMOVE then
+            elsif Opcode /= opcBRA and Dst_Mode /= amDirect and (Opcode /= opcMOVE or Dst_Mode = amIndirPreDec) then
                fsmNextCpuState <= cs_exeprep_get_dst_indirect;
                
                -- pre decrement for destination register
