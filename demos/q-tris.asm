@@ -18,7 +18,7 @@
 ; are routed. All speed calculations are based on a 50 MHz CPU that is equal
 ; to the CPU revision contained in release V1.21.
 ;
-; The game can run stand-alone, i.e. instead of the monitor as the "ROM"
+; The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
 ; for the QNICE-FPGA - or - it can run regularly as an app. In the latter case
 ; it loads to 0x8000. #define QTRIS_STANDALONE for the standalone mode.
 ;

@@ -1,3 +1,12 @@
+Version 1.21   February, 13 2016
+================================
+
+* Fixed predecrement CPU bug
+* Q-TRIS V1.0: Tetris clone and first game ever programmed for Q-NICE.
+  Needs VGA and keyboard. Located in demos/q-tris.asm, starts at 0x8000 when
+  being run via the monitor. Additionally, there is a special stand-alone
+  autostart bitstream for the Digilent Nexys 4 DDR in dist_kit/q-tris.bit
+
 Version 1.2  January, 10 2016
 =============================
 
