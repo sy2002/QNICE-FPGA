@@ -1,28 +1,37 @@
+FINALIZING THE CURRENT "STREAK" of FPGA + Q-TRIS:
+
+* Q-TRIS V1.0: Implement winning the game (>= 1.000 lines), take care that
+  upleveling does not lead to undefined memory locations (table). Optimize
+  some code parts (at least those resulting from the CPU fix).
+
+* Q-TRIS and/or Monitor: Stand alone auto-starting Q-TRIS bitstream. Do it in
+  the most simple form, which is: make it an .org 0x0000 startable executable,
+  move the variables that need to be in RAM via other .org commands. (That
+  means, we need a simple multiplication command outside the monitor.)
+
+* Test Q-TRIS thoroughly again by playing a ~250+ lines session.
+
+* Make a V1.21 release of the hardware and the whole package (and include
+  the Q-TRIS as a stand alone released bitstream)
+
 HARDWARE:
 
-* Fix CPU BUG: Pre-decrement of the destination operand does not work,
-  if the source operand is used directly. But it works, if the source
-  operand is used indirectly. Example:
-    this works:         MOVE @R2, @--R0
-    this does not work: MOVE R2, @--R0
-  The bug will be presumably fixed, by changing
-    and Opcode /= opcMOVE
-  in vhdl/qnice_cpu.vhd line 401 to
-    and (Opcode /= opcMOVE or Dst_Mode = amIndirPreDec) 
-  and therefore making it very similar to line 455: The speed optimization
-  must be disabled in case of pre-decrement.
-  As soon as this is fixed, the fix can be e.g. tested by changing the two
-  spots marked with "@TODO" in test_programs/decimal.asm. As soon as
-  everything works, the code in this test program and also in demos/q-tris.asm
-  needs to be cleaned up accordingly.
+* Remove ROM and replace by prefilled RAM
 
-* remove ROM and replace by prefilled RAM
+* Memory management unit (more than 64kWords of RAM/ROM, pages, etc.)
+
+* Interrupt system
+
+* Debugging mechanisms (e.g. single-step mode in hardware)
 
 * Fix tristate problem that slows down CPU by ~50%
 
 * Improve design to support 100 MHz
 
-* keyboard: remove hardcoded hardcoded 18000
+* Keyboard: remove hardcoded hardcoded 18000
+
+* Refactor scancode conversion to be more table/ROM like and less
+  like a huge array of multiplexers
 
 * Add a timer with 0,1us Resolution (10 MHz frequency), so that
   we can measure performance (e.g. against the emulator)
@@ -31,20 +40,20 @@ HARDWARE:
 
 * Refactor TIL and TIL Mask to support 8 digits / 32 bits
 
-* Refactor scancode conversion to be more table/ROM like and less
-  like a huge array of multiplexers
-
 * Refactor Video RAM: avoid inferring two RAMs for video RAM
 
-* single-step-mode in hardware incl. address/data display on 7-segs
+* VGA being able to report the vertical retrace for flicker-free graphics,
+  e.g. for being able to enhance Q-TRIS to work double-buffered and to
+  switch buffers during retrace. And/or for having a good general sync.
+  mechanism. To "report" via register and/or interrupt.
 
 MONITOR and/or STANDARD LIBs:
 
 * Backspace and CTRL-U support in IO$GETS
 
-* Basic mathematical routines * (exists), / (from decimal.asm), % (ditto)
+* Basic mathematical routines * (exists), / (from decimal.asm?), % (ditto?)
 
-* Decimal converter (from decimal.asm)
+* Decimal converter (from decimal.asm?)
 
 * 32 bit arithmetic
 

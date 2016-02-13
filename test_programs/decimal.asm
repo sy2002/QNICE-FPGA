@@ -83,15 +83,13 @@ MAKE_DECIMAL    INCRB
 
 _MD_LOOP        MOVE    R4, R9                  ; divide by 10
                 RSUB    DIV_AND_MODULO, 1       ; R8 = "shrinked" dividend
-                SUB     1, R0                   ; @TODO: PREDECREMENT CPU BUG!
-                MOVE    R9, @R0                 ; extract current digit place
+                MOVE    R9, @--R0               ; extract current digit place
                 CMP     R5, R8                  ; done?
                 RBRA    _MD_LOOP, !Z            ; no: next iteration
 
 _MD_LEADING_0   CMP     R7, R0                  ; enough leading "0" there?
                 RBRA    _MD_RET, Z              ; yes: return
-                SUB     1, R0                   ; @TODO: PREDECREMENT CPU BUG!
-                MOVE    0, @R0                  ; no: add a "0" digit
+                MOVE    0, @--R0                ; no: add a "0" digit
                 RBRA    _MD_LEADING_0, 1
 
 _MD_RET         MOVE    R6, R8                  ; restore R8 & R9

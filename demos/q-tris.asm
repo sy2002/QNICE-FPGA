@@ -149,7 +149,7 @@ CAH_X       .EQU 41
 CAH_Y       .EQU 8
 CAH_W       .EQU 40
 CAH_H       .EQU 10
-CRE_A_HELP  .ASCII_W "Q-TRIS V0.9 by sy2002 in January 2016   "
+CRE_A_HELP  .ASCII_W "Q-TRIS V0.9 by sy2002 in February 2016  "
             .ASCII_W "                                        "
             .ASCII_W "How to play:                            "
             .ASCII_W "                                        "
@@ -419,11 +419,11 @@ HANDLE_STATS    INCRB
                 ; the level is multipled to account for the higher difficulty
                 ; in higher levels
 _H_STATS_SCORE  MOVE    R8, R9                 
-                SYSCALL(mult, 1)
+                SYSCALL(mult, 1)                ; @TODO: replace SYSCALLs
                 MOVE    R10, R8
                 MOVE    Level, R9
                 MOVE    @R9, R9
-                SYSCALL(mult, 1)
+                SYSCALL(mult, 1)                ; @TODO: replace SYSCALLs
                 MOVE    Score, R0
                 ADD     R10, @R0
 
@@ -1761,6 +1761,8 @@ PAINT_DIGIT     INCRB
 
                 INCRB
 
+                ; @TODO: replace SYSCALLs, so that Q-Tris can run as
+                ; stand alone "app" independendly from the monitor
                 MOVE    DIGITS_WPD, R9          ; calculate offset for digit
                 SYSCALL(mult, 1)                ; pattern: R8 x DIGITS_WPD
 
@@ -1867,15 +1869,13 @@ MAKE_DECIMAL    INCRB
 
 _MD_LOOP        MOVE    R4, R9                  ; divide by 10
                 RSUB    DIV_AND_MODULO, 1       ; R8 = "shrinked" dividend
-                SUB     1, R0                   ; @TODO: PREDECREMENT CPU BUG!
-                MOVE    R9, @R0                 ; extract current digit place
+                MOVE    R9, @--R0               ; extract current digit place
                 CMP     R5, R8                  ; done?
                 RBRA    _MD_LOOP, !Z            ; no: next iteration
 
 _MD_LEADING_0   CMP     R7, R0                  ; enough leading "0" there?
                 RBRA    _MD_RET, Z              ; yes: return
-                SUB     1, R0                   ; @TODO: PREDECREMENT CPU BUG!
-                MOVE    0, @R0                  ; no: add a "0" digit
+                MOVE    0, @--R0                ; no: add a "0" digit
                 RBRA    _MD_LEADING_0, 1
 
 _MD_RET         MOVE    R6, R8                  ; restore R8 & R9
