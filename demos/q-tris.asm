@@ -3,18 +3,40 @@
 ;
 ; Tetris clone and the first game ever developed for QNICE-FPGA.
 ;
-; It uses the PS2/USB keyboard and VGA, no matter how STDIN/STDOUT are routed.
-; All speed calculations are based on a 50 MHz CPU that is equal to the CPU
-; revision contained in release V1.2.
+; The rules of the game are very close to the "official" Tetris rules as
+; they can be found e.g. on http://tetris.wikia.com/wiki/Tetris_Guideline
+;
+; Clearing a larger amount of lines at once (e.g. Double, Triple, Q-TRIS)
+; leads to much higher scores. The scoring algorithm is:
+; (<amount of cleared lines> ^ 2) x <Level>
+;
+; Clearing a certain treshold of lines leads to the next level. The game
+; speed increases from level top level. If you clear 1.000 lines, then
+; you win the game.
+;
+; The game uses the PS2/USB keyboard and VGA, no matter how STDIN/STDOUT
+; are routed. All speed calculations are based on a 50 MHz CPU that is equal
+; to the CPU revision contained in release V1.21.
+;
+; The game can run stand-alone, i.e. instead of the monitor as the "ROM"
+; for the QNICE-FPGA - or - it can run regularly as an app. In the latter case
+; it loads to 0x8000. #define QTRIS_STANDALONE for the standalone mode.
 ;
 ; done by sy2002 in January and February 2016
 ; ****************************************************************************
 
+#undef QTRIS_STANDALONE
+
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 
-                .ORG 0x8000
-            
+#ifdef QTRIS_STANDALONE
+                .ORG    0x0000                  ; start at 0x0000
+                AND     0x00FF, SR              ; make sure we are at rbank 0
+                MOVE    0xFEFF, SP              ; setup stack pointer
+#else
+                .ORG    0x8000                  ; start at 0x8000
+#endif
                 RSUB    INIT_SCREENHW, 1        ; clear screen, no hw cursor
                 RSUB    INIT_GLOBALS, 1         ; init global variables
                 RSUB    PAINT_PLAYFIELD, 1      ; paint playfield & logo
@@ -24,7 +46,6 @@ NEXT_GAME       RSUB    DRAW_FROM_BAG, 1        ; randomizer algorithm
                 MOVE    R8, R3                  ; R3: result = next Tetromino
 
                 ; use "draw from bag" algorithm to dice a new Tetromino
-
 MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 MOVE    R3, R4                  ; R4: old "next" = new current
                 MOVE    R8, R3                  ; R3: dice result = new "next"
@@ -32,13 +53,17 @@ MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 MOVE    RenderedNumber, R0      ; make sure the renderer...
                 MOVE    NEW_TTR, @R0            ; ...treats this TTR as new
 
-                ; show score, level, completed lines and detailed line stats
+                ; show score, level, lines, stats and check if game is won
+                RSUB    PAINT_STATS, 1          ; update all stats on screen
+                MOVE    Level, R0
+                CMP     GAME_WON, @R0           ; game won?
+                RBRA    CALC_TTR_POS, !Z        ; no: new TTR emerges
+                MOVE    1, R8                   ; make sure "you win" is shown
+                RBRA    END_GAME_W, 1
 
-                RSUB    PAINT_STATS, 1
 
                 ; calculate the position where new Tetrominos emerge from
-
-                MOVE    Tetromino_Y, R1
+CALC_TTR_POS    MOVE    Tetromino_Y, R1
                 MOVE    -8, @R1                 ; y start pos = -8
                 MOVE    PLAYFIELD_X, R0         ; x start pos is the middle...
                 ADD     PLAYFIELD_W, R0         ; ... of the playfield ...
@@ -54,7 +79,6 @@ MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 ; Level: SPEED_DELAY uses a look up table for the speed and
                 ; executes the MULTITASK routine for keyboard handling while
                 ; wasting CPU cycles to slow down the game
-
 DROP            RSUB    HANDLE_PAUSE, 1         ; pause game, if needed
                 XOR     R8, R8                  ; R8 = 0 means move down
                 RSUB    DECIDE_MOVE, 1          ; can we move down?
@@ -70,44 +94,24 @@ DROP            RSUB    HANDLE_PAUSE, 1         ; pause game, if needed
                 RSUB    SPEED_DELAY, 1          ; game speed regulation
                 RBRA    DROP, 1
 
-                ; handle completed rows and detect a potential game over
-
+                ; detect a potential game over and handle completed rows
 HNDL_COMPL_ROWS MOVE    Tetromino_Y, R1          
                 CMP     -5, @R1                 ; reached upper boundary?
-                RBRA    END_GAME, N             ; yes: end game
+                RBRA    END_GAME_L, N           ; yes: end game (game over)
                 RSUB    COMPLETED_ROWS, 1       ; no: handle completed rows
 
-NEXT_TTR        RBRA    MAIN_LOOP, !Z           ; next iteration game
+                ; next iteration
+                RBRA    MAIN_LOOP, 1
 
                 ; handle end of the game
-
-END_GAME        MOVE    QTRIS_X, R8             ; clear rect for game over
-                MOVE    QTRIS_Y, R9
-                MOVE    QTRIS_W, R10
-                MOVE    18, R11
-                RSUB    CLR_RECT, 1
-                MOVE    Game_Over, R8           ; print game over
-                MOVE    GAME_OVER_X, R9
-                MOVE    GAME_OVER_Y, R10
-                MOVE    GAME_OVER_W, R11
-                MOVE    GAME_OVER_H, R12
-                RSUB    PRINT_PATTERN, 1
-                MOVE    RestartMsg, R8          ; print restart message
-                MOVE    RESTMSG_X, R9
-                MOVE    RESTMSG_Y, R10
-                RSUB    PRINT_STR_AT, 1
-                MOVE    Pause, R0               ; Wait for space to be pressed
-                MOVE    1, @R0
-                RSUB    HANDLE_PAUSE, 1
-                RSUB    CLR_SCR, 1              ; rebuild clean screen
-                RSUB    PAINT_PLAYFIELD, 1
-                RSUB    RESTART_GAME, 1         ; reset global game variables
+END_GAME_L      XOR     R8, R8                  ; show "game over" message
+END_GAME_W      RSUB    HANDLE_END, 1           ; prepare for next round
                 RBRA    NEXT_GAME, 1            ; play next game
 
-                ; end Q-TRIS
-EXIT            RSUB    CLR_SCR, 1
-                SYSCALL(reset, 1)
-  
+                ; end Q-TRIS (will only be called in non-stand-alone mode)
+EXIT            RSUB    CLR_SCR, 1              ; clear screen
+                SYSCALL(reset, 1)               ; return to monitor
+
 
 NEW_TTR     .EQU 0xFFFF ; signal value for RenderedNumber: new Tetromino
 
@@ -123,7 +127,7 @@ QTris       .ASCII_W "  ____             _______   _____    _____    _____ "
             .ASCII_W "| |__| |             | |    | | \ \   _| |_   ____) |"
             .ASCII_W " \___\_\             |_|    |_|  \_\ |_____| |_____/ "
 
-; Game over logo and restart message
+; Logos (game over, game won) and restart message
 GAME_OVER_X .EQU 33
 GAME_OVER_Y .EQU 2
 GAME_OVER_W .EQU 37
@@ -140,16 +144,46 @@ Game_Over   .ASCII_W "  _____              __  __   ______ "
             .ASCII_W "| |  | |   \ \/ /   |  __|   |  _  / "
             .ASCII_W "| |__| |    \  /    | |____  | | \ \ "
             .ASCII_W " \____/      \/     |______| |_|  \_\ "
+
+GAME_WON_X  .EQU 36
+GAME_WON_Y  .EQU 2
+GAME_WON_W  .EQU 30
+GAME_WON_H  .EQU 12
+Game_Won    .ASCII_W " __     __   ____    _    _   "
+            .ASCII_W " \ \   / /  / __ \  | |  | |  "
+            .ASCII_W "  \ \_/ /  | |  | | | |  | |  "
+            .ASCII_W "   \   /   | |  | | | |  | |  "
+            .ASCII_W "    | |    | |__| | | |__| |  "
+            .ASCII_W "    |_|     \____/   \____/   "
+            .ASCII_W "__          __  _____   _   _ "
+            .ASCII_W "\ \        / / |_   _| | \ | |"
+            .ASCII_W " \ \  /\  / /    | |   |  \| |"
+            .ASCII_W "  \ \/  \/ /     | |   | . ` |"
+            .ASCII_W "   \  /\  /     _| |_  | |\  |"
+            .ASCII_W "    \/  \/     |_____| |_| \_|"
+
+#ifdef QTRIS_STANDALONE
+RESTMSG_X   .EQU 39
+RESTMSG_Y   .EQU 16
+RestartMsg  .ASCII_W "Space key to restart game"
+#else
 RESTMSG_X   .EQU 25
 RESTMSG_Y   .EQU 16
 RestartMsg  .ASCII_W "Space key to restart game  F12 or CTRL+E to exit game"
+#endif
 
 ; Credits and help text
 CAH_X       .EQU 41
 CAH_Y       .EQU 8
 CAH_W       .EQU 40
+
+#ifdef QTRIS_STANDALONE
+CAH_H       .EQU 9          ; do not show the "Exit the game..." string
+#else
 CAH_H       .EQU 10
-CRE_A_HELP  .ASCII_W "Q-TRIS V0.9 by sy2002 in February 2016  "
+#endif
+
+CRE_A_HELP  .ASCII_W "Q-TRIS V1.0 by sy2002 in February 2016  "
             .ASCII_W "                                        "
             .ASCII_W "How to play:                            "
             .ASCII_W "                                        "
@@ -157,7 +191,7 @@ CRE_A_HELP  .ASCII_W "Q-TRIS V0.9 by sy2002 in February 2016  "
             .ASCII_W "* Cursor left / right / down to move    "
             .ASCII_W "* Drop using cursor up                  "
             .ASCII_W "* Rotate left using the 'x' key         "
-            .ASCII_W "* Rotate right using the 'c' key        "
+            .ASCII_W "* Rotate right using the 'c' key        "            
             .ASCII_W "* Exit the game using F12 or CTRL+E     "
 
 ; Stats (_LX, _LY = label coordinates, _X, _Y = display coordinates)
@@ -353,6 +387,9 @@ Level_Thresh .DW    5       ;    5 Lines => Level 2
              .DW  320       ;  320 Lines => Level 8
              .DW  640       ;  640 Lines => Level 9
              .DW 1000       ; 1000 Lines => Game Won
+             .DW 2000       ; dummy for non existing "Level 10"
+
+GAME_WON     .EQU 10        ; game is won, when "Level 10" is reached
 
 ; Level speed table
 ; speed is defined by wasted cycles, both numbers are multiplied
@@ -367,6 +404,60 @@ Level_Speed .DW 800, 200    ; Level 1
             .DW 350, 200    ; Level 7
             .DW 300, 200    ; Level 8
             .DW 250, 200    ; Level 9
+            .DW 250, 200    ; non existing "Level 10" => Game Won
+
+; ****************************************************************************
+; HANDLE_END
+;   Displays either the normal "game over" message or the "you win" message,
+;   depending on the parameter R8. Then handle the keyboard for triggering
+;   a restart or for triggering a game exit.
+;   R8: 0 = game over message; 1 = you win message
+; ****************************************************************************
+
+HANDLE_END      INCRB
+
+                MOVE    R8, R0
+
+                MOVE    QTRIS_X, R8             ; clear rect for message
+                MOVE    QTRIS_Y, R9
+                MOVE    QTRIS_W, R10
+                ADD     1, R10
+                MOVE    18, R11
+                RSUB    CLR_RECT, 1
+
+                CMP     1, R0                   ; print win message?
+                RBRA    _HANDLE_END_GO, !Z      ; no: print game over
+
+                MOVE    Game_Won, R8            ; yes: print win message
+                MOVE    GAME_WON_X, R9
+                MOVE    GAME_WON_Y, R10
+                MOVE    GAME_WON_W, R11
+                MOVE    GAME_WON_H, R12
+                RSUB    PRINT_PATTERN, 1
+                RBRA    _HANDLE_END_RM, 1
+
+_HANDLE_END_GO  MOVE    Game_Over, R8           ; print game over
+                MOVE    GAME_OVER_X, R9
+                MOVE    GAME_OVER_Y, R10
+                MOVE    GAME_OVER_W, R11
+                MOVE    GAME_OVER_H, R12
+                RSUB    PRINT_PATTERN, 1
+
+_HANDLE_END_RM  MOVE    RestartMsg, R8          ; print restart message
+                MOVE    RESTMSG_X, R9
+                MOVE    RESTMSG_Y, R10
+                RSUB    PRINT_STR_AT, 1
+
+                MOVE    Pause, R0               ; Wait for space to be pressed
+                MOVE    1, @R0
+                RSUB    HANDLE_PAUSE, 1
+
+                RSUB    CLR_SCR, 1              ; rebuild clean screen
+                RSUB    PAINT_PLAYFIELD, 1
+                RSUB    RESTART_GAME, 1         ; reset global game variables
+
+                DECRB
+                RET
 
 ; ****************************************************************************
 ; HANDLE_STATS
@@ -403,14 +494,12 @@ HANDLE_STATS    INCRB
                 ADD     R8, @R0
 
                 ; ascend the level ladder
-                MOVE    Level_Old, R2           ; for speed optimization
                 MOVE    Level_Thresh, R3        ; Level threshold table
                 MOVE    Level, R4               ; calculate next treshold ...
                 ADD     @R4, R3                 ; ... for current level
                 SUB     1, R3                   
                 CMP     @R3, @R0                ; lines < treshold?
                 RBRA    _H_STATS_SCORE, N       ; yes: go on, calculate score
-                MOVE    @R4, @R2                ; remember old (speed opt.)
                 ADD     1, @R4                  ; no: increase level
 
                 ; score += (squared amount of lines) x (level)
@@ -418,12 +507,12 @@ HANDLE_STATS    INCRB
                 ; when clearing large blocks
                 ; the level is multipled to account for the higher difficulty
                 ; in higher levels
-_H_STATS_SCORE  MOVE    R8, R9                 
-                SYSCALL(mult, 1)                ; @TODO: replace SYSCALLs
+_H_STATS_SCORE  MOVE    R8, R9
+                RSUB    MUL, 1
                 MOVE    R10, R8
                 MOVE    Level, R9
                 MOVE    @R9, R9
-                SYSCALL(mult, 1)                ; @TODO: replace SYSCALLs
+                RSUB    MUL, 1
                 MOVE    Score, R0
                 ADD     R10, @R0
 
@@ -463,10 +552,14 @@ _HP_WAITFORKEY  ADD     1, @R2                  ; inc pseudo random number
                 MOVE    @R5, R5                 ; read pressed key
                 CMP     KBD$SPACE, R5           ; space pressed?
                 RBRA    _HP_END_PAUSE, Z        ; yes: end pause
+
+#ifndef QTRIS_STANDALONE
                 CMP     KBD$CTRL_E, R5          ; CTRL+E pressed?
                 RBRA    EXIT, Z                 ; yes: exit game
                 CMP     KBD$F12, R5             ; F12 pressed?
                 RBRA    EXIT, Z                 ; yes: exit game
+#endif                
+
                 RBRA    _HP_WAITFORKEY, 1       ; unknown key: loop
 
                 ; disable pause mode                
@@ -545,7 +638,6 @@ DRAW_FROM_BAG   INCRB
                 RBRA    _DFB_START, !Z
 
                 ; create new bag
-
                 MOVE    Tetromino_Bag, R1       ; R1: pointer to bag
                 XOR     R2, R2                  ; R2: counter to fill bag
 _DFB_FILL       MOVE    R2, @R1++               ; fill bag: 0, 1, 2, 3, ...
@@ -560,7 +652,6 @@ _DFB_START      CMP     TTR_AMOUNT, @R0         ; bag completely full?
 
                 ; compress bag by filling all empty spots (marked by -1)
                 ; with their right neighbour
-
                 MOVE    Tetromino_Bag, R1
                 XOR     R2, R2
 _DFB_CP_CMP     CMP     -1, @R1                 ; empty spot?
@@ -585,7 +676,6 @@ _DFB_CP_ESCP    CMP     TTR_AMOUNT, R4          ; end of bag reached?
                 ; calculate last byte of "PseudoRandom" modulo the amount
                 ; of Tetrominos in the current compressed bag to draw
                 ; a Tetromino
-
 _DFB_MODULO     MOVE    PseudoRandom, R1
                 MOVE    @R1, R1
 
@@ -601,7 +691,6 @@ _DFB_DO_MOD_S   SUB     @R0, R1
                 RBRA    _DFB_DO_MOD_C, 1
 
                 ; draw a Tetromino
-
 _DFB_DRAW       MOVE    Tetromino_Bag, R2
                 ADD     R1, R2
                 MOVE    @R2, R8
@@ -641,7 +730,6 @@ COMPLETED_ROWS  INCRB
                 MOVE    CompletedRows, R7       ; list with all compl. rows
 
                 ; handle negative y values
-
                 MOVE    8, R4                   ; R4: how many y-lines visible
                 MOVE    Tetromino_Y, R3
                 MOVE    @R3, R3                 ; R3 = Tetromino Y start coord
@@ -655,7 +743,6 @@ COMPLETED_ROWS  INCRB
                 ; scan the environemnt of the recently dropped Tetromino
                 ; by checking, if whole screen lines are "non-spaces"
                 ; and if so, remember this line in @R7 (CompletedRows)
-
 _CRH_START      MOVE    R3, R11                 ; remember y-start coord
                 MOVE    R4, R12                 ; remember amount of visib. y
 _CRH_NEXT_Y     MOVE    0, @R7                  ; asumme: row is not completed
@@ -681,7 +768,6 @@ _CRH_NEXT_LINE  SUB     1, R4                   ; one less line to check
                 RBRA    _CRH_NEXT_Y, 1          ; scan next line
 
                 ; blink completed lines
-
 _CRH_CHK_COMPL  CMP     0, @R8                  ; any lines completed?
                 RBRA    _CRH_RET, Z             ; no: return
 
@@ -705,7 +791,6 @@ _CRH_BLINK      MOVE    LN_COMPLETE, R8         ; completion character
                 RBRA    _CRH_BLINK, !Z          ; no: go on blinking
 
                 ; let the playfield fall down to fill the cleared lines
-
                 MOVE    R11, R3
                 MOVE    R12, R5
 
@@ -829,17 +914,12 @@ DECIDE_MOVE     INCRB
 
                 MOVE    1, R9                   ; assume return true
 
-                ; @TODO: small refactor: nested INCRBs shall be done just like
-                ; in COMPLETED_ROWS otherwise it is a dangerous construction,
-                ; because if we did a RSUB within DECIDE_MOVE, we would
-                ; end up in a mess.
-
-                INCRB                           ; save R8, R10, R11, R12
-                MOVE    R8, R0
+                MOVE    R8, R0                  ; save R8, R10, R11, R12
                 MOVE    R10, R1
                 MOVE    R11, R2
                 MOVE    R12, R3
-                DECRB
+
+                INCRB
 
                 ; R0: hw x-cursor
                 ; R1: hw y-cursor
@@ -903,19 +983,34 @@ _DM_LOOP_X      MOVE    RenderedTTR, R7         ; pointer to Tetromino pattern
                 ; left (depending on the initial R8 parameter) of the pixel
                 ; there is an obstacle on the screen, that is not the
                 ; own pixel of the Tetromino
-
                 CMP     0x20, @R7               ; empty "pixel" in Tetromino?
                 RBRA    _DM_PX_FOUND, !Z        ; no: there is a pixel
                 RBRA    _DM_INCX, 1             ; yes: skip to next pixel
 
 _DM_PX_FOUND    CMP     0, R8                   ; negative y scanning coord?
-                RBRA    _DM_INCY, N             ; yes: skip line
+                RBRA    _DM_EMULATE_WL, N       ; yes: emulate walls
                 CMP     @R1, R3                 ; maximum y-position reached?
                 RBRA    _DM_OBSTACLE, N         ; yes (@R1 > R3): return false
                 MOVE    VGA$CHAR, R2            ; hw register for reading scrn   
                 CMP     0x20, @R2               ; empty "pixel" on screen?
                 RBRA    _DM_IS_IT_OWN, !Z       ; no: check if it is an own px
                 RBRA    _DM_INCX, 1             ; yes: go to next checking pos
+
+                ; while we are at negative y-positions, we need to emulate the
+                ; walls of the playfield, so that the player cannot trick the
+                ; game and move Tetrominos "over" the walls using very fast
+                ; actions (e.g. double-rotate a "L" and then move it to the
+                ; left very rapidly: it would stick - or - just move a "Z"
+                ; very rapidly to the left: it would stick, too)
+_DM_EMULATE_WL  MOVE    PLAYFIELD_X, R2
+                SUB     1, R2
+                CMP     R2, @R0                 ; emulate left wall
+                RBRA    _DM_IS_IT_OWN, Z
+                MOVE    PLAYFIELD_X, R2
+                ADD     PLAYFIELD_W, R2
+                CMP     R2, @R0                 ; emulate right wall
+                RBRA    _DM_IS_IT_OWN, Z
+                RBRA    _DM_INCX, 1
 
 _DM_IS_IT_OWN   MOVE    R4, R12                 ; current y position
                 ADD     R11, R12                ; apply y scanning offset
@@ -963,12 +1058,11 @@ _DM_INCY        ADD     1, R4                   ; next line, ditto for the..
                 CMP     8, R4                   ; Tetromino end reached?
                 RBRA    _DM_LOOP_Y, !Z          ; no go on
 
-_DM_RET         INCRB                           ; restore R8, R10, R11, R12
+_DM_RET         DECRB                           ; restore R8, R10, R11, R12
                 MOVE    R0, R8
                 MOVE    R1, R10
                 MOVE    R2, R11
                 MOVE    R3, R12
-                DECRB
 
                 DECRB
                 RET
@@ -1090,12 +1184,16 @@ _MT_N_UP        CMP     KBD$SPACE, R0
                 MOVE    1, @R8
                 RBRA    _MT_RET_REST, 1
 
+#ifdef QTRIS_STANDALONE
+_MT_ELSE        RBRA    _MT_RET_REST, 1
+#else
                 ; CTRL+E or F12 exit
 _MT_ELSE        CMP     KBD$CTRL_E, R0
                 RBRA    EXIT, Z
                 CMP     KBD$F12, R0
                 RBRA    EXIT, Z
                 RBRA    _MT_RET_REST, 1
+#endif
 
                 ; restore parameter registers
 _MT_RET_REST    MOVE    R1, R8
@@ -1591,9 +1689,16 @@ PAINT_STATS     INCRB
                 ; level
 _P_STATS_START  MOVE    Level, R8
                 MOVE    @R8, R8
-                MOVE    STLEVEL_X, R9
+                MOVE    GAME_WON, R9            ; non existing level number
+                SUB     1, R9                   ; maximum existing level num.
+                CMP     R8, R9                  ; current level > max. lnum.?
+                RBRA    _P_STATS_PL, !N
+                MOVE    R9, R8                  ; yes: set lnum. to max lnum.
+_P_STATS_PL     MOVE    STLEVEL_X, R9           ; no: paint digit
                 MOVE    STLEVEL_Y, R10
                 RSUB    PAINT_DIGIT, 1          ; ASCII art painting
+                MOVE    Level_Old, R9           ; remember that this level...
+                MOVE    R8, @R9                 ; ...has already been painted
 
                 MOVE    Score, R8
                 MOVE    @R8, R8
@@ -1607,6 +1712,8 @@ _P_STATS_START  MOVE    Level, R8
                 MOVE    STLINES_X, R9
                 MOVE    STLINES_Y, R10
                 RSUB    PRINT_DECIMAL, 1
+                MOVE    Lines_Old, R9           ; remember that this amount...
+                MOVE    R8, @R9                 ; of lines has been painted
                 MOVE    Lines_Single, R8
                 MOVE    @R8, R8
                 MOVE    STSINGLE_X, R9
@@ -1739,10 +1846,6 @@ _PD_PRINT       MOVE    _PD_DEC_STR_BUF, R8     ; str. buffer to be printed
                 DECRB
                 RET
 
-_PD_DECIMAL     .BLOCK 5                        ; array that stores the digits
-_PD_DEC_STR_BUF .BLOCK 5                        ; zero terminated string buf.
-                .DW 0
-
 ; ****************************************************************************
 ; PAINT_DIGIT
 ;   Paints a decimal digit using the ASCII art font "Digits".
@@ -1761,10 +1864,8 @@ PAINT_DIGIT     INCRB
 
                 INCRB
 
-                ; @TODO: replace SYSCALLs, so that Q-Tris can run as
-                ; stand alone "app" independendly from the monitor
                 MOVE    DIGITS_WPD, R9          ; calculate offset for digit
-                SYSCALL(mult, 1)                ; pattern: R8 x DIGITS_WPD
+                RSUB    MUL, 1                  ; pattern: R8 x DIGITS_WPD
 
                 MOVE    Digits, R8              ; apply offset
                 ADD     R10, R8
@@ -1927,6 +2028,41 @@ _DAM_RET        DECRB
                 RET
 
 ; ****************************************************************************
+; MUL
+;   16-bit integer multiplication, that only calculates the low-word of the
+;   multiplication, i.e. (factor 1 x factor 2) needs to be smaller than
+;   65535, otherwise the result wraps around. The factors as well as the
+;   result are treated as unsigned.
+;   Input:
+;      R8: factor 1
+;      R9: factor 2
+;   Output:
+;      R10: low word of (factor 1 x factor 2)
+; ****************************************************************************
+
+MUL             INCRB
+
+                XOR     R10, R10                ; result = 0
+                CMP     R10, R8                 ; if factor 1 = 0 ...
+                RBRA    _MUL_RET, Z             ; ... then the result is 0
+
+                MOVE    R8, R0                  ; counter for repeated adding
+                MOVE    1, R1                   ; R1 = 1
+                XOR     R2, R2                  ; R2 = 0
+
+_MUL_LOOP       ADD     R9, R10                 ; multiply by rep. additions
+                SUB     R1, R0                  ; are we done?
+                RBRA    _MUL_COR_OFS, V         ; yes due to overflow: return
+                CMP     R2, R0                  ; are we done?
+                RBRA    _MUL_RET, Z             ; yes due to counter = 0
+                RBRA    _MUL_LOOP, 1
+
+_MUL_COR_OFS    SUB     R9, R10                 ; we added one time too often
+
+_MUL_RET        DECRB
+                RET
+
+; ****************************************************************************
 ; CLR_SCR
 ;   Clear the screen
 ; ****************************************************************************
@@ -1953,13 +2089,14 @@ CLR_RECT        INCRB
                 MOVE    VGA$CHAR, R2
 
                 MOVE    1, R3                   ; increase performance
-                MOVE    0x20, R4
+                MOVE    0x20, R4                ; ASCII 0x20 = space
 
                 MOVE    R10, R5                 ; calculate end coordinates
                 ADD     R8, R5                  ; R5: x end coordinate
                 MOVE    R11, R6
                 ADD     R9, R6                  ; R6: y end coordinate
 
+                MOVE    R9, @R1                 ; set y hw cursor to y
 _CLR_RECT_YL    MOVE    R8, @R0                 ; set x hw cursor to x
 _CLR_RECT_XL    MOVE    R4, @R2                 ; clear position
                 ADD     R3, @R0                 ; next x
@@ -1978,9 +2115,15 @@ _CLR_RECT_XL    MOVE    R4, @R2                 ; clear position
 ; ****************************************************************************
 
 INIT_SCREENHW   INCRB
-                RSUB    CLR_SCR, 1
+
                 MOVE    VGA$STATE, R0
-                NOT     VGA$EN_HW_CURSOR, R1
+
+#ifdef QTRIS_STANDALONE
+                MOVE    0x00E0, @R0             ; enable everything
+                OR      VGA$COLOR_GREEN, @R0    ; Set font color to green
+#endif
+                RSUB    CLR_SCR, 1
+                NOT     VGA$EN_HW_CURSOR, R1    ; no blinking hw cursor
                 AND     @R0, R1
                 MOVE    R1, @R0
                 DECRB
@@ -2039,6 +2182,19 @@ RESTART_GAME    INCRB
 
                 DECRB
                 RET
+
+; ****************************************************************************
+; LOCAL VARIABLES
+; ****************************************************************************
+
+#ifdef QTRIS_STANDALONE
+                .ORG    0x8000                  ; ensure variables are in RAM
+#endif
+
+; PRINT_DECIMAL
+_PD_DECIMAL     .BLOCK 5    ; array that stores the digits
+_PD_DEC_STR_BUF .BLOCK 5    ; zero terminated string buffer
+                .DW 0
 
 ; ****************************************************************************
 ; GLOBAL VARIABLES
