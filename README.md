@@ -26,10 +26,21 @@ Getting Started
 
 * Hardware: Currently, we develop QNICE-FPGA on a Nexys 4 DDR development
   board, so if you own one, the fastest way of getting started is to
-  download the bitstream file `dist_kit\env1.bit` on the SD card of the
+  download the bitstream file `dist_kit/qnice.bit` on the SD card of the
   Nexys board and set the jumpers to read the FPGA configuration from the
-  SD card. Attach an "old" USB keyboard supporting boot mode to the board
-  and attach a VGA monitor. Attach the Serial-to-USB cable.
+  SD card. Do not copy more than one `*.bit` file on the SD card, i.e. do
+  not copy `dist_kit/q-tris.bit`, yet. Do empty the "Recycle Bin" or similar
+  of your host OS between two `*.bit` copies, so that the Nexys board does not
+  accidentally read the `*.bit` from your trash instead of the recent one.
+
+* If you do not own a Nexys 4 DDR board, then use your VHDL development
+  environment to synthesize QNICE-FPGA. The root file for the system
+  is `vhdl/env1.vhdl`. Make sure that you connect at least the IO pins
+  for PS2, VGA, UART and the two switches.
+
+* Attach an "old" USB keyboard supporting boot mode to the board and attach
+  a VGA monitor. Attach the USB cable to your desktop computer, so that you
+  can setup a serial (terminal) connection between the desktop and the FPGA.
 
 * On your host computer: Open a terminal and head to the root folder of the
   QNICE-FPGA GIT repository.
@@ -55,8 +66,15 @@ Getting Started
   prompt in your terminal program's window.
 
 * Enter `M` then `L` there. You should see something like "Memory/Load".
-  Paste the `demos/mandel.out` file to your terminal program's window.
-  Press CTRL+E to leave the memory loading routine.
+
+* Paste the `demos/mandel.out` file to your terminal program's window.
+  Alternatively, some terminal programs offer a "Send File" command.
+  (If you are using CoolTerm: Please do paste by using CTRL+V on Windows or
+  on a Mac by using CMD+V, because using the "Paste" menu command that is
+  available via the context menu is not always working properly, when it
+  comes to sending data.)
+
+* Press CTRL+E to leave the memory loading routine.
 
 * Enter `C` then `R` and then `A000` in the terminal window. You should
   now see a Mandelbrot output similar to the above-mentioned screenshot in
@@ -73,3 +91,28 @@ Getting Started
   and page up/down keys to scroll.
 
 More documentation to come.
+
+Q-TRIS
+------
+
+Q-TRIS is a Tetris clone and the first game ever developed for QNICE-FPGA.
+The rules of the game are very close to the "official" Tetris rules as
+they can be found on 
+[http://tetris.wikia.com/wiki/Tetris_Guideline](http://tetris.wikia.com/wiki/Tetris_Guideline).
+
+![Q_TRIS_IMG](doc/demos/demo_q_tris.jpg)
+
+Clearing a larger amount of lines at once (e.g. Double, Triple, Q-TRIS)
+leads to much higher scores. Clearing a certain treshold of lines leads to the
+next level. The game speed increases from level to level. If you clear
+1.000 lines, then you win the game.
+
+Q-TRIS uses the PS2/USB keyboard and VGA, no matter how STDIN/STDOUT
+are routed. All speed calculations are based on a 50 MHz CPU that is equal
+to the CPU revision contained in release V1.21.
+
+The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
+for the QNICE-FPGA: Just use `dist_kit/q-tris.bit` instead of the
+above-mentioned `dist_kit/qnice.bit`. Or, you can run it regularly as an app
+within the Monitor environment. In this case, compile it and then load it with
+the `M L` command sequence and start Q-TRIS using the address `0x8000`.

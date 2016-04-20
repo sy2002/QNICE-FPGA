@@ -1,17 +1,6 @@
-; Development testbed for a decimal conversion routine
-;
-; * Outputs "NUM_AMOUNT" decimal numbers stored in "Numbers" as ASCII
-;   encoded digits to STDOUT.
-; * As it is hardcoded 16-bit: Always five digits and trailing zeros are shown
-; * Uses a straightforward "divide and modulo" approach and can handle numbers
-;   between 0 and 65535, i.e. the fact that the QNICE CPU works with signed
-;   numbers is ignored for the sake of having the full 16-bit range.
-; * Originally developed for being used in demos/q-tris.asm for displaying
-;   current level, completed lines and score.
-;
-; Two subroutines can be extracted from this testbed:
-;    DIV_AND_MODULO: 16-bit integer division with modulo
-;    MAKE_DECIMAL: the actual decimal conversion routine
+; Development testbed for the very simple and ignorant MUL routine
+; that is used by q-tris.asm. Uses the routines from decimal.asm for being
+; able to print the results.
 ;
 ; done by sy2002 in February 2016
 
@@ -22,25 +11,45 @@
 
                 RBRA    START, 1
 
-NUM_AMOUNT      .EQU    20
-Numbers         .DW     0, 1, 2, 3, 4, 5, 6, 7, 8, 9
-                .DW     10, 100, 1000, 10000
-                .DW     32768, 32767, 32769
-                .DW     65534, 65535
-                .DW     23976
+AMOUNT          .EQU    22
+
+Factors         .DW     0, 0
+                .DW     0, 1
+                .DW     1, 0
+                .DW     0, 60000
+                .DW     60000, 0                
+                .DW     1, 1
+                .DW     2, 2
+                .DW     10, 10                
+                .DW     20, 20
+                .DW     5, 100
+                .DW     75, 75                  ; 5625
+                .DW     10000, 1
+                .DW     1, 10000
+                .DW     125, 200                ; 25000
+                .DW     35000, 1
+                .DW     20, 1900                ; 38000
+                .DW     1, 39000
+                .DW     2, 20000
+                .DW     200, 250                ; 50000
+                .DW     55000, 1
+                .DW     1, 58000
+                .DW     13107, 5                ; 65535
 
 Result_Buffer   .BLOCK 5
 New_Line        .ASCII_W "\n"
 
-
-START           MOVE    NUM_AMOUNT, R0
-                MOVE    Numbers, R1             
+START           MOVE    AMOUNT, R0
+                MOVE    Factors, R1             
                 MOVE    New_Line, R2
                 MOVE    0x30, R3                ; R3 = 0x30 = ASCII "0"
                 MOVE    5, R4                   ; R4 = hardcoded 5 digits
                 MOVE    1, R5                   ; R5 = 1 (for looping)                
 
-NEXT_NUM        MOVE    @R1++, R8               ; retrieve current number
+NEXT_NUM        MOVE    @R1++, R8               ; retrieve first factor
+                MOVE    @R1++, R9               ; retrieve second factor
+                RSUB    MUL, 1                  ; unsigned multiply (low only)
+                MOVE    R10, R8
                 MOVE    Result_Buffer, R9       ; store resulting digits in R9
                 RSUB    MAKE_DECIMAL, 1         ; perform decimal conversion
 
@@ -58,6 +67,42 @@ NEXT_DIGIT      MOVE    @R9++, R8               ; retrieve digit
                 RBRA    NEXT_NUM, !Z
 
                 SYSCALL(exit, 1)
+
+
+; ****************************************************************************
+; MUL
+;   16-bit integer multiplication, that only calculates the low-word of the
+;   multiplication, i.e. (factor 1 x factor 2) needs to be smaller than
+;   65535, otherwise the result wraps around. The factors as well as the
+;   result are treated as unsigned.
+;   Input:
+;      R8: factor 1
+;      R9: factor 2
+;   Output:
+;      R10: low word of (factor 1 x factor 2)
+; ****************************************************************************
+
+MUL             INCRB
+
+                XOR     R10, R10                ; result = 0
+                CMP     R10, R8                 ; if factor 1 = 0 ...
+                RBRA    _MUL_RET, Z             ; ... then the result is 0
+
+                MOVE    R8, R0                  ; counter for repeated adding
+                MOVE    1, R1                   ; R1 = 1
+                XOR     R2, R2                  ; R2 = 0
+
+_MUL_LOOP       ADD     R9, R10                 ; multiply by rep. additions
+                SUB     R1, R0                  ; are we done?
+                RBRA    _MUL_COR_OFS, V         ; yes due to overflow: return
+                CMP     R2, R0                  ; are we done?
+                RBRA    _MUL_RET, Z             ; yes due to counter = 0
+                RBRA    _MUL_LOOP, 1
+
+_MUL_COR_OFS    SUB     R9, R10                 ; we added one time too often
+
+_MUL_RET        DECRB
+                RET
 
 ; ****************************************************************************
 ; MAKE_DECIMAL

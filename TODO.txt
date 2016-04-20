@@ -1,17 +1,21 @@
 HARDWARE:
 
-* CPU BUG: Pre-decrement does not always seem to work. An example of the
-  problem can be found in test_programs/decimal.asm at the two spots marked
-  with "@TODO". After fixing this, correct the source of the test_program
-  and of demos/q-tris.asm
+* Remove ROM and replace by prefilled RAM
 
-* remove ROM and replace by prefilled RAM
+* Memory management unit (more than 64kWords of RAM/ROM, pages, etc.)
 
-* Improve design to support 100 MHz
+* Interrupt system
+
+* Debugging mechanisms (e.g. single-step mode in hardware)
 
 * Fix tristate problem that slows down CPU by ~50%
 
-* keyboard: remove hardcoded hardcoded 18000
+* Improve design to support 100 MHz
+
+* Keyboard: remove hardcoded hardcoded 18000
+
+* Refactor scancode conversion to be more table/ROM like and less
+  like a huge array of multiplexers
 
 * Add a timer with 0,1us Resolution (10 MHz frequency), so that
   we can measure performance (e.g. against the emulator)
@@ -20,18 +24,20 @@ HARDWARE:
 
 * Refactor TIL and TIL Mask to support 8 digits / 32 bits
 
-* Refactor scancode conversion to be more table/ROM like and less
-  like a huge array of multiplexers
-
 * Refactor Video RAM: avoid inferring two RAMs for video RAM
 
-* single-step-mode in hardware incl. address/data display on 7-segs
+* VGA being able to report the vertical retrace for flicker-free graphics,
+  e.g. for being able to enhance Q-TRIS to work double-buffered and to
+  switch buffers during retrace. And/or for having a good general sync.
+  mechanism. To "report" via register and/or interrupt.
 
 MONITOR and/or STANDARD LIBs:
 
 * Backspace and CTRL-U support in IO$GETS
 
-* Basic mathematical routines * (exists), /, %
+* Basic mathematical routines * (exists), / (from decimal.asm?), % (ditto?)
+
+* Decimal converter (from decimal.asm?)
 
 * 32 bit arithmetic
 
