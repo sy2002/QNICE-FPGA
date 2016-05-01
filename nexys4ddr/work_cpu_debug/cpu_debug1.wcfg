@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="Z:/Documents/Privat/GNR/dev/QNICE-FPGA/nexys4ddr/work_cpu_debug/test_cpu_debug_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="cpu_constants" />
+            <top_module name="env1_globals" />
+            <top_module name="math_real" />
+            <top_module name="numeric_std" />
+            <top_module name="std_logic_1164" />
+            <top_module name="std_logic_arith" />
+            <top_module name="std_logic_unsigned" />
+            <top_module name="test_cpu_debug" />
+            <top_module name="textio" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="31" />
+   <wvobject fp_name="/test_cpu_debug/uut/slow_clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">slow_clock</obj_property>
+      <obj_property name="ObjectShortName">slow_clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/cpu_state" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">cpu_state</obj_property>
+      <obj_property name="ObjectShortName">cpu_state</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/cpu_state_next" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">cpu_state_next</obj_property>
+      <obj_property name="ObjectShortName">cpu_state_next</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/addr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">addr[15:0]</obj_property>
+      <obj_property name="ObjectShortName">addr[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data[15:0]</obj_property>
+      <obj_property name="ObjectShortName">data[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/wait_for_data" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">wait_for_data</obj_property>
+      <obj_property name="ObjectShortName">wait_for_data</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/data_dir" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">data_dir</obj_property>
+      <obj_property name="ObjectShortName">data_dir</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/data_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">data_valid</obj_property>
+      <obj_property name="ObjectShortName">data_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/pc" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pc[15:0]</obj_property>
+      <obj_property name="ObjectShortName">pc[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/sr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">sr[15:0]</obj_property>
+      <obj_property name="ObjectShortName">sr[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/sp" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">sp[15:0]</obj_property>
+      <obj_property name="ObjectShortName">sp[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/instruction" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">instruction[15:0]</obj_property>
+      <obj_property name="ObjectShortName">instruction[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/opcode" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">opcode[3:0]</obj_property>
+      <obj_property name="ObjectShortName">opcode[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="group28" type="group">
+      <obj_property name="label">fsm</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsmdatatobus" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsmdatatobus[15:0]</obj_property>
+         <obj_property name="ObjectShortName">fsmdatatobus[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsmcpuaddr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsmcpuaddr[15:0]</obj_property>
+         <obj_property name="ObjectShortName">fsmcpuaddr[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsmnextcpustate" type="other" db_ref_id="1">
+         <obj_property name="ElementShortName">fsmnextcpustate</obj_property>
+         <obj_property name="ObjectShortName">fsmnextcpustate</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsmcpudatadirctrl" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fsmcpudatadirctrl</obj_property>
+         <obj_property name="ObjectShortName">fsmcpudatadirctrl</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsmcpudatavalid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fsmcpudatavalid</obj_property>
+         <obj_property name="ObjectShortName">fsmcpudatavalid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsmpc" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsmpc[15:0]</obj_property>
+         <obj_property name="ObjectShortName">fsmpc[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsmsr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsmsr[15:0]</obj_property>
+         <obj_property name="ObjectShortName">fsmsr[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsmsp" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsmsp[15:0]</obj_property>
+         <obj_property name="ObjectShortName">fsmsp[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsminstruction" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsminstruction[15:0]</obj_property>
+         <obj_property name="ObjectShortName">fsminstruction[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsm_reg_read_addr1" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsm_reg_read_addr1[3:0]</obj_property>
+         <obj_property name="ObjectShortName">fsm_reg_read_addr1[3:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsm_reg_read_addr2" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsm_reg_read_addr2[3:0]</obj_property>
+         <obj_property name="ObjectShortName">fsm_reg_read_addr2[3:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsm_reg_write_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsm_reg_write_addr[3:0]</obj_property>
+         <obj_property name="ObjectShortName">fsm_reg_write_addr[3:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsm_reg_write_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsm_reg_write_data[15:0]</obj_property>
+         <obj_property name="ObjectShortName">fsm_reg_write_data[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsm_reg_write_en" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fsm_reg_write_en</obj_property>
+         <obj_property name="ObjectShortName">fsm_reg_write_en</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsmsrc_value" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsmsrc_value[15:0]</obj_property>
+         <obj_property name="ObjectShortName">fsmsrc_value[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/fsmdst_value" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fsmdst_value[15:0]</obj_property>
+         <obj_property name="ObjectShortName">fsmdst_value[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/alu_result" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">alu_result[15:0]</obj_property>
+      <obj_property name="ObjectShortName">alu_result[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="group62" type="group">
+      <obj_property name="label">ALU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/opcode" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">opcode[3:0]</obj_property>
+         <obj_property name="ObjectShortName">opcode[3:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/input1" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">input1[15:0]</obj_property>
+         <obj_property name="ObjectShortName">input1[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/input2" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">input2[15:0]</obj_property>
+         <obj_property name="ObjectShortName">input2[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/c_in" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">c_in</obj_property>
+         <obj_property name="ObjectShortName">c_in</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/x_in" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">x_in</obj_property>
+         <obj_property name="ObjectShortName">x_in</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/result" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">result[15:0]</obj_property>
+         <obj_property name="ObjectShortName">result[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/x" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">x</obj_property>
+         <obj_property name="ObjectShortName">x</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/c" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">c</obj_property>
+         <obj_property name="ObjectShortName">c</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/z" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">z</obj_property>
+         <obj_property name="ObjectShortName">z</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/n" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">n</obj_property>
+         <obj_property name="ObjectShortName">n</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/v" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">v</obj_property>
+         <obj_property name="ObjectShortName">v</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/res" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">res[16:0]</obj_property>
+         <obj_property name="ObjectShortName">res[16:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/r_sub" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">r_sub[16:0]</obj_property>
+         <obj_property name="ObjectShortName">r_sub[16:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/shifter_result" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">shifter_result[15:0]</obj_property>
+         <obj_property name="ObjectShortName">shifter_result[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/shifter_c_out" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">shifter_c_out</obj_property>
+         <obj_property name="ObjectShortName">shifter_c_out</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cpu/QNICE_ALU/shifter_x_out" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">shifter_x_out</obj_property>
+         <obj_property name="ObjectShortName">shifter_x_out</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/src_regno" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">src_regno[3:0]</obj_property>
+      <obj_property name="ObjectShortName">src_regno[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/src_mode" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">src_mode[1:0]</obj_property>
+      <obj_property name="ObjectShortName">src_mode[1:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/src_value" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">src_value[15:0]</obj_property>
+      <obj_property name="ObjectShortName">src_value[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/dst_regno" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">dst_regno[3:0]</obj_property>
+      <obj_property name="ObjectShortName">dst_regno[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/dst_mode" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">dst_mode[1:0]</obj_property>
+      <obj_property name="ObjectShortName">dst_mode[1:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/dst_value" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">dst_value[15:0]</obj_property>
+      <obj_property name="ObjectShortName">dst_value[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/bra_mode" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bra_mode[1:0]</obj_property>
+      <obj_property name="ObjectShortName">bra_mode[1:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/bra_neg" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bra_neg</obj_property>
+      <obj_property name="ObjectShortName">bra_neg</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/bra_condition" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bra_condition[2:0]</obj_property>
+      <obj_property name="ObjectShortName">bra_condition[2:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/reg_read_addr1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_read_addr1[3:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_read_addr1[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/reg_read_addr2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_read_addr2[3:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_read_addr2[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/reg_read_data1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_read_data1[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_read_data1[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/reg_read_data2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_read_data2[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_read_data2[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/reg_write_addr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_write_addr[3:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_write_addr[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/cpu/reg_write_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_write_data[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_write_data[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>
