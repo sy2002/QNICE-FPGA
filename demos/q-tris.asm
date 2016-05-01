@@ -61,7 +61,6 @@ MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 MOVE    1, R8                   ; make sure "you win" is shown
                 RBRA    END_GAME_W, 1
 
-
                 ; calculate the position where new Tetrominos emerge from
 CALC_TTR_POS    MOVE    Tetromino_Y, R1
                 MOVE    -8, @R1                 ; y start pos = -8

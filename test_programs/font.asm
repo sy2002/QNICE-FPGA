@@ -17,6 +17,7 @@ START_Y         .EQU 5
                 ; draw y axis legend
                 MOVE    VGA$CR_Y, R0
                 MOVE    VGA$CR_X, R1
+                MOVE    VGA$CHAR, R2                
                 MOVE    START_Y, R3
                 MOVE    START_X, R4             ; one x col. distance between
                 SUB     2, R4                   ; legend and content
