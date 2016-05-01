@@ -17,10 +17,14 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="31" />
-   <wvobject fp_name="/test_cpu_debug/uut/slow_clock" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">slow_clock</obj_property>
-      <obj_property name="ObjectShortName">slow_clock</obj_property>
+   <WVObjectSize size="32" />
+   <wvobject fp_name="/test_cpu_debug/clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test_cpu_debug/uut/mmio_controller/global_state" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">global_state</obj_property>
+      <obj_property name="ObjectShortName">global_state</obj_property>
    </wvobject>
    <wvobject fp_name="/test_cpu_debug/uut/cpu/cpu_state" type="other" db_ref_id="1">
       <obj_property name="ElementShortName">cpu_state</obj_property>

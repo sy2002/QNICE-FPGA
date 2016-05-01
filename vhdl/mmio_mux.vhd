@@ -264,7 +264,9 @@ begin
             
          when gsReset_execute =>
             if reset_counter = RESET_DURATION then
-               fsm_next_global_state <= gsPORE;
+               fsm_next_global_state <= gsRun; -- @TODO: ADDED FOR SIMULATION PURPOSES
+-- @TODO: COMMENTED OUT FOR SIMULATION PURPOSES            
+--               fsm_next_global_state <= gsPORE;
             else
                fsm_reset_counter <= reset_counter + 1;
                fsm_next_global_state <= gsReset_execute;               
@@ -305,13 +307,13 @@ begin
    ram_enable_i <= addr(15)
                    and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8));
                
-   -- generat external RAM/ROM/PORE enable signals
+   -- generate external RAM/ROM/PORE enable signals
    ram_enable <= ram_enable_i;
    rom_enable <= rom_enable_i;
    pore_rom_enable <= pore_rom_enable_i;
    
    -- generate external reset signals
-   reset_pre_pore <= '1' when (global_state = gsReset or global_state = gsReset_execute) else '0';
+   reset_pre_pore <= '1' when (global_state = gsPowerOn or global_state = gsReset or global_state = gsReset_execute) else '0';
    reset_post_pore <= '1' when (global_state = gsPostPoreReset or global_state = gsPostPoreReset_execute) else '0';
 end Behavioral;
 
