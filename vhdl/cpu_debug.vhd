@@ -113,6 +113,19 @@ port (
 );
 end component;
 
+component cycle_counter is
+port (
+   clk      : in std_logic;         -- system clock
+   reset    : in std_logic;         -- async reset
+   
+   -- cycle counter's registers
+   en       : in std_logic;         -- enable for reading from or writing to the bus
+   we       : in std_logic;         -- write to VGA's registers via system's data bus
+   reg      : in std_logic_vector(1 downto 0);     -- register selector
+   data     : inout std_logic_vector(15 downto 0)  -- system's data bus
+);
+end component;
+
 -- multiplexer to control the data bus (enable/disable the different parties)
 component mmio_mux is
 port (
@@ -151,6 +164,9 @@ port (
    uart_en           : out std_logic;
    uart_we           : out std_logic;
    uart_reg          : out std_logic_vector(1 downto 0);
+   cyc_en            : out std_logic;
+   cyc_we            : out std_logic;
+   cyc_reg           : out std_logic_vector(1 downto 0);   
    reset_pre_pore    : out std_logic;
    reset_post_pore   : out std_logic   
 );
@@ -183,6 +199,9 @@ signal vga_reg                : std_logic_vector(3 downto 0);
 signal uart_en                : std_logic;
 signal uart_we                : std_logic;
 signal uart_reg               : std_logic_vector(1 downto 0);
+signal cyc_en                 : std_logic;
+signal cyc_we                 : std_logic;
+signal cyc_reg                : std_logic_vector(1 downto 0);
 signal reset_pre_pore         : std_logic;
 signal reset_post_pore        : std_logic;
 
@@ -262,7 +281,18 @@ begin
          SSEG_AN => SSEG_AN,
          SSEG_CA => SSEG_CA
       );
-
+      
+   -- cycle counter
+   cyc : cycle_counter
+      port map (
+         clk => clk,
+         reset => reset_ctl,
+         en => cyc_en,
+         we => cyc_we,
+         reg => cyc_reg,
+         data => cpu_data
+      );
+      
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
       port map (
@@ -291,6 +321,9 @@ begin
          uart_en => uart_en,
          uart_we => uart_we,
          uart_reg => uart_reg,
+         cyc_en => cyc_en,
+         cyc_we => cyc_we,
+         cyc_reg => cyc_reg,
          reset_pre_pore => reset_pre_pore,
          reset_post_pore => reset_post_pore
       );
