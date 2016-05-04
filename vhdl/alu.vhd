@@ -154,11 +154,7 @@ begin
       end if;
       
       -- N is true if result is < 0
-      if signed(xres(15 downto 0)) < 0 then
-         N <= '1';
-      else
-         N <= '0';
-      end if;
+      N <= xres(15);
       
       -- V is true if adding/subtracting two negative numbers yields a positive
       -- number or if adding/subtracting two positive numbers yields a negative number
