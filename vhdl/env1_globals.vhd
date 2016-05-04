@@ -10,8 +10,10 @@ use IEEE.STD_LOGIC_1164.all;
 package env1_globals is
 
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
-constant ROM_FILE             : string    := "../monitor/monitor.rom";
-constant ROM_SIZE             : natural   := 2840;
+constant ROM_FILE             : string    := "../test_programs/cycle_count.rom";
+constant ROM_SIZE             : natural   := 29;
+--constant ROM_FILE             : string    := "../monitor/monitor.rom";
+--constant ROM_SIZE             : natural   := 2840;
 --constant ROM_FILE             : string    := "../demos/q-tris.rom";
 --constant ROM_SIZE             : natural   := 4542;
 
@@ -31,11 +33,11 @@ constant PORE_ROM_SIZE        : natural   := 457;
 --    HDL: Resource Sharing OFF (was ON)
 --    Xilinx Specific: LUT Combining NO (was AUTO)
 --                     Optimize Privitives ON (was OFF)
-constant SHADOW_REGFILE_SIZE  : natural   := 256;
+constant SHADOW_REGFILE_SIZE  : natural   := 16;
 
 -- size of the block RAM in 16bit words: should be 32768
 -- set to 256 during development for tracability during simulation
-constant BLOCK_RAM_SIZE       : natural   := 32768;
+constant BLOCK_RAM_SIZE       : natural   := 256;
 
 -- VGA screen memory (should be a multiple of 80x40 = 3.200)
 constant VGA_RAM_SIZE         : natural   := 64000;

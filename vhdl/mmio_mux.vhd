@@ -61,6 +61,11 @@ port (
    kbd_we            : out std_logic;
    kbd_reg           : out std_logic_vector(1 downto 0);
    
+   -- Cycle counter regsiter range $FF17..$FF1A
+   cyc_en            : out std_logic;
+   cyc_we            : out std_logic;
+   cyc_reg           : out std_logic_vector(1 downto 0);
+   
    -- UART register range $FF20..$FF23
    uart_en           : out std_logic;
    uart_we           : out std_logic;
@@ -107,6 +112,7 @@ type global_state_type is
 constant RESET_COUNTER_BTS    : natural := integer(ceil(log2(real(RESET_DURATION))));
 
 signal global_state           : global_state_type := gsPowerOn;
+--signal global_state           : global_state_type := gsRun; --@TODO debugging only
 
 signal debounced_hw_reset     : std_logic;
 signal reset_ctl              : std_logic;
@@ -117,12 +123,12 @@ signal fsm_next_global_state  : global_state_type;
 signal fsm_reset_counter      : unsigned(RESET_COUNTER_BTS downto 0);
 
 
-begin
+begin   
 
    -- TIL register base is FF10
    -- writing to base equals register0 equals the actual value
    -- writing to register1 (FF11) equals the mask
-   til_control : process (addr, data_dir, data_valid)
+   til_control : process(addr, data_dir, data_valid)
    begin
       if addr(15 downto 4) = x"FF1" and data_dir = '1' and data_valid = '1' then
       
@@ -167,13 +173,37 @@ begin
          kbd_en <= '1';
          kbd_we <= data_dir and data_valid;
          kbd_reg <= "00";
-      end if;
-      
-      if addr = x"FF14" then
+      elsif addr = x"FF14" then
          kbd_en <= '1';
          kbd_we <= data_dir and data_valid;
          kbd_reg <= "01";
       end if;      
+   end process;
+   
+   -- Cycle counter starts at FF17
+   cyc_control : process(addr, data_dir, data_valid)
+   begin
+      cyc_en <= '0';
+      cyc_we <= '0';
+      cyc_reg <= "00";
+      
+      if addr = x"FF17" then
+         cyc_en <= '1';
+         cyc_we <= data_dir and data_valid;
+         cyc_reg <= "00";
+      elsif addr = x"FF18" then
+         cyc_en <= '1';
+         cyc_we <= data_dir and data_valid;
+         cyc_reg <= "01";
+      elsif addr = x"FF19" then
+         cyc_en <= '1';
+         cyc_we <= data_dir and data_valid;
+         cyc_reg <= "10";
+      elsif addr = x"FF1A" then
+         cyc_en <= '1';
+         cyc_we <= data_dir and data_valid;
+         cyc_reg <= "11";
+      end if;
    end process;
    
    -- VGA starts at FF00
@@ -225,7 +255,7 @@ begin
    -- debounce the reset button
    reset_btn_debouncer : debounce
       generic map (
-         counter_size => 19
+         counter_size => 18            -- @TODO change to 19 when running with 100 MHz
       )
       port map (
          clk => CLK,
@@ -264,7 +294,9 @@ begin
             
          when gsReset_execute =>
             if reset_counter = RESET_DURATION then
-               fsm_next_global_state <= gsPORE;
+               fsm_next_global_state <= gsRun; -- @TODO: ADDED FOR SIMULATION PURPOSES
+-- @TODO: COMMENTED OUT FOR SIMULATION PURPOSES            
+--               fsm_next_global_state <= gsPORE;
             else
                fsm_reset_counter <= reset_counter + 1;
                fsm_next_global_state <= gsReset_execute;               
@@ -305,13 +337,13 @@ begin
    ram_enable_i <= addr(15)
                    and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8));
                
-   -- generat external RAM/ROM/PORE enable signals
+   -- generate external RAM/ROM/PORE enable signals
    ram_enable <= ram_enable_i;
    rom_enable <= rom_enable_i;
    pore_rom_enable <= pore_rom_enable_i;
    
    -- generate external reset signals
-   reset_pre_pore <= '1' when (global_state = gsReset or global_state = gsReset_execute) else '0';
+   reset_pre_pore <= '1' when (global_state = gsPowerOn or global_state = gsReset or global_state = gsReset_execute) else '0';
    reset_post_pore <= '1' when (global_state = gsPostPoreReset or global_state = gsPostPoreReset_execute) else '0';
 end Behavioral;
 

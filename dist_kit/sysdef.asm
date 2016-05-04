@@ -1,10 +1,11 @@
 ;;
-;;  sysdef.asm: This file contains the necessary definitions for the simple QNICE-monitor.
+;;  sysdef.asm: This file contains definitions to simplify assembler programming
+;;              and for accessing the various hardware registers via MMIO
 ;;
 
 ;
 ;***************************************************************************************
-;*  Some assembler macros which make life much easier:
+;*  Assembler macros which make life much easier:
 ;***************************************************************************************
 ;
 #define RET     MOVE    @R13++, R15
@@ -23,11 +24,12 @@
 
 ;
 ;***************************************************************************************
-;* Some constant definitions
+;* Constant definitions
 ;***************************************************************************************
 ;
 
 ; ========== VGA ==========
+
 VGA$MAX_X               .EQU    79                      ; Max. X-coordinate in decimal!
 VGA$MAX_Y               .EQU    39                      ; Max. Y-coordinate in decimal!
 VGA$MAX_CHARS           .EQU    3200                    ; VGA$MAX_X * VGA$MAX_Y
@@ -42,6 +44,11 @@ VGA$COLOR_RED           .EQU    0x0004
 VGA$COLOR_GREEN         .EQU    0x0002
 VGA$COLOR_BLUE          .EQU    0x0001
 VGA$COLOR_WHITE         .EQU    0x0007
+
+; ========== CYCLE COUNTER ==========
+
+CYC$RESET               .EQU    0x0001                  ; Reset cycle counter
+CYC$RUN                 .EQU    0x0002                  ; Start/stop counter
 
 ; ========== KEYBOARD ==========
 
@@ -126,13 +133,22 @@ KBD$CTRL_Y              .EQU    0x0019
 KBD$CTRL_Z              .EQU    0x001A 
 
 ;
+;  Useful ASCII constants:
+;
+CHR$BELL        .EQU 0x0007 ; ASCII-BELL character
+CHR$TAB         .EQU 0x0009 ; ASCII-TAB character
+CHR$SPACE       .EQU 0x0020 ; ASCII-Space
+CHR$CR          .EQU 0x000d ; Carriage return
+CHR$LF          .EQU 0x000a ; Line feed
+
+;
 ;***************************************************************************************
 ;*  IO-page addresses:
 ;***************************************************************************************
 ;
 IO$BASE             .EQU 0xFF00
 ;
-; VGA-registers:
+;  VGA-registers:
 ;
 VGA$STATE           .EQU 0xFF00 ; VGA status register
     ; Bits 11-10: Hardware scrolling / offset enable: Bit #10 enables the use
@@ -163,16 +179,16 @@ VGA$OFFS_RW         .EQU 0xFF05 ; Offset in bytes that is used, when you read
                                 ; Active, when bit #11 in VGA$STATE is set.
 
 ;
-; Registers for TIL-display:
+;  Registers for TIL-display:
 ;
 IO$TIL_DISPLAY  .EQU 0xFF10 ; Address of TIL-display
 IO$TIL_MASK     .EQU 0xFF11 ; Mask register of TIL display
 ;
-; Switch-register:
+;  Switch-register:
 ;
 IO$SWITCH_REG   .EQU 0xFF12 ; 16 binary keys
 ;
-; USB-keyboard-registers:
+;  USB-keyboard-registers:
 ;
 IO$KBD_STATE    .EQU 0xFF13 ; Status register of USB keyboard
 ;    Bit  0 (read only):      New ASCII character avaiable for reading
@@ -183,22 +199,26 @@ IO$KBD_STATE    .EQU 0xFF13 ; Status register of USB keyboard
 ;                             001 = German layout, others: reserved for more locales
 ;    Bits 5..7 (read only):   Modifiers: 5 = shift, 6 = alt, 7 = ctrl
 ;                             Only valid, when bits 0 and/or 1 are '1'
-
+;
 IO$KBD_DATA     .EQU 0xFF14 ; Data register of USB keyboard
 ;    Contains the ASCII character in bits 7 downto 0  or the special key code
 ;    in 15 downto 0. The "or" is meant exclusive, i.e. it cannot happen that
 ;    one transmission contains an ASCII character PLUS a special character.
 ;
+;  CYCLE-COUNT-registers       
+;
+IO$CYC_LO       .EQU 0xFF17     ; low word of 48-bit counter
+IO$CYC_MID      .EQU 0xFF18     ; middle word of 48-bit counter
+IO$CYC_HI       .EQU 0xFF19     ; high word of 48-bit counter
+IO$CYC_STATE    .EQU 0xFF1A     ; status register
+;    Bit  0 (write only):     Reset counter to zero and start counting, i.e.
+;                             bit 1 is automatically set to 1 when resetting
+;    Bit  1 (read/write):     Start/stop counter
+;   
+
 ;  UART-registers:
 ;
 IO$UART_SRA     .EQU 0xFF21 ; Status register (relative to base address)
 IO$UART_RHRA    .EQU 0xFF22 ; Receiving register (relative to base address)
 IO$UART_THRA    .EQU 0xFF23 ; Transmitting register (relative to base address)
-;
-;  Some useful constants:
-;
-CHR$BELL        .EQU 0x0007 ; ASCII-BELL character
-CHR$TAB         .EQU 0x0009 ; ASCII-TAB character
-CHR$SPACE       .EQU 0x0020 ; ASCII-Space
-CHR$CR          .EQU 0x000d ; Carriage return
-CHR$LF          .EQU 0x000a ; Line feed
+

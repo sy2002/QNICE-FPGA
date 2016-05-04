@@ -1,12 +1,14 @@
 ; Block RAM test that includes running an application from RAM
-; done by sy2002 in August 2015
+; initially done by sy2002 in August 2015
+; reused/enhanced/modified for fixing the TriState issue in May 2016
 
-IO$TIL_BASE     .EQU    0xFF10              ; address of TIL-display
+#include "../dist_kit/sysdef.asm"
+
 RAM_VARIABLE    .EQU    0x8000              ; address of a variable in RAM
-STACK_TOP       .EQU    0x8010              ; top of the stack
-EXE_START       .EQU    0x8011              ; start address of code in RAM
+STACK_TOP       .EQU    0x800F              ; top of the stack
+EXE_START       .EQU    0x8010              ; start address of code in RAM
 
-                .ORG    0x8000
+                .ORG    0x0000
 
                 ; copy source code to RAM to execute it there
                 ; this tests multiple things, also, if relative jumps
@@ -35,7 +37,7 @@ COPY_CODE       MOVE @R1++, @R2++           ; copy from src to dst
                 ; it should show 0x2309 on the TIL on success as it calculates
                 ; 0x22DD + 0x11 + 0x9 + 0x9 + 0x9 = 0x2309
 
-CODE_START      MOVE IO$TIL_BASE, R12       ; TIL display address
+CODE_START      MOVE IO$TIL_DISPLAY, R12    ; TIL display address
                 MOVE RAM_VARIABLE, R0       ; address of a variable in RAM
                 MOVE STACK_TOP, R13         ; setup stack pointer
 
@@ -59,5 +61,5 @@ CODE_START      MOVE IO$TIL_BASE, R12       ; TIL display address
 
                 HALT
 
-ADD_IT          ADD 0x0009, @R0             ; add 9 to BRAM's 0x8000
+ADD_IT          ADD 0x0009, @R0             ; add 9 to BRAMs 0x8000
 CODE_END        MOVE @R13++, R15            ; return from sub routine
