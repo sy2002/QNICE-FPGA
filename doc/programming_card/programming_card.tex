@@ -1,0 +1,300 @@
+\documentclass{leaflet}
+\usepackage{longtable}
+\begin{document}
+ \title{QNICE programming card}
+ \maketitle
+%
+ \section{General}
+  QNICE is a 16 bit processor featuring four addressing modes, 16 registers and
+  a 16 bit address space of 16 bit words, the upper 1 kW page is reserved for
+  memory mapped I/O.
+%
+ \section{Registers}
+  All in all there are 16 general purpose registers (\emph{GPR}s) available:
+  \begin{center}
+   \begin{longtable}{|c|c|c||c|c|c|c|c|}
+    \hline
+    {\tt R0}&\dots&{\tt R7}&{\tt R8}&\dots&{\tt R13}&{\tt R14}&{\tt R15}\\
+    \hline
+   \end{longtable}
+  \end{center}
+  \begin{description}
+   \item [\texttt{R0}\dots\texttt{R7}:] General purpose registers, actually 
+    these are a window into a register bank holding $256\times 8$ such 
+    registers.
+   \item [\texttt{R13}:] Stack pointer (\texttt{SP}).
+   \item [\texttt{R14}:] Statusregister (\texttt{SR}).
+   \item [\texttt{R15}:] Program counter (\texttt{PC}).
+  \end{description}
+%
+  \subsection{\texttt{SR}}
+   \begin{center}
+    \begin{longtable}{|c||c|c|c|c|c|c|c|c|}
+     \hline
+     {\tt rbank}&
+     {\tt M}&{\tt I}&{\tt V}&{\tt N}&{\tt Z}&{\tt C}&{\tt X}&{\tt 1}\\
+     \hline
+    \end{longtable}
+   \end{center}
+    \begin{description}
+     \item [{\tt 1}:] Always set to 1
+     \item [{\tt X}:] 1 if the last result was {\tt 0xFFFF}
+     \item [{\tt C}:] Carry flag
+     \item [{\tt Z}:] 1 if the last result was {\tt 0x0000}
+     \item [{\tt N}:] 1 if the last result was negative
+     \item [{\tt V}:] 1 if the last operation caused an overflow
+     \item [{\tt I}:] 1 if an interrupt occured
+     \item [{\tt M}:] If set to 1, maskable interrupts are allowed
+    \end{description}
+    The upper eight bits of \texttt{SR} hold the pointer to the register
+    window. Changing the value stored here will yield a different set of 
+    GPRs \texttt{R0}\dots\texttt{R7} which is especially useful for subroutine
+    calls.
+%
+ \section{Instruction Set}
+  QNICE features 14 basic instructions, four jump/branch instructions, and 
+  four adressing modes.
+%
+  \subsection{Basic Instructions}
+   \begin{center}
+    \begin{longtable}{|c||c|c||c|c|}
+     \hline
+     4 bit&4 bit&2 bit&4 bit&2 bit\\
+     {\tt opcode}&{\tt src rxx}&{\tt src mode}&
+     {\tt dst rxx}&{\tt dst mode}\\
+     \hline
+    \end{longtable}
+   \end{center}
+   {\scriptsize
+    \begin{center}
+     \begin{longtable}{|c|ll|l|}
+      \hline
+       Opc&Instr&Operands&Effect\\
+      \hline
+       {\tt 0}&{\tt MOVE}&{\tt src, dst}&{\tt dst := src}\\
+       {\tt 1}&{\tt ADD}&{\tt src, dst}&{\tt dst := dst + src}\\
+       {\tt 2}&{\tt ADDC}&{\tt src, dst}&{\tt dst := dst + src + C}\\
+       {\tt 3}&{\tt SUB}&{\tt src, dst}&{\tt dst := dst - src}\\
+       {\tt 4}&{\tt SUBC}&{\tt src, dst}&{\tt dst := dst - src - C}\\
+       {\tt 5}&{\tt SHL}&{\tt src, dst}&{\tt dst << src}, fill with X, shift to C\\
+       {\tt 6}&{\tt SHR}&{\tt src, dst}&{\tt dst >> src}, fill with C, shift to X\\
+       {\tt 7}&{\tt SWAP}&{\tt src, dst}&{\tt dst := ((src << 8) \& 0xFF00) |}\\
+              &          &              &{\tt ((src >> 8) \& 0xFF)}\\
+       {\tt 8}&{\tt NOT}&{\tt src, dst}&{\tt dst := !src}\\
+       {\tt 9}&{\tt AND}&{\tt src, dst}&{\tt dst := dst \& src}\\
+       {\tt A}&{\tt OR}&{\tt src, dst}&{\tt dst := dst | src}\\
+       {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
+       {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\
+       {\tt D}&&&reserved\\
+       {\tt E}&{\tt HALT}&&Halt the processor\\
+       {\tt D}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
+       {\tt D}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
+       {\tt D}&{\tt RBRA}&{\tt dest, [!]cond}&Relative branch\\
+       {\tt D}&{\tt RSUB}&{\tt dest, [!]cond}&Relative subroutine call\\
+      \hline
+     \end{longtable}
+    \end{center}
+   }
+%
+  \subsection{Jumps and Branches}
+   {\scriptsize
+    \begin{center}
+     \begin{longtable}{|c||c|c||c||c|c|}
+      \hline
+      4 bit&4 bit&2 bit&2 bit&1 bit&3 bit\\
+      &     &     &     &{\tt negate}&{\tt select}\\
+      {\tt opcode}&{\tt src rxx}&{\tt src mode}&
+      {\tt mode}&{\tt condition}&{\tt condition}\\
+      \hline
+     \end{longtable}
+    \end{center}
+   }
+%
+  \subsection{Addressing Modes}
+   {\scriptsize
+    \begin{center}
+     \begin{longtable}{|c|l|l|}
+      \hline
+       Mode bits&Notation&Description\\
+      \hline
+       {\tt 00}&{\tt Rxx}&Use Rxx as operand\\
+       {\tt 01}&{\tt @Rxx}&Use the memory cell addressed by\\
+               &          &the contents of Rxx as operand\\
+       {\tt 10}&{\tt @Rxx++}&Use the memory cell addressed by\\
+               &          &the contents of Rxx as operand and\\
+               &          &then increment Rxx\\
+       {\tt 11}&{\tt @--Rxx}&Decrement Rxx and then use the\\
+               &          &memory cell addressed by Rxx as\\
+               &          &operand\\
+      \hline
+     \end{longtable}
+    \end{center}
+   }
+%
+  \subsection{Shortcuts}
+   The file \texttt{sysdef.asm} (part of the monitor) defines some shortcuts
+   which facilitate write- and readability of QNICE assembler code:
+   \begin{center}
+    \begin{longtable}{|l|l|}
+     \hline
+      Shortcut&Implementation\\
+     \hline
+      \texttt{RET}&\texttt{MOVE @R13++, R15}\\
+      \texttt{INCRB}&\texttt{ADD 0x0100, R14}\\
+      \texttt{DECRB}&\texttt{SUB 0x0100, R14}\\
+      \texttt{NOP}&\texttt{ABRA R15, 1}\\
+      \texttt{SYSCALL(x, y)}&\texttt{ASUB x, y}\\
+     \hline
+    \end{longtable}
+   \end{center}
+   \texttt{sysdef.asm} also defines three shortcuts \texttt{SP}, \texttt{SR},
+   and \texttt{PC} for \texttt{R13}, \texttt{R14}, and \texttt{R15}.
+%
+ \section{Input/Output}
+  I/O devices are memory mapped, their respective control and data registers 
+  occupy the topmost 1 kW memory page.
+\pagebreak
+  {\scriptsize
+   \begin{center}
+    \begin{longtable}{|l|l|l|}
+     \hline
+     Label&Address&Description\\
+     \hline
+     \hline
+     \texttt{IO\$BASE}&\texttt{0xFF00}&Start of I/O area\\
+     \hline
+     \texttt{VGA\$STATE}&\texttt{0xFF00}&VGA status register\\
+     \texttt{VGA\$CR\_X}&\texttt{0xFF01}&Cursor X-position\\
+     \texttt{VGA\$CR\_Y}&\texttt{0xFF02}&Cursor y-position\\
+     \texttt{VGA\$CHAR}&\texttt{0xFF03}&Character code\\
+     \texttt{VGA\$OFFS\_DISPLAY}&\texttt{0xFF04}&Display RAM offset\\
+     \texttt{VGA\$OFFS\_RW}&\texttt{0xFF05}&R/W RAM offset\\
+     \hline
+     \texttt{IO\$TIL\_DISPLAY}&\texttt{0xFF10}&TIL-display\\
+     \texttt{IO\$TIL\_MASK}&\texttt{0xFF11}&Mask register\\
+     \hline
+     \texttt{IO\$SWITCH\_REG}&\texttt{0xFF12}&Switch register\\
+     \hline
+     \texttt{IO\$KBD\_STATE}&\texttt{0xFF13}&USB-keyboard state\\
+     \texttt{IO\$KBD\_DATA}&\texttt{0xFF14}&USB-keyboard data\\
+     \hline
+     \texttt{IO\$CYC\_LO}&\texttt{0xFF17}&Cycle counter low\\
+     \texttt{IO\$CYC\_MID}&\texttt{0xFF18}&Cycle counter middle\\
+     \texttt{IO\$CYC\_HI}&\texttt{0xFF19}&Cycle counter high\\
+     \texttt{IO\$CYC\_STATE}&\texttt{0xFF1A}&Cycle counter status\\
+     \hline
+     \texttt{IO\$UART\_SRA}&\texttt{0xFF21}&UART status register\\
+     \texttt{IO\$UART\_RHRA}&\texttt{0xFF22}&UART receive register\\
+     \texttt{IO\$UART\_THRA}&\texttt{0xFF23}&UART receive register\\
+     \hline
+    \end{longtable}
+   \end{center}
+  }
+%
+  \subsection{VGA Controller}
+   \subsubsection{\texttt{VGA\$STATE Bits}}
+    \begin{center}
+     \begin{longtable}{|l|l|}
+      \hline
+      Bit&Description\\
+      \hline
+      11&Enable R/W offset register if set.\\
+      10&Enable display offset register if set.\\
+      9&Busy (wait for 0 before issuing command).\\
+      8&Clear screen (set until completion).\\
+      7&Enable VGA controller.\\
+      6&Enable hardware cursor.\\
+      5&Enable hardware cursor blinking.\\
+      4&Hardware cursor mode:\\
+       &Small if set, large if cleared.\\
+      2\dots 0&Display color (RGB).\\
+      \hline
+     \end{longtable}
+    \end{center}
+   \subsubsection{\texttt{VGA\$CR\_X}}
+    Set this register to the X coordinate for the next character to be 
+    displayed.
+   \subsubsection{\texttt{VGA\$CR\_Y}}
+    Y coordinate for the next character to be displayed.
+   \subsubsection{\texttt{VGA\$CHAR}}
+    Writing a byte to this register causes it to be displayed on the current
+    X/Y coordinate on the screen. Reading from this register yields the 
+    character at the current display coordinate.
+   \subsubsection{\texttt{VGA\$OFFS\_DISPLAY}}
+    This register holds the offset in bytes that is to be used when displaying
+    the video RAM. To scroll one line forward, simply add \texttt{0x0050} to 
+    this register. For this to work, bit 10 in \texttt{VGA\$STATE} has to be
+    set.
+   \subsubsection{\texttt{VGA\$OFFS\_RW}}
+    Similar to \texttt{VGA\$OFFS\_DISPLAY} -- controls the offset for 
+    read/write accesses to the display memory.
+  \subsection{USB-Keyboard}
+   \subsubsection{\texttt{IO\$KBD\_STATE}}
+    \begin{center}
+     \begin{longtable}{|l|l|}
+      \hline
+       Bit&Description\\
+      \hline
+       0&Set if an unread character is available.\\
+       1&Function/cursor/\dots key pressed.\\
+        &The value is stored in bits \texttt{15\dots8}.\\
+       2\dots 4&Keyboard layout:\\
+        &\texttt{000}: US keyboard\\
+        &\texttt{001}: German keyboard\\
+       5\dots 7&Key modifier bit mask:\\
+        &5: shift, 6: alt, 7: ctrl\\
+      \hline
+     \end{longtable}
+    \end{center}
+   \subsection{Cycle Counter}
+    \subsubsection{\texttt{CYC\$STATE}}
+     \begin{center}
+      \begin{longtable}{|l|l|}
+       \hline
+        Bit&Description\\
+       \hline
+        0&Reset counter and start counting.\\
+        1&1: count, 0: inhibit\\
+       \hline
+      \end{longtable}
+     \end{center}
+%
+  \subsection{UART}
+   \subsubsection{\texttt{IO\$UART\_SRA}}
+    \begin{center}
+     \begin{longtable}{|l|l|}
+      \hline
+       Bit&Description\\
+      \hline
+       0&Character received.\\
+       1&Transmitter ready for next character.\\
+      \hline
+     \end{longtable}
+    \end{center}
+%
+ \section{Code Examples}
+  \subsection{Typical Subroutine Call}
+   \begin{verbatim}
+        MOVE ..., R8     ; Setup subroutine 
+                         ; parameters
+        ...
+        RSUB SUBR, 1     ; Call subroutine
+        ...
+SUBR:   ADD 0x0100, R14  ; Get free lower
+                         ; register set
+        ...
+        SUB 0x0100, R14  ; Restore lower
+                         ; register bank
+        MOVE @R13++, R15 ; RET
+   \end{verbatim}
+  \subsection{Compute $\sum_{i=0}{\texttt{0x0010}}$}
+   \begin{verbatim}
+        .ORG 0x8000
+        XOR R0, R0      ; Clear R0
+        MOVE 0x0010, R1 ; Upper limit
+LOOP:   ADD R1, R0      ; One summation
+        SUB 0x0001, R1  ; Decrement i
+        ABRA LOOP, !Z   ; Loop if not zero
+        HALT
+   \end{verbatim}
+\end{document}
