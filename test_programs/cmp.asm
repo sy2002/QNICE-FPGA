@@ -47,7 +47,7 @@
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
-                ; should output 0x0011
+                ; should output 0x0013
                 CMP     0x9001, R0
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
