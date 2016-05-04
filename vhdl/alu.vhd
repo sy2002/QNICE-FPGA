@@ -162,7 +162,8 @@ begin
       
       -- V is true if adding/subtracting two negative numbers yields a positive
       -- number or if adding/subtracting two positive numbers yields a negative number
-      if Opcode = opcADD or Opcode = opcADDC or Opcode = opcSUB or Opcode = opcSUBC then
+      if Opcode = opcADD or Opcode = opcADDC or Opcode = opcSUB or Opcode = opcSUBC or
+         Opcode = opcCMP or Opcode = opcAND or Opcode = opcOR or Opcode = opcXOR then
          if (signed(input1) > 0 and signed(input2) > 0 and signed(xres(15 downto 0)) < 0) or
             (signed(input1) < 0 and signed(input2) < 0 and signed(xres(15 downto 0)) > 0)
          then
