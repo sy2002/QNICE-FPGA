@@ -17,7 +17,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="37" />
+   <WVObjectSize size="36" />
    <wvobject fp_name="/test_cpu_debug/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -33,56 +33,6 @@
    <wvobject fp_name="/test_cpu_debug/uut/cpu/cpu_state_next" type="other" db_ref_id="1">
       <obj_property name="ElementShortName">cpu_state_next</obj_property>
       <obj_property name="ObjectShortName">cpu_state_next</obj_property>
-   </wvobject>
-   <wvobject fp_name="group98" type="group">
-      <obj_property name="label">cyc</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/clk" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">clk</obj_property>
-         <obj_property name="ObjectShortName">clk</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/reset" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">reset</obj_property>
-         <obj_property name="ObjectShortName">reset</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/en" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">en</obj_property>
-         <obj_property name="ObjectShortName">en</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/we" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">we</obj_property>
-         <obj_property name="ObjectShortName">we</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/reg" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">reg[1:0]</obj_property>
-         <obj_property name="ObjectShortName">reg[1:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/data" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">data[15:0]</obj_property>
-         <obj_property name="ObjectShortName">data[15:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/counter" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">counter[47:0]</obj_property>
-         <obj_property name="ObjectShortName">counter[47:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/cycle_is_counting" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">cycle_is_counting</obj_property>
-         <obj_property name="ObjectShortName">cycle_is_counting</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/cycle_reset" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">cycle_reset</obj_property>
-         <obj_property name="ObjectShortName">cycle_reset</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/reset_cycle_reset" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">reset_cycle_reset</obj_property>
-         <obj_property name="ObjectShortName">reset_cycle_reset</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cyc/i_reset" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">i_reset</obj_property>
-         <obj_property name="ObjectShortName">i_reset</obj_property>
-      </wvobject>
    </wvobject>
    <wvobject fp_name="/test_cpu_debug/uut/cpu/addr" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">addr[15:0]</obj_property>
@@ -105,48 +55,6 @@
    <wvobject fp_name="/test_cpu_debug/uut/cpu/data_valid" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">data_valid</obj_property>
       <obj_property name="ObjectShortName">data_valid</obj_property>
-   </wvobject>
-   <wvobject fp_name="group89" type="group">
-      <obj_property name="label">DATA_driver</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/test_cpu_debug/uut/cpu/DATA_driver/i_clk" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">i_clk</obj_property>
-         <obj_property name="ObjectShortName">i_clk</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cpu/DATA_driver/i_dir_ctrl" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">i_dir_ctrl</obj_property>
-         <obj_property name="ObjectShortName">i_dir_ctrl</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cpu/DATA_driver/io_data" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">io_data[15:0]</obj_property>
-         <obj_property name="ObjectShortName">io_data[15:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cpu/DATA_driver/i_data_to_external" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">i_data_to_external[15:0]</obj_property>
-         <obj_property name="ObjectShortName">i_data_to_external[15:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cpu/DATA_driver/o_data_from_external" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">o_data_from_external[15:0]</obj_property>
-         <obj_property name="ObjectShortName">o_data_from_external[15:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cpu/DATA_driver/data_in" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">data_in[15:0]</obj_property>
-         <obj_property name="ObjectShortName">data_in[15:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cpu/DATA_driver/data_out" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">data_out[15:0]</obj_property>
-         <obj_property name="ObjectShortName">data_out[15:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/cpu/DATA_driver/data_width" type="other" db_ref_id="1">
-         <obj_property name="ElementShortName">data_width</obj_property>
-         <obj_property name="ObjectShortName">data_width</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
    </wvobject>
    <wvobject fp_name="group102" type="group">
       <obj_property name="label">rom</obj_property>
@@ -192,8 +100,8 @@
          <obj_property name="ObjectShortName">async_reset</obj_property>
       </wvobject>
       <wvobject fp_name="/test_cpu_debug/uut/rom/brom" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">brom[0:8]</obj_property>
-         <obj_property name="ObjectShortName">brom[0:8]</obj_property>
+         <obj_property name="ElementShortName">brom[0:37]</obj_property>
+         <obj_property name="ObjectShortName">brom[0:37]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/test_cpu_debug/uut/rom/rom_lines" type="other" db_ref_id="1">
@@ -202,8 +110,8 @@
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/test_cpu_debug/uut/rom/file_name" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">file_name[1:32]</obj_property>
-         <obj_property name="ObjectShortName">file_name[1:32]</obj_property>
+         <obj_property name="ElementShortName">file_name[1:25]</obj_property>
+         <obj_property name="ObjectShortName">file_name[1:25]</obj_property>
       </wvobject>
    </wvobject>
    <wvobject fp_name="group127" type="group">
@@ -239,11 +147,6 @@
       <wvobject fp_name="/test_cpu_debug/uut/ram/busy" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">busy</obj_property>
          <obj_property name="ObjectShortName">busy</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/ram/bram" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">bram[0:255]</obj_property>
-         <obj_property name="ObjectShortName">bram[0:255]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/test_cpu_debug/uut/ram/output" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">output[15:0]</obj_property>
@@ -728,6 +631,56 @@
          <obj_property name="ElementShortName">upperregisters[8:12]</obj_property>
          <obj_property name="ObjectShortName">upperregisters[8:12]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group98" type="group">
+      <obj_property name="label">cyc</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/clk" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">clk</obj_property>
+         <obj_property name="ObjectShortName">clk</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/reset" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reset</obj_property>
+         <obj_property name="ObjectShortName">reset</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/en" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">en</obj_property>
+         <obj_property name="ObjectShortName">en</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/we" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">we</obj_property>
+         <obj_property name="ObjectShortName">we</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/reg" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">reg[1:0]</obj_property>
+         <obj_property name="ObjectShortName">reg[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">data[15:0]</obj_property>
+         <obj_property name="ObjectShortName">data[15:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/counter" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">counter[47:0]</obj_property>
+         <obj_property name="ObjectShortName">counter[47:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/cycle_is_counting" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">cycle_is_counting</obj_property>
+         <obj_property name="ObjectShortName">cycle_is_counting</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/cycle_reset" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">cycle_reset</obj_property>
+         <obj_property name="ObjectShortName">cycle_reset</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/reset_cycle_reset" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reset_cycle_reset</obj_property>
+         <obj_property name="ObjectShortName">reset_cycle_reset</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/cyc/i_reset" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">i_reset</obj_property>
+         <obj_property name="ObjectShortName">i_reset</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>

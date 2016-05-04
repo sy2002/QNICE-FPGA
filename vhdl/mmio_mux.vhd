@@ -294,9 +294,9 @@ begin
             
          when gsReset_execute =>
             if reset_counter = RESET_DURATION then
---               fsm_next_global_state <= gsRun; -- @TODO: ADDED FOR SIMULATION PURPOSES
+               fsm_next_global_state <= gsRun; -- @TODO: ADDED FOR SIMULATION PURPOSES
 -- @TODO: COMMENTED OUT FOR SIMULATION PURPOSES            
-               fsm_next_global_state <= gsPORE;
+--               fsm_next_global_state <= gsPORE;
             else
                fsm_reset_counter <= reset_counter + 1;
                fsm_next_global_state <= gsReset_execute;               

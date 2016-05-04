@@ -34,22 +34,6 @@ end QNICE_CPU;
 
 architecture beh of QNICE_CPU is
 
--- TriState buffer/driver
-component TriState_Buffer is
-generic (
-   DATA_WIDTH           : integer range 1 to 32
-);
-port (
-   I_CLK                : in    std_logic;  -- synchronized with bidir bus
-   I_DIR_CTRL           : in    std_logic;  -- 3-state enable input, high=output, low=input
-   
-   IO_DATA              : inout std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to/from external pin on bidir bus
-   
-   I_DATA_TO_EXTERNAL   : in    std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to send over bidir bus
-   O_DATA_FROM_EXTERNAL : out   std_logic_vector(DATA_WIDTH - 1 downto 0)   -- data received over bidir bus 
-);
-end component;
-
 -- QNICE specific register file
 component register_file is
 port (
@@ -130,9 +114,7 @@ signal cpu_state_next      : tCPU_States;
 
 -- CPU i/o signals
 signal ADDR_Bus            : std_logic_vector(15 downto 0) := (others => '0');
-signal DATA_Dir_Ctrl       : std_logic := '0';
 signal DATA_To_Bus         : std_logic_vector(15 downto 0) := (others => '0');
-signal DATA_From_Bus       : std_logic_vector(15 downto 0) := (others => '0');
 
 -- register bank signals for accessing R0 .. R13
 signal reg_read_addr1      : std_logic_vector(3 downto 0) := (others => '0');
@@ -192,27 +174,6 @@ signal Alu_V               : std_logic;
 
 
 begin
-
--- @TODO (priority 2): Completely re-do the Tristate buffer topic. The lenghty wait-state and the #0000 situation when
--- writing are not necessary! As we have enough flip-flops, the Tristate handling can be done in "real-time".
--- as this has probably some pretty far reaching impact, the question is when to implement this. On the other hand,
--- the longer we wait, the bigger the impact will be. Some analysis with some MOVE, ADD & Co indirect @memory read/write
--- scenario will for sure help and create a more clear view.
-
-   -- TriState buffer/driver for the 16 bit DATA bus
-   DATA_driver : TriState_Buffer
-      generic map
-      (
-         DATA_WIDTH => 16
-      )
-      port map
-      (
-         I_CLK       => CLK,
-         I_DIR_CTRL  => DATA_Dir_Ctrl,
-         IO_DATA     => DATA,
-         I_DATA_TO_EXTERNAL => DATA_To_Bus,
-         O_DATA_FROM_EXTERNAL => DATA_From_Bus
-      );
       
    -- Registers
    Registers : register_file
@@ -259,7 +220,6 @@ begin
             DATA_To_Bus <= (others => '0');
             ADDR_Bus <= x"0000";
             DATA_DIR <= '0';
-            DATA_Dir_Ctrl <= '0';
             DATA_VALID <= '0';
             
             SP <= x"0000";
@@ -285,7 +245,6 @@ begin
             DATA_To_Bus <= fsmDataToBus;
             ADDR_Bus <= fsmCpuAddr;
             DATA_DIR <= fsmCpuDataDirCtrl;
-            DATA_Dir_Ctrl <= fsmCpuDataDirCtrl;
             DATA_VALID <= fsmCpuDataValid;
             
             SP <= fsmSP;
@@ -306,7 +265,7 @@ begin
    end process;
    
    fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC,
-                                DATA_To_Bus, DATA_From_Bus, WAIT_FOR_DATA,
+                                DATA, DATA_To_Bus, WAIT_FOR_DATA,
                                 Instruction, Opcode,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
@@ -336,6 +295,7 @@ begin
       -- "what will be the output variables at the NEXT state (after the current state)"
       case cpu_state is
          when cs_reset =>
+            DATA <= (others => 'Z');
             fsmSR <= x"0001";
             fsmPC <= x"0000";
             fsmCpuAddr <= x"0000";
@@ -350,17 +310,19 @@ begin
          when cs_fetch =>
             -- add wait cycles, if necessary (e.g. due to slow RAM)
             if WAIT_FOR_DATA = '1' then
+               DATA <= (others => 'Z');            
                fsmNextCpuState <= cs_fetch;
                
             -- data from bus is available
             else         
-               fsmInstruction <= DATA_From_Bus; -- valid at falling edge
+               fsmInstruction <= DATA; -- valid at falling edge
                fsmPC <= PC + 1;
-               fsm_reg_read_addr1 <= DATA_From_Bus(11 downto 8); -- read Src register number
-               fsm_reg_read_addr2 <= DATA_From_Bus(5 downto 2);  -- rest Dst register number
+               fsm_reg_read_addr1 <= DATA(11 downto 8); -- read Src register number
+               fsm_reg_read_addr2 <= DATA(5 downto 2);  -- rest Dst register number
             end if;
                                     
          when cs_decode =>
+            DATA <= (others => 'Z');         
             -- source and destination values in case of direct register addressing modes
             -- no special handling of SR and PC needed, as this a a read-only activity
             -- and the registerfile contains a convenience function for that
@@ -428,12 +390,13 @@ begin
          when cs_exeprep_get_src_indirect =>
             -- add wait cycles, if necessary (e.g. due to slow RAM)
             if WAIT_FOR_DATA = '1' then
+               DATA <= (others => 'Z');            
                fsmNextCpuState <= cs_exeprep_get_src_indirect;
                
             -- data from bus is available
             else
                -- read the indirect value from the bus and store it
-               fsmSrc_Value <= DATA_FROM_Bus;
+               fsmSrc_Value <= DATA;
                              
                -- perform post increment
                if Src_Mode = amIndirPostInc then
@@ -476,15 +439,17 @@ begin
          when cs_exeprep_get_dst_indirect =>
             -- add wait cycles, if necessary (e.g. due to slow RAM)
             if WAIT_FOR_DATA = '1' then
+               DATA <= (others => 'Z');            
                fsmNextCpuState <= cs_exeprep_get_dst_indirect;
                
             -- data from bus is available
             else         
                -- read the indirect value from the bus and store it
-               fsmDst_Value <= DATA_FROM_Bus;
+               fsmDst_Value <= DATA;
             end if;                        
                         
          when cs_execute =>
+            DATA <= (others => 'Z');
          
             -- execute branches
             if Opcode = opcBRA then
@@ -575,6 +540,7 @@ begin
             end if;
                                
          when cs_exepost_store_dst_indirect =>
+            DATA <= DATA_To_Bus;
             fsmDataToBus <= DATA_To_Bus;
             fsmCpuDataDirCtrl <= '1';
             fsmCpuDataValid <= '1';
@@ -600,6 +566,7 @@ begin
             end if;
                   
          when cs_exepost_sub =>
+            DATA <= DATA_To_Bus;
             fsmDataToBus <= DATA_To_Bus;
             fsmCpuDataDirCtrl <= '1';
             fsmCpuDataValid <= '1';
@@ -612,9 +579,11 @@ begin
             end if;
 
          when cs_exepost_prepfetch =>
+            DATA <= (others => 'Z');            
             fsmCpuAddr <= PC;
         
          when others =>
+            DATA <= (others => 'Z');
             fsmPC <= (others => '0');
             fsmCpuAddr <= (others => '0');
             fsmCpuDataDirCtrl <= '0';
