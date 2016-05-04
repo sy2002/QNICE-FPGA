@@ -2,8 +2,13 @@
 ; mandelbrot demo done by vaxman in 2015
 ; done by sy2002 in May 2016
 ;
-; speed comparison:
-;  git ch
+; speed comparison using UART:
+;
+;  CPU revision GIT #0a9e0b0 needs 0426 8EF9 = 69.635.833 cycles = 1,3927 sec
+;
+; speed comparison using VGA:
+;
+;  CPU revision GIT #0a9e0b0 needs 0425 7A16 = 69.564.950 cycles = 1,3913 sec
 
                 .ORG    0xA000
 
