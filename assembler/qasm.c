@@ -31,6 +31,8 @@
 #define INSTRUCTION$BRANCH    1
 #define INSTRUCTION$DIRECTIVE 2
 
+#define NO_OPCODE         -1 /* No opcode found (just a label), do not emit an output line */
+
 #define OPERAND$ILLEGAL   -1 /* An illegal operand was found */
 #define OPERAND$MISSING   0
 #define OPERAND$LABEL_EQU 1  /* Such an operand can be resolved only during the second pass */
@@ -585,13 +587,11 @@ int assemble()
       }
 
       strcpy(entry->label, label);
-      token = tokenize((char *) 0, delimiters); /* Next token has to be a valid mnemonic or directive */
+      token = tokenize((char *) 0, delimiters); /* Next token has to be a valid mnemonic or directive or may be empty */
       if (!translate_mnemonic(token, &opcode, &type))
       {
-        sprintf(entry->error_text, "Line %d: No valid mnemonic/directive found (%s)!", line_counter, entry->source);
-        printf("assemble: %s\n", entry->error_text);
-        entry->opcode = entry->opcode_type = -1;
-        error_counter++;
+        entry->opcode = entry->opcode_type = NO_OPCODE;
+        entry->address = address;
         continue;
       }
       strcpy(entry->mnemonic, token);
@@ -1022,7 +1022,7 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
 
     expand_tabs(line, entry->source);
     fprintf(listing_handle, "%06d  %4s  %4s  %4s  %s\n", ++line_counter, address_string, data_string, second_word, line);
-    if (entry->address != -1) /* Write binary data */
+    if (entry->address != -1 && entry->opcode != NO_OPCODE) /* Write binary data */
       fprintf(output_handle, "0x%4s 0x%4s\n", address_string, data_string);
 
     for (i = 1; i < entry->number_of_words; i++) /* If there is additional data as in .ASCII_W, write it */
