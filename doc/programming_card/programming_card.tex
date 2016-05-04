@@ -287,14 +287,14 @@ SUBR:   ADD 0x0100, R14  ; Get free lower
                          ; register bank
         MOVE @R13++, R15 ; RET
    \end{verbatim}
-  \subsection{Compute $\sum_{i=0}{\texttt{0x0010}}$}
+  \subsection{Compute $\sum_{i=0}^{16}{\texttt{0x0010}}$}
    \begin{verbatim}
         .ORG 0x8000
-        XOR R0, R0      ; Clear R0
+        XOR R0,      R0 ; Clear R0
         MOVE 0x0010, R1 ; Upper limit
-LOOP:   ADD R1, R0      ; One summation
-        SUB 0x0001, R1  ; Decrement i
-        ABRA LOOP, !Z   ; Loop if not zero
+LOOP:   ADD R1,      R0 ; One summation
+        SUB 0x0001,  R1 ; Decrement i
+        ABRA LOOP,   !Z ; Loop if not zero
         HALT
    \end{verbatim}
 \end{document}
