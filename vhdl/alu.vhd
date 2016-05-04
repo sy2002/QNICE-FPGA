@@ -164,8 +164,8 @@ begin
       -- number or if adding/subtracting two positive numbers yields a negative number
       if Opcode = opcADD or Opcode = opcADDC or Opcode = opcSUB or Opcode = opcSUBC or
          Opcode = opcCMP or Opcode = opcAND or Opcode = opcOR or Opcode = opcXOR then
-         if (signed(input1) > 0 and signed(input2) > 0 and signed(xres(15 downto 0)) < 0) or
-            (signed(input1) < 0 and signed(input2) < 0 and signed(xres(15 downto 0)) > 0)
+         if (input1(15) = '0' and input2(15) = '0' and xres(15) = '1') or
+            (input1(15) = '1' and input2(15) = '1' and xres(15) = '0')
          then
             V <= '1';
          else
