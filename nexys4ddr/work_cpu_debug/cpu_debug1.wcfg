@@ -103,6 +103,196 @@
          <obj_property name="ElementShortName">brom[0:37]</obj_property>
          <obj_property name="ObjectShortName">brom[0:37]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[0]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[0]</obj_property>
+            <obj_property name="ObjectShortName">brom[0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[1]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[1]</obj_property>
+            <obj_property name="ObjectShortName">brom[1]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[2]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[2]</obj_property>
+            <obj_property name="ObjectShortName">brom[2]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[3]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[3]</obj_property>
+            <obj_property name="ObjectShortName">brom[3]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[4]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[4]</obj_property>
+            <obj_property name="ObjectShortName">brom[4]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[5]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[5]</obj_property>
+            <obj_property name="ObjectShortName">brom[5]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[6]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[6]</obj_property>
+            <obj_property name="ObjectShortName">brom[6]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[7]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[7]</obj_property>
+            <obj_property name="ObjectShortName">brom[7]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[8]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[8]</obj_property>
+            <obj_property name="ObjectShortName">brom[8]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[9]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[9]</obj_property>
+            <obj_property name="ObjectShortName">brom[9]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[10]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[10]</obj_property>
+            <obj_property name="ObjectShortName">brom[10]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[11]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[11]</obj_property>
+            <obj_property name="ObjectShortName">brom[11]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[12]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[12]</obj_property>
+            <obj_property name="ObjectShortName">brom[12]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[13]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[13]</obj_property>
+            <obj_property name="ObjectShortName">brom[13]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[14]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[14]</obj_property>
+            <obj_property name="ObjectShortName">brom[14]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[15]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[15]</obj_property>
+            <obj_property name="ObjectShortName">brom[15]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[16]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[16]</obj_property>
+            <obj_property name="ObjectShortName">brom[16]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[17]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[17]</obj_property>
+            <obj_property name="ObjectShortName">brom[17]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[18]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[18]</obj_property>
+            <obj_property name="ObjectShortName">brom[18]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[19]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[19]</obj_property>
+            <obj_property name="ObjectShortName">brom[19]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[20]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[20]</obj_property>
+            <obj_property name="ObjectShortName">brom[20]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[21]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[21]</obj_property>
+            <obj_property name="ObjectShortName">brom[21]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[22]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[22]</obj_property>
+            <obj_property name="ObjectShortName">brom[22]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[23]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[23]</obj_property>
+            <obj_property name="ObjectShortName">brom[23]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[24]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[24]</obj_property>
+            <obj_property name="ObjectShortName">brom[24]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[25]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[25]</obj_property>
+            <obj_property name="ObjectShortName">brom[25]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[26]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[26]</obj_property>
+            <obj_property name="ObjectShortName">brom[26]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[27]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[27]</obj_property>
+            <obj_property name="ObjectShortName">brom[27]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[28]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[28]</obj_property>
+            <obj_property name="ObjectShortName">brom[28]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[29]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[29]</obj_property>
+            <obj_property name="ObjectShortName">brom[29]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[30]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[30]</obj_property>
+            <obj_property name="ObjectShortName">brom[30]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[31]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[31]</obj_property>
+            <obj_property name="ObjectShortName">brom[31]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[32]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[32]</obj_property>
+            <obj_property name="ObjectShortName">brom[32]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[33]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[33]</obj_property>
+            <obj_property name="ObjectShortName">brom[33]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[34]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[34]</obj_property>
+            <obj_property name="ObjectShortName">brom[34]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[35]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[35]</obj_property>
+            <obj_property name="ObjectShortName">brom[35]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[36]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[36]</obj_property>
+            <obj_property name="ObjectShortName">brom[36]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/rom/brom[37]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[37]</obj_property>
+            <obj_property name="ObjectShortName">brom[37]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject fp_name="/test_cpu_debug/uut/rom/rom_lines" type="other" db_ref_id="1">
          <obj_property name="ElementShortName">rom_lines</obj_property>
@@ -125,14 +315,14 @@
          <obj_property name="ElementShortName">ce</obj_property>
          <obj_property name="ObjectShortName">ce</obj_property>
       </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/ram/we" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">we</obj_property>
+         <obj_property name="ObjectShortName">we</obj_property>
+      </wvobject>
       <wvobject fp_name="/test_cpu_debug/uut/ram/address" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">address[14:0]</obj_property>
          <obj_property name="ObjectShortName">address[14:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/test_cpu_debug/uut/ram/we" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">we</obj_property>
-         <obj_property name="ObjectShortName">we</obj_property>
       </wvobject>
       <wvobject fp_name="/test_cpu_debug/uut/ram/data_i" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">data_i[15:0]</obj_property>
@@ -152,6 +342,1291 @@
          <obj_property name="ElementShortName">output[15:0]</obj_property>
          <obj_property name="ObjectShortName">output[15:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test_cpu_debug/uut/ram/bram" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">bram[0:255]</obj_property>
+         <obj_property name="ObjectShortName">bram[0:255]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[0]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[0]</obj_property>
+            <obj_property name="ObjectShortName">bram[0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[1]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[1]</obj_property>
+            <obj_property name="ObjectShortName">bram[1]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[2]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[2]</obj_property>
+            <obj_property name="ObjectShortName">bram[2]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[3]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[3]</obj_property>
+            <obj_property name="ObjectShortName">bram[3]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[4]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[4]</obj_property>
+            <obj_property name="ObjectShortName">bram[4]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[5]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[5]</obj_property>
+            <obj_property name="ObjectShortName">bram[5]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[6]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[6]</obj_property>
+            <obj_property name="ObjectShortName">bram[6]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[7]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[7]</obj_property>
+            <obj_property name="ObjectShortName">bram[7]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[8]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[8]</obj_property>
+            <obj_property name="ObjectShortName">bram[8]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[9]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[9]</obj_property>
+            <obj_property name="ObjectShortName">bram[9]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[10]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[10]</obj_property>
+            <obj_property name="ObjectShortName">bram[10]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[11]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[11]</obj_property>
+            <obj_property name="ObjectShortName">bram[11]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[12]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[12]</obj_property>
+            <obj_property name="ObjectShortName">bram[12]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[13]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[13]</obj_property>
+            <obj_property name="ObjectShortName">bram[13]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[14]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[14]</obj_property>
+            <obj_property name="ObjectShortName">bram[14]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[15]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[15]</obj_property>
+            <obj_property name="ObjectShortName">bram[15]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[16]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[16]</obj_property>
+            <obj_property name="ObjectShortName">bram[16]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[17]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[17]</obj_property>
+            <obj_property name="ObjectShortName">bram[17]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[18]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[18]</obj_property>
+            <obj_property name="ObjectShortName">bram[18]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[19]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[19]</obj_property>
+            <obj_property name="ObjectShortName">bram[19]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[20]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[20]</obj_property>
+            <obj_property name="ObjectShortName">bram[20]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[21]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[21]</obj_property>
+            <obj_property name="ObjectShortName">bram[21]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[22]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[22]</obj_property>
+            <obj_property name="ObjectShortName">bram[22]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[23]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[23]</obj_property>
+            <obj_property name="ObjectShortName">bram[23]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[24]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[24]</obj_property>
+            <obj_property name="ObjectShortName">bram[24]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[25]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[25]</obj_property>
+            <obj_property name="ObjectShortName">bram[25]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[26]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[26]</obj_property>
+            <obj_property name="ObjectShortName">bram[26]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[27]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[27]</obj_property>
+            <obj_property name="ObjectShortName">bram[27]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[28]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[28]</obj_property>
+            <obj_property name="ObjectShortName">bram[28]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[29]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[29]</obj_property>
+            <obj_property name="ObjectShortName">bram[29]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[30]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[30]</obj_property>
+            <obj_property name="ObjectShortName">bram[30]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[31]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[31]</obj_property>
+            <obj_property name="ObjectShortName">bram[31]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[32]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[32]</obj_property>
+            <obj_property name="ObjectShortName">bram[32]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[33]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[33]</obj_property>
+            <obj_property name="ObjectShortName">bram[33]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[34]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[34]</obj_property>
+            <obj_property name="ObjectShortName">bram[34]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[35]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[35]</obj_property>
+            <obj_property name="ObjectShortName">bram[35]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[36]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[36]</obj_property>
+            <obj_property name="ObjectShortName">bram[36]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[37]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[37]</obj_property>
+            <obj_property name="ObjectShortName">bram[37]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[38]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[38]</obj_property>
+            <obj_property name="ObjectShortName">bram[38]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[39]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[39]</obj_property>
+            <obj_property name="ObjectShortName">bram[39]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[40]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[40]</obj_property>
+            <obj_property name="ObjectShortName">bram[40]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[41]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[41]</obj_property>
+            <obj_property name="ObjectShortName">bram[41]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[42]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[42]</obj_property>
+            <obj_property name="ObjectShortName">bram[42]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[43]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[43]</obj_property>
+            <obj_property name="ObjectShortName">bram[43]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[44]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[44]</obj_property>
+            <obj_property name="ObjectShortName">bram[44]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[45]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[45]</obj_property>
+            <obj_property name="ObjectShortName">bram[45]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[46]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[46]</obj_property>
+            <obj_property name="ObjectShortName">bram[46]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[47]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[47]</obj_property>
+            <obj_property name="ObjectShortName">bram[47]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[48]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[48]</obj_property>
+            <obj_property name="ObjectShortName">bram[48]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[49]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[49]</obj_property>
+            <obj_property name="ObjectShortName">bram[49]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[50]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[50]</obj_property>
+            <obj_property name="ObjectShortName">bram[50]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[51]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[51]</obj_property>
+            <obj_property name="ObjectShortName">bram[51]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[52]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[52]</obj_property>
+            <obj_property name="ObjectShortName">bram[52]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[53]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[53]</obj_property>
+            <obj_property name="ObjectShortName">bram[53]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[54]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[54]</obj_property>
+            <obj_property name="ObjectShortName">bram[54]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[55]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[55]</obj_property>
+            <obj_property name="ObjectShortName">bram[55]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[56]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[56]</obj_property>
+            <obj_property name="ObjectShortName">bram[56]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[57]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[57]</obj_property>
+            <obj_property name="ObjectShortName">bram[57]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[58]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[58]</obj_property>
+            <obj_property name="ObjectShortName">bram[58]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[59]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[59]</obj_property>
+            <obj_property name="ObjectShortName">bram[59]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[60]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[60]</obj_property>
+            <obj_property name="ObjectShortName">bram[60]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[61]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[61]</obj_property>
+            <obj_property name="ObjectShortName">bram[61]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[62]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[62]</obj_property>
+            <obj_property name="ObjectShortName">bram[62]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[63]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[63]</obj_property>
+            <obj_property name="ObjectShortName">bram[63]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[64]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[64]</obj_property>
+            <obj_property name="ObjectShortName">bram[64]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[65]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[65]</obj_property>
+            <obj_property name="ObjectShortName">bram[65]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[66]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[66]</obj_property>
+            <obj_property name="ObjectShortName">bram[66]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[67]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[67]</obj_property>
+            <obj_property name="ObjectShortName">bram[67]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[68]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[68]</obj_property>
+            <obj_property name="ObjectShortName">bram[68]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[69]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[69]</obj_property>
+            <obj_property name="ObjectShortName">bram[69]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[70]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[70]</obj_property>
+            <obj_property name="ObjectShortName">bram[70]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[71]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[71]</obj_property>
+            <obj_property name="ObjectShortName">bram[71]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[72]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[72]</obj_property>
+            <obj_property name="ObjectShortName">bram[72]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[73]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[73]</obj_property>
+            <obj_property name="ObjectShortName">bram[73]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[74]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[74]</obj_property>
+            <obj_property name="ObjectShortName">bram[74]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[75]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[75]</obj_property>
+            <obj_property name="ObjectShortName">bram[75]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[76]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[76]</obj_property>
+            <obj_property name="ObjectShortName">bram[76]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[77]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[77]</obj_property>
+            <obj_property name="ObjectShortName">bram[77]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[78]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[78]</obj_property>
+            <obj_property name="ObjectShortName">bram[78]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[79]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[79]</obj_property>
+            <obj_property name="ObjectShortName">bram[79]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[80]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[80]</obj_property>
+            <obj_property name="ObjectShortName">bram[80]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[81]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[81]</obj_property>
+            <obj_property name="ObjectShortName">bram[81]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[82]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[82]</obj_property>
+            <obj_property name="ObjectShortName">bram[82]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[83]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[83]</obj_property>
+            <obj_property name="ObjectShortName">bram[83]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[84]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[84]</obj_property>
+            <obj_property name="ObjectShortName">bram[84]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[85]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[85]</obj_property>
+            <obj_property name="ObjectShortName">bram[85]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[86]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[86]</obj_property>
+            <obj_property name="ObjectShortName">bram[86]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[87]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[87]</obj_property>
+            <obj_property name="ObjectShortName">bram[87]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[88]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[88]</obj_property>
+            <obj_property name="ObjectShortName">bram[88]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[89]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[89]</obj_property>
+            <obj_property name="ObjectShortName">bram[89]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[90]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[90]</obj_property>
+            <obj_property name="ObjectShortName">bram[90]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[91]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[91]</obj_property>
+            <obj_property name="ObjectShortName">bram[91]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[92]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[92]</obj_property>
+            <obj_property name="ObjectShortName">bram[92]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[93]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[93]</obj_property>
+            <obj_property name="ObjectShortName">bram[93]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[94]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[94]</obj_property>
+            <obj_property name="ObjectShortName">bram[94]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[95]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[95]</obj_property>
+            <obj_property name="ObjectShortName">bram[95]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[96]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[96]</obj_property>
+            <obj_property name="ObjectShortName">bram[96]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[97]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[97]</obj_property>
+            <obj_property name="ObjectShortName">bram[97]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[98]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[98]</obj_property>
+            <obj_property name="ObjectShortName">bram[98]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[99]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[99]</obj_property>
+            <obj_property name="ObjectShortName">bram[99]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[100]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[100]</obj_property>
+            <obj_property name="ObjectShortName">bram[100]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[101]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[101]</obj_property>
+            <obj_property name="ObjectShortName">bram[101]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[102]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[102]</obj_property>
+            <obj_property name="ObjectShortName">bram[102]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[103]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[103]</obj_property>
+            <obj_property name="ObjectShortName">bram[103]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[104]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[104]</obj_property>
+            <obj_property name="ObjectShortName">bram[104]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[105]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[105]</obj_property>
+            <obj_property name="ObjectShortName">bram[105]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[106]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[106]</obj_property>
+            <obj_property name="ObjectShortName">bram[106]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[107]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[107]</obj_property>
+            <obj_property name="ObjectShortName">bram[107]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[108]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[108]</obj_property>
+            <obj_property name="ObjectShortName">bram[108]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[109]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[109]</obj_property>
+            <obj_property name="ObjectShortName">bram[109]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[110]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[110]</obj_property>
+            <obj_property name="ObjectShortName">bram[110]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[111]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[111]</obj_property>
+            <obj_property name="ObjectShortName">bram[111]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[112]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[112]</obj_property>
+            <obj_property name="ObjectShortName">bram[112]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[113]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[113]</obj_property>
+            <obj_property name="ObjectShortName">bram[113]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[114]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[114]</obj_property>
+            <obj_property name="ObjectShortName">bram[114]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[115]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[115]</obj_property>
+            <obj_property name="ObjectShortName">bram[115]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[116]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[116]</obj_property>
+            <obj_property name="ObjectShortName">bram[116]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[117]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[117]</obj_property>
+            <obj_property name="ObjectShortName">bram[117]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[118]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[118]</obj_property>
+            <obj_property name="ObjectShortName">bram[118]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[119]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[119]</obj_property>
+            <obj_property name="ObjectShortName">bram[119]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[120]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[120]</obj_property>
+            <obj_property name="ObjectShortName">bram[120]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[121]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[121]</obj_property>
+            <obj_property name="ObjectShortName">bram[121]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[122]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[122]</obj_property>
+            <obj_property name="ObjectShortName">bram[122]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[123]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[123]</obj_property>
+            <obj_property name="ObjectShortName">bram[123]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[124]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[124]</obj_property>
+            <obj_property name="ObjectShortName">bram[124]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[125]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[125]</obj_property>
+            <obj_property name="ObjectShortName">bram[125]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[126]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[126]</obj_property>
+            <obj_property name="ObjectShortName">bram[126]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[127]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[127]</obj_property>
+            <obj_property name="ObjectShortName">bram[127]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[128]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[128]</obj_property>
+            <obj_property name="ObjectShortName">bram[128]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[129]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[129]</obj_property>
+            <obj_property name="ObjectShortName">bram[129]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[130]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[130]</obj_property>
+            <obj_property name="ObjectShortName">bram[130]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[131]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[131]</obj_property>
+            <obj_property name="ObjectShortName">bram[131]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[132]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[132]</obj_property>
+            <obj_property name="ObjectShortName">bram[132]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[133]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[133]</obj_property>
+            <obj_property name="ObjectShortName">bram[133]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[134]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[134]</obj_property>
+            <obj_property name="ObjectShortName">bram[134]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[135]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[135]</obj_property>
+            <obj_property name="ObjectShortName">bram[135]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[136]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[136]</obj_property>
+            <obj_property name="ObjectShortName">bram[136]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[137]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[137]</obj_property>
+            <obj_property name="ObjectShortName">bram[137]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[138]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[138]</obj_property>
+            <obj_property name="ObjectShortName">bram[138]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[139]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[139]</obj_property>
+            <obj_property name="ObjectShortName">bram[139]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[140]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[140]</obj_property>
+            <obj_property name="ObjectShortName">bram[140]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[141]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[141]</obj_property>
+            <obj_property name="ObjectShortName">bram[141]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[142]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[142]</obj_property>
+            <obj_property name="ObjectShortName">bram[142]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[143]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[143]</obj_property>
+            <obj_property name="ObjectShortName">bram[143]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[144]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[144]</obj_property>
+            <obj_property name="ObjectShortName">bram[144]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[145]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[145]</obj_property>
+            <obj_property name="ObjectShortName">bram[145]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[146]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[146]</obj_property>
+            <obj_property name="ObjectShortName">bram[146]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[147]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[147]</obj_property>
+            <obj_property name="ObjectShortName">bram[147]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[148]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[148]</obj_property>
+            <obj_property name="ObjectShortName">bram[148]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[149]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[149]</obj_property>
+            <obj_property name="ObjectShortName">bram[149]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[150]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[150]</obj_property>
+            <obj_property name="ObjectShortName">bram[150]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[151]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[151]</obj_property>
+            <obj_property name="ObjectShortName">bram[151]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[152]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[152]</obj_property>
+            <obj_property name="ObjectShortName">bram[152]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[153]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[153]</obj_property>
+            <obj_property name="ObjectShortName">bram[153]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[154]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[154]</obj_property>
+            <obj_property name="ObjectShortName">bram[154]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[155]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[155]</obj_property>
+            <obj_property name="ObjectShortName">bram[155]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[156]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[156]</obj_property>
+            <obj_property name="ObjectShortName">bram[156]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[157]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[157]</obj_property>
+            <obj_property name="ObjectShortName">bram[157]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[158]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[158]</obj_property>
+            <obj_property name="ObjectShortName">bram[158]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[159]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[159]</obj_property>
+            <obj_property name="ObjectShortName">bram[159]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[160]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[160]</obj_property>
+            <obj_property name="ObjectShortName">bram[160]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[161]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[161]</obj_property>
+            <obj_property name="ObjectShortName">bram[161]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[162]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[162]</obj_property>
+            <obj_property name="ObjectShortName">bram[162]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[163]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[163]</obj_property>
+            <obj_property name="ObjectShortName">bram[163]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[164]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[164]</obj_property>
+            <obj_property name="ObjectShortName">bram[164]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[165]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[165]</obj_property>
+            <obj_property name="ObjectShortName">bram[165]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[166]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[166]</obj_property>
+            <obj_property name="ObjectShortName">bram[166]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[167]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[167]</obj_property>
+            <obj_property name="ObjectShortName">bram[167]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[168]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[168]</obj_property>
+            <obj_property name="ObjectShortName">bram[168]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[169]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[169]</obj_property>
+            <obj_property name="ObjectShortName">bram[169]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[170]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[170]</obj_property>
+            <obj_property name="ObjectShortName">bram[170]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[171]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[171]</obj_property>
+            <obj_property name="ObjectShortName">bram[171]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[172]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[172]</obj_property>
+            <obj_property name="ObjectShortName">bram[172]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[173]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[173]</obj_property>
+            <obj_property name="ObjectShortName">bram[173]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[174]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[174]</obj_property>
+            <obj_property name="ObjectShortName">bram[174]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[175]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[175]</obj_property>
+            <obj_property name="ObjectShortName">bram[175]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[176]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[176]</obj_property>
+            <obj_property name="ObjectShortName">bram[176]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[177]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[177]</obj_property>
+            <obj_property name="ObjectShortName">bram[177]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[178]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[178]</obj_property>
+            <obj_property name="ObjectShortName">bram[178]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[179]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[179]</obj_property>
+            <obj_property name="ObjectShortName">bram[179]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[180]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[180]</obj_property>
+            <obj_property name="ObjectShortName">bram[180]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[181]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[181]</obj_property>
+            <obj_property name="ObjectShortName">bram[181]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[182]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[182]</obj_property>
+            <obj_property name="ObjectShortName">bram[182]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[183]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[183]</obj_property>
+            <obj_property name="ObjectShortName">bram[183]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[184]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[184]</obj_property>
+            <obj_property name="ObjectShortName">bram[184]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[185]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[185]</obj_property>
+            <obj_property name="ObjectShortName">bram[185]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[186]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[186]</obj_property>
+            <obj_property name="ObjectShortName">bram[186]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[187]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[187]</obj_property>
+            <obj_property name="ObjectShortName">bram[187]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[188]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[188]</obj_property>
+            <obj_property name="ObjectShortName">bram[188]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[189]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[189]</obj_property>
+            <obj_property name="ObjectShortName">bram[189]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[190]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[190]</obj_property>
+            <obj_property name="ObjectShortName">bram[190]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[191]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[191]</obj_property>
+            <obj_property name="ObjectShortName">bram[191]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[192]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[192]</obj_property>
+            <obj_property name="ObjectShortName">bram[192]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[193]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[193]</obj_property>
+            <obj_property name="ObjectShortName">bram[193]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[194]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[194]</obj_property>
+            <obj_property name="ObjectShortName">bram[194]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[195]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[195]</obj_property>
+            <obj_property name="ObjectShortName">bram[195]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[196]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[196]</obj_property>
+            <obj_property name="ObjectShortName">bram[196]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[197]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[197]</obj_property>
+            <obj_property name="ObjectShortName">bram[197]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[198]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[198]</obj_property>
+            <obj_property name="ObjectShortName">bram[198]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[199]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[199]</obj_property>
+            <obj_property name="ObjectShortName">bram[199]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[200]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[200]</obj_property>
+            <obj_property name="ObjectShortName">bram[200]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[201]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[201]</obj_property>
+            <obj_property name="ObjectShortName">bram[201]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[202]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[202]</obj_property>
+            <obj_property name="ObjectShortName">bram[202]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[203]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[203]</obj_property>
+            <obj_property name="ObjectShortName">bram[203]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[204]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[204]</obj_property>
+            <obj_property name="ObjectShortName">bram[204]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[205]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[205]</obj_property>
+            <obj_property name="ObjectShortName">bram[205]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[206]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[206]</obj_property>
+            <obj_property name="ObjectShortName">bram[206]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[207]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[207]</obj_property>
+            <obj_property name="ObjectShortName">bram[207]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[208]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[208]</obj_property>
+            <obj_property name="ObjectShortName">bram[208]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[209]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[209]</obj_property>
+            <obj_property name="ObjectShortName">bram[209]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[210]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[210]</obj_property>
+            <obj_property name="ObjectShortName">bram[210]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[211]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[211]</obj_property>
+            <obj_property name="ObjectShortName">bram[211]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[212]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[212]</obj_property>
+            <obj_property name="ObjectShortName">bram[212]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[213]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[213]</obj_property>
+            <obj_property name="ObjectShortName">bram[213]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[214]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[214]</obj_property>
+            <obj_property name="ObjectShortName">bram[214]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[215]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[215]</obj_property>
+            <obj_property name="ObjectShortName">bram[215]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[216]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[216]</obj_property>
+            <obj_property name="ObjectShortName">bram[216]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[217]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[217]</obj_property>
+            <obj_property name="ObjectShortName">bram[217]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[218]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[218]</obj_property>
+            <obj_property name="ObjectShortName">bram[218]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[219]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[219]</obj_property>
+            <obj_property name="ObjectShortName">bram[219]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[220]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[220]</obj_property>
+            <obj_property name="ObjectShortName">bram[220]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[221]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[221]</obj_property>
+            <obj_property name="ObjectShortName">bram[221]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[222]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[222]</obj_property>
+            <obj_property name="ObjectShortName">bram[222]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[223]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[223]</obj_property>
+            <obj_property name="ObjectShortName">bram[223]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[224]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[224]</obj_property>
+            <obj_property name="ObjectShortName">bram[224]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[225]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[225]</obj_property>
+            <obj_property name="ObjectShortName">bram[225]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[226]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[226]</obj_property>
+            <obj_property name="ObjectShortName">bram[226]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[227]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[227]</obj_property>
+            <obj_property name="ObjectShortName">bram[227]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[228]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[228]</obj_property>
+            <obj_property name="ObjectShortName">bram[228]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[229]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[229]</obj_property>
+            <obj_property name="ObjectShortName">bram[229]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[230]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[230]</obj_property>
+            <obj_property name="ObjectShortName">bram[230]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[231]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[231]</obj_property>
+            <obj_property name="ObjectShortName">bram[231]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[232]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[232]</obj_property>
+            <obj_property name="ObjectShortName">bram[232]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[233]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[233]</obj_property>
+            <obj_property name="ObjectShortName">bram[233]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[234]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[234]</obj_property>
+            <obj_property name="ObjectShortName">bram[234]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[235]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[235]</obj_property>
+            <obj_property name="ObjectShortName">bram[235]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[236]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[236]</obj_property>
+            <obj_property name="ObjectShortName">bram[236]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[237]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[237]</obj_property>
+            <obj_property name="ObjectShortName">bram[237]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[238]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[238]</obj_property>
+            <obj_property name="ObjectShortName">bram[238]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[239]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[239]</obj_property>
+            <obj_property name="ObjectShortName">bram[239]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[240]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[240]</obj_property>
+            <obj_property name="ObjectShortName">bram[240]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[241]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[241]</obj_property>
+            <obj_property name="ObjectShortName">bram[241]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[242]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[242]</obj_property>
+            <obj_property name="ObjectShortName">bram[242]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[243]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[243]</obj_property>
+            <obj_property name="ObjectShortName">bram[243]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[244]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[244]</obj_property>
+            <obj_property name="ObjectShortName">bram[244]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[245]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[245]</obj_property>
+            <obj_property name="ObjectShortName">bram[245]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[246]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[246]</obj_property>
+            <obj_property name="ObjectShortName">bram[246]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[247]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[247]</obj_property>
+            <obj_property name="ObjectShortName">bram[247]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[248]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[248]</obj_property>
+            <obj_property name="ObjectShortName">bram[248]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[249]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[249]</obj_property>
+            <obj_property name="ObjectShortName">bram[249]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[250]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[250]</obj_property>
+            <obj_property name="ObjectShortName">bram[250]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[251]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[251]</obj_property>
+            <obj_property name="ObjectShortName">bram[251]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[252]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[252]</obj_property>
+            <obj_property name="ObjectShortName">bram[252]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[253]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[253]</obj_property>
+            <obj_property name="ObjectShortName">bram[253]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[254]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[254]</obj_property>
+            <obj_property name="ObjectShortName">bram[254]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/test_cpu_debug/uut/ram/bram[255]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[255]</obj_property>
+            <obj_property name="ObjectShortName">bram[255]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject fp_name="/test_cpu_debug/uut/ram/counter" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">counter</obj_property>

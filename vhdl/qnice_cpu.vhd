@@ -273,6 +273,7 @@ begin
                                 reg_write_addr, reg_write_data, reg_write_en,
                                 Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                                                
    begin
+      DATA <= (others => 'Z');   
       fsmDataToBus <= (others => '0');
       fsmSP <= SP;
       fsmSR <= SR(15 downto 1) & "1";
@@ -295,7 +296,6 @@ begin
       -- "what will be the output variables at the NEXT state (after the current state)"
       case cpu_state is
          when cs_reset =>
-            DATA <= (others => 'Z');
             fsmSR <= x"0001";
             fsmPC <= x"0000";
             fsmCpuAddr <= x"0000";
@@ -310,7 +310,6 @@ begin
          when cs_fetch =>
             -- add wait cycles, if necessary (e.g. due to slow RAM)
             if WAIT_FOR_DATA = '1' then
-               DATA <= (others => 'Z');            
                fsmNextCpuState <= cs_fetch;
                
             -- data from bus is available
@@ -322,7 +321,6 @@ begin
             end if;
                                     
          when cs_decode =>
-            DATA <= (others => 'Z');         
             -- source and destination values in case of direct register addressing modes
             -- no special handling of SR and PC needed, as this a a read-only activity
             -- and the registerfile contains a convenience function for that
@@ -390,7 +388,6 @@ begin
          when cs_exeprep_get_src_indirect =>
             -- add wait cycles, if necessary (e.g. due to slow RAM)
             if WAIT_FOR_DATA = '1' then
-               DATA <= (others => 'Z');            
                fsmNextCpuState <= cs_exeprep_get_src_indirect;
                
             -- data from bus is available
@@ -439,7 +436,6 @@ begin
          when cs_exeprep_get_dst_indirect =>
             -- add wait cycles, if necessary (e.g. due to slow RAM)
             if WAIT_FOR_DATA = '1' then
-               DATA <= (others => 'Z');            
                fsmNextCpuState <= cs_exeprep_get_dst_indirect;
                
             -- data from bus is available
@@ -448,9 +444,7 @@ begin
                fsmDst_Value <= DATA;
             end if;                        
                         
-         when cs_execute =>
-            DATA <= (others => 'Z');
-         
+         when cs_execute =>        
             -- execute branches
             if Opcode = opcBRA then
                fsmNextCpuState <= cs_fetch;
@@ -579,11 +573,10 @@ begin
             end if;
 
          when cs_exepost_prepfetch =>
-            DATA <= (others => 'Z');            
+            DATA <= DATA_To_Bus;            
             fsmCpuAddr <= PC;
         
          when others =>
-            DATA <= (others => 'Z');
             fsmPC <= (others => '0');
             fsmCpuAddr <= (others => '0');
             fsmCpuDataDirCtrl <= '0';
