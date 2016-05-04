@@ -1,24 +1,20 @@
+; CPU performance testbed based instrumenting vaxmans mandelbrot demo
+; mandelbrot demo done by vaxman in 2015
+; done by sy2002 in May 2016
 ;
-;  Generate a simple Mandelbrot-set display on a QNICE-system. Output is written 
-; to stdout, so it works with a serial line console as well as with an attached
-; VGA-display.
-;  This program also serves as an example for programming in the qnice-monitor
-; environment.
-;
-; 2015      B. Ulmann
-;
+; speed comparison:
+;  git ch
+
                 .ORG    0xA000
-;
+
+                MOVE    IO$CYC_STATE, R0    ; reset hw cycle counter
+                MOVE    1, @R0              
+
 #define         POINTER R12
-;
-;  A typical program should always include the two following includes. sysdef.asm
-; contains the constant definitions used in building the monitor, while monitor.def
-; is an automatically generated file which contains all labels in form of constant
-; definitions (.EQU) of the monitor and thus defines the call-interface to the 
-; monitor.
-;
+
 #include "../dist_kit/sysdef.asm"
-#include "../dist_kit/monitor.def"
+#include "../dist_kit/monitor.def"                
+
 ;
 DIVERGENT       .EQU    0x0400              ; Constant for divergence test
 X_START         .EQU    -0x0200             ; -512 = - 2 * scale with scale = 256
@@ -133,6 +129,26 @@ INNER_LOOP_END  SYSCALL(crlf, 1)
                 RBRA    OUTER_LOOP, 1
 ; }
 MANDEL_END      SYSCALL(crlf, 1)
+
+                ; output performance information
+                MOVE    IO$CYC_STATE, R0
+                MOVE    0, @R0              ; stop hw cycle counter
+                MOVE    PERF_STR, R8
+                SYSCALL(puts, 1)            ; output info string
+                MOVE    IO$CYC_HI, R1
+                MOVE    @R1, R8 
+                SYSCALL(puthex, 1)          ; output hi word of 48bit counter
+                MOVE    SPACE_STR, R8
+                SYSCALL(puts, 1)
+                MOVE    IO$CYC_MID, R1
+                MOVE    @R1, R8                 
+                SYSCALL(puthex, 1)          ; output mid word of 48bit counter
+                MOVE    SPACE_STR, R8
+                SYSCALL(puts, 1)                
+                MOVE    IO$CYC_LO, R1
+                MOVE    @R1, R8 
+                SYSCALL(puthex, 1)          ; output lo word of 48bit counter
+
                 SYSCALL(exit, 1)
 
 DISPLAY         .ASCII_P    " .-+*=#*"      ; Characters for the display
@@ -140,3 +156,6 @@ Z0SQUARE_LOW    .BLOCK      1
 Z0SQUARE_HIGH   .BLOCK      1
 Z1SQUARE_LOW    .BLOCK      1
 Z1SQUARE_HIGH   .BLOCK      1
+
+PERF_STR        .ASCII_W    "Overall clock cycles: "
+SPACE_STR       .ASCII_W    " "
