@@ -19,7 +19,7 @@ constant ROM_SIZE             : natural   := 2840;
 
 -- file name of file and file size (in lines) of the file containing the Power On & Reset Execution (PORE) ROM
 constant PORE_ROM_FILE        : string    := "../pore/pore.rom";
-constant PORE_ROM_SIZE        : natural   := 463;
+constant PORE_ROM_SIZE        : natural   := 452;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.
@@ -33,7 +33,7 @@ constant PORE_ROM_SIZE        : natural   := 463;
 --    HDL: Resource Sharing OFF (was ON)
 --    Xilinx Specific: LUT Combining NO (was AUTO)
 --                     Optimize Privitives ON (was OFF)
-constant SHADOW_REGFILE_SIZE  : natural   := 16;
+constant SHADOW_REGFILE_SIZE  : natural   := 256;
 
 -- size of the block RAM in 16bit words: should be 32768
 -- set to 256 during development for tracability during simulation

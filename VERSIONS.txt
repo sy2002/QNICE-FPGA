@@ -16,7 +16,7 @@ Version x.y    May, xx 2016
 * ASSEMBLER: Is able to handle labels on separate lines, improved error
   handling, CMP allows a constant as second operand
 * EMULATOR: Fixed CMP opcode behaviour (see above), fixed similar CPU bug
-  as described above.
+  as described above. Outputs address of HALT instruction.
 * DOCUMENTATION: Added a programming card
 
 Version 1.21   February, 13 2016
