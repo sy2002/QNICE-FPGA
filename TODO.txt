@@ -49,3 +49,5 @@ ASSEMBLER:
 
 * Issue a warning when doing e.g. CMP R0, 0x20, as this won't work.
   (comparing register or @register with constant).
+
+* Or even better: Fix the before mentioned issue at least for CMP

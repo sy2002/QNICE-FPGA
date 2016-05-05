@@ -112,7 +112,6 @@ type global_state_type is
 constant RESET_COUNTER_BTS    : natural := integer(ceil(log2(real(RESET_DURATION))));
 
 signal global_state           : global_state_type := gsPowerOn;
---signal global_state           : global_state_type := gsRun; --@TODO debugging only
 
 signal debounced_hw_reset     : std_logic;
 signal reset_ctl              : std_logic;
@@ -294,9 +293,8 @@ begin
             
          when gsReset_execute =>
             if reset_counter = RESET_DURATION then
---               fsm_next_global_state <= gsRun; -- @TODO: ADDED FOR SIMULATION PURPOSES
--- @TODO: COMMENTED OUT FOR SIMULATION PURPOSES            
-               fsm_next_global_state <= gsPORE;
+               fsm_next_global_state <= gsRun; -- use for simulation instead of PORE
+--               fsm_next_global_state <= gsPORE;
             else
                fsm_reset_counter <= reset_counter + 1;
                fsm_next_global_state <= gsReset_execute;               
