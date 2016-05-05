@@ -7,46 +7,62 @@
 
                 .ORG 0x8000
 
-                CMP     0x0010, 0x0010
+                MOVE    0x0010, R0
+                MOVE    0x0010, R1
+                CMP     R0, R1
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
-                CMP     0x0009, 0x0010
+                MOVE    0x0009, R0
+                MOVE    0x0010, R1
+                CMP     R0, R1
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
-                CMP     0x0011, 0x0010
+                MOVE    0x0011, R0
+                MOVE    0x0010, R1
+                CMP     R0, R1
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
                 SYSCALL(crlf, 1)
 
-                CMP     0x0010, 0x9000
+                MOVE    0x0010, R0
+                MOVE    0x9000, R1
+                CMP     R0, R1
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
                 SYSCALL(crlf, 1)
 
-                CMP     0x9000, 0x0010
+                MOVE    0x9000, R0
+                MOVE    0x0010, R1
+                CMP     R0, R1
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
                 SYSCALL(crlf, 1)
 
-                CMP     0x9000, 0x9000
+                MOVE    0x9000, R0
+                MOVE    0x9000, R1
+                CMP     R0, R1
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
-                CMP     0x8FFF, 0x9000
+                MOVE    0x8FFF, R0
+                MOVE    0x9000, R1
+                CMP     R0, R1
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
-                CMP     0x9001, 0x9000
+                MOVE    0x9001, R0
+                MOVE    0x9000, R1
+                CMP     R0, R1
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
