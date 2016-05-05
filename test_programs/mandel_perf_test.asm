@@ -38,12 +38,12 @@ ITERATION       .EQU    0x001A              ; Number of iterations
 ; {
                 MOVE    Y_START, R0         ; R0 = y
 OUTER_LOOP      CMP     Y_END, R0           ; End reached?
-                RBRA    MANDEL_END, !N      ; Yes
+                RBRA    MANDEL_END, !V      ; Yes
 ;   for (x = x_start; x <= x_end; x += x_step)
 ;   {
                 MOVE    X_START, R1         ; R1 = x
 INNER_LOOP      CMP     X_END, R1           ; End reached?
-                RBRA    INNER_LOOP_END, !N  ; Yes
+                RBRA    INNER_LOOP_END, !V  ; Yes
 ;     z0 = z1 = 0;
                 XOR     R2, R2
                 XOR     R3, R3
@@ -118,7 +118,7 @@ ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 
                 OR      R9, R8              ; R8 now contains the left side of the comparison
                 CMP     DIVERGENT, R8
 ;         break;
-                RBRA    BREAK, !N           ; The sequence is diverging
+                RBRA    BREAK, !V           ; The sequence is diverging
 ;;;
                 SUB     1, R6               ; i--
                 RBRA    ITERATION_LOOP, !Z
