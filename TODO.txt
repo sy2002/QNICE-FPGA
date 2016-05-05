@@ -8,8 +8,6 @@ HARDWARE:
 
 * Debugging mechanisms (e.g. single-step mode in hardware)
 
-* Fix tristate problem that slows down CPU by ~50%
-
 * Improve design to support 100 MHz
 
 * Keyboard: remove hardcoded hardcoded 18000
@@ -46,8 +44,3 @@ MONITOR and/or STANDARD LIBs:
 ASSEMBLER:
 
 * Issue a warning, when defining a label multiple times.
-
-* Issue a warning when doing e.g. CMP R0, 0x20, as this won't work.
-  (comparing register or @register with constant).
-
-* Or even better: Fix the before mentioned issue at least for CMP

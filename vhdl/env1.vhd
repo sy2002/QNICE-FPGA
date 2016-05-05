@@ -475,16 +475,14 @@ begin
        
    -- debug mode handling: if switch 2 is on then:
    --   show the current cpu address in realtime on the LEDs
-   --   on halt show the PC of the HALT command (aka PC - 1) on TIL
+   --   on halt show the PC of the HALT command (aka address bus value) on TIL
    debug_mode_handler : process(SWITCHES, cpu_data, cpu_halt, til_reg0_enable)
-   variable halt_address : unsigned(15 downto 0);
    begin
       -- debug mode
       if SWITCHES(2) = '1' then
          if cpu_halt = '1' then
-            halt_address := unsigned(cpu_addr) - 1; -- PC is incremented after fetch
             i_til_reg0_enable <= '1';
-            i_til_data_in <= std_logic_vector(halt_address);
+            i_til_data_in <= cpu_addr;
          else
             i_til_reg0_enable <= til_reg0_enable;
             i_til_data_in <= cpu_data;

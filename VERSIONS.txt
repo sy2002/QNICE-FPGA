@@ -2,8 +2,8 @@ Version x.y    May, xx 2016
 ===========================
 
 * CPU: Significant speed improvement by removing old tristate driver
-* CPU: Fixed a bug that prevented things like CMP 0x00AA, 0x00FF or
-  things OR @R0++, @R0, i.e. situations, where both operands perform an
+* CPU: Fixed a bug that prevented things like CMP 0x00AA, 0x00FF or things
+  like OR @R0++, @R0, i.e. situations, where both operands perform an
   indirect access, where the source and destination operands are identical
   and where the  source operand is post-incremented.
 * ALU: Fixed CMP opcode behaviour: using the N flag it now treats the
