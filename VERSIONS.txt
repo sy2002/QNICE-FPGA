@@ -1,10 +1,15 @@
 Version x.y    May, xx 2016
 ===========================
 
-* CPU: Significant speed improvement by removing old tristate driver.
-* CPU: Fixed CMP opcode behaviour: using the N flag it now treats the
+* CPU: Significant speed improvement by removing old tristate driver
+* ALU: Fixed CMP opcode behaviour: using the N flag it now treats the
   operands as unsigned and using the V flag it treats them as signed.
-* Fixed V flag CPU bug (AND, OR, XOR)
+* ALU: Fixed V flag CPU bug (AND, OR, XOR)
+* CYCLE COUNTER: Added.
+* ASSEMBLER: Is able to handle labels on separate lines, improved error
+  handling, CMP allows a constant as second operand
+* EMULATOR: Fixed CMP opcode behaviour (see above)
+* DOCUMENTATION: Added a programming card
 
 Version 1.21   February, 13 2016
 ================================
