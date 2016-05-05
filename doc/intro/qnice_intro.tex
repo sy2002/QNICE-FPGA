@@ -57,7 +57,7 @@
       registers all in all
      \item moving the register window is accomplished in a single operation
       making push/pop operations virtually unnecessary
-     \item Very small instruction set (19 instructions)
+     \item Very small instruction set (18 instructions)
      \item 4 addressing modes
     \end{itemize}
    \end{frame}
@@ -240,8 +240,8 @@
        {\tt 9}&{\tt AND}&{\tt src, dst}&{\tt dst := dst \& src}\\
        {\tt A}&{\tt OR}&{\tt src, dst}&{\tt dst := dst | src}\\
        {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
-       {\tt C}&{\tt CMPU}&{\tt src, dst}&compare {\tt src} with {\tt dst} unsigned\\ 
-       {\tt D}&{\tt CMPS}&{\tt src, dst}&compare {\tt src} with {\tt dst} signed\\ 
+       {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\ 
+       {\tt D}&reserved&\\
        {\tt E}&{\tt HALT}&&Halt the processor\\
        {\tt F}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
        {\tt F}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\

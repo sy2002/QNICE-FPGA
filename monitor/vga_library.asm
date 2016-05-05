@@ -81,21 +81,21 @@ VGA$PUTCHAR             INCRB
                         MOVE    R4, @R0                     ; Set the HW X-coordinate
                         MOVE    R5, @R1                     ; Set the HW Y-coordinate
 ; Before we output anything, let us check for 0x0A and 0x0D:
-                        CMPU    0x000D, R8                  ; Is it a CR?
+                        CMP     0x000D, R8                  ; Is it a CR?
                         RBRA    _VGA$PUTC_NO_CR, !Z         ; No
                         XOR     R4, R4                      ; CR -> Reset X-coordinate
                         RBRA    _VGA$PUTC_END, 1            ; Update registers and exit
-_VGA$PUTC_NO_CR         CMPU    0x000A, R8                  ; Is it a LF?
+_VGA$PUTC_NO_CR         CMP     0x000A, R8                  ; Is it a LF?
                         RBRA    _VGA$PUTC_NORMAL_CHAR, !Z   ; No, so just a normal character
                         ADD     0x0001, R5                  ; Increment Y-coordinate
                         MOVE    VGA$MAX_Y, R7               ; To utilize the full screen, we need...
                         ADD     1, R7                       ; ...to compare to 40 lines due to ADD 1, R5
-                        CMPU    R7, R5                      ; EOScreen reached?
+                        CMP     R7, R5                      ; EOScreen reached?
                         RBRA    _VGA$PUTC_END, !Z           ; No, just update and exit
 
                         MOVE    0, R8                       ; VGA$SCROLL_UP_1 in automatic mode
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, scroll one line up...
-                        CMPU    1, R8                       ; Wrap-around/clrscr happened?
+                        CMP     1, R8                       ; Wrap-around/clrscr happened?
                         RBRA    _VGA$PUTC_END_SKIP, Z       ; Yes: Leave the function w/o rundown
 
                         SUB     0x0001, R5                  ; No: Decrement Y-coordinate b/c we scrolled
@@ -107,15 +107,15 @@ _VGA$PUTC_NO_CR         CMPU    0x000A, R8                  ; Is it a LF?
 _VGA$PUTC_NORMAL_CHAR   MOVE    VGA$CHAR, R6                ; R6 points to the HW char-register
                         MOVE    R8, @R6                     ; Output the character
 ; Now update the X- and Y-coordinate still contained in R4 and R5:
-                        CMPU    VGA$MAX_X, R4               ; Have we reached the EOL?
+                        CMP     VGA$MAX_X, R4               ; Have we reached the EOL?
                         RBRA    _VGA$PUTC_1, !Z             ; No
                         XOR     R4, R4                      ; Yes, reset X-coordinate to 0 and
-                        CMPU    VGA$MAX_Y, R5               ; check if we have reached EOScreen
+                        CMP     VGA$MAX_Y, R5               ; check if we have reached EOScreen
                         RBRA    _VGA$PUTC_2, !Z             ; No
 
                         MOVE    0, R8                       ; VGA$SCROLL_UP_1 in automatic mode                        
                         RSUB    VGA$SCROLL_UP_1, 1          ; Yes, scroll one line up...
-                        CMPU    1, R8                       ; Wrap-around/clrscr happened?
+                        CMP     1, R8                       ; Wrap-around/clrscr happened?
                         RBRA    _VGA$PUTC_END_SKIP, Z       ; Yes: Leave the function w/o rundown                        
 
                         MOVE    VGA$OFFS_RW, R7             ; Take care of the rw offset register
@@ -166,27 +166,27 @@ VGA$SCROLL_UP_1         INCRB
                         SHL     1, R3                       ; ...is set, so move upper bit to Carry...
                         RBRA    _VGA$SCROLL_UP_1_CKR80, C   ; ...because if Carry, then display < rw
 
-                        CMPU    @R1, @R0                    ; display = rw?
+                        CMP     @R1, @R0                    ; display = rw?
                         RBRA    _VGA$SCROLL_UP_1_CKR81, Z   ; yes: check R8
                         RBRA    _VGA$SCROLL_UP_1_NOP, 1     ; it is >, so skip
 
                         ; case display < rw
                         ; automatic scrolling when new content is written to the end
                         ; of the STDIN is disabled as soon as the user scrolled upwards
-_VGA$SCROLL_UP_1_CKR80  CMPU    0, R8 
+_VGA$SCROLL_UP_1_CKR80  CMP     0, R8 
                         RBRA    _VGA$SCROLL_UP_1_NOP, Z
                         RBRA    _VGA$SCROLL_UP_1_DOIT, 1
 
                         ; case display = offs
                         ; do not scroll if the user wants to, but only if the
                         ; system needs to due to a calculation result
-_VGA$SCROLL_UP_1_CKR81  CMPU    1, R8
+_VGA$SCROLL_UP_1_CKR81  CMP     1, R8
                         RBRA    _VGA$SCROLL_UP_1_NOP, Z
 
                         ; avoid wrapping at 64.000: 60.800 is the last offset
                         ; we can support before resetting everything as
                         ; 64.000 - (80 x 40) = 60.800
-                        CMPU    60800, @R0                  ; display = 60800?
+                        CMP     60800, @R0                  ; display = 60800?
                         RBRA    _VGA$SCROLL_UP_1_DOIT, !Z   ; no: scroll
                         RSUB    VGA$CLS, 1                  ; yes: clear screen...
                         MOVE    1, R8                       ; set clrscr flag
@@ -196,7 +196,7 @@ _VGA$SCROLL_UP_1_CKR81  CMPU    1, R8
 _VGA$SCROLL_UP_1_DOIT   ADD     VGA$CHARS_PER_LINE, @R0
 
                         ; if after the scrolling disp = rw, then show cursor
-                        CMPU    @R1, @R0
+                        CMP     @R1, @R0
                         RBRA    _VGA$SCROLL_UP_1_NOP, !Z
                         MOVE    VGA$STATE, R0
                         OR      VGA$EN_HW_CURSOR, @R0
@@ -284,11 +284,11 @@ VGA$SCROLL_HOME_END     INCRB
                         MOVE    VGA$OFFS_DISPLAY, R0
                         MOVE    VGA$OFFS_RW, R1
 
-                        CMPU    1, R8                       ; scroll to END?
+                        CMP     1, R8                       ; scroll to END?
                         RBRA    _VGA$SCRL_HOME_END_E, Z
 
                         ; Scroll to the very top ("Home")
-_VGA$SCRL_HOME_END_H    CMPU    0, @R0                      ; Home reached?
+_VGA$SCRL_HOME_END_H    CMP     0, @R0                      ; Home reached?
                         RBRA    _VGA$SCRL_HOME_END_EOF, Z   ; yes
                         RSUB    VGA$SCROLL_DOWN_1, 1        ; no: scroll down
                         RBRA    _VGA$SCRL_HOME_END_H, 1          
@@ -296,7 +296,7 @@ _VGA$SCRL_HOME_END_H    CMPU    0, @R0                      ; Home reached?
                         RBRA _VGA$SCRL_HOME_END_EOF, 1
 
                         ; Scroll to the very bottom ("End")                        
-_VGA$SCRL_HOME_END_E    CMPU    @R1, @R0                    ; End reached?
+_VGA$SCRL_HOME_END_E    CMP     @R1, @R0                    ; End reached?
                         RBRA    _VGA$SCRL_HOME_END_EOF, Z   ; Yes
                         MOVE    1, R8                       ; No: scroll up in ... 
                         RSUB    VGA$SCROLL_UP_1, 1          ; ... "manual" scrolling mode

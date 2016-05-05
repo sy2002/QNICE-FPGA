@@ -121,9 +121,9 @@ _STR$CMP_EXIT   DECRB                       ; Restore previous register page
 STR$STRCHR          INCRB
                     MOVE    R9, R0
                     XOR     R10, R10
-_STR$STRCHR_LOOP    CMPU    0x0000, @R0         ; while (*string)
+_STR$STRCHR_LOOP    CMP     0x0000, @R0         ; while (*string)
                     RBRA    _STR$STRCHR_EXIT, Z
-                    CMPU    R8, @R0             ; if (*string == R8)
+                    CMP     R8, @R0             ; if (*string == R8)
                     RBRA    _STR$STRCHR_NEXT, !Z
                     MOVE    R0, R10
                     RBRA    _STR$STRCHR_EXIT, 1

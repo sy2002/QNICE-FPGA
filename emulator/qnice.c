@@ -76,7 +76,7 @@ int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$
     gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
     gbl$ctrl_c = FALSE, gbl$breakpoint = -1;
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
-                                "NOT", "AND", "OR", "XOR", "CMP", "", "HALT"},
+                                "NOT", "AND", "OR", "XOR", "CMP", "rsrvd", "HALT"},
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNVIM",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
@@ -626,15 +626,15 @@ int execute()
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
-    case 12: /* CMP */
+    case 12: /* CMPU */
       source_0 = read_source_operand(destination_mode, destination_regaddr, FALSE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       destination = source_0 - source_1;
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       break;
-    case 13: /* This opcode intentionally left blank :-) */
-      printf("Trying to execute opcode D -- this is reserved for future use!\n");
-      return TRUE;
+    case 13: /* Reserved */
+      printf("Attempt to execute the reserved instruction...\n");
+      return 1;
     case 14: /* HALT */
       return TRUE;
     case 15: /* Branch or subroutine call */

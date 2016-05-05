@@ -39,10 +39,10 @@ SELECTED_Y      .EQU 37
                 ; check external interface "variables" TILE_DX_INIT and
                 ; TILE_DY_INIT to fit into the boundaries
                 MOVE    TILE_DX_MAX, R0
-                CMPU    TILE_DX_INIT, R0
+                CMP     TILE_DX_INIT, R0
                 RBRA    TILE_ED_HALT, N
                 MOVE    TILE_DY_MAX, R0
-                CMPU    TILE_DY_INIT, R0
+                CMP     TILE_DY_INIT, R0
                 RBRA    TILE_ED_HALT, N
                 RBRA    TILE_ED_START, 1
 TILE_ED_HALT    MOVE    STR_NOSTART, R8
@@ -83,7 +83,7 @@ MAIN_LOOP       MOVE    R4, @R0
                 MOVE    R8, @R2
 
                 ; set cursor depending on mode
-                CMPU    0, R3                   
+                CMP     0, R3                   
                 RBRA    CRS_MODE_0, Z
                 MOVE    R6, @R0
                 MOVE    R7, @R1
@@ -93,69 +93,69 @@ CRS_MODE_0      MOVE    R4, @R0
 
                 ; keyboard handler
 WAIT_FOR_KEY    RSUB    KBD_GETCHAR, 1
-                CMPU    KBD$F1, R8              ; F1 = switch mode
+                CMP     KBD$F1, R8              ; F1 = switch mode
                 RBRA    SWITCH_MODE, Z
-                CMPU    KBD$F2, R8              ; F2 = change size (and clear)
+                CMP     KBD$F2, R8              ; F2 = change size (and clear)
                 RBRA    CHANGE_SIZE, Z
-                CMPU    KBD$F3, R8              ; F3 = clear
+                CMP     KBD$F3, R8              ; F3 = clear
                 RBRA    CLEAR, Z
-                CMPU    KBD$F12, R8             ; F12 = quit
+                CMP     KBD$F12, R8             ; F12 = quit
                 RBRA    SAVE_DATA, Z
-                CMPU    KBD$SPACE, R8           ; SPACE = draw character
+                CMP     KBD$SPACE, R8           ; SPACE = draw character
                 RBRA    DRAW_CHAR, Z
-                CMPU    0, R3                   ; mode = palette?
+                CMP     0, R3                   ; mode = palette?
                 RBRA    NAV_PAL, Z              ; yes: navigate palette
-                CMPU    KBD$CUR_UP, R8          ; no: tile: up
+                CMP     KBD$CUR_UP, R8          ; no: tile: up
                 RBRA    NAV_TILE_U, Z
-                CMPU    KBD$CUR_DOWN, R8        ; tile: cursor down
+                CMP     KBD$CUR_DOWN, R8        ; tile: cursor down
                 RBRA    NAV_TILE_D, Z
-                CMPU    KBD$CUR_LEFT, R8        ; tile: cursor left
+                CMP     KBD$CUR_LEFT, R8        ; tile: cursor left
                 RBRA    NAV_TILE_L, Z
-                CMPU    KBD$CUR_RIGHT, R8       ; tile: cursor right
+                CMP     KBD$CUR_RIGHT, R8       ; tile: cursor right
                 RBRA    NAV_TILE_R, Z
-                CMPU    KBD$HOME, R8            ; tile: home = top left
+                CMP     KBD$HOME, R8            ; tile: home = top left
                 RBRA    NAV_TILE_H, Z
-                CMPU    KBD$END, R8             ; tile: end = bottom right
+                CMP     KBD$END, R8             ; tile: end = bottom right
                 RBRA    NAV_TILE_E, Z                
                 RBRA    WAIT_FOR_KEY, 1
-NAV_PAL         CMPU    KBD$CUR_UP, R8          ; palette: cursor up
+NAV_PAL         CMP     KBD$CUR_UP, R8          ; palette: cursor up
                 RBRA    NAV_PAL_U, Z
-                CMPU    KBD$CUR_DOWN, R8        ; palette: cursor down
+                CMP     KBD$CUR_DOWN, R8        ; palette: cursor down
                 RBRA    NAV_PAL_D, Z
-                CMPU    KBD$CUR_LEFT, R8        ; palette: cursor left
+                CMP     KBD$CUR_LEFT, R8        ; palette: cursor left
                 RBRA    NAV_PAL_L, Z
-                CMPU    KBD$CUR_RIGHT, R8       ; palette: cursor right
+                CMP     KBD$CUR_RIGHT, R8       ; palette: cursor right
                 RBRA    NAV_PAL_R, Z
-                CMPU    KBD$HOME, R8            ; palette: home = top left
+                CMP     KBD$HOME, R8            ; palette: home = top left
                 RBRA    NAV_PAL_H, Z
-                CMPU    KBD$END, R8             ; palette: end = bottom right
+                CMP     KBD$END, R8             ; palette: end = bottom right
                 RBRA    NAV_PAL_E, Z
                 RBRA    WAIT_FOR_KEY, 1
 
                 ; palette navigation: up
 NAV_PAL_U       MOVE    PAL_WS_Y, R8
-                CMPU    R5, @R8                 ; y-pos already at minimum?
+                CMP     R5, @R8                 ; y-pos already at minimum?
                 RBRA    WAIT_FOR_KEY, Z         ; yes: ignore keypress
                 SUB     2, R5                   ; no: one step up
                 RBRA    MAIN_LOOP, 1
 
                 ; palette navigation: down
 NAV_PAL_D       MOVE    PAL_WS_Y_MAX, R8
-                CMPU    R5, @R8                 ; y-pos already at maximum?        
+                CMP     R5, @R8                 ; y-pos already at maximum?        
                 RBRA    WAIT_FOR_KEY, Z         ; yes: ignore keypress
                 ADD     2, R5                   ; no: one step down
                 RBRA    MAIN_LOOP, 1
 
                 ; palette navigation: left
 NAV_PAL_L       MOVE    PAL_WS_X, R8
-                CMPU    R4, @R8                 ; x-pos already at minimum?
+                CMP     R4, @R8                 ; x-pos already at minimum?
                 RBRA    WAIT_FOR_KEY, Z         ; yes: ignore keypress
                 SUB     2, R4                   ; no: one step to the left    
                 RBRA    MAIN_LOOP, 1
 
                 ; palette navigation: right
 NAV_PAL_R       MOVE    PAL_WS_X_MAX, R8        
-                CMPU    R4, @R8                 ; x-pos already at maximum?
+                CMP     R4, @R8                 ; x-pos already at maximum?
                 RBRA    WAIT_FOR_KEY, Z         ; yes: ignore keypress
                 ADD     2, R4                   ; no: one step to the right
                 RBRA    MAIN_LOOP, 1
@@ -176,28 +176,28 @@ NAV_PAL_E       MOVE    PAL_WS_X_MAX, R8        ; bottom right position
 
                 ; tile navigation: up
 NAV_TILE_U      MOVE    TILE_WS_Y, R8
-                CMPU    @R8, R7                 ; y-pos already at minimum?
+                CMP     @R8, R7                 ; y-pos already at minimum?
                 RBRA    WAIT_FOR_KEY, Z         ; yes: ignore keypress
                 SUB     1, R7                   ; no: one line up
                 RBRA    MAIN_LOOP, 1
 
                 ; tile navigation: down
 NAV_TILE_D      MOVE    TILE_WS_Y_MAX, R8
-                CMPU    @R8, R7                 ; y-pos already at maximum?
+                CMP     @R8, R7                 ; y-pos already at maximum?
                 RBRA    WAIT_FOR_KEY, Z         ; yes: ignore the keypress
                 ADD     1, R7                   ; no: one line down
                 RBRA    MAIN_LOOP, 1
 
                 ; tile navigation: left
 NAV_TILE_L      MOVE    TILE_WS_X, R8
-                CMPU    @R8, R6                 ; x-pos already at minimum?
+                CMP     @R8, R6                 ; x-pos already at minimum?
                 RBRA    WAIT_FOR_KEY, Z         ; yes: ignore the keypress
                 SUB     1, R6                   ; no: one column left                
                 RBRA    MAIN_LOOP, 1
 
                 ; tile navigation: right
 NAV_TILE_R      MOVE    TILE_WS_X_MAX, R8
-                CMPU    @R8, R6                 ; x-pos already at maximum?
+                CMP     @R8, R6                 ; x-pos already at maximum?
                 RBRA    WAIT_FOR_KEY, Z         ; yes: ignore the keypress
                 ADD     1, R6                   ; no: one column right
                 RBRA    MAIN_LOOP, 1
@@ -241,10 +241,10 @@ _CLEAR_NEXT_Y   MOVE    TILE_WS_X, R8
                 MOVE    @R8, @R0
 _CLEAR_NEXT_X   MOVE    KBD$SPACE, @R2
                 ADD     1, @R0
-                CMPU    @R0, @R9
+                CMP     @R0, @R9
                 RBRA    _CLEAR_NEXT_X, !N
                 ADD     1, @R1
-                CMPU    @R1, @R10
+                CMP     @R1, @R10
                 RBRA    _CLEAR_NEXT_Y, !N
                 RBRA    MAIN_LOOP, 1
 
@@ -288,10 +288,10 @@ _SAVE_NEXT_X    MOVE    0x30, R8                ; print "0"
                 MOVE    @R11, R8
                 RSUB    UART_PUTCHAR, 1
                 ADD     1, @R0
-                CMPU    @R0, @R9                ; reached maximum x position?
+                CMP     @R0, @R9                ; reached maximum x position?
                 RBRA    _SAVE_NEXT_XC, !N       ; no: print a ", " and go on
                 ADD     1, @R1                  ; yes: increase y position
-                CMPU    @R1, @R10               ; reached maximum y position?
+                CMP     @R1, @R10               ; reached maximum y position?
                 RBRA    _SAVE_NEXT_Y, !N        ; no: next line
                 RBRA    END, 1                  ; yes: end TileEd
 
@@ -317,10 +317,10 @@ CHANGE_SIZE     MOVE    39, R10                 ; y-pos = last line of screen
                 RSUB    KBD_GET2DGN, 1          ; 2-digit number from keyboard
 
                 MOVE    TILE_DX_MAX, R0
-                CMPU    R8, R0                  ; R8 <= TILE_DX_MAX?
+                CMP     R8, R0                  ; R8 <= TILE_DX_MAX?
                 RBRA    _CS_CHECK_DX, !N        ; yes: continue checking
                 RBRA    CHANGE_SIZE, 1          ; no: enter a new number
-_CS_CHECK_DX    CMPU    1, R8                   ; R8 >= 1
+_CS_CHECK_DX    CMP     1, R8                   ; R8 >= 1
                 RBRA    CHANGE_SIZE, N          ; no: enter a new number
                 MOVE    R8, R1                  ; R1: remember new TILE_DX
 
@@ -336,19 +336,19 @@ _CS_ENTER_DY    MOVE    39, R10                 ; mult did destroy R10
                 RSUB    KBD_GET2DGN, 1          ; 2-digit number from keyboard
 
                 MOVE    TILE_DY_MAX, R0         
-                CMPU    R8, R0                  ; R8 <= TILE_DY_MAX?
+                CMP     R8, R0                  ; R8 <= TILE_DY_MAX?
                 RBRA    _CS_CHECK_DY, !N        ; yes: continue checking
                 RBRA    _CS_ENTER_DY, 1         ; no: enter a new number
-_CS_CHECK_DY    CMPU    1, R8                   ; R8 >= 1
+_CS_CHECK_DY    CMP     1, R8                   ; R8 >= 1
                 RBRA    _CS_ENTER_DY, N         ; no: enter a new number
                 MOVE    R8, R2                  ; R2: remember new TILE_DY
 
                 MOVE    TILE_DX, R12
-                CMPU    @R12, R1                ; old TILE_DX = new TILE_DX?
+                CMP     @R12, R1                ; old TILE_DX = new TILE_DX?
                 RBRA    _CS_ODX_NDX, Z          ; yes: continue checking
                 RBRA    _CS_STORE_NEW, 1        ; no: store new values&reset
 _CS_ODX_NDX     MOVE    TILE_DY, R12
-                CMPU    @R12, R2                ; old TILE_DY = new TILE_DY?
+                CMP     @R12, R2                ; old TILE_DY = new TILE_DY?
                 RBRA    _CS_STORE_NEW, !Z       ; no: store new values&reset
 
                 MOVE    0, R9                   ; yes: show help line...
@@ -427,21 +427,21 @@ KBD_GET2DGN     INCRB
 
 _KG2DGN_NEXT    RSUB    KBD_GETCHAR, 1
 
-                CMPU    KBD$ENTER, R8           ; enter pressed?
+                CMP     KBD$ENTER, R8           ; enter pressed?
                 RBRA    _KG2DGN_CHECK1, !Z      ; no: continue processing
                 MOVE    R7, R4                  ; yes: use preserved digit
                 RBRA    _KG2DGN_END, 1
   
-_KG2DGN_CHECK1  CMPU    KBD$ESC, R8             ; ESC pressed?
+_KG2DGN_CHECK1  CMP     KBD$ESC, R8             ; ESC pressed?
                 RBRA    _KG2DGN_CHECK2, !Z      ; no: continue processing
                 MOVE    R6, R4                  ; return default value
                 RBRA    _KG2DGN_END, 1
                 
-_KG2DGN_CHECK2  CMPU    47, R8                  ; ASCII value > 47?
+_KG2DGN_CHECK2  CMP     47, R8                  ; ASCII value > 47?
                 RBRA    _KG2DGN_NEXT, N         ; no: ignore key
-                CMPU    47, R8                  ; ASCII value = 47?
+                CMP     47, R8                  ; ASCII value = 47?
                 RBRA    _KG2DGN_NEXT, Z         ; yes: ignore key
-                CMPU    58, R8                  ; ASCII value < 58?
+                CMP     58, R8                  ; ASCII value < 58?
                 RBRA    _KG2DGN_NEXT, !N        ; no: ignore key
 
                 ; print digit and move cursor to the right
@@ -458,7 +458,7 @@ _KG2DGN_CHECK2  CMPU    47, R8                  ; ASCII value > 47?
                 ADD     R10, R4                 ; R10 enough, 2 digits < 100
 
                 ADD     1, R3                   ; next digit
-                CMPU    2, R3                   ; two digits entered
+                CMP     2, R3                   ; two digits entered
                 RBRA    _KG2DGN_NEXT, !Z
 
 _KG2DGN_END     MOVE    R4, R8
@@ -614,7 +614,7 @@ _PRINT_STR_LOOP MOVE    R4, @R0                 ; set x-pos
                 RSUB    WAIT_FOR_VGA, 1         ; VGA is slower than CPU   
                 ADD     1, R4                   ; increase x-pos
                 ADD     1, R3                   ; increase character pointer
-                CMPU    0, @R3                  ; string end?
+                CMP     0, @R3                  ; string end?
                 RBRA    _PRINT_STR_LOOP, !Z     ; no: continue printing
 
                 MOVE    R4, R11
@@ -660,11 +660,11 @@ _DRAW_P_LX      MOVE    R3, @R0                 ; cursor x-pos to hardware
                 ADD     2, R3                   ; skip one column
                 ADD     1, R8                   ; next character
                 ADD     1, R9                   ; x-counter: 0..15
-                CMPU    16, R9                  ; already more than 15?
+                CMP     16, R9                  ; already more than 15?
                 RBRA    _DRAW_P_LX, !Z          ; no: next column
 
                 ADD     2, R4                   ; yes: next line
-                CMPU    256, R8                 ; already more than 255 chars?
+                CMP     256, R8                 ; already more than 255 chars?
                 RBRA    _DRAW_P_LY, !Z          ; no: go on printing
 
                 ; calculate PAL_WS_* variables
@@ -698,7 +698,7 @@ _DRAW_LEG_LOOP  RSUB    MAKE_ASCII, 1
                 RSUB    WAIT_FOR_VGA, 1         ; CPU is too fast for VGA
                 ADD     1, R8                   ; increase character
                 ADD     2, R3                   ; increase variable dimension
-                CMPU    16, R8                  ; 0 .. F printed?
+                CMP     16, R8                  ; 0 .. F printed?
                 RBRA    _DRAW_LEG_LOOP, !Z      ; no: loop
                 RET                             ; yes: return
 
@@ -706,7 +706,7 @@ _DRAW_LEG_LOOP  RSUB    MAKE_ASCII, 1
                 ; of the corresponding hex nibble
                 ; IN: R8    number 0..15
                 ; OUT: R9   ascii of corresponding hex nibble
-MAKE_ASCII      CMPU    10, R8                  ; R8 < 10?
+MAKE_ASCII      CMP     10, R8                  ; R8 < 10?
                 RBRA    _MASCII_LESS10, N       ; yes
                 MOVE    55, R9
                 ADD     R8, R9                  ; no: >= 10: A = ASCII 65

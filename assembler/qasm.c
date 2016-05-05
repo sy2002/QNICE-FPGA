@@ -160,7 +160,7 @@ int translate_mnemonic(char *string, int *opcode, int *type)
 {
   int i;
   static char *normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
-                              "NOT", "AND", "OR", "XOR", "CMPU", "CMPS", "HALT", 0},
+                              "NOT", "AND", "OR", "XOR", "CMP", "__RESERVED__", "HALT", 0},
     *branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB", 0},
     *directives[] = {".ORG", ".ASCII_W", ".ASCII_P", ".EQU", ".BLOCK", ".DW", 0};
 
@@ -821,7 +821,7 @@ int assemble()
           {
             entry->number_of_words++;
             address++;
-            if (strcmp(entry->mnemonic, "CMPU") && strcmp(entry->mnemonic, "CMPS"))
+            if (strcmp(entry->mnemonic, "CMP"))
             {
                 sprintf(entry->error_text, "Line %d: A constant as destination operand ('%s') may not be what you wanted.", 
                     line_counter, entry->dest_op);

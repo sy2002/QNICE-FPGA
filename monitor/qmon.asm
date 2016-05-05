@@ -105,14 +105,14 @@ QMON$NEXT_CHR   RSUB    IO$GETCHAR, 1           ; Wait for a key being pressed
                 RBRA    QMON$NEXT_CHR, Z
                 RSUB    CHR$TO_UPPER, 1         ; Convert it into an uppercase letter
                 RSUB    IO$PUTCHAR, 1           ; Echo the character
-                CMPU    'C', R8                 ; Control group?
+                CMP     'C', R8                 ; Control group?
                 RBRA    QMON$MAYBE_M, !Z        ; No
 ; Control group
                 MOVE    QMON$CG_C, R8
                 RSUB    IO$PUTS, 1
                 RSUB    IO$GETCHAR, 1           ; Get command character
                 RSUB    CHR$TO_UPPER, 1
-                CMPU    'C', R8                 ; Cold start?
+                CMP     'C', R8                 ; Cold start?
                 RBRA    QMON$C_MAYBE_H, !Z      ; No...
 ; CONTROL/COLDSTART:
                 MOVE    QMON$CG_C_C, R8
@@ -123,13 +123,13 @@ QMON$NEXT_CHR   RSUB    IO$GETCHAR, 1           ; Wait for a key being pressed
                                                 ; the screen to keep the HW
                                                 ; startup message visible
                 RBRA    QMON$COLDSTART, 1       ; Yes!
-QMON$C_MAYBE_H  CMPU    'H', R8                 ; Halt?
+QMON$C_MAYBE_H  CMP     'H', R8                 ; Halt?
                 RBRA    QMON$C_MAYBE_R, !Z
 ; CONTROL/HALT:
                 MOVE    QMON$CG_C_H, R8
                 RSUB    IO$PUTS, 1
                 HALT
-QMON$C_MAYBE_R  CMPU    'R', R8                 ; Run?
+QMON$C_MAYBE_R  CMP     'R', R8                 ; Run?
                 RBRA    QMON$C_MAYBE_S, !Z      ; No
 ; CONTROL/RUN:
                 MOVE    QMON$CG_C_R, R8
@@ -138,21 +138,21 @@ QMON$C_MAYBE_R  CMPU    'R', R8                 ; Run?
                 RSUB    IO$PUT_CRLF, 1
                 ABRA    R8, 1                   ; Jump to address specified
 ; CONTROL/CLEAR SCREEN:
-QMON$C_MAYBE_S  CMPU    'S', R8                 ; Clear screen?
+QMON$C_MAYBE_S  CMP     'S', R8                 ; Clear screen?
                 RBRA    QMON$C_ILLEGAL, !Z      ; No
                 RSUB    VGA$CLS, 1              ; Yes, clear screen...
                 RBRA    QMON$MAIN_LOOP, 1       ; Return to main loop
 QMON$C_ILLEGAL  MOVE    QMON$ILLCMD, R8         ; Control group C, illegal command
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
-QMON$MAYBE_M    CMPU    'M', R8                 ; Compare with 'M'
+QMON$MAYBE_M    CMP     'M', R8                 ; Compare with 'M'
                 RBRA    QMON$MAYBE_H, !Z        ; No M, try next...
 ; Memory control group:
                 MOVE    QMON$CG_M, R8           ; Print control group name
                 RSUB    IO$PUTS, 1
                 RSUB    IO$GETCHAR, 1           ; Get command character
                 RSUB    CHR$TO_UPPER, 1         ; ...convert it to upper case
-                CMPU    'C', R8                 ; 'Change'?
+                CMP     'C', R8                 ; 'Change'?
                 RBRA    QMON$M_MAYBE_D, !Z
 ; MEMORY/CHANGE:
                 MOVE    QMON$CG_M_C, R8         ; Print prompt for address
@@ -169,7 +169,7 @@ QMON$MAYBE_M    CMPU    'M', R8                 ; Compare with 'M'
                 MOVE    R8, @R0
                 RSUB    IO$PUT_CRLF, 1
                 RBRA    QMON$MAIN_LOOP, 1
-QMON$M_MAYBE_D  CMPU    'D', R8
+QMON$M_MAYBE_D  CMP     'D', R8
                 RBRA    QMON$M_MAYBE_E, !Z      ; No D, try next...
 ; MEMORY/DUMP:
                 MOVE    QMON$CG_M_D, R8         ; Print prompt for start address
@@ -185,7 +185,7 @@ QMON$M_MAYBE_D  CMPU    'D', R8
                 RSUB    IO$DUMP_MEMORY, 1       ; Dump memory contents
                 RSUB    IO$PUT_CRLF, 1
                 RBRA    QMON$MAIN_LOOP, 1
-QMON$M_MAYBE_E  CMPU    'E', R8                 ; Is it an 'E'?
+QMON$M_MAYBE_E  CMP     'E', R8                 ; Is it an 'E'?
                 RBRA    QMON$M_MAYBE_F, !Z      ; No...
 ; MEMORY/EXAMINE:
                 MOVE    QMON$CG_M_E, R8         ; Print prompt for address
@@ -198,7 +198,7 @@ QMON$M_MAYBE_E  CMPU    'E', R8                 ; Is it an 'E'?
                 RSUB    IO$PUT_W_HEX, 1
                 RSUB    IO$PUT_CRLF, 1
                 RBRA    QMON$MAIN_LOOP, 1
-QMON$M_MAYBE_F  CMPU    'F', R8
+QMON$M_MAYBE_F  CMP     'F', R8
                 RBRA    QMON$M_MAYBE_L, !Z
 ; MEMORY/FILL:
                 MOVE    QMON$CG_M_F, R8
@@ -220,7 +220,7 @@ QMON$M_MAYBE_F  CMPU    'F', R8
                 RSUB    MEM$FILL, 1
                 RSUB    IO$PUT_CRLF, 1
                 RBRA    QMON$MAIN_LOOP, 1
-QMON$M_MAYBE_L  CMPU    'L', R8
+QMON$M_MAYBE_L  CMP     'L', R8
                 RBRA    QMON$M_MAYBE_M, !Z
 ; MEMORY/LOAD:
                 MOVE    QMON$CG_M_L, R8
@@ -230,7 +230,7 @@ _QMON$ML_LOOP   RSUB    IO$GET_W_HEX, 1             ; Get address
                 RSUB    IO$GET_W_HEX, 1             ; Get value
                 MOVE    R8, @R0
                 RBRA    _QMON$ML_LOOP, 1
-QMON$M_MAYBE_M  CMPU    'M', R8
+QMON$M_MAYBE_M  CMP     'M', R8
                 RBRA    QMON$M_MAYBE_S, !Z
 ; MEMORY/MOVE:
                 MOVE    QMON$CG_M_M, R8
@@ -250,7 +250,7 @@ QMON$M_MAYBE_M  CMPU    'M', R8
                 RSUB    MEM$MOVE, 1
                 RSUB    IO$PUT_CRLF, 1
                 RBRA    QMON$MAIN_LOOP, 1
-QMON$M_MAYBE_S  CMPU    'S', R8
+QMON$M_MAYBE_S  CMP     'S', R8
                 RBRA    QMON$M_ILLEGAL, !Z
 ; MEMORY/DISASSEMBLE:
                 MOVE    QMON$CG_M_S, R8         ; Print prompt for start address
@@ -265,13 +265,13 @@ QMON$M_MAYBE_S  CMPU    'S', R8
                 MOVE    R0, R8                  ; R8 contains the start address
 _QMON$MS_LOOP   RSUB    DBG$DISASM, 1           ; Disassemble one instruction at 
                                                 ; addr. R8 - this increments R8!
-                CMPU    R8, R9                  ; End reached?
+                CMP     R8, R9                  ; End reached?
                 RBRA    _QMON$MS_LOOP, !N       ; No, next instruction
                 RBRA    QMON$MAIN_LOOP, 1
 QMON$M_ILLEGAL  MOVE    QMON$ILLCMD, R8
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
-QMON$MAYBE_H    CMPU    'H', R8
+QMON$MAYBE_H    CMP     'H', R8
                 RBRA    QMON$NOT_H, !Z          ; No H, try next...
 ; HELP:
                 MOVE    QMON$HELP, R8           ; H(elp) - print help text
