@@ -28,13 +28,13 @@ DBG$DISASM          INCRB
                     MOVE    R1, R2              ; R1 contains the instruction
                     SHR     0x0009, R2          ; Get opcode * 8
                     AND     0x0078, R2          ; Filter out the unnecessary LSBs
-                    CMP     0x0078, R2          ; Is it a branch/subroutine call?
+                    CMPU    0x0078, R2          ; Is it a branch/subroutine call?
                     RBRA    _DBG$DISASM_BRSU, Z ; Yes!
 ; Treat non-branch/subroutine calls:
                     MOVE    _DBG$MNEMONICS, R8  ; Get address of mnemonic array
                     ADD     R2, R8              ; Get pointer to mnemonic
                     RSUB    IO$PUTS, 1          ; Print mnemonic
-                    CMP     0x0070, R2          ; Is it HALT (shifted 3 to the left)?
+                    CMPU    0x0070, R2          ; Is it HALT (shifted 3 to the left)?
                     RBRA    _DBG$DISASM_EXIT, Z ; Yes, do not fetch operands
                     MOVE    ' ', R8             ; Print a delimiter
                     RSUB    IO$PUTCHAR, 1
@@ -79,7 +79,7 @@ _DBG$HANDLE_SOURCE  MOVE    R1, R4              ; Prepare the source operand
 ;
 _DBG$HANDLE_OPERAND MOVE    R4, R2              ; Extract the source operand reg.#
                     AND     0x003E, R2          ; Is it @R15++?
-                    CMP     0x003E, R2
+                    CMPU    0x003E, R2
                     RBRA    _DBG$HSRC_NO_CONST, !Z
 ; The source operand is @R15++, i.e. a constant:
                     MOVE    @R0++, R8           ; Get contents of next memory cell
@@ -93,7 +93,7 @@ _DBG$HSRC_NO_CONST  MOVE    R4, R2              ; Get instruction again
                     RBRA    _DBG$HSRC_0, Z      ; Yes -> direct mode, no '@'
                     MOVE    '@', R8             ; Print a '@'-character
                     RSUB    IO$PUTCHAR, 1
-                    CMP     0x0003, R3          ; Is is @--?
+                    CMPU    0x0003, R3          ; Is is @--?
                     RBRA    _DBG$HSRC_0, !Z     ; No...
                     MOVE    _DBG$DECREMENT, R8
                     RSUB    IO$PUTS, 1
@@ -101,7 +101,7 @@ _DBG$HSRC_0         AND     0x003C, R2          ; Get offset into register name 
                     MOVE    _DBG$REGISTERS, R8
                     ADD     R2, R8              ; Determine entry point
                     RSUB    IO$PUTS, 1          ; Print register name
-                    CMP     0x0002, R3          ; Was the mode @Rxx++?
+                    CMPU    0x0002, R3          ; Was the mode @Rxx++?
                     RBRA    _DBG$HSRC_EXIT, !Z  ; No
                     MOVE    _DBG$INCREMENT, R8  ; Print '++'
                     RSUB    IO$PUTS, 1
@@ -128,8 +128,8 @@ _DBG$MNEMONICS      .ASCII_W    "MOVE   "
                     .ASCII_W    "AND    "
                     .ASCII_W    "OR     "
                     .ASCII_W    "XOR    "
-                    .ASCII_W    "CMP    "
-                    .ASCII_W    "INT    "
+                    .ASCII_W    "CMPU   "
+                    .ASCII_W    "CMPS   "
                     .ASCII_W    "HALT   "
                     .ASCII_W    "BRSU   "       ; This is not really necessary
 _DBG$BRSU_MNEMONICS .ASCII_W    "ABRA   "

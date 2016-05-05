@@ -53,11 +53,11 @@
      \item 16 general purpose registers divided into two banks of eight
       registers each
      \item The register bank containing registers 0\dots 7 is actually
-      a window to a high speed RAM so in fact there are $256\cdot 8+8=2056$ 
+      a window to a high speed RAM so in fact there are $256\times 8+8=2056$ 
       registers all in all
      \item moving the register window is accomplished in a single operation
       making push/pop operations virtually unnecessary
-     \item Very small instruction set (18 instructions)
+     \item Very small instruction set (19 instructions)
      \item 4 addressing modes
     \end{itemize}
    \end{frame}
@@ -80,12 +80,13 @@
       \begin{description}
        \item [{\tt R13}:] Normally used as a stack pointer -- especially the
         subroutine call instructions use this register as a stack pointer
-       \item [{\tt R14}:] Statusregister ({\tt sr} for short)
-       \item [{\tt R15}:] Program counter
+        (\texttt{SP}).
+       \item [{\tt R14}:] Statusregister ({\tt SR} for short).
+       \item [{\tt R15}:] Program counter (\texttt{PC}).
       \end{description}
      \item The upper eight registers {\tt R8}\dots{\tt R15} are always the
       same while the lower set of eight registers is a window
-      into a $256\cdot 8$ register bank of 16 bit bus width.
+      into a $256\times 8$ register bank of 16 bit bus width.
     \end{itemize}
    \end{frame}
 %
@@ -100,7 +101,7 @@
      \begin{tabular}{|c||c|c|c|c|c|c|c|c|}
       \hline
        {\tt rbank}&
-       {\tt M}&{\tt I}&{\tt V}&{\tt N}&{\tt Z}&{\tt C}&{\tt X}&{\tt 1}\\
+       ---&---&{\tt V}&{\tt N}&{\tt Z}&{\tt C}&{\tt X}&{\tt 1}\\
       \hline
      \end{tabular}
     \end{center}
@@ -111,8 +112,8 @@
      \item [{\tt Z}:] 1 if the last result was {\tt 0x0000}
      \item [{\tt N}:] 1 if the last result was negative
      \item [{\tt V}:] 1 if the last operation caused an overflow
-     \item [{\tt I}:] 1 if an interrupt occured
-     \item [{\tt M}:] If set to 1, maskable interrupts are allowed
+%     \item [{\tt I}:] 1 if an interrupt occured
+%     \item [{\tt M}:] If set to 1, maskable interrupts are allowed
     \end{description}
    \end{frame}
 %
@@ -239,8 +240,8 @@
        {\tt 9}&{\tt AND}&{\tt src, dst}&{\tt dst := dst \& src}\\
        {\tt A}&{\tt OR}&{\tt src, dst}&{\tt dst := dst | src}\\
        {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
-       {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\ 
-       {\tt D}&&&reserved\\
+       {\tt C}&{\tt CMPU}&{\tt src, dst}&compare {\tt src} with {\tt dst} unsigned\\ 
+       {\tt D}&{\tt CMPS}&{\tt src, dst}&compare {\tt src} with {\tt dst} signed\\ 
        {\tt E}&{\tt HALT}&&Halt the processor\\
        {\tt F}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
        {\tt F}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\

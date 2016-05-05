@@ -2,7 +2,7 @@
 **  QNICE assembler: This program reads QNICE assembler code from a file and generates, as expected from an assembler :-), 
 ** valid machine code based on this input.
 **
-** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016
+** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016
 **
 ** Known bugs:
 **
@@ -160,7 +160,7 @@ int translate_mnemonic(char *string, int *opcode, int *type)
 {
   int i;
   static char *normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
-                              "NOT", "AND", "OR", "XOR", "CMP", "RSRVD", "HALT", 0},
+                              "NOT", "AND", "OR", "XOR", "CMPU", "CMPS", "HALT", 0},
     *branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB", 0},
     *directives[] = {".ORG", ".ASCII_W", ".ASCII_P", ".EQU", ".BLOCK", ".DW", 0};
 
@@ -590,6 +590,15 @@ int assemble()
       token = tokenize((char *) 0, delimiters); /* Next token has to be a valid mnemonic or directive or may be empty */
       if (!translate_mnemonic(token, &opcode, &type))
       {
+        /* If the token is empty, we just found a label on a single line. If it is not empty and could not
+           be converted into a valid opcode, it is just an error. */
+        if (token)
+        {
+          sprintf(entry->error_text, "Line %d: Unknown token >>%s<<.", line_counter, token);
+          printf("assemble: %s\n", entry->error_text);
+          error_counter++;
+        }
+          
         entry->opcode = entry->opcode_type = NO_OPCODE;
         entry->address = address;
         continue;
@@ -808,15 +817,17 @@ int assemble()
             continue;
           }
           
-          if ((entry->dest_op_type == OPERAND$CONSTANT || entry->dest_op_type == OPERAND$LABEL_EQU) && 
-              strcmp(entry->mnemonic, "CMP")) /* A constant as destination is OK only for CMP! */
+          if ((entry->dest_op_type == OPERAND$CONSTANT || entry->dest_op_type == OPERAND$LABEL_EQU))
           {
             entry->number_of_words++;
             address++;
-            sprintf(entry->error_text, "Line %d: A constant as destination operand ('%s') may not be what you wanted.", 
+            if (strcmp(entry->mnemonic, "CMPU") && strcmp(entry->mnemonic, "CMPS"))
+            {
+                sprintf(entry->error_text, "Line %d: A constant as destination operand ('%s') may not be what you wanted.", 
                     line_counter, entry->dest_op);
-            printf("assemble: %s\n", entry->error_text);
-            /* This is just a warning, so no increment of error_counter is necessary! */
+                printf("assemble: %s\n", entry->error_text);
+                /* This is just a warning, so no increment of error_counter is necessary! */
+            }
           }
         }
       }

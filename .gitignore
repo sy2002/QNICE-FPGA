@@ -15,3 +15,5 @@ emulator/qnice
 *.rom
 *.bin
 *.def
+*.aux
+*.log

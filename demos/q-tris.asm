@@ -56,7 +56,7 @@ MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 ; show score, level, lines, stats and check if game is won
                 RSUB    PAINT_STATS, 1          ; update all stats on screen
                 MOVE    Level, R0
-                CMP     GAME_WON, @R0           ; game won?
+                CMPU    GAME_WON, @R0           ; game won?
                 RBRA    CALC_TTR_POS, !Z        ; no: new TTR emerges
                 MOVE    1, R8                   ; make sure "you win" is shown
                 RBRA    END_GAME_W, 1
@@ -81,7 +81,7 @@ CALC_TTR_POS    MOVE    Tetromino_Y, R1
 DROP            RSUB    HANDLE_PAUSE, 1         ; pause game, if needed
                 XOR     R8, R8                  ; R8 = 0 means move down
                 RSUB    DECIDE_MOVE, 1          ; can we move down?
-                CMP     0, R9                   
+                CMPU    0, R9                   
                 RBRA    HNDL_COMPL_ROWS, Z      ; no: handle completed rows
                 
                 MOVE    R4, R8                  ; yes: move down one row
@@ -95,7 +95,7 @@ DROP            RSUB    HANDLE_PAUSE, 1         ; pause game, if needed
 
                 ; detect a potential game over and handle completed rows
 HNDL_COMPL_ROWS MOVE    Tetromino_Y, R1          
-                CMP     -5, @R1                 ; reached upper boundary?
+                CMPU    -5, @R1                 ; reached upper boundary?
                 RBRA    END_GAME_L, N           ; yes: end game (game over)
                 RSUB    COMPLETED_ROWS, 1       ; no: handle completed rows
 
@@ -424,7 +424,7 @@ HANDLE_END      INCRB
                 MOVE    18, R11
                 RSUB    CLR_RECT, 1
 
-                CMP     1, R0                   ; print win message?
+                CMPU    1, R0                   ; print win message?
                 RBRA    _HANDLE_END_GO, !Z      ; no: print game over
 
                 MOVE    Game_Won, R8            ; yes: print win message
@@ -475,7 +475,7 @@ HANDLE_STATS    INCRB
 
                 INCRB
 
-                CMP     0, R8                   ; no line cleared
+                CMPU    0, R8                   ; no line cleared
                 RBRA    _H_STATS_RET, Z
 
                 ; update "how-many-lines-cleared" specific stat variables
@@ -497,7 +497,7 @@ HANDLE_STATS    INCRB
                 MOVE    Level, R4               ; calculate next treshold ...
                 ADD     @R4, R3                 ; ... for current level
                 SUB     1, R3                   
-                CMP     @R3, @R0                ; lines < treshold?
+                CMPU    @R3, @R0                ; lines < treshold?
                 RBRA    _H_STATS_SCORE, N       ; yes: go on, calculate score
                 ADD     1, @R4                  ; no: increase level
 
@@ -535,7 +535,7 @@ HANDLE_PAUSE    INCRB
 
                 ; skip this function if no pause mode
                 MOVE    Pause, R4
-                CMP     0, @R4
+                CMPU    0, @R4
                 RBRA    _HP_RET, Z
 
                 ; check for key press and read key
@@ -549,13 +549,13 @@ _HP_WAITFORKEY  ADD     1, @R2                  ; inc pseudo random number
                 ; key pressed: space? yes, pause ends, no: loop goes on
                 MOVE    IO$KBD_DATA, R5                                
                 MOVE    @R5, R5                 ; read pressed key
-                CMP     KBD$SPACE, R5           ; space pressed?
+                CMPU    KBD$SPACE, R5           ; space pressed?
                 RBRA    _HP_END_PAUSE, Z        ; yes: end pause
 
 #ifndef QTRIS_STANDALONE
-                CMP     KBD$CTRL_E, R5          ; CTRL+E pressed?
+                CMPU    KBD$CTRL_E, R5          ; CTRL+E pressed?
                 RBRA    EXIT, Z                 ; yes: exit game
-                CMP     KBD$F12, R5             ; F12 pressed?
+                CMPU    KBD$F12, R5             ; F12 pressed?
                 RBRA    EXIT, Z                 ; yes: exit game
 #endif                
 
@@ -633,7 +633,7 @@ PAINT_NEXT_TTR  INCRB
 DRAW_FROM_BAG   INCRB
 
                 MOVE    Tetromino_BFill, R0     ; empty bag?
-                CMP     0, @R0
+                CMPU    0, @R0
                 RBRA    _DFB_START, !Z
 
                 ; create new bag
@@ -641,29 +641,29 @@ DRAW_FROM_BAG   INCRB
                 XOR     R2, R2                  ; R2: counter to fill bag
 _DFB_FILL       MOVE    R2, @R1++               ; fill bag: 0, 1, 2, 3, ...
                 ADD     1, R2   
-                CMP     TTR_AMOUNT, R2          ; bag full?
+                CMPU    TTR_AMOUNT, R2          ; bag full?
                 RBRA    _DFB_FILL, !Z           ; no: go on filling
                 MOVE    TTR_AMOUNT, @R0         ; yes: store new bag size
                 RBRA    _DFB_MODULO, 1
 
-_DFB_START      CMP     TTR_AMOUNT, @R0         ; bag completely full?
+_DFB_START      CMPU    TTR_AMOUNT, @R0         ; bag completely full?
                 RBRA    _DFB_MODULO, Z          ; yes
 
                 ; compress bag by filling all empty spots (marked by -1)
                 ; with their right neighbour
                 MOVE    Tetromino_Bag, R1
                 XOR     R2, R2
-_DFB_CP_CMP     CMP     -1, @R1                 ; empty spot?
+_DFB_CP_CMP     CMPU    -1, @R1                 ; empty spot?
                 RBRA    _DFB_CP_ES, Z
 _DFB_CP_NEXT    ADD     1, R1
                 ADD     1, R2
-                CMP     TTR_AMOUNT, R2
+                CMPU    TTR_AMOUNT, R2
                 RBRA    _DFB_CP_CMP, !Z
                 RBRA    _DFB_MODULO, 1
 
 _DFB_CP_ES      MOVE    R1, R3                  ; R3: bagpointer (saved)
                 MOVE    R2, R4                  ; R4: counter (saved)
-_DFB_CP_ESCP    CMP     TTR_AMOUNT, R4          ; end of bag reached?
+_DFB_CP_ESCP    CMPU    TTR_AMOUNT, R4          ; end of bag reached?
                 RBRA    _DFB_CP_NEXT, Z         ; yes: back to upper loop
                 MOVE    R3, R5
                 ADD     1, R5
@@ -680,9 +680,9 @@ _DFB_MODULO     MOVE    PseudoRandom, R1
 
                 AND     0x00FF, R1
 
-_DFB_DO_MOD_C   CMP     R1, @R0
+_DFB_DO_MOD_C   CMPU    R1, @R0
                 RBRA    _DFB_DO_MOD_S, N
-                CMP     R1, @R0
+                CMPU    R1, @R0
                 RBRA    _DFB_DO_MOD_S, Z
                 RBRA    _DFB_DRAW, 1
 
@@ -732,7 +732,7 @@ COMPLETED_ROWS  INCRB
                 MOVE    8, R4                   ; R4: how many y-lines visible
                 MOVE    Tetromino_Y, R3
                 MOVE    @R3, R3                 ; R3 = Tetromino Y start coord
-                CMP     0, R3                   ; is it < 0?
+                CMPU    0, R3                   ; is it < 0?
                 RBRA    _CRH_START, !N          ; no: start
                 MOVE    R3, R4                  ; yes: how many lines visible?
                 ADD     8, R4                   ; R4: how many y-lines visible
@@ -746,13 +746,13 @@ _CRH_START      MOVE    R3, R11                 ; remember y-start coord
                 MOVE    R4, R12                 ; remember amount of visib. y
 _CRH_NEXT_Y     MOVE    0, @R7                  ; asumme: row is not completed
                 MOVE    Playfield_MY, R6        ; get maximum y-coord
-                CMP     R3, @R6                 ; current y > maximum y coord
+                CMPU    R3, @R6                 ; current y > maximum y coord
                 RBRA    _CRH_NEXT_LINE, N       ; yes: skip line
                 MOVE    R3, @R1                 ; hw cursor y to the first row
                 MOVE    PLAYFIELD_X, @R0        ; hw cursor x to the left
                 MOVE    PLAYFIELD_W, R5         ; init column counter
 
-_CRH_NEXT_X     CMP     0x20, @R2               ; a single space is enough...
+_CRH_NEXT_X     CMPU    0x20, @R2               ; a single space is enough...
                 RBRA    _CRH_NEXT_LINE, Z       ; ...to detect non-completion
                 ADD     1, @R0                  ; next x-coordinate
                 SUB     1, R5                   ; dec width cnt, line done?
@@ -767,7 +767,7 @@ _CRH_NEXT_LINE  SUB     1, R4                   ; one less line to check
                 RBRA    _CRH_NEXT_Y, 1          ; scan next line
 
                 ; blink completed lines
-_CRH_CHK_COMPL  CMP     0, @R8                  ; any lines completed?
+_CRH_CHK_COMPL  CMPU    0, @R8                  ; any lines completed?
                 RBRA    _CRH_RET, Z             ; no: return
 
                 MOVE    R11, R9                 ; first scanned line on scrn
@@ -794,14 +794,14 @@ _CRH_BLINK      MOVE    LN_COMPLETE, R8         ; completion character
                 MOVE    R12, R5
 
 CRH_PD_NEXT_Y   MOVE    Playfield_MY, R7
-                CMP     R3, @R7                 ; y > playfield size?
+                CMPU    R3, @R7                 ; y > playfield size?
                 RBRA    _CRH_RET, N             ; yes: return
 
                 MOVE    R3, @R1                 ; hw cursor to y start line
 
                 MOVE    PLAYFIELD_X, @R0        ; hw cursor to x start column
                 MOVE    PLAYFIELD_W, R4         ; width of one column
-CRH_PD_NEXT_X   CMP     0x20, @R2               ; is there a space char?
+CRH_PD_NEXT_X   CMPU    0x20, @R2               ; is there a space char?
                 RBRA    _CRH_PD_NEXT_LN, !Z     ; one non-space means: not clr
                 ADD     1, @R0                  ; yes: next column
                 SUB     1, R4                   ; column done?
@@ -878,10 +878,10 @@ PAINT_LN_COMPL  INCRB
                 MOVE    R10, R4                 ; amount of lines to process                
 
                 MOVE    Playfield_MY, R6        ; current y line larger ...
-_PLN_NEXT_CLY   CMP     R3, @R6                 ; ... than maximum y position?
+_PLN_NEXT_CLY   CMPU    R3, @R6                 ; ... than maximum y position?
                 RBRA    _PLN_RET, N             ; yes: return
 
-                CMP     1, @R7                  ; current line completed?
+                CMPU    1, @R7                  ; current line completed?
                 RBRA    _PLN_N_COMPL_NY, !Z     ; no: next line
 
                 MOVE    PLAYFIELD_W, R5         ; yes: init column counter
@@ -934,22 +934,22 @@ DECIDE_MOVE     INCRB
                 ; the playfield is free there. Obviously depends on R8
                 ; R10: x-checking-offset
                 ; R11: y-checking-offset
-                CMP     0, R8                   ; look downwards?
+                CMPU    0, R8                   ; look downwards?
                 RBRA    _DM_N_DN, !Z            ; no: continue to check
                 XOR     R10, R10                ; yes: x-offset is 0 then...
                 MOVE    1, R11                  ; ...and y-offset is 1
                 RBRA    _DM_START, 1
-_DM_N_DN        CMP     1, R8                   ; look left?
+_DM_N_DN        CMPU    1, R8                   ; look left?
                 RBRA    _DM_N_LT, !Z            ; no: continue to check
                 MOVE    -1, R10                 ; yes: left means -1 as x-offs
                 XOR     R11, R11                ; and 0 as y-offs
                 RBRA    _DM_START, 1
-_DM_N_LT        CMP     2, R8                   ; look right?
+_DM_N_LT        CMPU    2, R8                   ; look right?
                 RBRA    _DM_N_RT, !Z            ; no: continue to check
                 MOVE    1, R10                  ; yes: right means 1 as x-offs
                 XOR     R11, R11                ; and 0 as y offs
                 RBRA    _DM_START, 1
-_DM_N_RT        CMP     3, R8                   ; look at the actual position?
+_DM_N_RT        CMPU    3, R8                   ; look at the actual position?
                 RBRA    _DM_RET, !Z             ; no: illegal param. => return
                 XOR     R10, R10                ; yes: x-offset is 0...
                 XOR     R11, R11                ; ... and y-offset is 0
@@ -982,16 +982,16 @@ _DM_LOOP_X      MOVE    RenderedTTR, R7         ; pointer to Tetromino pattern
                 ; left (depending on the initial R8 parameter) of the pixel
                 ; there is an obstacle on the screen, that is not the
                 ; own pixel of the Tetromino
-                CMP     0x20, @R7               ; empty "pixel" in Tetromino?
+                CMPU    0x20, @R7               ; empty "pixel" in Tetromino?
                 RBRA    _DM_PX_FOUND, !Z        ; no: there is a pixel
                 RBRA    _DM_INCX, 1             ; yes: skip to next pixel
 
-_DM_PX_FOUND    CMP     0, R8                   ; negative y scanning coord?
+_DM_PX_FOUND    CMPU    0, R8                   ; negative y scanning coord?
                 RBRA    _DM_EMULATE_WL, N       ; yes: emulate walls
-                CMP     @R1, R3                 ; maximum y-position reached?
+                CMPU    @R1, R3                 ; maximum y-position reached?
                 RBRA    _DM_OBSTACLE, N         ; yes (@R1 > R3): return false
                 MOVE    VGA$CHAR, R2            ; hw register for reading scrn   
-                CMP     0x20, @R2               ; empty "pixel" on screen?
+                CMPU    0x20, @R2               ; empty "pixel" on screen?
                 RBRA    _DM_IS_IT_OWN, !Z       ; no: check if it is an own px
                 RBRA    _DM_INCX, 1             ; yes: go to next checking pos
 
@@ -1003,30 +1003,30 @@ _DM_PX_FOUND    CMP     0, R8                   ; negative y scanning coord?
                 ; very rapidly to the left: it would stick, too)
 _DM_EMULATE_WL  MOVE    PLAYFIELD_X, R2
                 SUB     1, R2
-                CMP     R2, @R0                 ; emulate left wall
+                CMPU    R2, @R0                 ; emulate left wall
                 RBRA    _DM_IS_IT_OWN, Z
                 MOVE    PLAYFIELD_X, R2
                 ADD     PLAYFIELD_W, R2
-                CMP     R2, @R0                 ; emulate right wall
+                CMPU    R2, @R0                 ; emulate right wall
                 RBRA    _DM_IS_IT_OWN, Z
                 RBRA    _DM_INCX, 1
 
 _DM_IS_IT_OWN   MOVE    R4, R12                 ; current y position
                 ADD     R11, R12                ; apply y scanning offset
-                CMP     0, R12                  ; y negative out-of-bound?                
+                CMPU    0, R12                  ; y negative out-of-bound?                
                 RBRA    _DM_INCX, N             ; yes: skip to next pixel
-                CMP     8, R12                  ; y positive out-of-bound?
+                CMPU    8, R12                  ; y positive out-of-bound?
                 RBRA    _DM_OBSTACLE, Z         ; yes: obstacle found
                 MOVE    R6, R2                  ; current x position
                 ADD     R10, R2                 ; apply x scanning offset
-                CMP     0, R2                   ; x negative out-of-bound?                
+                CMPU    0, R2                   ; x negative out-of-bound?                
                 RBRA    _DM_OBSTACLE, N         ; yes: obstacle found
-                CMP     8, R2                   ; x positive out-of-bound?
+                CMPU    8, R2                   ; x positive out-of-bound?
                 RBRA    _DM_OBSTACLE, Z         ; yes: obstacle found
                 SHL     3, R12                  ; (R12 = y) x 8 (line offset)
                 ADD     R2, R12                 ; add (R2 = x)
                 ADD     RenderedTTR, R12        ; completing the offset
-                CMP     0x20, @R12              ; Tetromino empty here?
+                CMPU    0x20, @R12              ; Tetromino empty here?
                 RBRA    _DM_OBSTACLE, Z         ; then obstacle is found
 
                 ; Arriving here means: No obstacle found in the classical
@@ -1037,9 +1037,9 @@ _DM_IS_IT_OWN   MOVE    R4, R12                 ; current y position
                 ; potentially rotated Tetromino there are other pixels of
                 ; other elements, because then the rotation is not allowed
                 ; ("other elements" can also be the playfield borders)
-                CMP     0, R10                  ; R10 == 0?
+                CMPU    0, R10                  ; R10 == 0?
                 RBRA    _DM_INCX, !Z            ; no rotation, no obstacle
-                CMP     0, R11                  ; R11 == 0?
+                CMPU    0, R11                  ; R11 == 0?
                 RBRA    _DM_INCX, !Z            ; no rotation, no obstacle
                 RBRA    _DM_OBSTACLE, 1         ; rotation: obstacle found
 
@@ -1048,13 +1048,13 @@ _DM_OBSTACLE    MOVE    0, R9                   ; obstacle detected ...
 
 _DM_INCX        ADD     1, R6                   ; next column...
                 ADD     1, @R0                  ; ...ditto for hardware cursor
-                CMP     8, R6                   ; line end reached?
+                CMPU    8, R6                   ; line end reached?
                 RBRA    _DM_LOOP_X, !Z          ; no: go on
 
 _DM_INCY        ADD     1, R4                   ; next line, ditto for the..
                 ADD     1, R8                   ; ..hw crs buffer R8 and for..
                 MOVE    R8, @R1                 ; ..the hw cursor itself
-                CMP     8, R4                   ; Tetromino end reached?
+                CMPU    8, R4                   ; Tetromino end reached?
                 RBRA    _DM_LOOP_Y, !Z          ; no go on
 
 _DM_RET         DECRB                           ; restore R8, R10, R11, R12
@@ -1103,11 +1103,11 @@ MULTITASK       INCRB
                 XOR     R11, R11
 
                 ; cursor left: move left
-                CMP     KBD$CUR_LEFT, R0
+                CMPU    KBD$CUR_LEFT, R0
                 RBRA    _MT_N_LEFT, !Z
                 MOVE    1, R8
                 RSUB    DECIDE_MOVE, 1          ; can we move left?                
-                CMP     0, R9
+                CMPU    0, R9
                 RBRA    _MT_RET_REST, Z         ; no: return
                 MOVE    @R5, R8                 ; yes: restore R8 ...
                 MOVE    -2, R9                  ; ... and move left
@@ -1115,11 +1115,11 @@ MULTITASK       INCRB
                 RBRA    _MT_RET_REST, 1
 
                 ; cursor right: move right
-_MT_N_LEFT      CMP     KBD$CUR_RIGHT, R0
+_MT_N_LEFT      CMPU    KBD$CUR_RIGHT, R0
                 RBRA    _MT_N_RIGHT, !Z
                 MOVE    2, R8
                 RSUB    DECIDE_MOVE, 1          ; can we move right?
-                CMP     0, R9
+                CMPU    0, R9
                 RBRA    _MT_RET_REST, Z         ; no: return
                 MOVE    @R5, R8                 ; yes: restore R8 ...
                 MOVE    2, R9                   ; ... and move right
@@ -1127,25 +1127,25 @@ _MT_N_LEFT      CMP     KBD$CUR_RIGHT, R0
                 RBRA    _MT_RET_REST, 1
 
                 ; x: rotate left
-_MT_N_RIGHT     CMP     0x78, R0                ; "x" = ASCII 0x78
+_MT_N_RIGHT     CMPU    0x78, R0                ; "x" = ASCII 0x78
                 RBRA    _MT_N_x, !Z
                 MOVE    1, R11
                 RSUB    UPDATE_TTR, 1
                 RBRA    _MT_RET_REST, 1
 
                 ; c: rotate right
-_MT_N_x         CMP     0x63, R0                ; "c" = ASCII 0x63
+_MT_N_x         CMPU    0x63, R0                ; "c" = ASCII 0x63
                 RBRA    _MT_N_c, !Z
                 MOVE    2, R11
                 RSUB    UPDATE_TTR, 1
                 RBRA    _MT_RET_REST, 1
 
                 ; cursor down: move down one row
-_MT_N_c         CMP     KBD$CUR_DOWN, R0
+_MT_N_c         CMPU    KBD$CUR_DOWN, R0
                 RBRA    _MT_N_DOWN, !Z
                 XOR     R8, R8
                 RSUB    DECIDE_MOVE, 1          ; can we move down?
-                CMP     0, R9
+                CMPU    0, R9
                 RBRA    _MT_RET_REST, Z         ; no: return
                 MOVE    @R5, R8                 ; yes: restore R8
                 XOR     R9, R9
@@ -1154,21 +1154,21 @@ _MT_N_c         CMP     KBD$CUR_DOWN, R0
                 RBRA    _MT_RET_REST, 1
 
                 ; cursor up: drop Tetromino as far as possible
-_MT_N_DOWN      CMP     KBD$CUR_UP, R0
+_MT_N_DOWN      CMPU    KBD$CUR_UP, R0
                 RBRA    _MT_N_UP, !Z
                 MOVE    Tetromino_Y, R11
                 MOVE    @R11, R6                ; remember original y pos
                 XOR     R10, R10                ; R10: line counter = 0
                 XOR     R8, R8
 _MT_DROP_DM     RSUB    DECIDE_MOVE, 1          ; can we move down one more ln
-                CMP     1, R9                   
+                CMPU    1, R9                   
                 RBRA    _MT_DROP_CHK, !Z        ; no: check how many we could
                 ADD     1, R10                  ; yes: inc line counter
                 ADD     1, @R11                 ; inc y pos: check a ln deeper
                 RBRA    _MT_DROP_DM, 1
 
 _MT_DROP_CHK    MOVE    R6, @R11                ; restore original y pos
-                CMP     0, R10                  ; can we drop 1 or more lines?
+                CMPU    0, R10                  ; can we drop 1 or more lines?
                 RBRA    _MT_RET_REST, Z         ; no: return
                 MOVE    @R5, R8                 ; yes: restore Tetromino num.
                 XOR     R9, R9                  ; delta x = 0; dx still in R10
@@ -1177,7 +1177,7 @@ _MT_DROP_CHK    MOVE    R6, @R11                ; restore original y pos
                 RBRA    _MT_RET_REST, 1
 
                 ; activate pause mode
-_MT_N_UP        CMP     KBD$SPACE, R0
+_MT_N_UP        CMPU    KBD$SPACE, R0
                 RBRA    _MT_ELSE, !Z
                 MOVE    Pause, R8
                 MOVE    1, @R8
@@ -1187,9 +1187,9 @@ _MT_N_UP        CMP     KBD$SPACE, R0
 _MT_ELSE        RBRA    _MT_RET_REST, 1
 #else
                 ; CTRL+E or F12 exit
-_MT_ELSE        CMP     KBD$CTRL_E, R0
+_MT_ELSE        CMPU    KBD$CTRL_E, R0
                 RBRA    EXIT, Z
-                CMP     KBD$F12, R0
+                CMPU    KBD$F12, R0
                 RBRA    EXIT, Z
                 RBRA    _MT_RET_REST, 1
 #endif
@@ -1233,7 +1233,7 @@ UPDATE_TTR      INCRB
                 ; if the current Tetromino is a new one, the rotate x-pos
                 ; compensation mechanism needs to be deactivated
                 MOVE    RenderedNumber, R4
-                CMP     NEW_TTR, @R4
+                CMPU    NEW_TTR, @R4
                 RBRA    _UTTR_IGN_OLD, Z        ; new Tetromino
                 MOVE    Tetromino_HV, R4        ; existing: is it currently
                 MOVE    @R4, R5                 ; horizontal or vertical
@@ -1250,11 +1250,11 @@ _UTTR_RENDER    MOVE    R0, R8
                 ; the x-axis position to still make it fit into the grid
                 MOVE    Tetromino_HV, R4        ; get new HV orientation
                 MOVE    @R4, R4                 
-                CMP     R4, R5
+                CMPU    R4, R5
                 RBRA    _UTTR_PAINT, Z          ; orientation did not change
                 MOVE    TTR_Rot_Xo, R6          ; look up compensation...
                 ADD     R8, R6                  ; ...per Tetromino
-                CMP     0, R5                   ; if was horizontal before...
+                CMPU    0, R5                   ; if was horizontal before...
                 RBRA    _UTTR_WAS_H, Z
                 ADD     @R6, R1                 ; ...then we need to add
                 RBRA    _UTTR_PAINT, 1
@@ -1304,17 +1304,17 @@ PAINT_TTR       INCRB
 _PAINT_TTR_YL   MOVE    8, R4                   ; R4: column counter
                 MOVE    R9, R7                  ; is R9+R5 < 0, i.e. is the...
                 ADD     R5, R7                  ; y-pos negative?
-                CMP     0, R7
+                CMPU    0, R7
                 RBRA    _PAINT_TTR_XL, !N       ; no: go on painting
                 ADD     8, R3                   ; yes: skip line
                 RBRA    _PAINT_NEXT_LN, 1       
 
-_PAINT_TTR_XL   CMP     0x20, @R3               ; transparent "pixel"?
+_PAINT_TTR_XL   CMPU    0x20, @R3               ; transparent "pixel"?
                 RBRA    _PAINT_TTR_SKIP, Z      ; yes: skip painting
 
                 MOVE    R7, @R1                 ; set hw cursor y-pos
 
-                CMP     0, R10                  ; no: check: clear or paint?
+                CMPU    0, R10                  ; no: check: clear or paint?
                 RBRA    _PAINT_CLEAR, Z         ; clear
                 MOVE    @R3, @R2                ; paint
                 RBRA    _PAINT_TTR_SKIP, 1
@@ -1326,7 +1326,7 @@ _PAINT_TTR_SKIP ADD     1, R3                   ; next source "pixel"
                 RBRA    _PAINT_TTR_XL, !Z       ; column done? no: go on
 _PAINT_NEXT_LN  MOVE    R8, @R0                 ; yes: reset x-pos
                 ADD     1, R5                   ; line counter to next line
-                CMP     8, R5                   ; all lines done?
+                CMPU    8, R5                   ; all lines done?
                 RBRA    _PAINT_TTR_YL, !Z       ; no: go on
 
                 DECRB
@@ -1372,7 +1372,7 @@ RENDER_TTR      INCRB
                 ; if no rotation necessary, do not use RenderedTemp
                 ; the pointer to the buffer to be used will
                 ; be in R4 afterwards
-                CMP     0, R9                   ; do not rotate?
+                CMPU    0, R9                   ; do not rotate?
                 RBRA    _RTTR_ANY_ROT, !Z       ; no, so do rotate
                 MOVE    RenderedTTR, R4         ; yes, so do not rotate
                 RBRA    _RTTR_CHK_AR, 1
@@ -1382,7 +1382,7 @@ _RTTR_ANY_ROT   MOVE    RenderedTemp, R4        ; do rotate, so use Temp
                 ; and if yes, skip the rendering process and go directly
                 ; to the rotation part
 _RTTR_CHK_AR    MOVE    RenderedNumber, R0      ; did we already render the...
-                CMP     @R0, R8                 ; ...currently requested piece
+                CMPU    @R0, R8                 ; ...currently requested piece
                 RBRA    _RTTR_BCLR, !Z          ; no: render it now
                 MOVE    RenderedTTR, R0         ; yes: copy TTR to
                 MOVE    RenderedTemp, R1        ; ...Temp because the...
@@ -1443,10 +1443,10 @@ _RTTR_XL        MOVE    @R0, @R1++              ; source => dest x|y
                 SUB     1, R3                   ; row done?
                 RBRA    _RTTR_YL, !Z            ; no: go on
 
-_RTTR_ROTATE    CMP     0, R9                   ; do not rotate?
+_RTTR_ROTATE    CMPU    0, R9                   ; do not rotate?
                 RBRA    _RTTR_END, Z            ; yes, do not rotate: end
 
-                CMP     2, R9                   ; rotate right?
+                CMPU    2, R9                   ; rotate right?
                 RBRA    _RTTR_RR, Z             ; yes
 
                 ; rotate left:
@@ -1462,7 +1462,7 @@ _RTTR_DYL       MOVE    RenderedTemp, R0        ; R0: source: raw Tetromino
 _RTTR_DXL       MOVE    @R0, @R2++              ; copy "pixel"
                 ADD     8, R0                   ; next source line
                 ADD     1, R3                   ; next dest column
-                CMP     8, R3                   ; end of source line?
+                CMPU    8, R3                   ; end of source line?
                 RBRA    _RTTR_DXL, !Z
                 SUB     1, R1
                 RBRA    _RTTR_DYL, !N           ; < 0 means 8 cols are done
@@ -1484,7 +1484,7 @@ _RTTR_RR_DXL    MOVE    @R0, @R2++              ; copy "pixel"
                 SUB     1, R4                   ; all "pixels" copied in col.
                 RBRA    _RTTR_RR_DXL, !Z        ; no: go on
                 ADD     1, R3                   ; yes: next col
-                CMP     8, R3                   ; all cols copied?
+                CMPU    8, R3                   ; all cols copied?
                 RBRA    _RTTR_RR_DYL, !Z        ; no: go on
 
                 ; after any rotation (left or right):
@@ -1494,7 +1494,7 @@ _RTTR_ROT_DONE  MOVE    R8, R6                  ; save R8 & R9
                 MOVE    R9, R7
                 MOVE    3, R8                   ; check, if the rotation...
                 RSUB    DECIDE_MOVE, 1          ; ... is allowed
-                CMP     1, R9                   ; rotation allowed?
+                CMPU    1, R9                   ; rotation allowed?
                 RBRA    _RTTR_END_ROTOK, Z      ; yes: flip HV orientation
 
                 ; in case of an invalid rotation: copy back the non-rotated
@@ -1656,7 +1656,7 @@ _PRINT_STR_LOOP MOVE    R4, @R0                 ; set x-pos
                 RSUB    WAIT_FOR_VGA, 1         ; VGA is slower than CPU
                 ADD     1, R3                   ; next character in string                
                 ADD     1, R4                   ; increase x-pos on screen
-                CMP     0, @R3                  ; string end?
+                CMPU    0, @R3                  ; string end?
                 RBRA    _PRINT_STR_LOOP, !Z     ; no: continue printing
 
                 MOVE    R4, R11
@@ -1677,11 +1677,11 @@ PAINT_STATS     INCRB
                 ; executed
                 MOVE    Level, R8
                 MOVE    Level_Old, R9
-                CMP     @R8, @R9
+                CMPU    @R8, @R9
                 RBRA    _P_STATS_START, !Z
                 MOVE    Lines, R8
                 MOVE    Lines_Old, R9
-                CMP     @R8, @R9
+                CMPU    @R8, @R9
                 RBRA    _P_STATS_START, !Z
                 RBRA    _P_STATS_RET, 1
 
@@ -1690,7 +1690,7 @@ _P_STATS_START  MOVE    Level, R8
                 MOVE    @R8, R8
                 MOVE    GAME_WON, R9            ; non existing level number
                 SUB     1, R9                   ; maximum existing level num.
-                CMP     R8, R9                  ; current level > max. lnum.?
+                CMPU    R8, R9                  ; current level > max. lnum.?
                 RBRA    _P_STATS_PL, !N
                 MOVE    R9, R8                  ; yes: set lnum. to max lnum.
 _P_STATS_PL     MOVE    STLEVEL_X, R9           ; no: paint digit
@@ -1762,9 +1762,9 @@ PAINT_DECIMAL   INCRB
 
                 ; remove trailing zeros                
                 MOVE    5, R0                   ; how many digits to paint?
-_PAINT_D_RTZ    CMP     0, @R9                  ; current digit zero?
+_PAINT_D_RTZ    CMPU    0, @R9                  ; current digit zero?
                 RBRA    _PAINT_D_NTZ, !Z        ; no: trailing zeros removed
-                CMP     1, R0                   ; special case: R8 = 0
+                CMPU    1, R0                   ; special case: R8 = 0
                 RBRA    _PAINT_D_NTZ, Z         ; paint the 0
                 ADD     1, R9                   ; skip this 0
                 SUB     1, R0                   ; one less digit to be painted
@@ -1822,7 +1822,7 @@ _PD_ASCII_CNV   MOVE    @R9++, @R1              ; ASCII conversion of digits:
                 ; remove leading zeros
                 MOVE    5, R2                  
                 MOVE    _PD_DEC_STR_BUF, R1
-_PD_RM_LEAD_0s  CMP     0x30, @R1
+_PD_RM_LEAD_0s  CMPU    0x30, @R1
                 RBRA    _PD_PRINT, !Z
                 SUB     1, R2
                 RBRA    _PD_PRINT, Z
@@ -1925,7 +1925,7 @@ SPEED_DELAY     INCRB
                 MOVE    @R7++, R0               ; R0 contains first multiplier
                 MOVE    @R7, R1                 ; R1 contains second mult.
 
-                CMP     1, R8                   ; in R8 = 1 mode ...
+                CMPU    1, R8                   ; in R8 = 1 mode ...
                 RBRA    _SPEED_DELAY_SS, Z      ; ... skip the doubling
                 SHL     1, R1                   ; double the second multiplier
 
@@ -1933,7 +1933,7 @@ _SPEED_DELAY_SS MOVE    R1, R2                  ; remeber R1
                 MOVE    1, R3                   ; for more precise counting
 
                 ; waste cycles but continue to multitask while waiting
-_SPEED_DELAY_L  CMP     0, R8                   ; multitasking?
+_SPEED_DELAY_L  CMPU    0, R8                   ; multitasking?
                 RBRA    _SPEED_DELAY_SM, Z      ; no: skip it
                 RSUB    MULTITASK, 1
 _SPEED_DELAY_SM SUB     R3, R1
@@ -1970,10 +1970,10 @@ MAKE_DECIMAL    INCRB
 _MD_LOOP        MOVE    R4, R9                  ; divide by 10
                 RSUB    DIV_AND_MODULO, 1       ; R8 = "shrinked" dividend
                 MOVE    R9, @--R0               ; extract current digit place
-                CMP     R5, R8                  ; done?
+                CMPU    R5, R8                  ; done?
                 RBRA    _MD_LOOP, !Z            ; no: next iteration
 
-_MD_LEADING_0   CMP     R7, R0                  ; enough leading "0" there?
+_MD_LEADING_0   CMPU    R7, R0                  ; enough leading "0" there?
                 RBRA    _MD_RET, Z              ; yes: return
                 MOVE    0, @--R0                ; no: add a "0" digit
                 RBRA    _MD_LEADING_0, 1
@@ -2000,7 +2000,7 @@ DIV_AND_MODULO  INCRB
 
                 XOR     R0, R0                  ; R0 = 0
 
-                CMP     R0, R8                  ; 0 divided by x = 0 ...
+                CMPU    R0, R8                  ; 0 divided by x = 0 ...
                 RBRA    _DAM_START, !Z
                 MOVE    R0, R9                  ; ... and the modulo is 0, too
                 RBRA    _DAM_RET, 1
@@ -2013,7 +2013,7 @@ _DAM_START      MOVE    R9, R1                  ; R1: divisor
 _DAM_LOOP       ADD     R2, R8                  ; calculate quotient
                 SUB     R1, R9                  ; division by repeated sub.
                 RBRA    _DAM_COR_OFS, V         ; wrap around: correct offset
-                CMP     R0, R9
+                CMPU    R0, R9
                 RBRA    _DAM_RET, Z             ; zero: done and return
                 RBRA    _DAM_LOOP, 1
 
@@ -2042,7 +2042,7 @@ _DAM_RET        DECRB
 MUL             INCRB
 
                 XOR     R10, R10                ; result = 0
-                CMP     R10, R8                 ; if factor 1 = 0 ...
+                CMPU    R10, R8                 ; if factor 1 = 0 ...
                 RBRA    _MUL_RET, Z             ; ... then the result is 0
 
                 MOVE    R8, R0                  ; counter for repeated adding
@@ -2052,7 +2052,7 @@ MUL             INCRB
 _MUL_LOOP       ADD     R9, R10                 ; multiply by rep. additions
                 SUB     R1, R0                  ; are we done?
                 RBRA    _MUL_COR_OFS, V         ; yes due to overflow: return
-                CMP     R2, R0                  ; are we done?
+                CMPU    R2, R0                  ; are we done?
                 RBRA    _MUL_RET, Z             ; yes due to counter = 0
                 RBRA    _MUL_LOOP, 1
 
@@ -2099,10 +2099,10 @@ CLR_RECT        INCRB
 _CLR_RECT_YL    MOVE    R8, @R0                 ; set x hw cursor to x
 _CLR_RECT_XL    MOVE    R4, @R2                 ; clear position
                 ADD     R3, @R0                 ; next x
-                CMP     R5, @R0                 ; x end coordinate reached?
+                CMPU    R5, @R0                 ; x end coordinate reached?
                 RBRA    _CLR_RECT_XL, !Z        ; no: continue looping x
                 ADD     R3, @R1                 ; next y
-                CMP     R6, @R1                 ; y end coordinate reached?
+                CMPU    R6, @R1                 ; y end coordinate reached?
                 RBRA    _CLR_RECT_YL, !Z        ; no: conitnue looping y
 
                 DECRB

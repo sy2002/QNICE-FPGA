@@ -10,19 +10,19 @@
                 MOVE    0x10, R0
 
                 ; should output 0x0001
-                CMP     0xF, R0
+                CMPU    0xF, R0
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
                 ; should output 0x0009
-                CMP     0x10, R0
+                CMPU    0x10, R0
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
                 ; should output 0x0033
-                CMP     0x11, R0
+                CMPU    0x11, R0
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
@@ -30,25 +30,72 @@
                 MOVE    0x9000, R0
 
                 ; should output 0x0011
-                CMP     0x11, R0
+                CMPU    0x11, R0
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
                 ; should output 0x0021
-                CMP     0x8FFF, R0
+                CMPU    0x8FFF, R0
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
                 ; should output 0x0029
-                CMP     0x9000, R0
+                CMPU    0x9000, R0
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
                 ; should output 0x0013
-                CMP     0x9001, R0
+                CMPU    0x9001, R0
+                MOVE    SR, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+
+                ; Signed...
+
+                ; should output 0x0001
+                CMPS    0xF, R0
+                MOVE    SR, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; should output 0x0009
+                CMPS    0x10, R0
+                MOVE    SR, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; should output 0x0033
+                CMPS    0x11, R0
+                MOVE    SR, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                MOVE    0x9000, R0
+
+                ; should output 0x0011
+                CMPS    0x11, R0
+                MOVE    SR, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; should output 0x0021
+                CMPS    0x8FFF, R0
+                MOVE    SR, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; should output 0x0029
+                CMPS    0x9000, R0
+                MOVE    SR, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; should output 0x0013
+                CMPS    0x9001, R0
                 MOVE    SR, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)

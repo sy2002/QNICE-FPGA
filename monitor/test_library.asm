@@ -17,7 +17,7 @@ VGA$FULL_SCREEN_TEST    RSUB    VGA$INIT, 1             ; Initialize VGA-interfa
 _VGA$FS_TEST_LOOP       MOVE    R2, R8
                         RSUB    VGA$PUTCHAR, 1          ; Print a single "A"-character
                         ADD     0x0001, R2              ; Next character
-                        CMP     0x005B, R2              ; One after Z?
+                        CMPU    0x005B, R2              ; One after Z?
                         RBRA    _VGA$FS_TEST_LOOP, !Z   ; No, just continue
                         MOVE    0x0041, R2
                         RBRA    _VGA$FS_TEST_LOOP, 1
@@ -27,7 +27,7 @@ VGA$CRLF_TEST           RSUB    VGA$INIT, 1
 _VGA$CRLF_LOOP          MOVE    R2, R8
                         RSUB    VGA$PUTCHAR, 1          ; Print a single "A"-character
                         ADD     0x0001, R2              ; Next character
-                        CMP     0x005B, R2              ; One after Z?
+                        CMPU    0x005B, R2              ; One after Z?
                         RBRA    _VGA$CRLF_LOOP, !Z      ; No, just continue
                         MOVE    0x0041, R2              ; Reset char to "A"
                         MOVE    0x000A, R8

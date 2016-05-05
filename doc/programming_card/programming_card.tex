@@ -6,8 +6,8 @@
 %
  \section{General}
   QNICE is a 16 bit processor featuring four addressing modes, 16 registers and
-  a 16 bit address space of 16 bit words, the upper 1 kW page is reserved for
-  memory mapped I/O.
+  a 16 bit address space of 16 bit words (the upper 1 kW page is reserved for
+  memory mapped I/O).
 %
  \section{Registers}
   All in all there are 16 general purpose registers (\emph{GPR}s) available:
@@ -32,19 +32,20 @@
     \begin{longtable}{|c||c|c|c|c|c|c|c|c|}
      \hline
      {\tt rbank}&
-     {\tt M}&{\tt I}&{\tt V}&{\tt N}&{\tt Z}&{\tt C}&{\tt X}&{\tt 1}\\
+     ---&---&{\tt V}&{\tt N}&{\tt Z}&{\tt C}&{\tt X}&{\tt 1}\\
      \hline
     \end{longtable}
    \end{center}
     \begin{description}
-     \item [{\tt 1}:] Always set to 1
-     \item [{\tt X}:] 1 if the last result was {\tt 0xFFFF}
-     \item [{\tt C}:] Carry flag
-     \item [{\tt Z}:] 1 if the last result was {\tt 0x0000}
-     \item [{\tt N}:] 1 if the last result was negative
-     \item [{\tt V}:] 1 if the last operation caused an overflow
-     \item [{\tt I}:] 1 if an interrupt occured
-     \item [{\tt M}:] If set to 1, maskable interrupts are allowed
+     \item [{\tt 1}:] Always set to 1.
+     \item [{\tt X}:] 1 if the last result was {\tt 0xFFFF}.
+     \item [{\tt C}:] Carry flag.
+     \item [{\tt Z}:] 1 if the last result was {\tt 0x0000}.
+     \item [{\tt N}:] 1 if the last result was negative.
+     \item [{\tt V}:] 1 if the last operation caused an overflow, i.\,e. two
+      positive operands yielded a negative result or vice versa.
+%     \item [{\tt I}:] 1 if an interrupt occured.
+%     \item [{\tt M}:] If set to 1, maskable interrupts are allowed.
     \end{description}
     The upper eight bits of \texttt{SR} hold the pointer to the register
     window. Changing the value stored here will yield a different set of 
@@ -71,6 +72,7 @@
       \hline
        Opc&Instr&Operands&Effect\\
       \hline
+      \hline
        {\tt 0}&{\tt MOVE}&{\tt src, dst}&{\tt dst := src}\\
        {\tt 1}&{\tt ADD}&{\tt src, dst}&{\tt dst := dst + src}\\
        {\tt 2}&{\tt ADDC}&{\tt src, dst}&{\tt dst := dst + src + C}\\
@@ -84,8 +86,8 @@
        {\tt 9}&{\tt AND}&{\tt src, dst}&{\tt dst := dst \& src}\\
        {\tt A}&{\tt OR}&{\tt src, dst}&{\tt dst := dst | src}\\
        {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
-       {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\
-       {\tt D}&&&reserved\\
+       {\tt C}&{\tt CMPU}&{\tt src, dst}&compare {\tt src} with {\tt dst} unsigned\\
+       {\tt D}&{\tt CMPS}&{\tt src, dst}&compare {\tt src} with {\tt dst} signed\\
        {\tt E}&{\tt HALT}&&Halt the processor\\
        {\tt D}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
        {\tt D}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
@@ -117,6 +119,7 @@
       \hline
        Mode bits&Notation&Description\\
       \hline
+      \hline
        {\tt 00}&{\tt Rxx}&Use Rxx as operand\\
        {\tt 01}&{\tt @Rxx}&Use the memory cell addressed by\\
                &          &the contents of Rxx as operand\\
@@ -139,16 +142,19 @@
      \hline
       Shortcut&Implementation\\
      \hline
+     \hline
       \texttt{RET}&\texttt{MOVE @R13++, R15}\\
       \texttt{INCRB}&\texttt{ADD 0x0100, R14}\\
       \texttt{DECRB}&\texttt{SUB 0x0100, R14}\\
       \texttt{NOP}&\texttt{ABRA R15, 1}\\
       \texttt{SYSCALL(x, y)}&\texttt{ASUB x, y}\\
      \hline
+      \texttt{SP}&\texttt{R13}\\
+      \texttt{SR}&\texttt{R14}\\
+      \texttt{PC}&\texttt{R15}\\
+     \hline
     \end{longtable}
    \end{center}
-   \texttt{sysdef.asm} also defines three shortcuts \texttt{SP}, \texttt{SR},
-   and \texttt{PC} for \texttt{R13}, \texttt{R14}, and \texttt{R15}.
 %
  \section{Input/Output}
   I/O devices are memory mapped, their respective control and data registers 
@@ -198,6 +204,7 @@
       \hline
       Bit&Description\\
       \hline
+      \hline
       11&Enable R/W offset register if set.\\
       10&Enable display offset register if set.\\
       9&Busy (wait for 0 before issuing command).\\
@@ -235,6 +242,7 @@
       \hline
        Bit&Description\\
       \hline
+      \hline
        0&Set if an unread character is available.\\
        1&Function/cursor/\dots key pressed.\\
         &The value is stored in bits \texttt{15\dots8}.\\
@@ -253,6 +261,7 @@
        \hline
         Bit&Description\\
        \hline
+       \hline
         0&Reset counter and start counting.\\
         1&1: count, 0: inhibit\\
        \hline
@@ -265,6 +274,7 @@
      \begin{longtable}{|l|l|}
       \hline
        Bit&Description\\
+      \hline
       \hline
        0&Character received.\\
        1&Transmitter ready for next character.\\

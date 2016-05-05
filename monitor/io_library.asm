@@ -22,7 +22,7 @@ IO$DUMP_MEMORY          INCRB                           ; Get a new register pag
                         ADD 0x0001, R3                  ; That is necessary since we want the last 
                                                         ; address printed, too
                         MOVE 0xFFFF, R4                 ; Set R4 - this is the column counter - to -1
-_IO$DUMP_MEMORY_LOOP    CMP R3, R0                      ; Have we reached the end of the memory area?
+_IO$DUMP_MEMORY_LOOP    CMPU R3, R0                     ; Have we reached the end of the memory area?
                         RBRA _IO$DUMP_MEMORY_EXIT, !N   ; Yes - that is it, so exit this routine
                         ADD 0x0001, R4                  ; Next column
                         AND 0x0007, R4                  ; We compute mod 8
@@ -59,7 +59,7 @@ _IO$GET_W_HEX_REDO  XOR     R0, R0                          ; Clear R0
                     MOVE    IO$HEX_NIBBLES, R9              ; Pointer to list of valid chars
 _IO$GET_W_HEX_INPUT RSUB    IO$GETCHAR, 1                   ; Read a character into R8
                     RSUB    CHR$TO_UPPER, 1                 ; Convert to upper case
-                    CMP     'X', R8                         ; Was it an 'X'?
+                    CMPU    'X', R8                         ; Was it an 'X'?
                     RBRA    _IO$GET_W_HEX_REDO, Z           ; Yes - redo from start :-)
                     RSUB    STR$STRCHR, 1                   ; Is it a valid character?
                     MOVE    R10, R10                        ; Result equal zero?
@@ -130,49 +130,49 @@ _IO$GETCHAR_ENTRY   MOVE    @R0, R1                 ; Read the switch register
                     RBRA    _IO$GETCHAR_SPECIAL, 1  ; One char successfully read
 _IO$GETCHAR_UART    RSUB    UART$GETCHAR, 1         ; Read from UART
                     MOVE    0, R2                   ; Make sure: no USB phantom modifiers
-_IO$GETCHAR_SPECIAL CMP     KBD$CTRL_E, R8          ; CTRL-E?
+_IO$GETCHAR_SPECIAL CMPU    KBD$CTRL_E, R8          ; CTRL-E?
                     RBRA    QMON$WARMSTART, Z       ; Return to monitor immediately!
-                    CMP     KBD$CTRL_F, R8          ; CTRL-F?
+                    CMPU    KBD$CTRL_F, R8          ; CTRL-F?
                     RBRA    _IO$GETCHAR_SU1, Z      ; Yes: scroll up 1 line
-                    CMP     KBD$CUR_DOWN, R8        ; No: Cursor Down key?
+                    CMPU    KBD$CUR_DOWN, R8        ; No: Cursor Down key?
                     RBRA    _IO$GETCHAR_NO_FCD, !Z  ; No
 _IO$GETCHAR_SU1     MOVE    1, R8                   ; VGA$SCROLL_UP_1 in manual mode
                     RSUB    VGA$SCROLL_UP_1, 1      ; Perform scroll up
                     RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
-_IO$GETCHAR_NO_FCD  CMP     KBD$CTRL_B, R8          ; CTRL-B?
+_IO$GETCHAR_NO_FCD  CMPU    KBD$CTRL_B, R8          ; CTRL-B?
                     RBRA    _IO$GETCHAR_SD1, Z      ; Yes: scroll down 1 line
-                    CMP     KBD$CUR_UP, R8          ; No: Cursor Up key?
+                    CMPU    KBD$CUR_UP, R8          ; No: Cursor Up key?
                     RBRA    _IO$GETCHAR_NO_BCU, !Z  ; No                    
 _IO$GETCHAR_SD1     RSUB    VGA$SCROLL_DOWN_1, 1    ; Perform scroll down
                     RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
 _IO$GETCHAR_NO_BCU  AND     KBD$CTRL, R2            ; CTRL pressed?
                     RBRA    _IO$GETCHAR_NO_CTRL, Z  ; No
-                    CMP     KBD$PG_DOWN, R8         ; Yes: CTRL+Page Down?
+                    CMPU    KBD$PG_DOWN, R8         ; Yes: CTRL+Page Down?
                     RBRA    _IO$GETCHAR_NO_CPGD, !Z ; No
                     MOVE    10, R8                  ; Yes: scroll up 10 lines
                     RSUB    VGA$SCROLL_UP,1
                     RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
-_IO$GETCHAR_NO_CPGD CMP     KBD$PG_UP, R8           ; CTRL+Page Up?
+_IO$GETCHAR_NO_CPGD CMPU    KBD$PG_UP, R8           ; CTRL+Page Up?
                     RBRA    _IO$GETCHAR_NO_CTRL, !Z ; No
                     MOVE    10, R8                  ; Yes: scroll down 10 lines
                     RSUB    VGA$SCROLL_DOWN, 1
                     RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
-_IO$GETCHAR_NO_CTRL CMP     KBD$PG_DOWN, R8         ; Page Down?
+_IO$GETCHAR_NO_CTRL CMPU    KBD$PG_DOWN, R8         ; Page Down?
                     RBRA    _IO$GETCHAR_NO_PGD, !Z  ; No
                     MOVE    40, R8                  ; Yes: scroll up one screen
                     RSUB    VGA$SCROLL_UP, 1
                     RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
-_IO$GETCHAR_NO_PGD  CMP     KBD$PG_UP, R8           ; Page Up?
+_IO$GETCHAR_NO_PGD  CMPU    KBD$PG_UP, R8           ; Page Up?
                     RBRA    _IO$GETCHAR_NO_PGU, !Z  ; No
                     MOVE    40, R8                  ; Yes: scroll down one screen
                     RSUB    VGA$SCROLL_DOWN, 1              
                     RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
-_IO$GETCHAR_NO_PGU  CMP     KBD$HOME, R8            ; Home?
+_IO$GETCHAR_NO_PGU  CMPU    KBD$HOME, R8            ; Home?
                     RBRA    _IO$GETCHAR_NO_HM, !Z   ; No
                     MOVE    0, R8                   ; Yes: scroll to the very top
                     RSUB    VGA$SCROLL_HOME_END, 1
                     RBRA    _IO$GETCHAR_ENTRY, 1    ; Wait for next character
-_IO$GETCHAR_NO_HM   CMP     KBD$END, R8             ; End?
+_IO$GETCHAR_NO_HM   CMPU    KBD$END, R8             ; End?
                     RBRA    _IO$GETCHAR_FIN, !Z     ; No: Normal Key
                     MOVE    1, R8                   ; Yes: scroll to the very bottom
                     RSUB    VGA$SCROLL_HOME_END, 1

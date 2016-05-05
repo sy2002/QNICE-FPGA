@@ -39,7 +39,7 @@ _MTH$MUL_LAST   SHL     1, R2               ; Shift XL/XH one bit left
 _MTH$MUL_ZERO   SHL     1, R3               ; No shift XH one to the left
                 SUB     1, R5               ; Decrement counter
                 RBRA    _MTH$MUL_LOOP, !Z   ; Still not done?
-                CMP     R0, R1              ; Are the negative flags equal?
+                CMPU    R0, R1              ; Are the negative flags equal?
                 RBRA    _MTH$MUL_EXIT, Z    ; Yes, nothing further to do
                 NOT     R10, R10            ; 2s-complement of the result
                 NOT     R11, R11
