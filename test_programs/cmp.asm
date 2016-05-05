@@ -55,6 +55,7 @@
 
 
                 ; Signed...
+                SYSCALL(crlf, 1)
 
                 ; should output 0x0001
                 CMPS    0xF, R0
