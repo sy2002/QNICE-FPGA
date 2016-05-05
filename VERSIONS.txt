@@ -2,10 +2,10 @@ Version x.y    May, xx 2016
 ===========================
 
 * CPU: Significant speed improvement by removing old tristate driver.
-* CPU: New opcodes/changed opcode: CMP is replaced by unsigned compare CMPU
-  and signed compare CMPS
+* CPU: Fixed CMP opcode to support unsigned comparisons via the N flag and
+  signed comparisons via the V flag (and Z used for equality for both cases).
 * Added cycle counter
-* Fixed V flag CPU bug (CMPU, CMPS, AND, OR, XOR)
+* Fixed V flag CPU bug (AND, OR, XOR)
 
 Version 1.21   February, 13 2016
 ================================
