@@ -75,11 +75,13 @@ typedef struct statistic_data
 int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$verbose = FALSE,
     gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
     gbl$ctrl_c = FALSE, gbl$breakpoint = -1;
+
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                                 "NOT", "AND", "OR", "XOR", "CMP", "rsrvd", "HALT"},
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNVIM",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
+
 statistic_data gbl$stat;
 
 #ifdef USE_UART
@@ -438,7 +440,7 @@ unsigned int read_source_operand(unsigned int mode, unsigned int regaddr, int su
 
   if (gbl$debug)
     printf("\tread_source_operand: value=%04X, r15=%04X\n\r", source, read_register(15));
-  return source;
+  return source & 0xffff;
 }
 
 /*
@@ -512,8 +514,9 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
 int execute()
 {
   unsigned int instruction, address, opcode, source_mode, source_regaddr, destination_mode, destination_regaddr,
-    source_0, source_1, destination, scratch, i, debug_address, temp_flag;
-  int condition;
+    source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits;
+
+  int condition, cmp_0, cmp_1;
 
   debug_address = address = read_register(15); /* Get current PC */
   opcode = ((instruction = access_memory(address++, READ_MEMORY, 0)) >> 12 & 0Xf);
@@ -626,11 +629,25 @@ int execute()
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
-    case 12: /* CMPU */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, FALSE);
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      destination = source_0 - source_1;
-      update_status_bits(destination, source_0, source_1, MODIFY_ALL);
+    case 12: /* CMP */
+      source_1 = read_source_operand(destination_mode, destination_regaddr, FALSE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+
+      /* CMP does NOT use the standard logic for setting the SR bits - this is done explicitly in the following: */
+      sr_bits = 1; /* Take care of the LSB of SR which must be 1. */
+
+      if (source_0 == source_1) sr_bits |= 0x0008;
+      if (source_0 > source_1) sr_bits |= 0x0010;
+
+      /* Ugly but it works: Convert the unsigned int source_0/1 to signed ints with possible sign extension: */
+      cmp_0 = source_0;
+      cmp_1 = source_1;
+
+      if (source_0 & 0x8000) cmp_0 |= 0xffff0000;
+      if (source_1 & 0x8000) cmp_1 |= 0xffff0000;
+      if (cmp_0 > cmp_1) sr_bits |= 0x0020;
+
+      write_register(14, (read_register(14) & 0xffc0) | (sr_bits & 0x3f));
       break;
     case 13: /* Reserved */
       printf("Attempt to execute the reserved instruction...\n");
