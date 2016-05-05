@@ -1,8 +1,10 @@
 Version x.y    May, xx 2016
 ===========================
 
+* CPU: New opcodes/changed opcode: CMP is replaced by unsigned compare CMPU
+  and signed compare CMPS
 * Added cycle counter
-* Fixed V flag CPU bug (CMP, AND, OR, XOR)
+* Fixed V flag CPU bug (CMPU, CMPS, AND, OR, XOR)
 
 Version 1.21   February, 13 2016
 ================================
