@@ -1,6 +1,7 @@
 Version x.y    May, xx 2016
 ===========================
 
+* CPU: Significant speed improvement by removing old tristate driver.
 * CPU: New opcodes/changed opcode: CMP is replaced by unsigned compare CMPU
   and signed compare CMPS
 * Added cycle counter

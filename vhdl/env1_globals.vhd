@@ -37,7 +37,7 @@ constant SHADOW_REGFILE_SIZE  : natural   := 16;
 
 -- size of the block RAM in 16bit words: should be 32768
 -- set to 256 during development for tracability during simulation
-constant BLOCK_RAM_SIZE       : natural   := 256;
+constant BLOCK_RAM_SIZE       : natural   := 32768;
 
 -- VGA screen memory (should be a multiple of 80x40 = 3.200)
 constant VGA_RAM_SIZE         : natural   := 64000;
