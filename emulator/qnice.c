@@ -547,29 +547,29 @@ int execute()
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 1: /* ADD */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 + source_1;
       update_status_bits(destination, source_0, source_1, MODIFY_ALL); 
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 2: /* ADDC */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 + source_1 + ((read_register(14) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 3: /* SUB */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 - source_1;
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 4: /* SUBC */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 - source_1 - ((read_register(14) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
@@ -609,29 +609,29 @@ int execute()
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 9: /* AND */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 & source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 10: /* OR */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 | source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 11: /* XOR */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 ^ source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 12: /* CMP */
-      source_1 = read_source_operand(destination_mode, destination_regaddr, FALSE);
       source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_1 = read_source_operand(destination_mode, destination_regaddr, FALSE);
 
       /* CMP does NOT use the standard logic for setting the SR bits - this is done explicitly in the following: */
       sr_bits = 1; /* Take care of the LSB of SR which must be 1. */
@@ -653,6 +653,7 @@ int execute()
       printf("Attempt to execute the reserved instruction...\n");
       return 1;
     case 14: /* HALT */
+      printf("HALT instruction executed at address %04X.\n\n", debug_address);
       return TRUE;
     case 15: /* Branch or subroutine call */
       /* Determine destination address in case the branch/subroutine instruction will be performed */
