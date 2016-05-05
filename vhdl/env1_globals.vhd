@@ -10,8 +10,8 @@ use IEEE.STD_LOGIC_1164.all;
 package env1_globals is
 
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
---constant ROM_FILE             : string    := "../test_programs/cmp_reg.rom";
---constant ROM_SIZE             : natural   := 63;
+--constant ROM_FILE             : string    := "../test_programs/cmp.rom";
+--constant ROM_SIZE             : natural   := 66;
 constant ROM_FILE             : string    := "../monitor/monitor.rom";
 constant ROM_SIZE             : natural   := 2840;
 --constant ROM_FILE             : string    := "../demos/q-tris.rom";

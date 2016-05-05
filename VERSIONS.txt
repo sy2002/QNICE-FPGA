@@ -2,13 +2,21 @@ Version x.y    May, xx 2016
 ===========================
 
 * CPU: Significant speed improvement by removing old tristate driver
+* CPU: Fixed a bug that prevented things like CMP 0x00AA, 0x00FF or
+  things OR @R0++, @R0, i.e. situations, where both operands perform an
+  indirect access, where the source and destination operands are identical
+  and where the  source operand is post-incremented.
 * ALU: Fixed CMP opcode behaviour: using the N flag it now treats the
   operands as unsigned and using the V flag it treats them as signed.
 * ALU: Fixed V flag CPU bug (AND, OR, XOR)
 * CYCLE COUNTER: Added.
+* DEBUG MODE: If switch #2 is ON, then the LEDs are showing the current
+  address bus value in real-time and on HALT the TIL shows the address
+  of the executed HALT command.
 * ASSEMBLER: Is able to handle labels on separate lines, improved error
   handling, CMP allows a constant as second operand
-* EMULATOR: Fixed CMP opcode behaviour (see above)
+* EMULATOR: Fixed CMP opcode behaviour (see above), fixed similar CPU bug
+  as described above.
 * DOCUMENTATION: Added a programming card
 
 Version 1.21   February, 13 2016

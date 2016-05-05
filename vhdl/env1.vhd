@@ -8,6 +8,7 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 use work.env1_globals.all;
 
@@ -284,6 +285,10 @@ signal SLOW_CLOCK             : std_logic := '0';
 -- combined pre- and post pore reset
 signal reset_ctl              : std_logic;
 
+-- enable displaying of address bus on system halt, if switch 2 is on
+signal i_til_reg0_enable      : std_logic;
+signal i_til_data_in          : std_logic_vector(15 downto 0);
+
 begin
 
    -- QNICE CPU
@@ -363,9 +368,9 @@ begin
       port map (
          clk => SLOW_CLOCK,
          reset => reset_ctl,
-         til_reg0_enable => til_reg0_enable,
+         til_reg0_enable => i_til_reg0_enable,
          til_reg1_enable => til_reg1_enable,
-         data_in => cpu_data,
+         data_in => i_til_data_in,
          SSEG_AN => SSEG_AN,
          SSEG_CA => SSEG_CA
       );
@@ -451,7 +456,7 @@ begin
       );
    
    -- handle the toggle switches
-   switch_driver : process (switch_reg_enable, SWITCHES)
+   switch_driver : process(switch_reg_enable, SWITCHES)
    begin
       if switch_reg_enable = '1' then
          cpu_data <= SWITCHES;
@@ -461,15 +466,41 @@ begin
    end process;
    
    -- clock divider: create a 50 MHz clock from the 100 MHz input
-   generate_slow_clock : process (CLK)
+   generate_slow_clock : process(CLK)
    begin
       if rising_edge(CLK) then
          SLOW_CLOCK <= not SLOW_CLOCK;
       end if;
    end process;
        
-   -- HALT LED: LED #15
-   LEDs <= cpu_halt & "000000000000000";
+   -- debug mode handling: if switch 2 is on then:
+   --   show the current cpu address in realtime on the LEDs
+   --   on halt show the last PC (aka cpu address) on TIL
+   debug_mode_handler : process(SWITCHES, cpu_data, cpu_halt, til_reg0_enable)
+   variable halt_address : unsigned(15 downto 0);
+   begin
+      -- debug mode
+      if SWITCHES(2) = '1' then
+         if cpu_halt = '1' then
+            halt_address := unsigned(cpu_addr) - 1;
+            i_til_reg0_enable <= '1';
+            i_til_data_in <= std_logic_vector(halt_address);
+         else
+            i_til_reg0_enable <= til_reg0_enable;
+            i_til_data_in <= cpu_data;
+            
+            LEDs <= cpu_addr;
+         end if;
+      
+      -- normal mode
+      else
+         i_til_reg0_enable <= til_reg0_enable;
+         i_til_data_in <= cpu_data;
+      
+         -- HALT LED: LED #15
+         LEDs <= cpu_halt & "000000000000000";
+      end if;
+   end process;
        
    -- wire the simplified color system of the VGA component to the VGA outputs
    vga_red <= vga_r & vga_r & vga_r & vga_r;

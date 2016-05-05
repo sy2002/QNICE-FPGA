@@ -271,7 +271,8 @@ begin
                                 Bra_Mode, Bra_Condition, Bra_Neg,
                                 reg_read_addr1, reg_read_data1, reg_read_addr2, reg_read_data2,
                                 reg_write_addr, reg_write_data, reg_write_en,
-                                Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                                                
+                                Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                
+   variable varResult : std_logic_vector(15 downto 0);   
    begin
       DATA <= (others => 'Z');   
       fsmDataToBus <= (others => '0');
@@ -399,14 +400,26 @@ begin
                if Src_Mode = amIndirPostInc then
                   -- special handling of SR and PC as they are not stored in the register file
                   case Src_RegNo is
-                     when x"D" => fsmSP <= SP + 1;
-                     when x"E" => fsmSR <= SR + 1;
-                     when x"F" => fsmPC <= PC + 1;
+                     when x"D" =>
+                        fsmSP     <= SP + 1;
+                        varResult := SP + 1;
+                        
+                     when x"E" =>
+                        fsmSR     <= SR + 1;
+                        varResult := SR + 1;
+                        
+                     when x"F" =>
+                        fsmPC     <= PC + 1;
+                        varResult := PC + 1;
+                        
                      when others =>
                         fsm_reg_write_addr <= Src_RegNo;
                         fsm_reg_write_data <= Src_Value + 1;
-                        fsm_reg_write_en <= '1';               
+                        varResult := Src_Value + 1;
+                        fsm_reg_write_en <= '1';                        
                   end case;
+               else
+                  varResult := reg_read_data2;
                end if;
                                  
                -- decode the destination addressing mode (and avoid garbage due to a branch opcode)
@@ -428,7 +441,15 @@ begin
                            fsm_reg_write_en <= '1';
                      end case;
                   else
-                     fsmCpuAddr <= reg_read_data2;
+                     -- if the second parameter is also to be fetched indirect and if it
+                     -- is identical to the first parameter, then make sure, that the address
+                     -- bus is setup with the result of the above-mentioned postincrement (if applicable)
+                     if (Dst_Mode = amIndirect or Dst_Mode = amInDirPostInc) and Dst_RegNo = Src_RegNo then
+                        fsmCpuAddr <= varResult;
+                     else
+                        fsmCpuAddr <= reg_read_data2;
+                     end if;
+                     
                   end if;               
                end if;
             end if;
@@ -575,6 +596,9 @@ begin
          when cs_exepost_prepfetch =>
             DATA <= DATA_To_Bus;            
             fsmCpuAddr <= PC;
+            
+         when cs_halt =>
+            fsmCpuAddr <= ADDR_Bus;           
         
          when others =>
             fsmPC <= (others => '0');
