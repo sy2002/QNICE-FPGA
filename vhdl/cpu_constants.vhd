@@ -22,8 +22,8 @@ constant opcNOT   : std_logic_vector(3 downto 0) := x"8";
 constant opcAND   : std_logic_vector(3 downto 0) := x"9";
 constant opcOR    : std_logic_vector(3 downto 0) := x"A";
 constant opcXOR   : std_logic_vector(3 downto 0) := x"B";
-constant opcCMPU  : std_logic_vector(3 downto 0) := x"C";
-constant opcCMPS  : std_logic_vector(3 downto 0) := x"D";
+constant opcCMP   : std_logic_vector(3 downto 0) := x"C";
+constant opcNoOpc : std_logic_vector(3 downto 0) := x"D";
 constant opcHALT  : std_logic_vector(3 downto 0) := x"E";
 constant opcBRA   : std_logic_vector(3 downto 0) := x"F";
 
