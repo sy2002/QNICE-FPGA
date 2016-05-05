@@ -107,8 +107,11 @@ begin
       end if;      
    end process;
                   
+--   with ce select
+--      busy <= counter when '1',
+--              'Z' when others;
    with ce select
-      busy <= counter when '1',
+      busy <= '0' when '1',
               'Z' when others;
    
 end beh;
