@@ -56,6 +56,7 @@
 
                 ; Signed...
                 SYSCALL(crlf, 1)
+                MOVE    0x10, R0
 
                 ; should output 0x0001
                 CMPS    0xF, R0
