@@ -65,6 +65,11 @@ port (
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
+
+   -- Extended Arithmetic Element
+   eae_en            : out std_logic;
+   eae_we            : out std_logic;
+   eae_reg           : out std_logic_vector(2 downto 0);   
    
    -- UART register range $FF20..$FF23
    uart_en           : out std_logic;
@@ -203,6 +208,35 @@ begin
          cyc_we <= data_dir and data_valid;
          cyc_reg <= "11";
       end if;
+   end process;
+   
+   eae_control : process(addr, data_dir, data_valid)
+   begin
+      eae_en <= '0';
+      eae_we <= '0';
+      eae_reg <= "000";
+      
+      if addr = x"FF1B" then
+         eae_en <= '1';
+         eae_we <= data_dir and data_valid;
+         eae_reg <= "000";
+      elsif addr = x"FF1C" then
+         eae_en <= '1';
+         eae_we <= data_dir and data_valid;
+         eae_reg <= "001";
+      elsif addr = x"FF1D" then
+         eae_en <= '1';
+         eae_we <= data_dir and data_valid;
+         eae_reg <= "010";
+      elsif addr = x"FF1E" then
+         eae_en <= '1';
+         eae_we <= data_dir and data_valid;
+         eae_reg <= "011";
+      elsif addr = x"FF1F" then
+         eae_en <= '1';
+         eae_we <= data_dir and data_valid;
+         eae_reg <= "100";
+      end if;      
    end process;
    
    -- VGA starts at FF00

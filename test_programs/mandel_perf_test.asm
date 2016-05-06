@@ -4,6 +4,20 @@
 ;
 ; speed comparison using UART:
 ;
+;  CPU revision GIT #0xxxxxx needs xxxx xxxx = xx.xxx.xxx cycles = x,xxxx sec
+;
+; speed comparison using VGA:
+;
+;  CPU revision GIT #0xxxxxx needs xxxx xxxx = xx.xxx.xxx cycles = x,xxxx sec;
+;
+;
+; everything below this line has been done and measured using the software
+; implementation of muls, so these results are not comparable any more with
+; the new results that have been generated using the hardware muls of the EAE
+; ============================================================================
+;
+; speed comparison using UART:
+;
 ;  CPU revision GIT #0a9e0b0 needs 0426 8EF9 = 69.635.833 cycles = 1,3927 sec
 ;  CPU revision GIT #0aeb48e needs 02F9 31C8 = 49.885.640 cycles = 0,9977 sec
 ;  CPU revision GIT #60f1294 needs 02D4 FA6C = 47.512.172 cycles = 0,9502 sec

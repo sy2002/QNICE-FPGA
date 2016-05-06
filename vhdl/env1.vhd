@@ -182,6 +182,7 @@ port (
 );
 end component;
 
+-- clock cycle counter
 component cycle_counter is
 port (
    clk      : in std_logic;         -- system clock
@@ -191,6 +192,20 @@ port (
    en       : in std_logic;         -- enable for reading from or writing to the bus
    we       : in std_logic;         -- write to VGA's registers via system's data bus
    reg      : in std_logic_vector(1 downto 0);     -- register selector
+   data     : inout std_logic_vector(15 downto 0)  -- system's data bus
+);
+end component;
+
+-- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
+component EAE is
+port (
+   clk      : in std_logic;                        -- system clock
+   reset    : in std_logic;                        -- system reset
+   
+   -- EAE registers
+   en       : in std_logic;                        -- chip enable
+   we       : in std_logic;                        -- write enable
+   reg      : in std_logic_vector(2 downto 0);     -- register selector
    data     : inout std_logic_vector(15 downto 0)  -- system's data bus
 );
 end component;
@@ -235,7 +250,10 @@ port (
    uart_reg          : out std_logic_vector(1 downto 0);
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
-   cyc_reg           : out std_logic_vector(1 downto 0);   
+   cyc_reg           : out std_logic_vector(1 downto 0);
+   eae_en            : out std_logic;
+   eae_we            : out std_logic;
+   eae_reg           : out std_logic_vector(2 downto 0);   
    reset_pre_pore    : out std_logic;
    reset_post_pore   : out std_logic   
 );
@@ -271,6 +289,9 @@ signal uart_reg               : std_logic_vector(1 downto 0);
 signal cyc_en                 : std_logic;
 signal cyc_we                 : std_logic;
 signal cyc_reg                : std_logic_vector(1 downto 0);
+signal eae_en                 : std_logic;
+signal eae_we                 : std_logic;
+signal eae_reg                : std_logic_vector(2 downto 0);
 signal reset_pre_pore         : std_logic;
 signal reset_post_pore        : std_logic;
 
@@ -419,6 +440,17 @@ begin
          reg => cyc_reg,
          data => cpu_data
       );
+      
+   -- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
+   eae_inst : eae
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         en => eae_en,
+         we => eae_we,
+         reg => eae_reg,
+         data => cpu_data         
+      );      
                         
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
@@ -451,6 +483,9 @@ begin
          cyc_en => cyc_en,
          cyc_we => cyc_we,
          cyc_reg => cyc_reg,
+         eae_en => eae_en,
+         eae_we => eae_we,
+         eae_reg => eae_reg,
          reset_pre_pore => reset_pre_pore,
          reset_post_pore => reset_post_pore
       );
@@ -476,27 +511,20 @@ begin
    -- debug mode handling: if switch 2 is on then:
    --   show the current cpu address in realtime on the LEDs
    --   on halt show the PC of the HALT command (aka address bus value) on TIL
-   debug_mode_handler : process(SWITCHES, cpu_data, cpu_halt, til_reg0_enable)
+   debug_mode_handler : process(SWITCHES, cpu_addr, cpu_data, cpu_halt, til_reg0_enable)
    begin
+      i_til_reg0_enable <= til_reg0_enable;
+      i_til_data_in <= cpu_data;
+      LEDs <= cpu_halt & "000000000000000";
+   
       -- debug mode
       if SWITCHES(2) = '1' then
+         LEDs <= cpu_addr;
+      
          if cpu_halt = '1' then
             i_til_reg0_enable <= '1';
-            i_til_data_in <= cpu_addr;
-         else
-            i_til_reg0_enable <= til_reg0_enable;
-            i_til_data_in <= cpu_data;
-            
-            LEDs <= cpu_addr;
+            i_til_data_in <= cpu_addr;            
          end if;
-      
-      -- normal mode
-      else
-         i_til_reg0_enable <= til_reg0_enable;
-         i_til_data_in <= cpu_data;
-      
-         -- HALT LED: LED #15
-         LEDs <= cpu_halt & "000000000000000";
       end if;
    end process;
        
