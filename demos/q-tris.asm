@@ -25,7 +25,7 @@
 ; done by sy2002 in January and February 2016
 ; ****************************************************************************
 
-#undef QTRIS_STANDALONE
+#define QTRIS_STANDALONE
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
