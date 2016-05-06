@@ -16,7 +16,7 @@
 ;  CPU revision GIT #60f1294 needs 02CF 1666 = 47.126.118 cycles = 0,9425 sec
 ;  CPU revision GIT #83e2936 needs 02CC 0531 = 46.925.105 cycles = 0,9385 sec
 ;
-;  using the emulator's instruction counter feature we learned, that this
+;  using the emulator_s instruction counter feature we learned, that this
 ;  test program consists of 12.143.388 instructions, i.e. the FGA QNICE system
 ;  performs at an average of 3,86 cycles/instruction which leads to 
 ;  a system performance 12,93 MIPS.
@@ -60,7 +60,7 @@ INNER_LOOP      CMP     X_END, R1           ; End reached?
 ;;;
 ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 - z1 * z1) / 256
                 MOVE R3, R9
-                SYSCALL(mult, 1)
+                SYSCALL(muls, 1)
 ;
                 MOVE    Z1SQUARE_LOW, POINTER
                 MOVE    R10, @POINTER       ; Remember the result for later
@@ -69,7 +69,7 @@ ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 
 ;
                 MOVE    R2, R8              ; Compute z0 * z0
                 MOVE    R2, R9
-                SYSCALL(mult, 1)
+                SYSCALL(muls, 1)
 ;
                 MOVE    Z0SQUARE_LOW, POINTER
                 MOVE    R10, @POINTER       ; Remember the result for later
@@ -93,7 +93,7 @@ ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 
                 MOVE    R2, R8
                 ADD     R2, R8              ; R8 = 2 * z0
                 MOVE    R3, R9
-                SYSCALL(mult, 1)          ; R11|R10 = 2 * R2 * R3
+                SYSCALL(muls, 1)          ; R11|R10 = 2 * R2 * R3
                 SWAP    R10, R10
                 AND     0x00FF, R10
                 SWAP    R11, R11

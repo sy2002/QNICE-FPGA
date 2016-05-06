@@ -230,10 +230,11 @@ IO$EAE_RESULT_LO    .EQU    0xFF1D
 IO$EAE_RESULT_HI    .EQU    0xFF1E
 IO$EAE_CSR          .EQU    0xFF1F ; Command and Status Register
 ;
-; EAE-Opcodes:      0x0000  MULU
-;                   0x0001  MULS
-;                   0x0002  DIVU
-;                   0x0003  DIVS
+; EAE-Opcodes (CSR):    0x0000  MULU
+;                       0x0001  MULS
+;                       0x0002  DIVU
+;                       0x0003  DIVS
+;   Bit 15 of CSR is the busy bit. If it is set, the EAE is still busy crunshing numbers.
 ;
 ;
 ;  UART-registers:

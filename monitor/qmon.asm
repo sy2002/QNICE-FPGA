@@ -61,7 +61,7 @@ gets!           RBRA    IO$GETS, 1
 puts!           RBRA    IO$PUTS, 1
 crlf!           RBRA    IO$PUT_CRLF, 1
 til!            RBRA    IO$TIL, 1
-mult!           RBRA    MTH$MUL, 1
+muls!           RBRA    MTH$MULS, 1
 memset!         RBRA    MEM$FILL, 1
 memcpy!         RBRA    MEM$MOVE, 1
 wait!           RBRA    MISC$WAIT, 1
@@ -74,6 +74,7 @@ strcmp!         RBRA    STR$CMP, 1
 strchr!         RBRA    STR$STRCHR, 1
 gethex!         RBRA    IO$GET_W_HEX, 1
 puthex!         RBRA    IO$PUT_W_HEX, 1
+mulu!           RBRA    MTH$MULU, 1
 
 ;
 ;  The actual monitor code starts here:

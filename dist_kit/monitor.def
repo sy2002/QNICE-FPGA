@@ -9,7 +9,7 @@ gets                          	.EQU	0x0006
 puts                          	.EQU	0x0008
 crlf                          	.EQU	0x000A
 til                           	.EQU	0x000C
-mult                          	.EQU	0x000E
+muls                          	.EQU	0x000E
 memset                        	.EQU	0x0010
 memcpy                        	.EQU	0x0012
 wait                          	.EQU	0x0014
@@ -22,3 +22,4 @@ strcmp                        	.EQU	0x0020
 strchr                        	.EQU	0x0022
 gethex                        	.EQU	0x0024
 puthex                        	.EQU	0x0026
+mulu                          	.EQU	0x0028
