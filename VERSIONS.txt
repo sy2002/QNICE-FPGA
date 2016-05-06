@@ -1,4 +1,4 @@
-Version x.y    May, 6 2016
+Version 1.3    May, 6 2016
 ==========================
 
 * CPU: Significant speed improvement by removing old tristate driver:
@@ -11,15 +11,18 @@ Version x.y    May, 6 2016
 * ALU: Fixed CMP opcode behaviour: using the N flag it now treats the
   operands as unsigned and using the V flag it treats them as signed.
 * ALU: Fixed V flag CPU bug (AND, OR, XOR)
-* CYCLE COUNTER: Added.
+* CYCLE COUNTER: Added. Counts clock cycles. Can be used for performance
+  testing, as shown in test_programs/mandel_perf_test.asm.
 * DEBUG MODE: If switch #2 is ON, then the LEDs are showing the current
   address bus value in real-time and on HALT the TIL shows the address
   of the executed HALT command.
 * ASSEMBLER: Is able to handle labels on separate lines, improved error
-  handling, CMP allows a constant as second operand
+  handling, CMP allows a constant as second operand.
 * EMULATOR: Fixed CMP opcode behaviour (see above), fixed similar CPU bug
-  as described above. Outputs address of HALT instruction.
-* DOCUMENTATION: Added a programming card
+  as described above. Outputs address of HALT instruction. Also emulates
+  the new cycle counter (register compatible), but instead of counting
+  clock cycles, it is counting instructions.
+* DOCUMENTATION: Added a programming card.
 
 Version 1.21   February, 13 2016
 ================================
