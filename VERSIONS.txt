@@ -1,5 +1,5 @@
-Version x.y    May, xx 2016
-===========================
+Version x.y    May, 6 2016
+==========================
 
 * CPU: Significant speed improvement by removing old tristate driver:
   Evolution can be seen in mandel_perf_test.asm, which is now ~32% faster.

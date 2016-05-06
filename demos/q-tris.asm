@@ -182,7 +182,7 @@ CAH_H       .EQU 9          ; do not show the "Exit the game..." string
 CAH_H       .EQU 10
 #endif
 
-CRE_A_HELP  .ASCII_W "Q-TRIS V1.0 by sy2002 in February 2016  "
+CRE_A_HELP  .ASCII_W "Q-TRIS V1.1 by sy2002 in May 2016       "
             .ASCII_W "                                        "
             .ASCII_W "How to play:                            "
             .ASCII_W "                                        "
