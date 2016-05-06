@@ -15,6 +15,11 @@
 ;  CPU revision GIT #0aeb48e needs 02F4 3938 = 49.559.864 cycles = 0,9913 sec
 ;  CPU revision GIT #60f1294 needs 02CF 1666 = 47.126.118 cycles = 0,9425 sec
 ;  CPU revision GIT #83e2936 needs 02CC 0531 = 46.925.105 cycles = 0,9385 sec
+;
+;  using the emulator's instruction counter feature we learned, that this
+;  test program consists of 12.143.388 instructions, i.e. the FGA QNICE system
+;  performs at an average of 3,86 cycles/instruction which leads to 
+;  a system performance 12,93 MIPS.
 
                 .ORG    0xA000
 
