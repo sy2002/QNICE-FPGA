@@ -4,11 +4,7 @@
 **
 ** B. Ulmann, 16-AUG-2006...03-SEP-2006...04-NOV-2006...29-JUN-2007...
 **            16-DEC-2007...03-JUN-2008...28-DEC-2014...
-**            xx-AUG-2015
-**
-** Known bugs:
-**
-** 1) Executing the simple SUM.BIN yields to a statistics display with three more memory reads than expected.
+**            xx-AUG-2015...xx-MAY-2016...
 **
 */
 
@@ -52,6 +48,11 @@ void uart_run_down();
 #define UART0_BASE_ADDRESS     0xff20
 #define IDE_BASE_ADDRESS       0xffe0
 
+#define CYC_LO                 0xff17 /* Cycle counter low, middle, high word and state register */
+#define CYC_MID                0xff18
+#define CYC_HI                 0xff19
+#define CYC_STATE              0xff1a
+
 #define NO_OF_INSTRUCTIONS     19
 #define NO_OF_ADDRESSING_MODES 4
 #define READ_MEMORY            0 /* This and the following constants are used to control the access_xxx functions */
@@ -74,7 +75,9 @@ typedef struct statistic_data
 
 int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$verbose = FALSE,
     gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
-    gbl$ctrl_c = FALSE, gbl$breakpoint = -1;
+    gbl$ctrl_c = FALSE, gbl$breakpoint = -1, gbl$cycle_counter_state = 0;
+
+unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                                 "NOT", "AND", "OR", "XOR", "CMP", "rsrvd", "HALT"},
@@ -238,7 +241,6 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       value = gbl$memory[address];
     else /* IO area */
     {
-      /* TODO: Implement emulation of IO devices here! */
       value = 0;
       if ((gbl$debug))
         printf("\tread_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
@@ -249,6 +251,14 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
       else if (address == SWITCH_REG) /* Read the switch register */
         value = gbl$memory[SWITCH_REG];
+      else if (address == CYC_LO) /* Read low word of the cycle (instruction) counter. */
+        value = gbl$cycle_counter & 0xffff;
+      else if (address == CYC_MID)
+        value = (gbl$cycle_counter >> 16) & 0xffff;
+      else if (address == CYC_HI)
+        value = (gbl$cycle_counter >> 24) & 0xffff;
+      else if (address == CYC_STATE)
+        value = gbl$cycle_counter_state & 0x0003;
     }
   }
   else if (operation == WRITE_MEMORY)
@@ -257,7 +267,6 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       gbl$memory[address] = value;
     else /* IO area */
     {
-      /* TODO: Implement IO-devices! */
       if ((gbl$debug))
         printf("\twrite_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
 
@@ -271,6 +280,14 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         writeIDEDeviceRegister(address - IDE_BASE_ADDRESS, value);
       else if (address == SWITCH_REG) /* Read the switch register */
         gbl$memory[SWITCH_REG] = value;
+      else if (address == CYC_STATE)
+      {
+        if (value & 0x0001) /* Reset and start counting. */
+        {
+          gbl$cycle_counter = 0l;
+          gbl$cycle_counter_state = 0x0002;
+        }
+      }
     }
   }
   else
@@ -517,6 +534,9 @@ int execute()
     source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits;
 
   int condition, cmp_0, cmp_1;
+
+  if (gbl$cycle_counter_state & 0x0002)
+    gbl$cycle_counter++; /* Increment cycle counter which is an instruction counter in the emulator as opposed to the hardware. */
 
   debug_address = address = read_register(15); /* Get current PC */
   opcode = ((instruction = access_memory(address++, READ_MEMORY, 0)) >> 12 & 0Xf);
@@ -850,7 +870,7 @@ int main(int argc, char **argv)
 
       run();
 //      dump_registers();
-//      print_statistics();
+      print_statistics();
     }
 
 //    return 0;
