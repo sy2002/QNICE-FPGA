@@ -228,7 +228,7 @@ IO$EAE_OPERAND_0    .EQU    0xFF1B
 IO$EAE_OPERAND_1    .EQU    0xFF1C
 IO$EAE_RESULT_LO    .EQU    0xFF1D
 IO$EAE_RESULT_HI    .EQU    0xFF1E
-IO$EAE_OPCODE       .EQU    0xFF1F
+IO$EAE_CSR          .EQU    0xFF1F ; Command and Status Register
 ;
 ; EAE-Opcodes:      0x0000  MULU
 ;                   0x0001  MULS
