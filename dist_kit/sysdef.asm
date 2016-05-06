@@ -50,6 +50,13 @@ VGA$COLOR_WHITE         .EQU    0x0007
 CYC$RESET               .EQU    0x0001                  ; Reset cycle counter
 CYC$RUN                 .EQU    0x0002                  ; Start/stop counter
 
+; ========== EAE ==========
+
+EAE$MULU                .EQU    0x0000                  ; Unsigned 16 bit multiplication
+EAE$MULS                .EQU    0x0001                  ; Signed 16 bit multiplication
+EAE$DIVU                .EQU    0x0002                  ; Unsigned 16 bit division with remainder
+EAE$DIVS                .EQU    0x0003                  ; Signed 16 bit division with remainder
+
 ; ========== KEYBOARD ==========
 
 ; STATUS REGISTER
@@ -214,8 +221,21 @@ IO$CYC_STATE    .EQU 0xFF1A     ; status register
 ;    Bit  0 (write only):     Reset counter to zero and start counting, i.e.
 ;                             bit 1 is automatically set to 1 when resetting
 ;    Bit  1 (read/write):     Start/stop counter
-;   
-
+;
+;  EAE (Extended Arithmetic Element):
+;
+IO$EAE_OPERAND_0    .EQU    0xFF1B
+IO$EAE_OPERAND_1    .EQU    0xFF1C
+IO$EAE_RESULT_LO    .EQU    0xFF1D
+IO$EAE_RESULT_HI    .EQU    0xFF1E
+IO$EAE_CSR          .EQU    0xFF1F ; Command and Status Register
+;
+; EAE-Opcodes:      0x0000  MULU
+;                   0x0001  MULS
+;                   0x0002  DIVU
+;                   0x0003  DIVS
+;
+;
 ;  UART-registers:
 ;
 IO$UART_SRA     .EQU 0xFF21 ; Status register (relative to base address)
