@@ -1,18 +1,20 @@
 ; CPU performance testbed based instrumenting vaxmans mandelbrot demo
 ; mandelbrot demo done by vaxman in 2015
-; done by sy2002 in May 2016
+; performance testbed done and used for CPU improvement by sy2002 in May 2016
 ;
 ; speed comparison using UART:
 ;
 ;  CPU revision GIT #0a9e0b0 needs 0426 8EF9 = 69.635.833 cycles = 1,3927 sec
 ;  CPU revision GIT #0aeb48e needs 02F9 31C8 = 49.885.640 cycles = 0,9977 sec
 ;  CPU revision GIT #60f1294 needs 02D4 FA6C = 47.512.172 cycles = 0,9502 sec
+;  CPU revision GIT #83e2936 needs 02D2 3BCF = 47.332.303 cycles = 0,9466 sec
 ;
 ; speed comparison using VGA:
 ;
 ;  CPU revision GIT #0a9e0b0 needs 0425 7A16 = 69.564.950 cycles = 1,3913 sec
 ;  CPU revision GIT #0aeb48e needs 02F4 3938 = 49.559.864 cycles = 0,9913 sec
 ;  CPU revision GIT #60f1294 needs 02CF 1666 = 47.126.118 cycles = 0,9425 sec
+;  CPU revision GIT #83e2936 needs 02CC 0531 = 46.925.105 cycles = 0,9385 sec
 
                 .ORG    0xA000
 

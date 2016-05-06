@@ -16,7 +16,7 @@
 ;
 ; The game uses the PS2/USB keyboard and VGA, no matter how STDIN/STDOUT
 ; are routed. All speed calculations are based on a 50 MHz CPU that is equal
-; to the CPU revision contained in release V1.21.
+; to the CPU revision contained in release V1.3.
 ;
 ; The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
 ; for the QNICE-FPGA - or - it can run regularly as an app. In the latter case
@@ -394,16 +394,16 @@ GAME_WON     .EQU 10        ; game is won, when "Level 10" is reached
 ; speed is defined by wasted cycles, both numbers are multiplied
 ; second number is also used for blinking frequency, so adjust carefully
 ; (preferably only adjust the first number)
-Level_Speed .DW 800, 200    ; Level 1
-            .DW 700, 200    ; Level 2
-            .DW 600, 200    ; Level 3
-            .DW 500, 200    ; Level 4
-            .DW 450, 200    ; Level 5
-            .DW 400, 200    ; Level 6
-            .DW 350, 200    ; Level 7
-            .DW 300, 200    ; Level 8
-            .DW 250, 200    ; Level 9
-            .DW 250, 200    ; non existing "Level 10" => Game Won
+Level_Speed .DW 946, 251    ; Level 1  (was 800 at V1.21)
+            .DW 827, 251    ; Level 2  (was 700 at V1.21)
+            .DW 709, 251    ; Level 3  (was 600 at V1.21)
+            .DW 591, 251    ; Level 4  (was 500 at V1.21)
+            .DW 532, 251    ; Level 5  (was 450 at V1.21)
+            .DW 473, 251    ; Level 6  (was 400 at V1.21)
+            .DW 414, 251    ; Level 7  (was 350 at V1.21)
+            .DW 355, 251    ; Level 8  (was 300 at V1.21)
+            .DW 296, 251    ; Level 9  (was 250 at V1.21)
+            .DW 296, 251    ; non existing "Level 10" => Game Won
 
 ; ****************************************************************************
 ; HANDLE_END
