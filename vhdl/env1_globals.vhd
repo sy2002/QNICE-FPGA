@@ -17,7 +17,7 @@ constant ROM_SIZE             : natural   := 2840;
 
 -- file name of file and file size (in lines) of the file containing the Power On & Reset Execution (PORE) ROM
 constant PORE_ROM_FILE        : string    := "../pore/pore.rom";
-constant PORE_ROM_SIZE        : natural   := 457;
+constant PORE_ROM_SIZE        : natural   := 451;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.

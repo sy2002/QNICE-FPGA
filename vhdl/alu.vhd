@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------------
 -- QNICE CPU's ALU
 -- 
--- done in 2015 by sy2002
+-- done in 2015 and enhanced in May 2016 by sy2002
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -51,6 +51,9 @@ port (
    x_out       : out std_logic
 );
 end component;
+
+signal s_input1 : signed(15 downto 0);
+signal s_input2 : signed(15 downto 0);
 
 -- use a 17 bit signal for working with 16 bit inputs for having the carry in the topmost bit
 signal res : unsigned(16 downto 0);
@@ -125,57 +128,81 @@ begin
       end case;
    end process;
    
-   manage_flags : process (res, opcode, input1, input2, r_sub, shifter_x_out)
-   variable xres : unsigned(16 downto 0);
+   manage_flags : process (res, opcode, input1, input2, s_input1, s_input2, shifter_x_out)
    begin
-      if opcode /= opcCMP then
-         xres := res;
-      else
-         xres := r_sub;
-      end if;
    
-      -- the X register is context sensitive
-      if opcode /= opcSHR then
-         -- X is true if result is FFFF
-         if xres(15 downto 0) = x"FFFF" then
-            X <= '1';
+      -- CMP FLAG HANDLING
+      --    X = 0
+      --    Z = 1, if Src = Dst otherwise Z = 0
+      --    N = 1, if unsigned(Src) > unsigned(Dst), otherwise N = 0
+      --    V = 1, if signed(Src) > signed(Dst), otherwise V = 0
+      if Opcode = opcCMP then
+      
+         X <= '0';
+      
+         if input1 = input2 then
+            Z <= '1';
          else
-            X <= '0';
+            Z <= '0';
          end if;
-      else
-         X <= shifter_x_out;
-      end if;
-      
-      -- Z is true if result is 0000
-      if xres(15 downto 0) = x"0000" then
-         Z <= '1';
-      else
-         Z <= '0';
-      end if;
-      
-      -- N is true if result is < 0
-      if signed(xres(15 downto 0)) < 0 then
-         N <= '1';
-      else
-         N <= '0';
-      end if;
-      
-      -- V is true if adding/subtracting two negative numbers yields a positive
-      -- number or if adding/subtracting two positive numbers yields a negative number
-      if Opcode = opcADD or Opcode = opcADDC or Opcode = opcSUB or Opcode = opcSUBC then
-         if (signed(input1) > 0 and signed(input2) > 0 and signed(xres(15 downto 0)) < 0) or
-            (signed(input1) < 0 and signed(input2) < 0 and signed(xres(15 downto 0)) > 0)
-         then
+         
+         if input1 > input2 then
+            N <= '1';
+         else
+            N <= '0';
+         end if;
+         
+         if s_input1 > s_input2 then
             V <= '1';
          else
             V <= '0';
          end if;
+      
+      -- REGULAR FLAG HANDLING
       else
-         V <= '0';
+         -- the X register is context sensitive
+         if opcode /= opcSHR then
+            -- X is true if result is FFFF
+            if res(15 downto 0) = x"FFFF" then
+               X <= '1';
+            else
+               X <= '0';
+            end if;
+         else
+            X <= shifter_x_out;
+         end if;
+         
+         -- Z is true if result is 0000
+         if res(15 downto 0) = x"0000" then
+            Z <= '1';
+         else
+            Z <= '0';
+         end if;
+         
+         -- N is true if result is < 0
+         N <= res(15);
+                  
+         -- V is true if adding/subtracting two negative numbers yields a positive
+         -- number or if adding/subtracting two positive numbers yields a negative number
+         if Opcode = opcADD or Opcode = opcADDC or Opcode = opcSUB or Opcode = opcSUBC or
+            Opcode = opcAND or Opcode = opcOR or Opcode = opcXOR then
+            if (input1(15) = '0' and input2(15) = '0' and res(15) = '1') or
+               (input1(15) = '1' and input2(15) = '1' and res(15) = '0')
+            then
+               V <= '1';
+            else
+               V <= '0';
+            end if;
+         else
+            V <= '0';
+         end if;
       end if;
    end process;
 
 
+
+s_input1 <= signed(input1);
+s_input2 <= signed(input2);
 
 r_sub <= ("0" & input2) - ("0" & input1);
 

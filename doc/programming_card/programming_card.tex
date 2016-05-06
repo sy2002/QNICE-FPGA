@@ -1,3 +1,10 @@
+%
+%  This is rather horrible LaTeX-code as there are plenty of explicit
+% \vspace*{...}. This became necessary as there is not much maneuvering
+% space on a double sided leaflet for so many tables as we need here.
+%
+% 04/05-MAY-2016    Bernd Ulmann
+%
 \documentclass{leaflet}
 \usepackage{longtable}
 \begin{document}
@@ -5,21 +12,24 @@
  \maketitle
 %
  \section{General}
-  QNICE is a 16 bit processor featuring four addressing modes, 16 registers and
-  a 16 bit address space of 16 bit words, the upper 1 kW page is reserved for
-  memory mapped I/O.
+  QNICE features 16 bit words, 16 registers, 4 addressing modes, and 
+  a 16 bit address space (16 bit words, upper 1 kW page reserved for
+  memory mapped I/O).
+  \vspace*{-5mm}
 %
  \section{Registers}
   All in all there are 16 general purpose registers (\emph{GPR}s) available:
   \begin{center}
+   \vspace*{-2mm}
    \begin{longtable}{|c|c|c||c|c|c|c|c|}
     \hline
     {\tt R0}&\dots&{\tt R7}&{\tt R8}&\dots&{\tt R13}&{\tt R14}&{\tt R15}\\
     \hline
    \end{longtable}
+   \vspace*{-9mm}
   \end{center}
   \begin{description}
-   \item [\texttt{R0}\dots\texttt{R7}:] General purpose registers, actually 
+   \item [\texttt{R0}\dots\texttt{R7}:] GPRs, actually 
     these are a window into a register bank holding $256\times 8$ such 
     registers.
    \item [\texttt{R13}:] Stack pointer (\texttt{SP}).
@@ -27,33 +37,35 @@
    \item [\texttt{R15}:] Program counter (\texttt{PC}).
   \end{description}
 %
-  \subsection{\texttt{SR}}
+  \subsection{Statusregister}
    \begin{center}
     \begin{longtable}{|c||c|c|c|c|c|c|c|c|}
      \hline
      {\tt rbank}&
-     {\tt M}&{\tt I}&{\tt V}&{\tt N}&{\tt Z}&{\tt C}&{\tt X}&{\tt 1}\\
+     ---&---&{\tt V}&{\tt N}&{\tt Z}&{\tt C}&{\tt X}&{\tt 1}\\
      \hline
     \end{longtable}
+    \vspace*{-9mm}
    \end{center}
-    \begin{description}
-     \item [{\tt 1}:] Always set to 1
-     \item [{\tt X}:] 1 if the last result was {\tt 0xFFFF}
-     \item [{\tt C}:] Carry flag
-     \item [{\tt Z}:] 1 if the last result was {\tt 0x0000}
-     \item [{\tt N}:] 1 if the last result was negative
-     \item [{\tt V}:] 1 if the last operation caused an overflow
-     \item [{\tt I}:] 1 if an interrupt occured
-     \item [{\tt M}:] If set to 1, maskable interrupts are allowed
-    \end{description}
-    The upper eight bits of \texttt{SR} hold the pointer to the register
-    window. Changing the value stored here will yield a different set of 
-    GPRs \texttt{R0}\dots\texttt{R7} which is especially useful for subroutine
-    calls.
+   \begin{description}
+    \item [{\tt 1}:] Always set to 1.
+    \item [{\tt X}:] 1 if the last result was {\tt 0xFFFF}.
+    \item [{\tt C}:] Carry flag.
+    \item [{\tt Z}:] 1 if the last result was {\tt 0x0000}.
+    \item [{\tt N}:] 1 if the last result was negative.
+    \item [{\tt V}:] 1 if the last operation caused an overflow, i.\,e. two
+     positive operands yielded a negative result or vice versa.
+   \end{description}
+   The upper eight bits of \texttt{SR} hold the pointer to the register
+   window. Changing the value stored here will yield a different set of 
+   GPRs \texttt{R0}\dots\texttt{R7} which is especially useful for subroutine
+   calls.
+   \vspace*{-5mm}
 %
  \section{Instruction Set}
   QNICE features 14 basic instructions, four jump/branch instructions, and 
   four adressing modes.
+  \vspace*{-3mm}
 %
   \subsection{Basic Instructions}
    \begin{center}
@@ -65,11 +77,13 @@
      \hline
     \end{longtable}
    \end{center}
+   \vspace*{-17mm}
    {\scriptsize
     \begin{center}
      \begin{longtable}{|c|ll|l|}
       \hline
        Opc&Instr&Operands&Effect\\
+      \hline
       \hline
        {\tt 0}&{\tt MOVE}&{\tt src, dst}&{\tt dst := src}\\
        {\tt 1}&{\tt ADD}&{\tt src, dst}&{\tt dst := dst + src}\\
@@ -85,16 +99,37 @@
        {\tt A}&{\tt OR}&{\tt src, dst}&{\tt dst := dst | src}\\
        {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
        {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\
-       {\tt D}&&&reserved\\
+       {\tt D}&reserved&&\\
        {\tt E}&{\tt HALT}&&Halt the processor\\
-       {\tt D}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
-       {\tt D}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
-       {\tt D}&{\tt RBRA}&{\tt dest, [!]cond}&Relative branch\\
-       {\tt D}&{\tt RSUB}&{\tt dest, [!]cond}&Relative subroutine call\\
+       {\tt F}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
+       {\tt F}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
+       {\tt F}&{\tt RBRA}&{\tt dest, [!]cond}&Relative branch\\
+       {\tt F}&{\tt RSUB}&{\tt dest, [!]cond}&Relative subroutine call\\
       \hline
      \end{longtable}
     \end{center}
    }
+   \vspace*{-14mm}
+%
+  \subsection{CMP}
+   The CMP (compare) instruction can be used for signed as well as for unsigned
+   comparisons:
+   \begin{center}
+    \vspace*{-2mm}
+    \begin{longtable}{|l|l|l|l|l|}
+     \hline
+     Condition&\multicolumn{4}{|c|}{Flags}\\
+              &\multicolumn{2}{|c|}{unsigned}&\multicolumn{2}{|c|}{signed}\\
+              &\texttt{Z}&\texttt{N}&\texttt{Z}&\texttt{V}\\
+     \hline
+     \hline
+     \texttt{src}$<$\texttt{dst}&\texttt{0}&\texttt{0}&\texttt{0}&\texttt{0}\\
+     \texttt{src}$=$\texttt{dst}&\texttt{1}&\texttt{0}&\texttt{1}&\texttt{0}\\
+     \texttt{src}$>$\texttt{dst}&\texttt{0}&\texttt{1}&\texttt{0}&\texttt{1}\\
+     \hline
+    \end{longtable}
+    \vspace*{-14mm}
+   \end{center}
 %
   \subsection{Jumps and Branches}
    {\scriptsize
@@ -109,6 +144,7 @@
      \end{longtable}
     \end{center}
    }
+   \vspace*{-13mm}
 %
   \subsection{Addressing Modes}
    {\scriptsize
@@ -116,6 +152,7 @@
      \begin{longtable}{|c|l|l|}
       \hline
        Mode bits&Notation&Description\\
+      \hline
       \hline
        {\tt 00}&{\tt Rxx}&Use Rxx as operand\\
        {\tt 01}&{\tt @Rxx}&Use the memory cell addressed by\\
@@ -130,14 +167,17 @@
      \end{longtable}
     \end{center}
    }
+   \vspace*{-15mm}
 %
   \subsection{Shortcuts}
    The file \texttt{sysdef.asm} (part of the monitor) defines some shortcuts
    which facilitate write- and readability of QNICE assembler code:
+   \vspace*{-3mm}
    \begin{center}
     \begin{longtable}{|l|l|}
      \hline
       Shortcut&Implementation\\
+     \hline
      \hline
       \texttt{RET}&\texttt{MOVE @R13++, R15}\\
       \texttt{INCRB}&\texttt{ADD 0x0100, R14}\\
@@ -145,15 +185,18 @@
       \texttt{NOP}&\texttt{ABRA R15, 1}\\
       \texttt{SYSCALL(x, y)}&\texttt{ASUB x, y}\\
      \hline
+      \texttt{SP}&\texttt{R13}\\
+      \texttt{SR}&\texttt{R14}\\
+      \texttt{PC}&\texttt{R15}\\
+     \hline
     \end{longtable}
    \end{center}
-   \texttt{sysdef.asm} also defines three shortcuts \texttt{SP}, \texttt{SR},
-   and \texttt{PC} for \texttt{R13}, \texttt{R14}, and \texttt{R15}.
+   \vspace*{-15mm}
 %
  \section{Input/Output}
   I/O devices are memory mapped, their respective control and data registers 
   occupy the topmost 1 kW memory page.
-\pagebreak
+  \vspace*{-3mm}
   {\scriptsize
    \begin{center}
     \begin{longtable}{|l|l|l|}
@@ -191,12 +234,14 @@
    \end{center}
   }
 %
+%\pagebreak%LAYOUT
   \subsection{VGA Controller}
    \subsubsection{\texttt{VGA\$STATE Bits}}
     \begin{center}
      \begin{longtable}{|l|l|}
       \hline
       Bit&Description\\
+      \hline
       \hline
       11&Enable R/W offset register if set.\\
       10&Enable display offset register if set.\\
@@ -231,9 +276,11 @@
   \subsection{USB-Keyboard}
    \subsubsection{\texttt{IO\$KBD\_STATE}}
     \begin{center}
+     \vspace*{-3mm}
      \begin{longtable}{|l|l|}
       \hline
        Bit&Description\\
+      \hline
       \hline
        0&Set if an unread character is available.\\
        1&Function/cursor/\dots key pressed.\\
@@ -246,6 +293,7 @@
       \hline
      \end{longtable}
     \end{center}
+    \vspace*{-14mm}
    \subsection{Cycle Counter}
     \subsubsection{\texttt{CYC\$STATE}}
      \begin{center}
@@ -253,11 +301,13 @@
        \hline
         Bit&Description\\
        \hline
+       \hline
         0&Reset counter and start counting.\\
         1&1: count, 0: inhibit\\
        \hline
       \end{longtable}
      \end{center}
+     \vspace*{-14mm}
 %
   \subsection{UART}
    \subsubsection{\texttt{IO\$UART\_SRA}}
@@ -266,11 +316,13 @@
       \hline
        Bit&Description\\
       \hline
+      \hline
        0&Character received.\\
        1&Transmitter ready for next character.\\
       \hline
      \end{longtable}
     \end{center}
+    \vspace*{-16mm}
 %
  \section{Code Examples}
   \subsection{Typical Subroutine Call}

@@ -4,11 +4,7 @@
 **
 ** B. Ulmann, 16-AUG-2006...03-SEP-2006...04-NOV-2006...29-JUN-2007...
 **            16-DEC-2007...03-JUN-2008...28-DEC-2014...
-**            xx-AUG-2015
-**
-** Known bugs:
-**
-** 1) Executing the simple SUM.BIN yields to a statistics display with three more memory reads than expected.
+**            xx-AUG-2015...xx-MAY-2016...
 **
 */
 
@@ -52,6 +48,11 @@ void uart_run_down();
 #define UART0_BASE_ADDRESS     0xff20
 #define IDE_BASE_ADDRESS       0xffe0
 
+#define CYC_LO                 0xff17 /* Cycle counter low, middle, high word and state register */
+#define CYC_MID                0xff18
+#define CYC_HI                 0xff19
+#define CYC_STATE              0xff1a
+
 #define NO_OF_INSTRUCTIONS     19
 #define NO_OF_ADDRESSING_MODES 4
 #define READ_MEMORY            0 /* This and the following constants are used to control the access_xxx functions */
@@ -74,12 +75,16 @@ typedef struct statistic_data
 
 int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$verbose = FALSE,
     gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
-    gbl$ctrl_c = FALSE, gbl$breakpoint = -1;
+    gbl$ctrl_c = FALSE, gbl$breakpoint = -1, gbl$cycle_counter_state = 0;
+
+unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
+
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
-                                "NOT", "AND", "OR", "XOR", "CMP", "", "HALT"},
+                                "NOT", "AND", "OR", "XOR", "CMP", "rsrvd", "HALT"},
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNVIM",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
+
 statistic_data gbl$stat;
 
 #ifdef USE_UART
@@ -236,7 +241,6 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       value = gbl$memory[address];
     else /* IO area */
     {
-      /* TODO: Implement emulation of IO devices here! */
       value = 0;
       if ((gbl$debug))
         printf("\tread_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
@@ -247,6 +251,14 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
       else if (address == SWITCH_REG) /* Read the switch register */
         value = gbl$memory[SWITCH_REG];
+      else if (address == CYC_LO) /* Read low word of the cycle (instruction) counter. */
+        value = gbl$cycle_counter & 0xffff;
+      else if (address == CYC_MID)
+        value = (gbl$cycle_counter >> 16) & 0xffff;
+      else if (address == CYC_HI)
+        value = (gbl$cycle_counter >> 24) & 0xffff;
+      else if (address == CYC_STATE)
+        value = gbl$cycle_counter_state & 0x0003;
     }
   }
   else if (operation == WRITE_MEMORY)
@@ -255,7 +267,6 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       gbl$memory[address] = value;
     else /* IO area */
     {
-      /* TODO: Implement IO-devices! */
       if ((gbl$debug))
         printf("\twrite_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
 
@@ -269,6 +280,14 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         writeIDEDeviceRegister(address - IDE_BASE_ADDRESS, value);
       else if (address == SWITCH_REG) /* Read the switch register */
         gbl$memory[SWITCH_REG] = value;
+      else if (address == CYC_STATE)
+      {
+        if (value & 0x0001) /* Reset and start counting. */
+        {
+          gbl$cycle_counter = 0l;
+          gbl$cycle_counter_state = 0x0002;
+        }
+      }
     }
   }
   else
@@ -438,7 +457,7 @@ unsigned int read_source_operand(unsigned int mode, unsigned int regaddr, int su
 
   if (gbl$debug)
     printf("\tread_source_operand: value=%04X, r15=%04X\n\r", source, read_register(15));
-  return source;
+  return source & 0xffff;
 }
 
 /*
@@ -512,8 +531,12 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
 int execute()
 {
   unsigned int instruction, address, opcode, source_mode, source_regaddr, destination_mode, destination_regaddr,
-    source_0, source_1, destination, scratch, i, debug_address, temp_flag;
-  int condition;
+    source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits;
+
+  int condition, cmp_0, cmp_1;
+
+  if (gbl$cycle_counter_state & 0x0002)
+    gbl$cycle_counter++; /* Increment cycle counter which is an instruction counter in the emulator as opposed to the hardware. */
 
   debug_address = address = read_register(15); /* Get current PC */
   opcode = ((instruction = access_memory(address++, READ_MEMORY, 0)) >> 12 & 0Xf);
@@ -544,29 +567,29 @@ int execute()
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 1: /* ADD */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 + source_1;
       update_status_bits(destination, source_0, source_1, MODIFY_ALL); 
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 2: /* ADDC */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 + source_1 + ((read_register(14) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 3: /* SUB */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 - source_1;
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 4: /* SUBC */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 - source_1 - ((read_register(14) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
@@ -606,36 +629,51 @@ int execute()
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 9: /* AND */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 & source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 10: /* OR */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 | source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 11: /* XOR */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 ^ source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 12: /* CMP */
-      source_0 = read_source_operand(destination_mode, destination_regaddr, FALSE);
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      destination = source_0 - source_1;
-      update_status_bits(destination, source_0, source_1, MODIFY_ALL);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_1 = read_source_operand(destination_mode, destination_regaddr, FALSE);
+
+      /* CMP does NOT use the standard logic for setting the SR bits - this is done explicitly in the following: */
+      sr_bits = 1; /* Take care of the LSB of SR which must be 1. */
+
+      if (source_0 == source_1) sr_bits |= 0x0008;
+      if (source_0 > source_1) sr_bits |= 0x0010;
+
+      /* Ugly but it works: Convert the unsigned int source_0/1 to signed ints with possible sign extension: */
+      cmp_0 = source_0;
+      cmp_1 = source_1;
+
+      if (source_0 & 0x8000) cmp_0 |= 0xffff0000;
+      if (source_1 & 0x8000) cmp_1 |= 0xffff0000;
+      if (cmp_0 > cmp_1) sr_bits |= 0x0020;
+
+      write_register(14, (read_register(14) & 0xffc0) | (sr_bits & 0x3f));
       break;
-    case 13: /* This opcode intentionally left blank :-) */
-      printf("Trying to execute opcode D -- this is reserved for future use!\n");
-      return TRUE;
+    case 13: /* Reserved */
+      printf("Attempt to execute the reserved instruction...\n");
+      return 1;
     case 14: /* HALT */
+      printf("HALT instruction executed at address %04X.\n\n", debug_address);
       return TRUE;
     case 15: /* Branch or subroutine call */
       /* Determine destination address in case the branch/subroutine instruction will be performed */
@@ -832,7 +870,7 @@ int main(int argc, char **argv)
 
       run();
 //      dump_registers();
-//      print_statistics();
+      print_statistics();
     }
 
 //    return 0;

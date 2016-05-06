@@ -22,7 +22,7 @@ IO$DUMP_MEMORY          INCRB                           ; Get a new register pag
                         ADD 0x0001, R3                  ; That is necessary since we want the last 
                                                         ; address printed, too
                         MOVE 0xFFFF, R4                 ; Set R4 - this is the column counter - to -1
-_IO$DUMP_MEMORY_LOOP    CMP R3, R0                      ; Have we reached the end of the memory area?
+_IO$DUMP_MEMORY_LOOP    CMP  R3, R0                     ; Have we reached the end of the memory area?
                         RBRA _IO$DUMP_MEMORY_EXIT, !N   ; Yes - that is it, so exit this routine
                         ADD 0x0001, R4                  ; Next column
                         AND 0x0007, R4                  ; We compute mod 8

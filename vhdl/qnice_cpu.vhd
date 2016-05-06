@@ -34,22 +34,6 @@ end QNICE_CPU;
 
 architecture beh of QNICE_CPU is
 
--- TriState buffer/driver
-component TriState_Buffer is
-generic (
-   DATA_WIDTH           : integer range 1 to 32
-);
-port (
-   I_CLK                : in    std_logic;  -- synchronized with bidir bus
-   I_DIR_CTRL           : in    std_logic;  -- 3-state enable input, high=output, low=input
-   
-   IO_DATA              : inout std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to/from external pin on bidir bus
-   
-   I_DATA_TO_EXTERNAL   : in    std_logic_vector(DATA_WIDTH - 1 downto 0);  -- data to send over bidir bus
-   O_DATA_FROM_EXTERNAL : out   std_logic_vector(DATA_WIDTH - 1 downto 0)   -- data received over bidir bus 
-);
-end component;
-
 -- QNICE specific register file
 component register_file is
 port (
@@ -130,9 +114,7 @@ signal cpu_state_next      : tCPU_States;
 
 -- CPU i/o signals
 signal ADDR_Bus            : std_logic_vector(15 downto 0) := (others => '0');
-signal DATA_Dir_Ctrl       : std_logic := '0';
 signal DATA_To_Bus         : std_logic_vector(15 downto 0) := (others => '0');
-signal DATA_From_Bus       : std_logic_vector(15 downto 0) := (others => '0');
 
 -- register bank signals for accessing R0 .. R13
 signal reg_read_addr1      : std_logic_vector(3 downto 0) := (others => '0');
@@ -192,27 +174,6 @@ signal Alu_V               : std_logic;
 
 
 begin
-
--- @TODO (priority 2): Completely re-do the Tristate buffer topic. The lenghty wait-state and the #0000 situation when
--- writing are not necessary! As we have enough flip-flops, the Tristate handling can be done in "real-time".
--- as this has probably some pretty far reaching impact, the question is when to implement this. On the other hand,
--- the longer we wait, the bigger the impact will be. Some analysis with some MOVE, ADD & Co indirect @memory read/write
--- scenario will for sure help and create a more clear view.
-
-   -- TriState buffer/driver for the 16 bit DATA bus
-   DATA_driver : TriState_Buffer
-      generic map
-      (
-         DATA_WIDTH => 16
-      )
-      port map
-      (
-         I_CLK       => CLK,
-         I_DIR_CTRL  => DATA_Dir_Ctrl,
-         IO_DATA     => DATA,
-         I_DATA_TO_EXTERNAL => DATA_To_Bus,
-         O_DATA_FROM_EXTERNAL => DATA_From_Bus
-      );
       
    -- Registers
    Registers : register_file
@@ -259,7 +220,6 @@ begin
             DATA_To_Bus <= (others => '0');
             ADDR_Bus <= x"0000";
             DATA_DIR <= '0';
-            DATA_Dir_Ctrl <= '0';
             DATA_VALID <= '0';
             
             SP <= x"0000";
@@ -285,7 +245,6 @@ begin
             DATA_To_Bus <= fsmDataToBus;
             ADDR_Bus <= fsmCpuAddr;
             DATA_DIR <= fsmCpuDataDirCtrl;
-            DATA_Dir_Ctrl <= fsmCpuDataDirCtrl;
             DATA_VALID <= fsmCpuDataValid;
             
             SP <= fsmSP;
@@ -306,14 +265,16 @@ begin
    end process;
    
    fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC,
-                                DATA_To_Bus, DATA_From_Bus, WAIT_FOR_DATA,
+                                DATA, DATA_To_Bus, WAIT_FOR_DATA,
                                 Instruction, Opcode,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
                                 reg_read_addr1, reg_read_data1, reg_read_addr2, reg_read_data2,
                                 reg_write_addr, reg_write_data, reg_write_en,
-                                Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                                                
+                                Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                
+   variable varResult : std_logic_vector(15 downto 0);   
    begin
+      DATA <= (others => 'Z');   
       fsmDataToBus <= (others => '0');
       fsmSP <= SP;
       fsmSR <= SR(15 downto 1) & "1";
@@ -354,10 +315,10 @@ begin
                
             -- data from bus is available
             else         
-               fsmInstruction <= DATA_From_Bus; -- valid at falling edge
+               fsmInstruction <= DATA; -- valid at falling edge
                fsmPC <= PC + 1;
-               fsm_reg_read_addr1 <= DATA_From_Bus(11 downto 8); -- read Src register number
-               fsm_reg_read_addr2 <= DATA_From_Bus(5 downto 2);  -- rest Dst register number
+               fsm_reg_read_addr1 <= DATA(11 downto 8); -- read Src register number
+               fsm_reg_read_addr2 <= DATA(5 downto 2);  -- rest Dst register number
             end if;
                                     
          when cs_decode =>
@@ -433,20 +394,32 @@ begin
             -- data from bus is available
             else
                -- read the indirect value from the bus and store it
-               fsmSrc_Value <= DATA_FROM_Bus;
+               fsmSrc_Value <= DATA;
                              
                -- perform post increment
                if Src_Mode = amIndirPostInc then
                   -- special handling of SR and PC as they are not stored in the register file
                   case Src_RegNo is
-                     when x"D" => fsmSP <= SP + 1;
-                     when x"E" => fsmSR <= SR + 1;
-                     when x"F" => fsmPC <= PC + 1;
+                     when x"D" =>
+                        fsmSP     <= SP + 1;
+                        varResult := SP + 1;
+                        
+                     when x"E" =>
+                        fsmSR     <= SR + 1;
+                        varResult := SR + 1;
+                        
+                     when x"F" =>
+                        fsmPC     <= PC + 1;
+                        varResult := PC + 1;
+                        
                      when others =>
                         fsm_reg_write_addr <= Src_RegNo;
                         fsm_reg_write_data <= Src_Value + 1;
-                        fsm_reg_write_en <= '1';               
+                        varResult := Src_Value + 1;
+                        fsm_reg_write_en <= '1';                        
                   end case;
+               else
+                  varResult := reg_read_data2;
                end if;
                                  
                -- decode the destination addressing mode (and avoid garbage due to a branch opcode)
@@ -468,7 +441,15 @@ begin
                            fsm_reg_write_en <= '1';
                      end case;
                   else
-                     fsmCpuAddr <= reg_read_data2;
+                     -- if the second parameter is also to be fetched indirect and if it
+                     -- is identical to the first parameter, then make sure, that the address
+                     -- bus is setup with the result of the above-mentioned postincrement (if applicable)
+                     if (Dst_Mode = amIndirect or Dst_Mode = amInDirPostInc) and Dst_RegNo = Src_RegNo then
+                        fsmCpuAddr <= varResult;
+                     else
+                        fsmCpuAddr <= reg_read_data2;
+                     end if;
+                     
                   end if;               
                end if;
             end if;
@@ -481,11 +462,10 @@ begin
             -- data from bus is available
             else         
                -- read the indirect value from the bus and store it
-               fsmDst_Value <= DATA_FROM_Bus;
+               fsmDst_Value <= DATA;
             end if;                        
                         
-         when cs_execute =>
-         
+         when cs_execute =>        
             -- execute branches
             if Opcode = opcBRA then
                fsmNextCpuState <= cs_fetch;
@@ -510,7 +490,7 @@ begin
                         fsmCpuAddr <= SP - 1;
                         fsmDataToBus <= PC;
                         fsmCpuDataDirCtrl <= '1';
-                        fsmCpuDataValid <='0';
+                        fsmCpuDataValid <='1';
                         fsmNextCpuState <= cs_exepost_sub;
                                                
                      when others =>
@@ -570,11 +550,12 @@ begin
                   fsmCpuAddr <= reg_read_data2;
                   fsmDataToBus <= std_logic_vector(Alu_Result);
                   fsmCpuDataDirCtrl <= '1';
-                  fsmCpuDataValid <='0';
+                  fsmCpuDataValid <='1';
                end if;               
             end if;
                                
          when cs_exepost_store_dst_indirect =>
+            DATA <= DATA_To_Bus;
             fsmDataToBus <= DATA_To_Bus;
             fsmCpuDataDirCtrl <= '1';
             fsmCpuDataValid <= '1';
@@ -583,14 +564,22 @@ begin
             if WAIT_FOR_DATA = '1' then
                fsmNextCpuState <= cs_exepost_store_dst_indirect;
 
-            else            
+            else
+               fsmCpuDataDirCtrl <= '0';
+               fsmCpuDataValid <= '0';
+               fsmCpuAddr <= PC;
+                  
                -- perform post increment
                if Dst_Mode = amIndirPostInc then
                   -- special handling of SP, SR and PC as they are not stored in the register file
                   case Dst_RegNo is
                      when x"D" => fsmSP <= SP + 1;
                      when x"E" => fsmSR <= SR + 1;
-                     when x"F" => fsmPC <= PC + 1;
+                     
+                     when x"F" =>
+                        fsmPC <= PC + 1;
+                        fsmCpuAddr <= PC + 1;
+                        
                      when others =>
                         fsm_reg_write_addr <= Dst_RegNo;
                         fsm_reg_write_data <= reg_read_data2 + 1;
@@ -600,19 +589,26 @@ begin
             end if;
                   
          when cs_exepost_sub =>
+            DATA <= DATA_To_Bus;
             fsmDataToBus <= DATA_To_Bus;
-            fsmCpuDataDirCtrl <= '1';
-            fsmCpuDataValid <= '1';
+            fsmCpuDataDirCtrl <= '0';
+            fsmCpuDataValid <= '0';
             
             -- absolute or relative?
             if Bra_Mode = bmASUB then
                fsmPC <= Src_Value;
+               fsmCpuAddr <= Src_Value;
             else
                fsmPC <= PC + Src_Value;
+               fsmCpuAddr <= PC + Src_Value;
             end if;
 
          when cs_exepost_prepfetch =>
+            DATA <= DATA_To_Bus;            
             fsmCpuAddr <= PC;
+            
+         when cs_halt =>
+            fsmCpuAddr <= ADDR_Bus;           
         
          when others =>
             fsmPC <= (others => '0');
@@ -633,8 +629,8 @@ begin
          when cs_exeprep_get_src_indirect    => cpu_state_next <= cs_execute;
          when cs_exeprep_get_dst_indirect    => cpu_state_next <= cs_execute;
          when cs_execute                     => cpu_state_next <= cs_fetch;
-         when cs_exepost_store_dst_indirect  => cpu_state_next <= cs_exepost_prepfetch;
-         when cs_exepost_sub                 => cpu_state_next <= cs_exepost_prepfetch;
+         when cs_exepost_store_dst_indirect  => cpu_state_next <= cs_fetch;
+         when cs_exepost_sub                 => cpu_state_next <= cs_fetch;
          when cs_exepost_prepfetch           => cpu_state_next <= cs_fetch;
          when cs_halt                        => cpu_state_next <= cs_halt;
          when others                         => cpu_state_next <= cpu_state;

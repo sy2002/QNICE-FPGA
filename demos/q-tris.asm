@@ -16,7 +16,7 @@
 ;
 ; The game uses the PS2/USB keyboard and VGA, no matter how STDIN/STDOUT
 ; are routed. All speed calculations are based on a 50 MHz CPU that is equal
-; to the CPU revision contained in release V1.21.
+; to the CPU revision contained in release V1.3.
 ;
 ; The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
 ; for the QNICE-FPGA - or - it can run regularly as an app. In the latter case
@@ -61,7 +61,6 @@ MAIN_LOOP       RSUB    DRAW_FROM_BAG, 1        ; dice another Tetromino
                 MOVE    1, R8                   ; make sure "you win" is shown
                 RBRA    END_GAME_W, 1
 
-
                 ; calculate the position where new Tetrominos emerge from
 CALC_TTR_POS    MOVE    Tetromino_Y, R1
                 MOVE    -8, @R1                 ; y start pos = -8
@@ -97,7 +96,7 @@ DROP            RSUB    HANDLE_PAUSE, 1         ; pause game, if needed
                 ; detect a potential game over and handle completed rows
 HNDL_COMPL_ROWS MOVE    Tetromino_Y, R1          
                 CMP     -5, @R1                 ; reached upper boundary?
-                RBRA    END_GAME_L, N           ; yes: end game (game over)
+                RBRA    END_GAME_L, V           ; yes: end game (game over)
                 RSUB    COMPLETED_ROWS, 1       ; no: handle completed rows
 
                 ; next iteration
@@ -183,7 +182,7 @@ CAH_H       .EQU 9          ; do not show the "Exit the game..." string
 CAH_H       .EQU 10
 #endif
 
-CRE_A_HELP  .ASCII_W "Q-TRIS V1.0 by sy2002 in February 2016  "
+CRE_A_HELP  .ASCII_W "Q-TRIS V1.1 by sy2002 in May 2016       "
             .ASCII_W "                                        "
             .ASCII_W "How to play:                            "
             .ASCII_W "                                        "
@@ -395,16 +394,16 @@ GAME_WON     .EQU 10        ; game is won, when "Level 10" is reached
 ; speed is defined by wasted cycles, both numbers are multiplied
 ; second number is also used for blinking frequency, so adjust carefully
 ; (preferably only adjust the first number)
-Level_Speed .DW 800, 200    ; Level 1
-            .DW 700, 200    ; Level 2
-            .DW 600, 200    ; Level 3
-            .DW 500, 200    ; Level 4
-            .DW 450, 200    ; Level 5
-            .DW 400, 200    ; Level 6
-            .DW 350, 200    ; Level 7
-            .DW 300, 200    ; Level 8
-            .DW 250, 200    ; Level 9
-            .DW 250, 200    ; non existing "Level 10" => Game Won
+Level_Speed .DW 946, 251    ; Level 1  (was 800 at V1.21)
+            .DW 827, 251    ; Level 2  (was 700 at V1.21)
+            .DW 709, 251    ; Level 3  (was 600 at V1.21)
+            .DW 591, 251    ; Level 4  (was 500 at V1.21)
+            .DW 532, 251    ; Level 5  (was 450 at V1.21)
+            .DW 473, 251    ; Level 6  (was 400 at V1.21)
+            .DW 414, 251    ; Level 7  (was 350 at V1.21)
+            .DW 355, 251    ; Level 8  (was 300 at V1.21)
+            .DW 296, 251    ; Level 9  (was 250 at V1.21)
+            .DW 296, 251    ; non existing "Level 10" => Game Won
 
 ; ****************************************************************************
 ; HANDLE_END
@@ -734,7 +733,7 @@ COMPLETED_ROWS  INCRB
                 MOVE    Tetromino_Y, R3
                 MOVE    @R3, R3                 ; R3 = Tetromino Y start coord
                 CMP     0, R3                   ; is it < 0?
-                RBRA    _CRH_START, !N          ; no: start
+                RBRA    _CRH_START, !V          ; no: start
                 MOVE    R3, R4                  ; yes: how many lines visible?
                 ADD     8, R4                   ; R4: how many y-lines visible
                 RBRA    _CRH_RET, Z             ; return, if no y-lines visib.
@@ -748,7 +747,7 @@ _CRH_START      MOVE    R3, R11                 ; remember y-start coord
 _CRH_NEXT_Y     MOVE    0, @R7                  ; asumme: row is not completed
                 MOVE    Playfield_MY, R6        ; get maximum y-coord
                 CMP     R3, @R6                 ; current y > maximum y coord
-                RBRA    _CRH_NEXT_LINE, N       ; yes: skip line
+                RBRA    _CRH_NEXT_LINE, V       ; yes: skip line
                 MOVE    R3, @R1                 ; hw cursor y to the first row
                 MOVE    PLAYFIELD_X, @R0        ; hw cursor x to the left
                 MOVE    PLAYFIELD_W, R5         ; init column counter
@@ -796,7 +795,7 @@ _CRH_BLINK      MOVE    LN_COMPLETE, R8         ; completion character
 
 CRH_PD_NEXT_Y   MOVE    Playfield_MY, R7
                 CMP     R3, @R7                 ; y > playfield size?
-                RBRA    _CRH_RET, N             ; yes: return
+                RBRA    _CRH_RET, V             ; yes: return
 
                 MOVE    R3, @R1                 ; hw cursor to y start line
 
@@ -880,7 +879,7 @@ PAINT_LN_COMPL  INCRB
 
                 MOVE    Playfield_MY, R6        ; current y line larger ...
 _PLN_NEXT_CLY   CMP     R3, @R6                 ; ... than maximum y position?
-                RBRA    _PLN_RET, N             ; yes: return
+                RBRA    _PLN_RET, V             ; yes: return
 
                 CMP     1, @R7                  ; current line completed?
                 RBRA    _PLN_N_COMPL_NY, !Z     ; no: next line
@@ -988,9 +987,9 @@ _DM_LOOP_X      MOVE    RenderedTTR, R7         ; pointer to Tetromino pattern
                 RBRA    _DM_INCX, 1             ; yes: skip to next pixel
 
 _DM_PX_FOUND    CMP     0, R8                   ; negative y scanning coord?
-                RBRA    _DM_EMULATE_WL, N       ; yes: emulate walls
+                RBRA    _DM_EMULATE_WL, V       ; yes: emulate walls
                 CMP     @R1, R3                 ; maximum y-position reached?
-                RBRA    _DM_OBSTACLE, N         ; yes (@R1 > R3): return false
+                RBRA    _DM_OBSTACLE, V         ; yes (@R1 > R3): return false
                 MOVE    VGA$CHAR, R2            ; hw register for reading scrn   
                 CMP     0x20, @R2               ; empty "pixel" on screen?
                 RBRA    _DM_IS_IT_OWN, !Z       ; no: check if it is an own px
@@ -1015,13 +1014,13 @@ _DM_EMULATE_WL  MOVE    PLAYFIELD_X, R2
 _DM_IS_IT_OWN   MOVE    R4, R12                 ; current y position
                 ADD     R11, R12                ; apply y scanning offset
                 CMP     0, R12                  ; y negative out-of-bound?                
-                RBRA    _DM_INCX, N             ; yes: skip to next pixel
+                RBRA    _DM_INCX, V             ; yes: skip to next pixel
                 CMP     8, R12                  ; y positive out-of-bound?
                 RBRA    _DM_OBSTACLE, Z         ; yes: obstacle found
                 MOVE    R6, R2                  ; current x position
                 ADD     R10, R2                 ; apply x scanning offset
                 CMP     0, R2                   ; x negative out-of-bound?                
-                RBRA    _DM_OBSTACLE, N         ; yes: obstacle found
+                RBRA    _DM_OBSTACLE, V         ; yes: obstacle found
                 CMP     8, R2                   ; x positive out-of-bound?
                 RBRA    _DM_OBSTACLE, Z         ; yes: obstacle found
                 SHL     3, R12                  ; (R12 = y) x 8 (line offset)
@@ -1306,7 +1305,7 @@ _PAINT_TTR_YL   MOVE    8, R4                   ; R4: column counter
                 MOVE    R9, R7                  ; is R9+R5 < 0, i.e. is the...
                 ADD     R5, R7                  ; y-pos negative?
                 CMP     0, R7
-                RBRA    _PAINT_TTR_XL, !N       ; no: go on painting
+                RBRA    _PAINT_TTR_XL, !V       ; no: go on painting
                 ADD     8, R3                   ; yes: skip line
                 RBRA    _PAINT_NEXT_LN, 1       
 

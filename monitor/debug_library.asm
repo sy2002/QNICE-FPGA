@@ -129,7 +129,7 @@ _DBG$MNEMONICS      .ASCII_W    "MOVE   "
                     .ASCII_W    "OR     "
                     .ASCII_W    "XOR    "
                     .ASCII_W    "CMP    "
-                    .ASCII_W    "INT    "
+                    .ASCII_W    "rsrvd  "
                     .ASCII_W    "HALT   "
                     .ASCII_W    "BRSU   "       ; This is not really necessary
 _DBG$BRSU_MNEMONICS .ASCII_W    "ABRA   "
