@@ -490,7 +490,7 @@ begin
                         fsmCpuAddr <= SP - 1;
                         fsmDataToBus <= PC;
                         fsmCpuDataDirCtrl <= '1';
-                        fsmCpuDataValid <='0';
+                        fsmCpuDataValid <='1';
                         fsmNextCpuState <= cs_exepost_sub;
                                                
                      when others =>
@@ -550,7 +550,7 @@ begin
                   fsmCpuAddr <= reg_read_data2;
                   fsmDataToBus <= std_logic_vector(Alu_Result);
                   fsmCpuDataDirCtrl <= '1';
-                  fsmCpuDataValid <='0';
+                  fsmCpuDataValid <='1';
                end if;               
             end if;
                                
@@ -564,14 +564,22 @@ begin
             if WAIT_FOR_DATA = '1' then
                fsmNextCpuState <= cs_exepost_store_dst_indirect;
 
-            else            
+            else
+               fsmCpuDataDirCtrl <= '0';
+               fsmCpuDataValid <= '0';
+               fsmCpuAddr <= PC;
+                  
                -- perform post increment
                if Dst_Mode = amIndirPostInc then
                   -- special handling of SP, SR and PC as they are not stored in the register file
                   case Dst_RegNo is
                      when x"D" => fsmSP <= SP + 1;
                      when x"E" => fsmSR <= SR + 1;
-                     when x"F" => fsmPC <= PC + 1;
+                     
+                     when x"F" =>
+                        fsmPC <= PC + 1;
+                        fsmCpuAddr <= PC + 1;
+                        
                      when others =>
                         fsm_reg_write_addr <= Dst_RegNo;
                         fsm_reg_write_data <= reg_read_data2 + 1;
@@ -583,14 +591,16 @@ begin
          when cs_exepost_sub =>
             DATA <= DATA_To_Bus;
             fsmDataToBus <= DATA_To_Bus;
-            fsmCpuDataDirCtrl <= '1';
-            fsmCpuDataValid <= '1';
+            fsmCpuDataDirCtrl <= '0';
+            fsmCpuDataValid <= '0';
             
             -- absolute or relative?
             if Bra_Mode = bmASUB then
                fsmPC <= Src_Value;
+               fsmCpuAddr <= Src_Value;
             else
                fsmPC <= PC + Src_Value;
+               fsmCpuAddr <= PC + Src_Value;
             end if;
 
          when cs_exepost_prepfetch =>
@@ -619,8 +629,8 @@ begin
          when cs_exeprep_get_src_indirect    => cpu_state_next <= cs_execute;
          when cs_exeprep_get_dst_indirect    => cpu_state_next <= cs_execute;
          when cs_execute                     => cpu_state_next <= cs_fetch;
-         when cs_exepost_store_dst_indirect  => cpu_state_next <= cs_exepost_prepfetch;
-         when cs_exepost_sub                 => cpu_state_next <= cs_exepost_prepfetch;
+         when cs_exepost_store_dst_indirect  => cpu_state_next <= cs_fetch;
+         when cs_exepost_sub                 => cpu_state_next <= cs_fetch;
          when cs_exepost_prepfetch           => cpu_state_next <= cs_fetch;
          when cs_halt                        => cpu_state_next <= cs_halt;
          when others                         => cpu_state_next <= cpu_state;
