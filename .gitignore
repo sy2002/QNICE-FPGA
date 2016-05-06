@@ -17,3 +17,9 @@ emulator/qnice
 *.def
 *.aux
 *.log
+*.snm
+*.nav
+*.toc
+*.stc
+*.swp
+*.swo
