@@ -13,18 +13,11 @@
 ;
 #define         POINTER R12
 ;
-;  A typical program should always include the two following includes. sysdef.asm
-; contains the constant definitions used in building the monitor, while monitor.def
-; is an automatically generated file which contains all labels in form of constant
-; definitions (.EQU) of the monitor and thus defines the call-interface to the 
-; monitor.
-;
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 ;
 DIVERGENT       .EQU    0x0400              ; Constant for divergence test
 ITERATION       .EQU    0x001A              ; Number of iterations
-
 ;
 ;*******************************************************************************
 ;*
@@ -80,10 +73,14 @@ _MAIN_NOT_U     CMP     'd', R8
                 RBRA    _MAIN_NEXT, 1
 _MAIN_NOT_D     CMP     'i', R8
                 RBRA    _MAIN_NOT_I, !Z
-                ; "i" has been pressed
+                SUB     0x0001, R0          ; "i" has been pressed
+                SUB     0x0001, R3
+                RBRA    _MAIN_NEXT, 1
 _MAIN_NOT_I     CMP     'o', R8
                 RBRA    _MAIN_NOT_O, !Z
-                ; "o" has been pressed
+                ADD     0x0001, R0          ; "o" has been pressed
+                ADD     0x0001, R3
+                RBRA    _MAIN_NEXT, 1
 _MAIN_NOT_O     CMP     'x', R8
                 RBRA    _MAIN_NOT_X, !Z
                 SYSCALL(exit, 1)            ! "x" has been pressed, exit
@@ -236,10 +233,10 @@ Z1SQUARE_HIGH   .BLOCK      1
 ;
 X_START         .DW     -0x0200             ; -512 = - 2 * scale with scale = 256
 X_END           .DW     0x0100              ; +128
-X_STEP          .DW     0x000B              ; was 0x0006 == 10
+X_STEP          .DW     0x000B
 Y_START         .DW     -0x0180             ; -256
 Y_END           .DW     0x0180              ; 256
-Y_STEP          .DW     0x0013              ; was 0x000F == 25
+Y_STEP          .DW     0x0013
 ;
 WELCOME         .ASCII_P    " This program computes and displays a Mandelbrot-set on QNICE.\n"
                 .ASCII_P    "Using the following keys it is possible to perform translation and\n"
