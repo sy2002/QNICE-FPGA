@@ -23,3 +23,4 @@ strchr                        	.EQU	0x0022
 gethex                        	.EQU	0x0024
 puthex                        	.EQU	0x0026
 mulu                          	.EQU	0x0028
+cls                           	.EQU	0x002A
