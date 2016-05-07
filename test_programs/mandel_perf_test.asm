@@ -4,11 +4,11 @@
 ;
 ; speed comparison using UART:
 ;
-;  CPU revision GIT #0xxxxxx needs xxxx xxxx = xx.xxx.xxx cycles = x,xxxx sec
+;  CPU revision GIT #f6ccada needs 0106 BDF3 = 17.219.059 cycles = 0,3444 sec
 ;
 ; speed comparison using VGA:
 ;
-;  CPU revision GIT #0xxxxxx needs xxxx xxxx = xx.xxx.xxx cycles = x,xxxx sec;
+;  CPU revision GIT #f6ccada needs 009F 12AD = 10.425.005 cycles = 0,2085 sec
 ;
 ;
 ; everything below this line has been done and measured using the software
@@ -30,7 +30,7 @@
 ;  CPU revision GIT #60f1294 needs 02CF 1666 = 47.126.118 cycles = 0,9425 sec
 ;  CPU revision GIT #83e2936 needs 02CC 0531 = 46.925.105 cycles = 0,9385 sec
 ;
-;  using the emulator_s instruction counter feature we learned, that this
+;  using the instruction counter feature of the emulator we learned, that this
 ;  test program consists of 12.143.388 instructions, i.e. the FGA QNICE system
 ;  performs at an average of 3,86 cycles/instruction which leads to 
 ;  a system performance 12,93 MIPS.

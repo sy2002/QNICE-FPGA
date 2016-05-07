@@ -47,7 +47,7 @@ Getting Started
 
 * Compile the assembler and the ROM generator by entering
   `cc assembler/qasm.c -o assembler/qasm` and then
-  `cc assembler/qasm2rom.c -o assembler/qasm2rom` 
+  `cc assembler/qasm2rom.c -o assembler/qasm2rom -std=c99` 
   on the command line from the root folder of the GIT repository.
 
 * Compile the mandelbrot demo by entering
