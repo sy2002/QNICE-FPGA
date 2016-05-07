@@ -323,17 +323,21 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
             gbl$eae_result_hi = (eae$temp >> 16) & 0xffff;
             break;
           case 1: /* Signed multiplication */
-            if (gbl$eae_operand_0 & 0x8000) gbl$eae_operand_0 |= 0xffff000; /* Perform a sign extension */
-            if (gbl$eae_operand_1 & 0x8000) gbl$eae_operand_1 |= 0xffff000;
+            if (gbl$eae_operand_0 & 0x8000) gbl$eae_operand_0 |= 0xffffffffffff8000; /* Perform a sign extension */
+            if (gbl$eae_operand_1 & 0x8000) gbl$eae_operand_1 |= 0xffffffffffff8000;
             eae$temp = gbl$eae_operand_0 * gbl$eae_operand_1; /* Now, it is a signed operation. */
             gbl$eae_result_lo = eae$temp & 0xffff;
             gbl$eae_result_hi = (eae$temp >> 16) & 0xffff;
             break;
           case 2: /* Unsigned division */
-//TODO
+            gbl$eae_result_lo = gbl$eae_operand_0 / gbl$eae_operand_1;
+            gbl$eae_result_hi = gbl$eae_operand_0 % gbl$eae_operand_1;
             break;
           case 3: /* Signed division */
-//TODO
+            gbl$eae_result_hi = gbl$eae_operand_0 % gbl$eae_operand_1;
+            if (gbl$eae_operand_0 & 0x8000) gbl$eae_operand_0 |= 0xffffffffffff8000; /* Perform a sign extension */
+            if (gbl$eae_operand_1 & 0x8000) gbl$eae_operand_1 |= 0xffffffffffff8000;
+            gbl$eae_result_lo = gbl$eae_operand_0 / gbl$eae_operand_1;
             break;
           default:
             printf("Illegal opcode for the EAE detected - continuing anyway...\n");
