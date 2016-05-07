@@ -16,9 +16,11 @@ MTH$MULS        INCRB
                 MOVE    R9, @R0
                 MOVE    IO$EAE_CSR, R0
                 MOVE    EAE$MULS, @R0
+#ifndef EAE_NO_WAIT
 _MTH$MULS_BUSY  MOVE    @R0, R1             ; Test busy bit
                 AND     0x8000, R1
                 RBRA    _MTH$MULS_BUSY, !Z  ; Still busy, wait...
+#endif
                 MOVE    IO$EAE_RESULT_LO, R0
                 MOVE    @R0++, R10
                 MOVE    @R0, R11
@@ -38,9 +40,11 @@ MTH$MULU        INCRB
                 MOVE    R9, @R0
                 MOVE    IO$EAE_CSR, R0
                 MOVE    EAE$MULU, @R0
+#ifndef EAE_NO_WAIT
 _MTH$MULU_BUSY  MOVE    @R0, R1             ; Test busy bit
                 AND     0x8000, R1
                 RBRA    _MTH$MULU_BUSY, !Z  ; Still busy, wait...
+#endif
                 MOVE    IO$EAE_RESULT_LO, R0
                 MOVE    @R0++, R10
                 MOVE    @R0, R11

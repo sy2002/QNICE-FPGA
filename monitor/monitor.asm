@@ -1,6 +1,10 @@
 #undef RAM_MONITOR
 #undef DEBUG
 ;
+#define EAE_NO_WAIT                        ; If this is defined, it is guaranteed that the EAE
+                                           ; returns its results in a single clock cycle, so 
+                                           ; there is no need to check the busy bit in the CSR.
+;
 #ifdef RAM_MONITOR
                 .ORG 0x8000
 #else
