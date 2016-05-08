@@ -76,7 +76,8 @@ gethex!         RBRA    IO$GET_W_HEX, 1
 puthex!         RBRA    IO$PUT_W_HEX, 1
 mulu!           RBRA    MTH$MULU, 1
 cls!            RBRA    VGA$CLS, 1
-
+divu!           RBRA    MTH$DIVU, 1
+divs!           RBRA    MTH$DIVS, 1
 ;
 ;  The actual monitor code starts here:
 ;
