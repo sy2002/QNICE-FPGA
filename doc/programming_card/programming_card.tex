@@ -226,6 +226,12 @@
      \texttt{IO\$CYC\_HI}&\texttt{0xFF19}&Cycle counter high\\
      \texttt{IO\$CYC\_STATE}&\texttt{0xFF1A}&Cycle counter status\\
      \hline
+     \texttt{IO\$EAE\_OPERAND\_0}&\texttt{0xFF1B}&EAE 1st operand\\
+     \texttt{IO\$EAE\_OPERAND\_1}&\texttt{0xFF1C}&EAE 2nd operand\\
+     \texttt{IO\$EAE\_RESULT\_LO}&\texttt{0xFF1D}&EAE low result\\
+     \texttt{IO\$EAE\_RESULT\_HI}&\texttt{0xFF1E}&EAE high result\\
+     \texttt{IO\$EAE\_CSR}&\texttt{0xFF1F}&EAE command \& status reg.\\
+     \hline
      \texttt{IO\$UART\_SRA}&\texttt{0xFF21}&UART status register\\
      \texttt{IO\$UART\_RHRA}&\texttt{0xFF22}&UART receive register\\
      \texttt{IO\$UART\_THRA}&\texttt{0xFF23}&UART receive register\\
@@ -308,6 +314,20 @@
       \end{longtable}
      \end{center}
      \vspace*{-14mm}
+%
+  \subsection{EAE}
+   \subsection{\texttt{IO\$EAE\_CSR}}
+    \begin{center}
+     \begin{longtable}{|l|l|}
+      \hline
+       Bit&Description\\
+      \hline
+      \hline
+       0/1&Operation (MULU, MULS, DIVU, DIVS)\\
+       15&Busy if set\\
+      \hline
+     \end{longtable}
+    \end{center}
 %
   \subsection{UART}
    \subsubsection{\texttt{IO\$UART\_SRA}}
