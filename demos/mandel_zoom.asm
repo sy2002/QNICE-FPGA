@@ -29,8 +29,6 @@ ITERATION       .EQU    0x001A              ; Number of iterations
                 MOVE    WELCOME, R8
                 SYSCALL(puts, 1)
                 SYSCALL(getc, 1)
-_MAIN_LOOP      SYSCALL(cls, 1)
-                RSUB    MANDEL, 1           ; Generate one Mandelbrot-set
 ;
                 MOVE    X_STEP, R7
                 MOVE    @R7, R0             ; R0 now contains X_STEP
@@ -45,10 +43,13 @@ _MAIN_LOOP      SYSCALL(cls, 1)
                 MOVE    Y_END, R7
                 MOVE    @R7, R5             ; R5 contains Y_END
 ;
+_MAIN_LOOP      SYSCALL(cls, 1)
+                RSUB    MANDEL, 1           ; Generate one Mandelbrot-set
+;
                 MOVE    R0, R9              ; This is the step size to be
-                SHL     2, R9               ; used in horizontal shifts,
+                SHL     3, R9               ; used in horizontal shifts,
                 MOVE    R3, R10             ; while this one is used in
-                SHL     2, R10              ; vertical shifts
+                SHL     3, R10              ; vertical shifts
 ;
 _MAIN_GET_KEY   SYSCALL(getc, 1)            ; Wait for a key to be pressed
                 CMP     'l', R8
@@ -73,13 +74,43 @@ _MAIN_NOT_U     CMP     'd', R8
                 RBRA    _MAIN_NEXT, 1
 _MAIN_NOT_D     CMP     'i', R8
                 RBRA    _MAIN_NOT_I, !Z
-                SUB     0x0001, R0          ; "i" has been pressed
-                SUB     0x0001, R3
+                ; "i" has been pressed
+                MOVE    R2, R11             ; Determine delta(x) / 4
+                SUB     R1, R11
+                AND     0xFF00, SR
+                SHR     2, R11
+                ADD     R11, R1             ; x_start += delta(x) / 4
+                SUB     R11, R2             ; x_end -= delta(x) / 4
+                ;
+                MOVE    R5, R11             ; Determine delta(y) / 4
+                SUB     R4, R11
+                AND     0xFF00, SR
+                SHR     2, R11
+                ADD     R11, R4
+                SUB     R11, R5
+                ;
+                SHR     1, R0               ; Half step width for x
+                SHR     1, R3               ; and y
                 RBRA    _MAIN_NEXT, 1
 _MAIN_NOT_I     CMP     'o', R8
                 RBRA    _MAIN_NOT_O, !Z
-                ADD     0x0001, R0          ; "o" has been pressed
-                ADD     0x0001, R3
+                ; "o" has been pressed
+                MOVE    R2, R11             ; Determine delta(X) / 2
+                SUB     R1, R11             ; delta(x) = x_end - x_start
+                AND     0xFF00, SR
+                SHR     1, R11              ; Divide by 2
+                SUB     R11, R1             ; x_start -= delta(x) / 2
+                ADD     R11, R2             ; x_end += delta(x) / 2
+                ;
+                MOVE    R5, R11             ; Determine delta(y) / 2
+                SUB     R4, R11
+                AND     0xFF00, SR
+                SHR     1, R11              ; ... / 2
+                SUB     R11, R4
+                ADD     R11, R5
+                ;
+                SHL     1, R0               ; Double step width for x
+                SHL     1, R3               ; and y
                 RBRA    _MAIN_NEXT, 1
 _MAIN_NOT_O     CMP     'x', R8
                 RBRA    _MAIN_NOT_X, !Z
