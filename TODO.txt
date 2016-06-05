@@ -1,12 +1,14 @@
 HARDWARE:
 
+* Refactor MMIO for not having so many comperators: use only one register
+  output and link it to all devices; use a smart subtraction to find out
+  registers and drastically shorten the code.
+
 * Remove ROM and replace by prefilled RAM
 
-* Memory management unit (more than 64kWords of RAM/ROM, pages, etc.)
-
-* Interrupt system
-
-* Debugging mechanisms (e.g. single-step mode in hardware)
+* Have a global constant that reflects the speed of the board and refactor
+  all hardcoded frequencies to be dependend formulas from this speed
+  (e.g. UART, SD card, VGA, debouncer, etc.)
 
 * Improve design to support 100 MHz
 
@@ -14,11 +16,6 @@ HARDWARE:
 
 * Refactor scancode conversion to be more table/ROM like and less
   like a huge array of multiplexers
-
-* Add a timer with 0,1us Resolution (10 MHz frequency), so that
-  we can measure performance (e.g. against the emulator)
-
-* Refactor MMIO for not having so many comperators
 
 * Refactor TIL and TIL Mask to support 8 digits / 32 bits
 
@@ -28,6 +25,12 @@ HARDWARE:
   e.g. for being able to enhance Q-TRIS to work double-buffered and to
   switch buffers during retrace. And/or for having a good general sync.
   mechanism. To "report" via register and/or interrupt.
+
+* Memory management unit (more than 64kWords of RAM/ROM, pages, etc.)
+
+* Interrupt system
+
+* Debugging mechanisms (e.g. single-step mode in hardware)
 
 MONITOR and/or STANDARD LIBs:
 

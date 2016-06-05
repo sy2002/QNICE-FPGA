@@ -36,11 +36,17 @@ port (
    PS2_DAT     : in std_logic;
 
    -- VGA
-   vga_red     : out std_logic_vector(3 downto 0);
-   vga_green   : out std_logic_vector(3 downto 0);
-   vga_blue    : out std_logic_vector(3 downto 0);
-   vga_hs      : out std_logic;
-   vga_vs      : out std_logic
+   VGA_RED     : out std_logic_vector(3 downto 0);
+   VGA_GREEN   : out std_logic_vector(3 downto 0);
+   VGA_BLUE    : out std_logic_vector(3 downto 0);
+   VGA_HS      : out std_logic;
+   VGA_VS      : out std_logic;
+   
+   -- SD Card
+   SD_RESET    : out std_logic;
+   SD_CLK      : out std_logic;
+   SD_MOSI     : out std_logic;
+   SD_MISO     : in std_logic
 ); 
 end env1;
 
@@ -210,6 +216,27 @@ port (
 );
 end component;
 
+-- SD Card
+component sdcard is
+port (
+   clk      : in std_logic;         -- system clock
+   reset    : in std_logic;         -- async reset
+   
+   -- registers
+   en       : in std_logic;         -- enable for reading from or writing to the bus
+   we       : in std_logic;         -- write to the registers via system's data bus
+   reg      : in std_logic_vector(2 downto 0);      -- register selector
+   data     : inout std_logic_vector(15 downto 0);  -- system's data bus
+   
+   -- hardware interface
+   sd_reset : out std_logic;
+   sd_clk   : out std_logic;
+   sd_mosi  : out std_logic;
+   sd_miso  : in std_logic
+);
+end component;
+
+
 -- multiplexer to control the data bus (enable/disable the different parties)
 component mmio_mux is
 port (
@@ -253,7 +280,10 @@ port (
    cyc_reg           : out std_logic_vector(1 downto 0);
    eae_en            : out std_logic;
    eae_we            : out std_logic;
-   eae_reg           : out std_logic_vector(2 downto 0);   
+   eae_reg           : out std_logic_vector(2 downto 0);
+   sd_en             : out std_logic;
+   sd_we             : out std_logic;
+   sd_reg            : out std_logic_vector(2 downto 0);   
    reset_pre_pore    : out std_logic;
    reset_post_pore   : out std_logic   
 );
@@ -292,6 +322,10 @@ signal cyc_reg                : std_logic_vector(1 downto 0);
 signal eae_en                 : std_logic;
 signal eae_we                 : std_logic;
 signal eae_reg                : std_logic_vector(2 downto 0);
+signal sd_en                  : std_logic;
+signal sd_we                  : std_logic;
+signal sd_reg                 : std_logic_vector(2 downto 0); 
+
 signal reset_pre_pore         : std_logic;
 signal reset_post_pore        : std_logic;
 
@@ -376,8 +410,8 @@ begin
          R => vga_r,
          G => vga_g,
          B => vga_b,
-         hsync => vga_hs,
-         vsync => vga_vs,
+         hsync => VGA_HS,
+         vsync => VGA_VS,
          en => vga_en,
          we => vga_we,
          reg => vga_reg,
@@ -450,7 +484,22 @@ begin
          we => eae_we,
          reg => eae_reg,
          data => cpu_data         
-      );      
+      );
+
+   -- SD Card
+   sd_card : sdcard
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         en => sd_en,
+         we => sd_we,
+         reg => sd_reg,
+         data => cpu_data,
+         sd_reset => SD_RESET,
+         sd_clk => SD_CLK,
+         sd_mosi => SD_MOSI,
+         sd_miso => SD_MISO
+      );
                         
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
@@ -486,6 +535,9 @@ begin
          eae_en => eae_en,
          eae_we => eae_we,
          eae_reg => eae_reg,
+         sd_en => sd_en,
+         sd_we => sd_we,
+         sd_reg => sd_reg,
          reset_pre_pore => reset_pre_pore,
          reset_post_pore => reset_post_pore
       );
@@ -529,9 +581,9 @@ begin
    end process;
        
    -- wire the simplified color system of the VGA component to the VGA outputs
-   vga_red <= vga_r & vga_r & vga_r & vga_r;
-   vga_green <= vga_g & vga_g & vga_g & vga_g;
-   vga_blue <= vga_b & vga_b & vga_b & vga_b;
+   VGA_RED   <= vga_r & vga_r & vga_r & vga_r;
+   VGA_GREEN <= vga_g & vga_g & vga_g & vga_g;
+   VGA_BLUE  <= vga_b & vga_b & vga_b & vga_b;
    
    -- generate the general reset signal
    reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';

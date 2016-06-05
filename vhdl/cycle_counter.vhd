@@ -14,7 +14,7 @@ port (
    
    -- cycle counter's registers
    en       : in std_logic;         -- enable for reading from or writing to the bus
-   we       : in std_logic;         -- write to VGA's registers via system's data bus
+   we       : in std_logic;         -- write to the registers via system's data bus
    reg      : in std_logic_vector(1 downto 0);     -- register selector
    data     : inout std_logic_vector(15 downto 0)  -- system's data bus
 );

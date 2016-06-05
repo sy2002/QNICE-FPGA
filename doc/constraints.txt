@@ -1,0 +1,24 @@
+Contraints of the QNICE-FPGA (env1) design, that should be mentioned,
+when writing the documentation:
+
+SD Card:
+
+* MBR partition table
+* only the first partition is recognized
+* FAT32 with a 512 byte blocksize (when using a Mac to format: OSX is
+  calling FAT32 sometimes just "FAT" or "MS-DOS file system". Do not use
+  ExFAT)
+
+
+USB Keyboard:
+
+When attaching an USB keyboard, be sure to use one that supports the old
+USB boot mode standard. Not all newer keyboards are compatible. These
+keyboards are tested and work:
+
+* Cherry KC 1000
+* @TODO: Add the name of vaxman's and deft's keyboards
+
+VGA:
+
+The monitor needs to support 640x480 and 640x400 in 60 Hz.

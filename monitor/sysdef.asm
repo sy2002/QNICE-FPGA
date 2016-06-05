@@ -56,6 +56,15 @@ EAE$MULU                .EQU    0x0000                  ; Unsigned 16 bit multip
 EAE$MULS                .EQU    0x0001                  ; Signed 16 bit multiplication
 EAE$DIVU                .EQU    0x0002                  ; Unsigned 16 bit division with remainder
 EAE$DIVS                .EQU    0x0003                  ; Signed 16 bit division with remainder
+EAE$BUSY                .EQU    0x8000                  ; Busy flag (1 = operation still running)
+
+; ========== SD CARD ==========
+
+SD$RESET                .EQU    0x0000                  ; Reset SD card
+SD$READ                 .EQU    0x0001                  ; Read 512 bytes from SD to internal buffer
+SD$WRITE                .EQU    0x0002                  ; Write 512 bytes from int. buf. to SD
+SD$ERROR                .EQU    0x4000                  ; Error flag: 1, if last operation failed
+SD$BUSY                 .EQU    0x8000                  ; Busy flag: 1, if current op. is still running
 
 ; ========== KEYBOARD ==========
 
@@ -153,7 +162,6 @@ CHR$LF          .EQU 0x000a ; Line feed
 ;*  IO-page addresses:
 ;***************************************************************************************
 ;
-IO$BASE             .EQU 0xFF00
 ;
 ;  VGA-registers:
 ;
@@ -184,7 +192,6 @@ VGA$OFFS_RW         .EQU 0xFF05 ; Offset in bytes that is used, when you read
                                 ; or write to the video RAM using VGA$CHAR.
                                 ; Works independently from VGA$OFFS_DISPLAY.
                                 ; Active, when bit #11 in VGA$STATE is set.
-
 ;
 ;  Registers for TIL-display:
 ;
@@ -222,7 +229,7 @@ IO$CYC_STATE    .EQU 0xFF1A     ; status register
 ;                             bit 1 is automatically set to 1 when resetting
 ;    Bit  1 (read/write):     Start/stop counter
 ;
-;  EAE (Extended Arithmetic Element):
+;  EAE (Extended Arithmetic Element) registers:
 ;
 IO$EAE_OPERAND_0    .EQU    0xFF1B
 IO$EAE_OPERAND_1    .EQU    0xFF1C
@@ -230,12 +237,11 @@ IO$EAE_RESULT_LO    .EQU    0xFF1D
 IO$EAE_RESULT_HI    .EQU    0xFF1E
 IO$EAE_CSR          .EQU    0xFF1F ; Command and Status Register
 ;
-; EAE-Opcodes (CSR):    0x0000  MULU  32-bit result in LO HI
+;  EAE-Opcodes (CSR):   0x0000  MULU  32-bit result in LO HI
 ;                       0x0001  MULS  32-bit result in LO HI
 ;                       0x0002  DIVU  result in LO, modulo in HI
 ;                       0x0003  DIVS  result in LO, modulo in HI
-;   Bit 15 of CSR is the busy bit. If it is set, the EAE is still busy crunching numbers.
-
+;  Bit 15 of CSR is the busy bit. If it is set, the EAE is still busy crunching numbers.
 ;
 ;
 ;  UART-registers:
@@ -243,4 +249,21 @@ IO$EAE_CSR          .EQU    0xFF1F ; Command and Status Register
 IO$UART_SRA     .EQU 0xFF21 ; Status register (relative to base address)
 IO$UART_RHRA    .EQU 0xFF22 ; Receiving register (relative to base address)
 IO$UART_THRA    .EQU 0xFF23 ; Transmitting register (relative to base address)
-
+;
+;  SD CARD INTERFACE registers
+;
+IO$SD_ADDR_LO   .EQU 0xFF24 ; low word of 32bit linear SD card block address
+IO$SD_ADDR_HI   .EQU 0xFF25 ; high word of 32bit linear SD card block address
+IO$SD_DATA_POS  .EQU 0xFF26 ; "Cursor" to navigate the 512-byte data buffer
+IO$SD_DATA      .EQU 0xFF27 ; read/write 1 byte from/to the 512-byte data buffer
+IO$SD_ERROR     .EQU 0xFF28 ; error code of last operation (read only)
+IO$SD_CSR       .EQU 0xFF29 ; Command and Status Register (write to execute command)
+;
+;  SD-Opcodes (CSR):    0x0000  Reset SD card
+;                       0x0001  Read 512 bytes from the linear block address
+;                       0x0002  Write 512 bytes to the linear block address
+;  Bits 0..2 are write-only (reading always returns 0)
+;  Bit 14 of the CSR is the error bit: 1, if the last operation failed. In such
+;                                      a case, the error code is in IO$SD_ERROR and
+;                                      you need to reset the controller to go on
+;  Bit 15 of the CSR is the busy bit: 1, if current operation is still running
