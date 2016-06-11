@@ -258,20 +258,37 @@ SD$READ_BYTE    INCRB
 ;* SD$WAIT_BUSY waits, while the SD Card is executing any command.
 ;*
 ;* R8: 0, if everything went OK, otherwise the error code
+;*
+;* Side effect: Starts the cycle counter (if it was stopped), but does not
+;* reset the value, so that other countings are not influenced. 
 ;*****************************************************************************
 ;
 SD$WAIT_BUSY    INCRB
-                MOVE    IO$CYC_STATE, R0        ; reset cycle counter for ...
-                MOVE    CYC$RESET, @R0          ; ... measuring timeout
+
+                ; Make sure that the cycle counter is running for being
+                ; able to measure the timeout. Do not reset it, but find
+                ; the target value via addition (wrap around is OK), so that
+                ; other running cycle counting processes are not disturbed
+                ; by this
+                MOVE    IO$CYC_STATE, R0        ; make sure, the cycle counter
+                OR      CYC$RUN, @R0            ; is running
+                MOVE    IO$CYC_MID, R3
+                MOVE    @R3, R7
+                ADD     SD$TIMEOUT_MID, R7
+
+                ; check busy status of SD card and timeout
                 MOVE    IO$SD_CSR, R0           ; SD Card Command & Status
                 MOVE    IO$SD_ERROR, R2         ; SD Card Errors
-                MOVE    IO$CYC_HI, R3           ; Cycle Counter bits 23 .. 16
 _SD$WAIT_BUSY_L MOVE    @R3, R1                 ; check for timeout
-                CMP     SD$TIMEOUT_HIGH, R1
-                RBRA    
+                CMP     R1, R7                  ; timeout reached
+                RBRA    _SD$WAIT_TO, Z          ; yes: return timeout
                 MOVE    @R0, R1                 ; read CSR register       
                 AND     SD$BIT_BUSY, R1         ; check busy flag
-                RBRA    _SD$WAIT_BUSY_L, !Z     ; loop flag is set
-                MOVE    @R2, R8
-                DECRB
+                RBRA    _SD$WAIT_BUSY_L, !Z     ; loop if busy flag is set
+                MOVE    @R2, R8                 ; return error value
+                RBRA    _SD$WAIT_END, 1
+
+_SD$WAIT_TO     MOVE    SD$ERR_TIMEOUT, R8
+_SD$WAIT_END    DECRB
                 RET  
+
