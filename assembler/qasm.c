@@ -2,7 +2,7 @@
 **  QNICE assembler: This program reads QNICE assembler code from a file and generates, as expected from an assembler :-), 
 ** valid machine code based on this input.
 **
-** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016
+** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016, JUN-2016
 **
 ** Known bugs:
 **
@@ -346,7 +346,7 @@ int search_equ_list(char *name, int *value)
 
 /*
 **  insert_into_equ_list inserts a new entry into the list of currently known EQUs. If the insert was successful, 0 will be 
-** returned. -1 denotes a memory problem, 1 denotes a duplicate entry!
+** returned. -1 denotes a memory problem, 1 denotes a duplicate entry, 2 is returned when the equ already exists as a label.
 */
 int insert_into_equ_list(char *name, int value)
 {
@@ -357,6 +357,7 @@ int insert_into_equ_list(char *name, int value)
 #ifdef DEBUG
   printf("insert_into_equ_list: >>%s<< = %d/%04X\n", name, value, value);
 #endif
+
   if (!(entry = (equ_structure *) malloc(sizeof(equ_structure))))
   {
     printf("insert_into_equ_list: Out of memory!\n");
@@ -376,7 +377,7 @@ int insert_into_equ_list(char *name, int value)
     last = last->next = entry;
   }
   
-  return 0;
+  return 0; /* Everything went fine */
 }
 
 /*
@@ -551,7 +552,7 @@ int decode_operand(char *operand, int *op_code)
 int assemble()
 {
   int opcode, type, line_counter, address = 0, i, j, error_counter = 0, number_of_operands, negate, flag, value, size,
-    special_char, org_found = 0;
+    special_char, org_found = 0, retval;
   char line[STRING_LENGTH], label[STRING_LENGTH], *p, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
   data_structure *entry;
 
@@ -744,13 +745,19 @@ int assemble()
       else if (!strcmp(entry->mnemonic, ".EQU")) /* Introduce a string which will equal some value */
       {
         token = tokenize((char *) 0, delimiters);
-        if (insert_into_equ_list(entry->label, str2int(token)))
+        if ((retval = insert_into_equ_list(entry->label, str2int(token))))
         {
           /*
           **  Design bug: Since an EQU does not get a corresponding code entry, the following
           ** error message will only printed to stdout but not occur in the resulting listing!
           */
-          sprintf(entry->error_text, "Line %d: Duplicate equ-entry '%s'.", line_counter, entry->label);
+          if (retval == 1)
+            sprintf(entry->error_text, "Line %d: Duplicate equ-entry '%s'.", line_counter, entry->label);
+//         else if (retval == 2)
+//           sprintf(entry->error_text, "Line %d: Equ-entry '%s' is also a label!", line_counter, entry->label);
+//         else
+//           sprintf(entry->error_text, "Line %d: Something went horribly wrong with adding an EQU!", line_counter);
+
           printf("assemble: %s\n", entry->error_text);
           error_counter++;
         }
@@ -995,7 +1002,7 @@ int assemble()
 */
 int write_result(char *output_file_name, char *listing_file_name, char *def_file_name)
 {
-  int line_counter, i;
+  int line_counter, i, flag, rc = 0;
   char address_string[STRING_LENGTH], data_string[STRING_LENGTH], line[STRING_LENGTH], second_word[STRING_LENGTH];
   FILE *output_handle, /* file handle for binary output data */
     *listing_handle, *def_handle = (FILE *) 0;
@@ -1065,6 +1072,7 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
     
     if (!(i++ % 3))
       fprintf(listing_handle, "\n");
+
     fprintf(listing_handle, "%-24s: 0x%04X    ", entry->label, entry->address & 0xffff);
 
     if (entry->export)
@@ -1086,13 +1094,38 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
       fprintf(def_handle, "%-30s\t.EQU\t0x%04X\n", entry->label, entry->address & 0xffff);
     }
   }
+
+  /* Do we have any label names which appear also as EQUs? */
+  for (flag = i = 0, entry = gbl$data; entry; entry = entry->next)
+  {
+    if (!*entry->label)
+      continue;
+
+    if (!search_equ_list(entry->label, &i))
+    {
+      if (!flag) /* Print header line */
+      {
+        printf("Warning: Some names appear as labels as well as EQUs!\n");
+        fprintf(listing_handle, 
+"\n\nThe following names appear as labels as well as EQUs:\n\
+--------------------------------------------------------------------------------------------------------\n");
+        flag = rc = 1;
+      }
+
+      if (!(i++ % 3))
+        fprintf(listing_handle, "\n");
+
+      fprintf(listing_handle, "%-24s\n", entry->label);
+    }
+  }
+
   fprintf(listing_handle, "\n");
 
   fclose(output_handle);
   fclose(listing_handle);
   fclose(def_handle);
   
-  return 0;
+  return rc;
 }
 
 int main(int argc, char **argv)
