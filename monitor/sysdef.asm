@@ -60,11 +60,13 @@ EAE$BUSY                .EQU    0x8000                  ; Busy flag (1 = operati
 
 ; ========== SD CARD ==========
 
-SD$RESET                .EQU    0x0000                  ; Reset SD card
-SD$READ                 .EQU    0x0001                  ; Read 512 bytes from SD to internal buffer
-SD$WRITE                .EQU    0x0002                  ; Write 512 bytes from int. buf. to SD
-SD$ERROR                .EQU    0x4000                  ; Error flag: 1, if last operation failed
-SD$BUSY                 .EQU    0x8000                  ; Busy flag: 1, if current op. is still running
+SD$CMD_RESET            .EQU    0x0000                  ; Reset SD card
+SD$CMD_READ             .EQU    0x0001                  ; Read 512 bytes from SD to internal buffer
+SD$CMD_WRITE            .EQU    0x0002                  ; Write 512 bytes from int. buf. to SD
+SD$BIT_ERROR            .EQU    0x4000                  ; Error flag: 1, if last operation failed
+SD$BIT_BUSY             .EQU    0x8000                  ; Busy flag: 1, if current op. is still running
+SD$TIMEOUT_HIGH         .EQU    0x0479                  ; equals ~75.000.000 cycles, i.e. 1.5sec @ 50 MHz
+SD$ERR_TIMEOUT          .EQU    0xEE01                  ; error: operation timed out
 
 ; ========== KEYBOARD ==========
 

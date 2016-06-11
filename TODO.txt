@@ -8,7 +8,7 @@ HARDWARE:
 
 * Have a global constant that reflects the speed of the board and refactor
   all hardcoded frequencies to be dependend formulas from this speed
-  (e.g. UART, SD card, VGA, debouncer, etc.)
+  (e.g. UART, SD card, VGA, debouncer, SD$TIMEOUT_HIGH, etc.)
 
 * Improve design to support 100 MHz
 
@@ -47,3 +47,5 @@ MONITOR and/or STANDARD LIBs:
 ASSEMBLER:
 
 * Issue a warning, when defining a label multiple times.
+* Issue a warning, when defining an .EQU that is equal to a label
+

@@ -7,8 +7,12 @@
 -- when en is '0'
 --
 -- It seems, that on a Xilinx/Artix-7 FPGA, the EAE can be synthesized in a way,
--- that all operations are purely combinatorial and/or only need one clock cycle
--- (mul via DSP), so that the whole logic using a busy flag, etc. is not yet
+-- that all operations are purely combinatorial: The multiplication is done by
+-- the DSP element and the division is creating a huge net, that takes longer
+-- than one cycle to execute (and therefore issues timing warnings). But as we
+-- give the net anyway enough time to settle before reading the result, this
+-- specific timing warning does not matter.
+-- This is why the whole logic using a busy flag, etc. is not yet
 -- implemented and therefore the clk signal is ignored.
 -- 
 -- done in May 2016 by sy2002
@@ -114,13 +118,13 @@ begin
             res <= std_logic_vector(res_s);
             
          when eaeDIVU =>
-            res_u(15 downto 0)  := op0_u; --op0_u / op1_u;
-            res_u(31 downto 16) := op0_u; --op0_u mod op1_u;
+            res_u(15 downto 0)  := op0_u / op1_u;
+            res_u(31 downto 16) := op0_u mod op1_u;
             res <= std_logic_vector(res_u);
             
          when eaeDIVS =>
-            res_s(15 downto 0)  := op0_s; --op0_s / op1_s;
-            res_s(31 downto 16) := op0_s; --op0_s mod op1_s;
+            res_s(15 downto 0)  := op0_s / op1_s;
+            res_s(31 downto 16) := op0_s mod op1_s;
             res <= std_logic_vector(res_s);
             
          when others => null;            

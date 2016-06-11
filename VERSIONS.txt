@@ -1,6 +1,9 @@
 Version x.y    xxx, x xxxx
 ==========================
 
+WIP * SD CARD: Hardware capabilities for raw SD CARD reading added. 
+WIP * FAT32
+
 * EAE: Extended Arithmetic Element added: This is a 32-bit signed/unsigned
   integer multiplication, division and modulo co-processor. An example of the
   impressive speedup can be seen in the source code comments of

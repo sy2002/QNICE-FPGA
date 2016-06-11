@@ -245,7 +245,7 @@ begin
       end if;
    end process;
    
-   fsm_output_decode : process(sd_state, sd_busy, sd_sync_reset, sd_block_read, sd_block_write,
+   fsm_output_decode : process(sd_state, sd_busy, sd_error, sd_sync_reset, sd_block_read, sd_block_write,
                                sd_block_address, sd_byte_read, sd_byte_write, sd_hndshk_i, sd_hndshk_o,
                                current_byte, cmd_read, reg_addr_hi, reg_addr_lo)
    begin
@@ -269,11 +269,20 @@ begin
       case sd_state is
       
          when sds_idle =>
-            if cmd_read = '1' then
+            if cmd_reset = '1' then
+               fsm_state_next <= sds_reset1;
+            elsif cmd_read = '1' then
                fsm_state_next <= sds_read_start;
             end if;
             
+         when sds_error =>
+            if cmd_reset = '1' then
+               fsm_state_next <= sds_reset1;
+            end if;
+            
          when sds_read_start =>
+            reset_cmd_read <= '1';
+            
             -- address and read strobe needs to stay until
             -- the controller signals busy
             if sd_busy = '0' then
@@ -290,11 +299,11 @@ begin
             
          when sds_read_wait_for_byte =>
             -- wait, until the byte arrived
-            if sd_hndshk_o = '0' then
+            if sd_hndshk_o = '0' or sd_busy = '0' then
             
-               -- all bytes read
+               -- all bytes read or error
                if sd_busy = '0' then
-                  fsm_state_next <= sds_idle;
+                  fsm_state_next <= sds_busy; -- error handling or fall back to idle
                else
                   fsm_state_next <= sds_read_wait_for_byte;
                end if;
@@ -314,24 +323,34 @@ begin
             fsm_hndshk_i <= '1';
             
          when sds_read_inc_ptr =>
+            -- check for error condition
+            if sd_busy = '0' then
+               fsm_state_next <= sds_busy;
             -- wait for the controller to acknowledge
-            if sd_hndshk_o = '1' then
+            elsif sd_hndshk_o = '1' then
                fsm_state_next <= sds_read_inc_ptr;
             else
                fsm_hndshk_i <= '0';
                
-               -- all bytes read
+               -- error handling (if busy goes down here, there must be an error)
                if sd_busy = '0' then
-                  fsm_state_next <= sds_idle;
+                  fsm_state_next <= sds_busy; -- the sds_busy state does error handling
                end if;
             end if;
                   
          when sds_busy =>
-            if sd_busy = '0' then
-               fsm_state_next <= sds_idle;
+            if cmd_reset = '1' then
+               fsm_state_next <= sds_reset1;
+            elsif sd_busy = '0' then
+               if sd_error = x"0000" then
+                  fsm_state_next <= sds_idle;
+               else
+                  fsm_state_next <= sds_error;
+               end if;
             end if;
       
          when sds_reset1 =>
+            reset_cmd_reset <= '1';
             fsm_sync_reset <= '1';
             
          when sds_reset2 =>
@@ -362,9 +381,9 @@ begin
          buffer_ptr <= (others => '0');
       else
          if rising_edge(sd_hndshk_i) then
-            --if sd_state = sds_read_inc_ptr then
+            if sd_state = sds_read_handshake or sd_state = sds_read_inc_ptr then
                buffer_ptr <= buffer_ptr + 1;
-            --end if;
+            end if;
          end if;
       end if;
    end process;
@@ -373,8 +392,9 @@ begin
                                    sd_state, sd_error, ram_data_o)
    variable is_busy : std_logic;
    variable is_error : std_logic;
+   --variable state_number : std_logic_vector(15 downto 0);
    begin
-      if sd_state = sds_error then
+      if sd_state = sds_error or sd_error /= x"0000" then
          is_error := '1';
          is_busy  := '0';
       else
@@ -385,6 +405,22 @@ begin
             is_busy := '0';
          end if;         
       end if;
+      
+--      case sd_state is
+--         when sds_idle => state_number := x"F001";
+--         when sds_busy => state_number := x"F002";
+--         when sds_error => state_number := x"F003";
+--         when sds_reset1 => state_number := x"F004";
+--         when sds_reset2 => state_number := x"F005";
+--         when sds_read_start => state_number := x"F006";
+--         when sds_read_wait_for_byte => state_number := x"F007";
+--         when sds_read_store_byte => state_number := x"F008";
+--         when sds_read_handshake => state_number := x"F009";
+--         when sds_read_inc_ptr => state_number := x"F010";
+--         when sds_write => state_number := x"F011";
+--         when sds_std_seq => state_number := x"F012";
+--         when others => state_number := x"FFFF";
+--      end case;
      
       if en = '1' and we = '0' then
          case reg is
@@ -392,7 +428,7 @@ begin
             when "001" => data <= reg_addr_hi;
             when "010" => data <= reg_data_pos;            
             when "011" => data <= "00000000" & ram_data_o;
-            when "100" => data <= std_logic_vector(buffer_ptr); --sd_error;
+            when "100" => data <= sd_error;
             when "101" => data <= is_busy & is_error & "00000000000000";
             when others => data <= (others => '0');
          end case;
@@ -441,7 +477,22 @@ begin
          end if;
       end if;
    end process;
-      
+   
+   detect_cmd_reset : process(clk, reset, reset_cmd_reset)
+   begin
+      if reset = '1' or reset_cmd_reset = '1' then
+         cmd_reset <= '0';
+      else
+         if falling_edge(clk) then
+            if en = '1' and we = '1' then
+               if reg = "101" and data = x"0000" then
+                  cmd_reset <= '1';
+               end if;
+            end if;
+         end if;
+      end if;
+   end process;
+   
    detect_cmd_read : process(clk, reset, reset_cmd_read)
    begin
       if reset = '1' or reset_cmd_read = '1' then
@@ -456,7 +507,7 @@ begin
          end if;
       end if;
    end process;
-   
+      
    decide_ram_data_i_and_ram_we : process(sd_state, ram_we_duetosdc, ram_we_duetowrrg,
                                           ram_di_duetosdc, ram_di_duetowrrg, ram_ai_duetosdc, ram_ai_duetowrrg)
    begin
@@ -475,6 +526,6 @@ begin
    ram_ai_duetowrrg <= reg_data_pos;
    ram_di_duetowrrg <= reg_data;
    ram_ai_duetosdc <= std_logic_vector(buffer_ptr);
-   ram_addr_o <= std_logic_vector(reg_data_pos);
+   ram_addr_o <= std_logic_vector(reg_data_pos);   
    
 end Behavioral;
