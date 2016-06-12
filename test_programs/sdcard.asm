@@ -57,8 +57,21 @@
                 MOVE    STR_REGCHK_CS, R10
                 RSUB    REG_CHECK, 1
 
+                ; main menu
+MAIN_MENU       MOVE    STR_MEN_TITLE, R8
+                SYSCALL(puts, 1)
+MAIN_MRR        SYSCALL(getc, 1)
+                CMP     R8, '1'
+                RBRA    IA_DUMP, Z
+                CMP     R8, '2'
+                RBRA    END_PROGRAM, Z
+                CMP     R8, '3'
+                RBRA    END_PROGRAM, Z
+
+                RBRA    MAIN_MRR, 1
+
                 ; allow interactive dumps of arbitrary addresses
-_IA_DUMP        MOVE    STR_IA_TITLE, R8
+IA_DUMP         MOVE    STR_IA_TITLE, R8
                 SYSCALL(puts, 1)
                 MOVE    STR_IA_HIGH, R8
                 SYSCALL(puts, 1)
@@ -82,7 +95,7 @@ _IA_DUMP        MOVE    STR_IA_TITLE, R8
 
                 ; output the 512 bytes of the buffer
                 MOVE    0, R6
-_OUTPUT_LOOP    MOVE    R6, R8                  ; read byte at position R6...
+OUTPUT_LOOP     MOVE    R6, R8                  ; read byte at position R6...
                 RSUB    SD$READ_BYTE, 1         ; ...from buffer
                 SYSCALL(puthex, 1)              ; output hex value
                 MOVE    STR_SPACE2, R8          ; output two separating spaces
@@ -92,10 +105,10 @@ _OUTPUT_LOOP    MOVE    R6, R8                  ; read byte at position R6...
                 MOVE    16, R9                  ; i.e. if a line has 16 hex
                 SYSCALL(divu, 1)                ; numbers, then output a
                 CMP     0, R11                  ; CR/LF so that the output
-                RBRA    _OUTPUT_LOOP_1, !Z      ; is nicely formatted
+                RBRA    OUTPUT_LOOP_1, !Z       ; is nicely formatted
                 SYSCALL(crlf, 1)
-_OUTPUT_LOOP_1  CMP     512, R6
-                RBRA    _OUTPUT_LOOP, !Z
+OUTPUT_LOOP_1   CMP     512, R6
+                RBRA    OUTPUT_LOOP, !Z
                 SYSCALL(crlf, 1)
 
                 ; check if the user like to dump another buffer
@@ -104,10 +117,11 @@ _OUTPUT_LOOP_1  CMP     512, R6
                 SYSCALL(getc, 1)
                 SYSCALL(crlf, 1)
                 CMP     'y', R8
-                RBRA    _IA_DUMP, Z
+                RBRA    IA_DUMP, Z
+                RBRA    MAIN_MENU, 1
 
                 ; back to monitor
-                SYSCALL(exit, 1)
+END_PROGRAM     SYSCALL(exit, 1)
 
 ; Register check subroutine: Expects the to be written and read-back
 ; register in R8, the value in R9 and the name string in R10
@@ -124,21 +138,21 @@ REG_CHECK       INCRB
                 SYSCALL(puts, 1)
 
                 CMP     R11, 1
-                RBRA    REG_CHECK_DW, Z
+                RBRA    _REG_CHECK_DW, Z
 
                 ; write SD card register, read it back and test the value
                 MOVE    R9, @R0                 ; write to the register
-REG_CHECK_DW    MOVE    @R0, R1                 ; read it back
+_REG_CHECK_DW   MOVE    @R0, R1                 ; read it back
                 CMP     R1, R9                  ; check if the read val is ok
-                RBRA    REG_CHECK_OK, Z         ; jump if OK
+                RBRA    _REG_CHECK_OK, Z        ; jump if OK
                 MOVE    STR_FAILED, R8          ; print FAILED, if not OK...
                 SYSCALL(puts, 1)
                 MOVE    R1, R8
                 SYSCALL(puthex, 1)              ; ...and show the wrong value
-                RBRA    REG_CHECK_CNT, 1
-REG_CHECK_OK    MOVE    STR_OK, R8              ; print OK, if OK
+                RBRA    _REG_CHECK_CNT, 1
+_REG_CHECK_OK   MOVE    STR_OK, R8              ; print OK, if OK
                 SYSCALL(puts, 1)
-REG_CHECK_CNT   SYSCALL(crlf, 1)
+_REG_CHECK_CNT  SYSCALL(crlf, 1)
 
                 DECRB
                 RET
@@ -175,6 +189,10 @@ STR_REGCHK_DP   .ASCII_W "DATA_POS: "
 STR_REGCHK_DTA  .ASCII_W "DATA: "
 STR_REGCHK_ER   .ASCII_W "ERROR: "
 STR_REGCHK_CS   .ASCII_W "CSR: "
+STR_MEN_TITLE   .ASCII_P "\nChoose a test case to proceed:\n"
+                .ASCII_P "    1.   Dump raw data from SD Card\n"
+                .ASCII_P "    2.   Mount partition 1 (assuming valid MBR and a FAT32 file system)\n"
+                .ASCII_W "    3.   Exit\n\n"
 STR_IA_TITLE    .ASCII_W "Read 512 byte block from SD card and output it:\n"
 STR_IA_HIGH     .ASCII_W "    Address HIGH word: "
 STR_IA_LOW      .ASCII_W "    Address LOW word:  "
