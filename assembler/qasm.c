@@ -753,10 +753,6 @@ int assemble()
           */
           if (retval == 1)
             sprintf(entry->error_text, "Line %d: Duplicate equ-entry '%s'.", line_counter, entry->label);
-//         else if (retval == 2)
-//           sprintf(entry->error_text, "Line %d: Equ-entry '%s' is also a label!", line_counter, entry->label);
-//         else
-//           sprintf(entry->error_text, "Line %d: Something went horribly wrong with adding an EQU!", line_counter);
 
           printf("assemble: %s\n", entry->error_text);
           error_counter++;
@@ -1002,7 +998,7 @@ int assemble()
 */
 int write_result(char *output_file_name, char *listing_file_name, char *def_file_name)
 {
-  int line_counter, i, flag, rc = 0;
+  int line_counter, i, flag, rc = 0, scratch;
   char address_string[STRING_LENGTH], data_string[STRING_LENGTH], line[STRING_LENGTH], second_word[STRING_LENGTH];
   FILE *output_handle, /* file handle for binary output data */
     *listing_handle, *def_handle = (FILE *) 0;
@@ -1101,21 +1097,21 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
     if (!*entry->label)
       continue;
 
-    if (!search_equ_list(entry->label, &i))
+    if (!search_equ_list(entry->label, &scratch))
     {
       if (!flag) /* Print header line */
       {
         printf("Warning: Some names appear as labels as well as EQUs!\n");
         fprintf(listing_handle, 
 "\n\nThe following names appear as labels as well as EQUs:\n\
---------------------------------------------------------------------------------------------------------\n");
+--------------------------------------------------------------------------------------------------------");
         flag = rc = 1;
       }
 
-      if (!(i++ % 3))
+      if (!(i++ % 4))
         fprintf(listing_handle, "\n");
 
-      fprintf(listing_handle, "%-24s\n", entry->label);
+      fprintf(listing_handle, "%-24s    ", entry->label);
     }
   }
 
