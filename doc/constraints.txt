@@ -8,6 +8,10 @@ SD Card:
 * FAT32 with a 512 byte blocksize (when using a Mac to format: OSX is
   calling FAT32 sometimes just "FAT" or "MS-DOS file system". Do not use
   ExFAT)
+* maximum address address is 0xFFFFFFFF, which means that a maximum of 4GB
+  can be addressed, e.g. either the size of the SD card is 4GB or smaller
+  - OR - the first partition is *smaller* than 4GB (because the MBR also
+  needs some space)
 
 
 USB Keyboard:
