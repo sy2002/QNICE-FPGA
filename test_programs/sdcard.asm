@@ -549,6 +549,7 @@ _F32_MNT_SOK    MOVE    FAT32$SECTOR_SIZE, R8       ; calculate linear addr
                 ; 5. read root directory first cluster and check if the hi
                 ;    word is zero for the same reason
                 ; 6. read sectors per cluster
+                ; 7. read reserved sectors
                 MOVE    R10, R8                     ; read 512 byte block
                 MOVE    R11, R9
                 MOVE    FAT32$DEV_BLOCK_READ, R10
@@ -595,7 +596,30 @@ _F32_MNT_RVI2   MOVE    FAT32$SECPERCLUS_OFS, R9    ; read sectors per cluster
                 RSUB    FAT32$READ_W, 1
                 MOVE    R10, R4                     ; R4: # reserved sectors
 
-                MOVE    0, R9 ; @TODO GO ON HERE
+                SYSCALL(crlf, 1)
+                MOVE    R1, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+                MOVE    R2, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+                MOVE    R3, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+                MOVE    R4, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; calculate begin of FAT:
+                ; fs start address + number of reserved sectors                
+                MOVE    R4, R8
+                MOVE    FAT32$SECTOR_SIZE, R9
+                SYSCALL(mulu, 1)                    ; R10/R11 = LO/HI resvd s.
+                MOVE    R0, R4
+                ADD     FAT32$DEV_FS_LO, R4
+                MOVE    @R4, R4
+
+                MOVE    0, R9
 
 _F32_MNT_END    MOVE    @SP++, R11                  ; restore registers
                 MOVE    @SP++, R10

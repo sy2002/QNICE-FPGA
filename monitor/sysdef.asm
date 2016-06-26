@@ -92,9 +92,9 @@ FAT32$SECTOR_SIZE_OFS   .EQU    0x000B                  ; offset of sector size 
 FAT32$FATNUM            .EQU    0x0002                  ; number of FATs (needs to be always two) (byte)
 FAT32$FATNUM_OFS        .EQU    0x0010                  ; offset of number of FATs in volume id (byte)
 FAT32$SECPERCLUS_OFS    .EQU    0x000D                  ; should be 1, 2, 4, 8, 16, 32, 64, 128 (byte)
-FAT32$RSSECCNT_OFS      .EQU    0x000E                  ; number of reserved sectors, usually 0x20 (word)
+FAT32$RSSECCNT_OFS      .EQU    0x000E                  ; number of reserved sectors (word)
 FAT32$SECPERFAT_OFS     .EQU    0x0024                  ; sectors per fat, depends on disk size (dword)
-FAT32$ROOTCLUS_OFS      .EQU    0x002C                  ; root directory first cluster, usually 0x00000002 (dword)
+FAT32$ROOTCLUS_OFS      .EQU    0x002C                  ; root directory first cluster (dword)
 
 FAT32$DEV_RESET         .EQU    0x0000                  ; pointer to device reset function
 FAT32$DEV_BLOCK_READ    .EQU    0x0001                  ; pointer to 512-byte block read function
@@ -104,6 +104,12 @@ FAT32$DEV_BYTE_WRITE    .EQU    0x0004                  ; pointer to 1-byte writ
 FAT32$DEV_PARTITION     .EQU    0x0005                  ; number of partition to be mounted
 FAT32$DEV_FS_LO         .EQU    0x0006                  ; file system linear start address: low word
 FAT32$DEV_FS_HI         .EQU    0x0007                  ; file system linear start address: high word
+FAT32$DEV_FAT_LO        .EQU    0x0008                  ; fat begin linear start address: low word
+FAT32$DEV_FAT_HI        .EQU    0x0009                  ; fat begin linear start address: high word
+FAT32$DEV_CLUSTER_LO    .EQU    0x000A                  ; cluster begin linear start address: low word
+FAT32$DEV_CLUSTER_HI    .EQU    0x000B                  ; cluster begin linear start address: high word
+FAT32$DEV_SECT_PER_CLUS .EQU    0x000C                  ; sectors per cluster
+FAT32$DEV_ROOT_1ST_CLUS .EQU    0x000D                  ; root directory first cluster
 
 ; ========== KEYBOARD ==========
 
