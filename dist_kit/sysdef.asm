@@ -70,31 +70,46 @@ SD$ERR_TIMEOUT          .EQU    0xEE01                  ; error: operation timed
 
 ; ========== FAT32 =============
 
+; FAT32 ERROR CODES
+
 FAT32$ERR_MBR           .EQU    0xEE10                  ; no or illegal Master Boot Record (MBR) found
-FAT32$ERR_PARTTBL       .EQU    0xEE11                  ; no or illegal partition table entry found (e.g. no FAT32 partition)
-FAT32$ERR_NOTIMPL       .EQU    0xEE12                  ; functionality is not implemented
-FAT32$ERR_SIZE          .EQU    0xEE13                  ; partition size or volume size too large (see doc/constraints.txt)
-FAT32$ERR_FAT32VOLID    .EQU    0xEE14                  ; illegal volume id (either not 512 bytes per sector, or not 2 FATs or wrong magic)
+FAT32$ERR_PARTITION_NO  .EQU    0xEE11                  ; the partition number needs to be in the range 1 .. 4
+FAT32$ERR_PARTTBL       .EQU    0xEE12                  ; no or illegal partition table entry found (e.g. no FAT32 partition)
+FAT32$ERR_NOTIMPL       .EQU    0xEE13                  ; functionality is not implemented
+FAT32$ERR_SIZE          .EQU    0xEE14                  ; partition size or volume size too large (see doc/constraints.txt)
+FAT32$ERR_NOFAT32       .EQU    0xEE15                  ; illegal volume id (either not 512 bytes per sector, or not 2 FATs or wrong magic)
+
+; CONSTANTS FOR PARSING MBR and FAT32
 
 FAT32$MBR_LO            .EQU    0x0000                  ; low byte of MBRs position (linear addressing)
 FAT32$MBR_HI            .EQU    0x0000                  ; high byte of MBRs position (linear addressing)
 FAT32$MBR_MAGIC         .EQU    0xAA55                  ; magic word at address #510 (decoded to big endian, stored as 0x55AA)
 FAT32$MBR_MAGIC_ADDR    .EQU    0x01FE                  ; absolute address of magic bytes
 FAT32$MBR_PARTTBL_START .EQU    0x01BE                  ; absolute start address of the partition table
+FAT32$MBR_PARTTBL_RSIZE .EQU    0x0010                  ; size of each partition table record in bytes
 FAT32$MBR_PT_TYPE       .EQU    0x0004                  ; partition type address (relative to the partition table)
 FAT32$MBR_PT_TYPE_C1    .EQU    0x000B                  ; type flag (alternative 1) for FAT32
 FAT32$MBR_PT_TYPE_C2    .EQU    0x000C                  ; type flag (alternative 2) for FAT32
 FAT32$MBR_PT_FS_START   .EQU    0x0008                  ; file system start sector (relative to the partition table)
 FAT32$MAGIC             .EQU    0xAA55                  ; volume id magic
 FAT32$MAGIC_OFS         .EQU    0x01FE                  ; offset of volume id magic (word)
+FAT32$JMP1_1            .EQU    0x00EB                  ; Sanity check: Jump instruction to boot code:
+FAT32$JMP2              .EQU    0x00E9                  ; (JMP1_1 AND JMP1_2) OR JMP_2
+FAT32$JMP1_OR_2_OFS     .EQU    0x0000                  
+FAT32$JMP1_2            .EQU    0x0090
+FAT32$JMP1_2_OFS        .EQU    0x0002
+FAT32$SANITY            .EQU    0x0000                  ; (word) must be zero on FAT32
+FAT32$SANITY_OFS        .EQU    0x0016
 FAT32$SECTOR_SIZE       .EQU    0x0200                  ; we assume the ubiquitous 512-byte sectors
 FAT32$SECTOR_SIZE_OFS   .EQU    0x000B                  ; offset of sector size in volume id (word)
 FAT32$FATNUM            .EQU    0x0002                  ; number of FATs (needs to be always two) (byte)
 FAT32$FATNUM_OFS        .EQU    0x0010                  ; offset of number of FATs in volume id (byte)
 FAT32$SECPERCLUS_OFS    .EQU    0x000D                  ; should be 1, 2, 4, 8, 16, 32, 64, 128 (byte)
-FAT32$RSSECCNT_OFS      .EQU    0x000E                  ; number of reserved sectors, usually 0x20 (word)
+FAT32$RSSECCNT_OFS      .EQU    0x000E                  ; number of reserved sectors (word)
 FAT32$SECPERFAT_OFS     .EQU    0x0024                  ; sectors per fat, depends on disk size (dword)
-FAT32$ROOTCLUS_OFS      .EQU    0x002C                  ; root directory first cluster, usually 0x00000002 (dword)
+FAT32$ROOTCLUS_OFS      .EQU    0x002C                  ; root directory first cluster (dword)
+
+; LAYOUT OF THE MOUNT DATA STRUCTURE (DEVICE HANDLE)
 
 FAT32$DEV_RESET         .EQU    0x0000                  ; pointer to device reset function
 FAT32$DEV_BLOCK_READ    .EQU    0x0001                  ; pointer to 512-byte block read function
@@ -102,8 +117,17 @@ FAT32$DEV_BLOCK_WRITE   .EQU    0x0002                  ; pointer to 512-byte bl
 FAT32$DEV_BYTE_READ     .EQU    0x0003                  ; pointer to 1-byte read function (within block buffer)
 FAT32$DEV_BYTE_WRITE    .EQU    0x0004                  ; pointer to 1-byte write function (within block buffer)
 FAT32$DEV_PARTITION     .EQU    0x0005                  ; number of partition to be mounted
-FAT32$DEV_FS_LO         .EQU    0x0006                  ; file system linear start address: low word
-FAT32$DEV_FS_HI         .EQU    0x0007                  ; file system linear start address: high word
+FAT32$DEV_FS_LO         .EQU    0x0006                  ; file system start address (LBA): low word
+FAT32$DEV_FS_HI         .EQU    0x0007                  ; file system start address (LBA): high word
+FAT32$DEV_FAT_LO        .EQU    0x0008                  ; fat start address (LBA): low word
+FAT32$DEV_FAT_HI        .EQU    0x0009                  ; fat start address (LBA): high word
+FAT32$DEV_CLUSTER_LO    .EQU    0x000A                  ; cluster start address (LBA): low word
+FAT32$DEV_CLUSTER_HI    .EQU    0x000B                  ; cluster start address (LBA): high word
+FAT32$DEV_SECT_PER_CLUS .EQU    0x000C                  ; sectors per cluster
+FAT32$DEV_RD_1STCLUS_LO .EQU    0x000D                  ; root directory first cluster: low word
+FAT32$DEV_RD_1STCLUS_HI .EQU    0x000F                  ; root directory first cluster: high word
+FAT32$DEV_AD_1STCLUS_LO .EQU    0x0010                  ; currently active directory first cluster: low word
+FAT32$DEV_AD_1STCLUS_HI .EQU    0x0011                  ; currently active directory first cluster: high word
 
 ; ========== KEYBOARD ==========
 
@@ -126,6 +150,7 @@ KBD$ALT                 .EQU    0x0040                  ; modifier "ALT" pressed
 KBD$CTRL                .EQU    0x0080                  ; modifier "CTRL" pressed
 
 ; READ REGISTER: COMMON ASCII CODES
+
 KBD$SPACE               .EQU    0x0020
 KBD$ENTER               .EQU    0x000D
 KBD$ESC                 .EQU    0x001B

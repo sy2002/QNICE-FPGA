@@ -74,9 +74,11 @@ MAIN_MRR        SYSCALL(getc, 1)
 ; Mount partition 1 as FAT32 and perform various tests
 ;=============================================================================                
 
-MNT_SD          MOVE    STR_MNT_TILE, R8
+MNT_SD          MOVE    STR_MNT_TILE, R8        ; print testcase title
                 SYSCALL(puts, 1)
-                MOVE    MOUNT_STRUCT, R8
+
+                MOVE    DEVICE_HANDLE, R8       ; device handle
+                MOVE    1, R9                   ; partition #1
                 RSUB    FAT32$MOUNT_SD, 1       ; mount device
                 MOVE    R9, R8
                 RSUB    ERR_CHECK, 1
@@ -84,19 +86,37 @@ MNT_SD          MOVE    STR_MNT_TILE, R8
                 SYSCALL(puts, 1)
                 SYSCALL(crlf, 1)
 
-                MOVE    STR_MNT_FSSTART, R8     ; show fs start adddress
-                SYSCALL(puts, 1)
-                MOVE    MOUNT_STRUCT, R8
-                ADD     FAT32$DEV_FS_HI, R8
-                MOVE    @R8, R8
-                SYSCALL(puthex, 1)
-                MOVE    STR_SPACE1, R8
-                SYSCALL(puts, 1)
-                MOVE    MOUNT_STRUCT, R8
-                ADD     FAT32$DEV_FS_LO, R8
-                MOVE    @R8, R8
-                SYSCALL(puthex, 1)
-                SYSCALL(crlf, 1)
+                MOVE    STR_MNT_FSSTART, R8     ; show fs start address
+                MOVE    FAT32$DEV_FS_HI, R9
+                MOVE    FAT32$DEV_FS_LO, R10
+                MOVE    1, R11
+                RSUB    OUTPUT_DW, 1
+
+                MOVE    STR_MNT_FATSTRT, R8     ; show FAT start address
+                MOVE    FAT32$DEV_FAT_HI, R9
+                MOVE    FAT32$DEV_FAT_LO, R10
+                RSUB    OUTPUT_DW, 1
+
+                MOVE    STR_MNT_CLSSTRT, R8     ; show clusters start address
+                MOVE    FAT32$DEV_CLUSTER_HI, R9
+                MOVE    FAT32$DEV_CLUSTER_LO, R10
+                RSUB    OUTPUT_DW, 1
+
+                MOVE    STR_MNT_SPC, R8         ; show sectors per cluster
+                MOVE    FAT32$DEV_SECT_PER_CLUS, R9
+                MOVE    0, R11
+                RSUB    OUTPUT_DW, 1
+
+                MOVE    STR_MNT_ROOT, R8        ; show 1st cluster of root dir
+                MOVE    FAT32$DEV_RD_1STCLUS_HI, R9
+                MOVE    FAT32$DEV_RD_1STCLUS_LO, R10
+                MOVE    1, R11
+                RSUB    OUTPUT_DW, 1
+
+                MOVE    STR_MNT_ACTIVE, R8      ; show 1st cluster active dir
+                MOVE    FAT32$DEV_AD_1STCLUS_HI, R9
+                MOVE    FAT32$DEV_AD_1STCLUS_LO, R10
+                RSUB    OUTPUT_DW, 1
 
                 RBRA    END_PROGRAM, 1
 
@@ -215,11 +235,41 @@ ERR_CHECK       INCRB
 _ERR_CHECK_END  DECRB
                 RET
 
+; Output a title and a DWORD value from the device handle
+; R8 = Title
+; R9 = offset lo
+; R10 = offset hi
+; R11: output DWORD, when R11 = 1, else output WORD
+OUTPUT_DW       INCRB
+
+                MOVE    R8, R0
+
+                SYSCALL(puts, 1)
+
+                MOVE    DEVICE_HANDLE, R8
+                ADD     R9, R8
+                MOVE    @R8, R8
+                SYSCALL(puthex, 1)
+
+                CMP     1, R11
+                RBRA    _OUTPUT_DW_END, !Z
+
+                MOVE    DEVICE_HANDLE, R8
+                ADD     R10, R8
+                MOVE    @R8, R8
+                SYSCALL(puthex, 1)
+
+_OUTPUT_DW_END  SYSCALL(crlf, 1)                
+                MOVE    R0, R8
+
+                DECRB
+                RET
+
 ;=============================================================================
 ; Mount structure (variable) and string constants
 ;=============================================================================
 
-MOUNT_STRUCT    .BLOCK 16                       ; mount struct / device handle
+DEVICE_HANDLE   .BLOCK 17                       ; mount struct / device handle
 
 STR_TITLE       .ASCII_W "SD Card development testbed\n===========================\n\n"
 STR_OK          .ASCII_W "OK"
@@ -245,7 +295,12 @@ STR_IA_LOW      .ASCII_W "    Address LOW word:  "
 STR_IA_AGAIN    .ASCII_W "Enter 'y' for reading another block: "
 STR_ERR_END     .ASCII_W "\nTERMINATED DUE TO FATAL ERROR: "
 STR_MNT_TILE    .ASCII_W "Mounting partition #1 of SD Card as FAT32: "
-STR_MNT_FSSTART .ASCII_W "    linear start address of file system: "
+STR_MNT_FSSTART .ASCII_W "    file system start address (LBA): "
+STR_MNT_FATSTRT .ASCII_W "    FAT start address (LBA): "
+STR_MNT_CLSSTRT .ASCII_W "    clusters start address (LBA): "
+STR_MNT_SPC     .ASCII_W "    sectors per cluster: "
+STR_MNT_ROOT    .ASCII_W "    root directory first cluster (LBA): "
+STR_MNT_ACTIVE  .ASCII_W "    active directory first cluster (LBA): "
 
 ;=============================================================================
 ;=============================================================================
@@ -379,14 +434,16 @@ _SD$WAIT_END    DECRB
                 RET  
 ;
 ;*****************************************************************************
-;* FAT32$MOUNT_SD mounts the SD card partition 1 as a FAT32 file system
+;* FAT32$MOUNT_SD mounts a SD card partition as a FAT32 file system
 ;*
 ;* Wrapper to simplify the use of the generic FAT32$MOUNT function. Read the
 ;* documentation of FAT32$MOUNT to learn more.
 ;* 
-;* INPUT:  R8 points to a XX word large empty structure.
-;* OUTPUT: R8 points to a handle of the mounted device that is used in
-;*         subsequent function calls.
+;* INPUT:  R8 points to a XX word large empty structure. This structure will
+;*         be filled by the mount function and it therefore becomes the device
+;*         handle that you need for subsequent FAT32 function calls.
+;*         R9 partition number to mount (1 .. 4)
+;* OUTPUT: R8 points to the handle (identical to the input value of R8)
 ;*         R9 contains 0 if OK, otherwise the error code
 ;*****************************************************************************
 ;
@@ -412,7 +469,7 @@ FAT32$MOUNT_SD  INCRB
                 MOVE    SD$WRITE_BYTE, @R0
                 MOVE    R8, R0
                 ADD     FAT32$DEV_PARTITION, R0
-                MOVE    1, @R0
+                MOVE    R9, @R0
 
                 ; call master mount function
                 RSUB    FAT32$MOUNT, 1
@@ -445,7 +502,7 @@ FAT32$MOUNT_SD  INCRB
 ;*  word #3: pointer to a byte read function, similar to SD$READ_BYTE
 ;*  word #4: pointer to a byte write function, similar to SD$WRITE_BYTE
 ;*  word #5: number of the partition to be mounted (0x0001 .. 0x0004)
-;*  word #6 .. word # : will be filled by by FAT32$MOUNT, their layout is
+;*  word #6 .. word #XX : will be filled by by FAT32$MOUNT, their layout is
 ;*                      as follows:
 ;*  word #6: start address of file system (low word of linear address)
 ;*  word #7: start address of file system (high word of linear address)
@@ -455,27 +512,15 @@ FAT32$MOUNT_SD  INCRB
 ;* R9 contains 0, if everything went OK, otherwise it contains the error code
 ;*****************************************************************************
 ;
-FAT32$MOUNT     INCRB
+FAT32$MOUNT     INCRB                           ; sometimes more registers ..
+                INCRB                           ; .. are needed, so 2x INCRB
 
                 MOVE    R8, R0                  ; save pointer to structure
 
                 MOVE    R8, @--SP
                 MOVE    R10, @--SP
                 MOVE    R11, @--SP
-
-                ; Exit with an error code, if a partition other than 1 is
-                ; requested to be read. The reason for this behaviour is,
-                ; that at the time of the writing of this code, we are not
-                ; having a multiplication function, yet, that allows to
-                ; multiply a 32bit value by 512. But this would be necessary
-                ; to calculate the start address (LBA) of partition #2 in case
-                ; that partition #1 is larger than $FFFF x 512 = ~31MB.
-                MOVE    R0, R1
-                ADD     FAT32$DEV_PARTITION, R1
-                CMP     1, @R1
-                RBRA    _F32_MNT_RESET, Z
-                MOVE    FAT32$ERR_NOTIMPL, R9 
-                RBRA    _F32_MNT_END, 1
+                MOVE    R12, @--SP
 
                 ; reset the device and exit on error
 _F32_MNT_RESET  MOVE    FAT32$DEV_RESET, R10
@@ -489,21 +534,42 @@ _F32_MNT_RESET  MOVE    FAT32$DEV_RESET, R10
                 MOVE    FAT32$MBR_LO, R8            ; address (LBA) of MBR
                 MOVE    FAT32$MBR_HI, R9
                 MOVE    FAT32$DEV_BLOCK_READ, R10   ; read 512 byte sector
+                MOVE    R0, R11
+                RSUB    FAT32$CALL_DEV, 1
                 CMP     0, R8
                 RBRA    _F32_MNT_MBR, Z
                 MOVE    R8, R9
                 RBRA    _F32_MNT_END, 1
-_F32_MNT_MBR    MOVE    R0, R11
-                RSUB    FAT32$CALL_DEV, 1
-                MOVE    R0, R8
+_F32_MNT_MBR    MOVE    R0, R8
                 MOVE    FAT32$MBR_MAGIC_ADDR, R9    ; read magic word
                 RSUB    FAT32$READ_W, 1
                 CMP     FAT32$MBR_MAGIC, R10        ; compare magic word
-                RBRA    _F32_MNT_RPAR, Z            ; magic correct: go on
+                RBRA    _F32_MNT_PNCHK, Z           ; magic correct: go on
                 MOVE    FAT32$ERR_MBR, R9           ; magic wrong: error code
                 RBRA    _F32_MNT_END, 1
 
-                ; read and decode first partition table entry:
+                ; calculate partition table start offset: this is defined as:
+                ;     FAT32$MBR_PARTTBL_START +
+                ;     ((#partition - 1) x FAT32$MBR_PARTTBL_RSIZE)
+                ; we need to subtract 1 from #partition, because the number
+                ; of partitions are defined to be between 1 and 4
+_F32_MNT_PNCHK  MOVE    R0, R8                      ; get device handle
+                ADD     FAT32$DEV_PARTITION, R8     ; retrieve the partition..
+                MOVE    @R8, R8                     ; ..that shall be mounted
+                CMP     R8, 0                       ; partition must be 1 .. 4
+                RBRA    _F32_MNT_PNGOK, N           ; partition is > 0: OK
+_F32_MNT_PNERR  MOVE    FAT32$ERR_PARTITION_NO, R9  ; exit with an error
+                RBRA    _F32_MNT_END, 1
+_F32_MNT_PNGOK  CMP     R8, 4
+                RBRA    _F32_MNT_POFFS, !N          ; partition is <= 4: OK 
+                RBRA    _F32_MNT_PNERR, 1           ; else exit with an error
+_F32_MNT_POFFS  SUB     1, R8                       ; #partition - 1
+                MOVE    FAT32$MBR_PARTTBL_RSIZE, R9 ; mult. with record size
+                SYSCALL(mulu, 1)                    ; result is in R10
+                ADD     FAT32$MBR_PARTTBL_START, R10
+                MOVE    R10, R12                    ; offset is now in R12
+
+                ; read and decode the selected partition table entry:
                 ; 1. check for the FAT32 type description
                 ; 2. check, if the linear start address of the file system
                 ;    of the first partition is less than ~31MB, because
@@ -511,9 +577,10 @@ _F32_MNT_MBR    MOVE    R0, R11
                 ;    (see explanation about hardcoded partition 1 above)
                 ; 3. calculate the linar start address by multiplying the
                 ;    sector number with 512
-_F32_MNT_RPAR   MOVE    FAT32$MBR_PARTTBL_START, R8 ; hardcoded partition 1
+_F32_MNT_RPAR   MOVE    R12, R8                     ; partition table offset
                 ADD     FAT32$MBR_PT_TYPE, R8       ; type flag: FAT32 ?
                 MOVE    FAT32$DEV_BYTE_READ, R10
+                MOVE    R0, R11
                 RSUB    FAT32$CALL_DEV, 1
                 CMP     FAT32$MBR_PT_TYPE_C1, R8    ; check for alternative 1
                 RBRA    _F32_MNT_TCOK, Z            ; OK: continue
@@ -521,38 +588,52 @@ _F32_MNT_RPAR   MOVE    FAT32$MBR_PARTTBL_START, R8 ; hardcoded partition 1
                 RBRA    _F32_MNT_TCOK, Z            ; OK: continue
                 MOVE    FAT32$ERR_PARTTBL, R9       ; not OK: error code
                 RBRA    _F32_MNT_END, 1  
-_F32_MNT_TCOK   MOVE    R0, R8
-                MOVE    FAT32$MBR_PARTTBL_START, R9 ; find FS start sector
-                ADD     FAT32$MBR_PT_FS_START, R9
+_F32_MNT_TCOK   MOVE    R0, R8                      ; device handle
+                MOVE    R12, R9                     ; partition table offset
+                ADD     FAT32$MBR_PT_FS_START, R9   ; find FS start sector
                 RSUB    FAT32$READ_DW, 1
-                CMP     R11, 0                      ; the first partition..
-                RBRA    _F32_MNT_SOK, Z             ; ..needs to start within
-                MOVE    FAT32$ERR_SIZE, R9          ; ..the first ~31 MB
-                RBRA    _F32_MNT_END, 1
-_F32_MNT_SOK    MOVE    FAT32$SECTOR_SIZE, R8       ; calculate linear addr
-                MOVE    R10, R9
-                SYSCALL(mulu, 1)
+                MOVE    R0, R1                      ; device handle
+                ADD     FAT32$DEV_FS_LO, R1         ; FS start LBA low word
+                MOVE    R10, @R1                    ; store it in device hndl
                 MOVE    R0, R1
-                ADD     FAT32$DEV_FS_LO, R1         ; store linear addr
-                MOVE    R10, @R1
-                MOVE    R0, R1
-                ADD     FAT32$DEV_FS_HI, R1
-                MOVE    R11, @R1
+                ADD     FAT32$DEV_FS_HI, R1         ; FS start LBA low word
+                MOVE    R11, @R1                    ; store it in device hndl
 
-                ; read and decode "Volume ID" (first sector of the FS)
-                ; 1. check for magic
-                ; 2. check for 512-byte sector size
-                ; 3. check for two FATs
-                ; 4. read sectors per fat and check if the hi word of sectors
+                ; Go to the first 512 byte sector of the file system (FS)
+                ; and read it. For doing so, a 2 x 32bit multiplication
+                ; needs to be utilized, because the FS start LBA
+                ; FAT32$DEV_FS_LO / FAT32$DEV_FS_HI is 32bit and this needs
+                ; to be multiplied by FAT32$SECTOR_SIZE (512) to obtain
+                ; the linar address. But the upper two words of the 64bit
+                ; result value need to be zero, otherwise the medium is too
+                ; large to be handled by this FAT32 implementation
+                MOVE    R10, R8
+                MOVE    R11, R9
+                MOVE    FAT32$SECTOR_SIZE, R10
+                MOVE    0, R11
+                RSUB    FAT32$MULU32, 1
+                CMP     0, R11
+                RBRA    _F32_MNT_SERR, !Z
+                CMP     0, R10
+                RBRA    _F32_MNT_SERR, !Z
+                RBRA    _F32_MNT_DVID, 1
+_F32_MNT_SERR   MOVE    FAT32$ERR_SIZE, R9
+                RBRA    _F32_MNT_END, 1
+               
+                ; decode the FAT32 Volume ID (1st 512 byte sector)
+                ; 1. sanity check: jump instruction to boot code
+                ; 2. sanity check: word offs 22 must be zero on FAT32
+                ; 3. check for magic
+                ; 4. check for 512-byte sector size
+                ; 5. check for two FATs
+                ; 6. read sectors per fat and check if the hi word of sectors
                 ;    per fat is zero, as we otherwise would again run into
                 ;    multiplication problems (see above)
-                ; 5. read root directory first cluster and check if the hi
+                ; 7. read root directory first cluster and check if the hi
                 ;    word is zero for the same reason
-                ; 6. read sectors per cluster
-                ; 7. read reserved sectors
-                MOVE    R10, R8                     ; read 512 byte block
-                MOVE    R11, R9
-                MOVE    FAT32$DEV_BLOCK_READ, R10
+                ; 8. read sectors per cluster
+                ; 9. read reserved sectors
+_F32_MNT_DVID   MOVE    FAT32$DEV_BLOCK_READ, R10
                 MOVE    R0, R11
                 RSUB    FAT32$CALL_DEV, 1
                 CMP     0, R8
@@ -560,7 +641,22 @@ _F32_MNT_SOK    MOVE    FAT32$SECTOR_SIZE, R8       ; calculate linear addr
                 MOVE    R8, R9
                 RBRA    _F32_MNT_END, 1
 _F32_MNT_VID    MOVE    R0, R8
-                MOVE    FAT32$MAGIC_OFS, R9         ; check magic
+                MOVE    FAT32$JMP1_OR_2_OFS, R9     ; sanity check: jump inst.
+                RSUB    FAT32$READ_B, 1
+                CMP     FAT32$JMP2, R10
+                RBRA    _F32_MNT_SAN, Z
+                CMP     FAT32$JMP1_1, R10
+                RBRA    _F32_MNT_VERR, !Z
+                MOVE    FAT32$JMP1_2_OFS, R9
+                RSUB    FAT32$READ_B, 1
+                CMP     FAT32$JMP1_2, R10
+                RBRA    _F32_MNT_VERR, !Z
+_F32_MNT_SAN    MOVE    FAT32$SANITY_OFS, R9
+                RSUB    FAT32$READ_W, 1
+                CMP     FAT32$SANITY, R10
+                RBRA    _F32_MNT_MGC, Z
+                RBRA    _F32_MNT_VERR, 1                
+_F32_MNT_MGC    MOVE    FAT32$MAGIC_OFS, R9         ; check magic
                 RSUB    FAT32$READ_W, 1
                 CMP     FAT32$MAGIC, R10
                 RBRA    _F32_MNT_VERR, !Z
@@ -573,58 +669,95 @@ _F32_MNT_VID    MOVE    R0, R8
                 CMP     FAT32$FATNUM, R10
                 RBRA    _F32_MNT_VERR, !Z
                 RBRA    _F32_MNT_RVID, 1
-_F32_MNT_VERR   MOVE    FAT32$ERR_FAT32VOLID, R9
+_F32_MNT_VERR   MOVE    FAT32$ERR_NOFAT32, R9
                 RBRA    _F32_MNT_END, 1
 _F32_MNT_RVID   MOVE    R0, R8
                 MOVE    FAT32$SECPERFAT_OFS, R9     ; read sectors per FAT
                 RSUB    FAT32$READ_DW, 1
-                CMP     0, R11
-                RBRA    _F32_MNT_SERR, !Z
-                MOVE    R10, R1                     ; R1: sectors per FAT
+                MOVE    R10, R1                     ; R1: sectors per FAT LO
+                MOVE    R11, R2                     ; R2: sectors per FAT HI
                 MOVE    FAT32$ROOTCLUS_OFS, R9      ; read root dir 1st clus.
                 RSUB    FAT32$READ_DW, 1
-                CMP     0, R11
-                RBRA    _F32_MNT_SERR, !Z
-                MOVE    R10, R2                     ; R2: root dir 1st clus.
-                RBRA    _F32_MNT_RVI2, 1
-_F32_MNT_SERR   MOVE    FAT32$ERR_SIZE, R9
-                RBRA    _F32_MNT_END, 1
-_F32_MNT_RVI2   MOVE    FAT32$SECPERCLUS_OFS, R9    ; read sectors per cluster
+                MOVE    R10, R3                     ; R3: rootdir 1st clus. LO
+                MOVE    R11, R4                     ; R4: rootdir 1st clus. HI
+                MOVE    FAT32$SECPERCLUS_OFS, R9    ; read sectors per cluster
                 RSUB    FAT32$READ_B, 1
-                MOVE    R10, R3                     ; R3: sectors per cluster
+                MOVE    R10, R5                     ; R5: sectors per cluster
                 MOVE    FAT32$RSSECCNT_OFS, R9      ; read number resvd. sec.
                 RSUB    FAT32$READ_W, 1
-                MOVE    R10, R4                     ; R4: # reserved sectors
+                MOVE    R10, R6                     ; R6: # reserved sectors
 
-                SYSCALL(crlf, 1)
-                MOVE    R1, R8
-                SYSCALL(puthex, 1)
-                SYSCALL(crlf, 1)
-                MOVE    R2, R8
-                SYSCALL(puthex, 1)
-                SYSCALL(crlf, 1)
-                MOVE    R3, R8
-                SYSCALL(puthex, 1)
-                SYSCALL(crlf, 1)
-                MOVE    R4, R8
-                SYSCALL(puthex, 1)
-                SYSCALL(crlf, 1)
+                ; calculate begin of FAT (LBA)
+                ; fat_begin_lba = Partition_LBA_Begin + Num_of_Rsvd_Sectors
+                MOVE    R0, R8
+                ADD     FAT32$DEV_FS_LO, R8
+                MOVE    @R8, R8                     ; FS start: LO
+                MOVE    R0, R9
+                ADD     FAT32$DEV_FS_HI, R9
+                MOVE    @R9, R9                     ; FS start: HI
+                ADD     R6, R8                      ; 32bit add resvd. sect.
+                ADDC    0, R9
+                MOVE    R0, R7
+                ADD     FAT32$DEV_FAT_LO, R7        ; store it in device hndl
+                MOVE    R8, @R7
+                MOVE    R0, R7
+                ADD     FAT32$DEV_FAT_HI, R7
+                MOVE    R9, @R7
 
-                ; calculate begin of FAT:
-                ; fs start address + number of reserved sectors                
-                MOVE    R4, R8
-                MOVE    FAT32$SECTOR_SIZE, R9
-                SYSCALL(mulu, 1)                    ; R10/R11 = LO/HI resvd s.
-                MOVE    R0, R4
-                ADD     FAT32$DEV_FS_LO, R4
-                MOVE    @R4, R4
-
+                ; calculate begin of clusters (LBA)
+                ; clust_begin_lba = fat_begin_lba + (Num_FATs * Sect_per_FAT)
+                DECRB
+                MOVE    R8, R0                      ; save FAT start LO
+                MOVE    R9, R1                      ; save FAT start HI
+                INCRB
+                MOVE    2, R8                       ; Num_FATs is hardcoded 2
                 MOVE    0, R9
+                MOVE    R1, R10                     ; sectors per fat LO
+                MOVE    R2, R11                     ; sectors per fat HI
+                RSUB    FAT32$MULU32, 1
+                CMP     0, R10
+                RBRA    _F32_MNT_SERR, !Z
+                CMP     0, R11
+                RBRA    _F32_MNT_SERR, !Z
+                DECRB
+                MOVE    R0, R10                     ; restore FAT start LO
+                MOVE    R1, R11                     ; restore FAT start HI
+                INCRB
+                ADD     R10, R8                     ; 32bit addition ..
+                ADDC    R11, R9                     ; .. result is in R9|R8
+                MOVE    R0, R10
+                ADD     FAT32$DEV_CLUSTER_LO, R10
+                MOVE    R8, @R10                    ; store result LO
+                MOVE    R0, R10
+                ADD     FAT32$DEV_CLUSTER_HI, R10
+                MOVE    R9, @R10                    ; store result HI
 
-_F32_MNT_END    MOVE    @SP++, R11                  ; restore registers
+                ; store sectors per cluster and root directory 1st cluster
+                ; and set currently active directory to root directory
+                MOVE    R0, R10
+                ADD     FAT32$DEV_SECT_PER_CLUS, R10
+                MOVE    R5, @R10
+                MOVE    R0, R10
+                ADD     FAT32$DEV_RD_1STCLUS_LO, R10
+                MOVE    R3, @R10
+                MOVE    R0, R10
+                ADD     FAT32$DEV_RD_1STCLUS_HI, R10
+                MOVE    R4, @R10
+                MOVE    R0, R10
+                ADD     FAT32$DEV_AD_1STCLUS_LO, R10
+                MOVE    R3, @R10
+                MOVE    R0, R10
+                ADD     FAT32$DEV_AD_1STCLUS_HI, R10
+                MOVE    R4, @R10
+
+                MOVE    0, R9                       ; no errors occured
+
+_F32_MNT_END    MOVE    @SP++, R12
+                MOVE    @SP++, R11                  ; restore registers
                 MOVE    @SP++, R10
                 MOVE    @SP++, R8
 
+                DECRB
                 DECRB
                 RET
 ;
@@ -633,7 +766,7 @@ _F32_MNT_END    MOVE    @SP++, R11                  ; restore registers
 ;*
 ;* IN:  R8, R9 are the parameters to the function
 ;*      R10 is the function index
-;*      R11 is the mount data structure
+;*      R11 is the mount data structure (device handle)
 ;*
 ;* OUT: R8 is the return value from the function
 ;*****************************************************************************
@@ -652,7 +785,7 @@ _F32$CD_END     DECRB
 ;*****************************************************************************
 ;* FAT32$READ_B reads a byte from the current sector buffer
 ;*
-;* IN:  R8:  pointer to mount data structure
+;* IN:  R8:  pointer to mount data structure (device handle)
 ;*      R9:  address (0 .. 511)
 ;* OUT: R10: the byte that was read
 ;*****************************************************************************
@@ -676,7 +809,7 @@ FAT32$READ_B    INCRB
 ;* Assumes that the buffer is stored in little endian (as this is the case
 ;* for MBR and FAT32 data structures)
 ;* 
-;* IN:  R8:  pointer to mount data structure
+;* IN:  R8:  pointer to mount data structure (device handle)
 ;*      R9:  address (0 .. 511)
 ;* OUT: R10: the word that was read
 ;*****************************************************************************
@@ -707,7 +840,7 @@ FAT32$READ_W    INCRB
 ;* Assumes that the buffer is stored in little endian (as this is the case
 ;* for MBR and FAT32 data structures)
 ;*
-;* IN:  R8:  pointer to mount data structure
+;* IN:  R8:  pointer to mount data structure (device handle)
 ;*      R9:  address (0 .. 511)
 ;* OUT: R10: the low word that was read
 ;*      R11: the high word that was read
@@ -724,5 +857,75 @@ FAT32$READ_DW   INCRB
                 MOVE    R0, R10
 
                 MOVE    @SP++, R9
+                DECRB
+                RET
+;
+;*****************************************************************************
+;* MULU32 multiplies two 32bit unsigned values and returns a 64bit unsigned
+;*
+;* Input:  R8/R9   = LO/HI of unsigned multiplicant 1
+;*         R10/R11 = LO/HI of unsigned multiplicant 2
+;* Output: R11/R10/R9/R8 = HI .. LO of 64bit result
+;*****************************************************************************
+;
+FAT32$MULU32    INCRB                           ; registers R3..R0 = result ..
+                INCRB                           ; .. therefore two INCRBs
+
+                ; save arguments as in R1|R0 * R3|R2
+                MOVE    R8, R0
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+
+                ; algorithm:
+                ;       R1R0
+                ; x     R3R2
+                ; ----------
+                ;       R2R0
+                ; +   R2R1
+                ; +   R3R0
+                ; + R3R1
+                ; ----------
+
+                MOVE    R0, R8                  ; R2 * R0
+                MOVE    R2, R9
+                SYSCALL(mulu, 1)                ; result in R11|R10
+                DECRB
+                MOVE    R10, R0
+                MOVE    R11, R1
+                XOR     R2, R2
+                XOR     R3, R3
+                INCRB
+
+                MOVE    R1, R8                  ; R2 * R1
+                MOVE    R2, R9
+                SYSCALL(mulu, 1)
+                DECRB
+                ADD     R10, R1
+                ADDC    R11, R2
+                ADDC    0, R3
+                INCRB
+
+                MOVE    R0, R8                  ; R3 * R0
+                MOVE    R3, R9
+                SYSCALL(mulu, 1)
+                DECRB
+                ADD     R10, R1
+                ADDC    R11, R2
+                ADDC    0, R3
+                INCRB
+
+                MOVE    R1, R8                  ; R3 * R1
+                MOVE    R3, R9
+                SYSCALL(mulu, 1)
+                DECRB
+                ADD     R10, R2
+                ADDC    R11, R3
+
+                MOVE    R3, R11                 ; store result (return values)
+                MOVE    R2, R10
+                MOVE    R1, R9
+                MOVE    R0, R8
+
                 DECRB
                 RET
