@@ -635,6 +635,12 @@ int assemble()
         while ((token = tokenize((char *) 0, delimiters))) /* How many words do we have to reserve? */
           i++;
 
+        if (!i)
+        {
+          sprintf(entry->error_text, "Line %d: WARNING - .DW without arguments!", line_counter);
+          printf("assembler: %s\n", entry->error_text);
+        }
+
         if (!(entry->data = (int *) malloc(i * sizeof(int))))
         {
           printf("assemble (.DW): Out of memory, could not allocate %d words of memory!", (int) strlen(p));
@@ -730,6 +736,12 @@ int assemble()
         if (search_equ_list(token, &size)) /* Returns -1 if nothing is found */
           size = str2int(token); 
 
+        if (!size)
+        {
+          sprintf(entry->error_text, "Line %d: WARNING - .BLOCK of size 0.", line_counter);
+          printf("assembler: %s\n", entry->error_text);
+        }
+            
         if (!(entry->data = (int *) malloc(size * sizeof(int))))
         {
           printf("assemble (.BLOCK): Out of memory, could not allocate %d words of memory!", (int) strlen(p));
@@ -1036,7 +1048,7 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
 
     expand_tabs(line, entry->source);
     fprintf(listing_handle, "%06d  %4s  %4s  %4s  %s\n", ++line_counter, address_string, data_string, second_word, line);
-    if (entry->address != -1 && entry->opcode != NO_OPCODE) /* Write binary data */
+    if (entry->address != -1 && entry->opcode != NO_OPCODE && *data_string) /* Write binary data */
       fprintf(output_handle, "0x%4s 0x%4s\n", address_string, data_string);
 
     for (i = 1; i < entry->number_of_words; i++) /* If there is additional data as in .ASCII_W, write it */
