@@ -214,7 +214,7 @@ begin
       
    fsm_advance_state : process(clk, reset)
    begin
-      if reset = '1' then
+      if reset = '1' or cmd_reset = '1' then
          sd_state <= sds_reset1;
          
          sd_sync_reset <= '0';
@@ -269,17 +269,10 @@ begin
       case sd_state is
       
          when sds_idle =>
-            if cmd_reset = '1' then
-               fsm_state_next <= sds_reset1;
-            elsif cmd_read = '1' then
+            if cmd_read = '1' then
                fsm_state_next <= sds_read_start;
             end if;
-            
-         when sds_error =>
-            if cmd_reset = '1' then
-               fsm_state_next <= sds_reset1;
-            end if;
-            
+                        
          when sds_read_start =>
             reset_cmd_read <= '1';
             
@@ -339,9 +332,7 @@ begin
             end if;
                   
          when sds_busy =>
-            if cmd_reset = '1' then
-               fsm_state_next <= sds_reset1;
-            elsif sd_busy = '0' then
+            if sd_busy = '0' then
                if sd_error = x"0000" then
                   fsm_state_next <= sds_idle;
                else

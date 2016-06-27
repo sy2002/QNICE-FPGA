@@ -5,9 +5,20 @@ SD Card:
 
 * MBR partition table
 * only the first partition is recognized
-* FAT32 with a 512 byte blocksize (when using a Mac to format: OSX is
-  calling FAT32 sometimes just "FAT" or "MS-DOS file system". Do not use
-  ExFAT)
+* FAT32 with a 512 byte sector size (FAT16 and others are not supported)
+  MAC USERS: Do not use the GUI version of the disk utility, as you cannot
+  control, if the tool creates FAT16 or FAT32. Use the command line
+  version of diskutil instead:
+
+  sudo diskutil eraseDisk FAT32 <name> MBRFormat /dev/<devicename>
+
+  Find out <devicename> using "diskutil list". <name> can be chosen
+  arbitrarily.
+
+* maximum address address is 0xFFFFFFFF, which means that a maximum of 4GB
+  can be addressed, e.g. either the size of the SD card is 4GB or smaller
+  - OR - the first partition is *smaller* than 4GB (because the MBR also
+  needs some space)
 
 
 USB Keyboard:
