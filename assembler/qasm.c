@@ -757,6 +757,13 @@ int assemble()
       else if (!strcmp(entry->mnemonic, ".EQU")) /* Introduce a string which will equal some value */
       {
         token = tokenize((char *) 0, delimiters);
+
+        if (!token)
+        {
+          sprintf(entry->error_text, "Line %d: WARNING - .EQU without arguments!", line_counter);
+          printf("assembler: %s\n", entry->error_text);
+        }
+
         if ((retval = insert_into_equ_list(entry->label, str2int(token))))
         {
           /*
