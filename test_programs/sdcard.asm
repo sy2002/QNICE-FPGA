@@ -381,6 +381,12 @@ FAT32$FE_DC_NAME_MASK   .EQU    0x0008                  ; FAT32$FE_DISPLAYCASE: 
 FAT32$FE_DC_EXT_MASK    .EQU    0x0010                  ; FAT32$FE_DISPLAYCASE: filter for bit 4
 FAT32$FE_SPECIAL_CHAR   .EQU    0x0005                  ; if the first char is this, then replace by E5
 FAT32$FE_PADDING        .EQU    0x0020                  ; padding used in short file names
+FAT32$FE_LE_FINAL       .EQU    0x0040                  ; flag signalling last entry of a long filename table
+FAT32$FE_LE_CHKSUM      .EQU    0x000D                  ; long filename checksum
+FAT32$FE_LE_C1_5        .EQU    0x0001                  ; long filename: characters 1 .. 5
+FAT32$FE_LE_C6_11       .EQU    0x000E                  ; long filename: characters 6 .. 11
+FAT32$FE_LE_C12_13      .EQU    0x001C                  ; long filename: characters 12 .. 13
+
 
 FAT32$INT_LONG_NAME     .EQU    0x000F                  ; internal flag used to filter for long file names
 FAT32$INT_LONG_MASK     .EQU    0x003F                  ; internal mask for filtering long file file and directory names
@@ -999,7 +1005,163 @@ _F32_DLST_C4    MOVE    R2, R5                      ; dir. entry struct.
                 AND     FAT32$INT_LONG_MASK, R7
                 CMP     R7, FAT32$INT_LONG_NAME
                 RBRA    _F32_DLST_SN1, !Z           ; no: short name
-                RBRA    _F32_DLST_DS, 1             ; yes: skip entry
+
+                ; long name: last entry starts with bit 6 set, if not
+                ; then skip all long name entries until the next short
+                ; name entry is there, or EOD
+                MOVE    @R5, R7
+                MOVE    FAT32$FE_LE_FINAL, R12
+                AND     R12, R7
+                RBRA    _F32_DLST_DS, Z             ; no flag: skip entry
+                MOVE    @R5, R7
+                NOT     R12, R12                    ; remove flag
+                AND     R12, R7                     ; R7 = # long name records
+                MOVE    R7, R6                      ; R6 = current record
+
+                ; long name: check, if the record counter (byte #0) equals the
+                ; current record, then retrieve the first checksum and
+                ; store it in R11, all subsequent checksums need to be equal
+                ; to R11, otherwise we skip the record until the
+                ; next short name arrives
+_F32_DLST_LN1   MOVE    R0, R8
+                MOVE    R4, R9
+                RSUB    FAT32$READ_B, 1
+                AND     R12, R10                    ; remove start flag
+                CMP     R10, R6                     ; record cntr = cur. rec.?
+                RBRA    _F32_DLST_LN1B, Z           ; yes: go on
+                RBRA    _F32_DLST_DS, !Z            ; no: skip until short nm.
+_F32_DLST_LN1B  ADD     FAT32$FE_LE_CHKSUM, R9      ; read checksum
+                RSUB    FAT32$READ_B, 1
+                CMP     R6, R7                      ; first checksum?
+                RBRA    _F32_DLST_LN2, !Z           ; no
+                MOVE    R10, R11                    ; R11: checksum
+_F32_DLST_LN2   CMP     R10, R11                    ; checksum OK?
+                RBRA    _F32_DLST_DS, !Z            ; no: skip until short nm.
+
+                ; long name: retrieve the long file name that is stored at
+                ; various offsets within the 32byte record and store it on the
+                ; stack as this is a good mechanism of putting it together in
+                ; the right order (it is stored the kind of backwards)
+                MOVE    R5, R9
+                DECRB
+                MOVE    R9, R5                      ; §R5 = temp. stor. R5
+                SUB     13, SP                      ; max. 13 chars per record
+                MOVE    SP, R6                      ; §R6 = string buffer
+                INCRB
+
+                MOVE    5, R5                       ; first 5 characters
+                MOVE    R4, R9
+                ADD     FAT32$FE_LE_C1_5, R9        ; first character
+_F32_DLST_LN3   RSUB    FAT32$READ_B, 1             ; read character
+                ADD     2, R9                       ; ign. Unicode; ASCII only
+                DECRB
+                MOVE    R10, @R6++                  ; store character
+                INCRB
+                SUB     1, R5
+                RBRA    _F32_DLST_LN3, !Z
+
+                MOVE    6, R5                       ; another 6 characters
+                MOVE    R4, R9
+                ADD     FAT32$FE_LE_C6_11, R9       ; chars 6 .. 11
+_F32_DLST_LN4   RSUB    FAT32$READ_B, 1
+                ADD     2, R9
+                DECRB
+                MOVE    R10, @R6++
+                INCRB
+                SUB     1, R5
+                RBRA    _F32_DLST_LN4, !Z
+
+                MOVE    2, R5                       ; another 2 characters
+                MOVE    R4, R9
+                ADD     FAT32$FE_LE_C12_13, R9      ; chars 12 .. 13
+_F32_DLST_LN5   RSUB    FAT32$READ_B, 1
+                ADD     2, R9
+                DECRB
+                MOVE    R10, @R6++
+                INCRB
+                SUB     1, R5
+                RBRA    _F32_DLST_LN5, !Z
+
+                DECRB                               ; restore original R5
+                MOVE    R5, R9
+                INCRB
+                MOVE    R9, R5
+
+                ADD     FAT32$FE_SIZE, R4           ; update idx: next record
+                MOVE    R4, @R3                     ; store it to FDH
+                MOVE    R1, R8                      ; R8 = FDH
+                RSUB    FAT32$READ_FDH, 1
+                MOVE    @R3, R4                     ; re-read due to READ_FDH
+                CMP     0, R9                       ; check for error
+                RBRA    _F32_DLST_LN6, Z            ; no error: go on
+                MOVE    R9, R12                     ; error: restore stack
+                MOVE    R7, R8                      ; ((R7-R6)+1)*13 is the
+                SUB     R6, R8                      ; amount of memory to
+                ADD     1, R8                       ; be reclaimed (max. 256)
+                MOVE    13, R9                      
+                SYSCALL(mulu, 1)
+                ADD     R10, SP                     ; restore stack pointer
+                MOVE    0, R10                      ; return invalid entry
+                MOVE    R12, R11                    ; return error code
+                RBRA    _F32_DLST_END, 1
+
+_F32_DLST_LN6   SUB     1, R6                       ; next record
+                RBRA    _F32_DLST_LN1, !Z
+
+                ; copy long name from stack to directory entry structure
+                ; this also restores the stack pointer
+                MOVE    R11, R12
+                MOVE    R7, R8                      ; R7 = # long name records
+                MOVE    13, R9                      ; 13 bytes per record
+                SYSCALL(mulu, 1)                    ; R10 = amount of bytes
+_F32_DLST_LN7   MOVE    @SP++, @R5++
+                SUB     1, R10
+                RBRA    _F32_DLST_LN7, !Z
+                MOVE    0, @R5                      ; add zero terminator
+                MOVE    R12, R11
+
+                ; read short name and calculate checksum
+                ; this is a sanity check to find out, if the long filename
+                ; really belongs to the short one, or if the long filename
+                ; is an orphan; in the latter case: set the short filename
+                ; as the definitive filename and discard the long filename
+                SUB     11, SP                      ; res. 11 byets on stack
+                MOVE    SP, R6                      ; R6: storate pointer
+                MOVE    11, R7                      ; 8.3 filename = 11 chars
+                MOVE    R0, R8                      ; R8: device handle
+                MOVE    R4, R9                      ; R9: index
+_F32_DLST_LN8   RSUB    FAT32$READ_B, 1             ; read char to R10
+                MOVE    R10, @R6++                  ; store char on stack
+                ADD     1, R9                       ; next index
+                SUB     1, R7                       ; next char
+                RBRA    _F32_DLST_LN8, !Z           ; loop
+                MOVE    SP, R8
+                RSUB    FAT32$CHECKSUM, 1
+                ADD     11, SP                      ; restore stack pointer
+                CMP     R8, R11                     ; checksum OK?
+                RBRA    _F32_DLST_C1, !Z            ; discard orphan
+
+                ; long name: we need to retrieve the attributes again, 
+                ; as only the last record has the correct attributes
+                MOVE    R0, R8                      ; R8 = device handle
+                MOVE    R4, R9                      ; R9 = current index
+                ADD     FAT32$FE_ATTRIB, R9         ; offset for entry attrib.
+                RSUB    FAT32$READ_B, 1             ; read attribute to R10
+                MOVE    R2, R12                     ; store attribute
+                ADD     FAT32$DE_ATTRIB, R12
+                MOVE    R10, @R12
+
+                ; long name: apply attribute filter
+                DECRB
+                MOVE    R2, R8                      ; §R2 = attrib filter
+                INCRB
+                NOT     R8, R8                      ; the attribs not set..
+                AND     R8, R10                     ; ..shall be filtered out
+                RBRA    _F32_DLST_DS, !Z            ; so skip if != 0
+
+                ; long name: go on and collect the other vital data
+                ; that is common to long and short named entries
+                RBRA    _F32_DLST_VITAL, 1
 
                 ; short name: apply attribute filter
 _F32_DLST_SN1   DECRB
@@ -1052,36 +1214,45 @@ _F32_DLST_SBL1  ADD     1, R9                       ; next character
                 MOVE    R3, R12                     ; §R3 true? low. cs. name
                 INCRB
                 CMP     R12, 1                      ; lower case name?
-                RBRA    _F32_FLST_SBL3, !Z          ; no: go on
+                RBRA    _F32_DLST_SBL3, !Z          ; no: go on
                 MOVE    R8, R12                     ; yes: convert to lower
                 MOVE    R10, R8
                 RSUB    TO_LOWER, 1
                 MOVE    R8, R10
                 MOVE    R12, R8
-                RBRA    _F32_FLST_SBL3, 1 
+                RBRA    _F32_DLST_SBL3, 1 
 _F32_DLST_SBL2  DECRB
                 MOVE    R4, R12                     ; §R4 true? low. cs. ext
                 INCRB
                 CMP     R12, 1                      ; lower case extension?
-                RBRA    _F32_FLST_SBL3, !Z          ; no: go on
+                RBRA    _F32_DLST_SBL3, !Z          ; no: go on
                 MOVE    R8, R12                     ; yes: convert to lower
                 MOVE    R10, R8
                 RSUB    TO_LOWER, 1
                 MOVE    R8, R10
                 MOVE    R12, R8
-_F32_FLST_SBL3  CMP     R10, FAT32$FE_PADDING       ; padding characters?
-                RBRA    _F32_FLST_SBL4, Z           ; yes: ignore it
+_F32_DLST_SBL3  CMP     R10, FAT32$FE_PADDING       ; padding characters?
+                RBRA    _F32_DLST_SBL4, Z           ; yes: ignore it
                 MOVE    R10, @R5++                  ; no: store character
-_F32_FLST_SBL4  CMP     R6, 8                       ; add a "." after 8th chr
-                RBRA    _F32_FLST_SBL5, !Z          ; not the 8th character
+_F32_DLST_SBL4  CMP     R6, 8                       ; add a "." after 8th chr
+                RBRA    _F32_DLST_SBL5, !Z          ; not the 8th character
                 MOVE    '.', @R5++
-_F32_FLST_SBL5  ADD     1, R6                       ; one more char is read
+_F32_DLST_SBL5  ADD     1, R6                       ; one more char is read
                 CMP     R6, 11                      ; all chars read?
                 RBRA    _F32_DLST_SBL1, !N          ; one more to go?
                 MOVE    0, @R5                      ; add zero terminator
 
+                ; short name and long name: retrieve all the vital info:
+                ; file size, last write timestamp, start cluster
+_F32_DLST_VITAL NOP      ; @TODO implement
+                         ; @TODO test a lot of cases, e.g. longer names
+                         ; longer directory names, corrupt directories
+                         ; includung orphans (e.g. by using wxHexEditor);
+                         ; any change to rediscover this missing
+                         ; .fseventsd problem?
+
                 ; update index to next directory entry and return
-_F32_DLST_NI    ADD     FAT32$FE_SIZE, R4           ; update index
+                ADD     FAT32$FE_SIZE, R4           ; update index
                 MOVE    R4, @R3                     ; store it to FDH
                 MOVE    1, R10                      ; return "valid entry"
                 MOVE    0, R11                      ; return "no errors"
@@ -1185,11 +1356,12 @@ FAT32$READ_FDH  INCRB
 _F32_RFDH_INCC  MOVE    R1, R2                      
                 ADD     FAT32$FDH_SECTOR, R2
                 MOVE    0, @R2                      ; write back sector = 0
-                HALT ; @TODO: implement
-                RBRA    _F32_RFDH_DONE, 1
 
+                ; @TODO: implement
+                MOVE    FAT32$ERR_NOTIMPL, R9
+                RBRA    _F32_RFDH_END, 1
 
-                ; check for access beyond the sector size (means illegal hndl)
+                ; check for access beyond the sector size (means illegal hndl)                
 _F32_RFDH_CISS  CMP     R3, FAT32$SECTOR_SIZE
                 RBRA    _F32_RFDH_DONE, !N
                 MOVE    FAT32$ERR_CORRUPT_DH, R9
@@ -1385,6 +1557,44 @@ _F32_PDE_END    MOVE    R0, R8
                 RET                
 ;
 ;*****************************************************************************
+;* FAT32$CHECKSUM computes a directory entry checksum
+;*
+;* Used to confirm the binding between a long filename and its corresponding
+;* short filename and used to detect long filename orphans. Algorithm:
+;*
+;*        Sum = 0;
+;*        for (FcbNameLen=11; FcbNameLen!=0; FcbNameLen--) {
+;*            // NOTE: The operation is an unsigned char rotate right
+;*            Sum = ((Sum & 1) ? 0x80 : 0) + (Sum >> 1) + *pFcbName++;
+;*
+;* INPUT:  R8:  pointer to the 11 bytes of a short name
+;* OUTPUT: R8:  1 unsigned byte checksum (upper byte of R8 is zero)
+;*****************************************************************************
+;
+FAT32$CHECKSUM  INCRB
+
+                MOVE    11, R0                      ; R0 = character count
+                XOR     R1, R1                      ; R1 = 8 bit sum                
+
+                ; perform an unsigned char rotate right
+_F32_CHKSM_LP   SHR     1, R1                       ; shift right 1 into X
+                RBRA    _F32_CHKSM_NRI, !X          ; X=0: skip
+                OR      0x80, R1                    ; X=1: rotate in a 1
+
+                ; perform an unsigned char addition
+_F32_CHKSM_NRI  ADD     @R8++, R1                   ; do "+ *FcbName++"
+                AND     0x00FF, R1                  ; unsigned char addition
+
+                ; loop
+                SUB     1, R0
+                RBRA    _F32_CHKSM_LP, !Z  
+
+                MOVE    R1, R8                      ; return checksum
+
+                DECRB
+                RET
+;
+;*****************************************************************************
 ;* FAT32$READ_B reads a byte from the current sector buffer
 ;*
 ;* INPUT:  R8:  pointer to mount data structure (device handle)
@@ -1395,6 +1605,9 @@ _F32_PDE_END    MOVE    R0, R8
 FAT32$READ_B    INCRB
 
                 MOVE    R8, R0
+                MOVE    R11, R1
+                MOVE    R12, R2
+
 
                 MOVE    R8, R11                 ; mount data structure
                 MOVE    R9, R8                  ; read address
@@ -1403,6 +1616,8 @@ FAT32$READ_B    INCRB
                 MOVE    R8, R10
 
                 MOVE    R0, R8
+                MOVE    R1, R11
+                MOVE    R2, R12
 
                 DECRB
                 RET

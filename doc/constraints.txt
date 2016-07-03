@@ -6,7 +6,7 @@ SD Card:
 * MBR partition table
 * FAT32 with a 512 byte sector size (FAT16 and others are not supported).
 * Maximum 65.535 files per folder.
-* File names are ASCII only (no unicode).
+* File names are ASCII only (no Unicode).
 * MAC USERS: Do not use the GUI version of the disk utility, as you cannot
   control, if the tool creates FAT16 or FAT32. Use the command line
   version of diskutil instead:
