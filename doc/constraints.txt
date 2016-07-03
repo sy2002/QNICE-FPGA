@@ -5,6 +5,8 @@ SD Card:
 
 * MBR partition table
 * FAT32 with a 512 byte sector size (FAT16 and others are not supported).
+* Maximum 65.535 files per folder.
+* File names are ASCII only (no unicode).
 * MAC USERS: Do not use the GUI version of the disk utility, as you cannot
   control, if the tool creates FAT16 or FAT32. Use the command line
   version of diskutil instead:
@@ -15,10 +17,12 @@ SD Card:
   arbitrarily.
 
 * Maximum address address is 0xFFFFFFFF, which means that a maximum of 4GB
-  can be addressed, e.g. either the size of the SD card is 4GB or smaller
-  - OR - the first partition is *smaller* than 4GB (because the MBR also
-  needs some space)
-
+  can be addressed. This maximum is also reached, if the first partition is
+  already 4GB and you want to access the second partition: This will not work.
+  So, if you access a partition larger than 1, then make sure that the 
+  partitions before that partition are "small enough", so that the file access
+  in subsequent partitions do not lead to addresses larger than 4GB.
+  If you want to be on the safe side: Do not use a SD card larger than 4GB.
 
 USB Keyboard:
 

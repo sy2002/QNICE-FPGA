@@ -78,6 +78,7 @@ mulu!           RBRA    MTH$MULU, 1
 cls!            RBRA    VGA$CLS, 1
 divu!           RBRA    MTH$DIVU, 1
 divs!           RBRA    MTH$DIVS, 1
+chr2lower!      RBRA    CHR$TO_LOWER, 1
 ;
 ;  The actual monitor code starts here:
 ;

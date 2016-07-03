@@ -26,3 +26,4 @@ mulu                          	.EQU	0x0028
 cls                           	.EQU	0x002A
 divu                          	.EQU	0x002C
 divs                          	.EQU	0x002E
+chr2lower                     	.EQU	0x0030

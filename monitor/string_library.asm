@@ -20,6 +20,19 @@ _CHR$TO_UPPER_EXIT      DECRB
                         RET
 ;
 ;***************************************************************************************
+;* CHR$TO_LOWER expects a character to be converted to lower case in R8
+;***************************************************************************************
+;
+CHR$TO_LOWER            INCRB
+                        CMP     R8, '@'                 ; Is it "@" or less than that?
+                        RBRA    _CHR$TO_LOWER_EXIT, !N  ; Yes: nothing to do
+                        CMP     R8, 'Z'                 ; Is it greater than 'Z'
+                        RBRA    _CHR$TO_LOWER_EXIT, N   ; Yes: nothing to do
+                        ADD     0x0020, R8              ; Perform the conversion
+_CHR$TO_LOWER_EXIT      DECRB
+                        RET
+;
+;***************************************************************************************
 ;* STR$TO_UPPER expects the address of a string to be converted to upper case in R8
 ;***************************************************************************************
 ;
