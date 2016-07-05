@@ -24,6 +24,15 @@ The main purpose of QNICE-FPGA is learning, teaching and having fun.
 Getting Started
 ---------------
 
+* Clone GitHub repo: Make sure you have `git` installed on your computer,
+  open a Terminal or Command Line. We will automatically create a subdirectory
+  called QNICE-FPGA, so navigate to an appropriate folder. Use this command
+  to clone the `master` branch of QNICE-FPGA, as the `master` branch always
+  contains the latest stable version:
+  `git clone https://github.com/sy2002/QNICE-FPGA.git`
+  (Hint: It is important, that you clone the repository instead of just
+  downloading it as a ZIP. The reason is, that some build scripts rely on
+  the fact, that there is an underlying git repository.)
 * Hardware: Currently, we develop QNICE-FPGA on a Nexys 4 DDR development
   board, so if you own one, the fastest way of getting started is to
   download the bitstream file `dist_kit/qnice.bit` on the SD card of the
