@@ -376,6 +376,7 @@ FAT32$FE_SIZE           .EQU    0x0020                  ; size of one directory 
 FAT32$FE_DEL            .EQU    0x00E5                  ; flag for deleted (or "empty") entry
 FAT32$FE_NOMORE         .EQU    0x0000                  ; flag for last deleted (or "empty") entry, no more are following
 FAT32$FE_ATTRIB         .EQU    0x000B                  ; offset of the file attribute
+FAT32$FE_FILESIZE       .EQU    0x001C                  ; offset of the file size (dword)
 FAT32$FE_DISPLAYCASE    .EQU    0x000C                  ; only for short names: bit 3 = display filename lower case, bit 4 = ext. lower case
 FAT32$FE_DC_NAME_MASK   .EQU    0x0008                  ; FAT32$FE_DISPLAYCASE: filter for bit 3
 FAT32$FE_DC_EXT_MASK    .EQU    0x0010                  ; FAT32$FE_DISPLAYCASE: filter for bit 4
@@ -1250,6 +1251,16 @@ _F32_DLST_VITAL NOP      ; @TODO implement
                          ; includung orphans (e.g. by using wxHexEditor);
                          ; any change to rediscover this missing
                          ; .fseventsd problem?
+                MOVE    R0, R8                      ; R8 = device handle
+                MOVE    R4, R9                      ; R9 = index to be read
+                ADD     FAT32$FE_FILESIZE, R9
+                RSUB    FAT32$READ_DW, 1            ; R10/R11 = lo/hi filesize
+                MOVE    R2, R8                      ; R8 = dir. entry. struct.
+                ADD     FAT32$DE_SIZE_LO, R8        ; R8 => file size low word
+                MOVE    R10, @R8                    ; store file size low word
+                MOVE    R2, R8
+                ADD     FAT32$DE_SIZE_HI, R8        ; R8 => size high word
+                MOVE    R11, @R8                    ; store size high word
 
                 ; update index to next directory entry and return
                 ADD     FAT32$FE_SIZE, R4           ; update index
@@ -1543,7 +1554,16 @@ _F32_PDE_A5     SYSCALL(puts, 1)
                 SYSCALL(puts, 1)
 
                 ; print size
-_F32_PDE_S1     NOP
+_F32_PDE_S1     MOVE    R0, R8                      ; R8 = dir. entry struct.
+                ADD     FAT32$DE_SIZE_HI, R8
+                MOVE    @R8, R8
+                SYSCALL(puthex, 1)
+                MOVE    R0, R8
+                ADD     FAT32$DE_SIZE_LO, R8
+                MOVE    @R8, R8
+                SYSCALL(puthex, 1)
+                MOVE    FAT32$PRINT_DE_AN, R8
+                SYSCALL(puts, 1)
 
                 ; print name
 _F32_PDE_N1     MOVE    R0, R8
@@ -1771,4 +1791,26 @@ TO_LOWER        INCRB
                 RBRA    _TO_LOWER_EXIT, N       ; Yes: nothing to do
                 ADD     0x0020, R8              ; Perform the conversion
 _TO_LOWER_EXIT  DECRB
+                RET
+;
+;*****************************************************************************
+;* H2D_ACSCII converts a 32bit value to a decimal representation in ASCII;
+;* leading zeros are replaced by spaces (ASCII 0x20); zero terminator is added
+;*
+;* INPUT:  R8/R9   = LO/HI of the 32bit value
+;*         R10     = pointer to a free memory area that is 11 words long
+;* OUTPUT: R10     = the function fills the given memory space with the
+;*                   decimal representation and adds a zero terminator
+;*****************************************************************************
+;
+H2D_ASCII       INCRB
+
+                ; add zero terminator
+                ADD     11, R10
+                MOVE    0, @R10
+                SUB     1, R10
+
+                
+
+                DECRB
                 RET

@@ -130,8 +130,10 @@ FAT32$FA_ALL            .EQU    0x0037                  ; browse for all files, 
 
 FAT32$DE_NAME           .EQU    0x0000                  ; volume, file or directory name, zero terminated (max 256 characters)
 FAT32$DE_ATTRIB         .EQU    0x0101                  ; file attributes (read-only, hidden, system, volume id, directory, archive)
+FAT32$DE_SIZE_LO        .EQU    0x0102                  ; file size: low word
+FAT32$DE_SIZE_HI        .EQU    0x0103                  ; file size: high word
 
-FAT32$DE_STRUCT_SIZE    .EQU    0x0102                  ; size (words) of the directory entry data structure of the
+FAT32$DE_STRUCT_SIZE    .EQU    0x0104                  ; size (words) of the directory entry data structure of the
 
 ; DISPLAY FLAGS FOR FILE ENTRY PRETTY PRINTER
 
