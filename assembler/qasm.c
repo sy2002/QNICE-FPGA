@@ -587,6 +587,13 @@ int assemble()
         entry->export = 1;
       }
 
+      if (find_label(label, &i) != -1) /* Do we already have a lable of that name? */
+      {
+        sprintf(entry->error_text, "Line %d: duplicate label >>%s<<.", line_counter, label);
+        printf("assemble: %s\n", entry->error_text);
+        error_counter++;
+      }
+
       strcpy(entry->label, label);
       token = tokenize((char *) 0, delimiters); /* Next token has to be a valid mnemonic or directive or may be empty */
       if (!translate_mnemonic(token, &opcode, &type))
