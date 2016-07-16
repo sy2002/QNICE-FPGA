@@ -394,6 +394,7 @@ FAT32$INT_LONG_MASK     .EQU    0x003F                  ; internal mask for filt
 
 FAT32$PRINT_DE_DIR_Y    .ASCII_W "<DIR> "
 FAT32$PRINT_DE_DIR_N    .ASCII_W "      "
+FAT32$PRINT_DE_DIR_S    .ASCII_W "           "
 FAT32$PRINT_DE_AN       .ASCII_W " "
 FAT32$PRINT_DE_AH       .ASCII_W "H"
 FAT32$PRINT_DE_AR       .ASCII_W "R"
@@ -1504,6 +1505,11 @@ _F32_RSIC_END   DECRB
 ;
 FAT32$PRINT_DE  INCRB
 
+                MOVE    R10, R0                     ; save R10 and R11
+                MOVE    R11, R1
+
+                INCRB 
+
                 MOVE    R8, R0                      ; R0 = ptr to dir. ent. s.
                 MOVE    R9, R1                      ; R1 = print flags
 
@@ -1554,16 +1560,33 @@ _F32_PDE_A5     SYSCALL(puts, 1)
                 SYSCALL(puts, 1)
 
                 ; print size
-_F32_PDE_S1     MOVE    R0, R8                      ; R8 = dir. entry struct.
-                ADD     FAT32$DE_SIZE_HI, R8
-                MOVE    @R8, R8
-                SYSCALL(puthex, 1)
-                MOVE    R0, R8
-                ADD     FAT32$DE_SIZE_LO, R8
-                MOVE    @R8, R8
-                SYSCALL(puthex, 1)
+_F32_PDE_S1     MOVE    R1, R2                      ; show file size?
+                AND     FAT32$PRINT_SHOW_SIZE, R2
+                RBRA    _F32_PDE_DATE, Z            ; no: go on
+                MOVE    R0, R2                      ; is current entry a dir.?
+                ADD     FAT32$DE_ATTRIB, R2
+                MOVE    @R2, R2
+                AND     FAT32$FA_DIR, R2
+                RBRA    _F32_PDE_S2, Z              ; no: print file size
+                MOVE    FAT32$PRINT_DE_DIR_S, R8    ; yes: print spaces ...
+                SYSCALL(puts, 1)                    ; ... instead of file size                
+                RBRA    _F32_PDE_DATE, 1
+_F32_PDE_S2     MOVE    R0, R8                      ; R8 = dir. entry struct.
+                ADD     FAT32$DE_SIZE_LO, R8        ; retrieve LO/Hi of ...
+                MOVE    @R8, R8                     ; ... filesize in R8/R9
+                MOVE    R0, R9
+                ADD     FAT32$DE_SIZE_HI, R9
+                MOVE    @R9, R9
+                SUB     11, SP                      ; create 11 bytes memory..
+                MOVE    SP, R10                     ; ..area on the stack
+                RSUB    H2D_ASCII, 1                ; decimal string of size
+                MOVE    R10, R8
+                SYSCALL(puts, 1)                    ; print decimal file size
+                ADD     11, SP                      ; restore stack
                 MOVE    FAT32$PRINT_DE_AN, R8
                 SYSCALL(puts, 1)
+
+_F32_PDE_DATE   NOP
 
                 ; print name
 _F32_PDE_N1     MOVE    R0, R8
@@ -1571,8 +1594,14 @@ _F32_PDE_N1     MOVE    R0, R8
                 SYSCALL(puts, 1)                    ; print name
                 SYSCALL(crlf, 1)                    ; next line out stdout
                 
-_F32_PDE_END    MOVE    R0, R8
+_F32_PDE_END    MOVE    R0, R8                      ; restore R8 .. R11
                 MOVE    R1, R9
+
+                DECRB
+
+                MOVE    R0, R10
+                MOVE    R1, R11
+
                 DECRB
                 RET                
 ;
@@ -1779,6 +1808,122 @@ MULU32          INCRB                           ; registers R3..R0 = result ..
                 RET
 ;
 ;*****************************************************************************
+;* DIVU32 divides 32bit dividend by 32bit divisor and returns
+;*        a 32bit quotient and a 32bit modulo
+;*        warning: no division by zero warning; instead, the function returns
+;*        zero as result and as modulo
+;*
+;* INPUT:  R8/R9   = LO|HI of unsigned dividend
+;*         R10/R11 = LO|HI of unsigned divisor
+;* OUTPUT: R8/R9   = LO|HI of unsigned quotient
+;*         R10/R11 = LO|HI of unsigned modulo
+;*****************************************************************************
+;
+DIVU32          INCRB
+
+                ; perform the division by using the following algorithm, where
+                ; N = dividend = HI|LO = R9|R8
+                ; D = divisor  = HI|LO = R11|R10
+                ; Q = quotient = HI|LO = R1|R0
+                ; R = remainder (modulo) = HI|LO = R3|R2
+                ;
+                ; Q := 0               quotient and remainder = 0
+                ; R := 0                     
+                ; for i = n−1...0 do   where n is number of bits in N
+                ;   R := R << 1        left-shift R by 1 bit
+                ;   R(0) := N(i)       set the least-significant bit
+                ;                      of R equal to bit i of the divisor    
+                ;   if R >= D then
+                ;     R := R − D
+                ;     Q(i) := 1
+                ;   end
+                ; end                
+
+                XOR     R0, R0                  ; HI|LO = R1|R0 = quotient
+                XOR     R1, R1                  
+                XOR     R2, R2                  ; HI|LO = R3|R2 = reminder
+                XOR     R3, R3
+
+                ; division by zero
+                ; as we have no interrupts and no additional error flag,
+                ; we return zero on a division by zero
+                CMP     R11, R0
+                RBRA    _DIVU32_START, !Z
+                CMP     R10, R0
+                RBRA    _DIVU32_START, !Z
+                RBRA    _DIVU32_END, 1
+
+_DIVU32_START   MOVE    31, R4                  ; R4 = bit counter: 31 .. 0
+
+                ; R := R << 1: 32bit shift-left of R
+_DIVU32_NEXTBIT AND     0xFFFD, SR              ; clear X (shift in '0')
+                SHL     1, R2                   ; MSB of lo word shifts to C
+                RBRA    _DIVU32_SHL0, !C        ; C=0 => X=0
+                OR      0x0002, SR              ; C=1 => X=1
+                SHL     1, R3                   ; hi word (shifts in X=1)
+                RBRA    _DIVU32_RNI, 1
+_DIVU32_SHL0    AND     0xFFFD, SR              ; C=0 => X=0                
+                SHL     1, R3                   ; hi word (shifts in X=0)
+
+                ; R(0) := N(i)
+_DIVU32_RNI     MOVE    R4, R6
+                CMP     R4, 15                  ; R4 <= 15?
+                RBRA    _DIVU32_RNIL, !N        ; yes: consider low word of R
+                MOVE    R9, R5                  ; high word of N
+                SUB     16, R6                  ; correct index b/c of hi word
+                RBRA    _DIVU32_RNIH, 1
+_DIVU32_RNIL    MOVE    R8, R5                  ; low word of N
+_DIVU32_RNIH    AND     0xFFFB, SR              ; clear C
+                SHR     R6, R5                  ; extract bit by SHR to the ..
+                AND     1, R5                   ; ..LSB pos. and and-ing 1
+                AND     0xFFFE, R2              ; clear target bit and ...
+                OR      R5, R2                  ; ... set it again, if needed
+
+                ; if R >= D then
+                ; done by doing 32bit R - D and checking:
+                ; if MSB = 1, then R < D, else R >= D
+                ; hint: MSB in this case is the 33th bit, i.e. bit #32 = carry
+                MOVE    R2, R5                  ; R5 = low word of R
+                MOVE    R3, R6                  ; R6 = high word of R
+                SUB     R10, R5                 ; R6|R5 = 32bit (R := R - D)
+                SUBC    R11, R6
+                RBRA    _DIVU32_ITERATE, C      ; bit #32 is "negative"
+
+                ; when reaching this code, R is >= D
+                ;   if R >= D then
+                ;     R := R − D
+                ;     Q(i) := 1
+                ;   end
+                MOVE    R6, R3                  ; R = R6|R5 = (R := R - D)
+                MOVE    R5, R2
+                MOVE    1, R7                   ; Q(i) := 1 by shifting a "1"
+                CMP     R4, 15                  ; R4 <= 15?
+                RBRA    _DIVU32_QL, !N          ; yes: consider low word of Q
+                MOVE    R4, R6                  ; R6 := i
+                SUB     16, R6                  ; adjust for high word
+                AND     0xFFFD, SR              ; clear X
+                SHL     R6, R7                  ; move "1" to the right place
+                OR      R7, R1                  ; R1:= hi Q(i) := 1
+                RBRA    _DIVU32_ITERATE, 1
+
+_DIVU32_QL      AND     0xFFFD, SR              ; clear X
+                SHL     R4, R7                  ; move "1" to the right place
+                OR      R7, R0                  ; R0 := low Q(i) := 1
+
+                ; for i = n−1...0 do (i.e. also one loop for the case i=0)
+_DIVU32_ITERATE SUB     1, R4
+                RBRA    _DIVU32_NEXTBIT, !N     ; !N includes a round for i=0
+
+                ; return results
+_DIVU32_END     MOVE    R1, R9                  ; hi Q
+                MOVE    R0, R8                  ; lo Q
+                MOVE    R3, R11                 ; hi R
+                MOVE    R2, R10                 ; lo R
+
+                DECRB
+                RET
+;
+;*****************************************************************************
 ;* TO_LOWER converts the character in R8 to lower case
 ;* (already added to the monitor, but not synthesized yet as of 16/7/3)
 ;* (so this is TEMP; replace by SYSCALL, soon)
@@ -1794,23 +1939,51 @@ _TO_LOWER_EXIT  DECRB
                 RET
 ;
 ;*****************************************************************************
-;* H2D_ACSCII converts a 32bit value to a decimal representation in ASCII;
+;* H2D_ASCII converts a 32bit value to a decimal representation in ASCII;
 ;* leading zeros are replaced by spaces (ASCII 0x20); zero terminator is added
 ;*
 ;* INPUT:  R8/R9   = LO/HI of the 32bit value
 ;*         R10     = pointer to a free memory area that is 11 words long
 ;* OUTPUT: R10     = the function fills the given memory space with the
 ;*                   decimal representation and adds a zero terminator
+;*         R11     = amount of digits/characters that the actual number has,
+;*                   without the leading spaces
 ;*****************************************************************************
 ;
 H2D_ASCII       INCRB
 
+                MOVE    R8, R0                  ; save original values
+                MOVE    R9, R1
+                MOVE    R10, R2
+
+                MOVE    R10, R3                 ; R3: working pointer
+                XOR     R4, R4                  ; R4: digit counter
+
                 ; add zero terminator
-                ADD     11, R10
-                MOVE    0, @R10
-                SUB     1, R10
+                ADD     10, R3
+                MOVE    0, @R3
 
-                
+                ; extract decimals by repeatedly dividing the 32bit value
+                ; by 10; the modulus is the decimal that is converted to
+                ; ASCII by adding the ASCII code of zero which is 0x0030
+                XOR     R11, R11                ; high word = 0
+_H2DASCII_ML    MOVE    10, R10                 ; divide by 10
+                RSUB    DIVU32, 1               ; perform division
+                ADD     0x0030, R10             ; R10 = digit => ASCII conv.
+                MOVE    R10, @--R3              ; store digit
+                ADD     1, R4                   ; increase digit counter
+                CMP     R8, 0                   ; quotient = 0? (are we done?)
+                RBRA    _H2DASCII_TS, Z         ; yes: add trailing spaces                
+                RBRA    _H2DASCII_ML, 1         ; next digit, R8/R9 has result
 
+_H2DASCII_TS    CMP     R3, R2                  ; working pntr = memory start
+                RBRA    _H2DASCII_DONE, Z       ; yes: then done
+                MOVE    0x0020, @--R3           ; no: add trailing space
+                RBRA    _H2DASCII_TS, 1         ; next digit
+
+_H2DASCII_DONE  MOVE    R0, R8                  ; restore original values
+                MOVE    R1, R9
+                MOVE    R2, R10  
+                MOVE    R4, R11                 ; return digit counter             
                 DECRB
                 RET

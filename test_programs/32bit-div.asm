@@ -14,7 +14,7 @@
 
                 RBRA    START, 1
 
-TEST_COUNT      .EQU 21
+TEST_COUNT      .EQU 22
 
                 ; dividend high low, divisor high low
 TEST_NUMBERS    .DW 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF
@@ -38,6 +38,7 @@ TEST_NUMBERS    .DW 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF
                 .DW 0x0000, 0x1000, 0x0000, 0x1000
                 .DW 0x0010, 0x0000, 0x1000, 0x0000
                 .DW 0x0000, 0x0001, 0x0000, 0x0001
+                .DW 0xABAB, 0xCDCD, 0x0000, 0x0000
 
                 ; result high low, modulo high low                
 RESULTS         .DW 0x0000, 0x0001, 0x0000, 0x0000
@@ -61,6 +62,7 @@ RESULTS         .DW 0x0000, 0x0001, 0x0000, 0x0000
                 .DW 0x0000, 0x0001, 0x0000, 0x0000
                 .DW 0x0000, 0x0000, 0x0010, 0x0000
                 .DW 0x0000, 0x0001, 0x0000, 0x0000
+                .DW 0x0000, 0x0000, 0x0000, 0x0000
 
 
 START           MOVE    STR_TITLE, R8
@@ -155,7 +157,7 @@ STR_TITLE       .ASCII_P "32bit division development testbed, "
                 .ASCII_P "done by sy2002 in July 2016\n"
                 .ASCII_P "32bit unsigned / 32bit unsigned = 32bit unsigned "
                 .ASCII_P "and 32bit modulo\n"
-                .ASCII_W "All numbers are displayed in hex\n\n"
+                .ASCII_W "All numbers are displayed in hex. No division by zero error.\n\n"
 STR_DIV         .ASCII_W " / "
 STR_EQU         .ASCII_W " = "
 STR_COLON       .ASCII_W " : "
@@ -169,7 +171,7 @@ STR_WRONG       .ASCII_W "*** WRONG ***"
 ;
 ;*****************************************************************************
 ;* DIVU32 divides 32bit dividend by 32bit divisor and returns
-;*        a 32bit result and a 32bit modulo
+;*        a 32bit quotient and a 32bit modulo
 ;*        warning: no division by zero warning; instead, the function returns
 ;*        zero as result and as modulo
 ;*
@@ -180,18 +182,6 @@ STR_WRONG       .ASCII_W "*** WRONG ***"
 ;*****************************************************************************
 ;
 DIVU32          INCRB
-
-                ; division by zero
-                XOR     R0, R0                  ; R0 = 0
-                CMP     R11, R0
-                RBRA    _DIVU32_START, !Z
-_DIVU32_DBZ     CMP     R10, R0
-                RBRA    _DIVU32_START, !Z
-                XOR     R8, R8
-                XOR     R9, R9
-                XOR     R10, R10
-                XOR     R11, R11
-                RBRA    _DIVU32_END, 1
 
                 ; perform the division by using the following algorithm, where
                 ; N = dividend = HI|LO = R9|R8
@@ -211,11 +201,21 @@ _DIVU32_DBZ     CMP     R10, R0
                 ;   end
                 ; end                
 
-_DIVU32_START   XOR     R1, R1                  ; R1|R0 = quotient
-                XOR     R2, R2
-                XOR     R3, R3                  ; R3|R2 = reminder
+                XOR     R0, R0                  ; HI|LO = R1|R0 = quotient
+                XOR     R1, R1                  
+                XOR     R2, R2                  ; HI|LO = R3|R2 = reminder
+                XOR     R3, R3
 
-                MOVE    31, R4                  ; R4 = bitcounter
+                ; division by zero
+                ; as we have no interrupts and no additional error flag,
+                ; we return zero on a division by zero
+                CMP     R11, R0
+                RBRA    _DIVU32_START, !Z
+                CMP     R10, R0
+                RBRA    _DIVU32_START, !Z
+                RBRA    _DIVU32_END, 1
+
+_DIVU32_START   MOVE    31, R4                  ; R4 = bit counter: 31 .. 0
 
                 ; R := R << 1: 32bit shift-left of R
 _DIVU32_NEXTBIT AND     0xFFFD, SR              ; clear X (shift in '0')
@@ -277,10 +277,10 @@ _DIVU32_ITERATE SUB     1, R4
                 RBRA    _DIVU32_NEXTBIT, !N     ; !N includes a round for i=0
 
                 ; return results
-                MOVE    R1, R9                  ; hi Q
+_DIVU32_END     MOVE    R1, R9                  ; hi Q
                 MOVE    R0, R8                  ; lo Q
                 MOVE    R3, R11                 ; hi R
                 MOVE    R2, R10                 ; lo R
 
-_DIVU32_END     DECRB
+                DECRB
                 RET
