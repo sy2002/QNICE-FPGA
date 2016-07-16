@@ -132,8 +132,14 @@ FAT32$DE_NAME           .EQU    0x0000                  ; volume, file or direct
 FAT32$DE_ATTRIB         .EQU    0x0101                  ; file attributes (read-only, hidden, system, volume id, directory, archive)
 FAT32$DE_SIZE_LO        .EQU    0x0102                  ; file size: low word
 FAT32$DE_SIZE_HI        .EQU    0x0103                  ; file size: high word
+FAT32$DE_YEAR           .EQU    0x0104                  ; last file write: year   (valid range 1980 .. 2107)
+FAT32$DE_MONTH          .EQU    0x0105                  ; last file write: month
+FAT32$DE_DAY            .EQU    0x0106                  ; last file write: day
+FAT32$DE_HOUR           .EQU    0x0107                  ; last file write: hour
+FAT32$DE_MINUTE         .EQU    0x0108                  ; last file write: minute
+FAT32$DE_SECOND         .EQU    0x0109                  ; last file write: second (in 2 second steps, valid range 0 .. 58)
 
-FAT32$DE_STRUCT_SIZE    .EQU    0x0104                  ; size (words) of the directory entry data structure of the
+FAT32$DE_STRUCT_SIZE    .EQU    0x010A                  ; size (words) of the directory entry data structure of the
 
 ; DISPLAY FLAGS FOR FILE ENTRY PRETTY PRINTER
 

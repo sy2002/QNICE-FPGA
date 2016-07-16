@@ -377,6 +377,8 @@ FAT32$FE_DEL            .EQU    0x00E5                  ; flag for deleted (or "
 FAT32$FE_NOMORE         .EQU    0x0000                  ; flag for last deleted (or "empty") entry, no more are following
 FAT32$FE_ATTRIB         .EQU    0x000B                  ; offset of the file attribute
 FAT32$FE_FILESIZE       .EQU    0x001C                  ; offset of the file size (dword)
+FAT32$FE_FILEDATE       .EQU    0x0018                  ; date of last write (creation is treated as write)
+FAT32$FE_FILETIME       .EQU    0x0016                  ; time of last write (creation is treated as write)
 FAT32$FE_DISPLAYCASE    .EQU    0x000C                  ; only for short names: bit 3 = display filename lower case, bit 4 = ext. lower case
 FAT32$FE_DC_NAME_MASK   .EQU    0x0008                  ; FAT32$FE_DISPLAYCASE: filter for bit 3
 FAT32$FE_DC_EXT_MASK    .EQU    0x0010                  ; FAT32$FE_DISPLAYCASE: filter for bit 4
@@ -400,6 +402,8 @@ FAT32$PRINT_DE_AH       .ASCII_W "H"
 FAT32$PRINT_DE_AR       .ASCII_W "R"
 FAT32$PRINT_DE_AS       .ASCII_W "S"
 FAT32$PRINT_DE_AA       .ASCII_W "A"
+FAT32$PRINT_DE_DATE     .ASCII_W "-"
+FAT32$PRINT_DE_TIME     .ASCII_W ":"
 
 ;
 ;*****************************************************************************
@@ -1252,6 +1256,8 @@ _F32_DLST_VITAL NOP      ; @TODO implement
                          ; includung orphans (e.g. by using wxHexEditor);
                          ; any change to rediscover this missing
                          ; .fseventsd problem?
+
+                ; file size         
                 MOVE    R0, R8                      ; R8 = device handle
                 MOVE    R4, R9                      ; R9 = index to be read
                 ADD     FAT32$FE_FILESIZE, R9
@@ -1262,6 +1268,52 @@ _F32_DLST_VITAL NOP      ; @TODO implement
                 MOVE    R2, R8
                 ADD     FAT32$DE_SIZE_HI, R8        ; R8 => size high word
                 MOVE    R11, @R8                    ; store size high word
+
+                ; file date
+                MOVE    R0, R8                      ; R8 = device handle
+                MOVE    R4, R9                      ; R9 = index to be read
+                ADD     FAT32$FE_FILEDATE, R9
+                RSUB    FAT32$READ_W, 1
+                MOVE    R2, R8
+                ADD     FAT32$DE_YEAR, R8           ; R8 = pointer to year
+                MOVE    R10, R5                     ; R5 = 16bit encoded date
+                SHR     9, R5                       ; year is in bits 9..15
+                ADD     1980, R5                    ; relative to 01/01/1980
+                MOVE    R5, @R8                     ; store year to dir. ent.
+                MOVE    R2, R8
+                ADD     FAT32$DE_MONTH, R8          ; R8 = pointer to month
+                MOVE    R10, R5                     ; R5 = 16bit encoded date
+                SHR     5, R5                       ; month is in bits 5..8
+                AND     0x000F, R5                  ; extract month only
+                MOVE    R5, @R8                     ; store month to dir. ent.
+                MOVE    R2, R8
+                ADD     FAT32$DE_DAY, R8            ; R8 = pointer to day
+                MOVE    R10, R5                     ; R5 = 16bit encoded date
+                AND     0x001F, R5                  ; day is in bits 0..4
+                MOVE    R5, @R8                     ; store day to dir. entry
+
+                ; file time
+                MOVE    R0, R8                      ; R8 = device handle
+                MOVE    R4, R9                      ; R9 = index to be read
+                ADD     FAT32$FE_FILETIME, R9
+                RSUB    FAT32$READ_W, 1
+                MOVE    R2, R8
+                ADD     FAT32$DE_HOUR, R8           ; R8 = pointer to hour
+                MOVE    R10, R5                     ; R5 = 16bit encoded time
+                SHR     11, R5                      ; hour is in bits 11..15
+                MOVE    R5, @R8                     ; store hour to dir. ent.
+                MOVE    R2, R8
+                ADD     FAT32$DE_MINUTE, R8         ; R8 = pointer to minute
+                MOVE    R10, R5                     ; R5 = 16bit encoded time
+                SHR     5, R5                       ; minute is in bits 5..10
+                AND     0x003F, R5
+                MOVE    R5, @R8                     ; store minute to dir. en.
+                MOVE    R2, R8
+                ADD     FAT32$DE_SECOND, R8         ; R8 = pointer to second
+                MOVE    R10, R5                     ; R5 = 16bit encoded time
+                AND     0x001F, R5                  ; second is in bits 0..4
+                SHL     1, R5                       ; seconds stored as 2 secs
+                MOVE    R5, @R8                     ; store seconds to dir. e.
 
                 ; update index to next directory entry and return
                 ADD     FAT32$FE_SIZE, R4           ; update index
@@ -1505,8 +1557,9 @@ _F32_RSIC_END   DECRB
 ;
 FAT32$PRINT_DE  INCRB
 
-                MOVE    R10, R0                     ; save R10 and R11
+                MOVE    R10, R0                     ; save R10 .. R12
                 MOVE    R11, R1
+                MOVE    R12, R2
 
                 INCRB 
 
@@ -1556,7 +1609,7 @@ _F32_PDE_A4     SYSCALL(puts, 1)
                 RBRA    _F32_PDE_A5, Z
                 MOVE    FAT32$PRINT_DE_AS, R8
 _F32_PDE_A5     SYSCALL(puts, 1)
-                MOVE    FAT32$PRINT_DE_AN, R8
+                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
                 SYSCALL(puts, 1)
 
                 ; print size
@@ -1577,16 +1630,57 @@ _F32_PDE_S2     MOVE    R0, R8                      ; R8 = dir. entry struct.
                 MOVE    R0, R9
                 ADD     FAT32$DE_SIZE_HI, R9
                 MOVE    @R9, R9
-                SUB     11, SP                      ; create 11 bytes memory..
-                MOVE    SP, R10                     ; ..area on the stack
-                RSUB    H2D_ASCII, 1                ; decimal string of size
-                MOVE    R10, R8
-                SYSCALL(puts, 1)                    ; print decimal file size
-                ADD     11, SP                      ; restore stack
-                MOVE    FAT32$PRINT_DE_AN, R8
+                XOR     R7, R7                      ; print trailing spaces
+                RSUB    _F32_PDE_PD, 1              ; print decimal filesize
+                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
                 SYSCALL(puts, 1)
 
-_F32_PDE_DATE   NOP
+                ; print date
+_F32_PDE_DATE   MOVE    1, R7                       ; do not print trailing sp
+                MOVE    R1, R2                      ; show date?
+                AND     FAT32$PRINT_SHOW_DATE, R2
+                RBRA    _F32_PDE_TIME, Z            ; no: go on
+                MOVE    R0, R8
+                ADD     FAT32$DE_YEAR, R8
+                MOVE    @R8, R8                     ; R8 = year
+                XOR     R9, R9                      ; high word = zero
+                RSUB    _F32_PDE_PD, 1              ; print year as decimal
+                MOVE    FAT32$PRINT_DE_DATE, R8     ; print separator
+                SYSCALL(puts, 1)
+                MOVE    R0, R8
+                ADD     FAT32$DE_MONTH, R8
+                MOVE    @R8, R8                     ; R8 = month
+                XOR     R9, R9                      ; hi word zero
+                RSUB    _F32_PDE_PD, 1              ; print month as decimal
+                MOVE    FAT32$PRINT_DE_DATE, R8     ; print separator
+                SYSCALL(puts, 1)
+                MOVE    R0, R8
+                ADD     FAT32$DE_DAY, R8
+                MOVE    @R8, R8                     ; R8 = day
+                XOR     R9, R9                      ; hi word zero
+                RSUB    _F32_PDE_PD, 1              ; print day as decimal
+                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
+                SYSCALL(puts, 1)
+
+                ; print time
+_F32_PDE_TIME   MOVE    1, R7                       ; do not print trailing sp
+                MOVE    R1, R2                      ; show time?
+                AND     FAT32$PRINT_SHOW_TIME, R2
+                RBRA    _F32_PDE_N1, Z              ; no: go on
+                MOVE    R0, R8
+                ADD     FAT32$DE_HOUR, R8
+                MOVE    @R8, R8                     ; R8 = hour
+                XOR     R9, R9                      ; high word = zero
+                RSUB    _F32_PDE_PD, 1              ; print hour as decimal
+                MOVE    FAT32$PRINT_DE_TIME, R8     ; print separator
+                SYSCALL(puts, 1)
+                MOVE    R0, R8
+                ADD     FAT32$DE_MINUTE, R8
+                MOVE    @R8, R8                     ; R8 = minute
+                XOR     R9, R9                      ; high word = zero
+                RSUB    _F32_PDE_PD, 1              ; print minute as decimal
+                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
+                SYSCALL(puts, 1)
 
                 ; print name
 _F32_PDE_N1     MOVE    R0, R8
@@ -1601,9 +1695,27 @@ _F32_PDE_END    MOVE    R0, R8                      ; restore R8 .. R11
 
                 MOVE    R0, R10
                 MOVE    R1, R11
+                MOVE    R2, R12
 
                 DECRB
-                RET                
+                RET
+
+                ; sub-sub routine to print a decimal that is in HI|LO=R9|R8
+                ; if R7 = 0 then then print trailing spaces
+                ; numbers < 10 will receive a trailing zero
+_F32_PDE_PD     SUB     11, SP                      ; create 11 bytes memory..
+                MOVE    SP, R10                     ; ..area on the stack
+                RSUB    H2D_ASCII, 1                ; decimal string of size
+                CMP     R12, 1                      ; only one digit?
+                RBRA    _F32_PDE_PDCT, !Z           ; no: go on
+                MOVE    0x0030, @--R11              ; yes: add trailing zero
+_F32_PDE_PDCT   MOVE    R10, R8                     ; string incl. trailing sp                
+                CMP     0, R7                       ; print trailing spaces?
+                RBRA    _F32_PDE_PDPS, Z            ; yes
+                MOVE    R11, R8                     ; no: skip trailing spaces
+_F32_PDE_PDPS   SYSCALL(puts, 1)                    ; print decimal file size
+                ADD     11, SP                      ; restore stack
+                RET
 ;
 ;*****************************************************************************
 ;* FAT32$CHECKSUM computes a directory entry checksum
@@ -1946,7 +2058,9 @@ _TO_LOWER_EXIT  DECRB
 ;*         R10     = pointer to a free memory area that is 11 words long
 ;* OUTPUT: R10     = the function fills the given memory space with the
 ;*                   decimal representation and adds a zero terminator
-;*         R11     = amount of digits/characters that the actual number has,
+;*                   this includes leading white spaces
+;*         R11     = pointer to string without leading white spaces
+;*         R12     = amount of digits/characters that the actual number has,
 ;*                   without the leading spaces
 ;*****************************************************************************
 ;
@@ -1983,7 +2097,13 @@ _H2DASCII_TS    CMP     R3, R2                  ; working pntr = memory start
 
 _H2DASCII_DONE  MOVE    R0, R8                  ; restore original values
                 MOVE    R1, R9
-                MOVE    R2, R10  
-                MOVE    R4, R11                 ; return digit counter             
+                MOVE    R2, R10
+
+                MOVE    R10, R11                ; return pointer to string ..
+                MOVE    10, R7                  ; .. without white spaces
+                SUB     R4, R7
+                ADD     R7, R11
+
+                MOVE    R4, R12                 ; return digit counter             
                 DECRB
                 RET
