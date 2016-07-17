@@ -81,6 +81,7 @@ FAT32$ERR_NOFAT32       .EQU    0xEE15                  ; illegal volume id (eit
 FAT32$ERR_ILLEGAL_SIC   .EQU    0xEE16                  ; trying to read/write a sector within a cluster that is out of range
 FAT32$ERR_ILLEGAL_CLUS  .EQU    0xEE17                  ; trying to access an illegal cluster number
 FAT32$ERR_CORRUPT_DH    .EQU    0xEE18                  ; corrupt directory handle (e.g. because current to-be-read offs > sector size)
+FAT32$ERR_DIRNOTFOUND   .EQU    0xEE19                  ; directory not found (illegal path name passed to change directory command)
 
 ; LAYOUT OF THE MOUNT DATA STRUCTURE (DEVICE HANDLE)
 
@@ -138,8 +139,10 @@ FAT32$DE_DAY            .EQU    0x0106                  ; last file write: day
 FAT32$DE_HOUR           .EQU    0x0107                  ; last file write: hour
 FAT32$DE_MINUTE         .EQU    0x0108                  ; last file write: minute
 FAT32$DE_SECOND         .EQU    0x0109                  ; last file write: second (in 2 second steps, valid range 0 .. 58)
+FAT32$DE_CLUS_LO        .EQU    0x010A                  ; start cluster: low word
+FAT32$DE_CLUS_HI        .EQU    0x010B                  ; start cluster: high word
 
-FAT32$DE_STRUCT_SIZE    .EQU    0x010A                  ; size (words) of the directory entry data structure of the
+FAT32$DE_STRUCT_SIZE    .EQU    0x010C                  ; size (words) of the directory entry data structure of the
 
 ; DISPLAY FLAGS FOR FILE ENTRY PRETTY PRINTER
 
