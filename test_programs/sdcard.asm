@@ -1309,6 +1309,19 @@ _F32_DLST_SBL5  ADD     1, R6                       ; one more char is read
                 RBRA    _F32_DLST_SBL1, !N          ; one more to go?
                 MOVE    0, @R5                      ; add zero terminator
 
+                ; short name: if there is no file extension (i.e. the original
+                ; characters 9, 10, 11 were 0x0020), we now have a 8.3 name
+                ; that ends with a "." due to how the above mentioned logic
+                ; works: it always adds a "." after the 8th character;
+                ; as in 8.3 names no "." is allowed in a regular filename,
+                ; it is safe to say in such a case: if the last character is
+                ; a "." then delete this last character
+                MOVE    R5, R8                      ; points to zero term.
+                CMP     @--R8, '.'                  ; ends with a "."?
+                RBRA    _F32_DLST_VITAL, !Z         ; no: go on
+                MOVE    0, @R8                      ; yes: delete by adding a
+                                                    ; new zero terminator
+
                 ; short name and long name: retrieve all the vital info:
                 ; file size, last write timestamp, start cluster
 _F32_DLST_VITAL NOP      ; @TODO test corrupt directories
@@ -1408,7 +1421,7 @@ _F32_DLST_END   DECRB                               ; restore R8, R9, R12
 ;* directories like "dir1/dir2/dir3/dir4". Any non-zero separator char
 ;* can be used. It is important to pass a separator char, even if you do not
 ;* plan to pass nested directories. If in doubt, just pass 0x002F, which is
-;* the ASCII code for / (passing 0x0000 leads to 0x002F being used).
+;* the ASCII code for / (passing 0x0000 also leads to 0x002F being used).
 ;*
 ;* A separator char as the very first char (e.g. "/dir1/dir2") means, that
 ;* we start searching from the root directory. No separator char at the
@@ -1445,62 +1458,52 @@ _F32_CD_1       CMP     @R1, R10
                 ADD     1, R1                   ; skip first character
                 RSUB    _F32_CDROOT, 1          ; change to root
 
-                HALT ; @TODO: skip first char does not work like this,
-                     ; because of the way how the memory is organized:
-                     ; we need to copy the whole string one to the left
-                     ; while not reducing the size (as it still needs the
-                     ; same amount of memory on the stack); we just have
-                     ; a double zero-terminated string after the operation
-
-                ; split the path into segments
+                ; split the path into segments and build an outer loop
+                ; around the next section (_F32_CD_NXSG) that iteratively
+                ; dives into the full path consisting of the split segments
 _F32_CD_2       MOVE    R1, R8
                 MOVE    R10, R9
                 RSUB    SPLIT, 1
                 MOVE    R9, R2                  ; R2 = stack pointer restore
                 CMP     R8, 0
-                RBRA    _F32_CD_END, Z          ; path is empty: end
+                RBRA    _F32_CD_ENDNR, Z        ; path is empty: end
                 MOVE    R8, R3                  ; R3 = amount of segments
                 MOVE    SP, R4                  ; R4 = current path segment
 
-                        MOVE R8, R7
-                        MOVE R4, R8
-                        SYSCALL(puts, 1)
-                        SYSCALL(crlf, 1)
-                        MOVE R7, R8                
+                ; reserve memory for the directory handle (FDH) and for the
+                ; directory entry handle (DE) on the stack
+                SUB     FAT32$FDH_STRUCT_SIZE, SP
+                MOVE    SP, R5                  ; R5 = directory handle
+                SUB     FAT32$DE_STRUCT_SIZE, SP
+                MOVE    SP, R6                  ; R6 = directory entry handle
 
                 ; change directory into current path segment:
                 ; 1. open directory, create directory handle
-                ; 2. browse directory entries
-                ; 3. compare directory name (case insensitive)
-                ; 4. use start cluster as new AD entry
-_F32_CD_NXSG    ADD     1, R4                   ; skip length information
-                SUB     FAT32$FDH_STRUCT_SIZE, SP
-                MOVE    SP, R5                  ; R5 = directory handle
-                MOVE    R5, R9
-                MOVE    R0, R8
-                RSUB    FAT32$DIR_OPEN, 1
+                ; 2. browse directory entries to find the current path segm.:
+                ;    a) check for entries that are of type FAT32$FA_DIR 
+                ;    b) compare directory name (case insensitive)
+                ; 4. use start cluster of found entry as new AD entry
+_F32_CD_NXSG    ADD     1, R4                   ; skip length info of path
+                MOVE    R0, R8                  ; R8 = R0 = device handle
+                MOVE    R5, R9                  ; R9 = R5 = directory handle
+                RSUB    FAT32$DIR_OPEN, 1       ; open directory for browsing
                 CMP     R9, 0                   ; errors?
-                RBRA    _F32_CD_NXSG2, !Z       ; no errors
-                ADD     FAT32$FDH_STRUCT_SIZE, SP
-                RBRA    _F32_CD_END, 1          ; return error
-_F32_CD_NXSG2   SUB     FAT32$DE_STRUCT_SIZE, SP
-                MOVE    SP, R6                  ; R6 = directory entry handle
-_F32_CD_LNX     MOVE    R5, R8
-                MOVE    R6, R9
-                MOVE    FAT32$FA_ALL, R10       ; browse everything
-                RSUB    FAT32$DIR_LIST, 1
+                RBRA    _F32_CD_ENDWR, !Z       ; return error in R9
+
+_F32_CD_LNX     MOVE    R5, R8                  ; R8 = R5 = directory handle
+                MOVE    R6, R9                  ; R9 = R6 = dir. entry handle
+                MOVE    FAT32$FA_ALL, R10       ; flags: "browse everything"
+                RSUB    FAT32$DIR_LIST, 1       ; browse next entry
                 CMP     R11, 0                  ; errors?
                 RBRA    _F32_CD_NXSG3, Z        ; no errors
                 MOVE    R11, R9
-_F32_CD_RETERR  ADD     FAT32$FDH_STRUCT_SIZE, SP
-                ADD     FAT32$DE_STRUCT_SIZE, SP
-                RBRA    _F32_CD_END, 1          ; return error
+                RBRA    _F32_CD_ENDWR, 1        ; return error
 _F32_CD_NXSG3   CMP     R10, 0                  ; directory not found
                 RBRA    _F32_CD_NXSG4, !Z       ; we can go on
                 RSUB    _F32_CDROOT, 1          ; error: back to root
                 MOVE    FAT32$ERR_DIRNOTFOUND, R9
-                RBRA    _F32_CD_RETERR, 1       ; return error
-_F32_CD_NXSG4   MOVE    R6, R7
+                RBRA    _F32_CD_ENDWR, 1        ; return error
+_F32_CD_NXSG4   MOVE    R6, R7                  ; check if DE is a directory
                 ADD     FAT32$DE_ATTRIB, R7
                 MOVE    @R7, R7
                 AND     FAT32$FA_DIR, R7
@@ -1510,18 +1513,12 @@ _F32_CD_NXSG4   MOVE    R6, R7
                 MOVE    R7, R8
                 SYSCALL(str2upper, 1)           ; dir. entry name uppercase
                 MOVE    R4, R8
-
-                    SYSCALL(puts, 1)
-                    SYSCALL(crlf, 1)
-
                 SYSCALL(str2upper, 1)           ; current path segm. uppercase
                 MOVE    R7, R9
-                SYSCALL(strcmp, 1)
+                SYSCALL(strcmp, 1)              ; compare DE with current path
                 CMP     R10, 0
                 RBRA    _F32_CD_LNX, !Z         ; no match: try next DE
-                MOVE    R5, R8                  ; R8 = directory handle
-                RBRA    _F32_CD_LNX, 1          ; try next entry
-                MOVE    R6, R7
+                MOVE    R6, R7                  ; match! set AD to new cluster
                 ADD     FAT32$DE_CLUS_LO, R7
                 MOVE    R0, R8
                 ADD     FAT32$DEV_AD_1STCLUS_LO, R8
@@ -1532,18 +1529,23 @@ _F32_CD_NXSG4   MOVE    R6, R7
                 ADD     FAT32$DEV_AD_1STCLUS_HI, R8
                 MOVE    @R7, @R8                ; perform the actual CD (high)
 
-                ; restore SP
-                ADD     FAT32$FDH_STRUCT_SIZE, SP
-                ADD     FAT32$DE_STRUCT_SIZE, SP
+                MOVE    0, R9                   ; operation was successful
 
                 ; loop if there is another segment left
                 SUB     1, R3                   ; one less path segment
-                RBRA    _F32_CD_END, Z          ; end if no more path segmts.
-                SUB     1, R4                   ; restore length information
-                ADD     @R4, R4                 ; next string segment
-                RBRA    _F32_CD_NXSG, 1
+                RBRA    _F32_CD_ENDWR, Z        ; end if no more path segmts.
+                ADD     @--R4, R4               ; R4 was incremented to skip..
+                                                ; ..the length information, ..
+                                                ; ..so we need to predecr. ..
+                                                ; ..and then increase the ..
+                                                ; ..pointer to the next segm.                                                
+                RBRA    _F32_CD_NXSG, 1         ; process next path segment
 
-_F32_CD_END     ADD     R2, SP                  ; restore stack pointer
+                ; restore SP
+_F32_CD_ENDWR   ADD     FAT32$FDH_STRUCT_SIZE, SP
+                ADD     FAT32$DE_STRUCT_SIZE, SP
+
+_F32_CD_ENDNR   ADD     R2, SP                  ; restore stack pointer
 
                 DECRB
                 RET
