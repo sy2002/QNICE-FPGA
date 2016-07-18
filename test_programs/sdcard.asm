@@ -128,8 +128,12 @@ MNT_SD          MOVE    STR_MNT_TILE, R8        ; print testcase title
 
                 SYSCALL(crlf, 1)
 
-                ; change the directory
-                MOVE    STR_ENTER_DIR, R8
+                MOVE    STR_INTERACTIVE, R8
+                SYSCALL(puts, 1)
+                SYSCALL(crlf, 1)
+                
+                ; show prompt and read command
+NEW_PROMPT      MOVE    STR_PROMPT, R8
                 SYSCALL(puts, 1)
                 MOVE    STRBUF, R0                
 INPUT_LOOP      SYSCALL(getc, 1)
@@ -142,21 +146,82 @@ INPUT_LOOP      SYSCALL(getc, 1)
                 RBRA    INPUT_LOOP, 1
 INPUT_END       MOVE    0, @R0                  ; add zero terminator
                 SYSCALL(crlf, 1)
-                MOVE    DEVICE_HANDLE, R8
+
+                ; separate command from the rest of the string
+                MOVE    STRBUF, R8
+                MOVE    ' ', R9
+                RSUB    SPLIT, 1
+                MOVE    R9, R0                  ; R0 = restore stack offset
+                MOVE    SP, R1                  ; R1 = string array
+
+                CMP     R8, 0                   ; nothing entered
+                RBRA    INPUT_NP, Z
+
+                MOVE    R1, R8                  ; command array
+                ADD     1, R8                   ; skip size
+                SYSCALL(str2upper, 1)           ; command string to upper case
+
+                ; check for "dir" command
+                MOVE    STR_IB_DIR, R9
+                SYSCALL(strcmp, 1)
+                CMP     R10, 0                  ; dir command?
+                RBRA    INPUT_N1, !Z            ; no: try next
+                RSUB    DIR, 1                  ; yes: perform dir command
+                RBRA    INPUT_NP, 1             ; new prompt
+
+                ; check for "cd" command
+INPUT_N1        MOVE    STR_IB_CD, R9
+                SYSCALL(strcmp, 1)
+                CMP     R10, 0                  ; cd command?
+                RBRA    INPUT_N2, !Z            ; no: try next                
+                MOVE    DEVICE_HANDLE, R8       ; yes: peform cd command
                 MOVE    STRBUF, R9
+                ADD     3, R9                   ; skip 3 chars ("cd ")
+                MOVE    R9, R7                  ; remember path
                 XOR     R10, R10
                 RSUB    FAT32$CD, 1             ; change directory
                 MOVE    R9, R8
-                RSUB    ERR_CHECK, 1
-        
-                ; list current directory                
-                RSUB    DIR, 1
+                CMP     R8, FAT32$ERR_DIRNOTFOUND ; path not found?
+                RBRA    _INPUTN1EC, !Z          ; other error or no error
+                MOVE    STR_IB_CD_ERR, R8       ; error msg and new prompt
+                SYSCALL(puts, 1)
+                MOVE    R7, R8
+                SYSCALL(puts, 1)
+                SYSCALL(crlf, 1)
+                RBRA    INPUT_NP, 1             
+_INPUTN1EC      RSUB    ERR_CHECK, 1
+                RBRA    INPUT_NP, 1             ; new prompt
 
+                ; check for "exit" command
+INPUT_N2        MOVE    STR_IB_EXIT, R9
+                SYSCALL(strcmp, 1)
+                CMP     R10, 0                  ; exit command?
+                RBRA    INPUT_ERR, !Z           ; no: error
+                ADD     R0, SP                  ; yes: restore stack and exit
                 RBRA    END_PROGRAM, 1
+
+INPUT_ERR       MOVE    R8, R7
+                MOVE    STR_REGCHK_ER, R8
+                SYSCALL(puts, 1)
+                MOVE    R7, R8
+                SYSCALL(puts, 1)
+                SYSCALL(crlf, 1)
+                RBRA    INPUT_NP, 1
+
+INPUT_NP        ADD     R0, SP                  ; restore stack
+                RBRA    NEW_PROMPT, 1           ; new prompt
+
+
 
 ;=============================================================================
 ; List current directory and use the settings stored in
 ; DIR_FLAGS and PRINT_FLAGS
+;
+; WARNING: In case of a fatal exit via ERR_CHECK, this leads to stack leaks
+; (This does not matter here, because this function is not part of the
+; reusable functions. It is just one of the test case functions that is
+; testing the resubale functions. The reusable functions themselves are of
+; course cleaning up the stack, also on error.)
 ;=============================================================================
 
 DIR             INCRB
@@ -164,6 +229,8 @@ DIR             INCRB
                 MOVE    R9, R1
                 MOVE    R10, R2
                 INCRB
+
+                XOR     R4, R4                  ; file counter = 0
 
                 MOVE    DEVICE_HANDLE, R8       ; open directory for browsing
                 SUB     FAT32$FDH_STRUCT_SIZE, SP
@@ -184,14 +251,35 @@ NEXT_DIR_ENT    MOVE    R0, R8
                 MOVE    R11, R8
                 RSUB    ERR_CHECK, 1
                 CMP     R10, 1                  ; current entry valid?
-                RBRA    END_PROGRAM, !Z         ; no: end
+                RBRA    DIR_DONE, !Z            ; no: end
 
                 MOVE    R1, R8                  ; yes: print entry
                 MOVE    PRINT_FLAGS, R9
                 MOVE    @R9, R9
                 RSUB    FAT32$PRINT_DE, 1
 
+                ADD     1, R4                   ; increase file counter
+                                                ; also includes "." and ".."
+
                 RBRA    NEXT_DIR_ENT, 1         ; next entry
+
+DIR_DONE        XOR     R9, R9                  ; print file counter (decimal)
+                MOVE    R4, R8
+                SUB     11, SP
+                MOVE    SP, R10
+                RSUB    H2D_ASCII, 1
+                MOVE    R11, R8
+                SYSCALL(puts, 1)
+                MOVE    STR_IB_DIR_SUM, R8       
+                SYSCALL(puts, 1)
+                SYSCALL(crlf, 1)
+                ADD     11, SP
+
+                ; restore stack
+                ; (does not happen in case of fatal error, i.e. in such a
+                ; a case we have a stack leak and return to the monitor)
+                ADD     FAT32$FDH_STRUCT_SIZE, SP
+                ADD     FAT32$DE_STRUCT_SIZE, SP
 
                 DECRB
                 MOVE    R0, R8
@@ -201,7 +289,7 @@ NEXT_DIR_ENT    MOVE    R0, R8
                 RET
 
 ;=============================================================================
-; Interactive register dump
+; Interactive dump of linear SD Card addresses
 ;=============================================================================
 
                 ; allow interactive dumps of arbitrary addresses
@@ -389,7 +477,13 @@ STR_MNT_CLSSTRT .ASCII_W "    clusters start address (LBA): "
 STR_MNT_SPC     .ASCII_W "    sectors per cluster: "
 STR_MNT_ROOT    .ASCII_W "    root directory first cluster (LBA): "
 STR_MNT_ACTIVE  .ASCII_W "    active directory first cluster (LBA): "
-STR_ENTER_DIR   .ASCII_W "Enter path (use / as delimiter): "
+STR_INTERACTIVE .ASCII_W "Interactive browing mode: use cd (use / as a path separator), dir or exit\n"
+STR_PROMPT      .ASCII_W "SDCARD> "
+STR_IB_DIR      .ASCII_W "DIR"
+STR_IB_DIR_SUM  .ASCII_W " files and directories found."
+STR_IB_CD       .ASCII_W "CD"
+STR_IB_CD_ERR   .ASCII_W "Path not found: "
+STR_IB_EXIT     .ASCII_W "EXIT"
 
 ;=============================================================================
 ;=============================================================================
@@ -1529,7 +1623,27 @@ _F32_CD_NXSG4   MOVE    R6, R7                  ; check if DE is a directory
                 ADD     FAT32$DEV_AD_1STCLUS_HI, R8
                 MOVE    @R7, @R8                ; perform the actual CD (high)
 
-                MOVE    0, R9                   ; operation was successful
+                ; there is a speciality in the FAT32 specification:
+                ; in case of a ".." that points to root, FAT32$DE_CLUS_LO
+                ; and FAT32$DE_CLUS_HI will be zero (i.e. illegal); therefore
+                ; we need to handle this special case
+                CMP     @R7, 0                  ; FAT32$DE_CLUS_HI = 0?
+                RBRA    _F32_CD_SUCCESS, !Z     ; no: go on
+                MOVE    R6, R7
+                ADD     FAT32$DE_CLUS_LO, R7
+                CMP     @R7, 0                  ; FAT32$DE_CLUS_LO = 0?
+                RBRA    _F32_CD_SUCCESS, !Z     ; no: go on
+                MOVE    R6, R7
+                ADD     FAT32$DE_NAME, R7
+                CMP     @R7++, '.'              ; first "." of ".."?
+                RBRA    _F32_CD_SUCCESS, !Z     ; no: go on
+                CMP     @R7, '.'                ; second "." of ".."?
+                RBRA    _F32_CD_SUCCESS, !Z     ; no: go on
+                MOVE    R6, R9                  ; yes: cd to root, then go on
+                RSUB    _F32_CDROOT, 1
+                MOVE    R9, R6
+
+_F32_CD_SUCCESS MOVE    0, R9                   ; operation was successful
 
                 ; loop if there is another segment left
                 SUB     1, R3                   ; one less path segment
