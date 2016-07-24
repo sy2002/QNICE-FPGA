@@ -79,7 +79,7 @@ MAIN_MRR        SYSCALL(getc, 1)
                 RBRA    MAIN_MRR, 1
 
 ;=============================================================================
-; Mount partition 1 as FAT32 and perform various tests
+; Mount partition 1 as FAT32, perform various tests and enter interactive mode
 ;=============================================================================                
 
 MNT_SD          MOVE    STR_MNT_TILE, R8        ; print testcase title
@@ -173,8 +173,10 @@ INPUT_END       MOVE    0, @R0                  ; add zero terminator
 INPUT_N1        MOVE    STR_IB_CD, R9
                 SYSCALL(strcmp, 1)
                 CMP     R10, 0                  ; cd command?
-                RBRA    INPUT_N2, !Z            ; no: try next                
-                MOVE    DEVICE_HANDLE, R8       ; yes: peform cd command
+                RBRA    INPUT_N2, !Z            ; no: try next
+                MOVE    2, R5                   ; lengh of command "CD"                
+                RSUB    _INPUT_CHKPAR, 1        ; check for parameter                
+                MOVE    DEVICE_HANDLE, R8       ; device handle for cd command
                 MOVE    STRBUF, R9
                 ADD     3, R9                   ; skip 3 chars ("cd ")
                 MOVE    R9, R7                  ; remember path
@@ -196,9 +198,65 @@ _INPUTN1EC      RSUB    ERR_CHECK, 1
 INPUT_N2        MOVE    STR_IB_EXIT, R9
                 SYSCALL(strcmp, 1)
                 CMP     R10, 0                  ; exit command?
-                RBRA    INPUT_ERR, !Z           ; no: error
+                RBRA    INPUT_N3, !Z            ; no: try next
                 ADD     R0, SP                  ; yes: restore stack and exit
                 RBRA    END_PROGRAM, 1
+
+                ; check for "cat" command
+INPUT_N3        MOVE    STR_IB_CAT, R9
+                SYSCALL(strcmp, 1)
+                CMP     R10, 0                  ; cat command?
+                RBRA    INPUT_N4, !Z            ; no: try next
+                MOVE    3, R5                   ; lengh of command "CAT"    
+                RSUB    _INPUT_CHKPAR, 1        ; check for parameter                                
+                MOVE    STRBUF, R8
+                ADD     4, R8                   ; skip 4 chars ("cat ")
+                XOR     R9, R9                  ; CAT mode = ASCII
+_DOCAT          XOR     R10, R10                ; default: no seek
+                XOR     R11, R11
+                MOVE    R8, R7                  ; look for seek position
+_DOCAT_SEARCHSP CMP     @R7, 0                  ; end of string?
+                RBRA    _DOCAT_START, Z
+                CMP     @R7++, ':'              ; seek position separator?
+                RBRA    _DOCAT_READSP, Z        ; yes: read seek pos
+                RBRA    _DOCAT_SEARCHSP, 1
+_DOCAT_READSP   MOVE    R7, R10
+                RSUB    _INPUT_READHEX, 1
+                MOVE    0, @--R7                ; delete : using zero term.
+_DOCAT_START    MOVE    R8, R7                  ; remember filename
+                RSUB    CAT, 1                  ; yes: perform the command
+                CMP     R8, FAT32$ERR_FILENOTFOUND ; file not found?
+                RBRA    _INPUTN3SE, !Z          ; other error or no error
+                MOVE    STR_IB_FNF_ERR, R8
+                SYSCALL(puts, 1)
+                MOVE    R7, R8
+                SYSCALL(puts, 1)
+                SYSCALL(crlf, 1)                
+                RBRA    INPUT_NP, 1
+_INPUTN3SE      CMP     R8, FAT23$ERR_SEEKTOOLARGE ; seek pos > file size?
+                RBRA    _INPUTN3EC, !Z          ; other error or no error
+                MOVE    STR_IB_SEEK_ERR, R8
+                SYSCALL(puts, 1)
+                MOVE    R11, R8
+                SYSCALL(puthex, 1)
+                MOVE    R10, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+                RBRA    INPUT_NP, 1
+_INPUTN3EC      RSUB    ERR_CHECK, 1
+                RBRA    INPUT_NP, 1             ; new prompt
+
+                ; check for "cathex" command
+INPUT_N4        MOVE    STR_IB_CATHEX, R9
+                SYSCALL(strcmp, 1)
+                CMP     R10, 0                  ; cathex command?
+                RBRA    INPUT_ERR, !Z           ; no: error
+                MOVE    6, R5                   ; lengh of command "CATHEX"
+                RSUB    _INPUT_CHKPAR, 1        ; check for parameter                                                
+                MOVE    STRBUF, R8
+                ADD     7, R8                   ; skip 7 chars ("cathex ")
+                MOVE    1, R9                   ; CAT mode = HEX
+                RBRA    _DOCAT, 1
 
 INPUT_ERR       MOVE    R8, R7
                 MOVE    STR_REGCHK_ER, R8
@@ -211,7 +269,194 @@ INPUT_ERR       MOVE    R8, R7
 INPUT_NP        ADD     R0, SP                  ; restore stack
                 RBRA    NEW_PROMPT, 1           ; new prompt
 
+                ; parameter check sub-sub routine
+                ; R5 contains length of command
+                ; R9 contains name of command
+                ; on error: skip command and next prompt
+_INPUT_CHKPAR   MOVE    STRBUF, R6
+                ADD     R5, R6
+                CMP     ' ', @R6
+                RBRA    _INPUT_CHKERR, !Z
+                ADD     1, R6
+                CMP     0, @R6
+                RBRA    _INPUT_CHKERR, Z
+                RET                             ; parameter OK: return                
+_INPUT_CHKERR   MOVE    STR_IB_NOPAR, R8
+                SYSCALL(puts, 1)
+                MOVE    R9, R8
+                SYSCALL(puts, 1)
+                SYSCALL(crlf, 1)
+                SUB     1, SP                   ; avoid stack leak because ...
+                RBRA    INPUT_NP, 1             ; ... we leave w/o RET
 
+                ; hex read sub-sub routine
+                ; INPUT:  R10 = string to be converted
+                ; OUTPUT: R11|R10 = 32bit HI|LO value
+                ; on error: skip command and next prompt
+_INPUT_READHEX  INCRB
+
+                MOVE    R10, R0                 ; R0 = input string
+                XOR     R10, R10                ; return value low word
+                XOR     R11, R11                ; return value high word
+
+                MOVE    R8, R6                  ; save R8 & R9
+                MOVE    R9, R7
+
+                MOVE    R0, R8                  ; all chars upper case
+                SYSCALL(str2upper, 1)
+
+                MOVE    R0, R5                  ; R5 = work pointer
+                MOVE    0, R1                   ; 8 digits = 32bit
+                MOVE    12, R2                   ; SHL counter
+                XOR     R3, R3                  ; temp LO word
+                XOR     R4, R4                  ; temp HI word
+                MOVE    _INPUT_RHX_NIB, R9      ; R9 = hex nibbles
+
+_INPUT_RHX_LP   MOVE    @R5++, R8
+                CMP     R8, 0                   ; zero term. too early?
+                RBRA    _INPUT_RHX_ERR, Z       ; yes: error
+                SYSCALL(strchr, 1)              ; find hex niblle
+                CMP     R10, 0
+                RBRA    _INPUT_RHX_ERR, Z       ; not found: error
+                SUB     R9, R10                 ; extract digit
+                SHL     R2, R10                 ; correct position for nibble
+                SUB     4, R2                   ; next time: one nibble less
+                CMP     R1, 3
+                RBRA    _INPUT_RHX_HI, !N       ; R1 <= 3: HI (walk form left)
+                ADD     R10, R3                 ; store to LO word
+                RBRA    _INPUT_RHX_INC, 1
+_INPUT_RHX_HI   ADD     R10, R4                 ; store to HI word
+_INPUT_RHX_INC  ADD     1, R1                   ; next nibble
+                CMP     8, R1                   ; done?
+                RBRA    _INPUT_RHX_DONE, Z      ; yes
+                CMP     4, R1                   ; reset SHL counter?
+                RBRA    _INPUT_RHX_LP, !Z       ; no: loop
+                MOVE    12, R2                  ; yes: reset SHL counter ...
+                RBRA    _INPUT_RHX_LP, 1        ; ... and loop
+
+_INPUT_RHX_DONE MOVE    R6, R8                  ; restore R8 & R9
+                MOVE    R7, R9
+
+                MOVE    R3, R10                 ; return value LO
+                MOVE    R4, R11                 ; return value HI
+
+                DECRB
+                RET
+
+_INPUT_RHX_NIB  .ASCII_W "0123456789ABCDEF"                
+
+_INPUT_RHX_ERR  MOVE    STR_IB_HEX_ERR, R8
+                SYSCALL(puts, 1)
+                MOVE    R0, R8
+                SYSCALL(puts, 1)
+                SYSCALL(crlf, 1)                
+                DECRB
+                SUB     1, SP                   ; avoid stack leak because ...
+                RBRA    INPUT_NP, 1             ; ... we leave w/o RET
+
+;=============================================================================
+; Lists the contents of a file
+; INPUT:  R8  = filename string
+;         R9  = mode: 0 = ASCII, 1 = HEX
+;         R10 = LO seek position 
+;         R11 = HI seek position
+; OUTPUT: R8 is 0, if everything is OK, otherwise R8 = error code
+;=============================================================================
+
+CAT             INCRB
+
+                MOVE    R10, R0                     ; R1|R0 = HI|LO seek pos
+                MOVE    R11, R1
+
+                MOVE    R9, R5                      ; R5 = mode selector
+                XOR     R4, R4                      ; R4 = count hex per line
+
+                MOVE    R8, R10                     ; R10 = filename string
+                MOVE    DEVICE_HANDLE, R8           ; R8 = device handle
+                SUB     FAT32$FDH_STRUCT_SIZE, SP
+                MOVE    SP, R9                      ; R9 = file handle
+                XOR     R11, R11                    ; R11 = 0 => / sep.char
+                RSUB    FAT32$FILE_OPEN, 1
+                MOVE    R10, R8                     ; return error code
+                RBRA    _CAT_RET, !Z                ; return if error
+
+                MOVE    R9, R8                      ; R8 = file handle
+                XOR     R6, R6                      ; R6 = CR/LF detector
+
+                ; perform seek
+                ; (the seek function is smart enough not to seek, if 0 is
+                ; is passed as the seek position)
+                MOVE    R9, @--SP                   ; save R9 & R10
+                MOVE    R10, @--SP
+
+                MOVE    R0, R9                      ; R10|R9 = seek pos
+                MOVE    R1, R10
+                RSUB    FAT32$FILE_SEEK, 1          ; perform seek
+                CMP     R9, 0                       ; error?
+                RBRA    _CAT_SEEKOK, Z              ; no
+                MOVE    R9, R8                      ; yes: exit with error
+                MOVE    @SP++, R10                  ; restore R9 & 10
+                MOVE    @SP++, R9
+                RBRA    _CAT_RET, 1                 ; exit with error
+
+_CAT_SEEKOK     MOVE    @SP++, R10                  ; restore R9 & R10
+                MOVE    @SP++, R9
+
+                ; simple loop to print everything until EOF is reached
+_CAT_LOOP       RSUB    FAT32$FILE_RB, 1            ; read byte
+                CMP     R10, FAT32$EOF              ; EOF reached?
+                RBRA    _CAT_EOF, Z                 ; yes: print crlf and exit
+                CMP     R10, 0                      ; another error?
+                RBRA    _CAT_PRINT, Z               ; no: go on
+                MOVE    R10, R8                     ; yes: return error
+                RBRA    _CAT_RET, 1
+
+_CAT_PRINT      CMP     R5, 0                       ; print ASCII?
+                RBRA    _CAT_PRINT_A, Z             ; yes
+                CMP     R4, 16                      ; no: check hex counter
+                RBRA    _CAT_PRINT_H, !Z            ; print hex word
+                SYSCALL(crlf, 1)                    ; new line
+                XOR     R4, R4                      ; reset hex counter                
+_CAT_PRINT_H    MOVE    R8, R7
+                MOVE    R9, R8
+                SYSCALL(puthex, 1)                  ; print hex word
+                MOVE    STR_SPACE1, R8
+                SYSCALL(puts, 1)
+                ADD     1, R4                       ; increase hex counter
+                MOVE    R7, R8
+                RBRA    _CAT_LOOP, 1
+
+                ; support LF only CR only and CR/LF line ends
+_CAT_PRINT_A    CMP     R9, CHR$CR                  ; CR?
+                RBRA    _CAT_PT_CR, Z               ; yes
+                CMP     R9, CHR$LF                  ; LF?
+                RBRA    _CAT_PT_LF, Z               ; yes
+
+                MOVE    R8, R7                      ; no: print character
+                MOVE    R9, R8                
+                SYSCALL(putc, 1)
+                MOVE    R7, R8
+                RBRA    _CAT_LOOP, 1                ; next byte
+
+_CAT_PT_CR      SYSCALL(crlf, 1)                    ; next line
+                MOVE    1, R6                       ; CR/LF detector ON
+                RBRA    _CAT_LOOP, 1
+_CAT_PT_LF      CMP     1, R6                       ; CR/LF?
+                RBRA    _CAT_PT_LFI, Z              ; yes: ignore LF
+                SYSCALL(crlf, 1)                    ; no: do the LF                
+                RBRA    _CAT_LOOP, 1
+_CAT_PT_LFI     XOR     R6, R6                      ; CR/LF OFF
+                RBRA    _CAT_LOOP, 1
+
+_CAT_EOF        SYSCALL(crlf, 1)
+                MOVE    0, R8
+
+_CAT_RET        ADD     FAT32$FDH_STRUCT_SIZE, SP   ; restore stack
+                MOVE    R5, R9                      ; restore R9               
+                MOVE    R0, R10                     ; restore R10 & R11
+                MOVE    R1, R11 
+                DECRB
+                RET
 
 ;=============================================================================
 ; List current directory and use the settings stored in
@@ -477,13 +722,25 @@ STR_MNT_CLSSTRT .ASCII_W "    clusters start address (LBA): "
 STR_MNT_SPC     .ASCII_W "    sectors per cluster: "
 STR_MNT_ROOT    .ASCII_W "    root directory first cluster (LBA): "
 STR_MNT_ACTIVE  .ASCII_W "    active directory first cluster (LBA): "
-STR_INTERACTIVE .ASCII_W "Interactive browing mode: use cd (use / as a path separator), dir or exit\n"
+STR_INTERACTIVE .ASCII_P "Interactive browing mode:\n"
+                .ASCII_P "    navigate: dir and cd <path> (use / as a path separator)\n"
+                .ASCII_P "    list files (complex names are allowed, use / as path separator):\n"
+                .ASCII_P "        cat <filename> and cathex <filename>\n"
+                .ASCII_P "        for seeking within the file, add a 32bit hex number (8 digits)\n"
+                .ASCII_P "        separated by a : after the filename, e.g. <filename>:00000000\n"
+                .ASCII_W "    end interactive browsing mode using exit\n"
 STR_PROMPT      .ASCII_W "SDCARD> "
 STR_IB_DIR      .ASCII_W "DIR"
 STR_IB_DIR_SUM  .ASCII_W " files and directories found."
 STR_IB_CD       .ASCII_W "CD"
 STR_IB_CD_ERR   .ASCII_W "Path not found: "
 STR_IB_EXIT     .ASCII_W "EXIT"
+STR_IB_CAT      .ASCII_W "CAT"
+STR_IB_CATHEX   .ASCII_W "CATHEX"
+STR_IB_FNF_ERR  .ASCII_W "File not found: "
+STR_IB_NOPAR    .ASCII_W "Parameter missing for command: "
+STR_IB_HEX_ERR  .ASCII_W "Illegal 32bit hex number for seek position: "
+STR_IB_SEEK_ERR .ASCII_W "Seek position larger than file size: "
 
 ;=============================================================================
 ;=============================================================================
@@ -562,7 +819,7 @@ FAT32$PRINT_DE_TIME     .ASCII_W ":"
 
 ;
 ;*****************************************************************************
-;* SD$RESET resets the SD Card.
+;* SD$RESET resets the SD Card
 ;*
 ;* R8: 0, if everything went OK, otherwise the error code
 ;*****************************************************************************
@@ -575,7 +832,7 @@ SD$RESET        INCRB
                 RET
 ;
 ;*****************************************************************************
-;* SD$READ_BLOCK reads a 512 byte block from the SD Card. 
+;* SD$READ_BLOCK reads a 512 byte block from the SD Card
 ;*
 ;* INPUT:  R8/R9 = LO/HI words of the 32-bit read address
 ;* OUTPUT: R8 = 0 (no error), or error code
@@ -607,7 +864,7 @@ _SD$RB_END      DECRB
                 RET
 ;
 ;*****************************************************************************
-;* SD$WRITE_BLOCK writes a 512 byte block to the SD Card.
+;* SD$WRITE_BLOCK writes a 512 byte block to the SD Card
 ;*
 ;* @TODO: Implement and document
 ;*****************************************************************************
@@ -617,7 +874,7 @@ SD$WRITE_BLOCK  INCRB
                 RET
 ;
 ;*****************************************************************************
-;* SD$READ_BYTE reads a byte from the read buffer memory of the controller.
+;* SD$READ_BYTE reads a byte from the read buffer memory of the controller
 ;*
 ;* INPUT:  R8 = address between 0 .. 511
 ;* OUTPUT: R8 = byte
@@ -636,7 +893,7 @@ SD$READ_BYTE    INCRB
                 RET
 ;
 ;*****************************************************************************
-;* SD$WRITE_BYTE writes a byte to the write memory buffer of the controller.
+;* SD$WRITE_BYTE writes a byte to the write memory buffer of the controller
 ;*
 ;* @TODO: Implement and document
 ;*****************************************************************************
@@ -646,7 +903,7 @@ SD$WRITE_BYTE   INCRB
                 RET
 ;
 ;*****************************************************************************
-;* SD$WAIT_BUSY waits, while the SD Card is executing any command.
+;* SD$WAIT_BUSY waits, while the SD Card is executing any command
 ;*
 ;* R8: 0, if everything went OK, otherwise the error code
 ;*
@@ -728,9 +985,9 @@ FAT32$MOUNT_SD  INCRB
 
                 DECRB
                 RET
-
+;
 ;*****************************************************************************
-;* FAT32$MOUNT mounts a FAT32 file system on arbitrary hardware.
+;* FAT32$MOUNT mounts a FAT32 file system on arbitrary hardware
 ;*
 ;* The abstraction requires 5 functions to be implemented: Read and write
 ;* a 512-byte-sized sector using LBA mode. Read and write a byte from within
@@ -1071,7 +1328,7 @@ FAT32$DIR_OPEN  INCRB
                 RET
 ;
 ;*****************************************************************************
-;* FAT32$DIR_LIST is used to browse the currently active directory.
+;* FAT32$DIR_LIST is used to browse the currently active directory
 ;*
 ;* This function is meant to be called iteratively to return one directory
 ;* entry after the other. It supports long filenames. The implementation
@@ -1509,6 +1766,242 @@ _F32_DLST_END   DECRB                               ; restore R8, R9, R12
                 RET
 ;
 ;*****************************************************************************
+;* FAT32$FILE_OPEN opens a file for reading or writing or both
+;*
+;* You can either pass a simple file name or a complex nested path where the
+;* last path segment is interpreted as a file name.
+;* Consult the documentation of FAT32$CD to learn more about the meaning and
+;* handling of the separator char.
+;*
+;* INPUT:  R8  points to a valid device handle
+;*         R9  points to an empty file handle struct that will be filled
+;*             (use FAT32$FDH_STRUCT_SIZE to reserve the memory)
+;*         R10 points to a zero terminated filename string (path)
+;*         R11 separator char (if zero, then "/" will be used)
+;* OUTPUT: R8  still points to the same handle
+;*         R9  points to the same address but this is now a valid/filled hndl
+;*         R10 0, if OK, otherwise error code
+;*****************************************************************************
+;
+FAT32$FILE_OPEN INCRB
+                
+                ; save original registers
+                MOVE    R9, R0                      ; R0 = file handle struct
+                MOVE    R11, R1
+
+                MOVE    R0, R11                     ; passing a non zero value
+                                                    ; means: operation mode
+                                                    ; is set to file open
+                MOVE    R10, R9                     ; R9: filename string
+                MOVE    R1, R10                     ; R10: separator char
+                RSUB    FAT32$CD_OR_OF, 1           ; open file
+                MOVE    R9, R10                     ; return OK or err. in R10
+                RBRA    _F32_FO_RET, !Z             ; leave on error
+
+                ; retrieve the first cluster of the file
+                MOVE    R0, R2
+                ADD     FAT32$FDH_CLUSTER_LO, R2
+                MOVE    @R2, R9                     ; R9 = cluster lo
+                MOVE    R0, R2
+                ADD     FAT32$FDH_CLUSTER_HI, R2
+                MOVE    @R2, R10                    ; R10 = cluster hi
+                XOR     R11, R11                    ; R11 = sector = 0
+
+                ; special case: if the first cluster is zero, than we
+                ; have a file of filesize zero; we can open it, and we can
+                ; write to it, but if we would try to read from it, we would
+                ; immediatelly get an EOF
+                CMP     R9, R11
+                RBRA    _F32_FO_READ, !Z
+                CMP     R10, R11
+                RBRA    _F32_FO_READ, !Z
+                MOVE    0, R10                      ; no errors
+                RBRA    _F32_FO_RET, 1              ; filesize is 0: return
+
+                ; filesize is > 0, so read the first 512 byte sector of the file into the
+                ; the internal buffer                
+_F32_FO_READ    RSUB    FAT32$READ_SIC, 1           ; read data
+                MOVE    R9, R10                     ; return OK or err. in R10
+
+_F32_FO_RET     MOVE    R0, R9                      ; restore org. registers
+                MOVE    R1, R11
+
+                DECRB
+                RET
+;
+;*****************************************************************************
+;* FAT32$FILE_RB reads one byte from an open file
+;*
+;* The read operation takes place at the current internal "seek position"
+;* within the file, i.e. subsequent calls to FILE_RB will result in reading
+;* byte per byte.
+;*
+;* INPUT:  R8  points to a valid file handle
+;* OUTPUT: R8  still points to the file handle
+;*         R9  low byte = currently read byte; high byte = 0
+;*         R10 0, if the read operation succeeded
+;*             FAT32$EOF, if the end of file has been reached; in this case
+;*                        the value of R9 is 0 (means "undefined" here)
+;*             any other error code in case of an error
+;*****************************************************************************
+;
+FAT32$FILE_RB   INCRB
+
+                ; check for eof by comparing the already read amount of bytes
+                ; with the filesize (we need to do this, because we cannot
+                ; rely on the FAT last cluster marker, because a file can be
+                ; obviously smaller than a cluster)
+                MOVE    R8, R0
+                ADD     FAT32$FDH_READ_LO, R0
+                MOVE    R8, R1
+                ADD     FAT32$FDH_SIZE_LO, R1
+                CMP     @R0, @R1
+                RBRA    _F32_FRB_START, !Z
+                MOVE    R8, R0
+                ADD     FAT32$FDH_READ_HI, R0
+                MOVE    R8, R1
+                ADD     FAT32$FDH_SIZE_HI, R1
+                CMP     @R0, @R1
+                RBRA    _F32_FRB_START, !Z
+                MOVE    FAT32$EOF, R10              ; return EOF
+                RBRA    _F32_FRB_RET, 1
+
+                ; follow the FAT cluster chain and adjust cluster/sector/index
+                ; within the handle, if necessary; that means that also
+                ; new sectors will be read, if necessary
+_F32_FRB_START  RSUB    FAT32$READ_FDH, 1
+                MOVE    R9, R10                     ; R10 is the return value
+                RBRA    _F32_FRB_RET, !Z            ; return on error
+
+                ; read the byte
+                MOVE    R8, R7                      ; save original R8
+                ADD     FAT32$FDH_DEVICE, R8
+                MOVE    @R8, R8                     ; retrieve device handle
+                MOVE    R7, R9
+                ADD     FAT32$FDH_INDEX, R9
+                MOVE    @R9, R9                     ; retrieve the read index
+                RSUB    FAT32$READ_B, 1             ; read one byte
+                MOVE    R7, R8                      ; restore original R8
+                MOVE    R10, R9                     ; R9 = read byte = retval
+                MOVE    0, R10                      ; R10 = 0 = no error
+
+                ; increase the index and the read size as we just successfully
+                ; did read read one byte
+                MOVE    R8, R0
+                ADD     FAT32$FDH_INDEX, R0
+                ADD     1, @R0                      ; increase index by 1
+                MOVE    R8, R0
+                ADD     FAT32$FDH_READ_LO, R0
+                MOVE    R8, R1
+                ADD     FAT32$FDH_READ_HI, R1
+                ADD     1, @R0                      ; 32bit add 1 to read size
+                ADDC    0, @R1
+
+_F32_FRB_RET    DECRB
+                RET
+;
+;*****************************************************************************
+;* FAT32$FILE_SEEK positions the read/write pointer within an open file
+;*
+;* INPUT:  R8  points to a valid file handle
+;*         R9  LO word of seek position
+;*         R10 HI word of seek position
+;* OUTPUT: R8  still points to file handle
+;*         R9  0, if OK, otherwise error code
+;*****************************************************************************
+;
+FAT32$FILE_SEEK INCRB
+
+                MOVE    R8, R0                      ; R0 = file handle
+                MOVE    R9, R1                      ; R2|R1 = HI|LO seek pos
+                MOVE    R10, R2
+                MOVE    R11, R3
+
+                ; if the seek position is zero, then skip the function
+                CMP     0, R1
+                RBRA    _F32_FS_CHKSIZ, !Z
+                CMP     0, R2
+                RBRA    _F32_FS_CHKSIZ, !Z
+                MOVE    0, R9                       ; no error
+                RBRA    _F32_FS_RET, 1
+
+                ; if the seek position is larger than the file size,
+                ; then skip the function;
+                ; the 32bit compare is done via a 32bit sub and then
+                ; checking for a negative result via the carry flag
+_F32_FS_CHKSIZ  MOVE    R0, R4
+                ADD     FAT32$FDH_SIZE_LO, R4
+                MOVE    @R4, R4                     ; file size LO
+                MOVE    R0, R5
+                ADD     FAT32$FDH_SIZE_HI, R5       ; file size HI
+                MOVE    @R5, R5
+                SUB     R1, R4
+                SUBC    R2, R5
+                RBRA    _F32_FS_START, !C           ; seekpos <= filesize
+                MOVE    FAT23$ERR_SEEKTOOLARGE, R9
+                RBRA    _F32_FS_RET, 1
+
+                ; 1. divide the 32bit seek position by 512
+                ; 2. push the index forward <quotient> times and then
+                ; 3. set the the new index to the <modulo>
+
+                ; divide the 32bit seek position by 512
+_F32_FS_START   MOVE    R1, R8                      ; R9|R8 = HI|LO dividend
+                MOVE    R2, R9
+                MOVE    FAT32$SECTOR_SIZE, R10      ; R11|R10 = HI|LO divisor
+                XOR     R11, R11
+                RSUB    DIVU32, 1
+
+                ; push the index forward R9|R8 = <quotient> times
+                ; pushing is done by setting the index to the sector size
+                ; (which is normally 512) and then using FAT32$READ_FDH
+                MOVE    R8, R4                      ; R5|R4 = HI|LO of the ..
+                MOVE    R9, R5                      ; 32bit amount to push
+
+_F32_FS_LOOP    CMP     R4, 0                       ; still anything to push?
+                RBRA    _F32_FS_IPUSH, !Z
+                CMP     R5, 0
+                RBRA    _F32_FS_IPUSH, !Z
+                RBRA    _F32_FS_INDEX, 1
+
+_F32_FS_IPUSH   SUB     1, R4                       ; 32bit sub 1 from R5|R4
+                SUBC    0, R5 
+                MOVE    R0, R6
+                ADD     FAT32$FDH_INDEX, R6
+                MOVE    FAT32$SECTOR_SIZE, @R6      ; set index to push mode
+                MOVE    R0, R8
+                RSUB    FAT32$READ_FDH, 1
+                CMP     0, R9                       ; error?
+                RBRA    _F32_FS_IPUSH2, Z           ; no: continue
+                RBRA    _F32_FS_RET, 1              ; yes: quit
+_F32_FS_IPUSH2  MOVE    R0, R6                      ; 32bit add the amount ..
+                ADD     FAT32$FDH_READ_LO, R6       ; .. of read bytes to ..
+                MOVE    R0, R7                      ; .. the file handle
+                ADD     FAT32$FDH_READ_HI, R7
+                ADD     FAT32$SECTOR_SIZE, @R6
+                ADDC    0, @R7
+                RBRA    _F32_FS_LOOP, 1             ; next iteration
+
+                ; set the new index to the <modulo>
+_F32_FS_INDEX   MOVE    R0, R6
+                ADD     FAT32$FDH_INDEX, R6
+                MOVE    R10, @R6                    ; set index to modulo
+                MOVE    R0, R6                      ; 32bit add the amount ..
+                ADD     FAT32$FDH_READ_LO, R6       ; .. of read bytes to ..
+                MOVE    R0, R7                      ; .. the file handle
+                ADD     FAT32$FDH_READ_HI, R7
+                ADD     R10, @R6
+                ADDC    0, @R7                
+                MOVE    0, R9                       ; no error
+
+_F32_FS_RET     MOVE    R0, R8                      ; restore R8 and R10
+                MOVE    R2, R10
+                MOVE    R3, R11
+
+                DECRB
+                RET                
+;
+;*****************************************************************************
 ;* FAT32$CD changes the current directory
 ;*
 ;* This function supports traversing deeply in one call using nested
@@ -1532,150 +2025,198 @@ _F32_DLST_END   DECRB                               ; restore R8, R9, R12
 ;*****************************************************************************
 ;
 FAT32$CD        INCRB
+                MOVE    R11, R0
 
-                MOVE    R8, R0                  ; R0 = device handle
-                MOVE    R9, R1                  ; R1 = path
+                XOR     R11, R11                    ; operation mode = CD
+                RSUB    FAT32$CD_OR_OF, 1
 
-                ; if no separator char is given, then use /
-                CMP     R10, 0
-                RBRA    _F32_CD_1, !Z
-                MOVE    '/', R10
+                MOVE    R0, R11
+                DECRB
+                RET
+;
+;*****************************************************************************
+;* FAT32$PRINT_DE is a pretty printer for directory entries
+;*
+;* Uses monitor (system) stdout to print. Allows the configuration of the
+;* amount of data that shall be printed: Filename only is the minimum. 
+;* Additionally attributes, file sizes, file date and file time can be shown.
+;* The printed layout is as follows:
+;*
+;* <DIR> HRSA BBBBBBBBB YYYY-MM-DD HH:MM   name...
+;*
+;* <DIR> means that the entry is a directory, otherwise whitespace
+;* H = hidden flag
+;* R = read only flag
+;* S = system flag
+;* A = archive flag
+;* BBBBBBBBB = decimal size of the file in bytes
+;* YYYY-MM-DD = file date
+;* HH:MM = file time
+;* name... = file name in long file format
+;*
+;* INPUT:  R8:  pointer to directy entry structure
+;*         R9:  print flags as defined in FAT32$PRINT_SHOW_*
+;*****************************************************************************
+;
+FAT32$PRINT_DE  INCRB
+                MOVE    R10, R0                     ; save R10 .. R12
+                MOVE    R11, R1
+                MOVE    R12, R2
+                INCRB 
 
-                ; if the first character in the path is a separator char,
-                ; then change the current working directory (AD) to 
-                ; root (RD) and skip the separator char
-                ; (just in case there are multiple separator chars at the
-                ; beginning, i.e. more than just one: these will be filtered
-                ; out by the SPLIT function later)
-_F32_CD_1       CMP     @R1, R10
-                RBRA    _F32_CD_2, !Z
-                ADD     1, R1                   ; skip first character
-                RSUB    _F32_CDROOT, 1          ; change to root
+                MOVE    R8, R0                      ; R0 = ptr to dir. ent. s.
+                MOVE    R9, R1                      ; R1 = print flags
 
-                ; split the path into segments and build an outer loop
-                ; around the next section (_F32_CD_NXSG) that iteratively
-                ; dives into the full path consisting of the split segments
-_F32_CD_2       MOVE    R1, R8
-                MOVE    R10, R9
-                RSUB    SPLIT, 1
-                MOVE    R9, R2                  ; R2 = stack pointer restore
-                CMP     R8, 0
-                RBRA    _F32_CD_ENDNR, Z        ; path is empty: end
-                MOVE    R8, R3                  ; R3 = amount of segments
-                MOVE    SP, R4                  ; R4 = current path segment
+                ; print <DIR> indicator
+                MOVE    R1, R2                      ; show <dir> indicator?
+                AND     FAT32$PRINT_SHOW_DIR, R2
+                RBRA    _F32_PDE_A1, Z              ; no: go on
+                MOVE    R0, R2                      ; is current entry a dir.?
+                ADD     FAT32$DE_ATTRIB, R2
+                MOVE    @R2, R2
+                MOVE    FAT32$PRINT_DE_DIR_N, R8    ; assume no
+                AND     FAT32$FA_DIR, R2
+                RBRA    _F32_PDE_D1, Z
+                MOVE    FAT32$PRINT_DE_DIR_Y, R8    ; yes, it is
+_F32_PDE_D1     SYSCALL(puts, 1)                    ; print <DIR> or whitespc
 
-                ; reserve memory for the directory handle (FDH) and for the
-                ; directory entry handle (DE) on the stack
-                SUB     FAT32$FDH_STRUCT_SIZE, SP
-                MOVE    SP, R5                  ; R5 = directory handle
-                SUB     FAT32$DE_STRUCT_SIZE, SP
-                MOVE    SP, R6                  ; R6 = directory entry handle
+                ; print attributes
+_F32_PDE_A1     MOVE    R1, R2                      ; show attributes?
+                AND     FAT32$PRINT_SHOW_ATTRIB, R2
+                RBRA    _F32_PDE_S1, Z              ; no: go on
+                MOVE    R0, R2
+                ADD     FAT32$DE_ATTRIB, R2
+                MOVE    @R2, R3                     ; @R2 contains attrib
+                MOVE    FAT32$PRINT_DE_AN, R8
+                AND     FAT32$FA_ARCHIVE, R3        ; attrib = archive?
+                RBRA    _F32_PDE_A2, Z
+                MOVE    FAT32$PRINT_DE_AA, R8
+_F32_PDE_A2     SYSCALL(puts, 1)                
+                MOVE    @R2, R3                     ; @R2 contains attrib
+                MOVE    FAT32$PRINT_DE_AN, R8
+                AND     FAT32$FA_HIDDEN, R3         ; attrib = hidden?
+                RBRA    _F32_PDE_A3, Z
+                MOVE    FAT32$PRINT_DE_AH, R8
+_F32_PDE_A3     SYSCALL(puts, 1)
+                MOVE    @R2, R3                     ; @R2 contains attrib
+                MOVE    FAT32$PRINT_DE_AN, R8
+                AND     FAT32$FA_READ_ONLY, R3      ; attrib = read only?
+                RBRA    _F32_PDE_A4, Z
+                MOVE    FAT32$PRINT_DE_AR, R8
+_F32_PDE_A4     SYSCALL(puts, 1)
+                MOVE    @R2, R3                     ; @R2 contains attrib
+                MOVE    FAT32$PRINT_DE_AN, R8
+                AND     FAT32$FA_SYSTEM, R3         ; attrib = system?
+                RBRA    _F32_PDE_A5, Z
+                MOVE    FAT32$PRINT_DE_AS, R8
+_F32_PDE_A5     SYSCALL(puts, 1)
+                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
+                SYSCALL(puts, 1)
 
-                ; change directory into current path segment:
-                ; 1. open directory, create directory handle
-                ; 2. browse directory entries to find the current path segm.:
-                ;    a) check for entries that are of type FAT32$FA_DIR 
-                ;    b) compare directory name (case insensitive)
-                ; 4. use start cluster of found entry as new AD entry
-_F32_CD_NXSG    ADD     1, R4                   ; skip length info of path
-                MOVE    R0, R8                  ; R8 = R0 = device handle
-                MOVE    R5, R9                  ; R9 = R5 = directory handle
-                RSUB    FAT32$DIR_OPEN, 1       ; open directory for browsing
-                CMP     R9, 0                   ; errors?
-                RBRA    _F32_CD_ENDWR, !Z       ; return error in R9
+                ; print size
+_F32_PDE_S1     MOVE    R1, R2                      ; show file size?
+                AND     FAT32$PRINT_SHOW_SIZE, R2
+                RBRA    _F32_PDE_DATE, Z            ; no: go on
+                MOVE    R0, R2                      ; is current entry a dir.?
+                ADD     FAT32$DE_ATTRIB, R2
+                MOVE    @R2, R2
+                AND     FAT32$FA_DIR, R2
+                RBRA    _F32_PDE_S2, Z              ; no: print file size
+                MOVE    FAT32$PRINT_DE_DIR_S, R8    ; yes: print spaces ...
+                SYSCALL(puts, 1)                    ; ... instead of file size                
+                RBRA    _F32_PDE_DATE, 1
+_F32_PDE_S2     MOVE    R0, R8                      ; R8 = dir. entry struct.
+                ADD     FAT32$DE_SIZE_LO, R8        ; retrieve LO/HI of ...
+                MOVE    @R8, R8                     ; ... filesize in R8/R9
+                MOVE    R0, R9
+                ADD     FAT32$DE_SIZE_HI, R9
+                MOVE    @R9, R9
+                XOR     R7, R7                      ; print trailing spaces
+                RSUB    _F32_PDE_PD, 1              ; print decimal filesize
+                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
+                SYSCALL(puts, 1)
 
-_F32_CD_LNX     MOVE    R5, R8                  ; R8 = R5 = directory handle
-                MOVE    R6, R9                  ; R9 = R6 = dir. entry handle
-                MOVE    FAT32$FA_ALL, R10       ; flags: "browse everything"
-                RSUB    FAT32$DIR_LIST, 1       ; browse next entry
-                CMP     R11, 0                  ; errors?
-                RBRA    _F32_CD_NXSG3, Z        ; no errors
-                MOVE    R11, R9
-                RBRA    _F32_CD_ENDWR, 1        ; return error
-_F32_CD_NXSG3   CMP     R10, 0                  ; directory not found
-                RBRA    _F32_CD_NXSG4, !Z       ; we can go on
-                RSUB    _F32_CDROOT, 1          ; error: back to root
-                MOVE    FAT32$ERR_DIRNOTFOUND, R9
-                RBRA    _F32_CD_ENDWR, 1        ; return error
-_F32_CD_NXSG4   MOVE    R6, R7                  ; check if DE is a directory
-                ADD     FAT32$DE_ATTRIB, R7
-                MOVE    @R7, R7
-                AND     FAT32$FA_DIR, R7
-                RBRA    _F32_CD_LNX, Z          ; no directory: try next DE
-                MOVE    R6, R7                  ; R7 = dir. entry name
-                ADD     FAT32$DE_NAME, R7
-                MOVE    R7, R8
-                SYSCALL(str2upper, 1)           ; dir. entry name uppercase
-                MOVE    R4, R8
-                SYSCALL(str2upper, 1)           ; current path segm. uppercase
-                MOVE    R7, R9
-                SYSCALL(strcmp, 1)              ; compare DE with current path
-                CMP     R10, 0
-                RBRA    _F32_CD_LNX, !Z         ; no match: try next DE
-                MOVE    R6, R7                  ; match! set AD to new cluster
-                ADD     FAT32$DE_CLUS_LO, R7
+                ; print date
+_F32_PDE_DATE   MOVE    1, R7                       ; do not print trailing sp
+                MOVE    R1, R2                      ; show date?
+                AND     FAT32$PRINT_SHOW_DATE, R2
+                RBRA    _F32_PDE_TIME, Z            ; no: go on
                 MOVE    R0, R8
-                ADD     FAT32$DEV_AD_1STCLUS_LO, R8
-                MOVE    @R7, @R8                ; perform the actual CD (low)
-                MOVE    R6, R7
-                ADD     FAT32$DE_CLUS_HI, R7
+                ADD     FAT32$DE_YEAR, R8
+                MOVE    @R8, R8                     ; R8 = year
+                XOR     R9, R9                      ; high word = zero
+                RSUB    _F32_PDE_PD, 1              ; print year as decimal
+                MOVE    FAT32$PRINT_DE_DATE, R8     ; print separator
+                SYSCALL(puts, 1)
                 MOVE    R0, R8
-                ADD     FAT32$DEV_AD_1STCLUS_HI, R8
-                MOVE    @R7, @R8                ; perform the actual CD (high)
+                ADD     FAT32$DE_MONTH, R8
+                MOVE    @R8, R8                     ; R8 = month
+                XOR     R9, R9                      ; hi word zero
+                RSUB    _F32_PDE_PD, 1              ; print month as decimal
+                MOVE    FAT32$PRINT_DE_DATE, R8     ; print separator
+                SYSCALL(puts, 1)
+                MOVE    R0, R8
+                ADD     FAT32$DE_DAY, R8
+                MOVE    @R8, R8                     ; R8 = day
+                XOR     R9, R9                      ; hi word zero
+                RSUB    _F32_PDE_PD, 1              ; print day as decimal
+                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
+                SYSCALL(puts, 1)
 
-                ; there is a speciality in the FAT32 specification:
-                ; in case of a ".." that points to root, FAT32$DE_CLUS_LO
-                ; and FAT32$DE_CLUS_HI will be zero (i.e. illegal); therefore
-                ; we need to handle this special case
-                CMP     @R7, 0                  ; FAT32$DE_CLUS_HI = 0?
-                RBRA    _F32_CD_SUCCESS, !Z     ; no: go on
-                MOVE    R6, R7
-                ADD     FAT32$DE_CLUS_LO, R7
-                CMP     @R7, 0                  ; FAT32$DE_CLUS_LO = 0?
-                RBRA    _F32_CD_SUCCESS, !Z     ; no: go on
-                MOVE    R6, R7
-                ADD     FAT32$DE_NAME, R7
-                CMP     @R7++, '.'              ; first "." of ".."?
-                RBRA    _F32_CD_SUCCESS, !Z     ; no: go on
-                CMP     @R7, '.'                ; second "." of ".."?
-                RBRA    _F32_CD_SUCCESS, !Z     ; no: go on
-                MOVE    R6, R9                  ; yes: cd to root, then go on
-                RSUB    _F32_CDROOT, 1
-                MOVE    R9, R6
+                ; print time
+_F32_PDE_TIME   MOVE    1, R7                       ; do not print trailing sp
+                MOVE    R1, R2                      ; show time?
+                AND     FAT32$PRINT_SHOW_TIME, R2
+                RBRA    _F32_PDE_N1, Z              ; no: go on
+                MOVE    R0, R8
+                ADD     FAT32$DE_HOUR, R8
+                MOVE    @R8, R8                     ; R8 = hour
+                XOR     R9, R9                      ; high word = zero
+                RSUB    _F32_PDE_PD, 1              ; print hour as decimal
+                MOVE    FAT32$PRINT_DE_TIME, R8     ; print separator
+                SYSCALL(puts, 1)
+                MOVE    R0, R8
+                ADD     FAT32$DE_MINUTE, R8
+                MOVE    @R8, R8                     ; R8 = minute
+                XOR     R9, R9                      ; high word = zero
+                RSUB    _F32_PDE_PD, 1              ; print minute as decimal
+                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
+                SYSCALL(puts, 1)
 
-_F32_CD_SUCCESS MOVE    0, R9                   ; operation was successful
+                ; print name
+_F32_PDE_N1     MOVE    R0, R8
+                ADD     FAT32$DE_NAME, R8
+                SYSCALL(puts, 1)                    ; print name
+                SYSCALL(crlf, 1)                    ; next line out stdout
+                
+_F32_PDE_END    MOVE    R0, R8                      ; restore R8 .. R11
+                MOVE    R1, R9
 
-                ; loop if there is another segment left
-                SUB     1, R3                   ; one less path segment
-                RBRA    _F32_CD_ENDWR, Z        ; end if no more path segmts.
-                ADD     @--R4, R4               ; R4 was incremented to skip..
-                                                ; ..the length information, ..
-                                                ; ..so we need to predecr. ..
-                                                ; ..and then increase the ..
-                                                ; ..pointer to the next segm.                                                
-                RBRA    _F32_CD_NXSG, 1         ; process next path segment
-
-                ; restore SP
-_F32_CD_ENDWR   ADD     FAT32$FDH_STRUCT_SIZE, SP
-                ADD     FAT32$DE_STRUCT_SIZE, SP
-
-_F32_CD_ENDNR   ADD     R2, SP                  ; restore stack pointer
-
+                DECRB
+                MOVE    R0, R10
+                MOVE    R1, R11
+                MOVE    R2, R12
                 DECRB
                 RET
 
-                ; sub-sub routine to change the AD to the RD
-_F32_CDROOT     MOVE    R0, R6
-                ADD     FAT32$DEV_RD_1STCLUS_LO, R6
-                MOVE    R0, R7
-                ADD     FAT32$DEV_AD_1STCLUS_LO, R7
-                MOVE    @R6, @R7                ; AD LO cluster = RD LO clust.
-                MOVE    R0, R6
-                ADD     FAT32$DEV_RD_1STCLUS_HI, R6
-                MOVE    R0, R7
-                ADD     FAT32$DEV_AD_1STCLUS_HI, R7
-                MOVE    @R6, @R7                ; AD HI cluster = RD HI clust.
-                RET                
+                ; sub-sub routine to print a decimal that is in HI|LO=R9|R8
+                ; if R7 = 0 then then print trailing spaces
+                ; if R7 = 1 then numbers < 10 will receive one trailing zero
+                ;           but no trailing spaces at all
+_F32_PDE_PD     SUB     11, SP                      ; create 11 bytes memory..
+                MOVE    SP, R10                     ; ..area on the stack
+                RSUB    H2D_ASCII, 1                ; make decimal string
+                CMP     R7, 0                       ; print trailing spaces?
+                RBRA    _F32_PDE_PDNT, !Z           ; no
+                MOVE    R10, R8                     ; yes: use R10 to print
+                RBRA    _F32_PDE_PDPS, 1            ; print
+_F32_PDE_PDNT   CMP     R12, 1                      ; only one digit?
+                RBRA    _F32_PDE_PDOD, !Z           ; no: go on
+                MOVE    0x0030, @--R11              ; yes: add trailing zero
+_F32_PDE_PDOD   MOVE    R11, R8                     ; use R10 to print
+_F32_PDE_PDPS   SYSCALL(puts, 1)                    ; print decimal
+                ADD     11, SP                      ; restore stack
+                RET
 ;
 ;*****************************************************************************
 ;* FAT32$CALL_DEV calls a device management function
@@ -1691,12 +2232,281 @@ FAT32$CALL_DEV  INCRB
 
                 MOVE    R11, R0                 ; compute function address
                 ADD     R10, R0
-                MOVE    _F32$CD_END, @--SP      ; compute return address
+                MOVE    _F32$CDEVEND, @--SP     ; compute return address
 
                 MOVE    @R0, PC                 ; perform function call
 
-_F32$CD_END     DECRB
+_F32$CDEVEND    DECRB
                 RET
+;
+;*****************************************************************************
+;* FAT32$CD_OR_OF changes the current directory or opens a file
+;*
+;* This is an internal help function, because changing a directory and
+;* opening a file requires very similar actions. See the documentation for
+;* FAT32$CD and FAT32$FILE_OPEN for details.
+;*
+;* INPUT:  R8  points to a valid device handle
+;*         R9  points to a zero terminated string (directory or filename)
+;*         R10 separator char (if zero, then "/" will be used)
+;*         R11 operation mode: 0 = FAT32$CD, otherwise FAT32$FILE_OPEN
+;*             in the latter case, R11 points to the file handle structure
+;*             that will be filled by FAT32$CDOF.
+;* OUTPUT: R9  0, if OK, otherwise error code
+;*         all other registers remain unchanged
+;*****************************************************************************
+;
+FAT32$CD_OR_OF  INCRB
+
+                MOVE    R10, R0                 ; save original registers
+                MOVE    R11, R1
+                MOVE    R12, R2
+
+                ; save original active directory so that we can restore
+                ; it in case of an error, so that a CD or FILE_OPEN to a
+                ; non existing location or file does not lead to a changed
+                ; AD pointer within the device handle
+                MOVE    R8, R3                  ; §R3 = org. AD cluster LO                 
+                ADD     FAT32$DEV_AD_1STCLUS_LO, R3
+                MOVE    @R3, R3
+                MOVE    R8, R4
+                ADD     FAT32$DEV_AD_1STCLUS_HI, R4
+                MOVE    @R4, R4                 ; $R4 = org. AD cluster HI
+
+                INCRB 
+
+                MOVE    R8, R0                  ; R0 = device handle
+                MOVE    R9, R1                  ; R1 = path
+                MOVE    R11, R12                ; R12 = op. mode/file handle
+
+                ; if no separator char is given, then use /
+                CMP     R10, 0
+                RBRA    _F32_DF_1, !Z
+                MOVE    '/', R10
+
+                ; if the first character in the path is a separator char,
+                ; then change the current working directory (AD) to 
+                ; root (RD) and skip the separator char
+                ; (just in case there are multiple separator chars at the
+                ; beginning, i.e. more than just one: these will be filtered
+                ; out by the SPLIT function later)
+_F32_DF_1       CMP     @R1, R10
+                RBRA    _F32_DF_2, !Z
+                ADD     1, R1                   ; skip first character
+                RSUB    _F32_CDROOT, 1          ; change to root
+
+                ; split the path into segments and build an outer loop
+                ; around the next section (_F32_DF_NXSG) that iteratively
+                ; dives into the full path consisting of the split segments
+_F32_DF_2       MOVE    R1, R8
+                MOVE    R10, R9
+                RSUB    SPLIT, 1
+                MOVE    R9, R2                  ; R2 = stack pointer restore
+                CMP     R8, 0
+                RBRA    _F32_DF_ENDNR, Z        ; path is empty: end
+                MOVE    R8, R3                  ; R3 = amount of segments
+                MOVE    SP, R4                  ; R4 = current path segment
+
+                ; reserve memory for the directory handle (FDH) and for the
+                ; directory entry handle (DE) on the stack
+                SUB     FAT32$FDH_STRUCT_SIZE, SP
+                MOVE    SP, R5                  ; R5 = directory handle
+                SUB     FAT32$DE_STRUCT_SIZE, SP
+                MOVE    SP, R6                  ; R6 = directory entry handle
+
+                ; change directory into current path segment:
+                ; 1. open directory, create directory handle
+                ; 2. browse directory entries to find the current path segm.:
+                ;    a) check for entries that are of type FAT32$FA_DIR 
+                ;    b) compare directory name (case insensitive)
+                ; 3. use start cluster of found entry as new AD entry
+                ; in case of a file (R12 != 0)
+                ; work similar to the case of the directory, but treat
+                ; the last path segment as a filename
+_F32_DF_NXSG    ADD     1, R4                   ; skip length info of path
+                MOVE    R0, R8                  ; R8 = R0 = device handle
+                MOVE    R5, R9                  ; R9 = R5 = directory handle
+                RSUB    FAT32$DIR_OPEN, 1       ; open directory for browsing
+                CMP     R9, 0                   ; errors?
+                RBRA    _F32_DF_ENDWR, !Z       ; return error in R9
+
+_F32_DF_LNX     MOVE    R5, R8                  ; R8 = R5 = directory handle
+                MOVE    R6, R9                  ; R9 = R6 = dir. entry handle
+                MOVE    FAT32$FA_ALL, R10       ; flags: "browse everything"
+                RSUB    FAT32$DIR_LIST, 1       ; browse next entry
+                CMP     R11, 0                  ; errors?
+                RBRA    _F32_DF_NXSG3, Z        ; no errors
+                MOVE    R11, R9
+                RBRA    _F32_DF_ENDWR, 1        ; return error
+_F32_DF_NXSG3   CMP     R10, 0                  ; file or directory not found
+                RBRA    _F32_DF_NXSG4, !Z       ; we can go on
+                CMP     R12, 0                  ; error: return & restore AD
+                RBRA    _F32_DF_NXERRD, Z       ; operation mode = CD?
+                MOVE    FAT32$ERR_FILENOTFOUND, R9 ; error: file not found
+                RBRA    _F32_DF_ENDWR, 1        ; return error
+_F32_DF_NXERRD  MOVE    FAT32$ERR_DIRNOTFOUND, R9 ; error: directory not found
+                RBRA    _F32_DF_ENDWR, 1        ; return error
+_F32_DF_NXSG4   MOVE    R6, R7                  ; chk attrib depending on R12
+                ADD     FAT32$DE_ATTRIB, R7
+                MOVE    @R7, R7                 ; R7 now contains the attrib
+                CMP     R12, 0                  ; operation mode = CD?
+                RBRA    _F32_DF_CFCD, Z         ; yes: check for directory
+                CMP     R3, 1                   ; no: last path segment?
+                RBRA    _F32_DF_CFCD, !Z        ; no: so treat it as a path
+                AND     FAT32$FA_DIR, R7        ; yes: now we check for a file
+                RBRA    _F32_DF_LNX, !Z         ; no file but dir: try next DE
+                RBRA    _F32_DF_NXSG5, 1        ; go on with the name compare
+_F32_DF_CFCD    AND     FAT32$FA_DIR, R7        ; directory flag set?
+                RBRA    _F32_DF_LNX, Z          ; no directory: try next DE
+_F32_DF_NXSG5   MOVE    R6, R7                  ; R7 = dir. entry name
+                ADD     FAT32$DE_NAME, R7
+                MOVE    R7, R8
+                SYSCALL(str2upper, 1)           ; dir. entry name uppercase
+                MOVE    R4, R8
+                SYSCALL(str2upper, 1)           ; current path segm. uppercase
+                MOVE    R7, R9
+                SYSCALL(strcmp, 1)              ; compare DE with current path
+                CMP     R10, 0
+                RBRA    _F32_DF_LNX, !Z         ; no match: try next DE
+
+                ; this code is executed, when the directory entry (DE)
+                ; matches the current path segment; in such a case,
+                ; we need to distinguish: are we currently doing a CD
+                ; or are we opening a file: in the latter case: if the current
+                ; segment is the last one, then this is the actual file, so
+                ; we are not "CDing" in subdirectories any more (i.e. not
+                ; modifying the AD any more), but we are returning the start
+                ; cluster of the file and its filesize within the file handle
+                ; structure that is passed in R12
+                CMP     R12, 0                  ; operation mode = CD?
+                RBRA    _F32_DF_MATCHD, Z       ; yes: so do the CD
+                CMP     R3, 1                   ; is it the last path segment?
+                RBRA    _F32_DF_MATCHD, !Z      ; no: so do the CD
+                
+                ; fill the file handle structure and return with a success
+                MOVE    R12, R7
+                ADD     FAT32$FDH_DEVICE, R7
+                MOVE    R0, @R7                 ; set the device handle
+                MOVE    R12, R7
+                ADD     FAT32$FDH_CLUSTER_LO, R7
+                MOVE    R6, R8
+                ADD     FAT32$DE_CLUS_LO, R8
+                MOVE    @R8, @R7                ; set the cluster lo word
+                MOVE    R12, R7
+                ADD     FAT32$FDH_CLUSTER_HI, R7
+                MOVE    R6, R8
+                ADD     FAT32$DE_CLUS_HI, R8
+                MOVE    @R8, @R7                ; set the cluster hi word
+                MOVE    R12, R7
+                ADD     FAT32$FDH_SIZE_LO, R7
+                MOVE    R6, R8
+                ADD     FAT32$DE_SIZE_LO, R8
+                MOVE    @R8, @R7                ; set the filesize lo word
+                MOVE    R12, R7
+                ADD     FAT32$FDH_SIZE_HI, R7
+                MOVE    R6, R8
+                ADD     FAT32$DE_SIZE_HI, R8
+                MOVE    @R8, @R7                ; set the filesize hi word
+                XOR     R8, R8                  ; R8 = 0
+                MOVE    R12, R7
+                ADD     FAT32$FDH_SECTOR, R7
+                MOVE    R8, @R7                 ; set the start sector to 0
+                MOVE    R12, R7
+                ADD     FAT32$FDH_INDEX, R7     
+                MOVE    R8, @R7                 ; set the start index to 0
+                MOVE    R12, R7
+                ADD     FAT32$FDH_READ_LO, R7
+                MOVE    R8, @R7                 ; already read size LO = 0
+                MOVE    R12, R7
+                ADD     FAT32$FDH_READ_HI , R7
+                MOVE    R8, @R7                 ; already read size HI = 0
+                RBRA    _F32_DF_SUCCESS, 1      ; return a success
+
+                ; change the directory by setting AD within the device handle
+_F32_DF_MATCHD  MOVE    R6, R7                  ; match! set AD to new cluster
+                ADD     FAT32$DE_CLUS_LO, R7
+                MOVE    R0, R8
+                ADD     FAT32$DEV_AD_1STCLUS_LO, R8
+                MOVE    @R7, @R8                ; perform the actual CD (low)
+                MOVE    R6, R7
+                ADD     FAT32$DE_CLUS_HI, R7
+                MOVE    R0, R8
+                ADD     FAT32$DEV_AD_1STCLUS_HI, R8
+                MOVE    @R7, @R8                ; perform the actual CD (high)
+
+                ; there is a speciality in the FAT32 specification:
+                ; in case of a ".." that points to root, FAT32$DE_CLUS_LO
+                ; and FAT32$DE_CLUS_HI will be zero (i.e. illegal); therefore
+                ; we need to handle this special case
+                CMP     @R7, 0                  ; FAT32$DE_CLUS_HI = 0?
+                RBRA    _F32_DF_SUCCESS, !Z     ; no: go on
+                MOVE    R6, R7
+                ADD     FAT32$DE_CLUS_LO, R7
+                CMP     @R7, 0                  ; FAT32$DE_CLUS_LO = 0?
+                RBRA    _F32_DF_SUCCESS, !Z     ; no: go on
+                MOVE    R6, R7
+                ADD     FAT32$DE_NAME, R7
+                CMP     @R7++, '.'              ; first "." of ".."?
+                RBRA    _F32_DF_SUCCESS, !Z     ; no: go on
+                CMP     @R7, '.'                ; second "." of ".."?
+                RBRA    _F32_DF_SUCCESS, !Z     ; no: go on
+                MOVE    R6, R9                  ; yes: cd to root, then go on
+                RSUB    _F32_CDROOT, 1
+                MOVE    R9, R6
+
+_F32_DF_SUCCESS MOVE    0, R9                   ; operation was successful
+
+                ; loop if there is another segment left
+                SUB     1, R3                   ; one less path segment
+                RBRA    _F32_DF_ENDWR, Z        ; end if no more path segmts.
+                ADD     @--R4, R4               ; R4 was incremented to skip..
+                                                ; ..the length information, ..
+                                                ; ..so we need to predecr. ..
+                                                ; ..and then increase the ..
+                                                ; ..pointer to the next segm.                                                
+                RBRA    _F32_DF_NXSG, 1         ; process next path segment
+
+                ; restore SP
+_F32_DF_ENDWR   ADD     FAT32$FDH_STRUCT_SIZE, SP
+                ADD     FAT32$DE_STRUCT_SIZE, SP
+
+_F32_DF_ENDNR   ADD     R2, SP                  ; restore stack pointer
+                MOVE    R0, R8                  ; restore original R8
+
+                DECRB
+
+                ; in the case that we are in the file open mode (R12 != 0)
+                ; or case of an error: restore the original active dir. (AD)
+                CMP     R12, 0                  ; are we in file open mode?
+                RBRA    _F32_DF_RESTAD, !Z      ; yes: restore AD
+                CMP     R9, 0                   ; was there an error?
+                RBRA    _F32_DF_RET, Z          ; no error: return
+_F32_DF_RESTAD  MOVE    R8, R7
+                ADD     FAT32$DEV_AD_1STCLUS_LO, R7
+                MOVE    R3, @R7
+                MOVE    R8, R7
+                ADD     FAT32$DEV_AD_1STCLUS_HI, R7
+                MOVE    R4, @R7
+
+                MOVE    R0, R10                 ; restore original registers
+                MOVE    R1, R11
+                MOVE    R2, R12
+
+_F32_DF_RET     DECRB
+                RET
+
+                ; sub-sub routine to change the AD to the RD
+_F32_CDROOT     MOVE    R0, R6
+                ADD     FAT32$DEV_RD_1STCLUS_LO, R6
+                MOVE    R0, R7
+                ADD     FAT32$DEV_AD_1STCLUS_LO, R7
+                MOVE    @R6, @R7                ; AD LO cluster = RD LO clust.
+                MOVE    R0, R6
+                ADD     FAT32$DEV_RD_1STCLUS_HI, R6
+                MOVE    R0, R7
+                ADD     FAT32$DEV_AD_1STCLUS_HI, R7
+                MOVE    @R6, @R7                ; AD HI cluster = RD HI clust.
+                RET                
 ;
 ;*****************************************************************************
 ;* FAT32$READ_FDH fills the read buffer according to the current index in FDH
@@ -1725,11 +2535,29 @@ FAT32$READ_FDH  INCRB
                 MOVE    R8, R0
                 ADD     FAT32$FDH_DEVICE, R0
                 MOVE    @R0, R0                     ; R0 = device handle
-                MOVE    R8, R1                      ; R1 = directory handle
+                MOVE    R8, R1                      ; R1 = FDH
+
+                ; @TODO: as soon as this function is generalized to also
+                ; be able to write / append, then also files with an initial
+                ; size of zero (1st clst. = 0) must be allowed to be appended
+
+                ; if the first cluster = 0 then we try to read from an
+                ; illegal cluster, therefore exit with an error message
+                XOR     R3, R3 
+                MOVE    R1, R2
+                ADD     FAT32$FDH_CLUSTER_LO, R2
+                CMP     @R2, R3
+                RBRA    _F32_RFDH_START, !Z
+                MOVE    R1, R2
+                ADD     FAT32$FDH_CLUSTER_HI, R2
+                CMP     @R2, R3
+                RBRA    _F32_RFDH_START, !Z
+                MOVE    FAT32$ERR_ILLEGAL_CLUS, R9
+                RBRA    _F32_RFDH_END, 1
 
                 ; if the current "to-be-read" index equals 512, then
                 ; we need to read the next sector within the cluster
-                MOVE    R1, R2
+_F32_RFDH_START MOVE    R1, R2
                 ADD     FAT32$FDH_INDEX, R2
                 MOVE    @R2, R3                     ; R3 = "to-be-read" index
                 CMP     R3, FAT32$SECTOR_SIZE
@@ -1970,188 +2798,6 @@ _F32_RSIC_END   DECRB
                 MOVE    R1, R11
 
                 DECRB
-                RET
-;
-;*****************************************************************************
-;* FAT32$PRINT_DE is a pretty printer for directory entries
-;*
-;* Uses monitor (system) stdout to print. Allows the configuration of the
-;* amount of data that shall be printed: Filename only is the minimum. 
-;* Additionally attributes, file sizes, file date and file time can be shown.
-;* The printed layout is as follows:
-;*
-;* <DIR> HRSA BBBBBBBBB YYYY-MM-DD HH:MM   name...
-;*
-;* <DIR> means that the entry is a directory, otherwise whitespace
-;* H = hidden flag
-;* R = read only flag
-;* S = system flag
-;* A = archive flag
-;* BBBBBBBBB = decimal size of the file in bytes
-;* YYYY-MM-DD = file date
-;* HH:MM = file time
-;* name... = file name in long file format
-;*
-;* INPUT:  R8:  pointer to directy entry structure
-;*         R9:  print flags as defined in FAT32$PRINT_SHOW_*
-;*****************************************************************************
-;
-FAT32$PRINT_DE  INCRB
-                MOVE    R10, R0                     ; save R10 .. R12
-                MOVE    R11, R1
-                MOVE    R12, R2
-                INCRB 
-
-                MOVE    R8, R0                      ; R0 = ptr to dir. ent. s.
-                MOVE    R9, R1                      ; R1 = print flags
-
-                ; print <DIR> indicator
-                MOVE    R1, R2                      ; show <dir> indicator?
-                AND     FAT32$PRINT_SHOW_DIR, R2
-                RBRA    _F32_PDE_A1, Z              ; no: go on
-                MOVE    R0, R2                      ; is current entry a dir.?
-                ADD     FAT32$DE_ATTRIB, R2
-                MOVE    @R2, R2
-                MOVE    FAT32$PRINT_DE_DIR_N, R8    ; assume no
-                AND     FAT32$FA_DIR, R2
-                RBRA    _F32_PDE_D1, Z
-                MOVE    FAT32$PRINT_DE_DIR_Y, R8    ; yes, it is
-_F32_PDE_D1     SYSCALL(puts, 1)                    ; print <DIR> or whitespc
-
-                ; print attributes
-_F32_PDE_A1     MOVE    R1, R2                      ; show attributes?
-                AND     FAT32$PRINT_SHOW_ATTRIB, R2
-                RBRA    _F32_PDE_S1, Z              ; no: go on
-                MOVE    R0, R2
-                ADD     FAT32$DE_ATTRIB, R2
-                MOVE    @R2, R3                     ; @R2 contains attrib
-                MOVE    FAT32$PRINT_DE_AN, R8
-                AND     FAT32$FA_ARCHIVE, R3        ; attrib = archive?
-                RBRA    _F32_PDE_A2, Z
-                MOVE    FAT32$PRINT_DE_AA, R8
-_F32_PDE_A2     SYSCALL(puts, 1)                
-                MOVE    @R2, R3                     ; @R2 contains attrib
-                MOVE    FAT32$PRINT_DE_AN, R8
-                AND     FAT32$FA_HIDDEN, R3         ; attrib = hidden?
-                RBRA    _F32_PDE_A3, Z
-                MOVE    FAT32$PRINT_DE_AH, R8
-_F32_PDE_A3     SYSCALL(puts, 1)
-                MOVE    @R2, R3                     ; @R2 contains attrib
-                MOVE    FAT32$PRINT_DE_AN, R8
-                AND     FAT32$FA_READ_ONLY, R3      ; attrib = read only?
-                RBRA    _F32_PDE_A4, Z
-                MOVE    FAT32$PRINT_DE_AR, R8
-_F32_PDE_A4     SYSCALL(puts, 1)
-                MOVE    @R2, R3                     ; @R2 contains attrib
-                MOVE    FAT32$PRINT_DE_AN, R8
-                AND     FAT32$FA_SYSTEM, R3         ; attrib = system?
-                RBRA    _F32_PDE_A5, Z
-                MOVE    FAT32$PRINT_DE_AS, R8
-_F32_PDE_A5     SYSCALL(puts, 1)
-                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
-                SYSCALL(puts, 1)
-
-                ; print size
-_F32_PDE_S1     MOVE    R1, R2                      ; show file size?
-                AND     FAT32$PRINT_SHOW_SIZE, R2
-                RBRA    _F32_PDE_DATE, Z            ; no: go on
-                MOVE    R0, R2                      ; is current entry a dir.?
-                ADD     FAT32$DE_ATTRIB, R2
-                MOVE    @R2, R2
-                AND     FAT32$FA_DIR, R2
-                RBRA    _F32_PDE_S2, Z              ; no: print file size
-                MOVE    FAT32$PRINT_DE_DIR_S, R8    ; yes: print spaces ...
-                SYSCALL(puts, 1)                    ; ... instead of file size                
-                RBRA    _F32_PDE_DATE, 1
-_F32_PDE_S2     MOVE    R0, R8                      ; R8 = dir. entry struct.
-                ADD     FAT32$DE_SIZE_LO, R8        ; retrieve LO/Hi of ...
-                MOVE    @R8, R8                     ; ... filesize in R8/R9
-                MOVE    R0, R9
-                ADD     FAT32$DE_SIZE_HI, R9
-                MOVE    @R9, R9
-                XOR     R7, R7                      ; print trailing spaces
-                RSUB    _F32_PDE_PD, 1              ; print decimal filesize
-                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
-                SYSCALL(puts, 1)
-
-                ; print date
-_F32_PDE_DATE   MOVE    1, R7                       ; do not print trailing sp
-                MOVE    R1, R2                      ; show date?
-                AND     FAT32$PRINT_SHOW_DATE, R2
-                RBRA    _F32_PDE_TIME, Z            ; no: go on
-                MOVE    R0, R8
-                ADD     FAT32$DE_YEAR, R8
-                MOVE    @R8, R8                     ; R8 = year
-                XOR     R9, R9                      ; high word = zero
-                RSUB    _F32_PDE_PD, 1              ; print year as decimal
-                MOVE    FAT32$PRINT_DE_DATE, R8     ; print separator
-                SYSCALL(puts, 1)
-                MOVE    R0, R8
-                ADD     FAT32$DE_MONTH, R8
-                MOVE    @R8, R8                     ; R8 = month
-                XOR     R9, R9                      ; hi word zero
-                RSUB    _F32_PDE_PD, 1              ; print month as decimal
-                MOVE    FAT32$PRINT_DE_DATE, R8     ; print separator
-                SYSCALL(puts, 1)
-                MOVE    R0, R8
-                ADD     FAT32$DE_DAY, R8
-                MOVE    @R8, R8                     ; R8 = day
-                XOR     R9, R9                      ; hi word zero
-                RSUB    _F32_PDE_PD, 1              ; print day as decimal
-                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
-                SYSCALL(puts, 1)
-
-                ; print time
-_F32_PDE_TIME   MOVE    1, R7                       ; do not print trailing sp
-                MOVE    R1, R2                      ; show time?
-                AND     FAT32$PRINT_SHOW_TIME, R2
-                RBRA    _F32_PDE_N1, Z              ; no: go on
-                MOVE    R0, R8
-                ADD     FAT32$DE_HOUR, R8
-                MOVE    @R8, R8                     ; R8 = hour
-                XOR     R9, R9                      ; high word = zero
-                RSUB    _F32_PDE_PD, 1              ; print hour as decimal
-                MOVE    FAT32$PRINT_DE_TIME, R8     ; print separator
-                SYSCALL(puts, 1)
-                MOVE    R0, R8
-                ADD     FAT32$DE_MINUTE, R8
-                MOVE    @R8, R8                     ; R8 = minute
-                XOR     R9, R9                      ; high word = zero
-                RSUB    _F32_PDE_PD, 1              ; print minute as decimal
-                MOVE    FAT32$PRINT_DE_AN, R8       ; print space
-                SYSCALL(puts, 1)
-
-                ; print name
-_F32_PDE_N1     MOVE    R0, R8
-                ADD     FAT32$DE_NAME, R8
-                SYSCALL(puts, 1)                    ; print name
-                SYSCALL(crlf, 1)                    ; next line out stdout
-                
-_F32_PDE_END    MOVE    R0, R8                      ; restore R8 .. R11
-                MOVE    R1, R9
-
-                DECRB
-                MOVE    R0, R10
-                MOVE    R1, R11
-                MOVE    R2, R12
-                DECRB
-                RET
-
-                ; sub-sub routine to print a decimal that is in HI|LO=R9|R8
-                ; if R7 = 0 then then print trailing spaces
-                ; numbers < 10 will receive a trailing zero
-_F32_PDE_PD     SUB     11, SP                      ; create 11 bytes memory..
-                MOVE    SP, R10                     ; ..area on the stack
-                RSUB    H2D_ASCII, 1                ; decimal string of size
-                CMP     R12, 1                      ; only one digit?
-                RBRA    _F32_PDE_PDCT, !Z           ; no: go on
-                MOVE    0x0030, @--R11              ; yes: add trailing zero
-_F32_PDE_PDCT   MOVE    R10, R8                     ; string incl. trailing sp                
-                CMP     0, R7                       ; print trailing spaces?
-                RBRA    _F32_PDE_PDPS, Z            ; yes
-                MOVE    R11, R8                     ; no: skip trailing spaces
-_F32_PDE_PDPS   SYSCALL(puts, 1)                    ; print decimal file size
-                ADD     11, SP                      ; restore stack
                 RET
 ;
 ;*****************************************************************************

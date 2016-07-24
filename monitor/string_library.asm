@@ -122,8 +122,8 @@ _STR$CMP_EXIT   DECRB                       ; Restore previous register page
 ;* STR$STRCHR seaches for the first occurrence of the character stored in R8 in a 
 ;* string pointed to by R9.
 ;*
-;* R8: Pointer to the string
-;* R9: Character to be searched
+;* R8: Character to be searched
+;* R9: Pointer to the string
 ;*
 ;* R10: Zero if the character has not been found, otherwise it contains a pointer
 ;*      to the first occurrence of the character in the string

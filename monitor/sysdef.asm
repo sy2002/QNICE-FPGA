@@ -82,6 +82,12 @@ FAT32$ERR_ILLEGAL_SIC   .EQU    0xEE16                  ; trying to read/write a
 FAT32$ERR_ILLEGAL_CLUS  .EQU    0xEE17                  ; trying to access an illegal cluster number
 FAT32$ERR_CORRUPT_DH    .EQU    0xEE18                  ; corrupt directory handle (e.g. because current to-be-read offs > sector size)
 FAT32$ERR_DIRNOTFOUND   .EQU    0xEE19                  ; directory not found (illegal path name passed to change directory command)
+FAT32$ERR_FILENOTFOUND  .EQU    0xEE20                  ; file not found
+FAT23$ERR_SEEKTOOLARGE  .EQU    0xEE21                  ; seek position > file size
+
+; FAT32 STATUS CODES
+
+FAT32$EOF               .EQU    0xEEEE                  ; end of file reached
 
 ; LAYOUT OF THE MOUNT DATA STRUCTURE (DEVICE HANDLE)
 
@@ -112,8 +118,12 @@ FAT32$FDH_CLUSTER_LO    .EQU    0x0001                  ; current cluster (low w
 FAT32$FDH_CLUSTER_HI    .EQU    0x0002                  ; current cluster (high word)
 FAT32$FDH_SECTOR        .EQU    0x0003                  ; current sector
 FAT32$FDH_INDEX         .EQU    0x0004                  ; current byte index within current sector
+FAT32$FDH_SIZE_LO       .EQU    0x0005                  ; only in case FDH is a file: low word of file size, otherwise undefined
+FAT32$FDH_SIZE_HI       .EQU    0x0006                  ; only in case FDH is a file: high word of file size, otherwise undefined
+FAT32$FDH_READ_LO       .EQU    0x0007                  ; only in case FDH is a file: low word of already read amount of bytes
+FAT32$FDH_READ_HI       .EQU    0x0008                  ; only in case FDH is a file: high word of already read amount of bytes
 
-FAT32$FDH_STRUCT_SIZE    .EQU   0x0006                  ; size of the directory handle structure
+FAT32$FDH_STRUCT_SIZE   .EQU    0x0009                  ; size of the directory handle structure
 
 ; FILE ATTRIBUTES
 

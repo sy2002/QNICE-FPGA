@@ -1,4 +1,4 @@
-Contraints of the QNICE-FPGA (env1) design, that should be mentioned,
+Constraints of the QNICE-FPGA (env1) design, that should be mentioned,
 when writing the documentation:
 
 SD Card:
