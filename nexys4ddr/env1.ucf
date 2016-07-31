@@ -97,4 +97,4 @@ NET "vga_vs"               LOC = B12 | IOSTANDARD = LVCMOS33 | SLEW = FAST;
 NET "SD_RESET"             LOC = E2  | IOSTANDARD = LVCMOS33;
 NET "SD_CLK"               LOC = B1  | IOSTANDARD = LVCMOS33;
 NET "SD_MOSI"              LOC = C1  | IOSTANDARD = LVCMOS33;
-NET "SD_MISO"              LOC = C2  | IOSTANDARD = LVCMOS33;
+NET "SD_MISO"              LOC = C2  | IOSTANDARD = LVCMOS33 | PULLUP;

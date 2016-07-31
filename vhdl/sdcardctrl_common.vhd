@@ -6,6 +6,11 @@ use IEEE.STD_LOGIC_1164.all;
 
 package sdcardctrl_common is
 
+   constant ctNA      : std_logic_vector(1 downto 0) := "00";
+   constant ctMMC     : std_logic_vector(1 downto 0) := "01";
+   constant ctSD      : std_logic_vector(1 downto 0) := "10";
+   constant ctSDHCXC  : std_logic_vector(1 downto 0) := "11";
+
    type CardType_t is (SD_CARD_E, SDHC_CARD_E);  -- Define the different types of SD cards.
      
    constant YES  : std_logic := '1';

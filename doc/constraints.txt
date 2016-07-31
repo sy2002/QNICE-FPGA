@@ -4,7 +4,9 @@ when writing the documentation:
 SD Card:
 
 * MBR partition table
-* FAT32 with a 512 byte sector size (FAT16 and others are not supported).
+* FAT32 with a 512 byte sector size.
+  ATTENTION: FAT16 and others are not supported, you probably need to 
+  manually format the SD Card to be sure, that you are running with FAT32.
 * Maximum 65.535 files per folder.
 * File names are ASCII only (no Unicode).
 * MAC USERS: Do not use the GUI version of the disk utility, as you cannot
