@@ -1,5 +1,6 @@
 -- SD Card Interface
--- wraps XESS Corp's SdCardCtrl into a state machine that makes it compatible to the QNICE-FPGA architecture
+-- wraps XESS Corp's SdCardCtrl that has been enhanced by sy2002 to also handle SDHC/SDHX cards
+-- into a state machine that makes it compatible to the QNICE-FPGA architecture
 -- utilizes an internal 512-byte RAM buffer using the byte_bram component
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
 -- tristate outputs go high impedance when not enabled
@@ -15,12 +16,16 @@
 --                          0x0001  Read 512 bytes from the linear block address
 --                          0x0002  Write 512 bytes to the linear block address
 --     bits 0..2 are write-only (reading always returns 0)
+--     bits 13 .. 12 return the card type: 00 = error / unknown
+--                                         01 = MMC
+--                                         10 = SD (version 1.0 / version 1.1)
+--                                         11 = SDHC/SDXC                       
 --     bit 14 of the CSR is the error bit: 1, if the last operation failed. In such
---                                         a case, the error code is in IO$SD_ERROR and
---                                          you need to reset the controller to go on
+--                                         a case, the error code is in register #4 and
+--                                         you need to reset the controller to go on
 --     bit 15 of the CSR is the busy bit: 1, if current operation is still running
 --
--- done by sy2002 in June 2016
+-- done by sy2002 in June .. August 2016
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -66,6 +71,7 @@ port (
     hndShk_i   : in  std_logic;                       -- High when host has data to give or has taken data.
     hndShk_o   : out std_logic;                       -- High when controller has taken data or has data to give.
     error_o    : out std_logic_vector(15 downto 0);
+    info_o     : out std_logic_vector(1 downto 0);
     
     -- I/O signals to the external SD card.
     cs_bo      : out std_logic;                       -- Active-low chip-select.
@@ -121,6 +127,7 @@ signal sd_busy          : std_logic;
 signal sd_hndshk_i      : std_logic;
 signal sd_hndshk_o      : std_logic;
 signal sd_error         : std_logic_vector(15 downto 0);
+signal sd_info          : std_logic_vector(1 downto 0);
 
 -- fsm control signals
 signal fsm_sync_reset   : std_logic;
@@ -206,13 +213,14 @@ begin
          hndShk_i => sd_hndshk_i,
          hndShk_o => sd_hndshk_o,
          error_o => sd_error,
+         info_o => sd_info,
          cs_bo => sd_reset,
          sclk_o => sd_clk,
          mosi_o => sd_mosi,
          miso_i => sd_miso
       );
       
-   fsm_advance_state : process(clk, reset)
+   fsm_advance_state : process(clk, reset, cmd_reset)
    begin
       if reset = '1' or cmd_reset = '1' then
          sd_state <= sds_reset1;
@@ -380,7 +388,7 @@ begin
    end process;
    
    read_sdcard_registers : process(en, we, reg, reg_addr_lo, reg_addr_hi, reg_data_pos, reg_data, 
-                                   sd_state, sd_error, ram_data_o)
+                                   sd_state, sd_error, sd_info, ram_data_o)
    variable is_busy : std_logic;
    variable is_error : std_logic;
    --variable state_number : std_logic_vector(15 downto 0);
@@ -420,7 +428,7 @@ begin
             when "010" => data <= reg_data_pos;            
             when "011" => data <= "00000000" & ram_data_o;
             when "100" => data <= sd_error;
-            when "101" => data <= is_busy & is_error & "00000000000000";
+            when "101" => data <= is_busy & is_error & sd_info & "000000000000";
             when others => data <= (others => '0');
          end case;
       else

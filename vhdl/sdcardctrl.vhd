@@ -1,6 +1,27 @@
 --**********************************************************************
--- Modified by sy2002 in June 2016 to be a standalone VHDL module that
--- works independent of the other XESS VHDL_Lib components
+-- Modified and enhanced by sy2002 in June .. August 2016:
+--  1. Converted into a standalone VHDL module that works independent
+--     of the other XESS VHDL_Lib components
+--  2. @TODO describe enhancements for SDHC cards
+--
+--    info_o   00 = ctNA      = card not identified / error
+--             01 = ctMMC     = MMC
+--             10 = ctSD      = SD (version 1.0/1.1)
+--             11 = ctSDHCXC  = SDHC/SDXC
+--
+--    autodetect card type versus the old hardcoded type in the generic
+--
+--    more robust error management
+--
+--    complete change of semantics of the address: no byte addressing
+--    at all as input parameter allowed any more; the input address is
+--    always treated as a 512-byte block, i.e. address 0 = linear 0,
+--    address 1 = linear 512, ...
+--    For SDHC/SDXC cards, this is the "natural" way of addressing,
+--    for SD cards, the controller automatically calculates the byte
+--    addressing by multiplying by 512 (equals SHL 9)
+--
+--    fixed wrong as SDHC/SDXCs need longer to 
 --**********************************************************************
 
 --**********************************************************************
@@ -144,6 +165,7 @@ entity SdCardCtrl is
     hndShk_i   : in  std_logic;  -- High when host has data to give or has taken data.
     hndShk_o   : out std_logic;  -- High when controller has taken data or has data to give.
     error_o    : out std_logic_vector(15 downto 0) := (others => NO);
+    info_o     : out std_logic_vector(1 downto 0);
     -- I/O signals to the external SD card.
     cs_bo      : out std_logic                     := HI;   -- Active-low chip-select.
     sclk_o     : out std_logic                     := LO;   -- Serial clock to SD card.
@@ -166,6 +188,8 @@ end function IntMax;
 
 signal sclk_r   : std_logic := ZERO;  -- Register output drives SD card clock.
 signal hndShk_r : std_logic := NO;  -- Register output drives handshake output to host.
+
+signal card_type : std_logic_vector(1 downto 0);
   
 begin
   
@@ -177,9 +201,14 @@ begin
       CHK_CMD0_RESPONSE,    -- Check card's R1 response to the CMD0.
       SEND_CMD8,   -- This command is needed to initialize SDHC cards.
       GET_CMD8_RESPONSE,                -- Get the R7 response to CMD8.
+      EVAL_CMD8_RESPONSE,               -- Evaluate the R7 response to CMD8.
       SEND_CMD55,                       -- Send CMD55 to the SD card. 
       SEND_CMD41,                       -- Send CMD41 to the SD card.
-      CHK_ACMD41_RESPONSE,  -- Check if the SD card has left the IDLE state.     
+      CHK_ACMD41_RESPONSE,              -- Check if the SD card has left the IDLE state.           
+      GET_CMD58_RESPONSE,               -- Get the R3 response to CMD58.
+      EVAL_CMD58_RESPONSE,              -- Evaluate the R3 response to CMD58.
+      SEND_CMD16,                       -- Send CMD16 to the SD card.
+      CHK_CMD16_RESPONSE,               -- Check if CMD16 was successful.
       WAIT_FOR_HOST_RW,  -- Wait for the host to issue a read or write command.
       RD_BLK,    -- Read a block of data from the SD card.
       WR_BLK,    -- Write a block of data to the SD card.
@@ -224,6 +253,8 @@ begin
     constant CMD8_C          : Cmd_t := std_logic_vector(to_unsigned(16#40# + 8, Cmd_t'length));
     constant CMD55_C         : Cmd_t := std_logic_vector(to_unsigned(16#40# + 55, Cmd_t'length));
     constant CMD41_C         : Cmd_t := std_logic_vector(to_unsigned(16#40# + 41, Cmd_t'length));
+    constant CMD58_C         : Cmd_t := std_logic_vector(to_unsigned(16#40# + 58, Cmd_t'length));
+    constant CMD16_C         : Cmd_t := std_logic_vector(to_unsigned(16#40# + 16, Cmd_t'length));
     constant READ_BLK_CMD_C  : Cmd_t := std_logic_vector(to_unsigned(16#40# + 17, Cmd_t'length));
     constant WRITE_BLK_CMD_C : Cmd_t := std_logic_vector(to_unsigned(16#40# + 24, Cmd_t'length));
 
@@ -242,6 +273,7 @@ begin
     subtype Response_t is std_logic_vector(rx_v'range);
     constant ACTIVE_NO_ERRORS_C : Response_t := "00000000";  -- Normal R1 code after initialization.
     constant IDLE_NO_ERRORS_C   : Response_t := "00000001";  -- Normal R1 code after CMD0.
+    constant ILLEGAL_CMD_C      : Response_t := "00000101";  -- R1 Illegal Command response
     constant DATA_ACCEPTED_C    : Response_t := "---00101";  -- SD card accepts data block from host.
     constant DATA_REJ_CRC_C     : Response_t := "---01011";  -- SD card rejects data block from host due to CRC error.
     constant DATA_REJ_WERR_C    : Response_t := "---01101";  -- SD card rejects data block from host due to write error.
@@ -255,6 +287,9 @@ begin
     variable rtnData_v        : boolean;  -- When true, signal to host when a data byte arrives from SD card.
     variable doDeselect_v     : boolean;  -- When true, de-select SD card after a command is issued.
     
+    variable rx32_v           : std_logic_vector(31 downto 0);
+    variable do_rx32          : boolean;
+    
   begin
     if rising_edge(clk_i) then
 
@@ -262,6 +297,7 @@ begin
         state_v          := START_INIT;  -- Send the FSM to the initialization entry-point.
         sclkPhaseTimer_v := 0;  -- Don't delay the initialization right after reset.
         busy_o           <= YES;  -- Busy while the SD card interface is being initialized.
+        card_type        <= ctNA;
 
       elsif sclkPhaseTimer_v /= 0 then
         -- Setting the clock phase timer to a non-zero value delays any further actions
@@ -289,7 +325,7 @@ begin
       elsif (state_v = START_INIT) or (hndShk_r = LO and hndShk_i = LO) then
         -- Both handshakes are low, so the controller operations can proceed.
         
-        busy_o <= YES;  -- Busy by default. Only false when waiting for R/W from host or stalled by error.
+        busy_o <= YES;  -- Busy by default. Only false when waiting for R/W from host or stalled by error.       
 
         case state_v is
           
@@ -304,6 +340,7 @@ begin
             bitCnt_v         := NUM_INIT_CLKS_C;  -- Generate this many clock pulses.
             state_v          := DESELECT;  -- De-select the SD card and pulse SCLK.
             rtnState_v       := SEND_CMD0;  -- Then go to this state after the clock pulses are done.
+            do_rx32          := false;
             
           when SEND_CMD0 =>             -- Put the SD card in the IDLE state.
             cs_bo            <= LO;     -- Enable the SD card.
@@ -331,12 +368,35 @@ begin
             rtnState_v       := GET_CMD8_RESPONSE;  -- Then go to this state after the command is sent.
             
           when GET_CMD8_RESPONSE =>     -- Get the R7 response to CMD8.
+                    
+            do_rx32          := true;
+            rx32_v           := x"00000000";
+          
             cs_bo            <= LO;  -- The SD card should already be enabled, but let's be explicit.
             bitCnt_v         := 31;     -- Four bytes (32 bits) in R7 response.
             getCmdResponse_v := false;  -- Not sending a command that generates a response.
             doDeselect_v     := true;  -- De-select card to end the command after getting the four bytes.
             state_v          := RX_BITS;  -- Go to FSM subroutine to get the R7 response.
-            rtnState_v       := SEND_CMD55;  -- Then go here (we don't care what the actual R7 response is).
+--            rtnState_v       := SEND_CMD55;  -- Then go here (we don't care what the actual R7 response is).
+            rtnState_v       := EVAL_CMD8_RESPONSE;
+            
+          when EVAL_CMD8_RESPONSE =>
+
+            -- sy2002: It seems, that even today's (2016) 1 GB cards are at least SD version 2, so that
+            -- they are able to work with CMD8 and properly respond 0x1AA. This means, that
+            -- this version of the code is not able to work with SD version 1 or 1.1 at this moment
+            -- in time. @TODO: Improve.                        
+            if rx32_v = x"000001AA" then
+               state_v := SEND_CMD55;
+            else
+               state_v := REPORT_ERROR;
+            end if;
+          
+            do_rx32          := false;
+            rx_v             := x"00";            
+            cs_bo            <= LO;
+            getCmdResponse_v := false;
+            doDeselect_v     := true;
 
           when SEND_CMD55 =>  -- Send CMD55 as preamble of ACMD41 initialization command.
             cs_bo            <= LO;     -- Enable the SD card.
@@ -361,11 +421,62 @@ begin
             -- and become ready for SPI read/write operations. If still IDLE, then repeat the CMD55, CMD41 sequence.
             -- If one of the R1 error flags is set, then report the error and stall.
             if rx_v = ACTIVE_NO_ERRORS_C then   -- Not IDLE, no errors.
-              state_v := WAIT_FOR_HOST_RW;  -- Start processing R/W commands from the host.
+              --state_v := WAIT_FOR_HOST_RW;  -- Start processing R/W commands from the host.
+                            
+              cs_bo            <= LO;     -- Enable the SD card.
+              txCmd_v          := CMD58_C & x"00000000" & FAKE_CRC_C;
+              bitCnt_v         := txCmd_v'length;  -- Set bit counter to the size of the command.
+              getCmdResponse_v := true;  -- Sending a command that generates a response.
+              doDeselect_v     := false;  -- Don't de-select, need to get the R3 response sent from the SD card.
+              state_v          := START_TX;  -- Go to FSM subroutine to send the command.
+              rtnState_v       := GET_CMD58_RESPONSE;  -- Then go to this state after the command is sent.
+                            
             elsif rx_v = IDLE_NO_ERRORS_C then  -- Still IDLE but no errors. 
               state_v := SEND_CMD55;    -- Repeat the CMD55, CMD41 sequence.
             else                        -- Some error occurred.
               state_v := REPORT_ERROR;  -- Report the error and stall.
+            end if;
+            
+          when GET_CMD58_RESPONSE =>
+            do_rx32          := true;            
+            rx32_v           := x"00000000";
+          
+            cs_bo            <= LO;  -- The SD card should already be enabled, but let's be explicit.
+            bitCnt_v         := 31;     -- Four bytes (32 bits) in R7 response.
+            getCmdResponse_v := false;  -- Not sending a command that generates a response.
+            doDeselect_v     := true;  -- De-select card to end the command after getting the four bytes.
+            state_v          := RX_BITS;  -- Go to FSM subroutine to get the R7 response.
+            rtnState_v       := EVAL_CMD58_RESPONSE;
+          
+          when EVAL_CMD58_RESPONSE =>
+            -- we only arrive here for SD Ver. 2 or later cards
+            -- CCS = bit30 = 0: Standard Capacity
+            -- CCS = bit30 = 1: High Capacity or Extended Capacity            
+            if rx32_v(30) = '1' then
+               card_type     <= ctSDHCXC;
+            else
+               card_type     <= ctSD;
+            end if;
+          
+            do_rx32          := false;
+            rx_v             := x"00";            
+            state_v          := SEND_CMD16;
+
+          when SEND_CMD16 =>
+            cs_bo            <= LO;     -- Enable the SD card.
+--            txCmd_v          := CMD16_C & std_logic_vector(to_unsigned(BLOCK_SIZE_G, 32)) & FAKE_CRC_C;
+            txCmd_v          := CMD16_C & x"00000200" & FAKE_CRC_C;
+            bitCnt_v         := txCmd_v'length;  -- Set bit counter to the size of the command.
+            getCmdResponse_v := true;  -- Sending a command that generates a response.
+            doDeselect_v     := true;  -- De-select SD card after this command finishes.
+            state_v          := START_TX;  -- Go to FSM subroutine to send the command.
+            rtnState_v       := CHK_CMD16_RESPONSE;  -- Then go to this state after the command is sent.
+          
+          when CHK_CMD16_RESPONSE =>
+            if rx_v = x"00" then
+               state_v       := WAIT_FOR_HOST_RW;
+            else               
+               state_v       := REPORT_ERROR;
             end if;
             
           when WAIT_FOR_HOST_RW =>  -- Wait for the host to read or write a block of data from the SD card.
@@ -419,9 +530,23 @@ begin
             rtnState_v := RD_BLK;   -- Return here when done receiving a byte.
             if byteCnt_v = RD_BLK_SZ_C then  -- Initial read to prime the pump.
               byteCnt_v := byteCnt_v - 1;
+              
+              if rx_v /= x"00" then
+                  state_v := REPORT_ERROR;
+              end if;
+              
             elsif byteCnt_v = RD_BLK_SZ_C -1 then  -- Then look for the data block start token.
               if rx_v = NO_TOKEN_C then  -- Receiving 0xFF means the card hasn't responded yet. Keep trying.
-                null;
+              
+                --null;
+                state_v := REPORT_ERROR;
+                
+                -- Testidee: Das Report Error bei START_TOKEN_C bringen um zu schauen,
+                -- ob bei der SDHC/SDXC jemals mehr als ein Wartetoken geschickt wird.
+                -- Erwartung wäre: nein, da man "pollen" muss, d.h. bei der normalen
+                -- Karte sollte dann der Error kommen und bei der SDHC/SDXC die
+                -- "Endlosschleife" hier im "null" Wartezustand
+                
               elsif rx_v = START_TOKEN_C then
                 rtnData_v := true;  -- Found the start token, so now start returning data byes to the host.
                 byteCnt_v := byteCnt_v - 1;
@@ -524,7 +649,13 @@ begin
 
           when RX_BITS =>               -- Receive bits from the SD card.
             if sclk_r = HI then    -- Bits enter after the rising edge of SCLK.
-              rx_v := rx_v(rx_v'high-1 downto 0) & miso_i;
+              
+              if do_rx32 then
+                  rx32_v := rx32_v(rx32_v'high-1 downto 0) & miso_i;
+              else
+                  rx_v := rx_v(rx_v'high-1 downto 0) & miso_i;
+              end if;
+              
               if bitCnt_v /= 0 then     -- More bits left to receive.
                 bitCnt_v := bitCnt_v - 1;
               else                      -- Last bit has been received.
@@ -575,5 +706,6 @@ begin
 
   sclk_o   <= sclk_r;    -- Output the generated SPI clock for the SD card.
   hndShk_o <= hndShk_r;  -- Output the generated handshake to the host.
+  info_o   <= card_type; -- Output the detected card type (MMC, SD, SDHC/SDXC)
   
 end architecture;

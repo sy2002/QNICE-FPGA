@@ -1,6 +1,6 @@
 ; SD Card and FAT32 development testbed
 ; contains reusable functions that can be the basis for enhancing the monitor
-; done by sy2002 in June, July 2016
+; done by sy2002 in June .. August 2016
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -24,7 +24,7 @@
                 MOVE    STR_OK, R8
                 SYSCALL(puts, 1)
                 SYSCALL(crlf, 1)
-                
+
                 ; SD registers
                 MOVE    IO$SD_ADDR_LO, R0
                 MOVE    IO$SD_ADDR_HI, R1
@@ -32,6 +32,29 @@
                 MOVE    IO$SD_DATA, R3
                 MOVE    IO$SD_ERROR, R4
                 MOVE    IO$SD_CSR, R5
+
+                ; Detect card type
+                MOVE    STR_CARDTYPE, R8
+                SYSCALL(puts, 1)
+                MOVE    @R5, R7                 ; read CSR
+                SHR     12, R7                  ; bits 13 .. 12 are relevant
+                RBRA    DCT_1, !Z               ; 00 = unknown card / error
+                MOVE    STR_CT_NA, R8
+                RBRA    DCT_DONE, 1
+DCT_1           CMP     R7, 1                   ; 01 = MMC
+                RBRA    DCT_2, !Z
+                MOVE    STR_CT_MMC, R8
+                RBRA    DCT_DONE, 1
+DCT_2           CMP     R7, 2                   ; 10 = SD
+                RBRA    DCT_3, !Z
+                MOVE    STR_CT_SD, R8
+                RBRA    DCT_DONE, 1
+DCT_3           CMP     R7, 3                   ; 11 = SDHC/SDXC
+                MOVE    STR_CT_SDHCXC, R8
+                RBRA    DCT_DONE, 1
+                MOVE    STR_CT_INCONS, R8       ; inconsistent value
+                                                ; (hardware/vhdl/asm mismatch)
+DCT_DONE        SYSCALL(puts, 1)                ; print card type
 
                 ; perform register write/read-back checks
                 MOVE    STR_REGCHK_T, R8
@@ -691,13 +714,19 @@ PRINT_FLAGS     .BLOCK 1                        ; which attributes to print?
 ; String constants
 ;=============================================================================
 
-STR_TITLE       .ASCII_P "SD Card development testbed  -  done by sy2002 in June, July 2016\n"
-                .ASCII_W "=================================================================\n\n"
+STR_TITLE       .ASCII_P "SD Card development testbed  -  done by sy2002 in June .. August 2016\n"
+                .ASCII_W "=====================================================================\n\n"
 STR_OK          .ASCII_W "OK"
 STR_FAILED      .ASCII_W "FAILED: "
 STR_SPACE1      .ASCII_W " "
 STR_SPACE2      .ASCII_W "  "
 STR_RESET       .ASCII_W "Resetting SD Card: "
+STR_CARDTYPE    .ASCII_W "Detected card type: "
+STR_CT_NA       .ASCII_W "FAILED\n"
+STR_CT_MMC      .ASCII_W "MMC\n"
+STR_CT_SD       .ASCII_W "SD\n"
+STR_CT_SDHCXC   .ASCII_W "SDHC/SDXC\n"
+STR_CT_INCONS   .ASCII_W "<illegal return value / inconsistency asm/vhdl>\n"
 STR_REGCHK_T    .ASCII_W "Register write and read-back:\n"
 STR_REGCHK_R    .ASCII_W "    checking "
 STR_REGCHK_AL   .ASCII_W "ADDR_LO: "
