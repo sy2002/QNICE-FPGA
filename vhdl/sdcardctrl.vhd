@@ -539,7 +539,7 @@ begin
               if rx_v = NO_TOKEN_C then  -- Receiving 0xFF means the card hasn't responded yet. Keep trying.
               
                 --null;
-                state_v := REPORT_ERROR;
+                -- state_v := REPORT_ERROR;
                 
                 -- Testidee: Das Report Error bei START_TOKEN_C bringen um zu schauen,
                 -- ob bei der SDHC/SDXC jemals mehr als ein Wartetoken geschickt wird.
@@ -547,7 +547,13 @@ begin
                 -- Karte sollte dann der Error kommen und bei der SDHC/SDXC die
                 -- "Endlosschleife" hier im "null" Wartezustand
                 
+                -- 1.8. Test durchgeführt. Verhalten wie erwartet: Die SDHC kommt nie
+                -- im Bereich START_TOKEN_C an.
+                
               elsif rx_v = START_TOKEN_C then
+              
+                state_v := REPORT_ERROR;
+              
                 rtnData_v := true;  -- Found the start token, so now start returning data byes to the host.
                 byteCnt_v := byteCnt_v - 1;
               else  -- Getting anything else means something strange has happened.

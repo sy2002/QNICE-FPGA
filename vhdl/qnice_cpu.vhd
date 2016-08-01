@@ -306,8 +306,8 @@ begin
             fsmInstruction <= (others => '0');
               
          -- as the previous state sets the direction control to read and the address to a meaningful value
-         -- (i.e. 0 after cs_reset or current PC afterwards), the DATA_driver will take care, that at the
-         -- falling edge of cs_fetch's clock cycle, DATA_From_Bus will contain the next opcode
+         -- (i.e. 0 after cs_reset or current PC afterwards), we can be sure, that at the
+         -- falling edge of cs_fetch's clock cycle, the bus (DATA) will contain the next opcode
          when cs_fetch =>
             -- add wait cycles, if necessary (e.g. due to slow RAM)
             if WAIT_FOR_DATA = '1' then
