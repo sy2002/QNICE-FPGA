@@ -41,16 +41,16 @@
                 RBRA    DCT_1, !Z               ; 00 = unknown card / error
                 MOVE    STR_CT_NA, R8
                 RBRA    DCT_DONE, 1
-DCT_1           CMP     R7, 1                   ; 01 = MMC
+DCT_1           CMP     R7, SD$CT_SD_V1         ; 01 = SD V1
                 RBRA    DCT_2, !Z
-                MOVE    STR_CT_MMC, R8
+                MOVE    STR_CT_SDV1, R8
                 RBRA    DCT_DONE, 1
-DCT_2           CMP     R7, 2                   ; 10 = SD
+DCT_2           CMP     R7, SD$CT_SD_V2         ; 10 = SD V2
                 RBRA    DCT_3, !Z
-                MOVE    STR_CT_SD, R8
+                MOVE    STR_CT_SDV2, R8
                 RBRA    DCT_DONE, 1
-DCT_3           CMP     R7, 3                   ; 11 = SDHC/SDXC
-                MOVE    STR_CT_SDHCXC, R8
+DCT_3           CMP     R7, SD$CT_SDHC          ; 11 = SDHC
+                MOVE    STR_CT_SDHC, R8
                 RBRA    DCT_DONE, 1
                 MOVE    STR_CT_INCONS, R8       ; inconsistent value
                                                 ; (hardware/vhdl/asm mismatch)
@@ -723,9 +723,9 @@ STR_SPACE2      .ASCII_W "  "
 STR_RESET       .ASCII_W "Resetting SD Card: "
 STR_CARDTYPE    .ASCII_W "Detected card type: "
 STR_CT_NA       .ASCII_W "FAILED\n"
-STR_CT_MMC      .ASCII_W "MMC\n"
-STR_CT_SD       .ASCII_W "SD\n"
-STR_CT_SDHCXC   .ASCII_W "SDHC/SDXC\n"
+STR_CT_SDV1     .ASCII_W "SD V1\n"
+STR_CT_SDV2     .ASCII_W "SD V2\n"
+STR_CT_SDHC     .ASCII_W "SDHC\n"
 STR_CT_INCONS   .ASCII_W "<illegal return value / inconsistency asm/vhdl>\n"
 STR_REGCHK_T    .ASCII_W "Register write and read-back:\n"
 STR_REGCHK_R    .ASCII_W "    checking "
@@ -863,14 +863,14 @@ SD$RESET        INCRB
 ;*****************************************************************************
 ;* SD$READ_BLOCK reads a 512 byte block from the SD Card
 ;*
-;* INPUT:  R8/R9 = LO/HI words of the 32-bit read address
+;* INPUT:  R8/R9 = LO/HI words of the 32-bit block address
 ;* OUTPUT: R8 = 0 (no error), or error code
 ;*
 ;* The read data is stored inside 512 byte buffer of the the SD controller 
 ;* memory that can then be accessed via SD$READ_BYTE.
 ;*
-;* IMPORTANT: The 32-bit read address must be a multiple of 512, otherwise it
-;* will be automatically "down rounded" to the nearest 512 byte block.
+;* IMPORTANT: 512-byte block addressing is used always, i.e. independent of
+;* the SD Card type. Address #0 means 0..511, address #1 means 512..1023, ..
 ;*****************************************************************************
 ;
 SD$READ_BLOCK   INCRB
@@ -962,7 +962,11 @@ _SD$WAIT_BUSY_L MOVE    @R3, R1                 ; check for timeout
                 MOVE    @R0, R1                 ; read CSR register       
                 AND     SD$BIT_BUSY, R1         ; check busy flag
                 RBRA    _SD$WAIT_BUSY_L, !Z     ; loop if busy flag is set
-                MOVE    @R2, R8                 ; return error value
+                XOR     R8, R8                  ; assume no error, but did an
+                MOVE    @R0, R1                 ; read CSR register
+                AND     SD$BIT_ERROR, R1        ; error flag?
+                RBRA    _SD$WAIT_END, Z         ; no error
+_SD$WAIT_ERR    MOVE    @R2, R8                 ; return error value
                 RBRA    _SD$WAIT_END, 1
 
 _SD$WAIT_TO     MOVE    SD$ERR_TIMEOUT, R8
@@ -1141,27 +1145,31 @@ _F32_MNT_TCOK   MOVE    R0, R8                      ; device handle
                 ADD     FAT32$DEV_FS_HI, R1         ; FS start LBA low word
                 MOVE    R11, @R1                    ; store it in device hndl
 
-                ; Go to the first 512 byte sector of the file system (FS)
-                ; and read it. For doing so, a 2 x 32bit multiplication
-                ; needs to be utilized, because the FS start LBA
-                ; FAT32$DEV_FS_LO / FAT32$DEV_FS_HI is 32bit and this needs
-                ; to be multiplied by FAT32$SECTOR_SIZE (512) to obtain
-                ; the linar address. But the upper two words of the 64bit
-                ; result value need to be zero, otherwise the medium is too
-                ; large to be handled by this FAT32 implementation
-                MOVE    R10, R8
-                MOVE    R11, R9
-                MOVE    FAT32$SECTOR_SIZE, R10
-                MOVE    0, R11
-                RSUB    MULU32, 1
-                CMP     0, R11
-                RBRA    _F32_MNT_SERR, !Z
-                CMP     0, R10
-                RBRA    _F32_MNT_SERR, !Z
-                RBRA    _F32_MNT_DVID, 1
-_F32_MNT_SERR   MOVE    FAT32$ERR_SIZE, R9
-                RBRA    _F32_MNT_END, 1
-               
+;                ; Go to the first 512 byte sector of the file system (FS)
+;                ; and read it. For doing so, a 2 x 32bit multiplication
+;                ; needs to be utilized, because the FS start LBA
+;                ; FAT32$DEV_FS_LO / FAT32$DEV_FS_HI is 32bit and this needs
+;                ; to be multiplied by FAT32$SECTOR_SIZE (512) to obtain
+;                ; the linar address. But the upper two words of the 64bit
+;                ; result value need to be zero, otherwise the medium is too
+;                ; large to be handled by this FAT32 implementation
+;                MOVE    R10, R8
+;                MOVE    R11, R9
+;                MOVE    FAT32$SECTOR_SIZE, R10
+;                MOVE    0, R11
+;                RSUB    MULU32, 1
+;                CMP     0, R11
+;                RBRA    _F32_MNT_SERR, !Z
+;                CMP     0, R10
+;                RBRA    _F32_MNT_SERR, !Z
+;                RBRA    _F32_MNT_DVID, 1
+;_F32_MNT_SERR   MOVE    FAT32$ERR_SIZE, R9
+;                RBRA    _F32_MNT_END, 1
+
+
+                MOVE    R10, R8                     ; LBA lo of 1st 512b sect.
+                MOVE    R11, R9                     ; LBA hi of 1st 512b sect.
+
                 ; decode the FAT32 Volume ID (1st 512 byte sector)
                 ; 1. sanity check: jump instruction to boot code
                 ; 2. sanity check: word offs 22 must be zero on FAT32
@@ -1302,6 +1310,9 @@ _F32_MNT_END    MOVE    @SP++, R12
                 DECRB
                 DECRB
                 RET
+
+_F32_MNT_SERR   MOVE    FAT32$ERR_SIZE, R9
+                RBRA    _F32_MNT_END, 1
 ;
 ;*****************************************************************************
 ;* FAT32$DIR_OPEN opens the current directory for browsing
@@ -2672,19 +2683,19 @@ _F32_RFDH_INCC  MOVE    R1, R2
                 ADD     R2, R8
                 ADDC    R3, R9
 
-                ; calculate linear address of sector by multiplying the
-                ; LBA address in R9|R8 by 512 and load it
-                ; if the result is larger than 32bit, then we have an error
-                MOVE    512, R10
-                XOR     R11, R11
-                RSUB    MULU32, 1                   ; mult. result = R11..R8
-                CMP     R11, 0                      ; result > 48bit?
-                RBRA    _F32_RFDH_INCC2, Z          ; no: go on checking
-                RBRA    _F32_RFDH_INCCE, 1
-_F32_RFDH_INCC2 CMP     R10, 0                      ; result > 32bit?
-                RBRA    _F32_RFDH_INCC3, Z          ; no: go on
-_F32_RFDH_INCCE MOVE    FAT32$ERR_SIZE, R9          ; return size error
-                RBRA    _F32_RFDH_END, 1
+;                ; calculate linear address of sector by multiplying the
+;                ; LBA address in R9|R8 by 512 and load it
+;                ; if the result is larger than 32bit, then we have an error
+;                MOVE    512, R10
+;                XOR     R11, R11
+;                RSUB    MULU32, 1                   ; mult. result = R11..R8
+;                CMP     R11, 0                      ; result > 48bit?
+;                RBRA    _F32_RFDH_INCC2, Z          ; no: go on checking
+;                RBRA    _F32_RFDH_INCCE, 1
+;_F32_RFDH_INCC2 CMP     R10, 0                      ; result > 32bit?
+;                RBRA    _F32_RFDH_INCC3, Z          ; no: go on
+;_F32_RFDH_INCCE MOVE    FAT32$ERR_SIZE, R9          ; return size error
+;                RBRA    _F32_RFDH_END, 1
 _F32_RFDH_INCC3 MOVE    FAT32$DEV_BLOCK_READ, R10   ; R10 = function index
                 MOVE    R0, R11                     ; R11 = device handle
                 RSUB    FAT32$CALL_DEV, 1
@@ -2803,19 +2814,19 @@ _F32_RSIC_C2    MOVE    R8, R0                      ; save device handle
                 MOVE    FAT32$ERR_SIZE, R9
                 RBRA    _F32_RSIC_END, 1
 
-                ; linear address = lba_addr * 512
-_F32_RSIC_C3    MOVE    FAT32$SECTOR_SIZE, R10
-                MOVE    0, R11
-                RSUB    MULU32, 1
-                CMP     0, R11                      ; too large?
-                RBRA    _F32_RSIC_C4, Z
-                CMP     0, R10
-                RBRA    _F32_RSIC_C4, Z
-                MOVE    FAT32$ERR_SIZE, R9
-                RBRA    _F32_RSIC_END, 1
+;                ; linear address = lba_addr * 512
+;_F32_RSIC_C3    MOVE    FAT32$SECTOR_SIZE, R10
+;                MOVE    0, R11
+;                RSUB    MULU32, 1
+;                CMP     0, R11                      ; too large?
+;                RBRA    _F32_RSIC_C4, Z
+;                CMP     0, R10
+;                RBRA    _F32_RSIC_C4, Z
+;                MOVE    FAT32$ERR_SIZE, R9
+;                RBRA    _F32_RSIC_END, 1
 
                 ; read sector into internal buffer
-_F32_RSIC_C4    MOVE    FAT32$DEV_BLOCK_READ, R10
+_F32_RSIC_C3    MOVE    FAT32$DEV_BLOCK_READ, R10
                 MOVE    R0, R11
                 RSUB    FAT32$CALL_DEV, 1
                 MOVE    R8, R9

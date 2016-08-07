@@ -6,13 +6,15 @@ HARDWARE:
 
 * Remove ROM and replace by prefilled RAM
 
-* Have a global constant that reflects the speed of the board and refactor
+* Get rid of hardcoded clock speed dependencies:
+  + Have a global constant that reflects the speed of the board and refactor
   all hardcoded frequencies to be dependend formulas from this speed
   (e.g. UART, SD card, VGA, debouncer, SD$TIMEOUT_HIGH, etc.)
+  + Have a generator that generates the speeds that certain components need
+  as input, e.g. the SD Card component needs currently hardcoded 25 MHz
+  + Keyboard: remove hardcoded 18000 constant
 
 * Improve design to support 100 MHz
-
-* Keyboard: remove hardcoded hardcoded 18000
 
 * Refactor scancode conversion to be more table/ROM like and less
   like a huge array of multiplexers
@@ -46,6 +48,4 @@ MONITOR and/or STANDARD LIBs:
 
 ASSEMBLER:
 
-* Issue a warning, when defining a label multiple times.
-* Issue a warning, when defining an .EQU that is equal to a label
 

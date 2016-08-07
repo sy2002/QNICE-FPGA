@@ -1,13 +1,18 @@
 -- SD Card Interface
--- wraps XESS Corp's SdCardCtrl that has been enhanced by sy2002 to also handle SDHC/SDHX cards
--- into a state machine that makes it compatible to the QNICE-FPGA architecture
--- utilizes an internal 512-byte RAM buffer using the byte_bram component
--- meant to be connected with the QNICE CPU as data I/O controled through MMIO
--- tristate outputs go high impedance when not enabled
+-- uses 512-byte block addressing on all card types, i.e.
+-- address #0 is the linear data between 0 .. 511 and
+-- address #1 is the linear data between 512 .. 1023, etc.
+--
+-- This interface wraps Lawrence Wilkinson's awesome "SimpleSDHC" component
+-- (that can be found here: https://github.com/ibm2030/SimpleSDHC)
+-- into a state machine that supports the MMIO logic and that
+-- utilizes an internal 512-byte RAM buffer using the byte_bram component.
+-- It is meant to be connected with the QNICE CPU as data I/O controled through MMIO;
+-- tristate outputs go high impedance when not enabled.
 --
 -- registers:
--- 0 : low word of 32bit linear SD card block address
--- 1 : high word of 32bit linear SD card block address
+-- 0 : low word of 32bit SD card block address
+-- 1 : high word of 32bit SD card block address
 -- 2 : "cursor" to navigate the 512-byte data buffer
 -- 3 : read/write 1 byte from/to the 512-byte data buffer
 -- 4 : error code of last operation (read only)
@@ -16,16 +21,16 @@
 --                          0x0001  Read 512 bytes from the linear block address
 --                          0x0002  Write 512 bytes to the linear block address
 --     bits 0..2 are write-only (reading always returns 0)
---     bits 13 .. 12 return the card type: 00 = error / unknown
---                                         01 = MMC
---                                         10 = SD (version 1.0 / version 1.1)
---                                         11 = SDHC/SDXC                       
+--     bits 13 .. 12 return the card type: 00 = no card / unknown card
+--                                         01 = SD V1
+--                                         10 = SD V2
+--                                         11 = SDHC                       
 --     bit 14 of the CSR is the error bit: 1, if the last operation failed. In such
 --                                         a case, the error code is in register #4 and
 --                                         you need to reset the controller to go on
 --     bit 15 of the CSR is the busy bit: 1, if current operation is still running
 --
--- done by sy2002 in June .. August 2016
+-- done by sy2002 in August 2016
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -52,32 +57,42 @@ end sdcard;
 
 architecture Behavioral of sdcard is
 
--- SD Card controller
-component SdCardCtrl is
-generic (
-    FREQ_G          : real                            -- Master clock frequency (MHz).
-);
+-- the actual SD Card controller that is wrapped by this state machine
+component sd_controller is
 port (
-    -- Host-side interface signals.
-    clk_i      : in  std_logic;                       -- Master clock.
-    reset_i    : in  std_logic;                       -- active-high, synchronous reset.
-    rd_i       : in  std_logic;                       -- active-high read block request.
-    wr_i       : in  std_logic;                       -- active-high write block request.
-    continue_i : in  std_logic;                       -- If true, inc address and continue R/W.
-    addr_i     : in  std_logic_vector(31 downto 0);   -- Block address.
-    data_i     : in  std_logic_vector(7 downto 0);    -- Data to write to block.
-    data_o     : out std_logic_vector(7 downto 0);    -- Data read from block.
-    busy_o     : out std_logic;                       -- High when controller is busy performing some operation.
-    hndShk_i   : in  std_logic;                       -- High when host has data to give or has taken data.
-    hndShk_o   : out std_logic;                       -- High when controller has taken data or has data to give.
-    error_o    : out std_logic_vector(15 downto 0);
-    info_o     : out std_logic_vector(1 downto 0);
-    
-    -- I/O signals to the external SD card.
-    cs_bo      : out std_logic;                       -- Active-low chip-select.
-    sclk_o     : out std_logic;                       -- Serial clock to SD card.
-    mosi_o     : out std_logic;                       -- Serial data output to SD card.
-    miso_i     : in  std_logic                        -- Serial data input from SD card.
+	cs : out std_logic;				   -- To SD card
+	mosi : out std_logic;			   -- To SD card
+	miso : in std_logic;			      -- From SD card
+	sclk : out std_logic;			   -- To SD card
+	card_present : in std_logic;	   -- From socket - can be fixed to '1' if no switch is present
+	card_write_prot : in std_logic;	-- From socket - can be fixed to '0' if no switch is present, or '1' to make a Read-Only interface
+
+	rd : in std_logic;				   -- Trigger single block read
+	rd_multiple : in std_logic;		-- Trigger multiple block read
+	dout : out std_logic_vector(7 downto 0);	-- Data from SD card
+	dout_avail : out std_logic;		-- Set when dout is valid
+	dout_taken : in std_logic;		   -- Acknowledgement for dout
+	
+	wr : in std_logic;				   -- Trigger single block write
+	wr_multiple : in std_logic;		-- Trigger multiple block write
+	din : in std_logic_vector(7 downto 0);	-- Data to SD card
+	din_valid : in std_logic;		   -- Set when din is valid
+	din_taken : out std_logic;		   -- Ackowledgement for din
+	
+	addr : in std_logic_vector(31 downto 0);	-- Block address
+	erase_count : in std_logic_vector(7 downto 0); -- For wr_multiple only
+
+	sd_error : out std_logic;		   -- '1' if an error occurs, reset on next RD or WR
+	sd_busy : out std_logic;		   -- '0' if a RD or WR can be accepted
+	sd_error_code : out std_logic_vector(2 downto 0); -- See above, 000=No error
+	
+	
+	reset : in std_logic;	         -- System reset
+	clk : in std_logic;		         -- twice the SPI clk (max 50MHz)
+	
+	-- Optional debug outputs
+	sd_type : out std_logic_vector(1 downto 0);	-- Card status (see above)
+	sd_fsm : out std_logic_vector(7 downto 0) := "11111111" -- FSM state (see block at end of file)
 );
 end component;
 
@@ -106,7 +121,6 @@ signal ram_data_i       : std_logic_vector(7 downto 0);
 signal ram_data_o       : std_logic_vector(7 downto 0);
 
 signal buffer_ptr       : unsigned(15 downto 0);         -- pointer to 512 byte buffer
-signal reset_buffer_ptr : std_logic;
 signal current_byte     : std_logic_vector(7 downto 0);  -- byte read in the last read operation
 
 signal ram_we_duetosdc : std_logic;                      -- write ram due to SD card reading
@@ -118,25 +132,24 @@ signal ram_ai_duetowrrg : std_logic_vector(15 downto 0); -- ram write address du
 
 -- SD Card controller signals
 signal sd_sync_reset    : std_logic;
+signal sd_block_addr    : std_logic_vector(31 downto 0);
 signal sd_block_read    : std_logic;
-signal sd_block_write   : std_logic;
-signal sd_block_address : std_logic_vector(31 downto 0);
-signal sd_byte_write    : std_logic_vector(7 downto 0);
-signal sd_byte_read     : std_logic_vector(7 downto 0);
+signal sd_dout          : std_logic_vector(7 downto 0);
+signal sd_dout_avail    : std_logic;
+signal sd_dout_taken    : std_logic;
+signal sd_error_flag    : std_logic;   
+signal sd_error_code    : std_logic_vector(2 downto 0);
 signal sd_busy          : std_logic;
-signal sd_hndshk_i      : std_logic;
-signal sd_hndshk_o      : std_logic;
-signal sd_error         : std_logic_vector(15 downto 0);
-signal sd_info          : std_logic_vector(1 downto 0);
+signal sd_type          : std_logic_vector(1 downto 0);
+signal sd_fsm           : std_logic_vector(7 downto 0);
+
 
 -- fsm control signals
 signal fsm_sync_reset   : std_logic;
 signal fsm_block_read   : std_logic;
-signal fsm_block_write  : std_logic;
 signal fsm_block_addr   : std_logic_vector(31 downto 0);
-signal fsm_byte_write   : std_logic_vector(7 downto 0);
-signal fsm_hndshk_i     : std_logic;
 signal fsm_current_byte : std_logic_vector(7 downto 0);
+signal fsm_buffer_ptr   : unsigned(15 downto 0);
 
 -- flip/flops to save register values
 signal reg_addr_lo      : std_logic_vector(15 downto 0);
@@ -160,14 +173,13 @@ type sd_fsm_type is (
    sds_busy,
    sds_error,
 
-   sds_reset1,
-   sds_reset2,
+   sds_reset1,                   -- as the controller runs with half of the speed
+   sds_reset2,                   -- of the system, we need two cycles to signal reset
    
    sds_read_start,
    sds_read_wait_for_byte,
    sds_read_store_byte,
-   sds_read_handshake,
-   sds_read_inc_ptr,   
+   sds_read_handshake,          
    
    sds_write,
    
@@ -177,6 +189,8 @@ type sd_fsm_type is (
 signal sd_state         : sd_fsm_type;
 signal sd_state_next    : sd_fsm_type;
 signal fsm_state_next   : sd_fsm_type;
+
+signal Slow_Clock_25MHz : std_logic;
 
 begin
 
@@ -194,31 +208,44 @@ begin
          data_i => ram_data_i,
          data_o => ram_data_o
       );
-      
-   -- SD Carc Controller
-   sdctl : SdCardCtrl
-      generic map (
-         FREQ_G => 50.0                   -- @TODO should not be hardcoded here (TODO.txt)
-      )
+        
+   -- SD Card Controller
+   sdctl : sd_controller
       port map (
-         clk_i => clk,
-         reset_i => sd_sync_reset,
-         rd_i => sd_block_read,
-         wr_i => sd_block_write,
-         continue_i => '0',
-         addr_i => sd_block_address,
-         data_i => sd_byte_write,
-         data_o => sd_byte_read,
-         busy_o => sd_busy,
-         hndShk_i => sd_hndshk_i,
-         hndShk_o => sd_hndshk_o,
-         error_o => sd_error,
-         info_o => sd_info,
-         cs_bo => sd_reset,
-         sclk_o => sd_clk,
-         mosi_o => sd_mosi,
-         miso_i => sd_miso
-      );
+         -- general signals
+         clk => Slow_Clock_25MHz,
+         reset => sd_sync_reset,
+         addr => sd_block_addr,
+         sd_busy => sd_busy,
+         sd_error => sd_error_flag,
+         sd_error_code => sd_error_code,
+         sd_type => sd_type,
+         sd_fsm => sd_fsm,
+      
+         -- hardware interface
+         cs => sd_reset,
+         sclk => sd_clk,
+         mosi => sd_mosi,
+         miso => sd_miso,
+         
+         -- hardware socket settings
+         card_present => '1',
+         card_write_prot => '0',
+         
+         -- reading
+         rd => sd_block_read,
+         rd_multiple => '0',
+         dout => sd_dout,
+         dout_avail => sd_dout_avail,
+         dout_taken => sd_dout_taken,
+         
+         -- writing
+         wr => '0',
+         wr_multiple => '0',
+         din => (others => '0'),
+         din_valid => '0',
+         erase_count => (others => '0')
+      );     
       
    fsm_advance_state : process(clk, reset, cmd_reset)
    begin
@@ -227,49 +254,44 @@ begin
          
          sd_sync_reset <= '0';
          sd_block_read <= '0';
-         sd_block_write <= '0';
-         sd_block_address <= (others => '0');
-         sd_byte_write <= (others => '0');
-         sd_hndshk_i <= '0';
+         sd_block_addr <= (others => '0');
          
-         current_byte <= (others => '0');
+         current_byte  <= (others => '0');
+         buffer_ptr    <= (others => '0');
       else
          if rising_edge(clk) then
             if fsm_state_next = sds_std_seq then
                sd_state <= sd_state_next;
             else
                sd_state <= fsm_state_next;
-            end if;
+            end if;            
             
             sd_sync_reset <= fsm_sync_reset;
             sd_block_read <= fsm_block_read;
-            sd_block_write <= fsm_block_write;
-            sd_block_address <= fsm_block_addr;
-            sd_byte_write <= fsm_byte_write;
-            sd_hndshk_i <= fsm_hndshk_i;
+            sd_block_addr <= fsm_block_addr;
             
-            current_byte <= fsm_current_byte;
+            current_byte  <= fsm_current_byte;
+            buffer_ptr    <= fsm_buffer_ptr;
          end if;
       end if;
    end process;
    
-   fsm_output_decode : process(sd_state, sd_busy, sd_error, sd_sync_reset, sd_block_read, sd_block_write,
-                               sd_block_address, sd_byte_read, sd_byte_write, sd_hndshk_i, sd_hndshk_o,
+   fsm_output_decode : process(sd_state, sd_busy, sd_error_flag, sd_block_read,
+                               sd_block_addr, sd_dout, sd_dout_avail, buffer_ptr,
                                current_byte, cmd_read, reg_addr_hi, reg_addr_lo)
    begin
       fsm_sync_reset <= '0';
       fsm_block_read <= sd_block_read;
-      fsm_block_write <= sd_block_write;
-      fsm_block_addr <= sd_block_address;
-      fsm_byte_write <= sd_byte_write;
-      fsm_hndshk_i <= sd_hndshk_i;
+      fsm_block_addr <= sd_block_addr;
       fsm_state_next <= sds_std_seq;
       fsm_current_byte <= current_byte;
+      fsm_buffer_ptr <= buffer_ptr;
       
       reset_cmd_reset <= '0';
       reset_cmd_read <= '0';
       reset_cmd_write <= '0';
-      reset_buffer_ptr <= '0';
+      
+      sd_dout_taken <= '0';
       
       ram_we_duetosdc <= '0';
       ram_di_duetosdc <= (others => '0');
@@ -277,75 +299,59 @@ begin
       case sd_state is
       
          when sds_idle =>
+            -- read command detected
             if cmd_read = '1' then
+               -- for avoiding glitches, the address should be strobed before
+               -- the actual read command is issues
+               fsm_block_addr <= reg_addr_hi & reg_addr_lo;
                fsm_state_next <= sds_read_start;
             end if;
                         
          when sds_read_start =>
             reset_cmd_read <= '1';
-            
-            -- address and read strobe needs to stay until
-            -- the controller signals busy
+
+            -- issue read command and wait until the controler signals busy
             if sd_busy = '0' then
                fsm_state_next <= sds_read_start;
                
-               -- strobe address and read request
-               fsm_block_addr <= reg_addr_hi & reg_addr_lo;
+               -- issue read command and reset memory pointer
                fsm_block_read <= '1';
-               reset_buffer_ptr <= '1';
-            else
-               fsm_block_read <= '0';
-               fsm_block_addr <= (others => '0');
-            end if;         
-            
-         when sds_read_wait_for_byte =>
-            -- wait, until the byte arrived
-            if sd_hndshk_o = '0' or sd_busy = '0' then
-            
-               -- all bytes read or error
-               if sd_busy = '0' then
-                  fsm_state_next <= sds_busy; -- error handling or fall back to idle
-               else
-                  fsm_state_next <= sds_read_wait_for_byte;
-               end if;
-            else
-               -- prepare to store the arrived byte
-               fsm_current_byte <= sd_byte_read;
-               ram_we_duetosdc <= '1';
-               ram_di_duetosdc <= sd_byte_read;
+               fsm_buffer_ptr <= (others => '0');
             end if;
             
+         when sds_read_wait_for_byte =>
+            -- reading done
+            if buffer_ptr = 512 then
+               fsm_block_read <= '0';
+               fsm_state_next <= sds_busy;
+               
+            -- next byte available
+            elsif sd_dout_avail = '1' then
+                  -- prepare to store the arrived byte
+                  fsm_current_byte <= sd_dout;
+                  ram_we_duetosdc <= '1';
+                  ram_di_duetosdc <= sd_dout;
+                  
+            -- wait, until next byte arrives                  
+            else
+               fsm_state_next <= sds_read_wait_for_byte;
+            end if;
+                        
          when sds_read_store_byte =>
+            sd_dout_taken <= '1'; -- signal to controller that we stored the byte         
             ram_we_duetosdc <= '1';
             ram_di_duetosdc <= current_byte;
             
-         when sds_read_handshake =>
-            -- signal to controller that we stored the byte
-            fsm_hndshk_i <= '1';
-            
-         when sds_read_inc_ptr =>
-            -- check for error condition
-            if sd_busy = '0' then
-               fsm_state_next <= sds_busy;
-            -- wait for the controller to acknowledge
-            elsif sd_hndshk_o = '1' then
-               fsm_state_next <= sds_read_inc_ptr;
-            else
-               fsm_hndshk_i <= '0';
-               
-               -- error handling (if busy goes down here, there must be an error)
-               if sd_busy = '0' then
-                  fsm_state_next <= sds_busy; -- the sds_busy state does error handling
-               end if;
-            end if;
-                  
+         when sds_read_handshake =>            
+            sd_dout_taken <= '1'; -- two cycles due to 50MHz fsm vs. 25 MHz SD Controller
+            fsm_buffer_ptr <= buffer_ptr + 1;
+                                         
          when sds_busy =>
+--            if sd_error_flag = '1' then
+--               fsm_state_next <= sds_error;
+--            elsif sd_busy = '0' then
             if sd_busy = '0' then
-               if sd_error = x"0000" then
-                  fsm_state_next <= sds_idle;
-               else
-                  fsm_state_next <= sds_error;
-               end if;
+               fsm_state_next <= sds_idle;
             end if;
       
          when sds_reset1 =>
@@ -355,45 +361,35 @@ begin
          when sds_reset2 =>
             fsm_sync_reset <= '1';
             
+         when sds_error =>
+            fsm_block_read <= '0';
+            
          when others => null;
       
       end case;
    end process;
    
-   fsm_next_state_decode : process(sd_state, sd_busy)
+   -- define the standard sequence of fsm states 
+   fsm_next_state_decode : process(sd_state)
    begin
-      case sd_state is           
+      case sd_state is
          when sds_reset1               => sd_state_next <= sds_reset2;
          when sds_reset2               => sd_state_next <= sds_busy;
          when sds_read_start           => sd_state_next <= sds_read_wait_for_byte;
          when sds_read_wait_for_byte   => sd_state_next <= sds_read_store_byte;
          when sds_read_store_byte      => sd_state_next <= sds_read_handshake;
-         when sds_read_handshake       => sd_state_next <= sds_read_inc_ptr;
-         when sds_read_inc_ptr         => sd_state_next <= sds_read_wait_for_byte;
+         when sds_read_handshake       => sd_state_next <= sds_read_wait_for_byte;
          when others                   => sd_state_next <= sd_state;
       end case;
    end process;
    
-   inc_buffer_pointer_while_reading : process(sd_hndshk_i, reset, reset_buffer_ptr)
-   begin
-      if reset = '1' or reset_buffer_ptr = '1' then
-         buffer_ptr <= (others => '0');
-      else
-         if rising_edge(sd_hndshk_i) then
-            if sd_state = sds_read_handshake or sd_state = sds_read_inc_ptr then
-               buffer_ptr <= buffer_ptr + 1;
-            end if;
-         end if;
-      end if;
-   end process;
-   
    read_sdcard_registers : process(en, we, reg, reg_addr_lo, reg_addr_hi, reg_data_pos, reg_data, 
-                                   sd_state, sd_error, sd_info, ram_data_o)
+                                   sd_state, sd_fsm, sd_busy, sd_error_flag, sd_error_code, sd_type, ram_data_o)
    variable is_busy : std_logic;
    variable is_error : std_logic;
    --variable state_number : std_logic_vector(15 downto 0);
    begin
-      if sd_state = sds_error or sd_error /= x"0000" then
+      if sd_state = sds_error or sd_error_flag /= '0' then
          is_error := '1';
          is_busy  := '0';
       else
@@ -427,8 +423,9 @@ begin
             when "001" => data <= reg_addr_hi;
             when "010" => data <= reg_data_pos;            
             when "011" => data <= "00000000" & ram_data_o;
-            when "100" => data <= sd_error;
-            when "101" => data <= is_busy & is_error & sd_info & "000000000000";
+--            when "100" => data <= x"EE" & "00000" & sd_error_code;
+            when "100" => data <= sd_fsm & "00000" & sd_error_code;
+            when "101" => data <= is_busy & is_error & sd_type & "000000000000";
             when others => data <= (others => '0');
          end case;
       else
@@ -518,6 +515,17 @@ begin
          ram_we <= ram_we_duetosdc;
          ram_addr_i <= ram_ai_duetosdc;
          ram_data_i <= ram_di_duetosdc;
+      end if;
+   end process;
+   
+   generate_Slow_Clock_25MHz : process(clk, reset, cmd_reset)
+   begin
+      if reset = '1' or cmd_reset = '1' then
+         Slow_Clock_25MHz <= '0';
+      else
+         if rising_edge(clk) then
+            Slow_Clock_25MHz <= not Slow_Clock_25MHz;
+         end if;
       end if;
    end process;
    
