@@ -139,7 +139,7 @@ signal sd_dout_avail    : std_logic;
 signal sd_dout_taken    : std_logic;
 signal sd_error_flag    : std_logic;   
 signal sd_error_code    : std_logic_vector(2 downto 0);
-signal sd_busy          : std_logic;
+signal sd_busy_flag     : std_logic;
 signal sd_type          : std_logic_vector(1 downto 0);
 signal sd_fsm           : std_logic_vector(7 downto 0);
 
@@ -179,7 +179,8 @@ type sd_fsm_type is (
    sds_read_start,
    sds_read_wait_for_byte,
    sds_read_store_byte,
-   sds_read_handshake,          
+   sds_read_inc_ram_addr,
+   sds_read_check_done,
    
    sds_write,
    
@@ -216,7 +217,7 @@ begin
          clk => Slow_Clock_25MHz,
          reset => sd_sync_reset,
          addr => sd_block_addr,
-         sd_busy => sd_busy,
+         sd_busy => sd_busy_flag,
          sd_error => sd_error_flag,
          sd_error_code => sd_error_code,
          sd_type => sd_type,
@@ -276,7 +277,7 @@ begin
       end if;
    end process;
    
-   fsm_output_decode : process(sd_state, sd_busy, sd_error_flag, sd_block_read,
+   fsm_output_decode : process(sd_state, sd_busy_flag, sd_error_flag, sd_block_read,
                                sd_block_addr, sd_dout, sd_dout_avail, buffer_ptr,
                                current_byte, cmd_read, reg_addr_hi, reg_addr_lo)
    begin
@@ -311,7 +312,7 @@ begin
             reset_cmd_read <= '1';
 
             -- issue read command and wait until the controler signals busy
-            if sd_busy = '0' then
+            if sd_busy_flag = '0' then
                fsm_state_next <= sds_read_start;
                
                -- issue read command and reset memory pointer
@@ -319,18 +320,13 @@ begin
                fsm_buffer_ptr <= (others => '0');
             end if;
             
-         when sds_read_wait_for_byte =>
-            -- reading done
-            if buffer_ptr = 512 then
-               fsm_block_read <= '0';
-               fsm_state_next <= sds_busy;
-               
+         when sds_read_wait_for_byte =>              
             -- next byte available
-            elsif sd_dout_avail = '1' then
-                  -- prepare to store the arrived byte
-                  fsm_current_byte <= sd_dout;
-                  ram_we_duetosdc <= '1';
-                  ram_di_duetosdc <= sd_dout;
+            if sd_dout_avail = '1' then
+               -- prepare to store the arrived byte
+               fsm_current_byte <= sd_dout;
+               ram_we_duetosdc <= '1';
+               ram_di_duetosdc <= sd_dout;
                   
             -- wait, until next byte arrives                  
             else
@@ -342,15 +338,21 @@ begin
             ram_we_duetosdc <= '1';
             ram_di_duetosdc <= current_byte;
             
-         when sds_read_handshake =>            
+         when sds_read_inc_ram_addr =>            
             sd_dout_taken <= '1'; -- two cycles due to 50MHz fsm vs. 25 MHz SD Controller
             fsm_buffer_ptr <= buffer_ptr + 1;
+         
+         when sds_read_check_done =>
+            -- reading done
+            if buffer_ptr = 512 then
+               fsm_block_read <= '0';
+               fsm_state_next <= sds_busy;
+            end if;
                                          
          when sds_busy =>
---            if sd_error_flag = '1' then
---               fsm_state_next <= sds_error;
---            elsif sd_busy = '0' then
-            if sd_busy = '0' then
+            if sd_error_flag = '1' then
+               fsm_state_next <= sds_error;
+            elsif sd_busy_flag = '0' then
                fsm_state_next <= sds_idle;
             end if;
       
@@ -377,19 +379,20 @@ begin
          when sds_reset2               => sd_state_next <= sds_busy;
          when sds_read_start           => sd_state_next <= sds_read_wait_for_byte;
          when sds_read_wait_for_byte   => sd_state_next <= sds_read_store_byte;
-         when sds_read_store_byte      => sd_state_next <= sds_read_handshake;
-         when sds_read_handshake       => sd_state_next <= sds_read_wait_for_byte;
+         when sds_read_store_byte      => sd_state_next <= sds_read_inc_ram_addr;
+         when sds_read_inc_ram_addr    => sd_state_next <= sds_read_check_done;
+         when sds_read_check_done      => sd_state_next <= sds_read_wait_for_byte;
          when others                   => sd_state_next <= sd_state;
       end case;
    end process;
    
    read_sdcard_registers : process(en, we, reg, reg_addr_lo, reg_addr_hi, reg_data_pos, reg_data, 
-                                   sd_state, sd_fsm, sd_busy, sd_error_flag, sd_error_code, sd_type, ram_data_o)
+                                   sd_state, sd_fsm, sd_busy_flag, sd_error_flag, sd_error_code, sd_type, ram_data_o)
    variable is_busy : std_logic;
    variable is_error : std_logic;
-   --variable state_number : std_logic_vector(15 downto 0);
+   --variable state_number : std_logic_vector(3 downto 0);
    begin
-      if sd_state = sds_error or sd_error_flag /= '0' then
+      if sd_state = sds_error or sd_error_flag = '1' then
          is_error := '1';
          is_busy  := '0';
       else
@@ -402,29 +405,30 @@ begin
       end if;
       
 --      case sd_state is
---         when sds_idle => state_number := x"F001";
---         when sds_busy => state_number := x"F002";
---         when sds_error => state_number := x"F003";
---         when sds_reset1 => state_number := x"F004";
---         when sds_reset2 => state_number := x"F005";
---         when sds_read_start => state_number := x"F006";
---         when sds_read_wait_for_byte => state_number := x"F007";
---         when sds_read_store_byte => state_number := x"F008";
---         when sds_read_handshake => state_number := x"F009";
---         when sds_read_inc_ptr => state_number := x"F010";
---         when sds_write => state_number := x"F011";
---         when sds_std_seq => state_number := x"F012";
---         when others => state_number := x"FFFF";
+--         when sds_idle => state_number := "0000";
+--         when sds_busy => state_number := "0001";
+--         when sds_error => state_number := "0010";
+--         when sds_reset1 => state_number := "0011";
+--         when sds_reset2 => state_number := "0100";
+--         when sds_read_start => state_number := "0101";
+--         when sds_read_wait_for_byte => state_number := "0110";
+--         when sds_read_store_byte => state_number := "0111";
+--         when sds_read_handshake => state_number := "1000";
+--         when sds_write => state_number := "1001";
+--         when sds_std_seq => state_number := "1010";
+--         when others => state_number := "1111";
 --      end case;
      
       if en = '1' and we = '0' then
          case reg is
             when "000" => data <= reg_addr_lo;
             when "001" => data <= reg_addr_hi;
+--            when "010" => data <= std_logic_vector(buffer_ptr); 
             when "010" => data <= reg_data_pos;            
             when "011" => data <= "00000000" & ram_data_o;
 --            when "100" => data <= x"EE" & "00000" & sd_error_code;
             when "100" => data <= sd_fsm & "00000" & sd_error_code;
+--            when "101" => data <= is_busy & is_error & sd_type & "00000000" & state_number;
             when "101" => data <= is_busy & is_error & sd_type & "000000000000";
             when others => data <= (others => '0');
          end case;
