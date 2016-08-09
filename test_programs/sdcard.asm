@@ -81,8 +81,9 @@ DCT_DONE        SYSCALL(puts, 1)                ; print card type
                 MOVE    0x0000, R9              ; and must be zero
                 MOVE    STR_REGCHK_ER, R10
                 RSUB    REG_CHECK, 1
-                MOVE    R5, R8                  ; CSR status bits
-                MOVE    0x0000, R9              ; must be zero
+                MOVE    2, R11                  ; do not write mode and mask
+                MOVE    R5, R8                  ; card type, but all the other
+                MOVE    0x0000, R9              ; bits of CSR must be zero
                 MOVE    STR_REGCHK_CS, R10
                 RSUB    REG_CHECK, 1
 
@@ -623,6 +624,7 @@ END_PROGRAM     SYSCALL(exit, 1)
 ; R11: if 1 then no write is performed, only the read-back. This is needed
 ; for the CSR register as writing to it performs an action. It is also
 ; advisable for the ERROR register as you cannot write to it
+; R11: if 2, similar to 1 but mask bits 13 and 12
 REG_CHECK       INCRB
                 MOVE    R8, R0
 
@@ -634,11 +636,16 @@ REG_CHECK       INCRB
 
                 CMP     R11, 1
                 RBRA    _REG_CHECK_DW, Z
+                CMP     R11, 2
+                RBRA    _REG_CHECK_DW, Z
 
                 ; write SD card register, read it back and test the value
                 MOVE    R9, @R0                 ; write to the register
 _REG_CHECK_DW   MOVE    @R0, R1                 ; read it back
-                CMP     R1, R9                  ; check if the read val is ok
+                CMP     R11, 2
+                RBRA    _REG_CHECK_DC, !Z
+                AND     0xCFFF, R1              ; mask bits 13 and 12
+_REG_CHECK_DC   CMP     R1, R9                  ; check if the read val is ok
                 RBRA    _REG_CHECK_OK, Z        ; jump if OK
                 MOVE    STR_FAILED, R8          ; print FAILED, if not OK...
                 SYSCALL(puts, 1)
