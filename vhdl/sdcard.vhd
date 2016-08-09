@@ -177,7 +177,16 @@ type sd_fsm_type is (
    sds_reset2,                   -- of the system, we need two cycles to signal reset
    
    sds_read_start,
+   
+   sds_r1,
+   sds_r2,
+   
    sds_read_wait_for_byte,
+   
+   sds_t1,
+   sds_t2,
+   sds_t3,
+   
    sds_read_store_byte,
    sds_read_inc_ram_addr,
    sds_read_check_done,
@@ -191,7 +200,7 @@ signal sd_state         : sd_fsm_type;
 signal sd_state_next    : sd_fsm_type;
 signal fsm_state_next   : sd_fsm_type;
 
-signal Slow_Clock_25MHz : std_logic;
+--signal Slow_Clock_25MHz : std_logic;
 
 begin
 
@@ -214,7 +223,8 @@ begin
    sdctl : sd_controller
       port map (
          -- general signals
-         clk => Slow_Clock_25MHz,
+--         clk => Slow_Clock_25MHz,
+         clk => clk,
          reset => sd_sync_reset,
          addr => sd_block_addr,
          sd_busy => sd_busy_flag,
@@ -307,6 +317,12 @@ begin
                fsm_block_addr <= reg_addr_hi & reg_addr_lo;
                fsm_state_next <= sds_read_start;
             end if;
+            
+--         when sds_r1 =>
+--            null;
+            
+--         when sds_r2 =>
+--            null;
                         
          when sds_read_start =>
             reset_cmd_read <= '1';
@@ -332,6 +348,20 @@ begin
             else
                fsm_state_next <= sds_read_wait_for_byte;
             end if;
+--            if sd_dout_avail = '0' then
+--               fsm_state_next <= sds_read_wait_for_byte;
+--            end if;
+            
+--         when sds_t1 =>
+--            null;
+--            
+--         when sds_t2 =>
+--            null;
+            
+--         when sds_t3 =>
+--            fsm_current_byte <= sd_dout;
+--            ram_we_duetosdc <= '1';
+--            ram_di_duetosdc <= sd_dout;         
                         
          when sds_read_store_byte =>
             sd_dout_taken <= '1'; -- signal to controller that we stored the byte         
@@ -350,10 +380,10 @@ begin
             end if;
                                          
          when sds_busy =>
-            if sd_error_flag = '1' then
-               fsm_state_next <= sds_error;
-            elsif sd_busy_flag = '0' then
+            if sd_busy_flag = '0' then
                fsm_state_next <= sds_idle;
+            elsif sd_error_flag = '1' then
+               fsm_state_next <= sds_error;
             end if;
       
          when sds_reset1 =>
@@ -379,6 +409,11 @@ begin
          when sds_reset2               => sd_state_next <= sds_busy;
          when sds_read_start           => sd_state_next <= sds_read_wait_for_byte;
          when sds_read_wait_for_byte   => sd_state_next <= sds_read_store_byte;
+--         when sds_t1                   => sd_state_next <= sds_t2;
+--         when sds_t2                   => sd_state_next <= sds_t3;
+--         when sds_t3                   => sd_state_next <= sds_read_store_byte;
+--         when sds_r1                   => sd_state_next <= sds_r2;
+--         when sds_r2                   => sd_state_next <= sds_read_start;
          when sds_read_store_byte      => sd_state_next <= sds_read_inc_ram_addr;
          when sds_read_inc_ram_addr    => sd_state_next <= sds_read_check_done;
          when sds_read_check_done      => sd_state_next <= sds_read_wait_for_byte;
@@ -390,7 +425,7 @@ begin
                                    sd_state, sd_fsm, sd_busy_flag, sd_error_flag, sd_error_code, sd_type, ram_data_o)
    variable is_busy : std_logic;
    variable is_error : std_logic;
-   --variable state_number : std_logic_vector(3 downto 0);
+   variable state_number : std_logic_vector(3 downto 0);
    begin
       if sd_state = sds_error or sd_error_flag = '1' then
          is_error := '1';
@@ -411,11 +446,15 @@ begin
 --         when sds_reset1 => state_number := "0011";
 --         when sds_reset2 => state_number := "0100";
 --         when sds_read_start => state_number := "0101";
---         when sds_read_wait_for_byte => state_number := "0110";
---         when sds_read_store_byte => state_number := "0111";
---         when sds_read_handshake => state_number := "1000";
---         when sds_write => state_number := "1001";
---         when sds_std_seq => state_number := "1010";
+--         when sds_r1 => state_number := "0110";
+--         when sds_r2 => state_number := "0111";
+--         when sds_read_wait_for_byte  => state_number := "1000";
+--         when sds_t1 => state_number := "1001";
+--         when sds_t2 => state_number := "1010";
+--         when sds_t3 => state_number := "1011";
+--         when sds_read_store_byte => state_number := "1100";
+--         when sds_read_inc_ram_addr => state_number := "1101";
+--         when sds_read_check_done => state_number := "1110";
 --         when others => state_number := "1111";
 --      end case;
      
@@ -522,16 +561,16 @@ begin
       end if;
    end process;
    
-   generate_Slow_Clock_25MHz : process(clk, reset, cmd_reset)
-   begin
-      if reset = '1' or cmd_reset = '1' then
-         Slow_Clock_25MHz <= '0';
-      else
-         if rising_edge(clk) then
-            Slow_Clock_25MHz <= not Slow_Clock_25MHz;
-         end if;
-      end if;
-   end process;
+--   generate_Slow_Clock_25MHz : process(clk, reset, cmd_reset)
+--   begin
+--      if reset = '1' or cmd_reset = '1' then
+--         Slow_Clock_25MHz <= '0';
+--      else
+--         if rising_edge(clk) then
+--            Slow_Clock_25MHz <= not Slow_Clock_25MHz;
+--         end if;
+--      end if;
+--   end process;
    
    ram_we_duetowrrg <= write_data(0) or write_data(1);
    ram_ai_duetowrrg <= reg_data_pos;

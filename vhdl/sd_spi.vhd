@@ -112,10 +112,10 @@ use ieee.numeric_std.all;
 entity sd_controller is
 generic (
 
-   -- WARNING: this design only works, if you supply a clock with exactly 25MHz
-	clockRate : integer := 25000000;		-- Incoming clock is 25MHz (can change this to 2000 to test Write Timeout)
+   -- WARNING: this design only works, if you supply a clock with exactly 50MHz
+	clockRate : integer := 50000000;		-- Incoming clock is 25MHz (can change this to 2000 to test Write Timeout)
    
-	slowClockDivider : integer := 64;	-- Basic clock is 25MHz, slow clock for startup is 25/64 = 390kHz
+	slowClockDivider : integer := 128;	-- Basic clock is 50MHz, slow clock for startup is 50/128 = 390kHz
 	R1_TIMEOUT : integer := 10;		   -- Number of bytes to wait before giving up on receiving R1 response
 	WRITE_TIMEOUT : integer range 0 to 999 := 500		-- Number of ms to wait before giving up on write completing
 	);
