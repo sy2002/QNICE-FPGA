@@ -117,9 +117,8 @@ generic (
    -- what you're doing. For the time being, it is best to supply either 25MHz or 50MHz to this controller
 	clockRate : integer := 50000000;		-- Incoming clock is 25MHz (can change this to 2000 to test Write Timeout)
    
---	slowClockDivider : integer := 128;	-- For a 50MHz clock, slow clock for startup is 50/128 = 390kHz
-	slowClockDivider : integer := 16;	-- For a 50MHz, slow clock for startup is 50/128 = 390kHz
-	R1_TIMEOUT : integer := 10;		   -- Number of bytes to wait before giving up on receiving R1 response
+	slowClockDivider : integer := 128;	-- For a 50MHz clock, slow clock for startup is 50/128 = 390kHz
+	R1_TIMEOUT : integer := 10;         -- Number of bytes to wait before giving up on receiving R1 response
 	WRITE_TIMEOUT : integer range 0 to 999 := 500		-- Number of ms to wait before giving up on write completing
 	);
 port (
@@ -277,6 +276,8 @@ signal skipFirstR1Byte, new_skipFirstR1Byte : boolean := false;
 signal din_latch : boolean := false;
 signal last_din_valid : std_logic := '0';
 
+signal temp_sclk : std_logic;
+
 begin
 	-- This process updates all the state variables from the values calculated
 	-- by the calcStateVariables process
@@ -322,6 +323,8 @@ begin
 				din_taken <= '0';
 				multiple <= false;
 				skipFirstR1Byte <= false;
+            
+            temp_sclk <= '0';
 			else
 				-- State variables
 				state <= new_state;
@@ -364,6 +367,8 @@ begin
 				end if;
 				multiple <= new_multiple;
 				skipFirstR1Byte <= new_skipFirstR1Byte;
+            
+            temp_sclk <= new_sclk;
 
 				-- This latches the din_valid and generates din_latch and din_taken
 				if din_valid='0' or (wr='0' and wr_multiple='0') then
@@ -398,7 +403,7 @@ begin
 		address,addr,dout_taken,error,cmd_out,return_state,clock_divider,
 		error_code,crc7,in_crc16,out_crc16,slow_clock,card_present,
 		card_write_prot,SDin_Taken,sCS,transfer_data_out,din_valid,din,din_latch,
-		crcLow,sDavail,sr_return_state,multiple,skipFirstR1Byte,wr_erase_count,erase_count)
+		crcLow,sDavail,sr_return_state,multiple,skipFirstR1Byte,wr_erase_count,erase_count, temp_sclk)
 	constant WriteTimeoutCount : integer := clockRate/18000 * WRITE_TIMEOUT;
 	begin
 		assert(WriteTimeoutCount > 0) report "WriteTimeoutCount is 0" severity failure ;
@@ -434,7 +439,7 @@ begin
 		new_multiple <= multiple;
 		new_skipFirstR1Byte <= skipFirstR1Byte;
 		new_wr_erase_count <= wr_erase_count;
-		
+            		
 		case state is
 		
 		when RST =>
@@ -1063,11 +1068,18 @@ begin
 			end if;
 
 		when SEND_CMD =>
-			-- Send FF byte first
-			new_bit_counter <= 7;
-			new_data_out <= "11111111";
-			new_sr_return_state <= SEND_CMD_1; set_sr_return_state <= true;
-			new_state <= SEND_RCV;
+         -- The card is ready to accept a new command, when MISO is 1
+         if miso = '1' then
+            -- Send FF byte first
+            new_bit_counter <= 7;
+            new_data_out <= "11111111";
+            new_sr_return_state <= SEND_CMD_1; set_sr_return_state <= true;
+            new_state <= SEND_RCV;
+         else
+            new_sclk <= not temp_sclk;
+            new_data_out <= "11111111";         
+            new_state <= SEND_CMD;
+         end if;
 			
 		when SEND_CMD_1 =>
 			-- Initialise CRC and byte counter
@@ -1094,9 +1106,21 @@ begin
 
 		when SEND_CMD_4 =>
 			-- Receive the first byte, maybe R1
-			new_byte_counter <= R1_TIMEOUT; set_byte_counter <= true;
-			new_sr_return_state <= SEND_CMD_5; set_sr_return_state <= true;
-			new_state <= SEND_RCV;
+--			new_byte_counter <= R1_TIMEOUT; set_byte_counter <= true;
+--			new_sr_return_state <= SEND_CMD_5; set_sr_return_state <= true;
+--			new_state <= SEND_RCV;
+         if miso = '1' then
+            new_state <= SEND_CMD_4;
+            new_sclk <= not temp_sclk;
+            new_data_out <= "11111111";
+         else
+            new_data_out <= "11111111";
+            new_byte_counter <= 1; set_byte_counter <= true;            
+            new_sr_return_state <= SEND_CMD_5; set_sr_return_state <= true;
+            new_state <= SEND_RCV;
+            new_bit_counter <= 7;
+            new_sclk <= '0';
+         end if;
 			
 		when SEND_CMD_5 =>
 			-- Check for R1 response, receive another byte if not
@@ -1105,7 +1129,7 @@ begin
 				new_skipFirstR1Byte <= false;
 				new_state <= SEND_RCV;
 			elsif data_in(R1_ZERO)='0' then
-				new_state <= return_state;
+            new_state <= return_state;
 			else
 				if byte_counter=0 then
 --					new_state <= RST2;
@@ -1116,7 +1140,8 @@ begin
 					new_state <= SEND_RCV; -- Will come back to SEND_CMD_5
 				end if;
 			end if;
-	    end case;
+                       
+	   end case;
 	end process calcStateVariables;
 
 	-- This calculates a debug output to determine the FSM state
@@ -1179,7 +1204,7 @@ begin
 			x"4C" when WRITE_BLOCK_ABORT,
 			x"4D" when WRITE_BLOCK_TERMINATE,
 			x"4E" when WRITE_BLOCK_FINISH
-			;
+         ;
 	end block calcDebugOutputs;
 end rtl;
 

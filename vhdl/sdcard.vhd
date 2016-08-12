@@ -191,8 +191,8 @@ signal sd_state         : sd_fsm_type;
 signal sd_state_next    : sd_fsm_type;
 signal fsm_state_next   : sd_fsm_type;
 
-signal Slow_Clock_25MHz : std_logic;
-signal Slow_Clock_divider : unsigned(3 downto 0);
+--signal Slow_Clock_25MHz : std_logic;
+--signal Slow_Clock_divider : unsigned(3 downto 0);
 
 begin
 
@@ -215,8 +215,8 @@ begin
    sdctl : sd_controller
       port map (
          -- general signals
-         clk => Slow_Clock_25MHz,
---         clk => clk,
+--         clk => Slow_Clock_25MHz,
+         clk => clk,
          reset => sd_sync_reset,
          addr => sd_block_addr,
          sd_busy => sd_busy_flag,
@@ -532,21 +532,21 @@ begin
       end if;
    end process;
    
-   generate_Slow_Clock_25MHz : process(clk, reset, cmd_reset)
-   begin
-      if reset = '1' or cmd_reset = '1' then
-         Slow_Clock_25MHz <= '0';
-         Slow_Clock_divider <= (others => '0');
-      else
-         if rising_edge(clk) then
-            if Slow_Clock_divider = 0 then
-               Slow_Clock_25MHz <= not Slow_Clock_25MHz;
-            else
-               Slow_Clock_divider <= Slow_Clock_divider + 1;
-            end if;
-         end if;
-      end if;
-   end process;
+--   generate_Slow_Clock_25MHz : process(clk, reset, cmd_reset)
+--   begin
+--      if reset = '1' or cmd_reset = '1' then
+--         Slow_Clock_25MHz <= '0';
+--         Slow_Clock_divider <= (others => '0');
+--      else
+--         if rising_edge(clk) then
+--            if Slow_Clock_divider = 0 then
+--               Slow_Clock_25MHz <= not Slow_Clock_25MHz;
+--            else
+--               Slow_Clock_divider <= Slow_Clock_divider + 1;
+--            end if;
+--         end if;
+--      end if;
+--   end process;
    
    ram_we_duetowrrg <= write_data(0) or write_data(1);
    ram_ai_duetowrrg <= reg_data_pos;
