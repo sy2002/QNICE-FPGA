@@ -1000,7 +1000,7 @@ int main(int argc, char **argv)
       {
         token = tokenize(NULL, delimiters);
         value = str2int(tokenize(NULL, delimiters));
-        if (*token == 'R') /* Set a register */
+        if (*token == 'R' || *token == 'r') /* Set a register */
           write_register(str2int(token + 1), value);
         else
           access_memory(str2int(token), WRITE_MEMORY, value & 0xffff);
