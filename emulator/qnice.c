@@ -181,7 +181,7 @@ unsigned int str2int(char *string)
   if (!string || !*string) /* An empty string is treated as a zero */
     return 0;
 
-  if (!strncmp(string, "0X", 2))
+  if (!strncmp(string, "0X", 2) || !strncmp(string, "0x", 2))
     sscanf(string + 2, "%x", &value);
   else if (*string == '$')
     sscanf(string + 1, "%x", &value);
@@ -926,11 +926,9 @@ int main(int argc, char **argv)
         return -1;
 
       run();
-//      dump_registers();
       print_statistics();
     }
 
-//    return 0;
   }
 
   for (;;)
@@ -944,12 +942,13 @@ int main(int argc, char **argv)
     if (last_command_was_step && !strlen(command)) /* If STEP was the last command and this is empty, perform the next step. */
       strcpy(command, "STEP");
 
-    upstr(command);
+//    upstr(command);
 
     last_command_was_step = 0;
     tokenize(command, NULL); /* Initialize tokenizing */
     if ((token = tokenize(NULL, delimiters)))
     {
+      upstr(token);
       if (!strcmp(token, "QUIT") || !strcmp(token, "EXIT"))
         return 0;
       else if (!strcmp(token, "CB"))
