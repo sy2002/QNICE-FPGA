@@ -1145,7 +1145,8 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
 
   fclose(output_handle);
   fclose(listing_handle);
-  fclose(def_handle);
+  if (def_handle)
+    fclose(def_handle);
   
   return rc;
 }
