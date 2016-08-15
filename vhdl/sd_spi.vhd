@@ -1,15 +1,13 @@
--- Source: https://github.com/ibm2030/SimpleSDHC
--- Author: Lawrence Wilkinson
+-- SD and SDHC Card controller
 --
--- Some minor changes by sy2002 in August 2016:
+-- Author: Lawrence Wilkinson in 2013/2014
+-- Original Source: https://github.com/ibm2030/SimpleSDHC
 --
--- sd_error is only raised, when there is really an error, and not (in contrast
--- to the original version) as a default value during the run sequence of the
--- state machine. That means, you can trigger actions on sd_error now without
--- the problem that during reset or init sd_error fluctuates.
+-- Improved SDHC support by sy2002 in August 2016
+-- Detailed description: See below.
+-- Enhanced Source: https://github.com/sy2002/QNICE-FPGA/blob/master/vhdl/sd_spi.vhd
 
----------------------------------------------------------------------------
----------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 --
 --    This file is part of LJW2030, a VHDL implementation of the IBM
 --    System/360 Model 30.
@@ -27,7 +25,7 @@
 --    You should have received a copy of the GNU General Public License
 --    along with LJW2030 .  If not, see <http://www.gnu.org/licenses/>.
 --
----------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 --
 --    File: sd_spi.vhd
 --    Creation Date: 2013-02-08
@@ -40,11 +38,12 @@
 --		Revision 1.02 2014-09-24 Fix error in read handshaking
 --		Revision 1.03 2014-09-28 Improve write handshaking
 --		Revision 1.04 2014-09-29 Streamline aborted read transfers
+--    Revision 1.10 2016-08-15 Now works with more SDHC cards (done by sy2002)
 --
 --    Initial Release
 --
----------------------------------------------------------------------------
----------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 -- This SD Card interface was based on the one by Steven J Merrifield
 -- http://stevenmerrifield.com/tools/sd.vhd or https://github.com/sjm126/vhdl
@@ -103,6 +102,39 @@
 -- 10 SD V2
 -- 11 SDHC
 --
+--
+-- Enhancements done by sy2002 in August 2016:
+--
+-- 1. Made the controller work with more Micro SDHC (**) cards than
+-- it did before. This is done by introducing a retry mechanism during
+-- command sending: If the state SEND_CMD_5 fails after an amount of
+-- retries specified by R1_TIMEOUT, then the SD Card is being reset
+-- and after entering IDLE2, the original start state of the last
+-- action is being retried ACTION_RETRIES times.
+--
+-- 2. sd_error is only raised, when there is really an error, and not (in
+-- contrast to the original version) as a default value during the reset
+-- sequence of the state machine. That means, you can trigger actions
+-- on sd_error now without the problem that during reset or init sd_error
+-- fluctuates.
+--
+-- 3. Added stabilization code to better comply with the standard:
+-- IDLE2 now pulses the SCLK after issuing the reset and SEND_CMD waits
+-- until MISO is 1.
+--
+-- regarding (**): "most SDHC" cards means: Before the admittedly brute
+-- force workaround introduced by above mentioned (1), the controler did
+-- not work at all with these Micro SDHC Cards: SanDisk 32GB SDHC Class 4,
+-- Transcend 32GB SHD Class 10 and it worked pretty unstable (i.e. 
+-- READ_BLOCK randomly failed) on an Elegant 32GB SDHC Class 10 card.
+-- Now, after introducing the changes described here, it works fine with
+-- all these Micro SDHC cards. Plus it also works fine (as it already did
+-- before) with these Micro cards: SanDisk 1GB, Transcend 1GB,
+-- Transcend 2GB, Nokia 64 MB, Nokia 128 MB.
+--
+-- Known Problem: The controller is not working with a
+-- SanDisk Ultra 32 GB Micro SDHC Class 10 (but it works with the
+-- SanDisk 32GB SDHC Class 4, interesstingly enough).
 
 
 library ieee;
@@ -118,8 +150,10 @@ generic (
 	clockRate : integer := 50000000;		-- Incoming clock is 25MHz (can change this to 2000 to test Write Timeout)
    
 	slowClockDivider : integer := 128;	-- For a 50MHz clock, slow clock for startup is 50/128 = 390kHz
-	R1_TIMEOUT : integer := 10;         -- Number of bytes to wait before giving up on receiving R1 response
-	WRITE_TIMEOUT : integer range 0 to 999 := 500		-- Number of ms to wait before giving up on write completing
+	R1_TIMEOUT : integer := 40;         -- Number of bytes to wait before giving up on receiving R1 response
+	WRITE_TIMEOUT : integer range 0 to 999 := 500; -- Number of ms to wait before giving up on write completing
+   RESET_TICKS : integer := 200;       -- Number of half clock cycles being pulsed before lowing sd_busy in IDLE2
+   ACTION_RETRIES : integer := 100     -- Number of retries when SEND_CMD_5 fails
 	);
 port (
 	cs : out std_logic;				-- To SD card
@@ -276,7 +310,14 @@ signal skipFirstR1Byte, new_skipFirstR1Byte : boolean := false;
 signal din_latch : boolean := false;
 signal last_din_valid : std_logic := '0';
 
-signal temp_sclk : std_logic;
+-- used for "temporary" pulsing the sclk in IDLE2 and SEND_CMD
+signal temp_sclk : std_logic; 
+signal has_pulsed, new_has_pulsed : unsigned(7 downto 0);
+
+-- used for the action retry mechanism
+signal original_state, new_original_state : states;
+signal state_retry_count, new_state_retry_count : unsigned(7 downto 0);
+signal is_in_reset_cycle, new_is_in_reset_cycle : std_logic;
 
 begin
 	-- This process updates all the state variables from the values calculated
@@ -325,6 +366,10 @@ begin
 				skipFirstR1Byte <= false;
             
             temp_sclk <= '0';
+            has_pulsed <= (others => '0');
+            original_state <= RST;
+            state_retry_count <= (others => '0');
+            is_in_reset_cycle <= '1';
 			else
 				-- State variables
 				state <= new_state;
@@ -369,6 +414,10 @@ begin
 				skipFirstR1Byte <= new_skipFirstR1Byte;
             
             temp_sclk <= new_sclk;
+            has_pulsed <= new_has_pulsed;
+            original_state <= new_original_state;
+            state_retry_count <= new_state_retry_count;
+            is_in_reset_cycle <= new_is_in_reset_cycle;
 
 				-- This latches the din_valid and generates din_latch and din_taken
 				if din_valid='0' or (wr='0' and wr_multiple='0') then
@@ -403,7 +452,8 @@ begin
 		address,addr,dout_taken,error,cmd_out,return_state,clock_divider,
 		error_code,crc7,in_crc16,out_crc16,slow_clock,card_present,
 		card_write_prot,SDin_Taken,sCS,transfer_data_out,din_valid,din,din_latch,
-		crcLow,sDavail,sr_return_state,multiple,skipFirstR1Byte,wr_erase_count,erase_count, temp_sclk)
+		crcLow,sDavail,sr_return_state,multiple,skipFirstR1Byte,wr_erase_count,erase_count,
+      temp_sclk, has_pulsed, original_state, state_retry_count, is_in_reset_cycle)
 	constant WriteTimeoutCount : integer := clockRate/18000 * WRITE_TIMEOUT;
 	begin
 		assert(WriteTimeoutCount > 0) report "WriteTimeoutCount is 0" severity failure ;
@@ -439,6 +489,11 @@ begin
 		new_multiple <= multiple;
 		new_skipFirstR1Byte <= skipFirstR1Byte;
 		new_wr_erase_count <= wr_erase_count;
+      
+      new_has_pulsed <= has_pulsed;
+      new_original_state <= original_state;
+      new_state_retry_count <= state_retry_count;
+      new_is_in_reset_cycle <= is_in_reset_cycle; 
             		
 		case state is
 		
@@ -447,6 +502,7 @@ begin
 			new_error_code <= ec_NoSDError;
 			new_error <= '0';
 			new_state <= RST2;
+         new_is_in_reset_cycle <= '1';
 			
 		when RST2 =>
 			-- Reset, retaining error codes
@@ -612,13 +668,17 @@ begin
 				new_state <= RST;
 			end if;
 			-- Don't enter IDLE until Rd and Wr are down
-			if (rd='0') and (wr='0') and (rd_multiple='0') and (wr_multiple='0') then
+         -- except when we are currently in a retry loop
+			if (original_state /= RST) or ((rd='0') and (wr='0') and (rd_multiple='0') and (wr_multiple='0')) then
 				new_error_code <= ec_NoError;
 				new_error <= '0';
 				new_state <= IDLE;
-			end if;
+         end if;
 			
 		when IDLE =>
+         new_has_pulsed <= (others => '0');
+         new_is_in_reset_cycle <= '0';
+      
 			-- Generate 8 clocks when entering idle
 			new_slow_clock <= false;	-- Can run at full speed now
 			new_data_out <= "11111111";
@@ -635,7 +695,7 @@ begin
 			elsif data_in=x"00" then
 				-- Card still busy
 				new_state <= IDLE;
-			elsif rd='1' then
+			elsif rd='1' and original_state = RST then
 				-- Initiate Read
 				new_cs <= '0';
 				new_error <= '0';
@@ -643,7 +703,7 @@ begin
 				new_address <= addr; set_address <= true;
 				new_multiple <= false;
 				new_state <= READ_BLOCK;
-			elsif rd_multiple='1' then
+			elsif rd_multiple='1' and original_state = RST then
 				-- Initiate Read Multiple
 				new_cs <= '0';
 				new_error <= '0';
@@ -651,7 +711,7 @@ begin
 				new_address <= addr; set_address <= true;
 				new_multiple <= true;
 				new_state <= READ_MULTIPLE_BLOCK;
-			elsif wr='1' or wr_multiple='1' then
+			elsif (wr='1' or wr_multiple='1') and original_state = RST then
 				-- Initiate Write or Write Multiple
 				if card_write_prot='0' then
 					new_cs <= '0';
@@ -671,9 +731,24 @@ begin
 					new_error_code <= ec_WPError;
 				end if;
 			else
-				-- No command
-				new_cs <= '1';
-				new_busy <= '0';
+            new_cs <= '1';
+            
+            -- No command: pulse reset for a while
+            if has_pulsed = RESET_TICKS then
+               if original_state = RST then
+                  new_busy <= '0';
+                  new_state_retry_count <= (others => '0');
+               else
+                  new_cs <= '0';
+                  new_error <= '0';
+                  new_error_code <= ec_NoError;
+                  new_address <= addr; set_address <= true;
+                  new_state <= original_state;
+               end if;
+            else
+               new_sclk <= not temp_sclk;
+               new_has_pulsed <= has_pulsed + 1;
+            end if;
 			end if;
 			
 		when READ_BLOCK =>
@@ -688,6 +763,7 @@ begin
 			set_cmd_out <= true;
 			new_return_state <= READ_BLOCK_R1; set_return_state <= true;
 			new_state <= SEND_CMD;
+         new_original_state <= READ_BLOCK;
 			
 		when READ_MULTIPLE_BLOCK =>
 			-- Read Multiple command
@@ -1074,7 +1150,7 @@ begin
             new_bit_counter <= 7;
             new_data_out <= "11111111";
             new_sr_return_state <= SEND_CMD_1; set_sr_return_state <= true;
-            new_state <= SEND_RCV;
+            new_state <= SEND_RCV;            
          else
             new_sclk <= not temp_sclk;
             new_data_out <= "11111111";         
@@ -1086,7 +1162,7 @@ begin
 			new_crc7 <= "0000000";
 			new_byte_counter <= 5; set_byte_counter <= true; -- 5 bytes are CC NN NN NN NN
 			new_state <= SEND_CMD_2;
-			
+         			
 		when SEND_CMD_2 =>
 			-- Send one byte of the command and parameter
 			if byte_counter=0 then
@@ -1106,21 +1182,9 @@ begin
 
 		when SEND_CMD_4 =>
 			-- Receive the first byte, maybe R1
---			new_byte_counter <= R1_TIMEOUT; set_byte_counter <= true;
---			new_sr_return_state <= SEND_CMD_5; set_sr_return_state <= true;
---			new_state <= SEND_RCV;
-         if miso = '1' then
-            new_state <= SEND_CMD_4;
-            new_sclk <= not temp_sclk;
-            new_data_out <= "11111111";
-         else
-            new_data_out <= "11111111";
-            new_byte_counter <= 1; set_byte_counter <= true;            
-            new_sr_return_state <= SEND_CMD_5; set_sr_return_state <= true;
-            new_state <= SEND_RCV;
-            new_bit_counter <= 7;
-            new_sclk <= '0';
-         end if;
+			new_byte_counter <= R1_TIMEOUT; set_byte_counter <= true;
+			new_sr_return_state <= SEND_CMD_5; set_sr_return_state <= true;
+			new_state <= SEND_RCV;
 			
 		when SEND_CMD_5 =>
 			-- Check for R1 response, receive another byte if not
@@ -1130,12 +1194,20 @@ begin
 				new_state <= SEND_RCV;
 			elsif data_in(R1_ZERO)='0' then
             new_state <= return_state;
+            if is_in_reset_cycle = '0' then
+               new_original_state <= RST;
+            end if;
 			else
 				if byte_counter=0 then
---					new_state <= RST2;
-					new_card_type <= ct_None;
-					new_error <= '1';
-					new_error_code <= ec_NoSDError;
+               -- brute force workaround so that some (most?) SDHC cards work: perform a retry
+               if original_state /= RST and state_retry_count < ACTION_RETRIES then                  
+                  new_state_retry_count <= state_retry_count + 1;
+                  new_state <= RST;
+               else
+                  new_card_type <= ct_None;
+                  new_error <= '1';
+                  new_error_code <= ec_NoSDError;
+               end if;
 				else
 					new_state <= SEND_RCV; -- Will come back to SEND_CMD_5
 				end if;

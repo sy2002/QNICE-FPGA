@@ -76,9 +76,9 @@ SD$ERR_CARD_UNUSABLE    .EQU    0xEE06                  ; Unusable SD card
 SD$ERR_NO_CARD          .EQU    0xEE07                  ; No SD card (no response from CMD0)
 SD$ERR_TIMEOUT          .EQU    0xEE08                  ; General timeout
 
-SD$CT_SD_V1             .EQU    0x0001                  ; SD Version 1
-SD$CT_SD_V2             .EQU    0x0002                  ; SD Version 2
-SD$CT_SDHC              .EQU    0x0003                  ; SDHC (or SDXC)
+SD$CT_SD_V1             .EQU    0x0001                  ; Card type: SD Version 1
+SD$CT_SD_V2             .EQU    0x0002                  ; Card type: SD Version 2
+SD$CT_SDHC              .EQU    0x0003                  ; Card type: SDHC (or SDXC)
 
 ; ========== FAT32 =============
 

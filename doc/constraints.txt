@@ -3,6 +3,16 @@ when writing the documentation:
 
 SD Card:
 
+* We tested microSD and microSDHC cards in the built-in card slot using a
+  Nexys 4 DDR board. Presumably everything also works fine with normal sized
+  SD cards and miniSD cards on other boards and other readers.
+* All SD V1 and SD V2 cards are working. We tested capacities between
+  64 MB and 2 GB using also different card brands (Nokia, SanDisk, Transcend).
+* When it comes to SDHC cards, i.e. cards larger than 2 GB, the following are
+  tested as working: SanDisk 32 GB microSDHC Class 4,
+  Transcend 32 GB microSDHC Class 10, Elegant 32 GB
+* NOT WORKING are cards like SanDisk "Ultra" Class 10 cards (80 MB/Sek). Use
+  slower cards instead, like SanDisk's 32 GB Class 4 card.
 * MBR partition table
 * FAT32 with a 512 byte sector size.
   ATTENTION: FAT16 and others are not supported, you probably need to 
@@ -25,7 +35,7 @@ USB boot mode standard. Not all newer keyboards are compatible. These
 keyboards are tested and work:
 
 * Cherry KC 1000
-* @TODO: Add the name of vaxman's and deft's keyboards
+* VIVANCO 36641 IT-KB USB PS2
 
 VGA:
 

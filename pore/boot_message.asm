@@ -2,4 +2,4 @@ PORE$NEWLINE  .ASCII_W "\n\n"
 
 ; PORE$RESETMSG .ASCII_W "QNICE-FPGA Version 1.3 by sy2002 in May 2016 (GIT COMMIT #"
 
-PORE$RESETMSG .ASCII_W "QNICE-FPGA [WIP] [only 16 reg-banks!] by sy2002 in July 2016 (GIT #3d93016)\n"
+PORE$RESETMSG .ASCII_W "QNICE-FPGA [WIP] [only 16 reg-banks!] by sy2002 in August 2016 (GIT #514b2f6)\n"
