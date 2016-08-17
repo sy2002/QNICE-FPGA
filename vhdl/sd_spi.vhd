@@ -355,7 +355,6 @@ begin
 				-- SD outputs
 				sclk <= '0';
 				cs <= '1';
-				mosi <= '1';
 				-- Interface outputs
 				sd_type <= "00";
 				sd_busy <= '1';
@@ -397,7 +396,6 @@ begin
 				-- SD outputs
 				sclk <= new_sclk;
 				cs <= new_cs;
-				mosi <= new_data_out(7);
 				wr_erase_count <= new_wr_erase_count;
 				-- Interface outputs
 				sd_type <= new_card_type;
@@ -1316,5 +1314,7 @@ begin
          x"FF" when others
          ;
 	end block calcDebugOutputs;
+   
+   mosi <= data_out(7);   
 end rtl;
 
