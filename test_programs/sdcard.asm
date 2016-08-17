@@ -78,7 +78,7 @@ DCT_DONE        SYSCALL(puts, 1)                ; print card type
                 RSUB    REG_CHECK, 1
                 MOVE    1, R11                  ; activate do not write mode
                 MOVE    R4, R8                  ; ERROR is read only
-                MOVE    0x0000, R9              ; and must be zero
+                MOVE    0x1100, R9              ; and must be 0x1100 (idle)
                 MOVE    STR_REGCHK_ER, R10
                 RSUB    REG_CHECK, 1
                 MOVE    2, R11                  ; do not write mode and mask

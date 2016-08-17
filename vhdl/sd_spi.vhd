@@ -506,21 +506,17 @@ begin
          new_is_in_reset_cycle <= '1';
 			
 		when RST2 =>
-         -- only go on, if no error, otherwise stall here, so that
-         -- the external logic is able to read the error flag
-         if error = '0' then
-            new_card_type <= ct_None;
-            new_cs <= '1';
-            new_slow_clock <= true;
-            new_clock_divider <= slowClockDivider;
-            new_byte_counter <= 20; set_byte_counter <= true;
-            new_data_out <= "11111111";
-            new_transfer_data_out <= false;
-            new_sr_return_state <= INIT; set_sr_return_state <= true;
-            if card_present='1' then
-            -- Wait for card present indication before attempting initialisation
-               new_state <= SEND_RCV;
-            end if;
+         new_card_type <= ct_None;
+         new_cs <= '1';
+         new_slow_clock <= true;
+         new_clock_divider <= slowClockDivider;
+         new_byte_counter <= 20; set_byte_counter <= true;
+         new_data_out <= "11111111";
+         new_transfer_data_out <= false;
+         new_sr_return_state <= INIT; set_sr_return_state <= true;
+         if card_present='1' then
+         -- Wait for card present indication before attempting initialisation
+            new_state <= SEND_RCV;
          end if;
 			
 		when INIT =>
@@ -539,7 +535,7 @@ begin
 			new_state <= SEND_CMD;
 			
 		when CMD8 =>
-			-- Check CMD0 response and send CMD8 or Error
+			-- Check CMD0 response and send CMD8 or stall on error
 			if data_in="00000001" then
 				new_cmd_out <= x"48000001AA"; set_cmd_out <= true; -- Voltage is 1, Check pattern is AA
 				new_return_state <= CMD8R1; set_return_state <= true;
@@ -548,7 +544,6 @@ begin
 				new_card_type <= ct_None;
 				new_error <= '1';
 				new_error_code <= ec_R1Error;
-				new_state <= RST2;
 			end if;
 			
 		when CMD8R1 =>
@@ -632,11 +627,10 @@ begin
             new_return_state <= CMD58R1; set_return_state <= true;
             new_state <= SEND_RCV;
          elsif data_in /= "00000000" then         
-				-- Illegal command - not an SD card
+				-- Illegal command - not an SD card: stall
 				new_card_type <= ct_None;
 				new_error_code <= ec_SDError;
 				new_error <= '1';
-				new_state <= RST2;
 			else
 				-- Go fetch byte 1
 				new_sr_return_state <= CMD58B2; set_sr_return_state <= true;
@@ -679,15 +673,17 @@ begin
          -- For SD V2 cards: Always force 512 byte block sizes
          if card_type = ct_SDV2 then
             new_return_state <= CMD16R1; set_return_state <= true;
-            new_cmd_out <= x"5000000200";
+            new_cmd_out <= x"5000000200"; set_cmd_out <= true;
             new_state <= SEND_CMD;
          else
             new_state <= CMD59;
          end if;
          
       when CMD16R1 =>
+         -- Check reply from CMD16, stall on error
          if data_in /= "00000000" then
-            new_state <= RST; -- retry
+            new_error <= '1';
+            new_error_code <= ec_SDError;
          else
             new_state <= CMD59;
          end if;
@@ -699,9 +695,10 @@ begin
 			new_state <= SEND_CMD;
 			
 		when CMD59R1 =>
-			-- Check reply from CMD59
+			-- Check reply from CMD59, stall on error
 			if data_in/="00000000" then
-				new_state <= RST;
+				new_error <= '1';
+            new_error_code <= ec_SDError;
 			end if;
 			-- Don't enter IDLE until Rd and Wr are down
          -- except when we are currently in a retry loop
@@ -1276,6 +1273,8 @@ begin
 			x"08" when CMD58B2,
 			x"08" when CMD58B3,
 			x"08" when CMD58B4,
+         x"12" when CMD16,
+         x"13" when CMD16R1,
 			x"09" when CMD59,
 			x"0A" when CMD59R1,
 			x"10" when IDLE,
@@ -1313,7 +1312,8 @@ begin
 			x"4B" when WRITE_BLOCK_WAIT,
 			x"4C" when WRITE_BLOCK_ABORT,
 			x"4D" when WRITE_BLOCK_TERMINATE,
-			x"4E" when WRITE_BLOCK_FINISH
+			x"4E" when WRITE_BLOCK_FINISH,
+         x"FF" when others
          ;
 	end block calcDebugOutputs;
 end rtl;
