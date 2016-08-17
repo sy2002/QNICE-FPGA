@@ -153,7 +153,7 @@ generic (
 	R1_TIMEOUT : integer := 64;         -- Number of bytes to wait before giving up on receiving R1 response
 	WRITE_TIMEOUT : integer range 0 to 999 := 500; -- Number of ms to wait before giving up on write completing
    RESET_TICKS : integer := 64;        -- Number of half clock cycles being pulsed before lowing sd_busy in IDLE2
-   ACTION_RETRIES : integer := 100     -- Number of retries when SEND_CMD_5 fails
+   ACTION_RETRIES : integer := 200     -- Number of retries when SEND_CMD_5 fails
 	);
 port (
 	cs : out std_logic;				-- To SD card
