@@ -150,9 +150,9 @@ generic (
 	clockRate : integer := 50000000;		-- Incoming clock is 25MHz (can change this to 2000 to test Write Timeout)
    
 	slowClockDivider : integer := 128;	-- For a 50MHz clock, slow clock for startup is 50/128 = 390kHz
-	R1_TIMEOUT : integer := 40;         -- Number of bytes to wait before giving up on receiving R1 response
+	R1_TIMEOUT : integer := 64;         -- Number of bytes to wait before giving up on receiving R1 response
 	WRITE_TIMEOUT : integer range 0 to 999 := 500; -- Number of ms to wait before giving up on write completing
-   RESET_TICKS : integer := 200;       -- Number of half clock cycles being pulsed before lowing sd_busy in IDLE2
+   RESET_TICKS : integer := 64;        -- Number of half clock cycles being pulsed before lowing sd_busy in IDLE2
    ACTION_RETRIES : integer := 100     -- Number of retries when SEND_CMD_5 fails
 	);
 port (
@@ -180,7 +180,7 @@ port (
 
 	sd_error : out std_logic;		-- '1' if an error occurs, reset on next RD or WR
 	sd_busy : out std_logic;		-- '0' if a RD or WR can be accepted
-	sd_error_code : out std_logic_vector(2 downto 0); -- See above, 000=No error
+	sd_error_code : out std_logic_vector(7 downto 0); -- See above, 000=No error
 	
 	
 	reset : in std_logic;	-- System reset
@@ -203,6 +203,7 @@ type states is (
 	CMD41,							-- Send ACMD41
 	POLL_CMD,						-- Wait for card initialised
 	CMD58, CMD58R1, CMD58B2, CMD58B3, CMD58B4,	-- Send CMD58
+   CMD16, CMD16R1,            -- Send CMD16 (force SD V2 cards to 512 byte blocks)
 	CMD59, CMD59R1,				-- Send CMD59
   
 	IDLE, IDLE2,					-- wait for read or write pulse
@@ -243,16 +244,16 @@ type states is (
 	WRITE_BLOCK_FINISH			-- Wait until WR drops
 );
 
-subtype t_error_code is std_logic_vector(2 downto 0);
-constant ec_NoError	: t_error_code := "000";
-constant ec_R1Error	: t_error_code := "001";
-constant ec_CRCError	: t_error_code := "010";
-constant ec_WriteTimeout	: t_error_code := "010";
-constant ec_DataRespError	: t_error_code := "011";
-constant ec_DataError	: t_error_code := "100";
-constant ec_WPError	: t_error_code := "101";
-constant ec_SDError	: t_error_code := "110";
-constant ec_NoSDError	: t_error_code := "111";
+subtype t_error_code is std_logic_vector(7 downto 0);
+constant ec_NoError	      : t_error_code := "00000000";
+constant ec_R1Error	      : t_error_code := "00000001";
+constant ec_CRCError	      : t_error_code := "00000010";
+constant ec_WriteTimeout	: t_error_code := "00000010";
+constant ec_DataRespError	: t_error_code := "00000011";
+constant ec_DataError	   : t_error_code := "00000100";
+constant ec_WPError	      : t_error_code := "00000101";
+constant ec_SDError	      : t_error_code := "00000110";
+constant ec_NoSDError	   : t_error_code := "00000111";
 
 subtype t_card_type is std_logic_vector(1 downto 0);
 constant ct_None : t_card_type := "00";
@@ -260,15 +261,16 @@ constant ct_SDV1 : t_card_type := "01";
 constant ct_SDV2 : t_card_type := "10";
 constant ct_SDHC : t_card_type := "11";
 
-constant R1_IDLE : integer := 0;
-constant R1_ERASE_RESET : integer := 1;
-constant R1_ILLEGALCOMMAND : integer := 2;
-constant R1_COMMANDCRCERROR : integer := 3;
-constant R1_ERASESEQUENCEERROR : integer := 4;
-constant R1_ADDRESSERROR : integer := 5;
-constant R1_PARAMETERERROR : integer := 6;
-constant R1_ZERO : integer := 7;
-constant OCR1_CCS : integer := 6;
+constant R1_IDLE                 : integer := 0;
+constant R1_ERASE_RESET          : integer := 1;
+constant R1_ILLEGALCOMMAND       : integer := 2;
+constant R1_COMMANDCRCERROR      : integer := 3;
+constant R1_ERASESEQUENCEERROR   : integer := 4;
+constant R1_ADDRESSERROR         : integer := 5;
+constant R1_PARAMETERERROR       : integer := 6;
+constant R1_ZERO                 : integer := 7;
+constant OCR1_CCS                : integer := 6;
+constant OCR1_POWERUPSTATUS      : integer := 7;
 
 signal state, new_state, return_state, new_return_state, sr_return_state, new_sr_return_state : states := RST;
 signal set_return_state, set_sr_return_state : boolean := false;
@@ -498,26 +500,28 @@ begin
 		case state is
 		
 		when RST =>
-			-- Reset, including error codes
 			new_error_code <= ec_NoSDError;
 			new_error <= '0';
 			new_state <= RST2;
          new_is_in_reset_cycle <= '1';
 			
 		when RST2 =>
-			-- Reset, retaining error codes
-			new_card_type <= ct_None;
-			new_cs <= '1';
-			new_slow_clock <= true;
-			new_clock_divider <= slowClockDivider;
-			new_byte_counter <= 20; set_byte_counter <= true;
-			new_data_out <= "11111111";
-			new_transfer_data_out <= false;
-			new_sr_return_state <= INIT; set_sr_return_state <= true;
-			if card_present='1' then
-			-- Wait for card present indication before attempting initialisation
-				new_state <= SEND_RCV;
-			end if;
+         -- only go on, if no error, otherwise stall here, so that
+         -- the external logic is able to read the error flag
+         if error = '0' then
+            new_card_type <= ct_None;
+            new_cs <= '1';
+            new_slow_clock <= true;
+            new_clock_divider <= slowClockDivider;
+            new_byte_counter <= 20; set_byte_counter <= true;
+            new_data_out <= "11111111";
+            new_transfer_data_out <= false;
+            new_sr_return_state <= INIT; set_sr_return_state <= true;
+            if card_present='1' then
+            -- Wait for card present indication before attempting initialisation
+               new_state <= SEND_RCV;
+            end if;
+         end if;
 			
 		when INIT =>
 			if byte_counter=0 then
@@ -624,7 +628,10 @@ begin
 			
 		when CMD58R1 =>
 			-- Check R1 response to CMD58
-			if data_in(R1_ILLEGALCOMMAND)='1' then
+			if data_in = "00000001" then
+            new_return_state <= CMD58R1; set_return_state <= true;
+            new_state <= SEND_RCV;
+         elsif data_in /= "00000000" then         
 				-- Illegal command - not an SD card
 				new_card_type <= ct_None;
 				new_error_code <= ec_SDError;
@@ -637,14 +644,26 @@ begin
 			end if;
 			
 		when CMD58B2 =>
-			-- Check CCS: 0=SD2 1=SDHC
-			-- card_type already set to ct_SDV2 (10) in CMD8R1
-			if (data_in(OCR1_CCS)='1') then -- OCR(30) = CCS
-				new_card_type <= ct_SDHC; -- SDHC
-			end if;
-			-- Go fetch byte 2
-			new_sr_return_state <= CMD58B3; set_sr_return_state <= true;
-			new_state <= SEND_RCV;
+         -- Check Power Up Status Bit: if it is 0, then something went wrong
+         -- stay in this state, so that if this problem ever occurs, we
+         -- are able to identify it ready sd_fsm
+         -- alternately, what could be done here: retry somehow, e.g. by
+         -- "actively waiting" (sending "11111111" and then retry reading, or
+         -- by reseding CMD58, etc. would need some more experiments
+         if (data_in(OCR1_POWERUPSTATUS)) = '0' then
+            new_card_type <= ct_None;
+            new_error_code <= ec_SDError;
+            new_error <= '1';
+         else
+            -- Check CCS: 0=SD2 1=SDHC
+            -- card_type already set to ct_SDV2 (10) in CMD8R1
+            if (data_in(OCR1_CCS)='1') then -- OCR(30) = CCS
+               new_card_type <= ct_SDHC; -- SDHC
+            end if;
+            -- Go fetch byte 2
+            new_sr_return_state <= CMD58B3; set_sr_return_state <= true;
+            new_state <= SEND_RCV;
+         end if;
 			
 		when CMD58B3 =>
 			-- Fetch byte 3
@@ -653,8 +672,25 @@ begin
 			
 		when CMD58B4 =>
 			-- Fetch byte 4
-			new_sr_return_state <= CMD59; set_sr_return_state <= true;
+			new_sr_return_state <= CMD16; set_sr_return_state <= true;
 			new_state <= SEND_RCV;
+         
+      when CMD16 =>
+         -- For SD V2 cards: Always force 512 byte block sizes
+         if card_type = ct_SDV2 then
+            new_return_state <= CMD16R1; set_return_state <= true;
+            new_cmd_out <= x"5000000200";
+            new_state <= SEND_CMD;
+         else
+            new_state <= CMD59;
+         end if;
+         
+      when CMD16R1 =>
+         if data_in /= "00000000" then
+            new_state <= RST; -- retry
+         else
+            new_state <= CMD59;
+         end if;
 			
 		when CMD59 =>
 			-- Send CMD59
@@ -777,12 +813,14 @@ begin
 			set_cmd_out <= true;
 			new_return_state <= READ_BLOCK_R1; set_return_state <= true;
 			new_state <= SEND_CMD;
+         new_original_state <= READ_MULTIPLE_BLOCK;
 			
 		when READ_BLOCK_R1 =>
 			-- Get R1 response to Read or Read Multiple command
 			if data_in/="00000000" then -- Some error
 				new_error <= '1';
 				new_error_code <= ec_R1Error;
+--            new_error_code <= data_in;  -- debug only: output SD Card's error response
 				new_state <= READ_BLOCK_FINISH;
 			else
 				new_sr_return_state <= READ_BLOCK_WAIT_CHECK; set_sr_return_state <= true;

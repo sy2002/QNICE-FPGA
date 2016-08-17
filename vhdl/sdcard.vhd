@@ -84,7 +84,7 @@ port (
 
 	sd_error : out std_logic;		   -- '1' if an error occurs, reset on next RD or WR
 	sd_busy : out std_logic;		   -- '0' if a RD or WR can be accepted
-	sd_error_code : out std_logic_vector(2 downto 0); -- See above, 000=No error
+	sd_error_code : out std_logic_vector(7 downto 0); -- See above, 000=No error
 	
 	
 	reset : in std_logic;	         -- System reset
@@ -123,11 +123,11 @@ signal ram_data_o       : std_logic_vector(7 downto 0);
 signal buffer_ptr       : unsigned(15 downto 0);         -- pointer to 512 byte buffer
 signal current_byte     : std_logic_vector(7 downto 0);  -- byte read in the last read operation
 
-signal ram_we_duetosdc : std_logic;                      -- write ram due to SD card reading
+signal ram_we_duetosdc  : std_logic;                     -- write ram due to SD card reading
 signal ram_we_duetowrrg : std_logic;                     -- write to ram due to a write to register 3
-signal ram_di_duetosdc : std_logic_vector(7 downto 0);   -- ram data in due to SD card reading
+signal ram_di_duetosdc  : std_logic_vector(7 downto 0);  -- ram data in due to SD card reading
 signal ram_di_duetowrrg : std_logic_vector(7 downto 0);  -- ram data in due to a write to register 3
-signal ram_ai_duetosdc : std_logic_vector(15 downto 0);  -- ram write address due to SD card access
+signal ram_ai_duetosdc  : std_logic_vector(15 downto 0); -- ram write address due to SD card access
 signal ram_ai_duetowrrg : std_logic_vector(15 downto 0); -- ram write address due to write to register 3
 
 -- SD Card controller signals
@@ -138,7 +138,7 @@ signal sd_dout          : std_logic_vector(7 downto 0);
 signal sd_dout_avail    : std_logic;
 signal sd_dout_taken    : std_logic;
 signal sd_error_flag    : std_logic;   
-signal sd_error_code    : std_logic_vector(2 downto 0);
+signal sd_error_code    : std_logic_vector(7 downto 0);
 signal sd_busy_flag     : std_logic;
 signal sd_type          : std_logic_vector(1 downto 0);
 signal sd_fsm           : std_logic_vector(7 downto 0);
@@ -437,7 +437,7 @@ begin
             when "010" => data <= reg_data_pos;            
             when "011" => data <= "00000000" & ram_data_o;
 --            when "100" => data <= x"EE" & "00000" & sd_error_code;
-            when "100" => data <= sd_fsm & "00000" & sd_error_code;
+            when "100" => data <= sd_fsm & sd_error_code;
 --            when "101" => data <= is_busy & is_error & sd_type & "00000000" & state_number;
             when "101" => data <= is_busy & is_error & sd_type & "000000000000";
             when others => data <= (others => '0');
