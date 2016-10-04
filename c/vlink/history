@@ -1,0 +1,834 @@
+vlink history
+=============
+
+(ados/ehf):   changes are relevant for Amiga-Hunk/EHF only
+(elf):        general ELF changes
+(elf32ppc):   changes are relevant for ELF32-PowerPC only
+(elf32m68k):  changes are relevant for ELF32-M68k only
+(elf32arm):   changes are relevant for ELF32-ARM only
+(elf32i386):  changes are relevant for ELF32-386 only
+(elf64x86):   changes are relevant for ELF64-x86_64 only
+(a.out):      general a.out changes
+(aoutmint):   changes are relevant for MiNT only
+(vobj):       changes for VOBJ format
+(tos):        changes for the Atari TOS format
+
+
+- 0.15a (12.03.16)
+o New option -mrel instructs the linker to merge all sections with
+  PC-relative references between them. This was done automatically
+  in previous versions, but makes no sense for most targets.
+o New option -hunkattr, which assigns memory attributes to an input section
+  name. The memory attributes of all those input sections will be
+  overwritten.
+o (elf) Introduced the new target "elf32jag", an unofficial ELF target
+  for the Atari Jaguar RISC CPU.
+o (ados/ehf) Read/write extended memory attributes (0xc0000000 in hunk
+  type or size). Extended attributes in object files seem inofficial,
+  but supported by vasm now.
+o (ados/ehf) Allow memory flags with HUNK_PPC_CODE in object files.
+o (ados/ehf) Support HUNK_RELRELOC32 in executables (since OS3.0).
+o (a.out) Fixed pc-relative relocations in relocatable object file output.
+
+- 0.15 (28.12.14)
+o (ados/ehf) Support for SAS/C style indexed libraries (HUNK_LIB).
+o (ados/ehf) -Csasc is accepted to build a table with SAS/C constructors
+  and destructors. It looks for functions named __STI_... and __STD_...
+o (tos) New option -tos-textbased to write symbol offsets which are based
+  on the text section (MonST-comaptible).
+o (tos) text and data section size in the header must not be odd.
+o (aoutmint) text and data section size in the header must not be odd.
+
+- 0.14d (07.06.14)
+o (vobj) Fixed reading common symbols from VOBJ files.
+o (a.out) Fixed detection of Atari Jaguar MOVEI relocations.
+o (tos) Label values from the symbol table must be an offset to the section
+  they are defined in.
+
+- 0.14c (27.12.13)
+o (ados/ehf) Ignore FILE and SECTION symbols, when converting from a
+  different format. They have no meaning here.
+
+- 0.14b (31.08.13)
+o Fixed potential illegal memory accesses when reading unallocated
+  amigahunk/ehf or a.out BSS sections.
+o Also delete empty sections with symbols, provided they are unreferenced
+  and stripped.
+o Fixed symbol assignments in the linker script's section definitions.
+  Defining symbols before the first input section pattern didn't work.
+o Make sure that pc-relative relocations are resolved when the target symbol
+  is in the same output section, even when -q (keep relocs) is given.
+o New option -osec, which makes some target formats output each section
+  as an individual file. Currently valid for: rawbin1, rawbin2,
+  amsdos, cbmprg.
+  -osec=basename can be used to put "basename." in front of each output
+  file name (section name).
+o Allow '.' symbol in a linker script's MEMORY block, to refer to the
+  start address given by -Ttext.
+o (elf) Display an error when a section doesn't cleanly attach to a
+  program segment.
+o (a.out) Fixed reading of empty objects, without any symbols.
+o (aoutmint) Make sure that TOS symbol table length is zero, when there
+  are no symbols.
+o (vobj) Fixed sign-extension of relocation addends and masks. This had for
+  example the effect that 16-bit PC-relative overflows were not recognized.
+o (rawbin) Extended the default script (.rodata, COMMON, .comment).
+o (rawbin) Special default linker script for amsdos, supporting banks.
+
+- 0.14a (08.08.12)
+o New output format: amsdos, for Amstrad/Schneider CPC computers.
+o New output format: cbmprg, for Commodore 8-bit computers (PET, VIC-20,
+  64, etc.).
+o The output formats rawbin2, amsdos and cbmprg will use the section name
+  instead of the section's base address as file name appendix for
+  additional files.
+o When using a linker script the input sections will be grouped by type
+  (code, data, bss) when being merged into a pattern-matched output
+  section. This keeps uninitialized parts together and is required to
+  form data-bss sections.
+o The binary output formats will display a fatal error when sections are
+  overlapping. This could cause crashes or huge output files before.
+o Fixed syntax and type errors in dir.c when compiling for Windows
+  (introduced in 0.14).
+o New linker-script command: ASSERT(), to generate a fatal error when the
+  tested expression is zero.
+o New linker-script functions: MAX(a,b) and MIN(a,b) to return the
+  higher or lower of two values.
+o (ados/ehf) A section named "BSS" is no longer automatically merged with
+  other bss-type sections.
+o (vobj) Regard all information from an object as unsigned, except symbol
+  values and reloc addends and masks.
+
+- 0.14 (05.08.11)
+o (elf) Introduced a module with common functions for ELF32 and ELF64,
+  then added experimental ELF64 support. First ELF64 test target is:
+  elf64x86.
+o (ados/ehf) The new option -da forces the linker to allocate all PowerOpen
+  address symbols (@_sybmol) which point to an already known symbol, which
+  was only done before when generating an amigaehf executable.
+o Improved Unix path conversion into native AmigaOS or DOS format.
+o Runs on plain Atari TOS.
+o Add -dc and -dp as synonyms for -d (BSD ld compatibility).
+
+- 0.13 (01.12.10)
+o Fixed some NULL-pointer accesses when parsing bad linker scripts.
+o New option -export-dynamic puts all global symbols of the output file into
+  the dynamic symbol table, making them visible for shared objects loaded on
+  demand (e.g. by dlopen()).
+o When creating a shared object, do not export unused symbols from static
+  link libraries as dynamic symbols. This could even lead to a crash.
+o Make sure a symbol value is always correctly sign-extended to 64 bit,
+  which was a problem with ELF and a.out backends.
+o (elf32ppc) Fixed writing of MorphOS ddrelocs on a little-endian host.
+
+- 0.12g (09.06.10)
+o Option -y only reports symbol references which will be part of the
+  resulting output file.
+o (a.out) Also handle indirect symbols with N_EXT bit set.
+o (elf) Automatically add a default PT_PHDR, when a PHDRS block in a
+  linker script doesn't define it although it was requested to be part
+  of a PT_LOAD PHDR.
+o (elf) Ignore R_NONE relocations. No longer fail on it.
+o (elf) Introduced the new target "elf32amigaos" for AmigaOS4. The only
+  difference to the standard "elf32ppcbe" is that even references from a
+  shared object (to other shared objects) have to be resolved at link time.
+
+- 0.12f (14.07.09)
+o Do not set the executable flag of the target file before it is closed.
+  This prevents exclusive locking problems with some file systems (e.g.
+  with JXFS from AmigaOS4).
+
+- 0.12e (02.07.09)
+o Multiple definitions of absolute symbols are ignored, when all have the
+  same value.
+o Replaced #ifdef WIN32 by _WIN32.
+o (elf) Fixed an error when creating executables with the default 2-segment
+  layout, while one segment remains empty (e.g. only .text and .rodata).
+
+- 0.12d (05.05.09)
+o (a.out) New format aoutnull, which is the default format with undefined
+  endianess and standard relocations, when an object with MID 0 is read.
+o (a.out) New format aoutjaguar, which recognizes swapped 16-bit words
+  and generates a special relocation for the Jaguar GPU MOVEI RISC
+  instruction (indicated by a set COPY flag in the reloc-info field).
+o (a.out) Detects Jaguar GPU MOVEI relocations in objects with MID 0
+  and treats them accordingly to write a correct desintation file.
+o When none of the input files sets a valid endianess use the endianess
+  of the output file format. When the endianess is still unknown, guess
+  it by using the endianess of the host system.
+o New options -EB and -EL to define the endianess for reading input files
+  and writing the output. Useful when neither the input files nor the
+  output file defines a valid endianess.
+o New option -minalign sets a minimum alignment (number of bits which have
+  to be zero) for all imported sections. The specified alignment value will
+  only take effect when higher than the section's current alignment.
+  It defaults to 0.
+
+- 0.12c (20.03.09)
+o Common symbols which are defined in several object modules must be present
+  in the output file only once! Even worse, since V0.12 different object
+  modules referenced their own copy of a Common symbol.
+
+- 0.12b (02.03.09)
+o (ados/ehf) LoadSeg<=V40 doesn't allow more than 31 longwords per symbol
+  in HUNK_SYMBOL and will respond with "bad loadfile hunk" otherwise.
+  So we just cut everything after 124 characters.
+
+- 0.12a (31.01.09)
+o V0.12 tried to prefer symbols resolved by the same object unit as it was
+  referenced from. Unfortunately its implementation was wrong: it actually
+  prefered symbols which are not from the same object! Fixed.
+o Error message 36 was displayed as "UNUSED" although still needed.
+
+- 0.12 (07.12.08)
+o Optimized and reworked large parts of the whole source.
+o Many bug fixes with dynamic linking. Experimental support for linking
+  with shared objects and creating shared objects.
+o New option -interp sets the name of the dynamic linker for ELF
+  executables. Defaults to "/usr/lib/ld.so.1".
+o New option -soname to specify the real name of a shared object/library.
+o New option -shared (same as -Bshareable) to make the linker generate a
+  shared object/library (experimental!).
+o New option -rpath to define a library search path for the dynamic linker.
+o Reworked relocation types. Support for LOCALPC, GOT, PLT, and SECTOFF
+  relocations.
+o Fixed linker-symbol addresses (e.g. _SDA_BASE_), when generating an
+  absolute executable.
+o Linker symbols _PROCEDURE_LINKAGE_TABLE_ and _GLOBAL_OFFSET_TABLE_.
+o Fixed linker script function KEEP(), which preserved more sections from
+  being deleted as wanted.
+o Shared library with version 0.0 (e.g. libname.so.0.0) was not found.
+o Removed obsolete FASTALLOC option.
+o vlink.doc converted to texinfo format, which yields a vlink.pdf.
+o (elf) Fixed option -n (no page alignment) for ELF.
+o (elf) Linking with shared objects is supported! Currently only
+  experimental for elf32ppcbe.
+o (elf) Whether the file header and PHDR are included in the first segment
+  of an executable is decided by the presence of the SIZEOF_HEADERS
+  variable in the active linker script. Lots of fixes for generating
+  executables with and without PHDR.
+o (aout) New format aoutmint. This is a TOS executable with an embedded
+  a.out header at the beginning of the text section. Used in the
+  Atari-MiNT environment to allow using binutils.
+o (vobj) Synchronize mit vasm (weak symbols, relocations) and recognize
+  weak symbols.
+o (vobj) Archive objects are assigned their real file name instead of the
+  archive name now.
+o (tos) Define a.out linker symbols __etext, __edata, __bss_start and __end.
+o (tos) New options to manipulate the 32bit flags word in the header:
+  -tos-flags, -tos-fastload, -tos-fastram, -tos-fastalloc, -tos-private,
+  -tos-global, -tos-super and -tos-readable.
+o (tos) Support for long symbol names, up to 22 characters.
+
+- 0.11 (17.09.08)
+o When merging two sections without a linker script always the section found
+  earlier in the linking process (earlier on the command line) has to be
+  kept. In some cases this didn't work.
+o (ados/ehf) When library symbols have the same name vlink will prefer the
+  one which matches the caller's cpu-architecture (PowerPC or M68k).
+  This makes linking of mixed PPC/M68k binaries for WarpOS much easier.
+o (ados/ehf) Silently discard weak symbols, when writing an executable.
+o (a.out) Support for GNU-style weak symbols.
+o Added new output file format shex1 (oilhex).
+
+- 0.10a (23.03.07)
+o New file format: elf32armle. 32-bit ELF for the little-endian ARM
+  architecture. Only a few relocations are supported at the moment.
+o (ados/ehf) In the past hunk-libraries would only be recognized when
+  using a ".lib" suffix. Now the name is irrelevant, as long as the
+  library was specified with -l option.
+
+- 0.10 (08.08.06)
+o Empty segments are marked as unused. This fixes a bug causing 
+  corrupt ELF output when only one segment is used.
+o PC-relative references between different sections are allowed when
+  the distance between sections in the final executable is constant.
+
+- 0.9k (05.06.06)
+o Base-relative references were only recognized when the symbol referenced
+  was from a different section. This caused problems when accessing
+  small-data symbols in a code section.
+o Print a warning when referencing a code section in base-relative mode.
+  The warning may be suppressed by the new -textbaserel option.
+o Read addends for base-relative relocations always have to be unsigned,
+  otherwise the linker fails with addends >32767 from 16-bit displacements.
+o Guarantees to set the OS-specific 'executable' flag for the output file.
+o The constructor/destructor list labels, __CTOR_LIST__ and __DTOR_LIST__,
+  will get an additional leading underscore in -Cvbcc mode to allow to
+  refer to the same symbol in C when using ELF or a.out/hunk objects.
+  Warning: This makes the vclib of vbcc/68k before 0.8j incompatible!
+o vlink may be built with MSVC 2005 Express Edition and MSVC Compiler
+  Toolkit 2003. Modifications done my Mikael Kalms.
+o Option -R for short-relocs was replaced by a more powerful -R<format>
+  option, where <format> defines the format of the relocation tables
+  which may be 'std' (standard), 'add' (including addends) or
+  'short' (short 16-bit offsets).
+o Option -f<flavour> adds "flavours" to the library search paths, as
+  known from GNU-ld.
+o (vobj) vasm's VOBJ output was synchronized with vlink, so we support
+  all the 15 basic reloc types now (abs, pc, plt, got, sd, secoff, etc.).
+o (elf32ppc) Target elf32amiga was split into elf32powerup and elf32morphos.
+  The latter will make sure that small data sections get their correct
+  names (.sdata/.sbss) and always writes them in two separate sections,
+  as MorphOS' ELF-loader guarantees that those sections are loaded
+  concatenated into memory.
+o (elf32ppc) New linker symbol __text_size for MorphOS/gcc.
+o (elf32ppc) .ctors and .dtors will only renamed to .ctor_/.dtor_ when
+  target is elf32powerup and the constructor-style "vbccelf" was selected.
+o (elf32ppc) Automatically creates __r13_init linker symbol when
+  _LinkerDB is referenced (elf32morphos).
+o (elf) .note sections are recognized and correctly written.
+o (ados/ehf) EHF address references starting with "@_", are also allowed
+  on linker generated symbols (like ___CTOR_LIST__).
+o (ados/ehf) Besides _LinkerDB, also a reference to PhxAss' _DATA_BAS_ and
+  Dice-C's __DATA_BAS creates _SDA_BASE_.
+o (tos) Take possible alignment gaps between text and data as well as
+  data and bss into account while writing the output file.
+
+- 0.9j (04.08.05)
+o Major bug fix: section list was corrupted while assigning the object
+  sections to the linker-script patterns. The consequence was that in
+  rare cases a section was not recognized!
+o When a relocatable object file is generated, sections are only
+  linked by name. No other rules are applied!
+o New option -Ttext can be used to set the start address of the first
+  section, which defaults to 0 and is usually set by the linker script.
+o PROVIDE() works again. It was broken since 0.9g.
+o A destination section defined by a linker script had to include its
+  own name in the list of source section patterns. This restriction
+  was fixed!
+o When common symbols are allocated in a section, its name is defined
+  by the destination object file format now (.bss for ELF and a.out).
+  When the process is controlled by a linker script the section is
+  still called "COMMON".
+o When a new object unit is pulled in from a library due to a symbol
+  reference other global symbols in it, which would cause conflicts,
+  are renamed and will effectively be replaced by the non-library symbols.
+o The -u option or the linker-script command EXTERN() will create
+  references to undefined symbols in a new dummy object now (called
+  "INTERNAL"). Before, a section of the first object found was used.
+o Empty .a archives are no longer rejected.
+o (vobj) Relocation with different symbols at the same offset are allowed
+  and will no longer be seen as a single relocation.
+o (elf32ppc) Supports R_PPC_SECTOFF, R_PPC_SECTOFF_LO, R_PPC_SECTOFF_HI
+  and R_PPC_SECTOFF_HA relocations.
+o (elf32ppc) Supports MorphOS-specific 32-bit base relative
+  R_PPC_MORPHOS_DREL_LO/HI/HA relocations (symbol __r13_init relative).
+  The linker automatically generates the symbols __r13_init (located at
+  .sdata+0x8000), __sdata_size (sizeof .sdata section) and __sbss_size
+  (size of .sbss section) on demand. When the linker-symbol
+  __datadata_relocs is referenced it will point to a newly created
+  section called "ddrelocs" containing relocation offsets for .sdata to
+  .sdata references and a number of records entry in the first word.
+  This makes it possible to clone the .sdata/.sbss section by library
+  code.
+o (elf32ppc) Supports AmigaOS/PPC-specific 32-bit base relative
+  R_PPC_AMIGAOS_BREL_LO/HI/HA relocations (.data section relative).
+  Unlike MorphOS copying and relocating the data segment is done by
+  AmigaOS (elf.library).
+o (elf32ppc) Small data base offset changed from 0x7ff0 to 0x8000, to
+  guarantee the same offset for SDAREL (16-bit small data) and DREL
+  (32-bit base relative) and make __saveds work for both cases.
+
+- 0.9i (13.03.05)
+o Experimental stabs debugging support for a.out and ELF.
+o Supports linker script commands: SEARCH_DIR, INPUT and GROUP (implemented
+  as INPUT, for compatibility only).
+o Encountering a PHDRS, SECTIONS or MEMORY directive in a linker script
+  will enable script-linking mode, otherwise default linking rules are used.
+o (elf) Fixed bug in when calculating sections gap, when every section has
+  base-address 0.
+o (elf) Prints an internal error when sections are overlapping (and base
+  address not 0).
+o Made error 19 (global symbol redefinition) a hard error. It was a
+  warning before, which I think is not enough.
+
+- 0.9h (02.01.05)
+o Respect ALLOC and NOLOAD flags in binary file generation.
+o Linker scripts: NOLOAD was not reset for the following sections.
+o New option -fixunnamed assigns a default name according to the
+  section's type (.text, .data or .bss).
+o Option -u is supported. It allows to mark symbols as undefined, which
+  might trigger linking of addtional modules from standard libraries.
+o Linker script command EXTERN, equivalent to the -u option. But you may
+  specify several symbols with one EXTERN command.
+
+- 0.9g (05.12.04)
+o (elf) Start address of a non-default PHDR was wrong, so it would never
+  receive any sections (only occured when using PHDR directive).
+o (elf32ppc) Changed default page alignment from 0x1000 to 0x10000.
+o (ados/ehf) Sign-extend hunk symbol-values. Otherwise negative absolute
+  symbols will not pass the linker's range-check.
+o Fixed crash when there was not a single section defined in a linker
+  script, but absolute symbols present.
+
+- 0.9f (20.11.04)
+o As soon as a small-data relocation is found, the symbol _SDA_BASE_
+  has to be marked as 'referenced'. Otherwise a 'provided' _SDA_BASE_
+  will disappear although needed.
+o Fixed R_SD21 relocations, which didn't really work.
+o (tos) Improved sorting of relocations using quick-sort algorithm.
+o (elf) The order of sections in a segment is based on LMA instead of VMA.
+o Fixed WIN32 pattern matching.
+o (vobj) Prevent crashes caused by illegal symbol-indexes, when
+  generating error(115).
+o Default library search path for AmigaOS/68k is now "vlibos3:", as
+  used in the latest vbcc 0.8g release.
+o When linking an executable without linker script it could happen in
+  rare cases that small-data sections were not merged. This was solved
+  by checking for dependencies between the new created output sections,
+  after all input sections from the global list have been assigned to one.
+o The map-file includes a nice section-mapping output now.
+o -sd option didn't work! Was treated as -sc!
+o Fixed small code (-sc) mode.
+o (ados/ehf) Some inofficial, currently pasm-only, reference types
+  were implemented, to be able to support base-relative references to
+  common symbols in hunk format.
+
+- 0.9e (11.06.04)
+o Base relative relocations will now be calculated by using the base
+  symbol's value (e.g. _SDA_BASE_ for R_SD-type relocations) instead
+  of just calculating a section offset. This requires that those symbols
+  are defined, of course!
+o (elf32ppc) Supports R_PPC_EMB_SDA2REL and R_PPC_EMB_SDA21 relocations.
+o (elf32ppc) Automatically creates _SDA_BASE_ linker symbol when
+  _LinkerDB is referenced.
+o (ados/ehf) Automatically creates _SDA_BASE_ linker symbol when
+  _LinkerDB is referenced.
+o New options to add or delete preceding underscores from symbol names
+  for a group of input files (-set/clr-adduscore, -set/clr-deluscore).
+o Win32-compatible directory and pattern-matching routines.
+o (elf) Ignores (removes) debugging sections (.stab*, .line*, .debug*)
+  when option -S or -s is given.
+
+- 0.9d (23.05.04)
+o New file format: IHEX (Intel-Hex).
+
+- 0.9c (08.05.04)
+o New file format: elf32i386.
+o (vobj) Relocations at the same location have to be concatenated to
+  support more complex relocation types like R_PPC_ADDR16_HA.
+o (elf32m68k) Included missing GOT and PLT relocations (although not
+  really supported by vlink at the moment).
+
+- 0.9b (24.04.04)
+o Rewrote relocation code, which allows to represent any relocation type
+  of any architecture internally. This made lots of code easier or
+  obsolete.
+o New file format: VOBJ. First introduced in V0.8i, but really working
+  now for the first time. VOBJ is a read-only format and intended to
+  support any architecture. Currently generated by the vasm-assembler only.
+o Redefinition of symbols in object units included from a library are
+  detected now.
+o New flag defines that a target must not reset the base address to 0
+  for any new section when producing a relocatable object. This is
+  useful for the Atari TOS and all a.out formats.
+o More precise error messages in case of relocation overflows ("distance
+  too large" errors, etc.).
+o (elf32ppc) Page size is 4096 bytes, not 8192!
+o (ados/ehf) R_PPC_REL14 relocations can be correctly translated into
+  a 16-bit relative EHF reloation.
+
+- 0.9a (26.03.04)
+o (elf) Relocatable objects with no-alloc sections no longer worked.
+  Those sections must always appear at last in the output file now.
+
+- 0.9 (29.02.04)
+o (elf) ELF executables (ET_EXEC) can be written, using linker scripts.
+  Only a small note, but THIS WAS THE BIG ONE!
+o (ados/ehf) Don't write EHF-specific hunks and relocs in "amigahunk" mode.
+o (a.out) Make sure that symbol-values are relative to their section base,
+  as a.out needs to assign its own strange values in relocatable object
+  file mode.
+o New file format: ataritos (Atari-ST/TT TOS format). Executables only.
+o Lots of modifications and simplifications in all targets.
+o Linker script support was rewritten from scratch and is quite
+  compatible to the GNU linker script format now, although there are
+  only a few functions and commands implemented at the moment. This
+  can easily be extended in future.
+o Real expression evaluation for linker scripts.
+o Gaps through sections alignment are filled with a linker-script
+  changeable 16-bit value.
+o Enhanced method to search for dynamic libraries (shared objects):
+  1. look for perfect match (e.g. libc.so)
+  2. look for highest version, including subversion when required
+o Empty sections without symbols and relocations will be deleted.
+o Small-code, small-data and relative references are also a factor for
+  merging sections when creating a relocatable object file as output,
+  and not for executables only.
+o Extended most data structures for 64-bit support.
+o Fixed all functions to work with a section-VA different from 0, which
+  is required for absolute executables and linker scripts.
+o New option -e sets the entry point for an executable.
+o New option -n disables page alignment in final executable.
+o New option -q keeps relocations in the final executable.
+o Options -dn,-dy,-dp,-dc are obsolete. There is only -d for allocation
+  of common symbols (-dc will be recognized too).
+o New constructor/destructor handling, controled by linker-script commands
+  (CONSTRUCTORS, VBCC_CONSTRUCTORS, etc.) or command line option -C.
+  The linker will label constructor lists with __CTOR_LIST__ and destructor
+  lists with __DTOR_LIST__ (available for all targets).
+o Common symbols will always be defined relative to an artificial section
+  called "COMMON". Common symbols which are referenced base-relative are
+  placed into ".scommon". These sections may be used in linker scripts.
+o No longer deallocate symbols when writing output, as they might be
+  needed later.
+o Map file: Declare values printed after "Allocating common" as hex.
+o Map file: Printing value of absolute symbols fixed.
+o When printing files, sections and their new addresses into a map file:
+  use original section names instead of the new ones. This makes the output
+  a bit harder to read for relocatable executables, so I might think
+  about it again...
+
+- 0.8m (30.09.03)
+o New file format: elf32m68k.
+
+- 0.8l (22.08.03)
+o Target amigaos was renamed to amigahunk.
+o Target elf32powerup was renamed to elf32amiga.
+o Warnings about modified section-attributes and alignment were improved
+  by printing the involved object names.
+
+- 0.8k (23.02.03)
+o (ados/ehf) -P option should be supported now.
+o (ados/ehf) Stripping of local symbols from the final executable supported:
+  -x strips alls local symbols, -X only those starting with 'l', 'L' or '.'.
+o (ados/ehf) The line debug hunks can also be stripped seperately from an
+  executable by specifying -S, retaining the symbol names in HUNK_SYMBOL
+  (which would not be stripped before -s).
+o (a.out) Fixed -X option. Stripping of all local symbols which start with
+  the letter 'l' or 'L' should work now.
+
+- 0.8j (28.09.02)
+o New option -P can define one or multiple symbols which are protected
+  against stripping (by -s or -x options). Currently not supported by
+  target "amigaos".
+
+- 0.8i (06.06.02)
+o New file format VOBJ was included.
+o Some little endian fixes and improved support for MSDOS-based
+  operating systems ... :-/
+
+- 0.8h (12.01.02)
+o Fixed a bug when writing 26-bit values into a section! It was intro-
+  duced by code cleanup in V0.8f and affected the elf32ppc targets.
+
+- 0.8g (01.01.02)
+o (a.out): Support for the first little endian targets:
+  "aoutbsdi386" (NetBSD) and "aoutpc386".
+
+- 0.8f (31.12.01)
+o Cleanup of source text for ELF and a.out targets. Architecture specific
+  code is separated in different files. t_aout.c and t_elf32.c only
+  include common code now.
+o Fixed reading/writing of 16/32 bit words in little- and big-endian
+  format. This should finally work on any(!) CPU now.
+o When using linker scripts: Memory blocks can depend on current
+  address of previous blocks and align them to get their initial
+  org-address (". = ALIGN(x);" in scripts).
+o Linker script symbols support alignment ("_sym = ALIGN(4)").
+o (a.out): Can genetate relocatable object files (OMAGIC) and static paged
+  executables (ZMAGIC). Still no dynamically linked executables.
+o (elf): -s will strip all symbols now, even the local ones (which didn't
+  work before).
+o (ados/ehf): When writing relocs and external references the correct
+  addend will be written into the section to prevent differences from
+  other object files formats (like a.out).
+
+- 0.8e (05.12.01)
+o (ados/ehf): Line debug information is no longer ignored.
+
+- 0.8d (01.12.01)
+o Non-allocated (discardable) sections (like .comment in ELF for example)
+  will no longer be recognized as small data sections.
+
+- 0.8c (26.06.01)
+o Sign extension problems with 16-bit addends fixed.
+
+- 0.8b (21.06.01)
+o Relative references between different sections of two objects were
+  only detected from the first to the second object, but not the other
+  way around.
+
+- 0.8a (11.04.01)
+o -Bforcearchive is supported. This option forces all object units of
+  a library archive to be loaded into the output file.
+
+- 0.8 (16.02.01)
+o a.out support. New object file formats: aoutbsd68k, aoutbsd68k4k,
+  aoutsun010, aoutsun020 (the last two are used by gcc under AmigaOS).
+  Currently we can only read a.out objects and libraries, not write!
+  Some a.out symbol types are still missing, like SETA/T/D/V.
+o Motorola S-Record support. New object file formats: srec19, srec28
+  and srec37 (16-, 24-, 32-bit addresses). Like "rawbinX", "srecXX"
+  can only be written. This is no read-format. Use linker scripts to
+  define the section layout of rawbin and srec.
+o Support for indirect symbols, as required by the a.out format.
+o Fixed BSD's long-names format in archives (missing 16-bit alignment).
+o The special name "ARFILENAMES/" in GNU archives is recognized.
+o Common symbols are really supported now.
+o -dc option (force allocation of common symbols) works.
+o vlink will find libraries in current directory now. Before, this only
+  worked for shared objects. The search sequence is: current directory,
+  user-defined (-L) directories, default directory (compiled in, -V).
+o (ados/ehf): EXT_RELCOMMON is supported (common symbols).
+  Common symbol definitions have to be ignored. There are only common
+  symbol references in hunk format, which must be detected by checking
+  whether the referenced symbol is a common one.
+o (ados/ehf): Fixed REL16 support in created objects.
+o (ados/ehf): Added support for REL8,REL32,ADDR8,ADDR16,BASEREL8,BASEREL32.
+o (ados/ehf): Prints a warning on unreferenced common symbols in an object,
+  because they will disappear in hunk format.
+o (ados/ehf): Included linker symbols from GNU-gcc for AmigaOS/68k
+  (ixemul.library): ___machtype, ___text_size, ___data_size, ___bss_size.
+  This makes it theoretically possible to replace GNU-ld for linking a.out
+  objects into an Amiga hunk-format executable.
+o (ados/ehf): Indirect symbols are ignored, when an executable is generated.
+o (ados/ehf): Never writes relocation hunks with more than 65536 entries!
+   Due to a bug in AmigaOS' dos.library we have to use a workaround.
+
+- 0.7c (02.12.00)
+o (ados/ehf) Short relocations (option -R) must not be written as HUNK_DREL32
+  into an object file - it is allowed for executables only! For objects
+  (e.g. -r) we are using the correct HUNK_RELOC32SHORT now. Otherwise you
+  got the message "file format corrupted" when trying to link such an
+  object.
+
+- 0.7b (13.11.00)
+o (elf32ppc) ELF32-PowerUp objects (-r option) didn't contain any symbols!
+  So it was a bit difficult to link them with other objects after-
+  wards. ;)
+
+- 0.7a (07.03.00)
+o (ados/ehf) Linker option -R (short relocations) is now supported by target
+  amigaos. With this option given, it will try to create HUNK_DREL32 hunks
+  (which is the OS2.0-compatible equivalent to HUNK_RELOC32SHORT) whenever
+  possible - which means no more than 65535 relocations and no relocation
+  offset > 0xffff.
+o Unlimited line length in object list files (-F option).
+
+- 0.7  (13.02.00)
+o (elf) Common symbol references are recognized. There are still problems
+  with those references, when using -r option.
+
+- 0.6e (09.10.99)
+o First mini support for linker scripts. They can be specified by using
+  the new option -T. Linker scripts will allow to create executables
+  for ELF (and other Unix targets) in future.
+o New targets "rawbin1" and "rawbin2", which genereate an absolute
+  raw binary file. The base address is generally specified by using
+  a linker script (-T option). The difference between the two is, that
+  rawbin2 creates a separate file for every section.
+
+- 0.6d (13.02.99)
+o (elf) The PowerUp ELF loader has its own constructor/destructor
+  functionality for .ctors and .dtors sections, so we have to
+  rename them to .ctor_/.dtor_ (elf32powerup executable only). The
+  contents can still be referenced by .ctors/.dtors, though.
+
+- 0.6c (05.02.99)
+o (elf) Elf32 supports vbcc's _INIT/_EXIT function, where constructor/
+  destructor function pointers will be placed into the .ctors and .dtors
+  sections. .ctors/.dtors are using the standard format, but compiler-
+  generated entries will not work - the linker has to create these sections.
+  If .ctors or .dtors is referenced, but no such section exists, the
+  linker will create an artificial absolute symbol with the value 0
+  instead.
+o All targets use the standard format for constructor/destructor
+  sections, which means: first longword describes the number of pointers
+  or is -1 (vlink uses the latter one), when the init code has to deter-
+  mine the number itself. The last longword will always be a NULL pointer.
+
+- 0.6b (16.01.99)
+o Changed copyright.
+o Compiles now under Irix 5.3.
+
+- 0.6a (19.12.98)
+o vlink should be prepared to support little-endian objects now. The
+  endianess of the whole linking procedure is determined when loading
+  the first object file. Consequently the following ones must use the same.
+o Fixed some problems with constructor/destructor-type linker symbols in
+  small data mode. Although they were addressed base-relative, their
+  sections could not be coalesced with the small data section and their
+  offsets were never updated.
+
+- 0.6  (24.10.98)
+o The section offset for base-relative relocations was made target-
+  dependant. Consequently, -baseoff modifies the default setting for
+  the current output file format.
+  The following default offsets were defined:
+  amigaos/amigaehf: 0x7ffe, elf32ppcbe/elf32powerup: 0x7ff0.
+o New target elf32powerup, which supports the PPC coprocessor boards
+  from Phase5. The format of elf32powerup executables is the same as
+  the format of elf32ppcbe relocatable objects, but no unknown symbols
+  are allowed and base relative relocations will be resolved.
+o (elf): Linking with shared objects is supported, but they still cannot
+  be created by vlink.
+o (elf): .sdata/.sbss and .sdata2/.sbss2 (EABI) will always be combined,
+  also in -multibase mode.
+o (elf32ppc): _LinkerDB is no longer known to elf32ppcbe. It's an
+  elf32powerup-only symbol now.
+o (elf32ppc): Linker symbols _SDA_BASE_ and _SDA2_BASE (EABI).
+
+- 0.5f (08.10.98)
+o (ados/ehf): The automatic constructor/destructor functions have to
+  begin with __INIT or __EXIT to avoid conflicts with ANSI-C identifiers.
+
+- 0.5e (05.10.98)
+o A target may create prioritized pointers or constants in a new
+  section. This feature is useful for buidling constructor/destructor
+  function pointer tables. Currently used by ados/ehf only.
+o (ados/ehf): Global symbols beginning with _INIT or _EXIT will create an
+  entry into the constructor/destructor function pointer table.
+  These tables can be addressed by using the symbols __ctors and __dtors
+  (e.g. in the startup/cleanup code of a program).
+  The priority of these functions may be defined by specifying a number
+  behind the INIT/EXIT string. Example: _INIT_9_OpenLibs.
+  Otherwise their priority defaults to 0 and they will be positioned
+  in order of occurence.
+
+- 0.5d (22.08.98)
+o Faster memory allocation algorithm, using 256k chunks. Can be
+  activated by defining FASTALLOC.
+o Directories are only scanned for shared objects, because of a possible
+  version extension. This is a great improvement under AmigaOS, because
+  the file system is not fast enough.
+o When using the -dn option together with the previous two enhancements,
+  vlink is nearly 10(!) times faster than before, under AmigaOS.
+
+- 0.5c (08.07.98)
+o (ados/ehf): If the target is EHF and an undefined reference to a
+  symbol beginning with "@_" was detected, it will be automagically
+  generated by the linker, as long as a symbol without "@_" already
+  exists. The linker will create an artificial object unit with the
+  name of the referenced symbol (without "@_"), including a data section
+  called ".tocd", which reserves four bytes for the symbol pointer.
+  This nice feature allows the generation of @__name pointer symbols
+  in the TOC section on demand, which saves a lot of space.
+
+- 0.5b (05.07.98)
+o (elf32ppc): Implemented linker symbol _LinkerDB.
+
+- 0.5a (28.06.98)
+o Error 19 (symbol xxx (yyy) is already defined in...) was turned
+  into a warning.
+o Option -w (suppress warnings) was missing in help text.
+
+- 0.5  (27.06.98)
+o Target specific linker symbol support. This feature is currently
+  only used by the AmigaDOS file format.
+o (ados/ehf): Implemented linker symbols:
+  _DATA_BAS_, _DATA_LEN_, _BSS_LEN_, _LinkerDB, __BSSBAS, __BSSLEN,
+  __ctors, __dtors, __DATA_BAS, __DATA_LEN, __BSS_LEN, __RESIDENT.
+o -v shows the default target.
+
+- 0.4  (05.06.98)
+o New linking rules. A lot more factors are now involved in the decision
+  whether two sections have to be coalesced or not:
+  - target-specific linking rules are checked first
+  - small-code option forces merging of all code sections
+  - small-data option forces merging of all data and bss sections
+  - relative references between two sections
+  - all sections which have base-relative references from other sections
+    must be merged (if not denied by -multibase)
+  - default linking rules: sections must have the same name and type
+o (ados/ehf): target specific linking rules:
+  - unnamed sections are never merged, unless the small-code or small-data
+    option is given
+  - sections named _NOMERGE are absolutely never merged
+  - data and bss sections named __MERGED will be merged, warn about
+    code sections with this name (but merge them anyway)
+o All targets which support it can now take advantage of code-bss and
+  data-bss sections. In this case only the initalized section contents
+  is stored in the file, although the section header contains the total
+  size. The operating system is responsible for clearing the unini-
+  tialized part after loading.
+o Option -sc forces merging of all code sections in an executable.
+o Option -sd forces merging of all data and bss sections in an executable.
+o Option -multibase prevents auto-merging of sections, which are accessed
+  base-relative. This means the program uses more than one base register
+  for accessing small data.
+
+- 0.3b (02.05.98)
+o Some experimental code for target elf64alpha, but nothing usable now.
+o There were still infinite loops, if an object comes without any section.
+o (ados/ehf) A dummy code section will be created, if an output file
+  has no section at all.
+
+- 0.3a (18.04.98)
+o Updated and changed some help texts.
+
+- 0.3  (17.04.98)
+o First version, which reliably links ELF32-PowerPC-BigEndian relocatable
+  object files and library archives. The only ELF output format is
+  currently a relocatable object, which means only linking with -r works.
+o Support for SystemV-style and BSD-style ".a"-archives.
+o (elf32ppc) Resolving ADDR16_HA/HI/LO references to a relocatable
+  symbol didn't work (2 bytes of the next instructions were overwritten).
+o Fixed the print routine for function names, in which an error occured.
+  It didn't work, if symbols had a known size. Additionally, it can
+  differentiate between 'no type', 'function' and 'object' now.
+o Option -R directs vlink to generate short relocs, if the target format
+  allows this. It is for example supported by ELF and AmigaDos.
+  Restriction: -R is currently ignored for ados/ehf and I'm not sure if
+  the implementation is correct for elf32ppc, because "objdump --reloc"
+  crashes on encountering ".rel" sections. Don't use this option for now!
+o Commented out some options in the help text, which are still not supported.
+o Implemented full support for little endian file formats, although
+  vlink currently doesn't know about one (maybe ELF64-Alpha-LittleEndian
+  will be the first? :).
+o (ados/ehf) Absolute local symbols for object files and absolute local
+  and global symbols for executable files are ignored.
+o (elf) Unlike ados/ehf, ELF allows multiple definitions of local symbols.
+
+- 0.2a (20.03.98)
+o Option -F reads a list of input files from the specified file name.
+  File names are separated by blanks, tabs, newlines, etc., so a file
+  name which contains blanks has to be in quotes.
+
+- 0.2  (07.03.98)
+o First version, which successfully linked EHF objects for WarpOS
+  into working executables!
+o Library units are no longer forced being the last object units
+  in an output file. They will be immediately inserted, if a 
+  unit's symbol is referenced. This makes it possible to ensure
+  that the last object in the linker command line will also be the
+  last object unit in the resulting output file.
+o Option -v displays the standard library path.
+o Severe problems with base relative references, if the output file
+  is a relocatable object again:
+  Normal references were resolved, but they must remain relocatable.
+  External references were even completely corrupted, and overwrote
+  the following instruction.
+o (ados/ehf) Number of hunks determined in HUNK_HEADER was wrong,
+  if resident library name is missing (which is always the case).
+o (ados/ehf) HUNK_DREL32 will be treated as HUNK_RELOC32SHORT, if the
+  input file is executable.
+o (ados/ehf) Unnamed sections of an executable will always get
+  different names, to avoid that they are linked together. This would
+  cause some strange effects, like wrong base relative offsets, mixed
+  PowerPC and M68k code, etc..
+
+- 0.1c (02.03.98)
+o Internal error (thousands of sections detected), because of an
+  uninititalized variable.
+
+- 0.1b (28.02.98)
+o Base relative relocations, with -baseoff=0x8000 (default)
+  didn't work.
+
+- 0.1a (28.02.98)
+o Usage of AllocMem() in dir.c is not recommendable, when considering
+  a PowerPC-port. Changed to malloc().
+o Some minor fixes - missing proto types, etc.
+o Modified help text in version.c
+
+- 0.1  (27.02.98)
+o First version that seems to link AmigaOS ADOS and EHF
+  objects and libraries. Many common features, like linking
+  sections together which have relative references, are
+  still missing. Also, PowerPC-ELF32 support is about to come.
+
+- 0.0  (04.08.97)
+o Project started on a beautiful summer-day at the North Sea
+  beach of Cuxhaven. :)

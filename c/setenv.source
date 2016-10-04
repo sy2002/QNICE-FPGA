@@ -1,0 +1,2 @@
+export PATH=$PATH:$PWD/vbcc/bin:$PWD/qnice
+export VBCC=$PWD/vbcc

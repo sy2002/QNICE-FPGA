@@ -1,0 +1,29 @@
+# Windows
+# Tested with Visual Studio 2005 Express and Professional Edition: works fine
+# Tested with Visual C++ Toolkit 2003: works fine, but needs an external make tool (nmake is not included)
+
+TARGET = vlink.exe
+DIR = objects
+
+# If Visual Studio is unable to find <windows.h> when compiling vlink, try enabling the two
+# lines below, and point them to where you have installed the Win32 Platform SDK.
+
+#WIN32_PLATFORMSDK_INCLUDE = "/IC:\Code\Win32 Platform SDK\Include" 
+#WIN32_PLATFORMSDK_LIB = "/LIBPATH:C:\Code\Win32 Platform SDK\Lib" 
+
+CC = cl
+CCOUT = /Fo
+#COPTS = /nologo /O2 /MT /Zp1 /Dsnprintf=_snprintf /c
+COPTS = /nologo /O2 /MD /Dsnprintf=_snprintf /c		# use /MT for static linking
+COPTS = $(COPTS) /wd4996				# Disable warning regarding deprecated functions 
+							# ("use strcpy_s instead of strcpy" etc)
+COPTS = $(COPTS) $(WIN32_PLATFORMSDK_INCLUDE)
+CONFIG =
+
+LD = link
+LDOUT = /OUT:
+LDOPTS = /NOLOGO $(WIN32_PLATFORMSDK_LIB)
+LIBS = kernel32.lib user32.lib
+
+
+include make.rules

@@ -1,0 +1,811 @@
+\ifx\pdfminorversion\undefined
+ \pdfoptionpdfminorversion=3
+\else
+ \pdfminorversion=3
+\fi
+\input texinfo
+
+@setfilename vlink.texi
+@settitle vlink manual
+@setchapternewpage odd
+
+@ifinfo
+This is the manual for the portable multi-format linker vlink.
+
+Copyright 1997-2016 Frank Wille
+@end ifinfo
+
+@titlepage
+@title vlink portable multi-format linker
+@author Frank Wille
+@page
+@end titlepage
+
+@paragraphindent 0
+@contents
+
+
+@chapter General
+
+@section Introduction
+@command{vlink} is a portable linker which can be configured to support multiple
+input and output file formats at once. It even allows to link input files
+with a different format in a single run and generate the output file format
+of your choice from it.
+
+The linker supports linking with objects, object archives (static libraries)
+and shared objects or libraries. It can generate an executable file with or
+without additional information for dynamic linking, a shared object, or
+a new object suitable for another linker pass.
+
+Empty sections and other unused data are deleted to achieve a size-optimized
+output.
+
+@section Legal
+@command{vlink} is freeware and part of the portable and retargetable ANSI C
+compiler vbcc, copyright (c) 1995-2016 by Volker Barthelmann.
+
+@command{vlink} may be freely redistributed as long as no modifications are
+made and nothing is charged for it. Non-commercial usage is allowed
+without any restrictions.
+
+Every product or program derived directly from my source may not be
+sold commercially without permission from the author.
+
+
+@section Installation
+
+@command{vlink} comes as a stand-alone program, so no further
+installation is necessary.
+To use @command{vlink} with @command{vbcc}, copy the binary to
+@file{vbcc/bin}, following the installation instructions for
+@command{vbcc}.
+
+
+@chapter The Linker
+
+@section Usage
+@command{vlink} links the object and archive files given on the command line
+into a new object file. The output object file is either an executable
+program, a shared object suitable for loading at run-time, or an
+object file that can once again be processed by @command{vlink}.
+
+Object files and archives are processed in the order given on the command
+line. Unlike other linkers you usually have to specify each library to link
+against only once, as @command{vlink} is smart enough to figure out all dependencies.
+
+The file format of an input object file is determined automatically
+by the linker. The default output file format is compiled in
+(see @option{-v}) and may be changed by @option{-b}. Optionally, the default
+library search path can also be compiled in and is visible with
+@option{-v} as well.
+
+The number of output file formats included is configurable at compile time.
+
+@section Supported file formats
+The following file formats are supported:
+
+@table @code
+
+@item amigahunk
+The AmigaDos hunk format for M68k. Requires AmigaOS 2.04 with
+@option{-Rshort}.
+No shared objects. Small data offset @code{0x7ffe}. Linker symbols:
+@itemize @minus
+  @item _DATA_BAS_ (PhxAss)
+  @item _DATA_LEN_ (PhxAss)
+  @item _BSS_LEN_ (PhxAss)
+  @item _LinkerDB
+  @item __BSSBAS (SASC/StormC)
+  @item __BSSLEN (SASC/StormC)
+  @item ___ctors (SASC/StormC)
+  @item ___dtors (SASC/StormC)
+  @item __DATA_BAS (DICE-C)
+  @item __DATA_LEN (DICE-C)
+  @item __BSS_LEN (DICE-C)
+  @item __RESIDENT (DICE-C)
+  @item ___machtype (GNU-gcc)
+  @item ___text_size (GNU-gcc)
+  @item ___data_size (GNU-gcc)
+  @item ___bss_size (GNU-gcc)
+@end itemize
+Automatic constructor/destructor function tables:
+@code{___ctors} and @code{___dtors} (will be mapped automatically to
+@code{__CTOR_LIST__} and @code{__DTOR_LIST__}).
+Supports @option{-Rstd} and @option{-Rshort}. @option{-hunkattr} can be
+used to overwrite the memory flags of an input section.
+This format was called "amigaos" in former @command{vlink} versions.
+
+@item amigaehf
+An extension of the AmigaDOS hunk format for the PowerPC,
+32-bit, big endian, as introduced by Haage&Partner GmbH for WarpOS. No
+executables (they are in @code{amigahunk} format) or shared objects.
+The same linker symbols, constructors/destructors as under
+@code{amigahunk} are supported. Additionally, @code{@@_name} symbols will
+be created on demand (when referenced).
+Supports @option{-Rstd}, @option{-Rshort} and @option{-hunkattr}.
+
+@item amsdos
+Absolute raw binary output, similar to rawbin2, but with a header
+for Amstrad/Schneider CPC computers.
+
+@item ataritos
+Atari-ST TOS file format. Executables only at the moment. Symbol table
+in extended DRI format. Symbols may be section- or start-based (option
+@option{-tos-textbased}).
+The internal linker script defines _LinkerDB for small
+data and supports @command{vbcc}-style
+constructor/destructor tables
+in the data section (@code{__CTOR_LIST__} and @code{__DTOR_LIST__}).
+
+@item cbmprg
+Absolute raw binary output, similar to rawbin2, but with a header
+for Commodore 8-bit computers (PET, VIC-20, 64, etc.).
+
+@item elf32m68k
+ELF (executable linkable format) for Motorola M68k, 32-bit,
+big endian. Small data offset: @code{0x8000}. Linker symbols:
+@code{_SDA_BASE_}. Automatic constructor/destructor function
+tables will be placed into the sections @code{.ctors} and @code{.dtors}.
+Supports @option{-Rstd} and @option{-Radd}.
+
+@item elf32i386
+ELF (executable linkable format) for Intel 386 and better,
+32-bit, little endian. No small data. Automatic constructor/destructor
+function tables will be placed into the sections
+@code{.ctors} and @code{.dtors}.
+Supports @option{-Rstd} and @option{-Radd}.
+
+@item elf32aros
+ELF i386 32-bit little endian like elf32i386, but generates
+relocatable object files as executables. This format is
+used for the AROS (Amiga Research OS) operating system.
+Supports @option{-Rstd} and @option{-Radd}.
+
+@item elf32arm
+ELF (executable linkable format) for the ARM architecture.
+32-bit, little endian. Small data offset: @code{0x1000}. Linker
+Symbols: @code{_SDA_BASE_}. Automatic constructor/destructor
+function tables will be placed into the sections @code{.ctors}
+and @code{.dtors}. Supports @option{-Rstd} and @option{-Radd}.
+
+@item elf32ppcbe
+ELF (executable linkable format) for PowerPC, 32-bit,
+big endian. Small data offset: @code{0x8000}. Linker symbols:
+@code{_SDA_BASE_} and @code{_SDA2_BASE} (EABI only). Automatic
+constructor/destructor function tables will be placed into the
+sections @code{.ctors} and @code{.dtors}.
+
+@item elf32powerup
+ELF PowerPC 32-bit big endian like elf32ppcbe, but generates
+relocatable object files as executables. This format is
+used for the PowerUp kernel. The linker symbol @code{_LinkerDB} is
+defined for @command{vbccppc}-compatibility.
+Small data offset: @code{0x8000}.
+This format was also called @code{elf32amiga} in former @command{vlink}
+versions.
+
+@item elf32morphos
+Nearly identical to elf32powerup. Only difference is that
+@code{.sdata} and @code{.sbss} sections will not be merged as the MorphOS
+loader will take care of it. This format is used for MorphOS.
+
+@item elf32amigaos
+Identical to elf32ppcbe, but when doing dynamic linking it requires that
+also all references from shared objects are resolved at link time. This
+is due to a limitation of the AmigaOS4 dynamic link editor (elf.library).
+
+@item elf32jag
+ELF (executable linkable format) for Atari Jaguar RISC, 32-bit,
+big endian. Small data offset: @code{0}. Linker symbols:
+@code{_SDA_BASE_}. Automatic constructor/destructor function
+tables will be placed into the sections @code{.ctors} and @code{.dtors}.
+Supports @option{-Rstd} and @option{-Radd}.
+
+@item elf64x86
+ELF (executable linkable format) for the x86_64 architecture.
+64-bit, little endian. No small data. Automatic constructor/destructor
+function tables will be placed into the sections
+@code{.ctors} and @code{.dtors}.
+Supports @option{-Rstd} and @option{-Radd}.
+
+@item a.out
+Currently supported:
+@itemize @minus
+  @item aoutnull (Default with standard relocs and undefined endianess)
+  @item aoutbsd68k (NetBSD/68k)
+  @item aoutbsd68k4k (NetBSD/68k 4K page size)
+  @item aoutsun010 (SunOS 68010 and AmigaOS/Atari 68000/010)
+  @item aoutsun020 (SunOS 68020 and AmigaOS/Atari 68020-68060)
+  @item aoutbsdi386 (NetBSD/i386)
+  @item aoutpc386
+  @item aoutmint (Embeds a.out in TOS format for Atari MiNT executables)
+  @item aoutjaguar (M68k with special, word-swapped RISC relocations)
+@end itemize
+Small data offset: @code{0x8000} (unused).
+Linker symbols:
+@code{__GLOBAL_OFFSET_TABLE_}, @code{__PROCEDURE_LINKAGE_TABLE_},
+@code{__DYNAMIC}.
+
+@item vobj-le
+@itemx vobj-be
+VOBJ file format, generated by the @command{vasm} assembler. VOBJ is
+a read-only object file format and is designed to support
+any little- or big-endian architecture with all their
+specific relocations.
+
+@item rawbin1
+Absolute raw binary file. The sections and base addresses
+have to be specified by a linker script (option @option{-T}). Gaps
+between sections are filled with 0-bytes. Without a linker
+script, the raw binary will be relocated to base address 0.
+
+@item rawbin2
+Similar to rawbin1. The only difference is that a new output file will
+be created, for each section which caused a gap larger than 15 bytes to
+the previous section. The new file name will get the section's name
+appended after a dot.
+
+@item rawseg
+Creates a raw binary file for each segment. Segments can be defined in a
+@code{PHDR} block of the linker script. It defaults to text and data segments.
+The segment names, their base address and length are written into the output
+file while the binary files get their segment name appended to the original
+file name.
+When option @option{-q} (keep relocs) had been specified, then additional files
+containing the relocation offsets are created. The first word in each file
+defines the number of relocations.
+
+@item srec19
+@itemx srec28
+@itemx srec37
+Motorola S-Record format. No symbols. Output format only.
+Without a linker script, the raw binary will be relocated to base address 0.
+
+@item ihex
+Intel Hex format. No symbols. Output format only.
+Without a linker script, the raw binary will be relocated to base address 0.
+
+@end table
+
+@section Linker Options
+@command{vlink} command template:
+@example
+  @command{vlink [-dhnqrstvwxMRSX] [-B linkmode] [-b targetname]
+  [-baseoff offset] [-C constructor-type] [-da] [-dc] [-dp] [-EB] [-EL]
+  [-e entrypoint] [-export-dynamic] [-f flavour] [-fixunnamed]
+  [-F filename] [-hunkattr secname=value] [-interp path]
+  [-L library-search-path] [-l library-specifier]
+  [-minalign val] [-mrel] [-multibase] [-nostdlib]
+  [-o filename] [-rpath path] [-sc] [-sd] [-shared] [-soname name]
+  [-static] [-T filename] [-Ttext addr] [-textbaserel]
+  [-tos-flags/fastload/fastram/private/global/super/readable]
+  [-tos-textbased] [-u symbol] [-V version] [-y symbol] [-P symbol]
+  input-files...}
+@end example
+
+Usually options and input file names can be mixed. Order of options may be
+important (e.g. when specifying a library with @option{-l} or a search path
+with @option{-L}).
+
+The following options are supported:
+
+@table @option
+
+@item -Bdynamic
+Specifies that linking against dynamic libraries can take
+place. If a library specifier of the form @option{-lx} appears on
+the command line, ld searches for a library of the from
+@file{libx.so.n.m} (see the @option{-l} option) according to the search
+rules in effect. If such a file can not be found a traditional archive
+is looked for. This options can appear anywhere on the command line and is
+complementary to @option{-Bstatic}.
+
+@item -Bstatic
+The counterpart of @option{-Bdynamic}. This option turns off dynamic
+linking for all library specifiers until a @option{-Bdynamic} is once
+again given. Any explicitly mentioned shared object encountered on the
+command line while this option is in effect is flagged as an error.
+
+@item -Bshareable
+Instructs the linker to build a shared object from the object
+files rather than a normal executable image.
+
+@item -Bsymbolic
+This option causes all symbolic references in the output to be
+resolved in this link-edit session. The only remaining run-
+time relocation requirements are base-relative relocations,
+ie. translation with respect to the load address. Failure to
+resolve any symbolic reference causes an error to be reported.
+
+@item -Bforcearchive
+Force all members of archives to be loaded, whether or not such
+members contribute a definition to any plain object files.
+Useful for making a shared library from an archive of PIC
+objects without having to unpack the archive.
+
+@item -b targetname
+Specifies target file format for the output file. See
+also "Supported file formats".
+
+@item -baseoff offset
+Defines section offset for base-relative relocations. The
+default offset is target-dependant (e.g. @code{0x7ffe} for amigaos
+and @code{0x8000} for elf32m68k).
+
+@item -C constructor-type
+Defines the type of constructor/destructor function names
+to scan for. Valid types are:
+@table @code
+  @item gnu
+    GNU style constructors
+  @item vbcc
+    vbcc style constructors: @code{__INIT[_<pri>]_<name> / __EXIT..}
+  @item vbccelf
+    vbcc style constructors: @code{_INIT[_<pri>]_<name> / _EXIT..}
+  @item sasc
+    SAS/C style constructors: @code{__STI[_<pri>]_<name> / __STD..}
+@end table
+
+@item -clr-adduscore
+No longer add a preceding underscore for the symbols of the
+following objects in the command line.
+
+@item -clr-deluscore
+No longer delete a preceding underscore for the symbols of the
+following objects in the command line.
+
+@item -d
+@itemx -dc
+@itemx -dp
+Force allocation of common symbols, even when producing relocatable
+output (@option{-r} option).
+
+@item -da
+Force allocation of address symbols (PowerOpen), even when producing
+relocatable output (@option{-r} option).
+
+@item -e entrypoint
+Defines the entry point of an executable and may be either
+a symbol or an absolute address. The linker will set the
+entry point by trying each of the following methods in order,
+stopping when the first succeeds:
+@enumerate
+  @item -e option
+  @item @code{ENTRY()} command in a linker script
+  @item value of the symbol @code{_start}, if defined
+  @item start of the first executable code section
+  @item address 0
+@end enumerate
+
+@item -EB
+Presets big-endian mode for reading input and writing output.
+
+@item -EL
+Presets little-endian mode for reading input and writing output.
+
+@item -export-dynamic
+Put all global symbols of the output file into the dynamic symbol table,
+making them visible for shared objects loaded on demand (e.g. by
+@code{dlopen()}).
+
+@item -f flavour
+Adds a library-flavour. All flavours are cumulatively
+appended to each library search-path, whenever a library
+ was specified with @option{-l}.
+Example: One search path and two flavours will search in:
+@enumerate
+  @item @file{<lib-path>},
+  @item @file{<lib-path>/<flavour1>} and
+  @item @file{<lib-path>/<flavour1>/<flavour2>}
+@end enumerate
+
+@item -F filename
+A list of object file names is read from the specified file.
+Useful, if the number of objects exceeds the length of the command line.
+
+@item -fixunnamed
+All unnamed sections will get a default name according to
+their section type (@code{.text}, @code{.data} and @code{.bss}).
+
+@item -h
+Prints a short help text.
+
+@item -hunkattr secname=value
+Overwrite the memory attributes of all input sections named @code{secname}
+with @code{value}. For example allocate the @code{DATA} section in
+Chip-RAM: @code{-hunkattr DATA=2}. Extended memory attributes are supported.
+Only valid for AmigaDOS hunk format and WarpOS EHF.
+
+@item -interp interpreter-path
+Defines the name of the interpreter, which is usually the
+dynamic linker for dynamically linked ELF executables.
+Defaults to @file{/usr/lib/ld.so.1}.
+
+@item -L library-search-path
+Add path to the list of directories to search for libraries
+specified with the @option{-l} option. When a default search path
+was compiled in (see @option{-v}), then it is searched last.
+
+@item -l library-specifier
+This option specifies a library to be considered for inclusion
+in the output. If the @option{-Bdynamic} option is in effect, a shared
+library of the form @file{lib<spec>.so.m.n} (where @code{m} is the
+major, and @code{n} is the minor version number, respectively) is searched
+for first. The library with the highest version found in the
+search path is selected. If no shared library is found or
+the @option{-Bstatic} option is in effect, an archive of the form
+@file{lib<spec>.a} is looked for in the library search path.
+For @code{amigaos}/@code{amigaehf} file formats, the libraries are
+called @file{<spec>.lib}.
+
+@item -M
+Produce output about the mapping of sections of the input
+files and the values assigned to symbols in the output file.
+
+@item -minalign alignment
+Set a minimum alignment (number of bits which have to be zero) for all
+imported sections. The specified @code{alignment} value will only take
+effect when higher than the section's current alignment. It defaults to 0.
+
+@item -mrel
+Automatically merge sections, when there are PC-relative references
+between them.
+
+@item -multibase
+The default behaviour of @command{vlink} is to merge all sections
+which are accessed base-relative. This guarantees a single
+small data section, which can be accessed through a base
+register.
+If this is not desired - maybe you have several base registers and
+small data sections - you can disable this behaviour by specifying
+@option{-multibase}.
+
+@item -n
+No page alignment of sections or segments in the final
+executable (@code{NMAGIC}).
+
+@item -nostdlib
+Ignore default library search path, if one was compiled in.
+
+@item -o filename
+Specifies the name of the output file. Defaults to @file{a.out}.
+
+@item -osec
+Output each section as an individual file. The file name given with
+@option{-o} will be ignored. Only available for some target formats:
+rawbin1, rawbin2, amsdos, cbmprg.
+
+@item -osec=basename
+Works like @option{-osec}, but each output file name will be preceded
+by @file{"basename."}.
+
+@item -P symbol
+Protect a symbol from stripping. This doesn't work for all targets!
+
+@item -q
+Emit relocations, even for absolute executables.
+
+@item -R format
+Sets the relocation table format. Usually there is no need
+to change the default format defined by the target (@option{-b} option).
+Valid format strings are:
+@table @code
+  @item std
+    standard format with addends in the code
+  @item add
+    addends are stored in the relocation table
+  @item short
+    relocation table with short offsets (e.g. 16 bit)
+@end table
+Note that most targets only support one or two of those formats.
+
+@item -r
+Produce relocatable object file, suitable for another linker pass.
+
+@item -rpath library-search-path
+Add a directory to the runtime library search path. This is used
+when linking an ELF executable with shared objects. All @option{-rpath}
+arguments are concatenated and passed to the runtime linker,
+which uses them to locate shared objects at runtime.
+
+@item -S
+Strip all debugger symbols from the output.
+
+@item -s
+Strip all symbols from the output.
+
+@item -sc
+Merge all code sections to a single code section (small code).
+
+@item -sd
+Merge all data and bss sections to a single data-bss section (small data).
+
+@item -set-adduscore
+Start adding a preceding underscore for the symbols of the
+following objects in the command line.
+
+@item -set-deluscore
+Start deleting a preceding underscore for the symbols of the
+following objects in the command line.
+
+@item -shared
+Instructs the linker to build a shared object from the object
+files rather than a normal executable image.
+
+@item -soname name
+Sets the "real name" of a shared object or library. For ELF
+this will create the @code{SONAME} tag in the @code{.dynamic}
+section.
+
+@item -T script
+Specifies a linker script, which defines the absolute
+locations for every section. The syntax is very similar
+to that used in GNU linker scripts.
+Supported commands:
+@itemize @minus
+  @item ASSERT
+  @item CONSTRUCTORS
+  @item ENTRY
+  @item EXTERN
+  @item FILL
+  @item INPUT
+  @item GROUP
+  @item OUTPUT_ARCH
+  @item OUTPUT_FORMAT
+  @item PROVIDE
+  @item SEARCH_DIR
+  @item VBCC_CONSTRUCTORS
+  @item VBCC_CONSTRUCTORS_ELF
+@end itemize
+Supported functions:
+@itemize @minus
+  @item ADDR
+  @item ALIGN
+  @item KEEP
+  @item LOADADDR
+  @item MAX
+  @item MIN
+  @item SIZEOF
+  @item SIZEOF_HEADERS
+  @item SORT
+@end itemize
+
+@item -Ttext addr
+Set the base address of the first section. It can be overridden by
+a linker script.
+
+@item -t
+Trace the linker's file accesses.
+
+@item -textbaserel
+Allow base-relative access on code sections. Otherwise the
+linker will display a warning.
+
+@item -tos-flags value
+Set the 32 bit flags field of the Atari TOS header to @code{value}.
+All @option{-tos} options are only valid for the targets @code{ataritos} and
+@code{aoutmint}.
+
+@item -tos-fastload
+Sets the fastload bit (0) in the TOS header.
+
+@item -tos-fastram
+Sets the fastload bit (1) in the TOS header.
+
+@item -tos-fastalloc
+Sets the fastload bit (2) in the TOS header.
+
+@item -tos-private
+Sets the flags in the TOS header to mark memory space as private.
+
+@item -tos-global
+Sets the flags in the TOS header to mark memory space as global (read/write
+by any process).
+
+@item -tos-super
+Sets the flags in the TOS header to mark memory space as read-writeable by
+processes in supervisor mode only.
+
+@item -tos-readable
+Sets the flags in the TOS header to mark memory space as read-only for other
+processes.
+
+@item -tos-textbased
+Writes text-based (offset to program start) DRI symbols to a TOS executable,
+like Devpac. Otherwise symbol offsets are based on the section they are
+defined in.
+
+@item -Ttext addr
+Sets the start address of the first section, as long as it is not
+overwritten by a linker script.
+
+@item -u symbol
+Marks symbol as undefined in the first section which was
+found on the command line. This might trigger linking of
+addtional modules from standard libraries.
+This is equivalent to the linker script command EXTERN.
+
+@item -V version
+Minimum major version of shared object to be linked behind this option.
+
+@item -v
+Prints @command{vlink} version string, default library search path
+and implemented target file formats.
+
+@item -w
+Suppress all warning messages.
+
+@item -X
+Discard local symbols in the input files that start with the
+letters 'L' or 'l', or with a dot.
+
+@item -x
+Discard all local symbols in the input files.
+
+@item -y symbol
+Trace the manipulations inflicted on symbol.
+@end table
+
+@section Known Problems
+@itemize @minus
+  @item Neither shared objects nor dynamically linked executables can be
+    generated for @code{a.out} format.
+  @item The following options are not really supported:
+    @option{-S}, @option{-X}, @option{-Bsymbolic}
+  @item Source level debugging support is missing for some formats.
+  @item Many linker script commands are still missing.
+  @item Default linker scripts are mostly missing, so you need to provide
+    your own script using the @option{-T} option.
+  @item @code{PHDR} support for ELF is not perfect.
+@end itemize
+
+@section Credits
+All those who wrote parts of the @command{vlink} distribution, made suggestions,
+answered my questions, tested @command{vlink}, reported errors or were
+otherwise involved in the development of @command{vlink} (in ascending
+alphabetical order, probably not complete):
+@itemize
+  @item Karoly Balogh
+  @item Volker Barthelmann
+  @item Mikael Kalms
+  @item Miro Kropacek
+  @item Gunther Nikl
+  @item J@"org Strohmayer
+@end itemize
+
+@section Error Messages
+@enumerate
+@item Out of memory
+@item Unrecognized option '%s'
+@item Unknown link mode: %s
+@item Unknown argument for option -d: %c
+@item Option '-%c' requires an argument
+@item No input files
+@item File \"%s\" has a read error
+@item Cannot open \"%s\": No such file or directory
+@item Invalid target format \"%s\"
+@item Directory \"%s\" could not be examined
+@item %s: File format not recognized
+@item \"%s\" is already an executable file
+@item %s: File format corrupted
+@item %s (%s): Illegal relocation type %d at %s+%x
+@item %s: Unexpected end of section %s in %s
+@item %s: %s appeared twice in %s
+@item %s: Misplaced %s in %s
+@item %s: Symbol definition %s in %s uses unsupported type %d
+@item %s: Global symbol %s from %s is already defined in %s
+@item %s: Unresolved reference to symbol %s in %s uses unsupported type %d
+@item %s (%s+0x%x): Reference to undefined symbol %s
+@item Attributes of section %s were changed from %s in %s to %s in %s
+@item %s: %s expected
+@item %s (%s+0x%x): Illegal relative reference to %s+0x%llx
+@item %s (%s+0x%x): %dbit %s reference to %s+0x%llx (value to write: 0x%llx) out of range
+@item %s (%s+0x%x): Referenced absolute symbol %s=0x%llx + 0x%llx (value to write: 0x%llx) doesn't fit into %d bits
+@item %s (%s+0x%x): Illegal relative reference to symbol %s
+@item %s (%s+0x%x): Relative reference to relocatable symbol %s=0x%llx + 0x%llx (value to write: 0x%llx) doesn't fit into %d bits
+@item Can't create output file %s
+@item %s (%s+0x%x): Absolute reference to relocatable symbol %s=0x%llx + 0x%llx (value to write: 0x%llx) doesn't fit into %d bits
+@item Error while writing to %s
+@item Target %s: Unsupported relocation type %s (offset=%d, size=%d, mask=%llx) at %s+0x%x
+@item Target %s: Can't reproduce symbol %s, which is a %s%s%s
+@item Option '%s' requires an argument
+@item %s (%s+0x%x): Calculated value 0x%llx doesn't fit into relocation type %s (offset=%d, size=%d, mask=0x%llx)
+@item UNUSED
+@item %s: Malformatted archive member %s
+@item %s: Empty archive ignored
+@item %s: %s doesn't support shared objects in library archives
+@item %s: %s doesn't support executables in library archives
+@item %s (%s): Illegal format / file corrupted
+@item %s: Consistency check for archive member %s failed
+@item %s: Invalid ELF section header index (%d) in %s
+@item %s: ELF section header #%d has illegal offset in %s
+@item %s: ELF section header string table has illegal type in %s", EF_ERROR,
+@item %s: ELF section header string table has illegal offset in %s
+@item %s: ELF program header table in %s was ignored
+@item %s: ELF section header type %d in %s is not needed in relocatable objects
+@item %s: Illegal section offset for %s in %s
+@item %s: ELF %s table has illegal type in %s
+@item %s: ELF %s table has illegal offset in %s
+@item %s: %s in %s defines relocations relative to a non-existing section with index=%d
+@item %s: Symbol %s, defined in %s, has an invalid reference to a non-existing section with index=%d
+@item %s: Illegal symbol type %d for %s in %s
+@item %s: Symbol %s has illegal binding type %d in %s
+@item %s: Symbol %s in %s is multiply defined
+@item %s: Merging a code section with name \"__MERGED\"
+@item Relative references between %s section \"%s\" and %s section \"%s\" (%s) force a combination of the two
+@item Can't define %s as ctors/dtors label. Symbol already exists.
+@item %s: ELF section header type %d in %s is not needed in shared objects
+@item %s: Endianess differs from previous objects
+@item Target file format doesn't support relocatable objects
+@item Predefined limits of destination memory region %s for section %s were exceeded (0x%llx)
+@item Section %s(%s) was not recognized by target linker script
+@item %s line %d: Unknown keyword <%s> ignored
+@item %s line %d: '%c' expected
+@item %s line %d: Absolute number expected
+@item %s line %d: Keyword <%s> expected
+@item %s line %d: GNU command <%s> ignored
+@item %s line %d: Unknown memory region <%s>
+@item %s line %d: Multiple constructor types in output file
+@item %s line %d: Syntax error
+@item %s line %d: Assertion failed: %s
+@item %s line %d: SECTIONS block defined twice
+@item %s line %d: Segment %s is closed and can't be reused
+@item %s line %d: Address overrides specified %cMA memory region
+@item %s line %d: Segment %s must include both, FILEHDR and PHDR
+@item %s line %d: Missing argument
+@item %s line %d: Undefined section: <%s>
+@item %s line %d: Section %s was assigned to more than one PT_LOAD segment
+@item First ELF segment (%s) doesn't contain first section (%s)
+@item Intermediate uninitialized sections in ELF segment <%s> (first=<%s>, last=<%s>) will be turned into initialized
+@item Section <%s> (0x%llx-0x%llx) conflicts with ELF segment <%s> (currently: 0x%llx-0x%llx)
+@item %s: QMAGIC is deprecated and will no longer be supported
+@item %s: a.out %s table has illegal offset or size in %s
+@item %s: a.out %s table size in <%s> is not a multiple of %d
+@item %s: a.out symbol name has illegal offset %ld in %s
+@item %s: a.out symbol %s has illegal binding type %d in %s
+@item %s: a.out relocations without an appropriate section in %s
+@item %s: illegal a.out relocation in section %s of %s at offset 0x%08lx: <pcrel=%d len=%d ext=%d brel=%d jmptab=%d rel=%d copy=%d>
+@item %s: illegal a.out external reference to symbol %s in %s, which is no external symbol
+@item %s: illegal nlist type %lu in a.out relocation in section %s of %s at offset 0x%08lx
+@item Target %s: Common symbol %s is unreferenced and will disappear
+@item Target file format doesn't support executable files
+@item %s: a.out relocation <pcrel=%d len=%d ext=%d brel=%d jmptab=%d rel=%d copy=%d> is treated as a normal relocation in section %s of %s at offset 0x%08lx
+@item %s: size %d for a.out symbol %s in %s was ignored
+@item Target %s: %s section must not be absent for a valid executable file", EF_FATAL,
+@item Target %s: Section %s is overlapping %s
+@item %s line %d: Illegal PHDR type: <%s>
+@item %s line %d: <%s> behind SECTIONS ignored
+@item %s line %d: Address symbol '.' invalid outside SECTIONS block
+@item %s line %d: Reference to non-absolute symbol <%s> outside SECTIONS", EF_ERROR,
+@item %s line %d: Division by zero
+@item %s line %d: Unknown symbol or function: <%s>
+@item %s line %d: No function-calls allowed here
+@item %s line %d: Symbol <%s> is not yet assigned
+@item %s line %d: Command <%s> not allowed outside SECTIONS block
+@item %s line %d: Address symbol '.' cannot be provided
+@item %s line %d: Symbol <%s> already defined
+@item %s line %d: Only absolute expressions may be assigned outside SECTIONS block
+@item %s line %d: Unknown PHDR: <%s>
+@item %s (%s+0x%x): Cannot resolve reference to %s, because section %s was not recognized by the linker script
+@item %s (%s): %d bits per byte are not supported
+@item %s (%s): %d bytes per target-address are not supported
+@item %s (%s): Relocation type %d (offset=%lld, bit-offset=%d bit-size=%d mask=0x%llx refering to symbol <%s> (type %d) is not supported
+@item %s (%s): Symbol type %d for <%s> in section %s is not suported
+@item %s (%s+0x%x): Cannot resolve %s reference to %s, because host section %s is invalid
+@item %s: Malformatted ELF %s section in %s
+@item %s: Ignoring junk at end of ELF %s section in %s
+@item %s (%s+0x%x): Relocation based on missing %s section
+@item %s (%s+0x%x): Base-relative reference to code section
+@item Relocation table format not supported by selected output format - reverting to %s's standard
+@item Unknown relocation table format '%s' ignored
+@item Target %s: multiple small-data sections not allowed
+@item .ctors/.dtors spread over multiple sections
+@item Dynamic symbol reference not supported by target %s
+@item %s: ELF symbol name has illegal offset 0x%lx in %s
+@item %s: Unkown endianess defaults to %s-endian. Consider using -EB/-EL
+@item Resetting the same attribute for section %s
+@item Bad assignment after option '%s'
+@end enumerate
+
+@bye
