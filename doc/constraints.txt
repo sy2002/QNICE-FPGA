@@ -12,7 +12,9 @@ SD Card:
   tested as working: SanDisk 32 GB microSDHC Class 4,
   Transcend 32 GB microSDHC Class 10, Elegant 32 GB
 * NOT WORKING are cards like SanDisk "Ultra" Class 10 cards (80 MB/Sek). Use
-  slower cards instead, like SanDisk's 32 GB Class 4 card.
+  slower cards instead, like SanDisk's 32 GB Class 4 card. So for summing it
+  up: If you want to be on the safe side, then use cards SD cards (no SDHC,
+  no SDXC) with a capacity of a maximum of 2 GB.
 * MBR partition table
 * FAT32 with a 512 byte sector size.
   ATTENTION: FAT16 and others are not supported, you probably need to 
@@ -35,6 +37,8 @@ USB boot mode standard. Not all newer keyboards are compatible. These
 keyboards are tested and work:
 
 * Cherry KC 1000
+* Logitech Ultra-Flat Y-BP62a
+* Tacens Scriba
 * VIVANCO 36641 IT-KB USB PS2
 
 VGA:

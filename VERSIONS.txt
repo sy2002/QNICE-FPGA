@@ -1,3 +1,25 @@
+Version 1.37   October, 4 2016
+==============================
+
+BETA / Work-In-Progess (WIP) Version
+
+Kind of stable version that implements EAE and SD CARD reading for
+SD V1 and V2 cards. SDHC and SDXC works only for some cards. As a rule
+of thumb: Use SD Cards that are up to 2 GB in size. Format them using FAT32
+as described in doc/contraints.txt.
+
+For testing the EAE, use:
+
+    test_programs/eae.asm
+    test_programs/32bit-mul.asm
+
+For testing the SD Card and FAT32 capabilities, use
+
+    test_programs/sdcard.asm
+
+and choose option '2' to mount an SD Card as FAT32 and enter an interactive
+"terminal" browsing mode.
+
 Version x.y    xxx, x xxxx
 ==========================
 
