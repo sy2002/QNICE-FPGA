@@ -30,3 +30,4 @@ c/vasm/vobjdump
 c/vbcc/bin
 c/vlink/vlink
 c/test_programs/mapfile
+c/qnice/qniceconv
