@@ -4,8 +4,8 @@
 -asv=vasmqnice_std -Fvobj -v %s -o %s
 -rm=rm %s
 -rmv=rm %s
--ld=vlink -T$VBCC/targets/qnice-mon/vlink.cmd -M >mapfile -q -Cvbcc  -L$VBCC/targets/vidcore-linux/lib -b rawbin1 $VBCC/targets/qnice-mon/lib/startup.o %s %s -lvc -o %s 
--ldv=vlink -T$VBCC/targets/qnice-mon/vlink.cmd -M >mapfile -q -v -Cvbcc  -L$VBCC/targets/vidcore-linux/lib -b rawbin1  $VBCC/targets/qnice-mon/lib/startup.o %s %s -lvc -o %s 
+-ld=vlink -T$VBCC/targets/qnice-mon/vlink.cmd -M >mapfile -q -Cvbcc  -L$VBCC/targets/qnice-mon/lib -b rawbin1 $VBCC/targets/qnice-mon/lib/startup.o %s %s -o %s 
+-ldv=vlink -T$VBCC/targets/qnice-mon/vlink.cmd -M >mapfile -q -v -Cvbcc  -L$VBCC/targets/qnice-mon/lib -b rawbin1  $VBCC/targets/qnice-mon/lib/startup.o %s %s -o %s 
 -l2=vlink -q -b rawbin1 %s %s -o %s 
 -l2v=vlink -q -v -b rawbin1 %s %s -o %s 
 
