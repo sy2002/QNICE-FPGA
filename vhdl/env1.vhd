@@ -46,7 +46,8 @@ port (
    SD_RESET    : out std_logic;
    SD_CLK      : out std_logic;
    SD_MOSI     : out std_logic;
-   SD_MISO     : in std_logic
+   SD_MISO     : in std_logic;
+   SD_DAT      : out std_logic_vector(3 downto 1)
 ); 
 end env1;
 
@@ -587,5 +588,8 @@ begin
    
    -- generate the general reset signal
    reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';
+   
+   -- pull DAT1, DAT2 and DAT3 to GND (Nexys' pull-ups by default pull to VDD)
+   SD_DAT <= "000";
 end beh;
 

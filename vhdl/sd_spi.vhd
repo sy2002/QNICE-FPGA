@@ -153,7 +153,8 @@ generic (
 	R1_TIMEOUT : integer := 64;         -- Number of bytes to wait before giving up on receiving R1 response
 	WRITE_TIMEOUT : integer range 0 to 999 := 500; -- Number of ms to wait before giving up on write completing
    RESET_TICKS : integer := 64;        -- Number of half clock cycles being pulsed before lowing sd_busy in IDLE2
-   ACTION_RETRIES : integer := 200     -- Number of retries when SEND_CMD_5 fails
+   ACTION_RETRIES : integer := 200;    -- Number of retries when SEND_CMD_5 fails
+   READ_TOKEN_TIMEOUT : integer := 1000 -- Number of retries to receive the read start token "FE"
 	);
 port (
 	cs : out std_logic;				-- To SD card
@@ -254,6 +255,7 @@ constant ec_DataError	   : t_error_code := "00000100";
 constant ec_WPError	      : t_error_code := "00000101";
 constant ec_SDError	      : t_error_code := "00000110";
 constant ec_NoSDError	   : t_error_code := "00000111";
+constant ec_ReadTimeOut    : t_error_code := "00001000";
 
 subtype t_card_type is std_logic_vector(1 downto 0);
 constant ct_None : t_card_type := "00";
@@ -320,6 +322,7 @@ signal has_pulsed, new_has_pulsed : unsigned(7 downto 0);
 signal original_state, new_original_state : states;
 signal state_retry_count, new_state_retry_count : unsigned(7 downto 0);
 signal is_in_reset_cycle, new_is_in_reset_cycle : std_logic;
+signal start_token_timeout, new_start_token_timeout: unsigned(15 downto 0);
 
 begin
 	-- This process updates all the state variables from the values calculated
@@ -371,6 +374,7 @@ begin
             original_state <= RST;
             state_retry_count <= (others => '0');
             is_in_reset_cycle <= '1';
+            start_token_timeout <= (others => '0');
 			else
 				-- State variables
 				state <= new_state;
@@ -418,6 +422,7 @@ begin
             original_state <= new_original_state;
             state_retry_count <= new_state_retry_count;
             is_in_reset_cycle <= new_is_in_reset_cycle;
+            start_token_timeout <= new_start_token_timeout;
 
 				-- This latches the din_valid and generates din_latch and din_taken
 				if din_valid='0' or (wr='0' and wr_multiple='0') then
@@ -453,7 +458,7 @@ begin
 		error_code,crc7,in_crc16,out_crc16,slow_clock,card_present,
 		card_write_prot,SDin_Taken,sCS,transfer_data_out,din_valid,din,din_latch,
 		crcLow,sDavail,sr_return_state,multiple,skipFirstR1Byte,wr_erase_count,erase_count,
-      temp_sclk, has_pulsed, original_state, state_retry_count, is_in_reset_cycle)
+      temp_sclk, has_pulsed, original_state, state_retry_count, is_in_reset_cycle, start_token_timeout)
 	constant WriteTimeoutCount : integer := clockRate/18000 * WRITE_TIMEOUT;
 	begin
 		assert(WriteTimeoutCount > 0) report "WriteTimeoutCount is 0" severity failure ;
@@ -493,7 +498,8 @@ begin
       new_has_pulsed <= has_pulsed;
       new_original_state <= original_state;
       new_state_retry_count <= state_retry_count;
-      new_is_in_reset_cycle <= is_in_reset_cycle; 
+      new_is_in_reset_cycle <= is_in_reset_cycle;
+      new_start_token_timeout <= start_token_timeout;
             		
 		case state is
 		
@@ -569,11 +575,13 @@ begin
 			-- Got third byte of CMD8 response
 			-- Check operating voltage
 			if data_in(3 downto 0) /= "0001" then
-				new_state <= RST;
-			end if;
-			-- Get byte 4 (check pattern)
-			new_sr_return_state <= CMD8GOTB4; set_sr_return_state <= true;
-			new_state <= SEND_RCV;
+            new_error <= '1';
+				new_error_code <= data_in; --ec_SDError;
+			else
+            -- Get byte 4 (check pattern)
+            new_sr_return_state <= CMD8GOTB4; set_sr_return_state <= true;
+            new_state <= SEND_RCV;
+         end if;
 			
 		when CMD8GOTB4 =>
 			-- Got fourth byte of CMD8 response
@@ -581,7 +589,8 @@ begin
 			if data_in = x"AA" then
 				new_state <= CMD55;
 			else
-				new_state <= RST;
+            new_error <= '1';
+				new_error_code <= data_in; --ec_SDError;         
 			end if;
 			
 		when CMD55 =>
@@ -795,6 +804,7 @@ begin
 			new_return_state <= READ_BLOCK_R1; set_return_state <= true;
 			new_state <= SEND_CMD;
          new_original_state <= READ_BLOCK;
+         new_start_token_timeout <= (others => '0');
 			
 		when READ_MULTIPLE_BLOCK =>
 			-- Read Multiple command
@@ -809,13 +819,14 @@ begin
 			new_return_state <= READ_BLOCK_R1; set_return_state <= true;
 			new_state <= SEND_CMD;
          new_original_state <= READ_MULTIPLE_BLOCK;
+         new_start_token_timeout <= (others => '0');
 			
 		when READ_BLOCK_R1 =>
 			-- Get R1 response to Read or Read Multiple command
 			if data_in/="00000000" then -- Some error
 				new_error <= '1';
-				new_error_code <= ec_R1Error;
---            new_error_code <= data_in;  -- debug only: output SD Card's error response
+--				new_error_code <= ec_R1Error;
+            new_error_code <= data_in;  -- debug only: output SD Card's error response
 				new_state <= READ_BLOCK_FINISH;
 			else
 				new_sr_return_state <= READ_BLOCK_WAIT_CHECK; set_sr_return_state <= true;
@@ -840,7 +851,14 @@ begin
 				new_error_code <= ec_DataError;
 				new_state <= READ_BLOCK_FINISH;
 			else
-				new_state <= SEND_RCV;
+            new_state <= SEND_RCV;
+--            if start_token_timeout = READ_TOKEN_TIMEOUT then
+--               new_error <= '1';
+--               new_error_code <= ec_ReadTimeOut;
+--            else
+--               new_start_token_timeout <= start_token_timeout + 1;
+--               new_state <= SEND_RCV;
+--            end if;
 			end if;
 			
 		when READ_BLOCK_DATA =>

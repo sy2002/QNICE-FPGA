@@ -67,14 +67,16 @@ SD$BIT_ERROR            .EQU    0x4000                  ; Error flag: 1, if last
 SD$BIT_BUSY             .EQU    0x8000                  ; Busy flag: 1, if current op. is still running
 SD$TIMEOUT_MID          .EQU    0x0479                  ; equals ~75.000.000 cycles, i.e. 1.5sec @ 50 MHz
 
-SD$ERR_R1_ERROR         .EQU    0xEE01                  ; SD Card R1 error (R1 bit 6-0)
-SD$ERR_CRC_OR_TIMEOUT   .EQU    0xEE02                  ; Read CRC error or Write Timeout error
-SD$ERR_RESPONSE_TOKEN   .EQU    0xEE03                  ; Data Response Token error (Token bit 3)
-SD$ERR_ERROR_TOKEN      .EQU    0xEE04                  ; Data Error Token error (Token bit 3-0)
-SD$ERR_WRITE_PROTECT    .EQU    0xEE05                  ; SD Card Write Protect switch
-SD$ERR_CARD_UNUSABLE    .EQU    0xEE06                  ; Unusable SD card
-SD$ERR_NO_CARD          .EQU    0xEE07                  ; No SD card (no response from CMD0)
-SD$ERR_TIMEOUT          .EQU    0xEE08                  ; General timeout
+SD$ERR_MASK             .EQU    0x00FF                  ; AND mask for errors: HI byte = state machine info, so mask it for error checks 
+SD$ERR_R1_ERROR         .EQU    0x0001                  ; SD Card R1 error (R1 bit 6-0)
+SD$ERR_CRC_OR_TIMEOUT   .EQU    0x0002                  ; Read CRC error or Write Timeout error
+SD$ERR_RESPONSE_TOKEN   .EQU    0x0003                  ; Data Response Token error (Token bit 3)
+SD$ERR_ERROR_TOKEN      .EQU    0x0004                  ; Data Error Token error (Token bit 3-0)
+SD$ERR_WRITE_PROTECT    .EQU    0x0005                  ; SD Card Write Protect switch
+SD$ERR_CARD_UNUSABLE    .EQU    0x0006                  ; Unusable SD card
+SD$ERR_NO_CARD          .EQU    0x0007                  ; No SD card (no response from CMD0)
+SD$ERR_READ_TIMEOUT     .EQU    0x0008                  ; Timeout while trying to receive the read start token "FE"
+SD$ERR_TIMEOUT          .EQU    0xEEFF                  ; General timeout
 
 SD$CT_SD_V1             .EQU    0x0001                  ; Card type: SD Version 1
 SD$CT_SD_V2             .EQU    0x0002                  ; Card type: SD Version 2
