@@ -13,6 +13,7 @@ HARDWARE:
   + Have a generator that generates the speeds that certain components need
   as input, e.g. the SD Card component needs currently hardcoded 25 MHz
   + Keyboard: remove hardcoded 18000 constant
+  + Monitor: gets hardcoded 10000 clock cycles => 2.000 "nop" loops
 
 * Improve design to support 100 MHz
 

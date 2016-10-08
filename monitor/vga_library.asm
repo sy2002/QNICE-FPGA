@@ -75,7 +75,7 @@ VGA$PUTCHAR             INCRB
                         MOVE    VGA$CR_X, R0                ; R0 points to the HW X-register
                         MOVE    VGA$CR_Y, R1                ; R1 points to the HW Y-register
                         MOVE    _VGA$X, R2                  ; R2 points to the SW X-register
-                        MOVE    _VGA$Y, R3                  ; R2 points to the SW X-register
+                        MOVE    _VGA$Y, R3                  ; R2 points to the SW Y-register
                         MOVE    @R2, R4                     ; R4 contains the current X-coordinate
                         MOVE    @R3, R5                     ; R5 contains the current Y-coordinate
                         MOVE    R4, @R0                     ; Set the HW X-coordinate
