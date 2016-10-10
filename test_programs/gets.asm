@@ -39,7 +39,9 @@ GETS_LOOP       RSUB    IO$GETCHAR, 1       ; get char from STDIN
                 CMP     R8, 0x000A          ; accept LF as line end
                 RBRA    GETS_LF, Z
                 CMP     R8, 0x0008          ; use BACKSPACE for editing
-                RBRA    GETS_BS, Z          
+                RBRA    GETS_BS, Z
+                CMP     R8, 0x007F          ; treat DEL key as BS, e.g. for ..
+                RBRA    GETS_BS, Z          ; .. MAC compatibility in EMU
 GETS_ADDBUF     MOVE    R8, @R1++           ; store char to buffer
 GETS_ECHO       RSUB    IO$PUTCHAR, 1       ; echo char on STDOUT
                 RBRA    GETS_LOOP, 1        ; next character
