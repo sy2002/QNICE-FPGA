@@ -1,6 +1,6 @@
 /*
 ** cpu.c x86 cpu-description file
-** (c) in 2005-2006,2011,2015 by Frank Wille
+** (c) in 2005-2006,2011,2015-2016 by Frank Wille
 */
 
 #include "vasm.h"
@@ -10,13 +10,13 @@ mnemonic mnemonics[] = {
 };
 int mnemonic_cnt = sizeof(mnemonics)/sizeof(mnemonics[0]);
 
-char *cpu_copyright = "vasm x86 cpu backend 0.6a (c) 2005-2006,2011,2015 Frank Wille";
+char *cpu_copyright = "vasm x86 cpu backend 0.6c (c) 2005-2006,2011,2015-2016 Frank Wille";
 char *cpuname = "x86";
 int bitsperbyte = 8;
 int bytespertaddr = 4;
 
 /* cpu options */
-uint32_t cpu_type = CPUAny | CPUNo64;
+uint32_t cpu_type = CPUAny;
 static long cpudebug = 0;
 
 static regsym x86_regsyms[] = {
@@ -202,14 +202,20 @@ static int add_seg_prefix(instruction *ip,int segrn)
 
 static char suffix_from_reg(instruction *ip)
 {
-  int i,ot;
+  mnemonic *mnemo = &mnemonics[ip->code];
+  int i,ot,io;
 
+  /* i/o instruction? */
+  io = (mnemo->operand_type[0] & IOPortReg) ||
+       (mnemo->operand_type[1] & IOPortReg);
+
+  /* determine size qualifier from last register operand */
   for (i=MAX_OPERANDS-2; i>=0; i--) {
     if (ip->op[i] == NULL)
       continue;
     ot = ip->op[i]->parsed_type;
 
-    if ((ot & Reg) && !(ot & IOPortReg)) {
+    if ((ot & Reg) && !(io && (ot & IOPortReg))) {
       if (ot & Reg8)
         ip->qualifiers[0] = b_str;
       else if (ot & Reg16)
@@ -223,6 +229,7 @@ static char suffix_from_reg(instruction *ip)
       break;
     }
   }
+
   return ip->qualifiers[0] ?
          tolower((unsigned char)ip->qualifiers[0][0]) : '\0';
 }
@@ -689,7 +696,8 @@ static void optimize_jump(instruction *ip,operand *op,section *sec,
 
   if (!eval_expr(op->value,&val,sec,pc)) {
     if (find_base(op->value,&base,sec,pc) != BASE_OK) {
-      general_error(38);  /* illegal relocation */
+      if (final)
+        general_error(38);  /* illegal relocation */
       return;
     }
     label_in_sec = LOCREF(base) && (base->sec==sec);
@@ -1330,14 +1338,14 @@ static unsigned char *output_disp(dblock *db,unsigned char *d,
               }
               else {
                 val -= bits>>3;
-                add_nreloc(&db->relocs,base,val,REL_PC,bits,
-                           (int)(d-(unsigned char *)db->data)<<3);
+                add_extnreloc(&db->relocs,base,val,REL_PC,0,bits,
+                              (int)(d-(unsigned char *)db->data));
               }
             }
             else {
               /* reloc for a normal absolute displacement */
-              add_nreloc(&db->relocs,base,val,REL_ABS,bits,
-                         (int)(d-(unsigned char *)db->data)<<3);
+              add_extnreloc(&db->relocs,base,val,REL_ABS,0,bits,
+                            (int)(d-(unsigned char *)db->data));
             }
           }
           else
@@ -1378,8 +1386,8 @@ static unsigned char *output_imm(dblock *db,unsigned char *d,
           symbol *base;
 
           if (find_base(op->value,&base,sec,pc) == BASE_OK) {
-            add_nreloc(&db->relocs,base,val,REL_ABS,bits,
-                       (int)(d-(unsigned char *)db->data)<<3);
+            add_extnreloc(&db->relocs,base,val,REL_ABS,0,bits,
+                          (int)(d-(unsigned char *)db->data));
           }
           else
             general_error(38);  /* illegal relocation */
@@ -1818,9 +1826,9 @@ dblock *eval_data(operand *op,size_t bitsize,section *sec,taddr pc)
     
     btype = find_base(op->value,&base,sec,pc);
     if (base)
-      add_nreloc(&db->relocs,base,val,
-                 btype==BASE_PCREL?REL_PC:REL_ABS,
-                 bitsize,0);
+      add_extnreloc(&db->relocs,base,val,
+                    btype==BASE_PCREL?REL_PC:REL_ABS,
+                    0,bitsize,0);
     else if (btype != BASE_NONE)
       general_error(38);  /* illegal relocation */
   }
@@ -1833,6 +1841,9 @@ int init_cpu()
 {
   int i;
   regsym *r;
+
+  if (!(cpu_type & CPU64))
+    cpu_type |= CPUNo64;
 
   for (i=0; i<mnemonic_cnt; i++) {
     if (!strcmp(mnemonics[i].name,"addr16"))

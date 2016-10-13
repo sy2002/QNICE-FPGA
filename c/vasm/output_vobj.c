@@ -1,10 +1,10 @@
 /* output_vasm.c vobj format output driver for vasm */
-/* (c) in 2002-2014 by Volker Barthelmann */
+/* (c) in 2002-2016 by Volker Barthelmann */
 
 #include "vasm.h"
 
 #ifdef OUTVOBJ
-static char *copyright="vasm vobj output module 0.7c (c) 2002-2014 Volker Barthelmann";
+static char *copyright="vasm vobj output module 0.8 (c) 2002-2016 Volker Barthelmann";
 
 /*
   Format (WILL CHANGE!):
@@ -172,8 +172,8 @@ static void write_rlist(FILE *f,section *sec,rlist *rl)
     if(rl->type>=FIRST_STANDARD_RELOC&&rl->type<=LAST_STANDARD_RELOC){
       nreloc *rel=rl->reloc;
       write_number(f,rl->type);
-      write_number(f,sec->pc+rel->offset/bitsperbyte);
-      write_number(f,rel->offset%bitsperbyte);
+      write_number(f,sec->pc+rel->byteoffset);
+      write_number(f,rel->bitoffset);
       write_number(f,rel->size);
       write_number(f,rel->mask);
       write_number(f,rel->addend);

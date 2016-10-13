@@ -1,5 +1,5 @@
 /* vasm.h  main header file for vasm */
-/* (c) in 2002-2015 by Volker Barthelmann */
+/* (c) in 2002-2016 by Volker Barthelmann */
 
 #include <stdlib.h>
 #include <stddef.h>
@@ -160,15 +160,13 @@ extern listing *first_listing,*last_listing,*cur_listing;
 extern int done,final_pass;
 extern int listena,listformfeed,listlinesperpage,listnosyms;
 extern int mnemonic_cnt;
-extern int nocase,no_symbols,pic_check;
+extern int nocase,no_symbols,pic_check,secname_attr,exec_out,chklabels;
 extern hashtable *mnemohash;
 extern source *cur_src;
 extern section *current_section;
 extern char *filename;
 extern char *debug_filename;  /* usually an absolute C source file name */
 extern char *inname,*outname,*listname;
-extern int secname_attr;
-extern int exec_out;
 extern char *output_format;
 extern char emptystr[];
 extern char vasmsym_name[];

@@ -166,7 +166,7 @@ dblock *eval_instruction(instruction *p,section *sec,taddr pc)
 {
   dblock *db=new_dblock();
   int opcode,c,osize;
-  unsigned int code,addr;
+  unsigned int code,addr1,addr2,aflag=0;
   char *d;
   taddr val;
   rlist *relocs=0;
@@ -183,11 +183,13 @@ dblock *eval_instruction(instruction *p,section *sec,taddr pc)
     if(p->op[0]->type==OP_ABS){
       code|=15<<8;
       code|=(OP_POSTINC-1)<<6;
-      addr=absoffset(p->op[0]->offset,sec,pc,&relocs,p->op[0]->reg,16,16);
+      addr1=absoffset(p->op[0]->offset,sec,pc,&relocs,p->op[0]->reg,16,16);
+      aflag=1;
     }else if(p->op[0]->type==OP_REL){
       code|=15<<8;
       code|=(OP_POSTINC-1)<<6;
-      addr=reloffset(p->op[0]->offset,sec,pc);
+      addr1=reloffset(p->op[0]->offset,sec,pc);
+      aflag=1;
     }else{
       code|=p->op[0]->reg<<8;
       code|=(p->op[0]->type-1)<<6;
@@ -195,8 +197,20 @@ dblock *eval_instruction(instruction *p,section *sec,taddr pc)
   }
   if(mnemonics[c].ext.encoding==0){
     if(p->op[1]){
-      code|=p->op[1]->reg<<2;
-      code|=(p->op[1]->type-1)<<0;
+      if(p->op[1]->type==OP_ABS){
+	code|=15<<2;
+	code|=(OP_POSTINC-1)<<0;
+	addr2=absoffset(p->op[1]->offset,sec,pc,&relocs,p->op[1]->reg,16,16);
+	aflag|=2;
+      }else if(p->op[1]->type==OP_REL){
+	/* case should not exist */
+	code|=15<<2;
+	code|=(OP_POSTINC-1)<<0;
+	addr2=reloffset(p->op[1]->offset,sec,pc);
+      }else{
+	code|=p->op[1]->reg<<2;
+	code|=(p->op[1]->type-1)<<0;
+      }
     }
   }else{
     code|=(mnemonics[c].ext.encoding-1)<<4;
@@ -207,9 +221,13 @@ dblock *eval_instruction(instruction *p,section *sec,taddr pc)
   *d++=code;
   *d++=code>>8;
 
-  if(osize==4){
-    *d++=addr;
-    *d++=addr>>8;
+  if(aflag&1){
+    *d++=addr1;
+    *d++=addr1>>8;
+  }
+  if(aflag&2){
+    *d++=addr2;
+    *d++=addr2>>8;
   }
 
   db->relocs=relocs;
@@ -246,12 +264,15 @@ dblock *eval_data(operand *op,size_t bitsize,section *sec,taddr pc)
    to the data created by eval_instruction. */
 size_t instruction_size(instruction *p,section *sec,taddr pc)
 {  
+  int sz=2;
+
   //int c=translate(p,sec,pc),add=0;
 
   if(p->op[0]&&(p->op[0]->type==OP_ABS||p->op[0]->type==OP_REL))
-    return 4;
-  else
-    return 2;
+    sz+=2;
+  if(p->op[1]&&(p->op[1]->type==OP_ABS||p->op[1]->type==OP_REL))
+    sz+=2;
+  return sz;
 }
 
 operand *new_operand()

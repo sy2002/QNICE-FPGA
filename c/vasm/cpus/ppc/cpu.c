@@ -1,6 +1,6 @@
 /*
 ** cpu.c PowerPC cpu-description file
-** (c) in 2002-2015 by Frank Wille
+** (c) in 2002-2016 by Frank Wille
 */
 
 #include "vasm.h"
@@ -12,13 +12,13 @@ mnemonic mnemonics[] = {
 
 int mnemonic_cnt=sizeof(mnemonics)/sizeof(mnemonics[0]);
 
-char *cpu_copyright="vasm PowerPC cpu backend 1.7 (c) 2002-2015 Frank Wille";
+char *cpu_copyright="vasm PowerPC cpu backend 2.1 (c) 2002-2016 Frank Wille";
 char *cpuname = "PowerPC";
 int bitsperbyte = 8;
 int bytespertaddr = 4;
 int ppc_endianess = 1;
 
-static uint32_t cpu_type = CPU_TYPE_COMMON | CPU_TYPE_32 | CPU_TYPE_ANY;
+static uint64_t cpu_type = CPU_TYPE_COMMON | CPU_TYPE_32 | CPU_TYPE_ANY;
 static int regnames = 1;
 static taddr sdreg = 13;  /* this is default for V.4, PowerOpen = 2 */
 static taddr sd2reg = 2;
@@ -72,10 +72,10 @@ int ppc_operand_optional(operand *op,int type)
 int ppc_available(int idx)
 /* Check if mnemonic is available for selected cpu_type. */
 {
-  uint32_t avail = mnemonics[idx].ext.available;
-  uint32_t datawidth = CPU_TYPE_32 | CPU_TYPE_64;
+  uint64_t avail = mnemonics[idx].ext.available;
+  uint64_t datawidth = CPU_TYPE_32 | CPU_TYPE_64;
 
-  if (avail & cpu_type & ~datawidth) {
+  if ((avail & cpu_type & ~datawidth)!=0 || (cpu_type & CPU_TYPE_ANY)!=0) {
     if (avail & datawidth)
       return (avail & datawidth) == (cpu_type & datawidth)
              || (cpu_type & CPU_TYPE_64_BRIDGE) != 0;
@@ -364,10 +364,11 @@ static taddr make_reloc(int reloctype,operand *op,section *sec,
   if (!eval_expr(op->value,&val,sec,pc)) {
     /* non-constant expression requires a relocation entry */
     symbol *base;
-    int btype,size,offset;
+    int btype,pos,size,offset;
     taddr addend,mask;
 
     btype = find_base(op->value,&base,sec,pc);
+    pos = offset = 0;
 
     if (btype > BASE_ILLEGAL) {
       if (btype == BASE_PCREL) {
@@ -410,7 +411,6 @@ static taddr make_reloc(int reloctype,operand *op,section *sec,
             break;
         }
         addend = val;
-        offset = 0;
         mask = -1;
       }
       else {  /* instruction operand */
@@ -420,21 +420,21 @@ static taddr make_reloc(int reloctype,operand *op,section *sec,
           /* branch instruction */
           if (ppcop->bits == 26) {
             size = 24;
-            offset = 6;
+            pos = 6;
             mask = 0x3fffffc;
           }
           else {
             size = 14;
-            offset = 16;
+            offset = 2;
             mask = 0xfffc;
           }
-          addend = (btype == BASE_PCREL) ? val + offset/8 : val;
+          addend = (btype == BASE_PCREL) ? val + offset : val;
         }
         else {
           /* load/store or immediate */
           size = 16;
-          offset = 16;
-          addend = (btype == BASE_PCREL) ? val + offset/8 : val;
+          offset = 2;
+          addend = (btype == BASE_PCREL) ? val + offset : val;
           switch (op->mode) {
             case OPM_LO:
               mask = 0xffff;
@@ -443,8 +443,8 @@ static taddr make_reloc(int reloctype,operand *op,section *sec,
               mask = 0xffff0000;
               break;
             case OPM_HA:
-              add_nreloc_masked(reloclist,base,addend,reloctype,
-                                size,offset,0x8000);
+              add_extnreloc_masked(reloclist,base,addend,reloctype,
+                                   pos,size,offset,0x8000);
               mask = 0xffff0000;
               break;
             default:
@@ -454,7 +454,8 @@ static taddr make_reloc(int reloctype,operand *op,section *sec,
         }
       }
 
-      add_nreloc_masked(reloclist,base,addend,reloctype,size,offset,mask);
+      add_extnreloc_masked(reloclist,base,addend,reloctype,
+                           pos,size,offset,mask);
     }
     else if (btype != BASE_NONE) {
 illreloc:
@@ -847,10 +848,27 @@ int cpu_args(char *p)
       cpu_type = CPU_TYPE_PPC | CPU_TYPE_32;
     else if (!strcmp(p,"ppc64") || !strcmp(p,"620"))
       cpu_type = CPU_TYPE_PPC | CPU_TYPE_64;
-    else if (!strncmp(p,"40",2))
-      cpu_type = CPU_TYPE_PPC | CPU_TYPE_32;  /* @@@ || CPU_TYPE_40x */
+    else if (!strcmp(p,"7450"))
+      cpu_type = CPU_TYPE_PPC | CPU_TYPE_7450 | CPU_TYPE_32 | CPU_TYPE_ALTIVEC;
     else if (!strncmp(p,"74",2) || !strcmp(p,"avec") || !strcmp(p,"altivec"))
       cpu_type = CPU_TYPE_PPC | CPU_TYPE_32 | CPU_TYPE_ALTIVEC;
+    else if (!strcmp(p,"403"))
+      cpu_type = CPU_TYPE_PPC | CPU_TYPE_403 | CPU_TYPE_32;
+    else if (!strcmp(p,"405"))
+      cpu_type = CPU_TYPE_PPC | CPU_TYPE_403 | CPU_TYPE_405 | CPU_TYPE_32;
+    else if (!strncmp(p,"44",2) || !strncmp(p,"46",2))
+      cpu_type = CPU_TYPE_PPC | CPU_TYPE_440 | CPU_TYPE_BOOKE | CPU_TYPE_ISEL
+                 | CPU_TYPE_RFMCI | CPU_TYPE_32;
+    else if (!strcmp(p,"821") || !strcmp(p,"850") || !strcmp(p,"860"))
+      cpu_type = CPU_TYPE_PPC | CPU_TYPE_860 | CPU_TYPE_32;
+    else if (!strcmp(p,"e300"))
+      cpu_type = CPU_TYPE_PPC | CPU_TYPE_E300 | CPU_TYPE_32;
+    else if (!strcmp(p,"e500"))
+      cpu_type = CPU_TYPE_PPC | CPU_TYPE_E500 | CPU_TYPE_BOOKE | CPU_TYPE_ISEL
+                 | CPU_TYPE_SPE | CPU_TYPE_EFS | CPU_TYPE_PMR | CPU_TYPE_RFMCI
+                 | CPU_TYPE_32;
+    else if (!strcmp(p,"booke"))
+      cpu_type = CPU_TYPE_PPC | CPU_TYPE_BOOKE;
     else if (!strcmp(p,"com"))
       cpu_type = CPU_TYPE_COMMON | CPU_TYPE_32;
     else if (!strcmp(p,"any"))

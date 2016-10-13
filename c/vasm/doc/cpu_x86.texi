@@ -2,7 +2,7 @@ This chapter documents the Backend for the 80x86 microprocessor family.
 
 @section Legal
 
-    This module is written in 2005-2006,2011 by Frank Wille.
+    This module is written in 2005-2006,2011,2015-2016 by Frank Wille.
 
     This archive may be redistributed without modifications and used
     for non-commercial purposes.
@@ -68,15 +68,19 @@ This module provides the following additional options:
 This backend accepts 80x86 instructions as described in the
 Intel Architecture Software Developer's Manual.
 
-The target address type is 32bit.
+The target address type is 32 bits. It is 64 bits when the x86_64
+architecture was selected (@option{-m64}).
 
-Default alignment for sections is 4 bytes. Instructions do not need
-any alignment. Data is aligned to its natural alignment by default.
+Instructions do not need any alignment. Data is aligned to its natural
+alignment by default.
 
 The backend uses MIT-syntax! This means the left operands are always the
-source and the right operand is the destination. Also register names have to
-be prefixed by a '%'. Operation size is indicated by a 'b', 'w', 'l', etc.
-suffix behind the mnemonic.
+source and the right operand is the destination. Register names have to
+be prefixed by a '%'.
+
+The operation size is indicated by a 'b', 'w', 'l', etc. suffix directly
+appended to the mnemonic. The assembler can also determine the operation
+size from the size of the registers being used.
 
 @section Extensions
 
@@ -100,13 +104,13 @@ directives:
 
 @table @code
 @item .code16
- Sets the assembler into 16-bit addressing mode.
+ Sets the assembler to 16-bit addressing mode.
 
 @item .code32
- Sets the assembler into 32-bit addressing mode, which is the default.
+ Sets the assembler to 32-bit addressing mode, which is the default.
 
 @item .code64
- Sets the assembler into 64-bit addressing mode.
+ Sets the assembler to 64-bit addressing mode.
 
 @end table
 

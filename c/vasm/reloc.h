@@ -1,5 +1,5 @@
 /* reloc.h  reloc header file for vasm */
-/* (c) in 2002,2005-2008,2010,2011 by Volker Barthelmann and Frank Wille */
+/* (c) in 2002,2005-8,2010,2011,2016 by Volker Barthelmann and Frank Wille */
 
 #ifndef RELOC_H
 #define RELOC_H
@@ -31,10 +31,11 @@
 
 /* standard reloc struct */
 typedef struct nreloc {
-  size_t offset;  /* offset to beginning of data atom in bits */
-  size_t size;    /* size of relocation in bits */
-  taddr mask;     /* mask value */
-  taddr addend;   /* addend */
+  size_t byteoffset;  /* byte-offset in data atom to beginning of relocation */
+  size_t bitoffset;   /* bit-offset adds to byte-off. - start of reloc.field */
+  size_t size;        /* size of relocation field in bits */
+  taddr mask;
+  taddr addend;
   symbol *sym;
 } nreloc;
 
@@ -48,12 +49,19 @@ typedef struct rlist {
 
 
 nreloc *new_nreloc(void);
-rlist *add_nreloc(rlist **,symbol *,taddr,int,size_t,size_t);
-rlist *add_nreloc_masked(rlist **,symbol *,taddr,int,size_t,size_t,taddr);
+rlist *add_extnreloc(rlist **,symbol *,taddr,int,size_t,size_t,size_t);
+rlist *add_extnreloc_masked(rlist **,symbol *,taddr,int,size_t,size_t,
+                            size_t,taddr);
 int is_pc_reloc(symbol *,section *);
 void do_pic_check(rlist *);
 taddr nreloc_real_addend(nreloc *);
 void unsupp_reloc_error(rlist *);
 void print_reloc(FILE *,int,nreloc *);
+
+/* old interface: byteoffset and bitoffset are calculated from offset 'o' */
+#define add_nreloc(r,y,a,t,s,o) \
+  add_extnreloc(r,y,a,t,(o)%bitsperbyte,s,(o)/bitsperbyte)
+#define add_nreloc_masked(r,y,a,t,s,o,m) \
+  add_extnreloc_masked(r,y,a,t,(o)%bitsperbyte,s,(o)/bitsperbyte,m)
 
 #endif

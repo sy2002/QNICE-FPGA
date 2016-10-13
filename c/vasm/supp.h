@@ -1,5 +1,5 @@
 /* supp.h miscellaneous support routines */
-/* (c) in 2008-2015 by Frank Wille */
+/* (c) in 2008-2016 by Frank Wille */
 
 #ifndef SUPP_H
 #define SUPP_H
@@ -38,6 +38,7 @@ void conv2ieee32(int,uint8_t *,tfloat);
 void conv2ieee64(int,uint8_t *,tfloat);
 void conv2ieee80(int,uint8_t *,tfloat);
 void conv2ieee128(int,uint8_t *,tfloat);
+int flt_chkrange(tfloat,int);
 
 void fw8(FILE *,uint8_t);
 void fw16(FILE *,uint16_t,int);
@@ -56,6 +57,7 @@ char *mystrdup(char *);
 char *cnvstr(char *,int);
 char *strtolower(char *);
 int str_is_graph(const char *);
+const char *trim(const char *);
 
 taddr balign(taddr,taddr);
 taddr palign(taddr,taddr);

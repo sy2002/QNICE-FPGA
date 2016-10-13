@@ -1,6 +1,6 @@
 /*
- * cpu.c 6800, 68hc11 cpu description file
- * (c) in 2013-2015 by Esben Norby and Frank Wille
+ * cpu.c 6800 cpu description file
+ * (c) in 2013-2016 by Esben Norby and Frank Wille
  */
 
 #include "vasm.h"
@@ -13,7 +13,7 @@ int mnemonic_cnt = sizeof(mnemonics) / sizeof(mnemonics[0]);
 
 int		bitsperbyte = 8;
 int		bytespertaddr = 2;
-char *		cpu_copyright = "vasm 6800/68hc11 cpu backend 0.2a (c) 2013-2015 Esben Norby";
+char *		cpu_copyright = "vasm 6800/6801/68hc11 cpu backend 0.3 (c) 2013-2016 Esben Norby";
 char *		cpuname = "6800";
 
 static uint8_t	cpu_type = M6800;
@@ -32,14 +32,33 @@ cpu_args(char *p)
 {
 	if (!strncmp(p, "-m68", 4)) {
 		p += 4;
-		if (!strcmp(p, "00"))
-			cpu_type = M6800;
-		else if (!stricmp(p, "hc11"))
+		if (p[0] == '0' && p[3] == '\0') {
+			switch(p[1]) {
+				case '0':
+				case '2':
+				case '8':
+					/* 6802 and 6808 are a 6800 with embedded ROM/RAM */
+					cpu_type = M6800;
+					break;
+				case '1':
+				case '3':
+					/* 6803 is a 6801 with embedded ROM/RAM */
+					cpu_type = M6801;
+					break;
+				default:
+					/* 6804 and 6805 are not opcode compatible
+					 * 6809 is somewhat compatible, but not completely
+					 * 6806 and 6807 do not exist, to my knowledge
+					 */
+					return 0;
+			}
+		} else if (!stricmp(p, "hc11"))
 			cpu_type = M68HC11;
 		else
 			return 0;
+		return 1;
 	}
-	return 1;
+	return 0;
 }
 
 
@@ -177,15 +196,15 @@ eval_oper(operand *op, section *sec, taddr pc, taddr offs, dblock *db)
 					cpu_error(2); /* branch out of range */
 			}
 			else
-				add_nreloc(&db->relocs, base, val, REL_PC,
-				           8, offs << 3);
+				add_extnreloc(&db->relocs, base, val, REL_PC,
+				              0, 8, offs);
 		}
 		else if (base != NULL && btype != BASE_ILLEGAL) {
 			rlist *rl;
 
-			rl = add_nreloc(&db->relocs, base, val,
-			                btype==BASE_PCREL? REL_PC : REL_ABS,
-					size << 3, offs << 3);
+			rl = add_extnreloc(&db->relocs, base, val,
+			                   btype==BASE_PCREL? REL_PC : REL_ABS,
+			                   0, size << 3, offs);
 			switch (modifier) {
 			    case LOBYTE:
 				if (rl) ((nreloc *)rl->reloc)->mask = 0xff;
@@ -298,9 +317,9 @@ eval_data(operand *op, size_t bitsize, section *sec, taddr pc)
 		modifier = 0;
 		btype = find_base(op->value, &base, sec, pc);
 		if (btype==BASE_OK || (btype==BASE_PCREL && modifier==0)) {
-			rl = add_nreloc(&db->relocs, base, val,
-			                btype==BASE_PCREL ? REL_PC : REL_ABS,
-			                bitsize, 0);
+			rl = add_extnreloc(&db->relocs, base, val,
+			                   btype==BASE_PCREL ? REL_PC : REL_ABS,
+			                   0, bitsize, 0);
 			switch (modifier) {
 			    case LOBYTE:
 				if (rl) ((nreloc *)rl->reloc)->mask = 0xff;

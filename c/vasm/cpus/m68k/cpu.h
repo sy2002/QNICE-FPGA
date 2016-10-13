@@ -112,7 +112,7 @@ typedef struct {
 #define FL_noCPU32       0x10   /* addressing mode not available for CPU32 */
 #define FL_BFoffsetDyn   0x20   /* dynamic bitfield offset specified */
 #define FL_BFwidthDyn    0x40   /* dynamic bitfield width specified */
-#define FL_PossRegList   0x80   /* parser is not sure if operand is RegList */
+/*#define FL_PossRegList   0x80    parser is not sure if operand is RegList */
 #define FL_NoOptBase    0x100   /* never optimize base displacement */
 #define FL_NoOptOuter   0x200   /* never optimize outer displacement */
 #define FL_NoOpt        0x300   /* never optimize this whole operand */

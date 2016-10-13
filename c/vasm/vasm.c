@@ -7,7 +7,7 @@
 #include "vasm.h"
 #include "stabs.h"
 
-#define _VER "vasm 1.7e"
+#define _VER "vasm 1.7g"
 char *copyright = _VER " (c) in 2002-2016 Volker Barthelmann";
 #ifdef AMIGA
 static const char *_ver = "$VER: " _VER " " __AMIGADATE__ "\r\n";
@@ -36,6 +36,7 @@ int no_symbols;
 int pic_check;
 int done,final_pass,debug;
 int exec_out;
+int chklabels;
 int listena,listformfeed=1,listlinesperpage=40,listnosyms;
 listing *first_listing,*last_listing,*cur_listing;
 struct stabdef *first_nlist,*last_nlist;
@@ -447,7 +448,7 @@ static void fix_labels(void)
       if(!eval_expr(sym->expr,&val,NULL,0)){
         if(find_base(sym->expr,&base,NULL,0)==BASE_OK){
           /* turn into an offseted label symbol from the base's section */
-          sym->type=LABSYM;
+          sym->type=base->type;
           sym->sec=base->sec;
           sym->pc=val;
           sym->align=1;
@@ -725,6 +726,10 @@ int main(int argc,char **argv)
     }
     else if(!strcmp("-unsshift",argv[i])){
       unsigned_shift=1;
+      continue;
+    }
+    else if(!strcmp("-chklabels",argv[i])){
+      chklabels=1;
       continue;
     }
     if(cpu_args(argv[i]))

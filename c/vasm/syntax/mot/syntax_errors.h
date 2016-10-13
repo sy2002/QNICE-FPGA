@@ -18,5 +18,6 @@
   "macro id pull without matching push",ERROR,
   "check comment",WARNING,
   "invalid numeric expansion",ERROR,
-  "",ERROR,                                                          /* 20 */
+  "einline without inline",ERROR,                                    /* 20 */
   "missing %c",WARNING,
+  "maximum inline nesting depth exceeded (%d)",ERROR,

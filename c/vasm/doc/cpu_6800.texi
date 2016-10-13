@@ -3,7 +3,7 @@ microprocessor family.
 
 @section Legal
 
-    This module is copyright in 2013-2014 by Esben Norby and Frank Wille.
+    This module is copyright in 2013-2016 by Esben Norby and Frank Wille.
 
     This archive may be redistributed without modifications and used
     for non-commercial purposes.
@@ -21,6 +21,8 @@ This module provides the following additional options:
 @table @option
     @item -m6800
         Generate code for the 6800 CPU (default setting).
+    @item -m6801
+        Generate code for the 6801 CPU.
     @item -m68hc11
         Generate code for the 68HC11 CPU.
 @end table
@@ -28,7 +30,17 @@ This module provides the following additional options:
 @section General
 
 This backend accepts 6800 family instructions for the following CPUs:
-6800, 6801, 6802, 6803, 6805, 68HC05, 6808, 68HC08, 68HC11.
+
+@itemize
+
+@item 6800 code generation: 6800, 6802, 6808.
+@item 6801 code generation: 6801, 6803.
+@item 68HC11.
+
+@end itemize
+
+The 6804, 6805, 68HC08 and 6809 are not supported, they use a similar
+instruction set, but are not opcode compatible.
 
 The target address type is 16 bit.
 

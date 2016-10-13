@@ -406,6 +406,18 @@ char *get_local_label(char **start)
   return NULL;
 }
 
+char *parse_macro_arg(struct macro *m,char *s,
+                      struct namelen *param,struct namelen *arg)
+{
+  /* no macro support */
+  return s;
+}
+
+int expand_macro(source *src,char **line,char *d,int dlen)
+{
+  return -1;
+}
+
 int init_syntax()
 {
   size_t i;

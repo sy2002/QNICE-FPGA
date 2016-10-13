@@ -1,6 +1,73 @@
 vasm history
 =============
 
+- 1.7g (NO-RELEASE)
+o Avoid a crash or internal error in some output modules, when an equate
+  refers to an undefined (imported) symbol.
+o m68k: Optimizing/translating to 68020+ addressing modes for MOVEM didn't
+  work. For example MOVEM (40000,A0) was not automatically translated into
+  a bd32 addressing mode, but had to be explicitely written as (40000.l,A0).
+o m68k: Optimizing MOVEM was not attempted, when using a register list
+  symbol in one operand and a label in the other.
+o m68k: Fixed -opt-movem & -opt-speed optimization of MOVEM with two
+  registers, which saw a wrong instruction size and moved following labels.
+o aout-output: Instructions with more than one relocation were no longer
+  supported since V1.7f.
+
+- 1.7f (17.09.16)
+o Print a warning when a constant is not representable using the target
+  data type.
+o Show warnings or errors when an expression overflows the backend's
+  address data types.
+o Warn about overflows caused by negative expressions in space directives.
+o New option -chklabels makes vasm issue a warning when a label conflicts
+  with a mnemonic or directive name.
+o Reworked internal relocation representation.
+o m68k: Base-displacement addressing modes and suppressed registers are
+  allowed for CPU32. Just memory-indirect is illegal.
+o m68k: Added FJcc mnemonics for GNU-as compatibility (-gas option).
+o PPC: Added complete support for 403, 405, 440, 460, Book-E, e300 and e500
+  instruction sets.
+o 6800: Fixed a bug which suppressed command line options for syntax- and
+  output-modules.
+o 6800: Support for 6801/6803 compatible CPUs added (contributed by
+  Adrien Destugues).
+o ARM: Thumb-mode [PC,#imm] and [SP,#imm] addressing modes were not
+  recognized.
+p ARM: Fixed thumb-mode SP-adjustment instructions: ADD SP,#<9-bit unsigned>
+  and SUB SP,#<9-bit unsigned> (missing).
+o ARM: External subroutine calls in thumb-mode with BL were broken.
+o x86: Fixed determining the operation size when last register is %DX.
+o x86: 32-bit only instructions failed, when selecting a 32-bit cpu using
+  the -m command line option.
+o x86: Avoid Illegal Relocation error for calls and jumps in absolute mode.
+o std-syntax: Data directives do no longer enforce natural alignment, for
+  compatibility with GNU-as! Use the -align option to keep the old behaviour.
+o std-syntax: '0f' is another allowed float-constant prefix for GNU-as
+  compatibility.
+o std-syntax: .stabs should support escape-characters in its string-field.
+o std-syntax: Support progbits and nobits section type arguments for ELF
+  compatibility.
+o mot-syntax: Retain the possibility to use multiple ORG directives and
+  output a real binary file, as before V1.7e. Only an ORG directive
+  after a SECTION directive is now relocated within that section.
+o mot-syntax: Added IFMI (=IFLT) and IFPL (=IFGE).
+o mot-syntax: Fixed problems when macro arguments are followed by blanks
+  and the -spaces option is given.
+o mot-syntax: New directives inline and einline, to define an isolated block
+  for local labels.
+o mot-syntax: New directives ifmacrod and ifmacrond to conditionally assemble
+  a block when a macro is defined or undefined (compatible with the same
+  directives on the Barfly assembler).
+o madmac-syntax: Make ORG behave like in mot-syntax.
+o vobj-output: The byte-offset to a relocation now always defines the
+  base for all relocation calculations (e.g. PC-relative).
+o vobj-output: For little-endian the bit position in a byte of a reloc-field
+  is now counted from right to left. You will need at least vlink V0.15b to
+  link more complex little-endian relocations (e.g. ARM).
+o hunk-output: -keepempty prevents the assembler from deleting empty sections.
+o elf-output: -keepempty prevents the assembler from deleting empty sections.
+
 - 1.7e (12.03.16)
 o Ability to print the source line also in output module error messages.
 o Current PC symbol in absolute code regions was erroneously relocated to

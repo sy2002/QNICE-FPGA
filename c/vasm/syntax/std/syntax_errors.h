@@ -12,7 +12,7 @@
   "assembly aborted",ERROR,
   "unexpected \"%s\" without \"%s\"",ERROR,
   "pointless default value for required parameter <%s>",ERROR,
-  "",ERROR,
+  "invalid section type ignored, assuming progbits",WARNING,
   "",ERROR,                                       /* 15 */
   "",ERROR,
   "",ERROR,

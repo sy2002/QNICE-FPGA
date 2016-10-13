@@ -1,6 +1,6 @@
 /*
 ** cpu.c 650x/651x cpu-description file
-** (c) in 2002,2006,2008-2012,2014-2015 by Frank Wille
+** (c) in 2002,2006,2008-2012,2014-2016 by Frank Wille
 */
 
 #include "vasm.h"
@@ -11,7 +11,7 @@ mnemonic mnemonics[] = {
 
 int mnemonic_cnt=sizeof(mnemonics)/sizeof(mnemonics[0]);
 
-char *cpu_copyright="vasm 6502 cpu backend 0.7a (c) 2002,2006,2008-2012,2014-2015 Frank Wille";
+char *cpu_copyright="vasm 6502 cpu backend 0.7b (c) 2002,2006,2008-2012,2014-2016 Frank Wille";
 char *cpuname = "6502";
 int bitsperbyte = 8;
 int bytespertaddr = 2;
@@ -305,7 +305,7 @@ dblock *eval_instruction(instruction *ip,section *sec,taddr pc)
             val = val - (pc + 2);
           }
           else {
-            int type=REL_ABS,offs=8,size;
+            int type=REL_ABS,offs=1,size;
             rlist *rl;
 
             switch (optype) {
@@ -327,7 +327,7 @@ dblock *eval_instruction(instruction *ip,section *sec,taddr pc)
                 break;
               case RELJMP:
                 size = 16;
-                offs = 24;
+                offs = 3;
                 break;
               case REL:
                 type = REL_PC;
@@ -337,7 +337,7 @@ dblock *eval_instruction(instruction *ip,section *sec,taddr pc)
                 ierror(0);
                 break;
             }
-            rl = add_nreloc(&db->relocs,base,val,type,size,offs);
+            rl = add_extnreloc(&db->relocs,base,val,type,0,size,offs);
             switch (modifier) {
               case LOBYTE:
                 if (rl)
@@ -418,8 +418,8 @@ dblock *eval_data(operand *op,size_t bitsize,section *sec,taddr pc)
     modifier = 0;
     btype = find_base(op->value,&base,sec,pc);
     if (btype==BASE_OK || (btype==BASE_PCREL && modifier==0)) {
-      rl = add_nreloc(&db->relocs,base,val,
-                      btype==BASE_PCREL?REL_PC:REL_ABS,bitsize,0);
+      rl = add_extnreloc(&db->relocs,base,val,
+                         btype==BASE_PCREL?REL_PC:REL_ABS,0,bitsize,0);
       switch (modifier) {
         case LOBYTE:
           if (rl)

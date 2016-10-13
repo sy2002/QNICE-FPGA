@@ -1,6 +1,6 @@
 /*
  * cpu.c Jaguar RISC cpu description file
- * (c) in 2014-2015 by Frank Wille
+ * (c) in 2014-2016 by Frank Wille
  */
 
 #include "vasm.h"
@@ -10,7 +10,7 @@ mnemonic mnemonics[] = {
 };
 int mnemonic_cnt = sizeof(mnemonics) / sizeof(mnemonics[0]);
 
-char *cpu_copyright = "vasm Jaguar RISC cpu backend 0.4 (c) 2014-2015 Frank Wille";
+char *cpu_copyright = "vasm Jaguar RISC cpu backend 0.4a (c) 2014-2016 Frank Wille";
 char *cpuname = "jagrisc";
 int bitsperbyte = 8;
 int bytespertaddr = 4;
@@ -391,9 +391,9 @@ static int32_t eval_oper(instruction *ip,operand *op,section *sec,
           hival = 32;
           if (btype != BASE_ILLEGAL) {
             if (db) {
-              add_nreloc_masked(&db->relocs,base,val,
-                                btype==BASE_PCREL?REL_PC:REL_ABS,
-                                5,6,0x1f);
+              add_extnreloc_masked(&db->relocs,base,val,
+                                   btype==BASE_PCREL?REL_PC:REL_ABS,
+                                   jag_big_endian?6:5,5,0,0x1f);
               base = NULL;
             }
           }
@@ -429,12 +429,12 @@ static int32_t eval_oper(instruction *ip,operand *op,section *sec,
           if (btype != BASE_ILLEGAL) {
             if (db) {
               /* two relocations for LSW first, then MSW */
-              add_nreloc_masked(&db->relocs,base,val,
-                                btype==BASE_PCREL?REL_PC:REL_ABS,
-                                16,16,0xffff);
-              add_nreloc_masked(&db->relocs,base,val,
-                                btype==BASE_PCREL?REL_PC:REL_ABS,
-                                16,32,0xffff0000);
+              add_extnreloc_masked(&db->relocs,base,val,
+                                   btype==BASE_PCREL?REL_PC:REL_ABS,
+                                   0,16,2,0xffff);
+              add_extnreloc_masked(&db->relocs,base,val,
+                                   btype==BASE_PCREL?REL_PC:REL_ABS,
+                                   16,16,2,0xffff0000);
               base = NULL;
             }
           }
@@ -446,7 +446,8 @@ static int32_t eval_oper(instruction *ip,operand *op,section *sec,
         if (base!=NULL && btype==BASE_OK) {
           if (is_pc_reloc(base,sec)) {
             /* external label or from a different section (distance / 2) */
-            add_nreloc_masked(&db->relocs,base,val-2,REL_PC,5,6,0x3e);
+            add_extnreloc_masked(&db->relocs,base,val-2,REL_PC,
+                                 jag_big_endian?6:5,5,0,0x3e);
           }
           else if (LOCREF(base)) {
             /* known label from the same section doesn't need a reloc */
@@ -561,16 +562,16 @@ dblock *eval_data(operand *op, size_t bitsize, section *sec, taddr pc)
       if (base!=NULL && btype!=BASE_ILLEGAL) {
         if (op->type == DATAI_OP) {
           /* swapped: two relocations for LSW first, then MSW */
-          add_nreloc_masked(&db->relocs,base,val,
-                            btype==BASE_PCREL?REL_PC:REL_ABS,
-                            16,0,0xffff);
-          add_nreloc_masked(&db->relocs,base,val,
-                            btype==BASE_PCREL?REL_PC:REL_ABS,
-                            16,0,0xffff0000);
+          add_extnreloc_masked(&db->relocs,base,val,
+                               btype==BASE_PCREL?REL_PC:REL_ABS,
+                               0,16,0,0xffff);
+          add_extnreloc_masked(&db->relocs,base,val,
+                               btype==BASE_PCREL?REL_PC:REL_ABS,
+                               16,16,0,0xffff0000);
         }
         else /* normal 8, 16, 32 bit relocation */
-          add_nreloc(&db->relocs,base,val,
-                     btype==BASE_PCREL?REL_PC:REL_ABS,bitsize,0);
+          add_extnreloc(&db->relocs,base,val,
+                        btype==BASE_PCREL?REL_PC:REL_ABS,0,bitsize,0);
       }
       else if (btype != BASE_NONE)
         general_error(38);  /* illegal relocation */

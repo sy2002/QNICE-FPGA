@@ -339,8 +339,8 @@ dblock *eval_instruction (instruction *p, section *sec, taddr pc)
         if (m.ext.opcode >= 0x27 && m.ext.opcode <= 0x28 ) {
           if (base != NULL && btype == BASE_OK) {
             if (is_pc_reloc(base, sec))
-              add_nreloc_masked(&db->relocs, base, val-4, REL_PC,
-                                22, 0, 0xfffffc);
+              add_extnreloc_masked(&db->relocs, base, val-4, REL_PC,
+                                   0, 22, 0, 0xfffffc);
             else if (LOCREF(base))
               val = val - pc - 4; /* Relative jump/call (%pc has been increased) */
             base = NULL;
@@ -350,9 +350,9 @@ dblock *eval_instruction (instruction *p, section *sec, taddr pc)
           val = val >> 2; /* CALL/JMP does a left shift of two bits */
         } else if (m.ext.opcode >= 0x25 && m.ext.opcode <= 0x26 ) {
           if (base != NULL && btype != BASE_ILLEGAL) {
-            add_nreloc_masked(&db->relocs, base, val,
-                              btype == BASE_PCREL ? REL_PC : REL_ABS,
-                              22, 0, 0xfffffc);
+            add_extnreloc_masked(&db->relocs, base, val,
+                                 btype == BASE_PCREL ? REL_PC : REL_ABS,
+                                 0, 22, 0, 0xfffffc);
             base = NULL;
           }
           val = val >> 2; /* CALL/JMP does a left shift of two bits */
@@ -432,8 +432,8 @@ dblock *eval_data(operand *op, size_t bitsize, section *sec, taddr pc)
 
     btype = find_base(op->value, &base, sec, pc);
     if (base)
-      add_nreloc(&new->relocs, base, val,
-                 btype==BASE_PCREL ? REL_PC : REL_ABS, bitsize, 0);
+      add_extnreloc(&new->relocs, base, val,
+                    btype==BASE_PCREL ? REL_PC : REL_ABS, 0, bitsize, 0);
     else if (btype != BASE_NONE)
       general_error(38);  /* illegal relocation */
   }

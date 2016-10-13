@@ -1,11 +1,14 @@
 /* output_elf.c ELF output driver for vasm */
-/* (c) in 2002-2015 by Frank Wille */
+/* (c) in 2002-2016 by Frank Wille */
 
 #include "vasm.h"
 #include "output_elf.h"
 #include "stabs.h"
 #if ELFCPU && defined(OUTELF)
-static char *copyright="vasm ELF output module 2.3 (c) 2002-2015 Frank Wille";
+static char *copyright="vasm ELF output module 2.4a (c) 2002-2016 Frank Wille";
+
+static int keep_empty_sects;
+
 static int be,cpu,bits;
 static unsigned elfrelsize,shtreloc;
 
@@ -313,8 +316,8 @@ static utaddr get_reloc_type(rlist **rl,
                              utaddr *roffset,taddr *addend,symbol **refsym)
 {
   rlist *rl2;
-  utaddr mask,offset;
-  int size;
+  utaddr mask;
+  int pos,size;
   utaddr t = 0;
 
   *roffset = 0;
@@ -346,9 +349,7 @@ static utaddr get_reloc_type(rlist **rl,
 #include "elf_reloc_jag.h"
 #endif
 
-  if (t)
-    *roffset = offset>>3;
-  else
+  if (!t)
     unsupp_reloc_error(*rl);
 
   return t;
@@ -409,7 +410,8 @@ static utaddr make_stabreloc(utaddr pc,struct stabdef *nlist,
   taddr addend;
   symbol *refsym;
 
-  nrel.offset = 0;
+  nrel.byteoffset = 0;
+  nrel.bitoffset = 0;
   nrel.size = bits;
   nrel.mask = ~0;
   nrel.addend = nlist->value;
@@ -461,7 +463,8 @@ static utaddr prog_sec_hdrs(section *sec,utaddr soffset,
 
   /* generate section headers for program sections */
   for (secp=sec; secp; secp=secp->next) {
-    if (get_sec_size(secp)!=0 || (secp->flags & HAS_SYMBOLS)) {
+    if (keep_empty_sects ||
+        get_sec_size(secp)!=0 || (secp->flags & HAS_SYMBOLS)) {
       uint32_t type = get_sec_type(secp);
 
       /* add section base symbol */
@@ -880,6 +883,10 @@ static void write_output(FILE *f,section *sec,symbol *sym)
 
 static int output_args(char *p)
 {
+  if (!strcmp(p,"-keepempty")) {
+    keep_empty_sects = 1;
+    return 1;
+  }
   return 0;
 }
 

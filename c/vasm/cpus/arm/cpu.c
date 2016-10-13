@@ -1,6 +1,6 @@
 /*
 ** cpu.c ARM cpu-description file
-** (c) in 2004,2006,2010,2011,2014-2015 by Frank Wille
+** (c) in 2004,2006,2010,2011,2014-2016 by Frank Wille
 */
 
 #include "vasm.h"
@@ -10,7 +10,7 @@ mnemonic mnemonics[] = {
 };
 int mnemonic_cnt = sizeof(mnemonics)/sizeof(mnemonics[0]);
 
-char *cpu_copyright = "vasm ARM cpu backend 0.4b (c) 2004,2006,2010,2011,2014-2015 Frank Wille";
+char *cpu_copyright = "vasm ARM cpu backend 0.4d (c) 2004,2006,2010,2011,2014-2016 Frank Wille";
 char *cpuname = "ARM";
 int bitsperbyte = 8;
 int bytespertaddr = 4;
@@ -281,11 +281,13 @@ int parse_operand(char *p,int len,operand *op,int optype)
         return PO_NOMATCH;
       op->value = number_expr((taddr)r);
 
-      if ((optype==TPCRG || optype==TPCPR) && r!=15) {
-        return PO_NOMATCH;
+      if (optype==TPCRG || optype==TPCPR) {
+        if (r != 15)
+          return PO_NOMATCH;
       }
-      else if ((optype==TSPRG || optype==TSPPR) && r!=13) {
-        return PO_NOMATCH;
+      else if (optype==TSPRG || optype==TSPPR) {
+        if (r != 13)
+          return PO_NOMATCH;
       }
       else if (optype==THR02 || optype==THR05) {
         if (r<8 || r>15)
@@ -632,15 +634,19 @@ size_t eval_thumb_operands(instruction *ip,section *sec,taddr pc,
           if (op.type == TBRHL) {
             val -= THB_PREFETCH;
             if (db) {
-              add_nreloc_masked(&db->relocs,base,val,REL_PC,11,16+5,0xffe);
-              add_nreloc_masked(&db->relocs,base,val,REL_PC,11,5,0x7ff000);
+              add_extnreloc_masked(&db->relocs,base,val,REL_PC,
+                                   arm_be_mode?5:0,11,0,0x7ff000);
+              add_extnreloc_masked(&db->relocs,base,val,REL_PC,
+                                   arm_be_mode?16+5:16+0,11,0,0xffe);
             }
+            isize += 2;  /* we need two instructions for a 23-bit branch */
           }
           else if (op.type == TPCLW) {
             /* val -= THB_PREFETCH;  @@@ only positive offsets allowed! */
             op.type = TUIMA;
             if (db)
-              add_nreloc_masked(&db->relocs,base,val,REL_PC,8,8,0x3fc);
+              add_extnreloc_masked(&db->relocs,base,val,REL_PC,
+                                   arm_be_mode?8:0,8,0,0x3fc);
             base = NULL;  /* no more checks */
           }
           else if (insn)
@@ -735,18 +741,15 @@ size_t eval_thumb_operands(instruction *ip,section *sec,taddr pc,
             else
               cpu_error(25,8,(long)val);  /* immediate offset out of range */
             break;
-          case TSIM9:
-            if (val>=-0x1fc && val<=0x1fc) {
-              if ((val & 3) == 0) {
-                if (val < 0)
-                  val = 0x80 - (val>>2);
-                *insn |= val;
-              }
+          case TUIM9:
+            if (val>=0 && val<=0x1fc) {
+              if ((val & 3) == 0)
+                *insn |= val>>2;
               else
                 cpu_error(26,4);  /* offset has to be a multiple of 4 */
             }
             else
-              cpu_error(20,9,(long)val);  /* immediate offset out of range */
+              cpu_error(25,9,(long)val);  /* immediate offset out of range */
             break;
           case TUIMA:
           case TUIAI:
@@ -764,9 +767,11 @@ size_t eval_thumb_operands(instruction *ip,section *sec,taddr pc,
         if (base!=NULL && db!=NULL) {
           if (btype == BASE_OK) {
             if (op.type==TUIM5 || op.type==TUI5I)
-              add_nreloc_masked(&db->relocs,base,val,REL_ABS,5,5,0x1f);
+              add_extnreloc_masked(&db->relocs,base,val,REL_ABS,
+                                   arm_be_mode?5:6,5,0,0x1f);
             else if (op.type == TSWI8)
-              add_nreloc_masked(&db->relocs,base,val,REL_ABS,8,8,0xff);
+              add_extnreloc_masked(&db->relocs,base,val,REL_ABS,
+                                   arm_be_mode?8:0,8,0,0xff);
             else
               cpu_error(6);  /* constant integer expression required */
           }
@@ -1211,13 +1216,15 @@ size_t eval_arm_operands(instruction *ip,section *sec,taddr pc,
             case BRA24:
               val -= ARM_PREFETCH;
               if (db)
-                add_nreloc_masked(&db->relocs,base,val,REL_PC,24,8,0x3fffffc);
+                add_extnreloc_masked(&db->relocs,base,val,REL_PC,
+                                     arm_be_mode?8:0,24,0,0x3fffffc);
               break;
             case PCL12:
               op.type = IMUD2;
               if (db) {
                 if (val<0x1000 && val>-0x1000) {
-                  add_nreloc_masked(&db->relocs,base,val,REL_PC,12,20,0x1fff);
+                  add_extnreloc_masked(&db->relocs,base,val,REL_PC,
+                                       arm_be_mode?20:0,12,0,0x1fff);
                   base = NULL;  /* don't add another REL_ABS below */
                 }
                 else
@@ -1235,13 +1242,16 @@ size_t eval_arm_operands(instruction *ip,section *sec,taddr pc,
                 if (insn!=NULL && db!=NULL) {
                   *(insn+1) = *insn & ~0xf0000;
                   *(insn+1) |= (*insn&0xf000) << 4;
-                  add_nreloc_masked(&db->relocs,base,val,REL_PC,8,24,0xff00);
-                  add_nreloc_masked(&db->relocs,base,val,REL_PC,8,32+24,0xff);
+                  add_extnreloc_masked(&db->relocs,base,val,REL_PC,
+                                       arm_be_mode?24:0,8,0,0xff00);
+                  add_extnreloc_masked(&db->relocs,base,val,REL_PC,
+                                       arm_be_mode?32+24:32+0,8,0,0xff);
                 }
               }
               else if (val == 0) {  /* ADR */
                 if (db)
-                  add_nreloc_masked(&db->relocs,base,val,REL_PC,8,24,0xff);
+                  add_extnreloc_masked(&db->relocs,base,val,REL_PC,
+                                       arm_be_mode?24:0,8,0,0xff);
               }
               else if (db)
                 cpu_error(22); /* operation not allowed on external symbols */
@@ -1366,7 +1376,8 @@ size_t eval_arm_operands(instruction *ip,section *sec,taddr pc,
               if (!aa4ldst) {
                 /* @@@ does this make any sense? */
                 *insn |= 0x00800000;  /* only UP */
-                add_nreloc_masked(&db->relocs,base,val,REL_ABS,12,20,0xfff);
+                add_extnreloc_masked(&db->relocs,base,val,REL_ABS,
+                                     arm_be_mode?20:0,12,0,0xfff);
               }
               else
                 cpu_error(22); /* operation not allowed on external symbols */
@@ -1404,7 +1415,8 @@ size_t eval_arm_operands(instruction *ip,section *sec,taddr pc,
         if (val>=0 && val<0x1000000) {
           *insn |= val;
           if (base!=NULL && db!=NULL)
-            add_nreloc_masked(&db->relocs,base,val,REL_ABS,24,8,0xffffff);
+            add_extnreloc_masked(&db->relocs,base,val,REL_ABS,
+                                 arm_be_mode?8:0,24,0,0xffffff);
         }
         else
           cpu_error(16);  /* 24-bit unsigned immediate expected */
@@ -1610,8 +1622,8 @@ dblock *eval_data(operand *op,size_t bitsize,section *sec,taddr pc)
 
       btype = find_base(op->value,&base,sec,pc);
       if (base)
-        add_nreloc(&db->relocs,base,val,
-                   btype==BASE_PCREL?REL_PC:REL_ABS,bitsize,0);
+        add_extnreloc(&db->relocs,base,val,
+                      btype==BASE_PCREL?REL_PC:REL_ABS,0,bitsize,0);
       else if (btype != BASE_NONE)
         general_error(38);  /* illegal relocation */
     }

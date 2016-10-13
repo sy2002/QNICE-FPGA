@@ -1,5 +1,5 @@
 /* symbol.c - manage all kinds of symbols */
-/* (c) in 2014-2015 by Volker Barthelmann and Frank Wille */
+/* (c) in 2014-2016 by Volker Barthelmann and Frank Wille */
 
 #include "vasm.h"
 
@@ -162,6 +162,15 @@ int check_symbol(char *name)
 }
 
 
+char *set_last_global_label(char *name)
+{
+  char *prevlgl = last_global_label;
+
+  last_global_label = name;
+  return prevlgl;
+}
+
+
 int is_local_label(char *name)
 /* returns true when name belong to a label with local scope */
 {
@@ -260,6 +269,15 @@ symbol *new_labsym(section *sec,char *name)
 {
   symbol *new;
   int add;
+
+  if (chklabels) {
+    hashdata data;
+
+    if (find_name_nc(mnemohash,name,&data))
+      general_error(39);  /* name conflicts with mnemonic */
+    else if (find_name_nc(dirhash,name,&data))
+      general_error(40);  /* name conflicts with directive */
+  }
 
   if (!sec) {
     sec = default_section();

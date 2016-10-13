@@ -1,6 +1,7 @@
 /* supp.c miscellaneous support routines */
-/* (c) in 2008-2015 by Frank Wille */
+/* (c) in 2008-2016 by Frank Wille */
 
+#include <math.h>
 #include "vasm.h"
 #include "supp.h"
 
@@ -362,6 +363,16 @@ void conv2ieee128(int be,uint8_t *buf,tfloat f)
 }
 
 
+/* check if float can be represented by bits, signed or unsigned,
+   ignoring the fractional part */
+int flt_chkrange(tfloat f,int bits)
+{
+  tfloat max = pow(2.0,(double)(bits-1));
+
+  return (f<2.0*max && f>=-max);
+}
+
+
 void fw8(FILE *f,uint8_t x)
 {
   if (fputc(x,f) == EOF)
@@ -615,6 +626,15 @@ int str_is_graph(const char *s)
     s++;
   }
   return 1;
+}
+
+
+const char *trim(const char *s)
+/* trim blanks before s */
+{
+  while (isspace((unsigned char )*(s-1)))
+    s--;
+  return s;
 }
 
 

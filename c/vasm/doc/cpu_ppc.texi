@@ -25,9 +25,6 @@ This module provides the following additional options:
     @item -little
         Select little-endian mode.
 
-    @item -m601
-        Generate code for the 601.
-
     @item -many
         Allow any PPC instruction.
 
@@ -37,11 +34,39 @@ This module provides the following additional options:
     @item -mcom
         Allow only common PPC instructions.
 
-    @item -mppc32, -mppc -m403, -m405, -m603, -m604, -m750, -m860
-        Generate code for the 32-bit PowerPC family.
+    @item -m601
+        Generate code for the PPC 601.
+
+    @item -mpcc32, -mppc, -m603, -m604
+        Generate code for the 32-bit PowerPC 6xx family.
 
     @item -mppc64, -m620
-        Generate code for the 64-bit PowerPC family.
+        Generate code for the 64-bit PowerPC 600 family.
+
+    @item -m7400, -m7410, -m7455
+        Generate code for the 32-bit PowerPC 74xx (G4) family.
+
+    @item -m7450
+        Generate code for the 32-bit PowerPC 7450.
+
+    @item -m403, -m405
+        Generate code for the IBM/AMCC 32-bit embedded 40x family.
+
+    @item -m440, -m460
+        Generate code for the AMCC 32-bit embedded 440/460 family.
+
+    @item -m821, -m850, -m860
+        Generate code for the 32-but MPC8xx PowerQUICC I family.
+
+    @item -mbooke
+        Generate code for the 32-bit Book-E architecture.
+
+    @item -me300
+        Generate code for the 32-bit e300 core (MPC51xx, MPC52xx, MPC83xx).
+
+    @item -me500
+        Generate code for the 32-bit e500 core (MPC85xx), including SPE,
+        EFS and PMR.
 
     @item -mpwr
         Generate code for the POWER family.
@@ -67,11 +92,10 @@ This module provides the following additional options:
 @section General
 
 This backend accepts PowerPC instructions as described in the
-instruction set manuals from IBM and Motorola (e.g. the PowerPC
-Programming Environments).
+instruction set manuals from IBM, Motorola, Freescale and AMCC.
 
 The full instruction set of the following families is supported:
-POWER, POWER2, 40x, 60x, 620, 750, 74xx (including Altivec), 860.
+POWER, POWER2, 40x, 44x, 60x, 620, 750, 74xx, 860.
 
 The target address type is 32bit.
 

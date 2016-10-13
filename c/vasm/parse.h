@@ -61,6 +61,7 @@ void new_repeat(int,struct namelen *,struct namelen *);
 int find_macarg_name(source *,char *,size_t);
 struct macarg *addmacarg(struct macarg **,char *,char *);
 macro *new_macro(char *,struct namelen *,char *);
+macro *find_macro(char *,int);
 int execute_macro(char *,int,char **,int *,int,char *);
 int leave_macro(void);
 int undef_macro(char *);

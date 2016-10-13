@@ -1,5 +1,5 @@
 /* syntax.c  syntax module for vasm */
-/* (c) in 2015 by Frank Wille */
+/* (c) in 2015-2016 by Frank Wille */
 
 #include "vasm.h"
 
@@ -12,7 +12,7 @@
    be provided by the main module.
 */
 
-char *syntax_copyright="vasm madmac syntax module 0.4 (c) 2015 Frank Wille";
+char *syntax_copyright="vasm madmac syntax module 0.4a (c) 2015-2016 Frank Wille";
 hashtable *dirhash;
 char commentchar = ';';
 
@@ -232,7 +232,10 @@ static void handle_bss(char *s)
 
 static void handle_org(char *s)
 {
-  start_rorg(parse_constexpr(&s));
+  if (current_section!=NULL && !(current_section->flags & ABSOLUTE))
+    start_rorg(parse_constexpr(&s));
+  else
+    set_section(new_org(parse_constexpr(&s)));
   eol(s);
 }
 

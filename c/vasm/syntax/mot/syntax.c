@@ -12,7 +12,7 @@
    be provided by the main module.
 */
 
-char *syntax_copyright="vasm motorola syntax module 3.9 (c) 2002-2016 Frank Wille";
+char *syntax_copyright="vasm motorola syntax module 3.9d (c) 2002-2016 Frank Wille";
 hashtable *dirhash;
 char commentchar = ';';
 
@@ -42,6 +42,7 @@ static struct namelen erem_dirlist[] = {
   { 4,"erem" }, { 0,0 }
 };
 
+/* options */
 static int allmp;
 static int align_data;
 static int phxass_compat;
@@ -51,9 +52,19 @@ static int check_comm;
 static int dot_idchar;
 static char local_char = '.';
 
+/* unique macro IDs */
 #define IDSTACKSIZE 100
 static unsigned long id_stack[IDSTACKSIZE];
 static int id_stack_index;
+
+/* isolated local labels block */
+#define INLSTACKSIZE 100
+#define INLLABFMT "=%06d"
+static int inline_stack[INLSTACKSIZE];
+static int inline_stack_index;
+static char *saved_last_global_label;
+static char inl_lab_name[8];
+
 static int parse_end = 0;
 static expr *carg1;
 
@@ -495,8 +506,12 @@ static void handle_org(char *s)
     else
       syntax_error(7);  /* syntax error */
   }
-  else
-    start_rorg(parse_constexpr(&s));
+  else {
+    if (current_section!=NULL && !(current_section->flags & ABSOLUTE))
+      start_rorg(parse_constexpr(&s));
+    else
+      set_section(new_org(parse_constexpr(&s)));
+  }
 }
 
 
@@ -1078,6 +1093,29 @@ static void handle_ifnd(char *s)
   ifdef(s,0);
 }
 
+static void ifmacro(char *s,int b)
+{
+  char *name = s;
+  int result;
+
+  if (s = skip_identifier(s)) {
+    result = find_macro(name,s-name) != NULL;
+    cond_if(result == b);
+  }
+  else
+    syntax_error(10);  /*identifier expected */
+}
+
+static void handle_ifmacrod(char *s)
+{
+  ifmacro(s,1);
+}
+
+static void handle_ifmacrond(char *s)
+{
+  ifmacro(s,0);
+}
+
 static void ifexp(char *s,int c)
 {
   expr *condexp = parse_expr_tmplab(&s);
@@ -1346,6 +1384,39 @@ static void handle_comment(char *s)
   /* otherwise it's just a comment to be ignored */
 }
 
+static void handle_inline(char *s)
+{
+  static int id;
+  char *last;
+
+  if (inline_stack_index < INLSTACKSIZE) {
+    sprintf(inl_lab_name,INLLABFMT,id);
+    last = set_last_global_label(inl_lab_name);
+    if (inline_stack_index == 0)
+      saved_last_global_label = last;
+    inline_stack[inline_stack_index++] = id++;
+  }
+  else
+    syntax_error(22,INLSTACKSIZE);  /* maximum inline nesting depth exceeded */
+}
+
+static void handle_einline(char *s)
+{
+  if (inline_stack_index > 0 ) {
+    if (--inline_stack_index == 0) {
+      set_last_global_label(saved_last_global_label);
+      saved_last_global_label = NULL;
+    }
+    else {
+      sprintf(inl_lab_name,INLLABFMT,inline_stack[inline_stack_index-1]);
+      set_last_global_label(inl_lab_name);
+    }
+  }
+  else
+    syntax_error(20);  /* einline without inline */
+}
+
+
 #define D 1 /* available for DevPac */
 #define P 2 /* available for PhxAss */
 struct {
@@ -1463,12 +1534,16 @@ struct {
   "ifnc",P|D,handle_ifnc,
   "ifd",P|D,handle_ifd,
   "ifnd",P|D,handle_ifnd,
+  "ifmacrod",0,handle_ifmacrod,
+  "ifmacrond",0,handle_ifmacrond,
   "ifeq",P|D,handle_ifeq,
   "ifne",P|D,handle_ifne,
   "ifgt",P|D,handle_ifgt,
   "ifge",P|D,handle_ifge,
   "iflt",P|D,handle_iflt,
   "ifle",P|D,handle_ifle,
+  "ifmi",0,handle_iflt,
+  "ifpl",0,handle_ifge,
   "if",P,handle_ifne,
   "else",P|D,handle_else,
   "elseif",P|D,handle_else,
@@ -1509,6 +1584,8 @@ struct {
   "printt",0,handle_printt,
   "printv",0,handle_printv,
   "auto",0,handle_noop,
+  "inline",P,handle_inline,
+  "einline",P,handle_einline,
 };
 #undef P
 #undef D
@@ -1757,36 +1834,35 @@ void parse(void)
 
     /* read operands, terminated by comma (unless in parentheses)  */
     op_cnt = 0;
-    while (!ISEOL(s) && op_cnt<MAX_OPERANDS) {
-      op[op_cnt] = s;
-      s = skip_operand(s);
-      op_len[op_cnt] = s - op[op_cnt];
-#if 0
-      /* This causes problems, when there is a comma in the comment field
-         of an instructions without operands. */
-      if (op_len[op_cnt] <= 0)
-        syntax_error(5);  /* missing operand */
-      else
-#endif
+    if (!ISEOL(s)) {
+      while (op_cnt < MAX_OPERANDS) {
+        op[op_cnt] = s;
+        s = skip_operand(s);
+        op_len[op_cnt] = s - op[op_cnt];
         op_cnt++;
 
-      if (allow_spaces) {
-        s = skip(s);
-        if (*s != ',')
-          break;
-        else
-          s = skip(s+1);
-      }
-      else {
-        if (*s != ',') {
-          if (check_comm)
-            comment_check(s);
+        if (allow_spaces) {
+          s = skip(s);
+          if (*s != ',')
+            break;
+          else
+            s = skip(s+1);
+        }
+        else {
+          if (*s != ',') {
+            if (check_comm)
+              comment_check(s);
+            break;
+          }
+          s++;
+        }
+        if (ISEOL(s)) {
+          syntax_error(6);  /* garbage at end of line */
           break;
         }
-        s++;
       }
-    }      
-    eol(s);
+      eol(s);
+    }
 
     ip = new_inst(inst,inst_len,op_cnt,op,op_len);
 
@@ -1841,7 +1917,7 @@ char *parse_macro_arg(struct macro *m,char *s,
   }
   else {
     s = skip_operand(s);
-    param->len = s - param->name;
+    param->len = trim(s) - param->name;
   }
 
   return s;

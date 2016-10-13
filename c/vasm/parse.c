@@ -567,7 +567,7 @@ macro *new_macro(char *name,struct namelen *endmlist,char *args)
 }
 
 
-static macro *find_macro(char *name,int name_len)
+macro *find_macro(char *name,int name_len)
 {
   hashdata data;
 

@@ -71,6 +71,7 @@ void save_symbols(void);
 void restore_symbols(void);
 
 int check_symbol(char *);
+char *set_last_global_label(char *);
 int is_local_label(char *);
 char *make_local_label(char *,int,char *,int);
 symbol *new_abs(char *,expr *);

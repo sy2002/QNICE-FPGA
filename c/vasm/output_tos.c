@@ -1,10 +1,10 @@
 /* output_tos.c Atari TOS executable output driver for vasm */
-/* (c) in 2009-2015 by Frank Wille */
+/* (c) in 2009-2016 by Frank Wille */
 
 #include "vasm.h"
 #include "output_tos.h"
 #if defined(OUTTOS) && defined(VASM_CPU_M68K)
-static char *copyright="vasm tos output module 1.0 (c) 2009-2015 Frank Wille";
+static char *copyright="vasm tos output module 1.0a (c) 2009-2016 Frank Wille";
 int tos_hisoft_dri = 1;
 
 static int tosflags,textbasedsyms;
@@ -147,13 +147,13 @@ static int write_reloc68k(atom *a,rlist *rl,int signedval,taddr val)
   }
 
   if (a->type == DATA)
-    p = a->content.db->data + (nrel->offset>>3);
+    p = a->content.db->data + nrel->byteoffset;
   else if (a->type == SPACE)
     p = (char *)a->content.sb->fill;  /* @@@ ignore offset completely? */
   else
     return 1;
 
-  setbits(1,p,((nrel->offset&7)+nrel->size+7)&~7,nrel->offset&7,nrel->size,val);
+  setbits(1,p,(nrel->bitoffset+nrel->size+7)&~7,nrel->bitoffset,nrel->size,val);
   return 1;
 }
 
@@ -186,7 +186,7 @@ static void do_relocs(taddr pc,atom *a)
         write_reloc68k(a,rl,1,
                        (tos_sym_value(((nreloc *)rl->reloc)->sym,1)
                         + nreloc_real_addend(rl->reloc)) -
-                       (pc + (((nreloc *)rl->reloc)->offset>>3)));
+                       (pc + ((nreloc *)rl->reloc)->byteoffset));
         break;
       case REL_ABS:
         checkdefined(((nreloc *)rl->reloc)->sym);
@@ -302,7 +302,7 @@ static int tos_writerelocs(FILE *f,section *sec)
 
       while (rl) {
         if (rl->type==REL_ABS && ((nreloc *)rl->reloc)->size==32)
-          sortoffs[nrel++] = ((nreloc *)rl->reloc)->offset;
+          sortoffs[nrel++] = ((nreloc *)rl->reloc)->byteoffset;
         rl = rl->next;
       }
 
@@ -316,7 +316,7 @@ static int tos_writerelocs(FILE *f,section *sec)
         /* write differences between them */
         n += nrel;
         for (i=0; i<nrel; i++) {
-          utaddr newoffs = npc + (utaddr)(sortoffs[i]>>3);
+          utaddr newoffs = npc + sortoffs[i];
 
           if (lastoffs) {
             /* determine 8bit difference to next relocation */

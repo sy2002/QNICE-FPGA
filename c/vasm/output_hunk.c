@@ -1,16 +1,17 @@
 /* output_hunk.c AmigaOS hunk format output driver for vasm */
-/* (c) in 2002-2015 by Frank Wille */
+/* (c) in 2002-2016 by Frank Wille */
 
 #include "vasm.h"
 #include "output_hunk.h"
 #if defined(OUTHUNK) && (defined(VASM_CPU_M68K) || defined(VASM_CPU_PPC))
-static char *copyright="vasm hunk format output module 2.7 (c) 2002-2015 Frank Wille";
+static char *copyright="vasm hunk format output module 2.8a (c) 2002-2016 Frank Wille";
 int hunk_onlyglobal;
 
 static int databss;
 static int kick1;
 static int exthunk;
 static int genlinedebug;
+static int keep_empty_sects;
 static uint32_t sec_cnt;
 
 
@@ -180,7 +181,7 @@ static void prepare_sections(section *sec)
    set sec_cnt to number of sections present */
 {
   for (sec_cnt=0; sec!=NULL; sec=sec->next) {
-    if (get_sec_size(sec)!=0 || (sec->flags & HAS_SYMBOLS))
+    if (keep_empty_sects || get_sec_size(sec)!=0 || (sec->flags & HAS_SYMBOLS))
       sec->idx = sec_cnt++;
     else
       sec->flags |= SEC_DELETED;
@@ -250,11 +251,11 @@ static struct hunkreloc *convert_reloc(rlist *rl,utaddr pc)
     if (LOCREF(r->sym)) {
       struct hunkreloc *hr;
       uint32_t type;
-      uint32_t offs = pc + (r->offset >> 3);
+      uint32_t offs = pc + r->byteoffset;
 
       switch (rl->type) {
         case REL_ABS:
-          if (r->size!=32 || (r->offset&7) || r->mask!=-1)
+          if (r->size!=32 || r->bitoffset!=0 || r->mask!=-1)
             return NULL;
           type = HUNK_ABSRELOC32;
           break;
@@ -262,29 +263,29 @@ static struct hunkreloc *convert_reloc(rlist *rl,utaddr pc)
         case REL_PC:
           switch (r->size) {
             case 8:
-              if ((r->offset&7) || r->mask!=-1)
+              if (r->bitoffset!=0 || r->mask!=-1)
                 return NULL;
               type = HUNK_RELRELOC8;
               break;
             case 14:
-              if ((r->offset&15) || r->mask!=0xfffc)
+              if (r->bitoffset!=0 || r->mask!=0xfffc)
                 return NULL;
               type = HUNK_RELRELOC16;
               break;
             case 16:
-              if ((r->offset&7) || r->mask!=-1)
+              if (r->bitoffset!=0 || r->mask!=-1)
                 return NULL;
               type = HUNK_RELRELOC16;
               break;
 #if defined(VASM_CPU_PPC)
             case 24:
-              if ((r->offset&31)!=6 || r->mask!=0x3fffffc)
+              if (r->bitoffset!=6 || r->mask!=0x3fffffc)
                 return NULL;
               type = HUNK_RELRELOC26;
               break;
 #endif
             case 32:
-              if (kick1 || (r->offset&7) || r->mask!=-1)
+              if (kick1 || r->bitoffset!=0 || r->mask!=-1)
                 return NULL;
               type = HUNK_RELRELOC32;
               break;
@@ -295,7 +296,7 @@ static struct hunkreloc *convert_reloc(rlist *rl,utaddr pc)
         case REL_PPCEABI_SDA2: /* treat as REL_SD for WarpOS/EHF */
 #endif
         case REL_SD:
-          if (kick1 || r->size!=16 || (r->offset&7) || r->mask!=-1)
+          if (kick1 || r->size!=16 || r->bitoffset!=0 || r->mask!=-1)
             return NULL;
           type = HUNK_DREL16;
           break;
@@ -328,12 +329,12 @@ static struct hunkxref *convert_xref(rlist *rl,utaddr pc)
     if (EXTREF(r->sym)) {
       struct hunkxref *xref;
       uint32_t type,size=0;
-      uint32_t offs = pc + (r->offset >> 3);
+      uint32_t offs = pc + r->byteoffset;
       int com = (r->sym->flags & COMMON) != 0;
 
       switch (rl->type) {
         case REL_ABS:
-          if ((r->offset&7) || r->mask!=-1 || (com && r->size!=32))
+          if (r->bitoffset!=0 || r->mask!=-1 || (com && r->size!=32))
             return NULL;
           switch (r->size) {
             case 8:
@@ -356,29 +357,29 @@ static struct hunkxref *convert_xref(rlist *rl,utaddr pc)
         case REL_PC:
           switch (r->size) {
             case 8:
-              if ((r->offset&7) || r->mask!=-1 || com)
+              if (r->bitoffset!=0 || r->mask!=-1 || com)
                 return NULL;
               type = EXT_RELREF8;
               break;
             case 14:
-              if ((r->offset&15) || r->mask!=0xfffc || com)
+              if (r->bitoffset!=0 || r->mask!=0xfffc || com)
                 return NULL;
               type = EXT_RELREF16;
               break;
             case 16:
-              if ((r->offset&7) || r->mask!=-1 || com)
+              if (r->bitoffset!=0 || r->mask!=-1 || com)
                 return NULL;
               type = EXT_RELREF16;
               break;
 #if defined(VASM_CPU_PPC)
             case 24:
-              if ((r->offset&31)!=6 || r->mask!=0x3fffffc || com)
+              if (r->bitoffset!=6 || r->mask!=0x3fffffc || com)
                 return NULL;
               type = EXT_RELREF26;
               break;
 #endif
             case 32:
-              if (kick1 || (r->offset&7) || r->mask!=-1)
+              if (kick1 || r->bitoffset!=0 || r->mask!=-1)
                 return NULL;
               if (com) {
                 type = EXT_RELCOMMON;
@@ -394,7 +395,7 @@ static struct hunkxref *convert_xref(rlist *rl,utaddr pc)
         case REL_PPCEABI_SDA2: /* treat as REL_SD for WarpOS/EHF */
 #endif
         case REL_SD:
-          if (kick1 || r->size!=16 || (r->offset&7) || r->mask!=-1)
+          if (kick1 || r->size!=16 || r->bitoffset!=0 || r->mask!=-1)
             return NULL;
           type = EXT_DEXT16;
           break;
@@ -860,6 +861,10 @@ static int common_args(char *p)
 #endif
   if (!strcmp(p,"-linedebug")) {
     genlinedebug = 1;
+    return 1;
+  }
+  if (!strcmp(p,"-keepempty")) {
+    keep_empty_sects = 1;
     return 1;
   }
   return 0;

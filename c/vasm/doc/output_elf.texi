@@ -3,7 +3,7 @@ selected with the @option{-Felf} option.
 
 @section Legal
 
-    This module is copyright in 2002-2015 by Frank Wille.
+    This module is copyright in 2002-2016 by Frank Wille.
 
     This archive may be redistributed without modifications and used
     for non-commercial purposes.
@@ -14,7 +14,10 @@ selected with the @option{-Felf} option.
     Certain modules may fall under additional copyrights.
 
 @section Additional options for this version
-None. 
+@table @option
+    @item -keepempty
+        Do not delete empty sections without any symbol definition.
+@end table
 
 @section General
 

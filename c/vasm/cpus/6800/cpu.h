@@ -1,5 +1,5 @@
 /*
- * cpu.c 6800, 68hc11 cpu description file
+ * cpu.h 6800 cpu description file
  * (c) in 2013-2014 by Esben Norby and Frank Wille
 */
 
@@ -61,7 +61,8 @@ typedef struct {
 
 /* available */
 #define M6800   1
-#define M68HC11 2       /* standard 68HC11 instruction set */
+#define M6801   2       /* 6801/6803: Adds D register and some extras */
+#define M68HC11 4       /* standard 68HC11 instruction set */
 
 /* adressing modes */
 #define INH     0

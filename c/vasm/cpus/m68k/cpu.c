@@ -1,6 +1,6 @@
 /*
 ** cpu.c Motorola M68k, CPU32 and ColdFire cpu-description file
-** (c) in 2002-2015 by Frank Wille
+** (c) in 2002-2016 by Frank Wille
 */
 
 #include <math.h>
@@ -24,7 +24,7 @@ struct cpu_models models[] = {
 int model_cnt = sizeof(models)/sizeof(models[0]);
 
 
-char *cpu_copyright="vasm M68k/CPU32/ColdFire cpu backend 2.1 (c) 2002-2015 Frank Wille";
+char *cpu_copyright="vasm M68k/CPU32/ColdFire cpu backend 2.1c (c) 2002-2016 Frank Wille";
 char *cpuname = "M68k";
 int bitsperbyte = 8;
 int bytespertaddr = 4;
@@ -1082,7 +1082,7 @@ static void set_index(operand *op,short i)
 
     if (REGisZero(i)) {
       op->format |= FW_FullFormat | FW_IndexSuppress;
-      op->flags |= FL_020up | FL_noCPU32;
+      op->flags |= FL_020up;
     }
     else if (s) {
       /* ColdFire allows scale factors *2 and *4 (*8 when FPU is present),
@@ -1571,8 +1571,11 @@ int parse_operand(char *p,int len,operand *op,int required)
           }
           else {
             /* the remaining addressing modes require a full format word */
-            op->flags |= FL_UsesFormat | FL_020up | FL_noCPU32;
             op->format |= FW_FullFormat;
+            op->flags |= FL_UsesFormat | FL_020up;
+            /* no memory-indirect modes for CPU32 */
+            if (mem_indir)
+              op->flags |= FL_noCPU32;
 
             if (REGisPC(reg)) {
               op->mode = MODE_Extended;               /* ([bd,PC,Xn],od) */
@@ -1589,8 +1592,6 @@ int parse_operand(char *p,int len,operand *op,int required)
             if (idx < 0)
               idx = REGZero | 0;  /* no index given: assume ZD0.w */
             set_index(op,idx);
-            if (REGisZero(idx))
-              op->format |= FW_IndexSuppress;
 
             if (op->value[0]) {
               if (disp_size == EXT_LONG)
@@ -1614,7 +1615,7 @@ int parse_operand(char *p,int len,operand *op,int required)
         else {
           if (reqflags & OTF_REGLIST) {
             op->reg = (required==RL) ? REG_RnList : REG_FPnList;
-            op->flags |= FL_PossRegList;  /* might be a reglist or not */
+            /* op->flags |= FL_PossRegList;  @@@ not needed? */
           }
           else
             op->reg = REG_AbsLong;
@@ -2296,9 +2297,11 @@ static void incr_ea(operand *op,taddr offset,int final)
     }
   }
   else {
-    /* we will definitely need (d16,An) after incrment for (An) */
-    if (op->mode == MODE_AnIndir)
+    /* we will definitely need (d16,An) after incrementation for (An) */
+    if (op->mode == MODE_AnIndir) {
       op->mode = MODE_An16Disp;
+      op->flags |= FL_NoOpt;
+    }
   }
 }
 
@@ -2372,8 +2375,8 @@ static unsigned char optimize_instruction(instruction *iplist,section *sec,
     /* destination operand seems to be the register list - swap them */
     ip->op[0]->reg = REG_AbsLong;
     ip->op[1]->reg = REG_RnList;
-    mnemo++;    /* take next mnemonic which has swapped operands */
-    ip->code++;
+    ip->code += 2;  /* take matching mnemonic with swapped operands */
+    mnemo = &mnemonics[ip->code];
   }
   else if (!strcmp(mnemo->name,"fmovem")) {
     if (mnemo->operand_type[0] == FL) {
@@ -3743,6 +3746,8 @@ size_t instruction_size(instruction *realip,section *sec,taddr pc)
     realip->ext.un.real.orig_ext = (signed char)ext;
 
   /* check if we are uncertain about the side of a register list operand */
+#if 0
+  /* @@@ Why should we forbid optimizations here? FL_PossRegList is useless? */
   if (realip->op[0]!=NULL && realip->op[1]!=NULL) {
     if ((realip->op[0]->flags & FL_PossRegList) &&
         realip->op[1]->mode==MODE_Extended &&
@@ -3759,6 +3764,7 @@ size_t instruction_size(instruction *realip,section *sec,taddr pc)
       realip->op[0]->flags |= FL_NoOpt;
     }
   }
+#endif
 
   /* fix instructions, which were not correctly recognized through
      parse_operand() due to missing information. */
@@ -3841,13 +3847,13 @@ static unsigned char *write_branch(dblock *db,unsigned char *d,operand *op,
           addend--;   /* reloc-offset is stored 1 byte before PC-location */
           *(d-1) = addend & 0xff;
           size = 8;
-          offset = 8;
+          offset = 1;
           break;
         case 'l':
           if (cpu_type & (m68020up|cpu32|mcfb|mcfc|m68881|m68882|m68851)) {
             if (bcc)
               *(d-1) = 0xff;
-            offset = (d - (unsigned char *)db->data) << 3;
+            offset = d - (unsigned char *)db->data;
             d = setval(1,d,4,addend);
             size = 32;
           }
@@ -3857,7 +3863,7 @@ static unsigned char *write_branch(dblock *db,unsigned char *d,operand *op,
         case 'w':
           if (bcc)
             *(d-1) = 0;
-          offset = (d - (unsigned char *)db->data) << 3;
+          offset = d - (unsigned char *)db->data;
           d = setval(1,d,2,addend);
           size = 16;
           break;
@@ -3865,7 +3871,7 @@ static unsigned char *write_branch(dblock *db,unsigned char *d,operand *op,
           cpu_error(34);  /* illegal opcode extension */
           break;
       }
-      add_nreloc(&db->relocs,op->base[0],addend,REL_PC,size,offset);
+      add_extnreloc(&db->relocs,op->base[0],addend,REL_PC,0,size,offset);
     }
 
     else {  /* known label from same section, can be resolved immediately */
@@ -3930,7 +3936,7 @@ static unsigned char *write_ea_ext(dblock *db,unsigned char *d,operand *op,
   }
   else if (op->mode >= MODE_An16Disp) {
     int rtype = REL_NONE;
-    int roffs = (d - (unsigned char *)db->data) << 3;
+    int roffs = d - (unsigned char *)db->data;
     int rsize = 0;
     int ortype = REL_NONE;
     int orsize = 0;
@@ -3974,7 +3980,7 @@ static unsigned char *write_ea_ext(dblock *db,unsigned char *d,operand *op,
       if (op->format & FW_FullFormat) {
         /* ([bd,An,Rn.x*s],od): format word + base- and outer-displacement */
         d = setval(1,d,2,op->format);
-        roffs += 16;
+        roffs += 2;
         if (FW_getBDSize(op->format) == FW_Word) {
           if (typechk && (op->extval[0]<-0x8000 || op->extval[0]>0x7fff))
             cpu_error(29);  /* displacement out of range */
@@ -4060,7 +4066,7 @@ static unsigned char *write_ea_ext(dblock *db,unsigned char *d,operand *op,
         if (op->format & FW_FullFormat) {
           /* ([bd,PC,Rn.x*s],od): format word + base- and outer-displacement */
           d = setval(1,d,2,op->format);
-          roffs += 16;
+          roffs += 2;
           if (FW_getBDSize(op->format) == FW_Word) {
             if (op->base[0]) {
               if (is_pc_reloc(op->base[0],sec)) {
@@ -4116,7 +4122,7 @@ static unsigned char *write_ea_ext(dblock *db,unsigned char *d,operand *op,
             if (is_pc_reloc(op->base[0],sec)) {
               rtype = REL_PC;
               rsize = 8;
-              roffs += 8;
+              roffs++;
               op->extval[0] += 1;  /* pc-relative xref fix */
               disp += 1;
             }
@@ -4161,7 +4167,7 @@ static unsigned char *write_ea_ext(dblock *db,unsigned char *d,operand *op,
         switch (ext) {
           case 'b':
             if (op->flags & FL_ExtVal0) {
-              roffs += 8;
+              roffs++;
               rsize = 8;
               *d++ = 0;
               d = write_extval(0,1,db,d,op,rtype);
@@ -4222,13 +4228,13 @@ static unsigned char *write_ea_ext(dblock *db,unsigned char *d,operand *op,
     if (rtype != REL_NONE) {
       if (rtype==REL_ABS && op->basetype[0]==BASE_PCREL)
         rtype = REL_PC;
-      add_nreloc(&db->relocs,op->base[0],op->extval[0],rtype,rsize,roffs);
+      add_extnreloc(&db->relocs,op->base[0],op->extval[0],rtype,0,rsize,roffs);
     }
     if (ortype != REL_NONE) {
       if (ortype==REL_ABS && op->basetype[1]==BASE_PCREL)
         ortype = REL_PC;
-      add_nreloc(&db->relocs,op->base[1],op->extval[1],ortype,orsize,
-                 (rtype==REL_NONE) ? roffs : roffs+rsize);
+      add_extnreloc(&db->relocs,op->base[1],op->extval[1],ortype,0,orsize,
+                    (rtype==REL_NONE) ? roffs : roffs+rsize/8);
     }
   }
   return d;
@@ -4626,7 +4632,8 @@ dblock *eval_data(operand *op,size_t bitsize,section *sec,taddr pc)
 
   if (base) {
     /* relocation required */
-    add_nreloc(&db->relocs,base,val,btype==BASE_PCREL?REL_PC:REL_ABS,bitsize,0);
+    add_extnreloc(&db->relocs,base,val,btype==BASE_PCREL?REL_PC:REL_ABS,
+                  0,bitsize,0);
   }
 
   return db;
@@ -5270,7 +5277,7 @@ char *parse_cpu_special(char *start)
         db->data[0] = 0x41 | (sdreg << 1);  /* LEA _LinkerDB,An */
         db->data[1] = 0xf9;
         memset(&db->data[2],0,4);
-        add_nreloc(&db->relocs,new_import("_LinkerDB"),0,REL_ABS,32,16);
+        add_extnreloc(&db->relocs,new_import("_LinkerDB"),0,REL_ABS,0,32,2);
         add_atom(0,new_data_atom(db,2));
       }
       else

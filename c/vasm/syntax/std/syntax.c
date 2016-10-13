@@ -1,5 +1,5 @@
 /* syntax.c  syntax module for vasm */
-/* (c) in 2002-2015 by Volker Barthelmann and Frank Wille */
+/* (c) in 2002-2016 by Volker Barthelmann and Frank Wille */
 
 #include "vasm.h"
 #include "stabs.h"
@@ -13,7 +13,7 @@
    be provided by the main module.
 */
 
-char *syntax_copyright="vasm std syntax module 4.1a (c) 2002-2015 Volker Barthelmann";
+char *syntax_copyright="vasm std syntax module 5.0b (c) 2002-2016 Volker Barthelmann";
 hashtable *dirhash;
 
 static char textname[]=".text",textattr[]="acrx";
@@ -55,10 +55,11 @@ static struct namelen endr_dirlist[] = {
   { 4,&endrname[1] }, { 0,0 }
 };
 
-static int parse_end=0;
-static int nodotneeded=0;
-static int alloccommon=0;
-static int noesc=0;
+static int parse_end;
+static int nodotneeded;
+static int alloccommon;
+static int align_data;
+static int noesc;
 static taddr sdlimit=-1; /* max size of common data in .sbss section */
 
 
@@ -145,31 +146,9 @@ static taddr comma_constexpr(char **s)
   return 0;
 }
 
-static void add_const_datadef(section *s,taddr val,int size,int align)
-{
-  char buf[32];
-  int len;
-  operand *op;
-
-  if (size <= 32) {
-    len = sprintf(buf,"%ld",(long)val);
-    op = new_operand();
-    if (parse_operand(buf,len,op,DATA_OPERAND(size))) {
-      atom *a = new_datadef_atom(size,op);
-
-      a->align = align;
-      add_atom(s,a);
-    }
-    else
-      syntax_error(8);
-  }
-  else
-    ierror(0);
-}
-
 static void handle_section(char *s)
 {
-  char *name,*attr,*p;
+  char *name,*attr,*new,*p;
   uint32_t mem=0;
   section *sec;
 
@@ -179,13 +158,34 @@ static void handle_section(char *s)
   }
   if(*s==','){
     s=skip(s+1);
-    if(*s!='\"') general_error(6,'\"');  /* quote expected */
+    if(*s!='\"')
+      general_error(6,'\"');  /* quote expected */
     if(attr=parse_name(&s)){
       if(*s==','){
-        /* optional memory flags (vasm-specific) */
         p=s=skip(s+1);
-        mem=parse_constexpr(&s);
-        if(s==p) syntax_error(9);  /* memory flags */
+        if(*s=='@'||*s=='%'){
+          /* ELF section type "progbits" or "nobits" */
+          s++;
+          if(new=parse_identifier(&s)){
+            if(!strcmp(new,"nobits")){
+              myfree(new);
+              if(strchr(attr,'u')==NULL){
+                new=mymalloc(strlen(attr)+2);
+                sprintf(new,"u%s",attr);
+                myfree(attr);
+                attr=new;
+              }
+            }else{
+              if(strcmp(new,"progbits"))
+                syntax_error(14);  /* invalid sectiont type ignored */
+              myfree(new);
+            }
+          }
+        }else{
+          /* optional memory flags (vasm-specific) */
+          mem=parse_constexpr(&s);
+          if(s==p) syntax_error(9);  /* memory flags */
+        }
       }
     }else{
       syntax_error(7);  /* section flags */
@@ -274,7 +274,7 @@ static void handle_data(char *s,int size,int noalign)
         atom *a;
 
         a=new_datadef_atom(OPSZ_BITS(size),op);
-        if(noalign)
+        if(!align_data||noalign)
           a->align=1;
         add_atom(0,a);
       }else
@@ -609,19 +609,19 @@ static expr *read_stabexp(char **s)
 static void handle_stabs(char *s)
 {
   char *name;
+  size_t len;
   int t,o,d;
 
-  if (*s++ == '\"') {
-    name = s;
-    while (*s && *s!='\"')
-      s++;
-    name = cnvstr(name,s-name);
+  if (*s == '\"') {
+    skip_string(s,*s,&len);
+    name = mymalloc(len+1);
+    s = read_string(name,s,*s,8);
+    name[len] = '\0';
   }
   else {
     general_error(6,'\"');  /* quote expected */
     return;
   }
-  s++;
   t = comma_constexpr(&s);
   o = comma_constexpr(&s);
   d = comma_constexpr(&s);
@@ -1331,7 +1331,7 @@ char *const_prefix(char *s,int *base)
       *base=8;
       return s;
     }
-    if(s[1]=='f'||s[1]=='F'||s[1]=='r'||s[1]=='R')
+    if(s[1]=='d'||s[1]=='D'||s[1]=='f'||s[1]=='F'||s[1]=='r'||s[1]=='R')
       s+=2;  /* floating point is handled automatically, so skip prefix */
   }
   *base=10;
@@ -1393,7 +1393,11 @@ int syntax_args(char *p)
 {
   int i;
 
-  if (!strcmp(p,"-nodotneeded")) {
+  if (!strcmp(p,"-align")) {
+    align_data = 1;
+    return 1;
+  }
+  else if (!strcmp(p,"-nodotneeded")) {
     nodotneeded = 1;
     return 1;
   }

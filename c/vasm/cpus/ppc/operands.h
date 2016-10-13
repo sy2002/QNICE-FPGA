@@ -29,13 +29,20 @@ enum {
   MBE,MBE_,MB6,NB,NSI,RA,RAL,RAM,RAS,RB,RBS,RS,SH,SH6,SI,SISIGNOPT,
   SPR,SPRBAT,SPRG,SR,SV,TBR,TO,U,UI,VA,VB,VC,VD,SIMM,UIMM,SHB,
   SLWI,SRWI,EXTLWI,EXTRWI,EXTWIB,INSLWI,INSRWI,ROTRWI,CLRRWI,CLRLSL,
-  STRM,AT
+  STRM,AT,LS,RSOPT,RAOPT,RBOPT,CT,SHO,CRFS,EVUIMM_2,EVUIMM_4,EVUIMM_8
 };
 
 #define FRT FRS
 #define ME6 MB6
 #define RT RS
+#define RTOPT RSOPT
 #define VS VD
+#define CRB MB
+#define PMR SPR
+#define TMR SPR
+#define CRFD BF
+#define EVUIMM SH
+
 #define NEXT (-1)  /* use operand_type+1 for next operand */
 
 
@@ -211,6 +218,16 @@ static uint32_t insert_spr(uint32_t insn,int32_t value,const char **errmsg)
   return insn | ((value & 0x1f) << 16) | ((value & 0x3e0) << 6);
 }
 
+static uint32_t insert_sprg(uint32_t insn,int32_t value,const char **errmsg)
+{
+  /* @@@ only BOOKE, VLE and 405 have 8 SPRGs */
+  if (value & ~7)
+    *errmsg = "illegal SPRG number";
+  if ((insn & 0x100)!=0 || value<=3)
+    value |= 0x10;  /* mfsprg 4..7 use SPR260..263 */
+  return insn | ((value & 17) << 16);
+}
+
 static uint32_t insert_tbr(uint32_t insn,int32_t value,const char **errmsg)
 {
   if (value == 0)
@@ -285,6 +302,12 @@ static uint32_t insert_clrlslwi(uint32_t insn,int32_t value,const char **errmsg)
     *errmsg = "n (4th oper) must be less or equal to b (3rd oper)";
   return (insn&~0x7c0) | ((value&0x1f)<<11) | (((b-value)&0x1f)<<6)
                        | (((31-value)&0x1f)<<1);
+}
+
+static uint32_t insert_ls(uint32_t insn,int32_t value,const char **errmsg)
+{
+  /* @@@ check for POWER4 */
+  return insn | ((value&3)<<21);
 }
 
 
@@ -455,7 +478,7 @@ const struct powerpc_operand powerpc_operands[] =
   { 2, 17, 0, 0 },
 
   /* SPRG */
-  { 2, 16, 0, 0 },
+  { 3, 16, insert_sprg, 0 },
 
   /* SR */
   { 4, 16, 0, 0 },
@@ -531,4 +554,34 @@ const struct powerpc_operand powerpc_operands[] =
 
   /* AT */
   { 1, 25, 0, OPER_OPTIONAL },
+
+  /* LS */
+  { 2, 21, insert_ls, OPER_OPTIONAL },
+
+  /* RSOPT */
+  { 5, 21, 0, OPER_GPR | OPER_OPTIONAL },
+
+  /* RAOPT */
+  { 5, 16, 0, OPER_GPR | OPER_OPTIONAL },
+
+  /* RBOPT */
+  { 5, 11, 0, OPER_GPR | OPER_OPTIONAL },
+
+  /* CT */
+  { 5, 21, 0, OPER_OPTIONAL },
+
+  /* SHO */
+  { 5, 11, 0, OPER_OPTIONAL },
+  
+  /* CRFS */
+  { 3, 0, 0, OPER_CR },
+
+  /* EVUIMM_2 */
+  { 5, 10, 0, OPER_PARENS },
+
+  /* EVUIMM_4 */
+  { 5, 9, 0, OPER_PARENS },
+
+  /* EVUIMM_8 */
+  { 5, 8, 0, OPER_PARENS },
 };

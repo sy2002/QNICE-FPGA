@@ -576,7 +576,7 @@ mnemonic mnemonics[] = {
 
 int mnemonic_cnt=sizeof(mnemonics)/sizeof(mnemonics[0]);
 
-char *cpu_copyright="vasm 8080/gbz80/z80/z180/rcmX000 cpu backend 0.2g (c) 2007,2009 Dominic Morris";
+char *cpu_copyright="vasm 8080/gbz80/z80/z180/rcmX000 cpu backend 0.2h (c) 2007,2009 Dominic Morris";
 char *cpuname = "z80";
 int bitsperbyte = 8;
 int bytespertaddr = 2;
@@ -1493,8 +1493,8 @@ static void write_opcode(mnemonic *opcode, dblock *db, int size, section *sec, t
             rlist *rl;
             modifier = 0;
             if ( find_base(indexit->value, &base, sec, pc) == BASE_OK ) {
-                rl = add_nreloc(&db->relocs, base, val, REL_ABS, 8,
-                                cbmode ? ((d-1)-start)*8 : (d-start)*8);
+                rl = add_extnreloc(&db->relocs, base, val, REL_ABS, 0, 8,
+                                   cbmode ? ((d-1)-start) : (d-start));
                 val = apply_modifier(rl, val);
             } else
                 general_error(38);  /* illegal relocation */
@@ -1520,13 +1520,14 @@ static void write_opcode(mnemonic *opcode, dblock *db, int size, section *sec, t
             modifier = 0;
             if ( find_base(expr, &base, sec, pc) == BASE_OK ) {
                 if ( opcode->ext.mode == TYPE_RELJUMP ) {
-                    add_nreloc(&db->relocs, base, val -1, REL_PC, exprsize * 8, (d - start) * 8);
+                    add_extnreloc(&db->relocs, base, val -1, REL_PC,
+                                  0, exprsize * 8, (d - start));
                     val -= (pc + db->size);
                     if (modifier)
                         ierror(0);  /* @@@ Hi/Lo modifier makes no sense here? */
                 } else {
-                    rl = add_nreloc(&db->relocs, base, val, REL_ABS,
-                                    exprsize * 8, (d - start) * 8);
+                    rl = add_extnreloc(&db->relocs, base, val, REL_ABS,
+                                       0, exprsize * 8, (d - start));
                     val = apply_modifier(rl, val);
                 }
                 
@@ -1602,7 +1603,8 @@ static void rabbit_emu_call(instruction *ip,dblock *db,section *sec,taddr pc)
         if ( eval_expr(expr, &val, sec, pc) == 0 ) {
             symbol *base;
             if ( find_base(expr, &base, sec, pc) == BASE_OK )
-                add_nreloc(&db->relocs,base, val, REL_ABS, 8, (d - start) * 8);
+                add_extnreloc(&db->relocs,base, val, REL_ABS,
+                              0, 8, (d - start));
             else
                 general_error(38);  /* illegal relocation */
         } 
@@ -1615,7 +1617,7 @@ static void rabbit_emu_call(instruction *ip,dblock *db,section *sec,taddr pc)
     if ( eval_expr(ip->op[1]->value, &val, sec, pc) == 0 ) {
         symbol *base;
         if ( find_base(ip->op[1]->value, &base, sec, pc) == BASE_OK )
-            add_nreloc(&db->relocs,base, val, REL_ABS, 8, (d - start) * 8);
+            add_extnreloc(&db->relocs,base, val, REL_ABS, 0, 8, (d - start));
         else
             general_error(38);  /* illegal relocation */
     } 
@@ -1656,8 +1658,9 @@ dblock *eval_data(operand *op,size_t bitsize,section *sec,taddr pc)
         modifier = 0;
         btype = find_base(op->value, &base, sec, pc);
         if ( btype == BASE_OK || ( btype == BASE_PCREL && modifier == 0 ) ) {
-            rl = add_nreloc(&db->relocs, base, val,
-                            btype==BASE_PCREL ? REL_PC : REL_ABS, bitsize, 0);
+            rl = add_extnreloc(&db->relocs, base, val,
+                               btype==BASE_PCREL ? REL_PC : REL_ABS,
+                               0, bitsize, 0);
             val = apply_modifier(rl, val);
         }
         else if (btype != BASE_NONE)
@@ -1726,7 +1729,8 @@ dblock *eval_instruction(instruction *ip,section *sec,taddr pc)
                     expr = parse_expr(&bufptr);
                     if ( eval_expr(expr, &val, sec, pc) == 0 ) {
                         if (find_base(expr, &base, sec, pc) == BASE_OK)
-                            add_nreloc(&db->relocs,base, val, REL_ABS, 8, 8);
+                            add_extnreloc(&db->relocs,base, val, REL_ABS,
+                                          0, 8, 1);
                         else
                             general_error(38);  /* illegal relocation */
                     } 

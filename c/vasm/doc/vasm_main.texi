@@ -19,6 +19,10 @@ or additional options.
 
 @table @option
 
+@item -chklabels
+        Issues a warning when a label matches a mnemonic or directive name
+        in either upper or lower case.
+
 @item -D<name>[=expression]
         Defines a symbol with the name <name> and assigns the value of the
         expression when given. The assigned value defaults to 1 otherwise.
@@ -365,7 +369,7 @@ The frontend has the following error messages:
 @item 19: symbol <%s> recursively defined
 @item 20: fail: %s
 @item 21: section offset is lower than current pc
-@item 22: character constant too long
+@item 22: target data type overflow (%d bits)
 @item 23: undefined symbol <%s>
 @item 24: trailing garbage after option -%c
 @item 25: missing pacro parameters
@@ -383,6 +387,8 @@ The frontend has the following error messages:
 @item 37: no current macro to exit
 @item 38: internal symbol %s redefined by user
 @item 39: illegal relocation
+@item 40: label name conflicts with mnemonic
+@item 41: label name conflicts with directive
 @item 42: division by zero
 @item 43: illegal macro argument
 @item 44: reloc org is already set

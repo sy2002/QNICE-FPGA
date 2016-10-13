@@ -109,7 +109,7 @@ static expr *primary_expr(void)
   m=const_prefix(s,&base);
   if(base!=0){
     char *start=s;
-    utaddr val,oldval;
+    utaddr val,nval;
     thuge huge;
     tfloat flt;
     switch(exp_type){
@@ -118,25 +118,27 @@ static expr *primary_expr(void)
       val=0;
       if(base<=10){
         while(*s>='0'&&*s<base+'0'){
-          oldval=val;
-          val=base*val+*s++-'0';
-          if(val<oldval)
-            goto hugeval;  /* overflow, read a thuge value type */
+          nval=base*val;
+          if (nval/base!=val)
+            goto hugeval;  /* taddr overflow, read a thuge value instead */
+          val=nval+*s++-'0';
         }
-        if(*s=='e'||*s=='E'||
-           (*s=='.'&&*(s+1)>='0'&&*(s+1)<='9'))
+        if(base==10&&(*s=='e'||*s=='E'||(*s=='.'&&*(s+1)>='0'&&*(s+1)<='9')))
           goto fltval;  /* decimal point or exponent: read floating point */
       }else if(base==16){
-        while((*s>='0'&&*s<='9')||(*s>='a'&&*s<='f')||(*s>='A'&&*s<='F')){
-          oldval=val;
+        for(;;){
+          nval=val<<4;
           if(*s>='0'&&*s<='9')
-            val=16*val+*s++-'0';
+            nval+=*s++-'0';
           else if(*s>='a'&&*s<='f')
-            val=16*val+*s++-'a'+10;
+            nval+=*s++-'a'+10;
+          else if(*s>='A'&&*s<='F')
+            nval+=*s++-'A'+10;
+          else break;
+          if (nval>>4!=val)
+            goto hugeval;  /* taddr overflow, read a thuge value instead */
           else
-            val=16*val+*s++-'A'+10;
-          if(val<oldval)
-            goto hugeval;  /* overflow, read a thuge value instead */
+            val=nval;
         }
       }else ierror(0);
       break;
@@ -152,13 +154,14 @@ static expr *primary_expr(void)
                       (*s=='.'&&*(s+1)>='0'&&*(s+1)<='9')))
           goto fltval;  /* decimal point or exponent: read floating point */
       }else if(base==16){
-        while((*s>='0'&&*s<='9')||(*s>='a'&&*s<='f')||(*s>='A'&&*s<='F')){
+        for(;;){
           if(*s>='0'&&*s<='9')
             huge=haddi(hmuli(huge,16),*s++-'0');
           else if(*s>='a'&&*s<='f')
             huge=haddi(hmuli(huge,16),*s++-'a'+10);
-          else
+          else if(*s>='A'&&*s<='F')
             huge=haddi(hmuli(huge,16),*s++-'A'+10);
+          else break;
         }
       }else ierror(0);
       break;
@@ -236,7 +239,7 @@ static expr *primary_expr(void)
         }
       }
       if(++cnt>bytespertaddr){
-        general_error(21);
+        general_error(21,bytespertaddr*8);  /* target data type overflow */
         break;
       }
       if(BIGENDIAN){
@@ -1048,9 +1051,13 @@ int eval_expr(expr *tree,taddr *result,section *sec,taddr pc)
     val=tree->c.val;
     break;
   case HUG:
+    if (!huge_chkrange(tree->c.huge,bytespertaddr*8))
+      general_error(21,bytespertaddr*8);  /* target data type overflow */
     val=huge_to_int(tree->c.huge);
     break;
   case FLT:
+    if (!flt_chkrange(tree->c.flt,bytespertaddr*8))
+      general_error(21,bytespertaddr*8);  /* target data type overflow */
     val=(taddr)tree->c.flt;
     break;
   default:
@@ -1270,6 +1277,8 @@ int eval_expr_float(expr *tree,tfloat *result)
 
 void print_expr(FILE *f,expr *p)
 {
+  if(p==NULL)
+    ierror(0);
   simplify_expr(p);
   if(p->type==NUM)
     fprintf(f,"%lld",(int64_t)p->c.val);
@@ -1415,10 +1424,20 @@ taddr parse_constexpr(char **s)
 
   if (tree = parse_expr(s)) {
     simplify_expr(tree);
-    if (tree->type == NUM)
-      val = tree->c.val;
-    else
-      general_error(30);  /* expression must be a constant */
+    switch(tree->type){
+      case NUM:
+        val = tree->c.val;
+        break;
+      case HUG:
+        general_error(59);  /* cannot evaluate huge integer */
+        break;
+      case FLT:
+        general_error(60);  /* cannot evaluate floating point */
+        break;
+      default:
+        general_error(30);  /* expression must be a constant */
+        break;
+    }
     free_expr(tree);
   }
   return val;

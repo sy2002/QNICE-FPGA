@@ -3,7 +3,7 @@ with the extension @code{std}.
 
 @section Legal
 
-    This module is copyright in 2002-2015 by Volker Barthelmann.
+    This module is copyright in 2002-2016 by Volker Barthelmann.
 
     This archive may be redistributed without modifications and used
     for non-commercial purposes.
@@ -22,6 +22,9 @@ This syntax module provides the following additional options:
 @item -ac
  Immediately allocate common symbols in .bss/.sbss section and
  define them as externally visible.
+@item -align
+ Enforces the backend's natural alignment for all data directives
+ (@code{.word}, @code{.long}, @code{.float}, etc.).
 @item -nodotneeded
  Recognize assembly directives without a leading dot (@code{.}).
 @item -noesc
@@ -130,7 +133,7 @@ See @code{.string}.
 @item .double <exp1>[,<exp2>...]
       Parse one of more double precision floating point expressions and
       write them into successive blocks of 8 bytes into memory using the
-      backend's endianess and alignment.
+      backend's endianess.
 
 @item .endm
       Ends a macro definition.
@@ -164,7 +167,7 @@ See @code{.string}.
 @item .float <exp1>[,<exp2>...]
       Parse one of more single precision floating point expressions and
       write them into successive blocks of 4 bytes into memory using the
-      backend's endianess and alignment.
+      backend's endianess.
 
 @item .global <symbol>[,<symbol>...]
       Flag <symbol> as an external symbol, which means that <symbol> is
@@ -175,10 +178,8 @@ See @code{.string}.
       See @code{.global}.
 
 @item .half <exp1>[,<exp2>...]
-      If the current section location counter is not on a halfword
-      boundary, advance it to the next halfword boundary. Then, assign
-      the values of the operands into successive halfwords of memory in
-      the current section.
+      Assign the values of the operands into successive 16-bit words of
+      memory in the current section using the backend's endianess.
 
 @item .if <expression>
       Conditionally assemble the following lines if <expression> is non-zero.
@@ -237,7 +238,7 @@ See @code{.string}.
       occurence.
 
 @item .int <exp1>[,<exp2>...]
-      See @code{.word}.
+      See @code{.long}.
 
 @item .lcomm <symbol>,<size>[,<alignment>] 
       Allocate <size> bytes of space in the .bss section and assign
@@ -256,7 +257,8 @@ See @code{.string}.
       the linking process.
 
 @item .long <exp1>[,<exp2>...]
-      See @code{.word}.
+      Assign the values of the operands into successive 32-bit words of
+      memory in the current section using the backend's endianess.
 
 @item .macro <name> [<argname1>[=<default>][,<argname2>...]]
       Defines a macro which can be referenced by <name>. The macro
@@ -303,16 +305,15 @@ See @code{.string}.
       zero-bytes.
 
 @item .quad <exp1>[,<exp2>...]
-      If the current section location counter is not on a quadword
-      boundary, advance it to the next quadword boundary. Then, assign
-      the values of the operands into successive quadwords of memory in
-      the current section.
+      Assign the values of the operands into successive quadwords
+      (64-bit) of memory in the current section using the backend's
+      endianess.
 
 @item .rept <expression>
       Repeats the assembly of the block between @code{.rept} and @code{.endr}
       <expression> number of times. <expression> has to be positive.
 
-@item .section <name>[,"<attributes>"][,<mem_flags>]
+@item .section <name>[,"<attributes>"][[,@@<type>]|[,%<type>]|[,<mem_flags>]]
       Starts a new section named @code{<name>} or reactivate an old one. If
       attributes are given for an already existing section, they must
       match exactly. The section's name will also be defined as a new
@@ -366,13 +367,23 @@ See @code{.string}.
       Memory flags (Amiga hunk format only):
 
 @table @code
-            
 @item C 
          load section to Chip RAM
-           
 @item  F 
          load section to Fast RAM 
+@end table
 
+      The optional @code{<type>} argument is mainly used for ELF output
+      and may be introduced either by a '%' or a '@@' character.
+      Allowed are:
+
+@table @code
+@item progbits
+        This is the default value, which means the section data occupies
+        space in the file and may have initialized data.
+@item nobits
+        These sections do not occupy any space in the file and will be
+        allocated filled with zero bytes by the OS loader.
 @end table
 
       When the optional, non-standard, @code{<mem_flags>} argument is given
@@ -430,22 +441,24 @@ See @code{.string}.
       this purpose.
  
 @item .uahalf <exp1>[,<exp2>...]
-      Assign the values of the operands into successive two-byte areas of
-      memory in the current section regardless of section alignment.
+      Assign the values of the operands into successive 16-bit areas of
+      memory in the current section regardless of current alignment.
  
 @item .ualong <exp1>[,<exp2>...]
-      See @code{.uaword}.
+      Assign the values of the operands into successive 32-bit areas of
+      memory in the current section regardless of current alignment.
 
 @item .uaquad <exp1>[,<exp2>...]
-      Assign the values of the operands into successive eight-byte areas of
-      memory in the current section regardless of section alignment.
+      Assign the values of the operands into successive 64-bit areas of
+      memory in the current section regardless of current alignment.
 
 @item .uashort <exp1>[,<exp2>...]
-      See @code{.uahalf}.
+      Assign the values of the operands into successive 16-bit areas of
+      memory in the current section regardless of current alignment.
  
 @item .uaword <exp1>[,<exp2>...]
-      Assign the values of the operands into successive four-byte areas
-      of memory in the current section regardless of section alignment.
+      Assign the values of the operands into successive 16-bit areas
+      of memory in the current section regardless of current alignment.
 
 @item .weak <symbol>[,<symbol>...]
       Flag <symbol> as a weak symbol, which means that <symbol> is
@@ -454,9 +467,8 @@ See @code{.string}.
       When a weak symbol remains undefined its value defaults to 0.
  
 @item .word <exp1>[,<exp2>...]
-      If the current section location counter is not on a word boundary
-      advance it to the next word boundary. Then assign the values of the
-      operands into successive words of memory in the current section. 
+      Assign the values of the operands into successive 16-bit words of
+      memory in the current section using the backend's endianess.
 
 @item .zero <exp>[,<fill>]
       Insert <exp> zero or <fill> bytes into the current section.
@@ -516,6 +528,7 @@ This module has the following error messages:
 @item 1012: assembly aborted
 @item 1013: unexpected "%s" without "%s"
 @item 1014: pointless default value for required parameter <%s>
+@item 1015: invalid section type ignored, assuming progbits
 @item 1019: syntax error
 @item 1021: section name expected
 @item 1022: .fail %lld encountered

@@ -273,6 +273,11 @@ vasm performs the following optimizations:
         Additionally allow immediate operands to be prefixed by
         @code{&} instead of just by @code{#}. This syntax was used by
         the SGS assembler.
+
+    @item -regsymredef
+        Allow redefining register symbols with @code{EQUR}. This should
+        only be used for compatibility with old sources. Not many assemblers
+        support that.
 @end table
 
 @section General

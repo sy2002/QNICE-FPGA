@@ -275,6 +275,17 @@ was included or called.
         arguments from this buffer, so every source has got its own.
         When returning to the parent source, the linebuf is deallocated
         to save memory.
+
+@item expr *cargexp;
+        (If @code{CARGSYM} was defined.) Pointer to the current expression
+        assigned to the CARG-symbol (used to select a macro argument) in
+        this source instance. So it can be restored when reentering this
+        instance.
+
+@item long reptn;
+        (If @code{REPTNSYM} was defined.) Current value of the repetition
+        counter symbol in this source instance. So it can be restored when
+        reentering this instance.
 @end table
 
 @subsection Sections
@@ -325,6 +336,14 @@ the modules:
         as local labels, with the section name as global parent label.
 @item ABSOLUTE
         Section is loaded at an absolute address in memory.
+@item PREVABS
+        Remembers state of the @code{ABSOLUTE} flag before entering
+        relocated-org mode (@code{IN_RORG}). So it can be restored later.
+@item IN_RORG
+        Section has entered relocated-org mode, which also sets the
+        @code{ABSOLUTE} flag. In this mode code is written into the current
+        section, but relocated to an absolute address. No relocation
+        information are generated.
 @end table
 
 @item  taddr org;
@@ -393,16 +412,29 @@ following members that can be accessed by the modules:.
         undefined, in which case the linker would assign them a value of
         zero.
 
-@item #define VASMINTERN (1<<7)
+@item #define LOCAL (1<<7)
+        Only informational. A symbol can be explicitely declared as local
+        by a syntax-module directive.
+
+@item #define VASMINTERN (1<<8)
         Vasm-internal symbol, which is usually not exported into an output
         file.
 
-@item #define PROTECTED (1<<8)
+@item #define PROTECTED (1<<9)
         Used internally to protect the current-PC symbol from deletion.
 
-@item #define REFERENCED (1<<9)
+@item #define REFERENCED (1<<10)
         Symbol was referenced in the source and a relocation entry has
         been created.
+
+@item #define ABSLABEL (1<<11)
+        Label was defined inside an absolute section, or during
+        relocated-org mode. So it has an absolute address and will not
+        generate a relocation entry when being referenced.
+
+@item #define EQUATE (1<<12)
+        Symbols flagged as @code{EQUATE} are constant and its value must
+        not be changed.
 
 @item #define RSRVD_S (1L<<24)
         The range from bit 24 to 27 (counted from the LSB) is reserved for
@@ -494,6 +526,7 @@ typedef struct atom @{
     expr *roffs;
     taddr *rorg;
     assertion *assert;
+    aoutnlist *nlist;
   @} content;
 @} atom;
 @end example
@@ -561,6 +594,9 @@ The assertion expression is checked in the final pass and an error message
 is generated (using the expression string and an optional message out of
 this atom) when it evaluates to 0.
 
+@item #define NLIST 14
+Defines a stab-entry for the a.out object file format. nlist-style stabs
+can also occur embedded in other object file formats, like ELF.
 @end table
 
 @item taddr align;
@@ -716,7 +752,23 @@ Pointer to the expression as text (to be used in the output).
 @item char *msgstr;
 Pointer to the message, which would be printed when @code{assert_exp} evaluates
 to zero.
+@end table
 
+@item    aoutnlist *nlist;
+(In union @code{content}.) Pointer to an nlist structure, describing an
+aout stab entry, in case of an @code{NLIST}-atom. Contains the following
+elements:
+@table @code
+@item char *name;
+Name of the stab symbol.
+@item int type;
+Symbol type. Refer to @code{stabs.h} for definitions.
+@item int other;
+Defines the nature of the symbol (function, object, etc.).
+@item int desc;
+Debugger information.
+@item expr *value;
+Symbol's value.
 @end table
 
 @end table
@@ -756,14 +808,26 @@ relocation type.
 All standard relocations point to a type @code{nreloc} with the following
 members:
 @table @code
-@item  int offset;
-The offset (from the start of the @code{DATA}-atom in bits.
-        
+@item  size_t byteoffset;
+Offset in bytes, from the start of the current @code{DATA} atom, to the
+beginning of the relocation field. This may also be the address which is
+used as a basis for PC-relative relocations. Or a common basis for several
+separated relocation fields, which will be translated into a single
+relocation type by the output module.
+
+@item  size_t bitoffset;
+Offset in bits to the beginning of the relocation field, adds to
+@code{byteoffset*bitsperbyte}. Bits are counted in a bit-stream from lower
+to higher address bytes. But note, that inside a little-endian byte they
+are counted from the LSB to the MSB, while they are counted from the MSB to
+the LSB for big-endian targets.
+
 @item  int size;
-The size of the relocation in bits.
+The size of the relocation field in bits.
 
 @item  taddr mask; 
-A mask value.
+The mask defines which portion of the relocated value is set by this
+relocation field.
 
 @item taddr addend;
 Value to be added to the symbol value.
@@ -774,19 +838,22 @@ The symbol referred by this relocation
 @end table
 
 To describe the meaning of these entries, we will define the steps that
-shall be performed when performing a relocation:
+shall be executed when performing a relocation:
 
 @enumerate 1
 @item Extract the @code{size} bits from the data atom, starting with bit
-        number @code{offset}. An @code{offset} of zero means starting with
-        the first bit (MSB).
+        number @code{byteoffset*bitsperbyte+bitoffset}. We start counting
+        bits from the lowest to the highest numbered byte in memory.
+        Inside a big-endian byte we count from the MSB to the LSB. Inside
+        a little-endian byte we count from the LSB to the MSB.
 
 @item Determine the relocation value of the symbol. For a simple absolute
-        relocation, this will be the value of the symbol @code{sym} plus the
-        @code{addend}. For other relocation types, more complex calculations
-        will be needed. For example, in a program-counter relative relocation,
+        relocation, this will be the value of the symbol @code{sym} plus
+        the @code{addend}. For other relocation types, more complex
+        calculations will be needed.
+        For example, in a program-counter relative relocation,
         the value will be obtained by subtracting the address of the data
-        atom (possibly offset by a target specific value) from the value
+        atom plus @code{byteoffset} from the value
         of @code{sym} plus @code{addend}.
 
 @item Calculate the bit-wise "and" of the value obtained in the step above
@@ -798,7 +865,7 @@ shall be performed when performing a relocation:
 @item Add this value to the value extracted in step 1.
 
 @item Insert the low order @code{size} bits of this value into the data atom
-        starting with bit @code{offset}.
+        starting with bit @code{byteoffset*bitsperbyte+bitoffset}.
 @end enumerate
 
 
@@ -807,7 +874,8 @@ shall be performed when performing a relocation:
 Each module can provide a list of possible error messages contained
 e.g. in @file{syntax_errors.h} or @file{cpu_errors.h}. They are a
 comma-separated list of a printf-format string and error flags. Allowed
-flags are @code{WARNING}, @code{ERROR}, @code{FATAL} and @code{NOLINE}.
+flags are @code{WARNING}, @code{ERROR}, @code{FATAL}, @code{MESSAGE} and
+@code{NOLINE}.
 They can be combined using or (@code{|}). @code{NOLINE} has to be set for
 error messages during initialiation or while writing the output, when
 no source text is available. Errors cause the assembler to return false.
@@ -1097,6 +1165,10 @@ An optional function with the arguments @code{(int idx)}. Returns true
 when the mnemonic with index @code{idx} is valid for the current state of
 the backend (e.g. it is available for the selected cpu architecture).
 
+@item #define MNEMOHTABSIZE 0x4000
+You can optionally overwrite the default hash table size defined in
+@file{vasm.h}. May be necessary for larger mnemonic tables.
+
 @item #define OPERAND_OPTIONAL(p,t)
 When defined, this is a function with the arguments
 @code{(operand *op,int type)}, which returns true when the given operand
@@ -1147,6 +1219,11 @@ The number of bits per byte of the target cpu.
 @item int bytespertaddr;
 The number of bytes per @code{taddr}.
 
+@item mnemonic mnemonics[];
+The mnemonic table keeps a list of mnemonic names and operand types the
+assembler will match against using @code{parse_operand()}. It may also
+include a target specific @code{mnemonic_extension}.
+
 @item char *cpu_copyright;
 A string that will be emitted as part of the copyright message.
 
@@ -1171,9 +1248,6 @@ keep the syntax consistent.
 @item operand *new_operand();
 Allocate and initialize a new operand structure.
 
-@item void free_operand(operand *);
-Free an operand.
-
 @item int parse_operand(char *text,int len,operand *out,int requires);
 Parses the source at @code{text} with length @code{len} to fill the target
 specific operand structure pointed to by @code{out}. Returns @code{PO_MATCH}
@@ -1184,11 +1258,6 @@ that it is useless to try matching against any other operand types.
 Another special case is @code{PO_SKIP}, which is also a match, but skips
 the next operand from the mnemonic table (because it was already handled
 together with the current operand).
-
-@item mnemonic mnemonics[];
-The mnemonic table keeps a list of mnemonic names and operand types the
-assembler will match against using @code{parse_operand()}. It may also
-include a target specific @code{mnemonic_extension}.
 
 @item taddr instruction_size(instruction *ip, section *sec, taddr pc);
 Returns the size of the instruction @code{ip} in bytes, which must be

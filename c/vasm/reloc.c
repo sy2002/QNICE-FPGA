@@ -1,5 +1,5 @@
 /* reloc.c - relocation support functions */
-/* (c) in 2010-2015 by Volker Barthelmann and Frank Wille */
+/* (c) in 2010-2016 by Volker Barthelmann and Frank Wille */
 
 #include "vasm.h"
 
@@ -8,15 +8,17 @@ nreloc *new_nreloc(void)
 {
   nreloc *new = mymalloc(sizeof(*new));
   new->mask = -1;
-  new->offset = 0;
-  new->size = 0;
+  new->byteoffset = new->bitoffset = new->size = 0;
   new->addend = 0;
   return new;
 }
 
 
-rlist *add_nreloc(rlist **relocs,symbol *sym,taddr addend,
-                  int type,size_t size,size_t offs)
+rlist *add_extnreloc(rlist **relocs,symbol *sym,taddr addend,int type,
+                     size_t bitoffs,size_t size,size_t byteoffs)
+/* add_extnreloc() can specify byteoffset and bitoffset directly.
+   Use add_nreloc_masked() for the old interface, which calculates
+   byteoffset and bitoffset from offset. */
 {
   rlist *rl;
   nreloc *r;
@@ -28,8 +30,9 @@ rlist *add_nreloc(rlist **relocs,symbol *sym,taddr addend,
   sym->flags |= REFERENCED;
 
   r = new_nreloc();
+  r->byteoffset = byteoffs;
+  r->bitoffset = bitoffs;
   r->size = size;
-  r->offset = offs;
   r->sym = sym;
   r->addend = addend;
   rl = mymalloc(sizeof(rlist));
@@ -42,13 +45,17 @@ rlist *add_nreloc(rlist **relocs,symbol *sym,taddr addend,
 }
 
 
-rlist *add_nreloc_masked(rlist **relocs,symbol *sym,taddr addend,
-                         int type,size_t size,size_t offs,taddr mask)
+rlist *add_extnreloc_masked(rlist **relocs,symbol *sym,taddr addend,int type,
+                            size_t bitoffs,size_t size,size_t byteoffs,
+                            taddr mask)
+/* add_extnreloc_masked() can specify byteoffset and bitoffset directly.
+   Use add_nreloc_masked() for the old interface, which calculates
+   byteoffset and bitoffset from offset. */
 {
   rlist *rl;
   nreloc *r;
 
-  if (rl = add_nreloc(relocs,sym,addend,type,size,offs)) {
+  if (rl = add_extnreloc(relocs,sym,addend,type,bitoffs,size,byteoffs)) {
     r = rl->reloc;
     r->mask = mask;
   }
@@ -115,8 +122,9 @@ void print_reloc(FILE *f,int type,nreloc *p)
       "none","abs","pc","got","gotrel","gotoff","globdat","plt","pltrel",
       "pltoff","sd","uabs","localpc","loadrel","copy","jmpslot","secoff"
     };
-    fprintf(f,"r%s(%lu,%lu,0x%llx,0x%llx,",rname[type],
-            (unsigned long)p->offset,(unsigned long)p->size,
+    fprintf(f,"r%s(%u,%u-%u,0x%llx,0x%llx,",rname[type],
+            (unsigned)p->byteoffset,(unsigned)p->bitoffset,
+            (unsigned)p->bitoffset+p->size-1,
             ULLTADDR(p->mask),ULLTADDR(p->addend));
   }
 #ifdef VASM_CPU_PPC
@@ -124,9 +132,10 @@ void print_reloc(FILE *f,int type,nreloc *p)
     static const char *rname[] = {
       "sd2","sd21","sdi16","drel","brel"
     };
-    fprintf(f,"r%s(%lu,%lu,0x%llx,0x%llx,",
+    fprintf(f,"r%s(%u,%u-%u,0x%llx,0x%llx,",
             rname[type-(LAST_STANDARD_RELOC+1)],
-            (unsigned long)p->offset,(unsigned long)p->size,
+            (unsigned)p->byteoffset,(unsigned)p->bitoffset,
+            (unsigned)p->bitoffset+p->size-1,
             ULLTADDR(p->mask),ULLTADDR(p->addend));
   }
 #endif

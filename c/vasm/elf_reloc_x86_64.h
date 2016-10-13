@@ -34,14 +34,15 @@
 
     *refsym = r->sym;
     *addend = r->addend;
+    pos = r->bitoffset;
     size = r->size;
-    offset = (taddr)r->offset;
+    *roffset = r->byteoffset;
     mask = r->mask;
 
     switch ((*rl)->type) {
 
       case REL_ABS:
-        if (!(offset&7) && mask==-1) {
+        if (pos==0 && mask==~0) {
           if (size == 64)
             t = R_X86_64_64;
           else if (size == 32)
@@ -54,7 +55,7 @@
         break;
 
       case REL_PC:
-        if (!(offset&7) && mask==-1) {
+        if (pos==0 && mask==~0) {
           if (size == 32)
             t = R_X86_64_PC32;
           else if (size == 16)
@@ -65,21 +66,21 @@
         break;
 
       case REL_GOT:
-        if (!(offset&7) && mask==-1) {
+        if (pos==0 && mask==~0) {
           if (size == 32)
             t = R_X86_64_GOT32;
         }
         break;
 
       case REL_GOTPC:
-        if (!(offset&7) && mask==-1) {
+        if (pos==0 && mask==~0) {
           if (size == 32)
             t = R_X86_64_GOTPCREL;
         }
         break;
 
       case REL_PLT:
-        if (!(offset&7) && mask==-1) {
+        if (pos==0 && mask==~0) {
           if (size == 32)
             t = R_X86_64_PLT32;
         }

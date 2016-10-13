@@ -189,8 +189,9 @@ static void read_section(struct vobj_section *vsect,
       addend = read_number(1);
       sym = (int)read_number(0) - 1;  /* symbol index */
 
-      if (offs<0 || offs>=vsect->dsize) {
-        printf("offset 0x%llx is outside of section!\n",BPTMASK(offs));
+      if (offs<0 || offs+(bpos>>3)>=vsect->dsize) {
+        printf("offset 0x%llx is outside of section!\n",
+               BPTMASK(offs+(bpos>>3)));
         continue;
       }
       if (sym<0 || sym>=nsyms) {
@@ -390,7 +391,7 @@ int main(int argc,char *argv[])
       fprintf(stderr,"Cannot open \"%s\" for reading!\n",argv[1]);
   }
   else
-    fprintf(stderr,"vobjdump V0.4\nWritten by Frank Wille\n"
+    fprintf(stderr,"vobjdump V0.4a\nWritten by Frank Wille\n"
             "Usage: %s <file name>\n",argv[0]);
 
   return rc;

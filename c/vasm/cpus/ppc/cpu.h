@@ -1,6 +1,6 @@
 /*
 ** cpu.h PowerPC cpu-description header-file
-** (c) in 2002,2006,2011,2015 by Frank Wille
+** (c) in 2002,2006,2011-2016 by Frank Wille
 */
 
 extern int ppc_endianess;
@@ -73,42 +73,88 @@ typedef struct {
 
 /* additional mnemonic data */
 typedef struct {
-  uint32_t available;
+  uint64_t available;
   uint32_t opcode;
 } mnemonic_extension;
 
 /* Values defined for the 'available' field of mnemonic_extension.  */
-#define CPU_TYPE_PPC          (1)
-#define CPU_TYPE_POWER        (2)
-#define CPU_TYPE_POWER2       (4)
-#define CPU_TYPE_601          (8)
-#define CPU_TYPE_COMMON       (0x10)
-#define CPU_TYPE_ALTIVEC      (0x20)
-#define CPU_TYPE_ANY          (0x10000000)
-#define CPU_TYPE_64_BRIDGE    (0x20000000)
-#define CPU_TYPE_32           (0x40000000)
-#define CPU_TYPE_64           (0x80000000)
+#define CPU_TYPE_PPC          (1ULL)
+#define CPU_TYPE_POWER        (2ULL)
+#define CPU_TYPE_POWER2       (4ULL)
+#define CPU_TYPE_601          (8ULL)
+#define CPU_TYPE_COMMON       (0x10ULL)
+#define CPU_TYPE_ALTIVEC      (0x20ULL)
+#define CPU_TYPE_403          (0x40ULL)
+#define CPU_TYPE_405          (0x80ULL)
+#define CPU_TYPE_440          (0x100ULL)
+#define CPU_TYPE_476          (0x200ULL)
+#define CPU_TYPE_BOOKE        (0x400ULL)
+#define CPU_TYPE_E300         (0x800ULL)
+#define CPU_TYPE_E500         (0x1000ULL)
+#define CPU_TYPE_VLE          (0x2000ULL)
+#define CPU_TYPE_E500MC       (0x4000ULL)
+#define CPU_TYPE_750          (0x8000ULL)
+#define CPU_TYPE_7450         (0x10000ULL)
+#define CPU_TYPE_ISEL         (0x20000ULL)
+#define CPU_TYPE_RFMCI        (0x40000ULL)
+#define CPU_TYPE_PMR          (0x80000ULL)
+#define CPU_TYPE_TMR          (0x100000ULL)
+#define CPU_TYPE_SPE          (0x200000ULL)
+#define CPU_TYPE_EFS          (0x400000ULL)
+#define CPU_TYPE_860          (0x800000ULL)
+#define CPU_TYPE_ANY          (0x1000000000000000ULL)
+#define CPU_TYPE_64_BRIDGE    (0x2000000000000000ULL)
+#define CPU_TYPE_32           (0x4000000000000000ULL)
+#define CPU_TYPE_64           (0x8000000000000000ULL)
 
-/* Shortcuts for known PPC models */
+/* Shortcuts for PPC instruction sets */
 #undef  PPC
-#define PPC     (CPU_TYPE_PPC | CPU_TYPE_ANY)
-#define PPCCOM  (CPU_TYPE_PPC | CPU_TYPE_COMMON | CPU_TYPE_ANY)
-#define PPC32   (CPU_TYPE_PPC | CPU_TYPE_32 | CPU_TYPE_ANY)
-#define PPC64   (CPU_TYPE_PPC | CPU_TYPE_64 | CPU_TYPE_ANY)
+#define PPC     CPU_TYPE_PPC
+#define PPCCOM  (CPU_TYPE_PPC | CPU_TYPE_COMMON)
+#define PPC32   (CPU_TYPE_PPC | CPU_TYPE_32)
+#define PPC64   (CPU_TYPE_PPC | CPU_TYPE_64)
 #define PPCONLY CPU_TYPE_PPC
-#define PPC403  PPC
-#define PPC405  PPC403
+#define PPC403  CPU_TYPE_403
+#define PPC405  CPU_TYPE_405
+#define PPC440  CPU_TYPE_440
 #define PPC750  PPC
-#define PPC860  PPC
-#define PPCVEC  (CPU_TYPE_ALTIVEC | CPU_TYPE_ANY)
-#define POWER   (CPU_TYPE_POWER | CPU_TYPE_ANY)
-#define POWER2  (CPU_TYPE_POWER | CPU_TYPE_POWER2 | CPU_TYPE_ANY)
-#define PPCPWR2 (CPU_TYPE_PPC | CPU_TYPE_POWER | CPU_TYPE_POWER2 | CPU_TYPE_ANY)
-#define POWER32 (CPU_TYPE_POWER | CPU_TYPE_ANY | CPU_TYPE_32)
-#define COM     (CPU_TYPE_POWER | CPU_TYPE_PPC | CPU_TYPE_COMMON | CPU_TYPE_ANY)
-#define COM32   (CPU_TYPE_POWER | CPU_TYPE_PPC | CPU_TYPE_COMMON | CPU_TYPE_ANY | CPU_TYPE_32)
-#define M601    (CPU_TYPE_POWER | CPU_TYPE_601 | CPU_TYPE_ANY)
-#define PWRCOM  (CPU_TYPE_POWER | CPU_TYPE_601 | CPU_TYPE_COMMON | CPU_TYPE_ANY)
+#define PPC860  CPU_TYPE_860
+#define AVEC    CPU_TYPE_ALTIVEC
+#define BOOKE   CPU_TYPE_BOOKE
+#define E300    CPU_TYPE_E300
+#define E500    CPU_TYPE_E500
+#define E500MC  CPU_TYPE_E500MC
+#define RFMCI   CPU_TYPE_RFMCI
+#define ISEL    (CPU_TYPE_ISEL | CPU_TYPE_VLE)
+#define SPE     (CPU_TYPE_SPE | CPU_TYPE_VLE)
+#define EFS     (CPU_TYPE_EFS | CPU_TYPE_VLE)
+#define PPCPMR  CPU_TYPE_PMR
+#define PPC43   (CPU_TYPE_403 | CPU_TYPE_440)
+#define PPC45   (CPU_TYPE_405 | CPU_TYPE_440)
+#define BE3403  (CPU_TYPE_403 | CPU_TYPE_476 | CPU_TYPE_E300 | CPU_TYPE_BOOKE)
+#define BE403   (CPU_TYPE_403 | CPU_TYPE_476 | CPU_TYPE_BOOKE)
+#define BE476   (CPU_TYPE_476 | CPU_TYPE_BOOKE)
+#define VLCOM   (CPU_TYPE_PPC | CPU_TYPE_COMMON | CPU_TYPE_VLE)
+#define RFMC476 (CPU_TYPE_RFMCI | CPU_TYPE_476)
+#define VLRFMCI (CPU_TYPE_RFMCI | CPU_TYPE_VLE)
+#define VLBE403 (CPU_TYPE_403 | CPU_TYPE_476 | CPU_TYPE_BOOKE | CPU_TYPE_VLE)
+#define VLBE405 (CPU_TYPE_405 | CPU_TYPE_BOOKE | CPU_TYPE_VLE)
+#define VL43    (CPU_TYPE_403 | CPU_TYPE_440 | CPU_TYPE_VLE)
+#define VL45    (CPU_TYPE_405 | CPU_TYPE_440 | CPU_TYPE_VLE)
+#define VL4376  (CPU_TYPE_403 | CPU_TYPE_440 | CPU_TYPE_476 | CPU_TYPE_VLE)
+#define VLBE    (CPU_TYPE_BOOKE | CPU_TYPE_VLE)
+#define VLBE476 (CPU_TYPE_476 | CPU_TYPE_BOOKE | CPU_TYPE_VLE)
+#define VLBE3   (CPU_TYPE_476 | CPU_TYPE_E300 | CPU_TYPE_BOOKE | CPU_TYPE_VLE)
+#define VL7450  (CPU_TYPE_405 | CPU_TYPE_476 | CPU_TYPE_BOOKE | CPU_TYPE_7450 | CPU_TYPE_VLE)
+#define VLBEPMR (CPU_TYPE_PMR | CPU_TYPE_BOOKE | CPU_TYPE_VLE)
+#define POWER   CPU_TYPE_POWER
+#define POWER2  (CPU_TYPE_POWER | CPU_TYPE_POWER2)
+#define PPCPWR2 (CPU_TYPE_PPC | CPU_TYPE_POWER | CPU_TYPE_POWER2)
+#define POWER32 (CPU_TYPE_POWER | CPU_TYPE_32)
+#define COM     (CPU_TYPE_POWER | CPU_TYPE_PPC | CPU_TYPE_COMMON)
+#define COM32   (CPU_TYPE_POWER | CPU_TYPE_PPC | CPU_TYPE_COMMON | CPU_TYPE_32)
+#define M601    (CPU_TYPE_POWER | CPU_TYPE_601)
+#define PWRCOM  (CPU_TYPE_POWER | CPU_TYPE_601 | CPU_TYPE_COMMON)
 #define MFDEC1  CPU_TYPE_POWER
 #define MFDEC2  (CPU_TYPE_PPC | CPU_TYPE_601)
 
@@ -162,6 +208,10 @@ typedef struct {
    ((((uint32_t)(spr)) & 0x3e0) << 6))
 #define XDS(op, xop, at) \
   (X ((op), (xop)) | ((((uint32_t)(at)) & 1) << 25))
+#define XISEL(op, xop) (OP (op) | ((((uint32_t)(xop)) & 0x1f) << 1))
+#define XSYNC(op, xop, l) (X ((op), (xop)) | ((((uint32_t)(l)) & 3) << 21))
+#define EVSEL(op, xop) (OP (op) | (((uint32_t)(xop)) & 0xff) << 3)
+
 
 /* The BO encodings used in extended conditional branch mnemonics.  */
 #define BODNZF  (0x0)

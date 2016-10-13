@@ -40,6 +40,7 @@ This syntax module provides the following additional options:
   @item Disable escape codes handling in strings (see @option{-noesc}).
   @item Enable dots within identifiers (see @option{-ldots}).
   @item Up to 35 macro arguments.
+  @item Do not use @code{NOP} instructions when aligning code.
 @end itemize
 
 @item -ldots
@@ -323,6 +324,9 @@ CPU- and output-module support them):
 @item echo <string>
       Prints <string> to stdout.
 
+@item einline
+      End a block of isolated local labels, started by @code{inline}.
+
 @item else
       Assemble the following lines if the previous @code{if} condition
       was false.
@@ -441,6 +445,12 @@ CPU- and output-module support them):
 @item ifnd <symbol>
       Conditionally assemble the following lines if <symbol> is undefined.
 
+@item ifmacrod <macro>
+      Conditionally assemble the following line if <macro> is defined.
+
+@item ifmacrond <macro>
+      Conditionally assemble the following line if <macro> is undefined.
+
 @item incbin <file>
       Inserts the binary contents of <file> into the object code at
       this position. The file will be searched first in the current
@@ -457,6 +467,10 @@ CPU- and output-module support them):
       will be searched first in the current directory, then in all
       paths defined by @option{-I} or @code{incdir} in the order of
       occurence.
+
+@item inline
+      Local labels in the following block are isolated from previous
+      local labels and those after @code{einline}.
 
 @item list
       The following lines will appear in the listing file, if it was
@@ -491,7 +505,7 @@ CPU- and output-module support them):
       Push the current unique id below the top element of the global id
       stack, then insert it.
 @item \@@@@
-      Pull the top element from the global id stack and insert id. The
+      Pull the top element from the global id stack and insert it. The
       macro's current unique id is not affected by this operation.
 @item \#
       Insert the number of arguments that have been passed to this macro.
@@ -704,6 +718,8 @@ This module has the following error messages:
 @item 1018: macro id pull without matching push
 @item 1019: check comment
 @item 1020: invalid numeric expansion
+@item 1021: einline without inline
 @item 1022: missing %c
+@item 1023: maximum inline nesting depth exceeded (%d)
 
 @end itemize
