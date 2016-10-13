@@ -2133,27 +2133,6 @@ int alg_opt(np p,struct Typ *ttyp)
             return type_expression2(p,ttyp);
         }
 
-#if 0 /*HAVE_POF2OPT*/
-	if(((f==MULT||f==PMULT)||((f==DIV||f==MOD)&&(p->ntyp->flags&UNSIGNED)))){
-	  /*  ersetzt mul etc. mit Zweierpotenzen     */
-	  long ln;
-	  if(zmleq(l2zm(0L),s2)&&zumleq(ul2zum(0UL),u2)){
-	    if(ln=get_pof2(u2)){
-	      if(f==MOD){
-		vmax=zmsub(s2,l2zm(1L));
-		p->flags=AND;
-	      }else{
-		vmax=l2zm(ln-1);
-		if(f==DIV) p->flags=f=RSHIFT; else p->flags=f=LSHIFT;
-	      }
-	      gval.vmax=vmax;
-	      eval_const(&gval,MAXINT);
-	      insert_constn(p->right);
-	    }
-	  }
-	}
-#endif
-
     }
     if(c==1){
         /*  0-a=-a  */
@@ -2205,6 +2184,29 @@ int test_assignment(struct Typ *zt,np q)
 /* removed */
 #endif
       error(166);
+    }
+    if(q->flags==CEXPR){
+      zmax ms,ns;zumax mu,nu;
+      eval_constn(q);
+      ms=vmax;mu=vumax;
+      insert_const(&gval,zt->flags&~UNSIGNED);
+      eval_const(&gval,zt->flags&~UNSIGNED);
+      ns=vmax;
+      eval_constn(q);
+      insert_const(&gval,zt->flags|UNSIGNED);
+      eval_const(&gval,zt->flags|UNSIGNED);
+      nu=vumax;
+      if(!zumeqto(nu,mu)&&!zmeqto(ns,ms)) 
+	error(363);
+      else{
+	if(zt->flags&UNSIGNED){
+	  if(!zumeqto(nu,mu))
+	    error(362);
+	}else{
+	  if(!zmeqto(ns,ms))
+	    error(362);
+	}
+      }
     }
     return 1;
   }

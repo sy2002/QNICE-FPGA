@@ -362,3 +362,5 @@
 "initialization of flexible array member",ERROR|ANSIV,
 "empty initializer",ERROR|FATAL|ANSIV,                             /* 360 */
 "redeclaration of var <%s> as new function",ERROR|FATAL|ANSIV,
+"constant implicitly sign-changed",WARNING|DONTWARN,
+"constant implicitly truncated",WARNING,
