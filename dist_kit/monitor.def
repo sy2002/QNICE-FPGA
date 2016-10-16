@@ -29,3 +29,5 @@ divs                          	.EQU	0x002E
 chr2lower                     	.EQU	0x0030
 mulu32                        	.EQU	0x0032
 divu32                        	.EQU	0x0034
+split                         	.EQU	0x0036
+h2dstr                        	.EQU	0x0038

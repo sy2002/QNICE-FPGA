@@ -81,6 +81,8 @@ divs!           RBRA    MTH$DIVS, 1
 chr2lower!      RBRA    CHR$TO_LOWER, 1
 mulu32!         RBRA    MTH$MULU32, 1
 divu32!         RBRA    MTH$DIVU32, 1
+split!          RBRA    STR$SPLIT, 1
+h2dstr!         RBRA    STR$H2D, 1
 ;
 ;  The actual monitor code starts here:
 ;

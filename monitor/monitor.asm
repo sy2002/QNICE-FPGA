@@ -25,7 +25,7 @@
 #include "vga_library.asm"
 #include "math_library.asm"
 ;
-#include "test_library.asm"
+;#include "test_library.asm"
 ;
 QMON$LAST_ADDR  HALT
 ;

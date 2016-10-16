@@ -3,7 +3,9 @@ nexys4ddr/work_cpu_debug
 usage_statistics_webtalk.html
 nexys4ddr/webtalk.log
 nexys4ddr/webtalk_impact.xml
+nexys4ddr/webtalk_pn.xml
 nexys4ddr/iseconfig
+nexys4ddr/_xmsgs
 impact.xsl
 impact_impact.xwbt
 assembler/qasm

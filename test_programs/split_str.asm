@@ -47,8 +47,7 @@ INPUT_END       MOVE    0, @R0                  ; add zero terminator
                 SYSCALL(crlf, 1)
 
                 ; split string and output amount of substrings
-                ;MOVE    R7, R9
-                MOVE    0, R9
+                MOVE    R7, R9
                 MOVE    STRBUFFER, R8
                 RSUB    SPLIT, 1
                 MOVE    R8, R7                  ; R7 = amount of substrings

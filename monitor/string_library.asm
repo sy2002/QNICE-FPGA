@@ -144,3 +144,150 @@ _STR$STRCHR_NEXT    ADD     0x0001, R0          ; string++
                     RBRA    _STR$STRCHR_LOOP, 1
 _STR$STRCHR_EXIT    DECRB
                     RET
+;
+;***************************************************************************************
+;* STR$SPLIT splits a string into substrings using a delimiter char
+;*
+;* Returns the substrings on the stack, i.e. after being done, you need to
+;* add the amount of words returned in R9 to the stack pointer to clean
+;* it up again and not leaving "memory leaks".
+;*
+;* The memory layout of the returned area is:
+;* <size of string incl. zero terminator><string><zero terminator>
+;*
+;* The strings are returned in positive order, i.e. you just need to add
+;* the length of the previous string to the returned string pointer
+;* (i.e. stack pointer) to jump to the next substring from left to right.
+;*
+;* INPUT:  R8: pointer to zero terminated string
+;*         R9: delimiter char
+;* OUTPUT: SP: stack pointer pointer to the first string
+;*         R8: amount of strings
+;*         R9: amount of words to add to the stack pointer to restore it
+;***************************************************************************************
+;
+STR$SPLIT       INCRB
+
+                MOVE    @SP++, R0               ; save return address and
+                                                ; delete it by adding 1
+
+                ; find the end of the string, R1 will point to it
+                MOVE    1, R2
+                MOVE    R8, R1
+_STR$SPLIT_FE   CMP     @R1, 0
+                RBRA    _STR$SPLIT_FE2, Z
+                ADD     R2, R1
+                RBRA    _STR$SPLIT_FE, 1
+
+_STR$SPLIT_FE2  MOVE    R1, R2                  ; R2 = end of current substr
+                XOR     R6, R6                  ; R6 = amount of strings
+                XOR     R7, R7                  ; R7 = amount of words for R9
+
+                ; skip empty string
+                CMP     R8, R1
+                RBRA    _STR$SPLIT_END, Z
+
+                ; find the first occurrence of the delimiter
+_STR$SPLIT_FD   CMP     @--R1, R9               ; check for delimiter, mv left
+                RBRA    _STR$SPLIT_SS, Z        ; yes, delimiter found
+                CMP     R1, R8                  ; beginning of string reached?
+                RBRA    _STR$SPLIT_SS, Z
+                RBRA    _STR$SPLIT_FD, 1                
+
+                ; copy substring on the stack, if it is at least one
+                ; non-delimiter character
+_STR$SPLIT_SS   MOVE    R2, R3
+                SUB     R1, R3                  ; length of substring w/o zero
+                CMP     R3, 1                   ; only one character?
+                RBRA    _STR$SPLIT_SSB, !Z      ; no: go on
+                CMP     @R1, R9                 ; only one char and char=delim
+                RBRA    _STR$SPLIT_SSSK, Z      ; yes: skip
+_STR$SPLIT_SSB  ADD     1, R6                   ; one more string                
+                SUB     R3, SP                  ; reserve memory on the stack
+                SUB     2, SP                   ; size word & zero terminator
+                ADD     R3, R7                  ; adjust amount of words ..
+                ADD     2, R7                   ; .. equally to stack usage
+                CMP     @R1, R9                 ; first char delimiter?
+                RBRA    _STR$SPLIT_SSBG, !Z     ; no: go on
+                ADD     1, SP                   ; yes: adjust stack usage ..
+                SUB     1, R7                   ; .. and word counter ..
+                SUB     1, R3                   ; .. and reduce length ..
+                ADD     1, R1                   ; .. and change start
+_STR$SPLIT_SSBG MOVE    R1, R4                  ; R4 = cur. char of substring
+                MOVE    SP, R5                  ; R5 = target memory of char
+                MOVE    R3, @R5                 ; save size w/o zero term.
+                ADD     1, @R5++                ; adjust for zero term.
+_STR$SPLIT_SSCP MOVE    @R4++, @R5++            ; copy char
+                SUB     1, R3                   ; R3 = amount to be copied
+                RBRA    _STR$SPLIT_SSCP, !Z
+                MOVE    0, @R5                  ; add zero terminator
+
+_STR$SPLIT_SSSK MOVE    R1, R2                  ; current index = new end
+                CMP     R1, R8                  ; beginning of string reached?
+                RBRA    _STR$SPLIT_FD, !Z
+
+_STR$SPLIT_END  MOVE    R6, R8                  ; return amount of strings
+                MOVE    R7, R9                  ; return amount of bytes
+
+                MOVE    R0, @--SP               ; put return address on stack
+
+                DECRB
+                RET                
+;
+;***************************************************************************************
+;* STR$H2D converts a 32bit value to a decimal representation in ASCII;
+;* leading zeros are replaced by spaces (ASCII 0x20); zero terminator is added
+;*
+;* INPUT:  R8/R9   = LO/HI of the 32bit value
+;*         R10     = pointer to a free memory area that is 11 words long
+;* OUTPUT: R10     = the function fills the given memory space with the
+;*                   decimal representation and adds a zero terminator
+;*                   this includes leading white spaces
+;*         R11     = pointer to string without leading white spaces
+;*         R12     = amount of digits/characters that the actual number has,
+;*                   without the leading spaces
+;***************************************************************************************
+;
+STR$H2D         INCRB
+
+                MOVE    R8, R0                  ; save original values
+                MOVE    R9, R1
+                MOVE    R10, R2
+
+                MOVE    R10, R3                 ; R3: working pointer
+                XOR     R4, R4                  ; R4: digit counter
+
+                ; add zero terminator
+                ADD     10, R3
+                MOVE    0, @R3
+
+                ; extract decimals by repeatedly dividing the 32bit value
+                ; by 10; the modulus is the decimal that is converted to
+                ; ASCII by adding the ASCII code of zero which is 0x0030
+                XOR     R11, R11                ; high word = 0
+_STR$H2D_ML     MOVE    10, R10                 ; divide by 10
+                RSUB    MTH$DIVU32, 1           ; perform division
+                ADD     0x0030, R10             ; R10 = digit => ASCII conv.
+                MOVE    R10, @--R3              ; store digit
+                ADD     1, R4                   ; increase digit counter
+                CMP     R8, 0                   ; quotient = 0? (are we done?)
+                RBRA    _STR$H2D_TS, Z          ; yes: add trailing spaces                
+                RBRA    _STR$H2D_ML, 1          ; next digit, R8/R9 has result
+
+_STR$H2D_TS     CMP     R3, R2                  ; working pntr = memory start
+                RBRA    _STR$H2D_DONE, Z        ; yes: then done
+                MOVE    0x0020, @--R3           ; no: add trailing space
+                RBRA    _STR$H2D_TS, 1          ; next digit
+
+_STR$H2D_DONE   MOVE    R0, R8                  ; restore original values
+                MOVE    R1, R9
+                MOVE    R2, R10
+
+                MOVE    R10, R11                ; return pointer to string ..
+                MOVE    10, R7                  ; .. without white spaces
+                SUB     R4, R7
+                ADD     R7, R11
+
+                MOVE    R4, R12                 ; return digit counter             
+                DECRB
+                RET

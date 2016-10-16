@@ -54,6 +54,8 @@ _IO$DUMP_MEMORY_EXIT    RSUB IO$PUT_CRLF, 1             ; Print a last CR/LF pai
 ;***************************************************************************************
 ;
 IO$GET_W_HEX        INCRB                                   ; Get a new register page
+                    MOVE    R9, R2                          ; Save R9 and R10
+                    MOVE    R10, R3
 _IO$GET_W_HEX_REDO  XOR     R0, R0                          ; Clear R0
                     MOVE    4, R1                           ; We need four characters
                     MOVE    IO$HEX_NIBBLES, R9              ; Pointer to list of valid chars
@@ -74,6 +76,8 @@ _IO$GET_W_HEX_VALID RSUB    IO$PUTCHAR, 1                   ; Echo character
                     SUB     0x0001, R1
                     RBRA    _IO$GET_W_HEX_INPUT, !Z         ; Read next character
                     MOVE    R0, R8
+                    MOVE    R2, R9                          ; Restore R9 and R10
+                    MOVE    R3, R10
                     DECRB                                   ; Restore previous register page
                     RET
 ;

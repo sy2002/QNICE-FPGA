@@ -170,10 +170,10 @@ MTH$MULU32      INCRB                           ; registers R3..R0 = result ..
                 RET
 ;
 ;******************************************************************************
-;* DIVU32 divides 32bit dividend by 32bit divisor and returns
-;*        a 32bit quotient and a 32bit modulo
-;*        warning: no division by zero warning; instead, the function returns
-;*        zero as result and as modulo
+;* MTH$DIVU32 divides 32bit dividend by 32bit divisor and returns
+;*            a 32bit quotient and a 32bit modulo
+;*            warning: no division by zero warning; instead, the function 
+;*            returns zero as result and as modulo
 ;*
 ;* INPUT:  R8/R9   = LO|HI of unsigned dividend
 ;*         R10/R11 = LO|HI of unsigned divisor

@@ -40,6 +40,7 @@ see TODO.txt: decimal.asm, ...
   mandel_perf_test.asm, which shows a speedup of factor 4,5 compared with
   release version 1.3.
 * Math Library (Monitor) enhanced: mulu, muls, divu, divs, mulu32, divu32
+* String Library (Monitor) enhanced: chr2lower, split, h2dstr
 
 Version 1.3    May, 6 2016
 ==========================
