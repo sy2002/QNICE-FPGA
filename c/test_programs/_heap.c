@@ -1,7 +1,14 @@
 #include <stdlib.h>
 
-#define HEAPSIZE (2048)
+#ifndef HEAPSIZE
+    #define HEAPSIZE (2048)
+#endif
 
-char __heap[HEAPSIZE],*__heapptr=__heap;
+#ifndef UNSAFEHEAP
+    char __heap[HEAPSIZE],*__heapptr=__heap;
+#else
+    extern char _BE;
+    char *__heapptr=&_BE+1;
+#endif
+
 size_t __heapsize=HEAPSIZE;
-
