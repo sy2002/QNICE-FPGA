@@ -182,24 +182,150 @@ _IO$GETCHAR_FIN     DECRB
                     RET
 ;
 ;***************************************************************************************
-;* IO$GETS reads a CR/LF terminated string from the serial line
+;* IO$GETS reads a zero terminated string from STDIN and echos typing on STDOUT
+;*
+;* It accepts CR, LF and CR/LF as input terminator, so it directly works with various
+;* terminal settings on UART and also with keyboards on PS/2 ("USB"). Furtheron, it
+;* accepts BACKSPACE for editing the string.
 ;*
 ;* R8 has to point to a preallocated memory area to store the input line
 ;***************************************************************************************
 ;
-IO$GETS         INCRB                  ; Get a new register page
-                MOVE R8, R0            ; Save parameters
-                MOVE R8, R1
-_IO$GETS_LOOP   RSUB IO$GETCHAR, 1     ; Get a single character from the serial line
-                MOVE R8, @R0++         ; Store it into the buffer area
-                RSUB IO$PUTCHAR, 1     ; Echo the character
-                SUB 0x000A, R8         ; Was it a LF character?
-                RBRA _IO$GETS_LOOP, !Z ; No -> continue reading characters
-                MOVE 0x000D, @R0++     ; Extend the string with a CR and
-                MOVE 0x0000, @R0       ; terminate it with a null word
-                MOVE R1, R8            ; Restore R8 which will now point to the string
-                DECRB                  ; Restore the register page
-		        RET
+IO$GETS         INCRB
+
+                MOVE    R8, R0              ; save original R8
+                MOVE    R8, R1              ; R1 = working pointer
+_IO$GETS_LOOP   RSUB    IO$GETCHAR, 1       ; get char from STDIN
+                CMP     R8, 0x000D          ; accept CR as line end
+                RBRA    _IO$GETS_CR, Z
+                CMP     R8, 0x000A          ; accept LF as line end
+                RBRA    _IO$GETS_LF, Z
+                CMP     R8, 0x0008          ; use BACKSPACE for editing
+                RBRA    _IO$GETS_BS, Z
+                CMP     R8, 0x007F          ; treat DEL key as BS, e.g. for ..
+                RBRA    _IO$GETS_DEL, Z     ; .. MAC compatibility in EMU
+_IO$GETS_ADDBUF MOVE    R8, @R1++           ; store char to buffer
+_IO$GETS_ECHO   RSUB    IO$PUTCHAR, 1       ; echo char on STDOUT
+                RBRA    _IO$GETS_LOOP, 1    ; next character
+
+_IO$GETS_LF     MOVE    0, @R1              ; add zero terminator
+                MOVE    R0, R8              ; restore original R8
+
+                DECRB
+                RET
+
+                ; For also accepting CR/LF, we need to do a non-blocking
+                ; check on STDIN, if there is another character waiting.
+                ; IO$GETCHAR is a blocking call, so we cannot use it here.
+                ; STDIN = UART, if bit #0 of IO$SWITCH_REG = 0, otherwise
+                ; STDIN = PS/2 ("USB") keyboard
+                ;
+                ; At a terminal speed of 115200 baud = 14.400 chars/sec
+                ; (for being save, let us assume only 5.000 chars/sec)
+                ; and a CPU frequency of 50 MHz we need to wait about
+                ; 10.000 CPU cycles until we check, if the terminal program
+                ; did send one other character. The loop at GETS_CR_WAIT
+                ; costs about 7 cycles per iteration, so we loop (rounded up)
+                ; 2.000 times.
+                ; As a simplification, we assume the same waiting time
+                ; for a PS/2 ("USB") keyboard
+
+_IO$GETS_CR     MOVE    2000, R3            ; CPU speed vs. transmit speed
+_IO$GETS_CRWAIT SUB     1, R3
+                RBRA    _IO$GETS_CRWAIT, !Z
+
+                MOVE    IO$SWITCH_REG, R2   ; read the switch register
+                MOVE    @R2, R2
+                AND     0x0001, R2          ; lowest bit set?
+                RBRA    _IO$GETS_CRUART, Z  ; no: read from UART
+
+                MOVE    IO$KBD_STATE, R2    ; read the keyboard status reg.
+                MOVE    @R2, R2
+                AND     0x0001, R2          ; char waiting/lowest bit set?
+                RBRA    _IO$GETS_LF, Z      ; no: then add zero term. and ret.
+
+                MOVE    IO$KBD_DATA, R2     ; yes: read waiting character
+                MOVE    @R2, R2
+                RBRA    _IO$GETS_CR_LF, 1   ; check for LF
+
+
+_IO$GETS_CRUART MOVE    IO$UART_SRA, R2     ; read UART status register
+                MOVE    @R2, R2
+                AND     0x0001, R2          ; is there a character waiting?
+                RBRA    _IO$GETS_LF, Z      ; no: then add zero term. and ret.
+
+                MOVE    IO$UART_RHRA, R2    ; yes: read waiting character
+                MOVE    @R2, R2
+
+_IO$GETS_CR_LF  CMP     R2, 0x000A          ; is it a LF (so we have CR/LF)?
+                RBRA    _IO$GETS_LF, Z      ; yes: then add zero trm. and ret.
+
+                ; it is CR/SOMETHING, so add both: CR and "something" to
+                ; the string and go on waiting for input
+                MOVE    0x000D, @R1++
+                MOVE    R2, R8
+                RBRA    _IO$GETS_ADDBUF, 1  ; no: add it to buffer and go on
+
+                ; handle BACKSPACE for editing and accept DEL as alias for BS
+                ;
+                ; For STDOUT = UART it is kind of trivial, because you "just"
+                ; need to rely on the fact, that the terminal settings are
+                ; correct and then the terminal program takes care of the
+                ; nitty gritty details like moving the cursor and scrolling.
+                ;
+                ; For STDOUT = VGA, this needs to be done manually by this
+                ; routine.
+
+_IO$GETS_DEL    MOVE    0x0008, R8          ; treat DEL as BS
+_IO$GETS_BS     CMP     R0, R1              ; beginning of string?
+                RBRA    _IO$GETS_LOOP, Z    ; yes: ignore BACKSPACE key
+
+                SUB     1, R1               ; delete last char in memory                
+
+                MOVE    IO$SWITCH_REG, R2   ; read the switch register
+                MOVE    @R2, R2
+                AND     0x0002, R2          ; bit #1 set?
+                RBRA    _IO$GETS_ECHO, Z    ; no: STDOUT = UART: just echo
+
+                MOVE    VGA$CR_X, R2        ; R2: HW X-register
+                MOVE    VGA$CR_Y, R3        ; R3: HW Y-register
+                MOVE    VGA$CHAR, R4        ; R4: HW put/get character reg.
+                MOVE    _VGA$X, R5          ; R5: SW X-register
+                MOVE    _VGA$Y, R6          ; R6: SW Y-register
+
+                CMP     @R2, 0              ; cursor already at leftmost pos.?
+                RBRA    _IO$GETS_BSLUP, Z   ; yes: scroll one line up
+
+                SUB     1, @R2              ; cursor one position to the left
+                SUB     1, @R5
+_IO$GETS_BSX    MOVE    0x0020, @R4         ; delete char on the screen
+                RBRA    _IO$GETS_LOOP, 1    ; next char/key
+
+_IO$GETS_BSLUP  CMP     @R3, VGA$MAX_Y      ; cursor already bottom line?
+                RBRA    _IO$GETS_BSSUP, Z   ; yes: scroll screen up
+
+                SUB     1, @R3              ; cursor one line up
+                SUB     1, @R6
+_IO$GETS_BSXLU  MOVE    VGA$MAX_X, @R2      ; cursor to the rightpost pos.
+                MOVE    VGA$MAX_X, @R5
+                RBRA    _IO$GETS_BSX, 1     ; delete char on screen and go on
+
+_IO$GETS_BSSUP  MOVE    VGA$OFFS_DISPLAY, R7        ; if RW > DISP then do not
+                MOVE    VGA$OFFS_RW, R8             ; scroll up the screen
+                CMP     @R8, @R7                    ; see VGA$SCROLL_UP_1 for
+                RBRA    _IO$GETS_BSUPSP, N          ; an explanation
+
+                SUB     VGA$CHARS_PER_LINE, @R7     ; do the visual scrolling
+_IO$GETS_BSUPSP SUB     VGA$CHARS_PER_LINE, @R8     ; scroll the RW window
+
+                CMP     @R7, @R8                    ; if after the scrolling
+                RBRA    _IO$GETS_NOCRS, !Z          ; RW = DISP then show
+                MOVE    VGA$STATE, R8               ; the cursor
+                OR      VGA$EN_HW_CURSOR, @R8
+
+_IO$GETS_NOCRS  MOVE    VGA$MAX_Y, @R3              ; cursor to bottom
+                MOVE    VGA$MAX_Y, @R6
+                RBRA    _IO$GETS_BSXLU, 1           ; cursor to rightmost pos.
 ;
 ;***************************************************************************************
 ;* IO$PUTS prints a null terminated string.

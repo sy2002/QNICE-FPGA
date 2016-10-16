@@ -33,7 +33,7 @@ GETS            INCRB
 
                 MOVE    R8, R0              ; save original R8
                 MOVE    R8, R1              ; R1 = working pointer
-GETS_LOOP       RSUB    IO$GETCHAR, 1       ; get char from STDIN
+GETS_LOOP       SYSCALL(getc, 1)            ; get char from STDIN
                 CMP     R8, 0x000D          ; accept CR as line end
                 RBRA    GETS_CR, Z
                 CMP     R8, 0x000A          ; accept LF as line end
@@ -43,7 +43,7 @@ GETS_LOOP       RSUB    IO$GETCHAR, 1       ; get char from STDIN
                 CMP     R8, 0x007F          ; treat DEL key as BS, e.g. for ..
                 RBRA    GETS_DEL, Z         ; .. MAC compatibility in EMU
 GETS_ADDBUF     MOVE    R8, @R1++           ; store char to buffer
-GETS_ECHO       RSUB    IO$PUTCHAR, 1       ; echo char on STDOUT
+GETS_ECHO       SYSCALL(putc, 1)            ; echo char on STDOUT
                 RBRA    GETS_LOOP, 1        ; next character
 
 GETS_LF         MOVE    0, @R1              ; add zero terminator
@@ -166,14 +166,5 @@ GETS_NOCRS      MOVE    VGA$MAX_Y, @R3              ; cursor to bottom
                 RBRA    GETS_BSXLU, 1               ; cursor to rightmost pos.
 
 ;===================== REUSABLE CODE FOR MONITOR ENDS HERE ===================
-
-#include "../monitor/io_library.asm"
-#include "../monitor/uart_library.asm"
-#include "../monitor/usb_keyboard_library.asm"
-#include "../monitor/vga_library.asm"
-#include "../monitor/string_library.asm"
-
-QMON$WARMSTART  SYSCALL(exit, 1)
-QMON$LAST_ADDR  HALT
 
 #include "../monitor/variables.asm"
