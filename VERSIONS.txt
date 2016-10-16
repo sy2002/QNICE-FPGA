@@ -25,7 +25,15 @@ Version x.y    xxx, x xxxx
 
 WIP * SD CARD: Hardware capabilities for raw SD CARD reading added. 
 WIP * FAT32
+WIP * New gets function that supports CR or LF or CR/LF for ending the editing
+and that supports backspace (BS).
+WIP * More new functions in the standard lib (atoi (rename?)), 32bit math, etc.,
+see TODO.txt: decimal.asm, ...
 
+* C Compiler and more: Thanks to Volker Barthelmann (www.compilers.de), we now
+  have an awesome toolchain including a C compiler (VBCC), a linker (VLINK)
+  and an additional assmbler (VASM). Everything related is located in the "c"
+  subfolder.
 * EAE: Extended Arithmetic Element added: This is a 32-bit signed/unsigned
   integer multiplication, division and modulo co-processor. An example of the
   impressive speedup can be seen in the source code comments of

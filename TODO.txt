@@ -35,9 +35,9 @@ HARDWARE:
 
 * Debugging mechanisms (e.g. single-step mode in hardware)
 
-MONITOR and/or STANDARD LIBs:
+* Implement EAE without timing problems
 
-* Backspace and CTRL-U support in IO$GETS
+MONITOR and/or ASSEMBLER STANDARD LIBs:
 
 * Basic mathematical routines * (exists), / (from decimal.asm?), % (ditto?)
 
@@ -49,4 +49,8 @@ MONITOR and/or STANDARD LIBs:
 
 ASSEMBLER:
 
+<currently no TODOs>
 
+C COMPILER and/or C STANDARD LIB:
+
+* EAE wait code as soon as necessary (currently no wait code)

@@ -41,7 +41,7 @@ GETS_LOOP       RSUB    IO$GETCHAR, 1       ; get char from STDIN
                 CMP     R8, 0x0008          ; use BACKSPACE for editing
                 RBRA    GETS_BS, Z
                 CMP     R8, 0x007F          ; treat DEL key as BS, e.g. for ..
-                RBRA    GETS_BS, Z          ; .. MAC compatibility in EMU
+                RBRA    GETS_DEL, Z         ; .. MAC compatibility in EMU
 GETS_ADDBUF     MOVE    R8, @R1++           ; store char to buffer
 GETS_ECHO       RSUB    IO$PUTCHAR, 1       ; echo char on STDOUT
                 RBRA    GETS_LOOP, 1        ; next character
@@ -104,7 +104,7 @@ GETS_CR_LF      CMP     R2, 0x000A          ; is it a LF (so we have CR/LF)?
                 MOVE    R2, R8
                 RBRA    GETS_ADDBUF, 1      ; no: add it to buffer and go on
 
-                ; handle BACKSPACE for editing
+                ; handle BACKSPACE for editing and accept DEL as alias for BS
                 ;
                 ; For STDOUT = UART it is kind of trivial, because you "just"
                 ; need to rely on the fact, that the terminal settings are
@@ -114,6 +114,7 @@ GETS_CR_LF      CMP     R2, 0x000A          ; is it a LF (so we have CR/LF)?
                 ; For STDOUT = VGA, this needs to be done manually by this
                 ; routine.
 
+GETS_DEL        MOVE    0x0008, R8          ; treat DEL as BS
 GETS_BS         CMP     R0, R1              ; beginning of string?
                 RBRA    GETS_LOOP, Z        ; yes: ignore BACKSPACE key
 
