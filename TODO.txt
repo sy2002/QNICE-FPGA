@@ -17,7 +17,7 @@ HARDWARE:
 
 * Improve design to support 100 MHz
 
-* Refactor scancode conversion to be more table/ROM like and less
+* PS/2: Refactor scancode conversion to be more table/ROM like and less
   like a huge array of multiplexers
 
 * Refactor TIL and TIL Mask to support 8 digits / 32 bits
@@ -37,20 +37,45 @@ HARDWARE:
 
 * Implement EAE without timing problems
 
-MONITOR and/or ASSEMBLER STANDARD LIBs:
+MONITOR:
 
-* Basic mathematical routines * (exists), / (from decimal.asm?), % (ditto?)
+* Get rid of the hardcoded keyboard locale
 
-* Decimal converter (from decimal.asm?)
+* Basic mounting (SD Card), browsing and file loading / file running support
 
-* 32 bit arithmetic
+ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
 
-* Long term: Floating point support
+* SD card support / FAT32 support
 
-ASSEMBLER:
+* finalize 32 bit arithmetic (muls32, divs32)
+
+* String libraries: Switchable locales? UTF8 support?
+  (Or - as an alternative to this fully fledged solution: Can we implement a
+  workaround that kind of works most of the time? E.g. a translation mechanism
+  that checks STDIN/STDOUT and acts accordingly, e.g.
+  if STDIN=UART and BS is pressed, then assume UTF-8, but if STDIN=USB and
+  BS is pressed, then assume 8859-15? And similar behaviour for
+  non-ASCII chars like "ä"? Mapping depending on STDIN/STDOUT combinations?
+  And always storing single-byte characters? That would mean, that we e.g.
+  translate some selected chars from UTF-8 to 8859-15 while entering them
+  via STDIN=UART. More thoughts to be invested here.)
+
+* Long term: Floating point support (in software? or in hardware? or only
+  in the C lib and not at all on the monitor's level?)
+
+NATIVE TOOLCHAIN: ASSEMBLER:
 
 <currently no TODOs>
 
-C COMPILER and/or C STANDARD LIB:
+VBCC TOOLCHAIN: C COMPILER and/or C STANDARD LIB:
 
 * EAE wait code as soon as necessary (currently no wait code)
+
+* check/validate correct register bank usage
+
+* correct startup.s (ABRA vs. ASUB)
+
+* use new gets routine
+
+* add file system support (fopen, fclose, ...)
+

@@ -44,3 +44,59 @@ keyboards are tested and work:
 VGA:
 
 The monitor needs to support 640x480 and 640x400 in 60 Hz.
+
+Encoding / Languages / Fonts:
+
+* No support for UTF-8.
+
+* All monitor library functions, including gets and puts, are assuming, that
+  one character is one byte in size. That means, for example, that if you use
+  gets to enter the German character "ä" (Umlaut for ae) or
+  "ß" (Umlaut for ss), the following is happening:
+
+  a) On a modern OS like Mac OS or Windows, the default encoding is UTF-8.
+     So, if you press the "ä" key, while using STDIN=UART on real hardware
+     using terminal software or on the emulator using the command line of
+     the OS, the operating system will send the UTF-8 encoded "ä", which are
+     the following *TWO* bytes: C3 A4.
+
+     Obviously, this means that QNICE will store these two bytes within the
+     string. If you use puts to print this string on a UTF-8 enabled system,
+     you will see the right character "ä" again, so it kind of feels seamless
+     for the end user and nearly everything works.
+
+     But: If you enter e.g. "ä" and then press Backspace (BS) - as gets is
+     not aware of UTF-8 - the remaining character in the string is C3, which
+     will lead to funny effects.
+
+     Also, if you entered an "ä" using gets via STDIN=UART/STDOUT=UART, then
+     everything looks good, as your OS and the resulting terminal emulation
+     will be aware of UTF-8. But if you then output exactly this string on
+     STDOUT=VGA, then you will see the two charactes "Ã€", because this is
+     how the modified "lat9w-12_sy2002" font is encoded in Q-NICE currently.
+
+  b) If you entered an "ä" using STDIN=USB, then a German keyboard would
+     send the code E4, which would be displayed correctly on the STDOUT=VGA
+     screen as "ä".
+
+     But if you used STDIN=USB and STDOUT=UART, then pressing an "ä" or any
+     other non standard ASCII key will result to displaying wrong characters.
+
+* As a summary, and with the exception of some funny, but not really 
+  dangerous, effects when using Backspace (BS) or DEL, you can already
+  currently, where no UTF-8 support is there, use non standard characters on
+  QNICE, as long as you stick either to (STDIN=STDOUT=UART) or to
+  (STDIN=USB and STDOUT=VGA). As soon as you stard mixing, it is not working
+  correctly, any more.
+
+* PS/2 (USB) keyboard: Currently, the monitor switches hardcoded to the
+  German keyboard layout. Though, the hardware is capable to handle an English
+  layout also (hw register $FF13, bits 2 .. 4). If you have a non-german
+  keyboard, you might want to change this in monitor/qasm.asm (search for
+  the string KBD$LOCALE_DE).
+
+* The VGA display uses a slightly modified version of "lat9w"
+  which is mostly compatible with ISO/IEC 8859-15 as described here:
+  https://en.wikipedia.org/wiki/ISO/IEC_8859-15
+  You can look at the font by browsing this textfile:
+  vhdl/vga/lat9w-12.txt

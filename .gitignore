@@ -6,6 +6,8 @@ nexys4ddr/webtalk_impact.xml
 nexys4ddr/webtalk_pn.xml
 nexys4ddr/iseconfig
 nexys4ddr/_xmsgs
+nexys4ddr/env1.gise
+nexys4ddr/env1_summary.html
 impact.xsl
 impact_impact.xwbt
 assembler/qasm
@@ -34,3 +36,6 @@ c/vlink/vlink
 c/test_programs/mapfile
 c/qnice/qniceconv
 c/test_programs/wolfram
+c/vclib
+c/vclib*.tgz
+c/make-vclib.sh
