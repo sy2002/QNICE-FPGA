@@ -8,14 +8,26 @@
 --
 -- It seems, that on a Xilinx/Artix-7 FPGA, the EAE can be synthesized in a way,
 -- that all operations are purely combinatorial: The multiplication is done by
--- the DSP element and the division is creating a huge net, that takes longer
--- than one cycle to execute (and therefore issues timing warnings). But as we
--- give the net anyway enough time to settle before reading the result, this
--- specific timing warning does not matter.
--- This is why the whole logic using a busy flag, etc. is not yet
--- implemented and therefore the clk signal is ignored.
+-- the DSP element and the division is creating a huge net, that takes about
+-- 3 to 4 clock cycles @ 50 MHz (about 30..40ns) to settle.
+
+-- Therefore we need to set special timing contraints in the .ucf file that
+-- goes from the operators of the EAE (INST "eae_inst/op*") to the result
+-- flip flop (INST "eae_inst/res*").
+-- So, as we are buffering the results of the huge combinatorial net in a
+-- flip flop ("res"), the long timing can be covered and handled by the
+-- timing constraint.
+--
+-- Any assembler code will need more then these 3 to 4 clock cycles to read
+-- the result, so until then, the correct result will always and for sure be
+-- stored in "res". So this is a reliable and stable implementation.
+--
+-- WARNING: On other hardware, this might not work. Then, we might need to
+-- think about implementing some multi-cycle logic and work with the busy flag.
+--
+-- As for now, the busy flag can be ignored.
 -- 
--- done in May 2016 by sy2002
+-- done in May 2016, improved in October 2016 by sy2002
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -100,37 +112,34 @@ begin
       end if;
    end process;
    
-   calculate : process(op0_s, op0_u, op1_s, op1_u, csr)
-   variable res_s : signed(31 downto 0);
-   variable res_u : unsigned(31 downto 0);
-   begin      
-      res_s := (others => '0');
-      res_u := (others => '0');
-      res <= (others => '0');
-   
-      case csr is      
-         when eaeMULU =>
-            res_u := op0_u * op1_u;
-            res <= std_logic_vector(res_u);
-            
-         when eaeMULS =>
-            res_s := op0_s * op1_s;
-            res <= std_logic_vector(res_s);
-            
-         when eaeDIVU =>
-            res_u(15 downto 0)  := op0_u / op1_u;
-            res_u(31 downto 16) := op0_u mod op1_u;
-            res <= std_logic_vector(res_u);
-            
-         when eaeDIVS =>
-            res_s(15 downto 0)  := op0_s / op1_s;
-            res_s(31 downto 16) := op0_s mod op1_s;
-            res <= std_logic_vector(res_s);
-            
-         when others => null;            
-      end case;
+   calculate : process(clk, reset, op0_s, op0_u, op1_s, op1_u, csr)
+   begin       
+      if reset = '1' then
+         res <= (others => '0');
+      else
+         if rising_edge(clk) then
+            case csr is      
+               when eaeMULU =>
+                  res <= std_logic_vector(op0_u * op1_u);
+                  
+               when eaeMULS =>
+                  res <= std_logic_vector(op0_s * op1_s);
+                  
+               when eaeDIVU =>
+                  res(15 downto 0)  <= std_logic_vector(op0_u / op1_u);
+                  res(31 downto 16) <= std_logic_vector(op0_u mod op1_u);
+                  
+               when eaeDIVS =>
+                  res(15 downto 0)  <= std_logic_vector(op0_s / op1_s);
+                  res(31 downto 16) <= std_logic_vector(op0_s mod op1_s);
+                  
+               when others =>
+                  res <= (others => '0');
+            end case;
+         end if;
+      end if;
    end process;
-   
+      
    busy <= '0';
      
    op0_s <= signed(op0);

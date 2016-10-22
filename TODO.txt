@@ -1,5 +1,9 @@
 HARDWARE:
 
+* Research, if the asynchronous RAM (flip flops) for the register banks can
+  be replaced by synchronous RAM (Block RAM) without increasing the amount
+  of CPU cycles per instruction.
+
 * Refactor MMIO for not having so many comperators: use only one register
   output and link it to all devices; use a smart subtraction to find out
   registers and drastically shorten the code.
@@ -16,6 +20,9 @@ HARDWARE:
   + Monitor: gets hardcoded 10000 clock cycles => 2.000 "nop" loops
 
 * Improve design to support 100 MHz
+  + EAE might need the busy flag then (currently the combinatorial net
+    for div and mod takes about 30ns to execute, therefore it is buffered
+    in the FF "res")
 
 * PS/2: Refactor scancode conversion to be more table/ROM like and less
   like a huge array of multiplexers
@@ -35,11 +42,11 @@ HARDWARE:
 
 * Debugging mechanisms (e.g. single-step mode in hardware)
 
-* Implement EAE without timing problems
-
 MONITOR:
 
 * Get rid of the hardcoded keyboard locale
+
+* BS/DEL when entering hex digits (and at other reasonable places)
 
 * Basic mounting (SD Card), browsing and file loading / file running support
 
