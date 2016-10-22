@@ -2,7 +2,7 @@
 #undef DEBUG
 ;
 #define EAE_NO_WAIT                        ; If this is defined, it is guaranteed that the EAE
-                                           ; returns its results in a single clock cycle, so 
+                                           ; returns its results within the instruction cycle, so 
                                            ; there is no need to check the busy bit in the CSR.
 ;
 #ifdef RAM_MONITOR
@@ -24,6 +24,8 @@
 #include "usb_keyboard_library.asm"
 #include "vga_library.asm"
 #include "math_library.asm"
+#include "sd_library.asm"
+#include "fat32_library.asm"
 ;
 ;#include "test_library.asm"
 ;

@@ -31,3 +31,17 @@ mulu32                        	.EQU	0x0032
 divu32                        	.EQU	0x0034
 split                         	.EQU	0x0036
 h2dstr                        	.EQU	0x0038
+sd_reset                      	.EQU	0x003A
+sd_r_block                    	.EQU	0x003C
+sd_w_block                    	.EQU	0x003E
+sd_r_byte                     	.EQU	0x0040
+sd_w_byte                     	.EQU	0x0042
+f32_mnt_sd                    	.EQU	0x0044
+f32_mnt                       	.EQU	0x0046
+f32_od                        	.EQU	0x0048
+f32_ld                        	.EQU	0x004A
+f32_cd                        	.EQU	0x004C
+f32_pd                        	.EQU	0x004E
+f32_fopen                     	.EQU	0x0050
+f32_fread                     	.EQU	0x0052
+f32_fseek                     	.EQU	0x0054

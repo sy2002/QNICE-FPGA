@@ -7,14 +7,15 @@
 ;; sign to denote that these labels should normally not be the target of a branch or subroutine call 
 ;; from outside code areas.
 ;;
-;; B. Ulmann fecit
+;; B. Ulmann, sy2002 fecit
 ;;
 ;;  17-DEC-2007: Begin of coding
 ;;  03-AUG-2015: After upgrading the emulator and fixing some (serious) bugs the work on the
 ;;               monitor continues
 ;;  06-AUG-2015: Basic monitor functions implemented
 ;;  28..30-DEC-2015: VGA- and USB-support
-;;  JAN-2016:    Central dispatch table, scrolling support
+;;  JAN-2016:    Central dispatch table, scrolling support (by sy2002)
+;;  OCT-2016:    32bit integer math, SD Card and FAT32 support (by sy2002)
 ;;
 ;; Known bugs: 
 ;;
@@ -83,6 +84,21 @@ mulu32!         RBRA    MTH$MULU32, 1
 divu32!         RBRA    MTH$DIVU32, 1
 split!          RBRA    STR$SPLIT, 1
 h2dstr!         RBRA    STR$H2D, 1
+sd_reset!       RBRA    SD$RESET, 1
+sd_r_block!     RBRA    SD$READ_BLOCK, 1
+sd_w_block!     RBRA    SD$WRITE_BLOCK, 1
+sd_r_byte!      RBRA    SD$READ_BYTE, 1
+sd_w_byte!      RBRA    SD$WRITE_BYTE, 1
+f32_mnt_sd!     RBRA    FAT32$MOUNT_SD, 1
+f32_mnt!        RBRA    FAT32$MOUNT, 1
+f32_od!         RBRA    FAT32$DIR_OPEN, 1
+f32_ld!         RBRA    FAT32$DIR_LIST, 1
+f32_cd!         RBRA    FAT32$CD, 1
+f32_pd!         RBRA    FAT32$PRINT_DE, 1
+f32_fopen!      RBRA    FAT32$FILE_OPEN, 1
+f32_fread!      RBRA    FAT32$FILE_RB, 1
+f32_fseek!      RBRA    FAT32$FILE_SEEK, 1
+
 ;
 ;  The actual monitor code starts here:
 ;
@@ -289,7 +305,7 @@ QMON$NOT_H      MOVE    QMON$ILLCMDGRP, R8A     ; Illegal command group
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
 
-QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.5 (Bernd Ulmann, January 2016)\n"
+QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.6 (Bernd Ulmann, January 2016)\n"
 #ifdef RAM_MONITOR
                 .ASCII_P    "Running in RAM!\n"
 #endif

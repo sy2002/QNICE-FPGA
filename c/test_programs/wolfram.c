@@ -155,8 +155,7 @@ int str2int(char* str)
 
     i = 0;
     while (*s++ != 0)
-        if (*s != 10 && *s != 13)  /* ignore CR and LF on QNICE */
-            i++;
+        i++;
     if (i > 3)
         i = 3;
 
@@ -189,6 +188,7 @@ int main()
     puts("Some known-to-be-nice rules are: 30, 54, 60, 90, 126, 129, 150, 250");
     putc("Enter rule #");
     gets(inputstring);
+    puts("");
 
     n = str2int(inputstring);
 
