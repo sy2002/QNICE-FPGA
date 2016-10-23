@@ -209,7 +209,7 @@ _F32_MNT_PNGOK  CMP     R8, 4
                 RBRA    _F32_MNT_PNERR, 1           ; else exit with an error
 _F32_MNT_POFFS  SUB     1, R8                       ; #partition - 1
                 MOVE    FAT32$MBR_PARTTBL_RSIZE, R9 ; mult. with record size
-                SYSCALL(mulu, 1)                    ; result is in R10
+                RSUB    MTH$MULU, 1                 ; result is in R10
                 ADD     FAT32$MBR_PARTTBL_START, R10
                 MOVE    R10, R12                    ; offset is now in R12
 
@@ -243,7 +243,6 @@ _F32_MNT_TCOK   MOVE    R0, R8                      ; device handle
                 ADD     FAT32$DEV_FS_HI, R1         ; FS start LBA low word
                 MOVE    R11, @R1                    ; store it in device hndl
 
-; OBSOLETE AS THE SD CARD CONTROLER NOW WORKS WITH BLOCKS INSTEAD OF BYTES
 ;                ; Go to the first 512 byte sector of the file system (FS)
 ;                ; and read it. For doing so, a 2 x 32bit multiplication
 ;                ; needs to be utilized, because the FS start LBA
@@ -264,7 +263,8 @@ _F32_MNT_TCOK   MOVE    R0, R8                      ; device handle
 ;                RBRA    _F32_MNT_DVID, 1
 ;_F32_MNT_SERR   MOVE    FAT32$ERR_SIZE, R9
 ;                RBRA    _F32_MNT_END, 1
-MULU32
+
+
                 MOVE    R10, R8                     ; LBA lo of 1st 512b sect.
                 MOVE    R11, R9                     ; LBA hi of 1st 512b sect.
 
@@ -361,7 +361,7 @@ _F32_MNT_RVID   MOVE    R0, R8
                 MOVE    2, R8                       ; Num_FATs is hardcoded 2
                 MOVE    0, R9
                 MOVE    R1, R10                     ; sectors per fat LO
-                MOVE    R2, R11                     ; sectors per fat HI                
+                MOVE    R2, R11                     ; sectors per fat HI
                 RSUB    MTH$MULU32, 1
                 CMP     0, R10
                 RBRA    _F32_MNT_SERR, !Z
@@ -654,8 +654,8 @@ _F32_DLST_LN5   RSUB    FAT32$READ_B, 1
                 MOVE    R7, R8                      ; ((R7-R6)+1)*13 is the
                 SUB     R6, R8                      ; amount of memory to
                 ADD     1, R8                       ; be reclaimed (max. 256)
-                MOVE    13, R9                      
-                SYSCALL(mulu, 1)
+                MOVE    13, R9
+                RSUB    MTH$MULU, 1
                 ADD     R10, SP                     ; restore stack pointer
                 MOVE    0, R10                      ; return invalid entry
                 MOVE    R12, R11                    ; return error code
@@ -669,7 +669,7 @@ _F32_DLST_LN6   SUB     1, R6                       ; next record
                 MOVE    R11, R12
                 MOVE    R7, R8                      ; R7 = # long name records
                 MOVE    13, R9                      ; 13 bytes per record
-                SYSCALL(mulu, 1)                    ; R10 = amount of bytes
+                RSUB    MTH$MULU, 1                 ; R10 = amount of bytes
 _F32_DLST_LN7   MOVE    @SP++, @R5++
                 SUB     1, R10
                 RBRA    _F32_DLST_LN7, !Z
@@ -1216,7 +1216,7 @@ FAT32$PRINT_DE  INCRB
                 AND     FAT32$FA_DIR, R2
                 RBRA    _F32_PDE_D1, Z
                 MOVE    FAT32$PRINT_DE_DIR_Y, R8    ; yes, it is
-_F32_PDE_D1     SYSCALL(puts, 1)                    ; print <DIR> or whitespc
+_F32_PDE_D1     RSUB    IO$PUTS, 1                  ; print <DIR> or whitespc
 
                 ; print attributes
 _F32_PDE_A1     MOVE    R1, R2                      ; show attributes?
@@ -1229,27 +1229,27 @@ _F32_PDE_A1     MOVE    R1, R2                      ; show attributes?
                 AND     FAT32$FA_ARCHIVE, R3        ; attrib = archive?
                 RBRA    _F32_PDE_A2, Z
                 MOVE    FAT32$PRINT_DE_AA, R8
-_F32_PDE_A2     SYSCALL(puts, 1)                
+_F32_PDE_A2     RSUB    IO$PUTS, 1                
                 MOVE    @R2, R3                     ; @R2 contains attrib
                 MOVE    FAT32$PRINT_DE_AN, R8
                 AND     FAT32$FA_HIDDEN, R3         ; attrib = hidden?
                 RBRA    _F32_PDE_A3, Z
                 MOVE    FAT32$PRINT_DE_AH, R8
-_F32_PDE_A3     SYSCALL(puts, 1)
+_F32_PDE_A3     RSUB    IO$PUTS, 1
                 MOVE    @R2, R3                     ; @R2 contains attrib
                 MOVE    FAT32$PRINT_DE_AN, R8
                 AND     FAT32$FA_READ_ONLY, R3      ; attrib = read only?
                 RBRA    _F32_PDE_A4, Z
                 MOVE    FAT32$PRINT_DE_AR, R8
-_F32_PDE_A4     SYSCALL(puts, 1)
+_F32_PDE_A4     RSUB    IO$PUTS, 1
                 MOVE    @R2, R3                     ; @R2 contains attrib
                 MOVE    FAT32$PRINT_DE_AN, R8
                 AND     FAT32$FA_SYSTEM, R3         ; attrib = system?
                 RBRA    _F32_PDE_A5, Z
                 MOVE    FAT32$PRINT_DE_AS, R8
-_F32_PDE_A5     SYSCALL(puts, 1)
+_F32_PDE_A5     RSUB    IO$PUTS, 1
                 MOVE    FAT32$PRINT_DE_AN, R8       ; print space
-                SYSCALL(puts, 1)
+                RSUB    IO$PUTS, 1
 
                 ; print size
 _F32_PDE_S1     MOVE    R1, R2                      ; show file size?
@@ -1261,7 +1261,7 @@ _F32_PDE_S1     MOVE    R1, R2                      ; show file size?
                 AND     FAT32$FA_DIR, R2
                 RBRA    _F32_PDE_S2, Z              ; no: print file size
                 MOVE    FAT32$PRINT_DE_DIR_S, R8    ; yes: print spaces ...
-                SYSCALL(puts, 1)                    ; ... instead of file size                
+                RSUB    IO$PUTS, 1                  ; ... instead of file size                
                 RBRA    _F32_PDE_DATE, 1
 _F32_PDE_S2     MOVE    R0, R8                      ; R8 = dir. entry struct.
                 ADD     FAT32$DE_SIZE_LO, R8        ; retrieve LO/HI of ...
@@ -1272,7 +1272,7 @@ _F32_PDE_S2     MOVE    R0, R8                      ; R8 = dir. entry struct.
                 XOR     R7, R7                      ; print trailing spaces
                 RSUB    _F32_PDE_PD, 1              ; print decimal filesize
                 MOVE    FAT32$PRINT_DE_AN, R8       ; print space
-                SYSCALL(puts, 1)
+                RSUB    IO$PUTS, 1
 
                 ; print date
 _F32_PDE_DATE   MOVE    1, R7                       ; do not print trailing sp
@@ -1285,21 +1285,21 @@ _F32_PDE_DATE   MOVE    1, R7                       ; do not print trailing sp
                 XOR     R9, R9                      ; high word = zero
                 RSUB    _F32_PDE_PD, 1              ; print year as decimal
                 MOVE    FAT32$PRINT_DE_DATE, R8     ; print separator
-                SYSCALL(puts, 1)
+                RSUB    IO$PUTS, 1
                 MOVE    R0, R8
                 ADD     FAT32$DE_MONTH, R8
                 MOVE    @R8, R8                     ; R8 = month
                 XOR     R9, R9                      ; hi word zero
                 RSUB    _F32_PDE_PD, 1              ; print month as decimal
                 MOVE    FAT32$PRINT_DE_DATE, R8     ; print separator
-                SYSCALL(puts, 1)
+                RSUB    IO$PUTS, 1
                 MOVE    R0, R8
                 ADD     FAT32$DE_DAY, R8
                 MOVE    @R8, R8                     ; R8 = day
                 XOR     R9, R9                      ; hi word zero
                 RSUB    _F32_PDE_PD, 1              ; print day as decimal
                 MOVE    FAT32$PRINT_DE_AN, R8       ; print space
-                SYSCALL(puts, 1)
+                RSUB    IO$PUTS, 1
 
                 ; print time
 _F32_PDE_TIME   MOVE    1, R7                       ; do not print trailing sp
@@ -1312,20 +1312,20 @@ _F32_PDE_TIME   MOVE    1, R7                       ; do not print trailing sp
                 XOR     R9, R9                      ; high word = zero
                 RSUB    _F32_PDE_PD, 1              ; print hour as decimal
                 MOVE    FAT32$PRINT_DE_TIME, R8     ; print separator
-                SYSCALL(puts, 1)
+                RSUB    IO$PUTS, 1
                 MOVE    R0, R8
                 ADD     FAT32$DE_MINUTE, R8
                 MOVE    @R8, R8                     ; R8 = minute
                 XOR     R9, R9                      ; high word = zero
                 RSUB    _F32_PDE_PD, 1              ; print minute as decimal
                 MOVE    FAT32$PRINT_DE_AN, R8       ; print space
-                SYSCALL(puts, 1)
+                RSUB    IO$PUTS, 1
 
                 ; print name
 _F32_PDE_N1     MOVE    R0, R8
                 ADD     FAT32$DE_NAME, R8
-                SYSCALL(puts, 1)                    ; print name
-                SYSCALL(crlf, 1)                    ; next line out stdout
+                RSUB    IO$PUTS, 1                  ; print name                
+                RSUB    IO$PUT_CRLF, 1              ; next line out stdout
                 
 _F32_PDE_END    MOVE    R0, R8                      ; restore R8 .. R11
                 MOVE    R1, R9
@@ -1352,7 +1352,7 @@ _F32_PDE_PDNT   CMP     R12, 1                      ; only one digit?
                 RBRA    _F32_PDE_PDOD, !Z           ; no: go on
                 MOVE    0x0030, @--R11              ; yes: add trailing zero
 _F32_PDE_PDOD   MOVE    R11, R8                     ; use R10 to print
-_F32_PDE_PDPS   SYSCALL(puts, 1)                    ; print decimal
+_F32_PDE_PDPS   RSUB    IO$PUTS, 1                  ; print decimal
                 ADD     11, SP                      ; restore stack
                 RET
 ;
@@ -1499,11 +1499,11 @@ _F32_DF_CFCD    AND     FAT32$FA_DIR, R7        ; directory flag set?
 _F32_DF_NXSG5   MOVE    R6, R7                  ; R7 = dir. entry name
                 ADD     FAT32$DE_NAME, R7
                 MOVE    R7, R8
-                SYSCALL(str2upper, 1)           ; dir. entry name uppercase
+                RSUB    STR$TO_UPPER, 1         ; dir. entry name uppercase
                 MOVE    R4, R8
-                SYSCALL(str2upper, 1)           ; current path segm. uppercase
+                RSUB    STR$TO_UPPER, 1         ; current path segm. uppercase
                 MOVE    R7, R9
-                SYSCALL(strcmp, 1)              ; compare DE with current path
+                RSUB    STR$CMP, 1              ; compare DE with current path
                 CMP     R10, 0
                 RBRA    _F32_DF_LNX, !Z         ; no match: try next DE
 
@@ -1887,7 +1887,7 @@ _F32_RSIC_C2    MOVE    R8, R0                      ; save device handle
                 ADD     FAT32$DEV_SECT_PER_CLUS, R10
                 MOVE    @R10, R10
                 MOVE    0, R11
-                RSUB    MULU32, 1                   ; above mentioned "*"
+                RSUB    MTH$MULU32, 1               ; above mentioned "*"
                 MOVE    R0, R2                      ; add cluster_begin_lba
                 ADD     FAT32$DEV_CLUSTER_LO, R2
                 MOVE    @R2, R2
