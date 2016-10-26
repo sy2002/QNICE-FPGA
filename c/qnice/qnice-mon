@@ -1,5 +1,5 @@
--cc=vbccqnice -mtiny  -I$VBCC/targets/qnice-mon/include -quiet %s -o= %s %s -O=%ld
--ccv=vbccqnice -mtiny  -I$VBCC/targets/qnice-mon/include %s -o= %s %s -O=%ld
+-cc=vbccqnice -mtiny -I$VBCC/targets/qnice-mon/include -I$VBCC/../../dist_kit/ -quiet %s -o= %s %s -O=%ld
+-ccv=vbccqnice -mtiny -I$VBCC/targets/qnice-mon/include -I$VBCC/../../dist_kit/ %s -o= %s %s -O=%ld
 -as=vasmqnice_std -quiet -Fvobj %s -o %s
 -asv=vasmqnice_std -Fvobj -v %s -o %s
 -rm=rm %s
