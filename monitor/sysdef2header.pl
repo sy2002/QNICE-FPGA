@@ -9,6 +9,7 @@ open my $output, '>', $hf or die "Could not open $hf: $!\n";
 
 while (my $line = <$input>)
 {
+    next if $line =~ /^#define/;
     $line =~ s/;/\/\//;
     if ($line =~ /\.EQU/i)
     {
