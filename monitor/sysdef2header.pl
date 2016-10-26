@@ -1,7 +1,15 @@
 use strict;
 use warnings;
 
-die "Usage: $0 <sysdef-filename> <header-filename>\n" unless @ARGV == 2;
+die "Usage: $0 [-p <prefix>] <sysdef-filename> <header-filename>\n" if @ARGV < 2;
+
+my $prefix = '';
+if ($ARGV[0] =~ /-p/)
+{
+    $prefix = $ARGV[1];
+    shift @ARGV;
+    shift @ARGV;
+}
 
 my ($sdf, $hf) = @ARGV;
 open my $input, '<', $sdf or die "Could not open $sdf: $!\n";
@@ -15,7 +23,7 @@ while (my $line = <$input>)
     if ($line =~ /\.EQU/i)  # This line contains an '.EQU', so we have to transform it
     {
         my ($label, $rest) = $line =~ /^(.*)\s+\.EQU\s+(.*)$/i;
-        $line = "#define $label\t$rest\n";
+        $line = "#define $prefix$label\t$rest\n";
     }
     print $output $line;    # Write line (possibly modified) to the output file
 }
