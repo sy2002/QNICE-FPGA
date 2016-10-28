@@ -824,12 +824,12 @@ int emit_peephole(void)
     i--;
     if(i<0) i=EMIT_BUF_DEPTH-1;
     asmline[1]=emit_buffer[i];
-    if(sscanf(asmline[0],"\t%s\t%ld,R%d",s1,&x,&r1)==3&&sscanf(asmline[1],"\t%s\t%ld,R%d",s2,&y,&r2)==3&&r1==r2&&!strcmp(s1,s2)&&(!strcmp(s1,"add")||!strcmp(s1,"sub")||!strcmp(s1,"shl")||!strcmp(s1,"shr"))){
+    if(sscanf(asmline[0],"\t%15s\t%ld,R%d",s1,&x,&r1)==3&&sscanf(asmline[1],"\t%15s\t%ld,R%d",s2,&y,&r2)==3&&r1==r2&&!strcmp(s1,s2)&&(!strcmp(s1,"add")||!strcmp(s1,"sub")||!strcmp(s1,"shl")||!strcmp(s1,"shr"))){
       sprintf(asmline[1],"\t%s\t%ld,R%d\n",s1,x+y,r1);
       remove_asm();
       return 1;
     }
-    if(sscanf(asmline[0],"\t%s\t%ld,@R%d",s1,&x,&r1)==3&&sscanf(asmline[1],"\t%s\t%ld,@R%d",s2,&y,&r2)==3&&r1==r2&&!strcmp(s1,s2)&&(!strcmp(s1,"add")||!strcmp(s1,"sub")||!strcmp(s1,"shl")||!strcmp(s1,"shr"))){
+    if(sscanf(asmline[0],"\t%15s\t%ld,@R%d",s1,&x,&r1)==3&&sscanf(asmline[1],"\t%15s\t%ld,@R%d",s2,&y,&r2)==3&&r1==r2&&!strcmp(s1,s2)&&(!strcmp(s1,"add")||!strcmp(s1,"sub")||!strcmp(s1,"shl")||!strcmp(s1,"shr"))){
       sprintf(asmline[1],"\t%s\t%ld,@R%d\n",s1,x+y,r1);
       remove_asm();
       return 1;
@@ -838,7 +838,7 @@ int emit_peephole(void)
       remove_asm();
       return 1;
     }
-    if(sscanf(asmline[0],"\tshl\t1,R%d",&r1)==1){
+    if(sscanf(asmline[0],"\tshl\t1,R%d",&r1)==1&&!strstr(asmline[0],"shr")){
       sprintf(asmline[0],"\tadd\tR%d,R%d\n",r1,r1);
       return 1;
     }
@@ -1810,11 +1810,15 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	    for(i=0;i<sz;i++)
 	      emit(f,cpstr);
 	  }else{
+	    int cntpushed=0;
 	    if(zreg!=t2)
 	      creg=t2;
 	    else{
 	      creg=get_reg(f,p);
-	      if(!creg) ierror(0);
+	      if(c==PUSH) ierror(0);
+	      creg=9;
+	      emit(f,"\tmove\t%s,@--%s\n",regnames[creg],regnames[sp]);
+	      cntpushed=1;
 	    }
 	    emit(f,"\tmove\t%ld,%s\n",sz/4,regnames[creg]);
 	    emit(f,"%s%d:\n",labprefix,++label);
@@ -1826,6 +1830,8 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	    emit(f,"\trbra\t%s%d,!z\n",labprefix,label);
 	    for(i=0;i<sz%4;i++)
 	      emit(f,cpstr);
+	    if(cntpushed)
+	      emit(f,"\tmove\t@%s++,%s\n",regnames[sp],regnames[creg]);
 	  }
 	  continue;
 	}
@@ -2330,11 +2336,15 @@ char *use_libcall(int c,int t,int t2)
       if(t==DOUBLE&&t2==FLOAT) return "__flt32toflt64";
 
       if(ISFLOAT(t)){
-        sprintf(fname,"__%cint%ldtoflt%d",(t2&UNSIGNED)?'u':'s',zm2l(sizetab[t2&NQ])*8,(t==FLOAT)?32:64);
+        sprintf(fname,"__%cint%ldtoflt%d",(t2&UNSIGNED)?'u':'s',zm2l(sizetab[t2&NQ])*16,(t==FLOAT)?32:64);
         ret=fname;
       }
       if(ISFLOAT(t2)&&(t&NU)==LLONG){
-        sprintf(fname,"__flt%dto%cint%ld",((t2&NU)==FLOAT)?32:64,(t&UNSIGNED)?'u':'s',zm2l(sizetab[t&NQ])*8);
+        sprintf(fname,"__flt%dto%cint%ld",((t2&NU)==FLOAT)?32:64,(t&UNSIGNED)?'u':'s',zm2l(sizetab[t&NQ])*16);
+        ret=fname;
+      }
+      if((t&NQ)==LLONG||(t2&NQ)==LLONG){
+	sprintf(fname,"__%cint%ldto%cint%ld",(t2&UNSIGNED)?'u':'s',zm2l(sizetab[t2&NQ])*16,(t&UNSIGNED)?'u':'s',zm2l(sizetab[t&NQ])*16);
         ret=fname;
       }
     }
