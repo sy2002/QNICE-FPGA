@@ -6,7 +6,7 @@ die "Usage: $0 [-p <prefix>] <sysdef-filename> <header-filename>\n" if @ARGV < 2
 my $prefix = '';
 if ($ARGV[0] =~ /-p/)
 {
-    $prefix = $ARGV[1];
+    $prefix = uc $ARGV[1];
     shift @ARGV;
     shift @ARGV;
 }
@@ -23,6 +23,7 @@ while (my $line = <$input>)
     if ($line =~ /\.EQU/i)  # This line contains an '.EQU', so we have to transform it
     {
         my ($label, $rest) = $line =~ /^(.*)\s+\.EQU\s+(.*)$/i;
+        $label = uc $label;
         $line = "#define $prefix$label\t$rest\n";
     }
     print $output $line;    # Write line (possibly modified) to the output file

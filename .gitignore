@@ -39,3 +39,4 @@ c/test_programs/wolfram
 c/vclib
 c/vclib*.tgz
 c/make-vclib.sh
+c/qnice/monitor-lib/lib/*.asm
