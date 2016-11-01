@@ -189,7 +189,14 @@ int main()
         
         //split input string into command and parameter
         int input_amount = qmon_split_str(input_str, ' ', &split_str);
+
+        //sanity checks: empty string and no heap memory
+        if (input_amount == 0)
+            continue;
         malloc_check(split_str, "split_str");
+
+        /* see the documentation of qmon_split_str in 
+           c/qnice/monitor-lib/include/qmon.h to understand, how this works */
         char* cmd = split_str + 1;
         char* prm = split_str + ((int) *split_str) + 2;
         qmon_str2upper(cmd);

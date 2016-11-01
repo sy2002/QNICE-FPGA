@@ -19,7 +19,11 @@ int def_qmon_split_str(char* input, char separator, char** output) =
   "          MOVE     R9, R1\n"                       //R1=R9: save amount of words generated on stack
   "          MOVE     R8, R2\n"                       //R2=R8: save amount of split strings
   "          MOVE     R10, R3\n"                      //R3: save char** output
-  "          MOVE     R9, R8\n"                       //use R9 to prepare malloc function call
+  "          CMP      R2, 0\n"                        //empty string?
+  "          RBRA     _QMS_ML, !Z\n"                  //no: go on
+  "          MOVE     0, @R3\n"                       //yes: set *output to zero and ...
+  "          RBRA     _QMS_END, 1\n"                  //... return zero as function value
+  "_QMS_ML:  MOVE     R9, R8\n"                       //use R9 to prepare malloc function call
   "          ASUB     #_malloc, 1\n"                  //R8=malloc(size of amount of words gen. on stack) "
   "          MOVE     R8, @R3\n"                      //*output = R8 (save heap pointer)
   "          CMP      R8, 0\n"                        //did malloc work?
