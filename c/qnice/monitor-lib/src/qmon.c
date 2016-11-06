@@ -35,42 +35,56 @@ int def_qmon_split_str(char* input, char separator, char** output) =
   "_QMS_END: MOVE     R2, R8\n"                       //return amount of split strings
   "          ADD      R1, R13\n";                     //"delete" return values of STR$SPLIT from stack
 
-__rbank int qmon_split_str(char* input, char separator, char** output)
+int qmon_split_str(char* input, char separator, char** output)
 {
     return def_qmon_split_str(input, separator, output);
 }
 
+int def_fat32_mount_sd(fat32_device_handle dev_handle, int partition) =
+  "          ASUB     " M2S(QMON_EP_F32_MNT_SD) ", 1\n"     //call FAT32$MOUNT_SD in monitor
+  "          MOVE     R9, R8\n";                            //return 0 or error code
+
 int fat32_mount_sd(fat32_device_handle dev_handle, int partition)
 {
-    return (int) (qmon_f32_mnt_sd(dev_handle, partition) >> 16);
+    return def_fat32_mount_sd(dev_handle, partition);
 }
+
+int def_fat32_open_dir(fat32_device_handle dev_handle, fat32_file_handle dir_handle) =
+  "          ASUB     " M2S(QMON_EP_F32_OD) ", 1\n"         //call FAT32$DIR_OPEN in monitor
+  "          MOVE     R9, R8\n";                            //return 0 or error code
+
 
 int fat32_open_dir(fat32_device_handle dev_handle, fat32_file_handle dir_handle)
 {
-    return (int) (qmon_f32_od(dev_handle, dir_handle) >> 16);
+    return def_fat32_open_dir(dev_handle, dir_handle);
 }
+
+int def_fat32_change_dir(fat32_device_handle dev_handle, char* path) =
+  "          XOR      R10, R10\n"                           //R10 = 0 means: use '/' as path separator
+  "          ASUB     " M2S(QMON_EP_F32_CD) ", 1\n"         //call FAT32$CD in monitor
+  "          MOVE     R9, R8\n";                            //return 0 or error code
 
 int fat32_change_dir(fat32_device_handle dev_handle, char* path)
 {
-    return (int) (qmon_f32_cd(dev_handle, path, 0) >> 16);    
+    return def_fat32_change_dir(dev_handle, path);    
 }
 
-unsigned long qmon_f32_ld(fat32_file_handle f_handle, fat32_dir_entry d_entry, int attribs) =
-  "          ASUB     " M2S(QMON_EP_F32_LD) ", 1\n"
-  "          MOVE     R10, R8\n"
-  "          MOVE     R11, R9\n";
+
+int def_fat32_list_dir(fat32_file_handle f_handle, fat32_dir_entry d_entry, int attribs, int* entry_valid) = 
+  "          ASUB     " M2S(QMON_EP_F32_LD) ", 1\n"         //call FAT32$DIR_LIST in monitor
+  "          MOVE     R11, R8\n"                            //return 0 or error code
+  "          MOVE     @R13, R9\n"                           //get "entry_valid" pointer from stack (do not change SP)
+  "          MOVE     R10, @R9\n";                          //*entry_valid = R10
 
 
 int fat32_list_dir(fat32_file_handle f_handle, fat32_dir_entry d_entry, int attribs, int* entry_valid)
 {
-    unsigned long ret = qmon_f32_ld(f_handle, d_entry, attribs);
-    *entry_valid = (int) (ret & 0x0000FFFF);
-    return (int) (ret >> 16);
+    return def_fat32_list_dir(f_handle, d_entry, attribs, entry_valid);
 }
 
 void fat32_print_dir_entry(fat32_dir_entry d_entry, int attribs)
 {
-    qmon_f32_pd(d_entry, attribs);
+    ((_qmon_fp) QMON_EP_F32_PD)(d_entry, attribs);
 }
 
 int def_fat32_open_file(fat32_device_handle dev_handle, fat32_file_handle f_handle, char* name) =
@@ -89,7 +103,7 @@ int def_fat32_read_file(fat32_file_handle f_handle, int* result) =
   "          MOVE     R9, @R0\n"                          //return result
   "          MOVE     R10, R8\n";                         //return 0 or EOF or error code
 
-__rbank int fat32_read_file(fat32_file_handle f_handle, int* result)
+int fat32_read_file(fat32_file_handle f_handle, int* result)
 {
     return def_fat32_read_file(f_handle, result);
 }
@@ -101,7 +115,7 @@ int def_fat32_seek_file(fat32_file_handle f_handle, unsigned long seek_pos) =
   "          ASUB     " M2S(QMON_EP_F32_FSEEK) ", 1\n"    //call FFAT32$FILE_SEEK in monitor
   "          MOVE     R9, R8\n";  
 
-__rbank int fat32_seek_file(fat32_file_handle f_handle, unsigned long seek_pos)
+int fat32_seek_file(fat32_file_handle f_handle, unsigned long seek_pos)
 {
     return def_fat32_seek_file(f_handle, seek_pos);
 }

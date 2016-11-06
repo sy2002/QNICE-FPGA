@@ -10,18 +10,11 @@
 #include "qmon-ep.h"
 #include "sysdef.h"
 
-typedef int (*fp)();
-typedef unsigned long (*lfp)();
+typedef int (*_qmon_fp)();
 
-#define qmon_gets(x)                         ((fp)  QMON_EP_GETS)(x)
-#define qmon_puts(x)                         ((fp)  QMON_EP_PUTS)(x)
-#define qmon_str2upper(x)                    ((fp)  QMON_EP_STR2UPPER)(x)
-#define qmon_f32_mnt(h)                      ((lfp) QMON_EP_F32_MNT)(h)
-#define qmon_f32_mnt_sd(h, p)                ((lfp) QMON_EP_F32_MNT_SD)(h, p)
-#define qmon_f32_od(hdev, hfile)             ((lfp) QMON_EP_F32_OD)(hdev, hfile)
-#define qmon_f32_cd(hdev, path, sep)         ((lfp) QMON_EP_F32_CD)(hdev, path, sep)
-#define qmon_f32_pd(d, a)                    ((fp)  QMON_EP_F32_PD)(d, a)
-
+#define qmon_gets(x)                ((_qmon_fp)  QMON_EP_GETS)(x)
+#define qmon_puts(x)                ((_qmon_fp)  QMON_EP_PUTS)(x)
+#define qmon_str2upper(x)           ((_qmon_fp)  QMON_EP_STR2UPPER)(x)
 
 /* ========================================================================
    STRING I/O AND STRING HANDLING FUNCTIONS
@@ -42,7 +35,12 @@ typedef unsigned long (*lfp)();
        7simple<zero terminator>
        5test<zero terminator> 
    and the function returns 3. */   
-__rbank int qmon_split_str(char* input, char separator, char** output);
+int qmon_split_str(char* input, char separator, char** output);
+
+/* ========================================================================
+   MATH FUNCTIONS
+   ======================================================================== */
+
 
 
 /* ========================================================================
@@ -102,9 +100,9 @@ int fat32_open_file(fat32_device_handle dev_handle, fat32_file_handle f_handle, 
 /* Read one byte from a file into the low byte of result, increase internal
    read pointer. Returns 0 if OK, FAT32_EOF on end of file or any other
    error code. */
-__rbank int fat32_read_file(fat32_file_handle f_handle, int* result);
+int fat32_read_file(fat32_file_handle f_handle, int* result);
 
 /* Seek to a read position within the file. Returns 0, if OK,
    FAT23_ERR_SEEKTOOLARGE, if the seek would exceed the file or
    any other error code. */
-__rbank int fat32_seek_file(fat32_file_handle f_handle, unsigned long seek_pos);
+int fat32_seek_file(fat32_file_handle f_handle, unsigned long seek_pos);

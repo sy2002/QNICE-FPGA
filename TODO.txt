@@ -99,14 +99,15 @@ VBCC TOOLCHAIN: C COMPILER and/or C STANDARD LIB:
 
 MONITOR-LIB:
 
-* Replace >> 16 by native assembler code
+* Enhance by adding all available monitor functions.
 
-* Move all direct entry point #defines, that make no sense when they are
-  called directly to the .c file and only leave #defines like gets & co
-  in the .h file
+DEMOS:
 
-* Make the code more robust (independent of the compiler's "unpredictable"
-  behaviour) by either using __norbank or using something like
-  __forcerbank.
+* Move shell.c to the global demos folder (and write some minimal
+  documentation in the getting started guide of how to compile VBCC and
+  finally shell.c)
+  Plus: Add malloc_check for argv perform_cat and check, if everything
+  still works
 
-
+* Improve wolfram.c and sierpinski.c to use the dist_kit headers and then
+  also move them to the global demos folder
