@@ -206,7 +206,8 @@ int main()
         char* prm = split_str + ((int) *split_str) + 2;
         qmon_str2upper(cmd);
 
-        printf("split_str = %u\r\n", (unsigned int) split_str);        
+        //debug helper: check if malloc/free works
+        //printf("split_str = %u\r\n", (unsigned int) split_str);        
 
         //EXIT: end program
         if (strcmp(cmd, "EXIT") == 0)
