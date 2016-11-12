@@ -13,6 +13,10 @@
 #define MACRO_STRINGIFY(x) #x
 #define M2S(x) MACRO_STRINGIFY(x)
 
+/* ========================================================================
+   STRING I/O AND STRING HANDLING FUNCTIONS
+   ======================================================================== */    
+
 int def_qmon_split_str(char* input, char separator, char** output) =
   "          ASUB     " M2S(QMON_EP_SPLIT) ", 1\n"    //call STR$SPLIT in monitor
   "          MOVE     R13, R0\n"                      //R0=SP: stack contains split strings, save stack
@@ -39,6 +43,34 @@ int qmon_split_str(char* input, char separator, char** output)
 {
     return def_qmon_split_str(input, separator, output);
 }
+
+/* ========================================================================
+   MATH FUNCTIONS
+   ======================================================================== */
+
+unsigned long def_qmon_mulu32(unsigned long a, unsigned long b) =
+  "          MOVE     @R13++, R10\n"
+  "          MOVE     @R13, R11\n"
+  "          SUB      1, R13\n"                   
+  "          ASUB     " M2S(QMON_EP_MULU32) ", 1\n";    //call MTH$MULU32 in monitor
+
+unsigned long qmon_mulu32(unsigned long a, unsigned long b)
+{
+    return def_qmon_mulu32(a, b);
+}
+
+unsigned long def_qmon_mulu32_int(unsigned int a_lo, unsigned int a_hi, unsigned int b_lo, unsigned int b_hi) = 
+  "          MOVE     @R13, R11\n"
+  "          ASUB     " M2S(QMON_EP_MULU32) ", 1\n";    //call MTH$MULU32 in monitor
+
+unsigned long qmon_mulu32_int(unsigned int a_lo, unsigned int a_hi, unsigned int b_lo, unsigned int b_hi)
+{
+    return def_qmon_mulu32_int(a_lo, a_hi, b_lo, b_hi);
+}
+
+/* ========================================================================
+    FAT32 IMPLEMENTATION
+   ======================================================================== */
 
 int def_fat32_mount_sd(fat32_device_handle dev_handle, int partition) =
   "          ASUB     " M2S(QMON_EP_F32_MNT_SD) ", 1\n"     //call FAT32$MOUNT_SD in monitor

@@ -7,6 +7,9 @@
     done by sy2002 in October 2016
 */
 
+#ifndef _QMON_H
+#define _QMON_H
+
 #include "qmon-ep.h"
 #include "sysdef.h"
 
@@ -41,7 +44,10 @@ int qmon_split_str(char* input, char separator, char** output);
    MATH FUNCTIONS
    ======================================================================== */
 
-
+/* Uses the EAE hardware to multiply to unsigned 32bit values and to
+   return the result as an unsigned 32bit value */
+unsigned long qmon_mulu32(unsigned long a, unsigned long b);
+unsigned long qmon_mulu32_int(unsigned int a_lo, unsigned int a_hi, unsigned int b_lo, unsigned int b_hi);
 
 /* ========================================================================
     FAT32 IMPLEMENTATION
@@ -56,7 +62,7 @@ int qmon_split_str(char* input, char separator, char** output);
     QNICE Monitor's FAT32 library is using a hardware abstraction that
     is built into the mounting mechanism. This version of the library
     only offers a version for the built-in SD Card. If you want to use
-    FAT32 on another hardware, then write a wrapper for qmon_f32_mnt
+    FAT32 on another hardware, then write a wrapper for QMON_EP_F32_MNT
     which calls FAT32$MOUNT in monitor/fat32_library.asm.
    ======================================================================== */
 
@@ -106,3 +112,5 @@ int fat32_read_file(fat32_file_handle f_handle, int* result);
    FAT23_ERR_SEEKTOOLARGE, if the seek would exceed the file or
    any other error code. */
 int fat32_seek_file(fat32_file_handle f_handle, unsigned long seek_pos);
+
+#endif
