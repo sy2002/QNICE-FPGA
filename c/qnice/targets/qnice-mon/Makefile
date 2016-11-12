@@ -25,6 +25,9 @@ build_vclib:
 	$(RM) stdlib/imaxdiv.c
 	$(RM) stdlib/strtoimax.c
 	$(RM) stdlib/strtoumax.c
+	$(RM) _lmul.c
+	echo "Assembling QNICE Monitor wrappers..."
+	$(AS) -o _lmul.o _lmul.s
 	echo "Processing _main etc..."
 	$(CC) -c _main.c
 	$(CC) -c _errno.c

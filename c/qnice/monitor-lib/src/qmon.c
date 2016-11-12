@@ -45,30 +45,6 @@ int qmon_split_str(char* input, char separator, char** output)
 }
 
 /* ========================================================================
-   MATH FUNCTIONS
-   ======================================================================== */
-
-unsigned long def_qmon_mulu32(unsigned long a, unsigned long b) =
-  "          MOVE     @R13++, R10\n"
-  "          MOVE     @R13, R11\n"
-  "          SUB      1, R13\n"                   
-  "          ASUB     " M2S(QMON_EP_MULU32) ", 1\n";    //call MTH$MULU32 in monitor
-
-unsigned long qmon_mulu32(unsigned long a, unsigned long b)
-{
-    return def_qmon_mulu32(a, b);
-}
-
-unsigned long def_qmon_mulu32_int(unsigned int a_lo, unsigned int a_hi, unsigned int b_lo, unsigned int b_hi) = 
-  "          MOVE     @R13, R11\n"
-  "          ASUB     " M2S(QMON_EP_MULU32) ", 1\n";    //call MTH$MULU32 in monitor
-
-unsigned long qmon_mulu32_int(unsigned int a_lo, unsigned int a_hi, unsigned int b_lo, unsigned int b_hi)
-{
-    return def_qmon_mulu32_int(a_lo, a_hi, b_lo, b_hi);
-}
-
-/* ========================================================================
     FAT32 IMPLEMENTATION
    ======================================================================== */
 

@@ -41,13 +41,8 @@ typedef int (*_qmon_fp)();
 int qmon_split_str(char* input, char separator, char** output);
 
 /* ========================================================================
-   MATH FUNCTIONS
+   XYZ FUNCTIONS
    ======================================================================== */
-
-/* Uses the EAE hardware to multiply to unsigned 32bit values and to
-   return the result as an unsigned 32bit value */
-unsigned long qmon_mulu32(unsigned long a, unsigned long b);
-unsigned long qmon_mulu32_int(unsigned int a_lo, unsigned int a_hi, unsigned int b_lo, unsigned int b_hi);
 
 /* ========================================================================
     FAT32 IMPLEMENTATION
