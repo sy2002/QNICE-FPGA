@@ -8,8 +8,8 @@
 
     done by sy2002 in November 2016
 
-    Performance built-in routines: X.XXX CPU cycles
-    Performance EAE:               X.XXX CPU cycles 
+    Performance built-in routines: 329 CPU cycles
+    Performance EAE:               160 CPU cycles 
 */
 
 #if __STDC_VERSION__ != 199901L

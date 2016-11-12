@@ -1,6 +1,6 @@
 #CC = vc +qnice-mon -k -dontwarn=-1 -I. -Iinclude -c99 -D__BUILD_LIB -DVCLIB_SHORTPRINTF -O -DTHRESHOLD="30" -DBUFSIZE="64" -mtiny
 CC = vc +qnice-mon -k -ic2 -dontwarn=-1 -I. -Iinclude -c99 -D__BUILD_LIB -DVCLIB_SHORTPRINTF -O2 -DTHRESHOLD=10 -DBUFSIZ=64 -D_CLE=16384 -DHAVE_TTYS
-AS = vasmqnice_std -quiet -Fvobj
+AS = vasmqnice_std -quiet -Fvobj -I${VBCC}/../../dist_kit/
 AR = ar
 RM = rm -f
 CP = cp
@@ -26,7 +26,7 @@ build_vclib:
 	$(RM) stdlib/strtoimax.c
 	$(RM) stdlib/strtoumax.c
 	$(RM) _lmul.c
-	echo "Assembling QNICE Monitor wrappers..."
+	echo "Assembling QNICE 32bit math..."
 	$(AS) -o _lmul.o _lmul.s
 	echo "Processing _main etc..."
 	$(CC) -c _main.c
