@@ -33,6 +33,7 @@ Getting Started
   (Hint: It is important, that you clone the repository instead of just
   downloading it as a ZIP. The reason is, that some build scripts rely on
   the fact, that there is an underlying git repository.)
+
 * Hardware: Currently, we develop QNICE-FPGA on a Nexys 4 DDR development
   board, so if you own one, the fastest way of getting started is to
   download the bitstream file `dist_kit/qnice.bit` on the SD card of the
@@ -54,10 +55,14 @@ Getting Started
 * On your host computer: Open a terminal and head to the root folder of the
   QNICE-FPGA GIT repository.
 
-* Compile the assembler and the ROM generator by entering
-  `gcc assembler/qasm.c -o assembler/qasm` and then
-  `gcc assembler/qasm2rom.c -o assembler/qasm2rom -std=c99` 
-  on the command line from the root folder of the GIT repository.
+* Compile the toolchain: Open a terminal in the QNICE root folder. Enter
+  the following (it is important, that you `cd` into the folder):
+  ```
+  cd tools
+  ./make-toolchain.sh
+  ```
+  You will be asked several questions. Answer them using the default answers
+  by pressing `Enter` instead of `y` or `n`.
 
 * Compile the mandelbrot demo by entering
   `assembler/asm demos/mandel.asm`.

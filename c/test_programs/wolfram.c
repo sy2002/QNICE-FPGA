@@ -7,36 +7,17 @@
    Modified for QNICE by sy2002 in October 2016
 */
 
+#include <stdio.h>
+
 #define DISPLAYWIDTH 80
 #define MAXSTEPS     24
 
 #ifdef __QNICE__
-
-    #define getchar(x) ((fp)0x0002)(x)
-    #define gets(x)    ((fp)0x0006)(x)
-    #define putsnl(x)  ((fp)0x0008)(x)
-    #define exit(x)    ((fp)0x0016)(x)
-
-    typedef int (*fp)();
-
-    static void puts(char* p)
-    {
-      putsnl(p);
-      putsnl("\n\r");
-    }
-
-    #define putc putsnl
     #define GREETING "Wolfram's Cellular Automata for QNICE"
-
 #else
-
-    #include <stdio.h>
-    #include <stdlib.h>
-
-    #define putc printf
     #define GREETING "Wolfram's Cellular Automata"
-
 #endif
+
 
 /*
   Each cell has a value of 0 or 1.
@@ -127,15 +108,11 @@ void displayState(state* s)
     for (i = 0; i < DISPLAYWIDTH; i++)
     {
         if (s->cell[i + MAXSTEPS])
-        {
-            putc("*");
-        }
+            putchar('*');
         else
-        {
-            putc(" ");
-        }
+            putchar(' ');
     }
-    putc("\n");
+    putchar('\n');
 }
 
 int mul(int a, int b)
@@ -186,7 +163,7 @@ int main()
     puts("by Michael Ashley in May 2003, modified for QNICE by sy2002 in October 2016");    
     puts("Rule numbers need to be between 0 and 255.");
     puts("Some known-to-be-nice rules are: 30, 54, 60, 90, 126, 129, 150, 250");
-    putc("Enter rule #");
+    printf("Enter rule #"); fflush(stdout);
     gets(inputstring);
     puts("");
 
