@@ -55,14 +55,16 @@ Getting Started
 * On your host computer: Open a terminal and head to the root folder of the
   QNICE-FPGA GIT repository.
 
-* Compile the toolchain: Open a terminal in the QNICE root folder. Enter
-  the following (it is important, that you `cd` into the folder):
+* Compile the toolchain: You need to have the GNU compiler toolchain
+  installed, particularly `gcc` and `make` will be used. Open a terminal in
+  the QNICE root folder. Enter the following (it is important, that you `cd`
+  into the folder):
   ```
   cd tools
   ./make-toolchain.sh
   ```
   You will be asked several questions. Answer them using the default answers
-  by pressing `Enter` instead of `y` or `n`.
+  by pressing `Enter` instead of answering manually by choosing `y` or `n`.
 
 * Compile the mandelbrot demo by entering
   `assembler/asm demos/mandel.asm`.
