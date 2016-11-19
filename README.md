@@ -70,7 +70,7 @@ Getting Started
 * Compile the mandelbrot demo by entering
   `assembler/asm demos/mandel.asm`.
 
-* On OSX, you now have an ASCII file in the clipboard/pasteboard that starts
+* On macOS, you now have an ASCII file in the clipboard/pasteboard that starts
   with the line `0xA000 0x0F80`. On other operating systems, you might see an
   error message, stating that `pbcopy` is not available. You can savely
   ignore this and manually copy the file `demos/mandel.out` into your
