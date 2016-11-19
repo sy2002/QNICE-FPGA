@@ -36,7 +36,7 @@ Getting Started
 
 * Hardware: Currently, we develop QNICE-FPGA on a Nexys 4 DDR development
   board, so if you own one, the fastest way of getting started is to
-  download the bitstream file `dist_kit/qnice.bit` on the SD card of the
+  download the bitstream file `dist_kit/qnice.bit` on the microSD card of the
   Nexys board and set the jumpers to read the FPGA configuration from the
   SD card. Do not copy more than one `*.bit` file on the SD card, i.e. do
   not copy `dist_kit/q-tris.bit`, yet. Do empty the "Recycle Bin" or similar
@@ -156,7 +156,7 @@ you are getting started:
 * Just as described above in "Getting Started", on macOS you now have the
   excutable in your clipboard so that you can use the `M` `L` Monitor
   command to load the shell. On other operating systems you need to copy
-  `shell.out manually to your clipboard and then transfer it using the
+  `shell.out` manually to your clipboard and then transfer it using the
   `M` `L` Monitor command.
 
 * Run the shell using `C` `R` `8000`.

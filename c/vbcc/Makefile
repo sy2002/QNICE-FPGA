@@ -1,6 +1,6 @@
 
 # used to create vbcc, vc and ucpp
-CC = gcc -std=c9x -g -DHAVE_AOS4 #-DHAVE_ECPP -DHAVE_MISRA
+CC = gcc -w -std=c9x -g -DHAVE_AOS4 #-DHAVE_ECPP -DHAVE_MISRA
 LDFLAGS = -lm
 
 # native version; used to create dtgen
