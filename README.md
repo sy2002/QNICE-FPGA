@@ -65,6 +65,7 @@ Getting Started
   ```
   You will be asked several questions. Answer them using the default answers
   by pressing `Enter` instead of answering manually by choosing `y` or `n`.
+  When done, `cd ..` back to the QNICE root folder.
 
 * Compile the mandelbrot demo by entering
   `assembler/asm demos/mandel.asm`.
@@ -132,3 +133,33 @@ for the QNICE-FPGA: Just use `dist_kit/q-tris.bit` instead of the
 above-mentioned `dist_kit/qnice.bit`. Or, you can run it regularly as an app
 within the Monitor environment. In this case, compile it and then load it with
 the `M L` command sequence and start Q-TRIS using the address `0x8000`.
+
+Programming in C
+----------------
+
+Thanks to Volker Barthelmann and his [vbcc](http://www.compilers.de/vbcc.html)
+compiler system, QNICE also features a C programming environment. This is how
+you can get started:
+
+* The vbcc toolchain is automatically build, when you follow the
+  above-mentioned "Getting Started" guide and run `make-toolchain.sh`.
+
+* Open a terminal and from the QNICE root folder enter `cd c`.
+
+* Let's compile a small shell, that can be used to browse the microSD Card
+  of the FPGA board. Enter the following commands:
+  ```
+  source setenv.source
+  cd test_programs
+  qvc shell.c -c99
+  ```
+
+* Just as described above in "Getting Started", on macOS you now have the
+  excutable in your clipboard so that you can use the `M` `L` Monitor
+  command to load the shell. On other operating systems you can proceed
+  manually.
+
+* Run the shell using `C` `R` `8000`.
+
+* Browse the microSD Card using `dir`, `cd`, `cat` and `cathex` commands.
+  Exit the shell using `exit`.
