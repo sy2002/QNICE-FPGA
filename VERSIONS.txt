@@ -20,18 +20,15 @@ c/test_programs/shell.c
 
 To work with the VBCC toolchain:
 
-1. Always enter "source setenv.source" in your current terminal, before
+1. Open a terminal and run tools/make-toolchain.sh
+
+2. Go to the "c" folder.
+
+3. Always enter "source setenv.source" in your current terminal, before
    starting to work with the VBCC toolchain. This the path and the VBCC
    environment variable correctly.
 
-2. Compile the assembler, the linker and the compiler by running these scripts
-   in this order in the folder 'c'
-
-   make-vasm.sh
-   make-vlink.sh
-   make-vbcc.sh
-
-3. Now you can compile your .c file by using the qvc command, which also
+4. Now you can compile your .c file by using the qvc command, which also
    makes sure, that your programs runs from 0x8000 on.
    Example: Go to c/test_programs, enter qvc shell.c
 
