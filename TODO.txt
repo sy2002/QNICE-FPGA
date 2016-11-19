@@ -52,7 +52,7 @@ MONITOR:
 
 ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
 
-* SD card support / FAT32 support
+* Add writing to SD card support / FAT32 support
 
 * finalize 32 bit arithmetic (muls32, divs32)
 
@@ -74,14 +74,29 @@ NATIVE TOOLCHAIN: ASSEMBLER:
 
 <currently no TODOs>
 
-VBCC TOOLCHAIN: C COMPILER and/or C STANDARD LIB:
+VBCC TOOLCHAIN: C COMPILER:
 
-* Enhance the demo program mul32_div32.asm by adding cycle counting. Then
-  measure the runtime: how fast are the built-in 32bit int functions? Then
-  replace them by linking a version of the lib, that uses the monitor's
-  32bit integer math functions instead. (mul32 should be way faster due
-  to the fact that it uses EAE and div32 at least a bit as it is written
-  in plain assembler)
+* check/validate correct register bank usage
+
+* Function entry points: remove superflous register MOVEs
+
+* Optimization: Correct "costs", so that e.g. in -O3 constants are
+  loaded in to registers in a loop instead of e.g doing SUB 1, @R1++
+
+* code generation for 16bit multiplication: EAE wait code as soon as necessary
+  (currently no wait code is being generated, maybe this becomes necessary
+  when we switch to 100 MHz)
+
+VBCC TOOLCHAIN: C STANDARD LIB:
+
+* Enhance mul32_div32.c by testing much more cases for the 32bit
+  multiplication, because the new _lmul.s has not been thoroughly tested,
+  yet. Also test signed and unsigned.
+
+* Replace more 32bit math functions (div, mod, shl, shr) by faster assembler
+  versions. When doing div and mod, optimize by using static variables
+  that check the latest parameters and optimize mod (because the 32bit
+  div routine generates also the mode). But this would not be threadsafe.
 
 * check/validate correct register bank usage
 
@@ -90,24 +105,29 @@ VBCC TOOLCHAIN: C COMPILER and/or C STANDARD LIB:
 * Optimization: Correct "costs", so that e.g. in -O3 constants are
   loaded in to registers in a loop instead of e.g doing SUB 1, @R1++
 
-* use new gets routine
+* use Monitor's new gets routine within the abstraction layer, so that it
+  automatically becomes available "everywhere"
 
 * add file system support (fopen, fclose, ...)
 
 * EAE wait code as soon as necessary (currently no wait code, maybe this
   becomes necessary when we switch to 100 MHz)
 
-MONITOR-LIB:
 
-* Enhance by adding all available monitor functions.
+VBCC TOOLCHAIN: MONITOR-LIB:
+
+* Rewrite in pure assembler to avoid overhead.
+
+* Add all meaningful monitor functions.
 
 DEMOS:
 
-* Move shell.c to the global demos folder (and write some minimal
-  documentation in the getting started guide of how to compile VBCC and
-  finally shell.c)
+* Move shell.c to the global demos folder and write some minimal
+  documentation in the getting started guide of how to compile the whole
+  VBCC and toolchain and finally shell.c. (Make sure to have the Standard
+  C library and the other necessary files in vbcc/targets/qnice-mon.)
   Plus: Add malloc_check for argv perform_cat and check, if everything
-  still works
+  still works.
 
 * Improve wolfram.c and sierpinski.c to use the dist_kit headers and then
   also move them to the global demos folder

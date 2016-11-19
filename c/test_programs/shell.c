@@ -41,7 +41,7 @@ void print_help()
     puts("        for seeking within the file, add a number (decimal or hex as 0x...)");
     puts("        separated by a : after the filename, e.g. <filename>:1234");
     puts("    print this info: help");
-    puts("    end program: exit\r\n");
+    puts("    end program: exit\n");
 }
 
 //In case of an error, output the error code and terminate the program
@@ -51,7 +51,7 @@ void execute(int error)
     {
         if ((error & 0xFF00) != 0xEE00)
             error &= 0x00FF;
-        printf("fatal error: 0x%04X\r\n", error);
+        printf("fatal error: 0x%04X\n", error);
         exit(error);
     }
 }
@@ -61,7 +61,7 @@ void malloc_check(void* p, char* context)
 {
     if (p == 0)
     {
-        printf("fatal error: not enough heap for %s.\r\n", context);
+        printf("fatal error: not enough heap for %s.\n", context);
         exit(-1);
     }
 }
@@ -114,10 +114,7 @@ void perform_cat(char* prm, int cathex)
                         //if LF after CF, then skip LF as we already
                         //printed a CR/LF when we read the CF
                         if (!(was_cr && read_byte == CHR_LF))
-                        {
-                            putc('\r', stdout);
                             putc('\n', stdout);
-                        }
                     }
                     else
                         //print character
@@ -133,7 +130,7 @@ void perform_cat(char* prm, int cathex)
                     recent[hex_counter] = iscntrl(read_byte) ? '.' : read_byte;
                     if (++hex_counter == 16)
                     {
-                        printf("        %s\r\n", recent);
+                        printf("        %s\n", recent);
                         hex_counter = 0;
                     }
                 }
@@ -150,19 +147,18 @@ void perform_cat(char* prm, int cathex)
                 recent[hex_counter] = 0;
                 for (int i = 0; i < 16 - hex_counter; i++)
                    printf("   ");
-                printf("        %s\r\n", recent);
+                printf("        %s\n", recent);
             }
 
-            putc('\r', stdout);
             putc('\n', stdout);
         }
         else if (seek_res == FAT23_ERR_SEEKTOOLARGE)
-            printf("error: seek position is larger than file: %lu\r\n", seek_pos);
+            printf("error: seek position is larger than file: %lu\n", seek_pos);
         else
             execute(seek_res); //fatal error, end program
     }
     else if (ret == FAT32_ERR_FILENOTFOUND)
-        printf("error: file not found: %s\r\n", file_name);
+        printf("error: file not found: %s\n", file_name);
     else
         execute(ret); //fatal error, end program
 
@@ -171,7 +167,7 @@ void perform_cat(char* prm, int cathex)
 
 int main()
 {
-    puts("SD Card Shell Demo - done by sy2002 in October 2016\r\n");
+    puts("SD Card Shell Demo - done by sy2002 in October 2016\n");
     print_help();
 
     //mount partition #1 of built-in SD Card as FAT32
@@ -207,7 +203,7 @@ int main()
         qmon_str2upper(cmd);
 
         //debug helper: check if malloc/free works
-        //printf("split_str = %u\r\n", (unsigned int) split_str);        
+        //printf("split_str = %u\n", (unsigned int) split_str);        
 
         //EXIT: end program
         if (strcmp(cmd, "EXIT") == 0)
@@ -242,7 +238,7 @@ int main()
             if (ret != 0)
             {
                 if (ret == FAT32_ERR_DIRNOTFOUND)
-                    printf("error: directory not found: %s\r\n", path);
+                    printf("error: directory not found: %s\n", path);
                 else
                     execute(ret); //fatal error, end program
             }
