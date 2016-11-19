@@ -15,6 +15,8 @@
 
 typedef int (*_qmon_fp)();
 
+#define qmon_getc(x)                ((_qmon_fp)  QMON_EP_GETC)(x)
+#define qmon_putc(x)                ((_qmon_fp)  QMON_EP_PUTC)(x)
 #define qmon_gets(x)                ((_qmon_fp)  QMON_EP_GETS)(x)
 #define qmon_puts(x)                ((_qmon_fp)  QMON_EP_PUTS)(x)
 #define qmon_str2upper(x)           ((_qmon_fp)  QMON_EP_STR2UPPER)(x)

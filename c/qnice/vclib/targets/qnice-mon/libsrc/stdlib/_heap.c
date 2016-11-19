@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #ifndef HEAPSIZE
-    #define HEAPSIZE (2048)
+    #define HEAPSIZE (4*1024)
 #endif
 
 #ifndef UNSAFEHEAP

@@ -1,3 +1,40 @@
+Version 1.38   November, 19 2016
+================================
+
+BETA / Work-In-Progess (WIP) Version
+
+All 256 register banks are available in the bitstream dist_kit/qnice-v138b.bit
+
+VBCC toolchain added:
+
+Stable basic C environment including file system access
+(via fopen, fread, ...) and including convenient editing functions due
+to the fact, that the Monitor's new versatile gets() function is used
+when reading from stdin.
+
+Partition 1 of the SD Card is automatically mounted on-demand (upon first
+call of fopen). To test it, try c/test_programs/fread_basic.c
+
+Monitor library available, that wraps monitor functions. To test it, try
+c/test_programs/shell.c
+
+To work with the VBCC toolchain:
+
+1. Always enter "source setenv.source" in your current terminal, before
+   starting to work with the VBCC toolchain. This the path and the VBCC
+   environment variable correctly.
+
+2. Compile the assembler, the linker and the compiler by running these scripts
+   in this order in the folder 'c'
+
+   make-vasm.sh
+   make-vlink.sh
+   make-vbcc.sh
+
+3. Now you can compile your .c file by using the qvc command, which also
+   makes sure, that your programs runs from 0x8000 on.
+   Example: Go to c/test_programs, enter qvc shell.c
+
 Version 1.37   October, 4 2016
 ==============================
 
@@ -25,8 +62,10 @@ Version x.y    xxx, x xxxx
 
 WIP * SD CARD: Hardware capabilities for raw SD CARD reading added. 
 WIP * FAT32
-WIP * New gets function that supports CR or LF or CR/LF for ending the editing
+
+* New gets function that supports CR or LF or CR/LF for ending the editing
 and that supports backspace (BS).
+
 WIP * More new functions in the standard lib (atoi (rename?)), 32bit math, etc.,
 see TODO.txt: decimal.asm, ...
 

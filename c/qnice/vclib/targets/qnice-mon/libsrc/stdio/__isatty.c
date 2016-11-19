@@ -1,9 +1,7 @@
 #include <stdio.h>
+#include "qdefs.h"
 
-/*
-  Implement something better.
-*/
 int __isatty(int h)
 {
-  return 1;
+  return (h == QNICE_STDOUT) || (h == QNICE_STDIN) || (h == QNICE_STDERR) ? 1 : 0;
 }

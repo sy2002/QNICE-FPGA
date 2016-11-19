@@ -98,22 +98,6 @@ VBCC TOOLCHAIN: C STANDARD LIB:
   that check the latest parameters and optimize mod (because the 32bit
   div routine generates also the mode). But this would not be threadsafe.
 
-* check/validate correct register bank usage
-
-* correct startup.s (ABRA vs. ASUB)
-
-* Optimization: Correct "costs", so that e.g. in -O3 constants are
-  loaded in to registers in a loop instead of e.g doing SUB 1, @R1++
-
-* use Monitor's new gets routine within the abstraction layer, so that it
-  automatically becomes available "everywhere"
-
-* add file system support (fopen, fclose, ...)
-
-* EAE wait code as soon as necessary (currently no wait code, maybe this
-  becomes necessary when we switch to 100 MHz)
-
-
 VBCC TOOLCHAIN: MONITOR-LIB:
 
 * Rewrite in pure assembler to avoid overhead.
