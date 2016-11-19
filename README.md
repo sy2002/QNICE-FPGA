@@ -137,9 +137,8 @@ the `M L` command sequence and start Q-TRIS using the address `0x8000`.
 Programming in C
 ----------------
 
-Thanks to Volker Barthelmann and his [vbcc](http://www.compilers.de/vbcc.html)
-compiler system, QNICE also features a C programming environment. This is how
-you can get started:
+QNICE also features a fully-fledged C programming environment. This is how
+you are getting started:
 
 * The vbcc toolchain is automatically build, when you follow the
   above-mentioned "Getting Started" guide and run `make-toolchain.sh`.
@@ -156,10 +155,29 @@ you can get started:
 
 * Just as described above in "Getting Started", on macOS you now have the
   excutable in your clipboard so that you can use the `M` `L` Monitor
-  command to load the shell. On other operating systems you can proceed
-  manually.
+  command to load the shell. On other operating systems you need to copy
+  `shell.out manually to your clipboard and then transfer it using the
+  `M` `L` Monitor command.
 
 * Run the shell using `C` `R` `8000`.
 
 * Browse the microSD Card using `dir`, `cd`, `cat` and `cathex` commands.
   Exit the shell using `exit`.
+
+* **Important hint**: You either need to run `source setenv.source` each time you
+  open a new terminal when you want to work with C - or - you need to add
+  the paths and the `VBCC` enviornment variable in your shell preferences,
+  so that they are being set automatically.
+
+Acknowledgements
+----------------
+
+* [sy2002](http://www.sy2002.de): Creator and maintainer of QNICE-FPGA:
+  hardware development (VHDL), FAT32 library, additional Monitor libraries and
+  functions, additional QNICE specific vbcc toolchain.
+
+* [vaxman](http://www.vaxman.de): Inventor of the [QNICE ISA](http://qnice.sourceforge.net):
+  system architect, assembler, emulator, Monitor and Monitor libraries, tools.
+
+* [Volker Barthelmann](http://www.compilers.de): vbcc compiler system,
+  QNICE specific vbcc backend incl. standard C library.
