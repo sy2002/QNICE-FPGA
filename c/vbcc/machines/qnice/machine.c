@@ -120,6 +120,7 @@ extern int static_cse, dref_cse;
 
 /* (user)stack-pointer, pointer-tmp, int-tmp; reserved for compiler */
 static const int sp=14,sr=15,pc=16,t1=12,t2=13,MTMP1=22;
+static const int r8=9,r9=10,r8r9=21;
 static int tmp1,tmp2,tmp3,tmp4,t2_used;
 static void pr(FILE *,struct IC *);
 static void function_top(FILE *,struct Var *,long);
@@ -341,10 +342,15 @@ static void emit_lword(FILE *f,struct obj *p,int t,char *def)
 /*  output low-word of an operand */
 {
   if((p->flags&(KONST|DREFOBJ))==KONST){
-    long v;
     eval_const(&p->val,t);
-    v=zm2l(vmax);
-    emit(f,"%ld",v&0xffff);
+    if(ISFLOAT(t)){
+      unsigned char *ip=(unsigned char *)&vfloat;
+      emit(f,"0x%02x%02x",ip[1],ip[0]);
+    }else{
+      long v;
+      v=zm2l(vmax);
+      emit(f,"%ld",v&0xffff);
+    }
     return;
   }
   if((p->flags&(REG|DREFOBJ))==REG){
@@ -364,10 +370,15 @@ static void emit_hword(FILE *f,struct obj *p,int t,char *def)
 /*  output high-word of an operand */
 {
   if((p->flags&(KONST|DREFOBJ))==KONST){
-    long v;
     eval_const(&p->val,t);
-    v=zm2l(vmax);
-    emit(f,"%ld",(v>>16)&0xffff);
+    if(ISFLOAT(t)){
+      unsigned char *ip=(unsigned char *)&vfloat;
+      emit(f,"0x%02x%02x",ip[3],ip[2]);
+    }else{
+      long v;
+      v=zm2l(vmax);
+      emit(f,"%ld",(v>>16)&0xffff);
+    }
     return;
   }
   if((p->flags&(REG|DREFOBJ))==REG){
@@ -661,7 +672,12 @@ static void load_op(FILE *f,struct obj *o,int t,int r)
     return;
 
   if(o->flags&KONST){
-    if(load_const||(o->flags&DREFOBJ)){
+    if((t&NQ)==DOUBLE||(t&NQ)==LDOUBLE){
+      int l=addfpconst(o,t);
+      emit(f,"\tmove\t%s%d,%s\n",labprefix,l,regnames[r]);
+      o->reg=r;
+      o->flags=REG|DREFOBJ;
+    }else if(load_const||(o->flags&DREFOBJ)){
       emit(f,"\tmove\t");
       emit_obj(f,o,t);
       emit(f,",%s\n",regnames[r]);
@@ -895,7 +911,7 @@ int init_cg(void)
   tu_max[MAXINT]=t_max(UNSIGNED|LLONG);
 
   /*  Reserve a few registers for use by the code-generator.      */
-  regsa[sp]=regsa[sr]=regsa[pc]=regsa[t1]=regsa[t2]=1;
+  regsa[sp]=regsa[sr]=regsa[pc]=regsa[t1]=regsa[t2]=regsa[22]=1;
   regscratch[sp]=regscratch[sr]=regscratch[pc]=regscratch[t1]=regscratch[t2]=0;
   target_macros=marray;
   if(TINY) marray[0]="__TINY__";
@@ -916,14 +932,14 @@ int init_cg(void)
   }
 
   /* TODO: set argument registers */
-  declare_builtin("__mulint32",LONG,LONG,21,LONG,0,1,0);
-  declare_builtin("__divint32",LONG,LONG,21,LONG,0,1,0);
-  declare_builtin("__divuint32",LONG,LONG,21,LONG,0,1,0);
-  declare_builtin("__modint32",LONG,LONG,21,LONG,0,1,0);
-  declare_builtin("__moduint32",LONG,LONG,21,LONG,0,1,0);
-  declare_builtin("__lslint32",LONG,LONG,21,INT,11,1,0);
-  declare_builtin("__lsrint32",LONG,LONG,21,INT,11,1,0);
-  declare_builtin("__lsruint32",LONG,LONG,21,INT,11,1,0);
+  declare_builtin("__mulint32",LONG,LONG,r8r9,LONG,0,1,0);
+  declare_builtin("__divint32",LONG,LONG,r8r9,LONG,0,1,0);
+  declare_builtin("__divuint32",LONG,LONG,r8r9,LONG,0,1,0);
+  declare_builtin("__modint32",LONG,LONG,r8r9,LONG,0,1,0);
+  declare_builtin("__moduint32",LONG,LONG,r8r9,LONG,0,1,0);
+  declare_builtin("__lslint32",LONG,LONG,r8r9,INT,11,1,0);
+  declare_builtin("__lsrint32",LONG,LONG,r8r9,INT,11,1,0);
+  declare_builtin("__lsruint32",LONG,LONG,r8r9,INT,11,1,0);
 
   declare_builtin("__mulint64",LLONG,LLONG,0,LLONG,0,1,0);
   declare_builtin("__addint64",LLONG,LLONG,0,LLONG,0,1,0);
@@ -942,6 +958,7 @@ int init_cg(void)
   declare_builtin("__lsruint64",UNSIGNED|LLONG,UNSIGNED|LLONG,0,INT,0,1,0);
   declare_builtin("__cmpint64",INT,LLONG,0,LLONG,0,1,0);
   declare_builtin("__cmpuint64",INT,UNSIGNED|LLONG,0,UNSIGNED|LLONG,0,1,0);
+
   declare_builtin("__sint64toflt32",FLOAT,LLONG,0,0,0,1,0);
   declare_builtin("__uint64toflt32",FLOAT,UNSIGNED|LLONG,0,0,0,1,0);
   declare_builtin("__sint64toflt64",DOUBLE,LLONG,0,0,0,1,0);
@@ -951,23 +968,44 @@ int init_cg(void)
   declare_builtin("__flt64tosint64",LLONG,DOUBLE,0,0,0,1,0);
   declare_builtin("__flt64touint64",UNSIGNED|LLONG,DOUBLE,0,0,0,1,0);
 
+  declare_builtin("__sint32toflt32",FLOAT,LONG,r8r9,0,0,1,0);
+  declare_builtin("__uint32toflt32",FLOAT,UNSIGNED|LONG,r8r9,0,0,1,0);
+  declare_builtin("__sint32toflt64",DOUBLE,LONG,0,0,0,1,0);
+  declare_builtin("__uint32toflt64",DOUBLE,UNSIGNED|LONG,0,0,0,1,0);
+  declare_builtin("__flt32tosint32",LONG,FLOAT,r8r9,0,0,1,0);
+  declare_builtin("__flt32touint32",UNSIGNED|LONG,FLOAT,r8r9,0,0,1,0);
+  declare_builtin("__flt64tosint32",LONG,DOUBLE,0,0,0,1,0);
+  declare_builtin("__flt64touint32",UNSIGNED|LONG,DOUBLE,0,0,0,1,0);
+
+  declare_builtin("__sint16toflt32",FLOAT,INT,r8,0,0,1,0);
+  declare_builtin("__uint16toflt32",FLOAT,UNSIGNED|INT,r8,0,0,1,0);
+  declare_builtin("__sint16toflt64",DOUBLE,INT,r9,0,0,1,0);
+  declare_builtin("__uint16toflt64",DOUBLE,UNSIGNED|INT,r9,0,0,1,0);
+  declare_builtin("__flt32tosint16",INT,FLOAT,r8r9,0,0,1,0);
+  declare_builtin("__flt32touint16",UNSIGNED|INT,FLOAT,r8r9,0,0,1,0);
+  declare_builtin("__flt64tosint16",INT,DOUBLE,0,0,0,1,0);
+  declare_builtin("__flt64touint16",UNSIGNED|INT,DOUBLE,0,0,0,1,0);
+
+
+
+
   declare_builtin("__flt32toflt64",DOUBLE,FLOAT,0,0,0,1,0);
   declare_builtin("__flt64toflt32",FLOAT,DOUBLE,0,0,0,1,0);
 
 
-  declare_builtin("__addflt32",FLOAT,FLOAT,0,FLOAT,0,1,0);
-  declare_builtin("__subflt32",FLOAT,FLOAT,0,FLOAT,0,1,0);
-  declare_builtin("__mulflt32",FLOAT,FLOAT,0,FLOAT,0,1,0);
-  declare_builtin("__divflt32",FLOAT,FLOAT,0,FLOAT,0,1,0);
-  declare_builtin("__negflt32",FLOAT,FLOAT,0,FLOAT,0,1,0);
-  declare_builtin("__cmpflt32",INT,FLOAT,0,FLOAT,0,1,0);
+  declare_builtin("__addflt32",FLOAT,FLOAT,r8r9,FLOAT,0,1,0);
+  declare_builtin("__subflt32",FLOAT,FLOAT,r8r9,FLOAT,0,1,0);
+  declare_builtin("__mulflt32",FLOAT,FLOAT,r8r9,FLOAT,0,1,0);
+  declare_builtin("__divflt32",FLOAT,FLOAT,r8r9,FLOAT,0,1,0);
+  declare_builtin("__negflt32",FLOAT,FLOAT,r8r9,0,0,1,0);
+  declare_builtin("__cmpsflt32",INT,FLOAT,r8r9,FLOAT,0,1,0);
 
   declare_builtin("__addflt64",DOUBLE,DOUBLE,0,DOUBLE,0,1,0);
   declare_builtin("__subflt64",DOUBLE,DOUBLE,0,DOUBLE,0,1,0);
   declare_builtin("__mulflt64",DOUBLE,DOUBLE,0,DOUBLE,0,1,0);
   declare_builtin("__divflt64",DOUBLE,DOUBLE,0,DOUBLE,0,1,0);
-  declare_builtin("__negflt64",DOUBLE,DOUBLE,0,DOUBLE,0,1,0);
-  declare_builtin("__cmpflt64",INT,DOUBLE,0,DOUBLE,0,1,0);
+  declare_builtin("__negflt64",DOUBLE,DOUBLE,0,0,0,1,0);
+  declare_builtin("__cmpsflt64",INT,DOUBLE,0,DOUBLE,0,1,0);
 
   return 1;
 }
@@ -980,10 +1018,10 @@ int freturn(struct Typ *t)
   if(f==LLONG||f==DOUBLE||f==LDOUBLE)
     return 0;
   if(ISSCALAR(f)){
-    if(f==LONG||f==FPOINTER||f==HPOINTER)
-      return 21;
+    if(f==LONG||f==FPOINTER||f==HPOINTER||f==FLOAT)
+      return r8r9;
     else
-      return 9;
+      return r8;
   }
   return 0;
 }
@@ -1289,9 +1327,9 @@ void gen_dc(FILE *f,int t,struct const_list *p)
       unsigned char *ip;
 
       ip=(unsigned char *)&p->val.vdouble;
-      emit(f,"0x%02x%02x%02x%02x",ip[3],ip[2],ip[1],ip[0]);
+      emit(f,"0x%02x%02x,0x%02x%02x",ip[1],ip[0],ip[3],ip[2]);
       if((t&NQ)==DOUBLE||(t&NQ)==LDOUBLE){
-	emit(f,",0x%02x%02x%02x%02x",ip[7],ip[6],ip[5],ip[4]);
+	emit(f,",0x%02x%02x,0x%02x%02x",ip[5],ip[4],ip[7],ip[6]);
       }
     }else{
       if(ISLWORD(t)){
@@ -1442,8 +1480,6 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       continue;
     }
     
-    if((t&NQ)==DOUBLE) {pric2(stdout,p);ierror(0);}
-
     if(c==TEST){
       /* TODO: optimize in COMPARE? */
       lastcomp=t;
@@ -1646,13 +1682,13 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       cc=0;
       if((p->q1.flags&(VAR|DREFOBJ))==VAR&&!strcmp("__va_start",p->q1.v->identifier)){
 	long va_off=loff-stackoffset+pushedsize+zm2l(va_offset(v))+1;
-	emit(f,"\tmove\t%s,%s\n",regnames[sp],regnames[9]);
+	emit(f,"\tmove\t%s,%s\n",regnames[sp],regnames[r8]);
 	if(va_off)
-	  emit(f,"\tadd\t%ld,%s\n",va_off,regnames[9]);
-	BSET(regs_modified,9);
+	  emit(f,"\tadd\t%ld,%s\n",va_off,regnames[r8]);
+	BSET(regs_modified,r8);
 	if(LARGE||HUGE){
-	  emit(f,"\tmove\t0,%s\n",regnames[10]);
-	  BSET(regs_modified,10);
+	  emit(f,"\tmove\t0,%s\n",regnames[r9]);
+	  BSET(regs_modified,r9);
 	}
 	continue;
       }
@@ -1816,7 +1852,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	    else{
 	      creg=get_reg(f,p);
 	      if(c==PUSH) ierror(0);
-	      creg=9;
+	      creg=r8;
 	      emit(f,"\tmove\t%s,@--%s\n",regnames[creg],regnames[sp]);
 	      cntpushed=1;
 	    }
@@ -2136,9 +2172,9 @@ void cleanup_cg(FILE *f)
       new_section(f,NDATA);
       emit(f,"%s%d:\n\t%s\t",labprefix,p->label,dct[SHORT]);
       ip=(unsigned char *)&p->val.vdouble;
-      emit(f,"0x%02x%02x%02x%02x",ip[3],ip[2],ip[1],ip[0]);
+      emit(f,"0x%02x%02x,0x%02x%02x",ip[1],ip[0],ip[3],ip[2]);
       if((p->typ&NQ)==DOUBLE||(p->typ&NQ)==LDOUBLE){
-	emit(f,",0x%02x%02x%02x%02x",ip[7],ip[6],ip[5],ip[4]);
+	emit(f,",0x%02x%02x,0x%02x%02x",ip[5],ip[4],ip[7],ip[6]);
       }
       emit(f,"\n");
     }
@@ -2154,11 +2190,11 @@ int reg_parm(struct reg_handle *p,struct Typ *t,int mode,struct Typ *fkt)
   if(p->gpr>2||mode) return 0;
   if(f==LLONG||f==DOUBLE||f==LDOUBLE)
     return 0;
-  else if(f==LONG||f==FPOINTER||f==HPOINTER){
-    if(p->gpr==0) {p->gpr=2;return 21;}
+  else if(f==LONG||f==FLOAT||f==FPOINTER||f==HPOINTER){
+    if(p->gpr==0) {p->gpr=2;return r8r9;}
     return 0;
   }else
-    return 9+p->gpr++;
+    return r8+p->gpr++;
 }
 
 void insert_const(union atyps *p,int t)
@@ -2322,7 +2358,7 @@ char *use_libcall(int c,int t,int t2)
 
   if(c==COMPARE){
     if((t&NQ)==LLONG||ISFLOAT(t)){
-      sprintf(fname,"__cmp%s%s%ld",(t&UNSIGNED)?"u":"s",ISFLOAT(t)?"flt":"int",zm2l(sizetab[t&NQ])*8);
+      sprintf(fname,"__cmp%s%s%ld",(t&UNSIGNED)?"u":"s",ISFLOAT(t)?"flt":"int",zm2l(sizetab[t&NQ])*16);
       ret=fname;
     }
   }else{
@@ -2339,7 +2375,7 @@ char *use_libcall(int c,int t,int t2)
         sprintf(fname,"__%cint%ldtoflt%d",(t2&UNSIGNED)?'u':'s',zm2l(sizetab[t2&NQ])*16,(t==FLOAT)?32:64);
         ret=fname;
       }
-      if(ISFLOAT(t2)&&(t&NU)==LLONG){
+      if(ISFLOAT(t2)){
         sprintf(fname,"__flt%dto%cint%ld",((t2&NU)==FLOAT)?32:64,(t&UNSIGNED)?'u':'s',zm2l(sizetab[t&NQ])*16);
         ret=fname;
       }
@@ -2348,7 +2384,7 @@ char *use_libcall(int c,int t,int t2)
         ret=fname;
       }
     }
-    if(ISLWORD(t)){
+    if(ISINT(t)&&ISLWORD(t)){
       if(c==MINUS||c==KOMPLEMENT||c==ADD||c==SUB||c==OR||c==AND||c==XOR)
 	return 0;
     }
