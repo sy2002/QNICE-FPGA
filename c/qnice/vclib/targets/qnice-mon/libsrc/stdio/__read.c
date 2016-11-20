@@ -22,10 +22,11 @@ size_t __read(int h, char* p, size_t l)
         char* cnt = p;
         while (*cnt != 0)
             cnt++;
-
         *cnt = '\n';
-        qmon_putc(*cnt);
         *(++cnt) = 0;
+
+        qmon_putc('\r');
+        qmon_putc('\n');
 
         return (size_t) cnt - (size_t) p;
     }
