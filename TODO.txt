@@ -1,4 +1,11 @@
+! = Necessary for next release V1.4
+
 HARDWARE:
+
+* SD Cards: Writing.
+
+* SD Cards: Replace SPI access by native access and by doing so, achieve
+  a 100% compatible and reliable system for SD, SDHC, SDCX.
 
 * Research, if the asynchronous RAM (flip flops) for the register banks can
   be replaced by synchronous RAM (Block RAM) without increasing the amount
@@ -44,13 +51,22 @@ HARDWARE:
 
 MONITOR:
 
+! Basic on-demand mounting (SD Card), browsing and file loading,
+  file running support
+
 * Get rid of the hardcoded keyboard locale
 
 * BS/DEL when entering hex digits (and at other reasonable places)
 
-* Basic mounting (SD Card), browsing and file loading / file running support
-
 ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
+
+! SD / FAT32: be able to manage the buffers, be able to work with multiple
+  streams "at once", e.g. reading from 3 different files and writing to 
+  two different files: Use file handles to check last access / last function
+  call and re-read the 512 buffer, if necessary. In a first step, write a
+  test program that reads from multiple files and outputs that "at once".
+
+! gets_s
 
 * Add writing to SD card support / FAT32 support
 
@@ -89,6 +105,8 @@ VBCC TOOLCHAIN: C COMPILER:
 
 VBCC TOOLCHAIN: C STANDARD LIB:
 
+! Solve __read.c problem and support backspace in line buffered stdin ops
+
 * Enhance mul32_div32.c by testing much more cases for the 32bit
   multiplication, because the new _lmul.s has not been thoroughly tested,
   yet. Also test signed and unsigned.
@@ -106,6 +124,8 @@ VBCC TOOLCHAIN: MONITOR-LIB:
 
 DEMOS:
 
+! Decide how to handle demos (one global folder vs. c / asm distinction)?
+
 * Move shell.c to the global demos folder and write some minimal
   documentation in the getting started guide of how to compile the whole
   VBCC and toolchain and finally shell.c. (Make sure to have the Standard
@@ -115,3 +135,5 @@ DEMOS:
 
 * Improve wolfram.c and sierpinski.c to use the dist_kit headers and then
   also move them to the global demos folder
+
+* Port something from obfuscated C: http://www.ioccc.org/all/summary.txt

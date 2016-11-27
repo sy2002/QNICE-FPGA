@@ -1,6 +1,9 @@
 ; SD Card and FAT32 development testbed
 ; contains reusable functions that can be the basis for enhancing the monitor
 ; done by sy2002 in June .. August 2016
+;
+; November 2016: enhanced by new test case and fixed "read multiple files
+; parallel" bug, so that e.g. c/test_programs/fread_basic.c works
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -159,20 +162,11 @@ MNT_SD          MOVE    STR_MNT_TILE, R8        ; print testcase title
                 ; show prompt and read command
 NEW_PROMPT      MOVE    STR_PROMPT, R8
                 SYSCALL(puts, 1)
-                MOVE    STRBUF, R0                
-INPUT_LOOP      SYSCALL(getc, 1)
-                SYSCALL(putc, 1)
-                CMP     R8, 0x000D              ; accept CR as line end
-                RBRA    INPUT_END, Z
-                CMP     R8, 0x000A              ; accept LF as line end
-                RBRA    INPUT_END, Z
-                MOVE    R8, @R0++               ; store character
-                RBRA    INPUT_LOOP, 1
-INPUT_END       MOVE    0, @R0                  ; add zero terminator
-                SYSCALL(crlf, 1)
+                MOVE    STRBUF, R8
+                SYSCALL(gets, 1) 
+                SYSCALL(crlf, 1)               
 
                 ; separate command from the rest of the string
-                MOVE    STRBUF, R8
                 MOVE    ' ', R9
                 RSUB    SPLIT, 1
                 MOVE    R9, R0                  ; R0 = restore stack offset
@@ -274,13 +268,21 @@ _INPUTN3EC      RSUB    ERR_CHECK, 1
 INPUT_N4        MOVE    STR_IB_CATHEX, R9
                 SYSCALL(strcmp, 1)
                 CMP     R10, 0                  ; cathex command?
-                RBRA    INPUT_ERR, !Z           ; no: error
+                RBRA    INPUT_N5, !Z            ; no: try next
                 MOVE    6, R5                   ; lengh of command "CATHEX"
                 RSUB    _INPUT_CHKPAR, 1        ; check for parameter                                                
                 MOVE    STRBUF, R8
                 ADD     7, R8                   ; skip 7 chars ("cathex ")
                 MOVE    1, R9                   ; CAT mode = HEX
                 RBRA    _DOCAT, 1
+
+                ; run testcase "read files in parallel"
+INPUT_N5        MOVE    STR_IB_TC_RFIP, R9
+                SYSCALL(strcmp, 1)
+                CMP     R10, 0                  ; testcase-rfip command?
+                RBRA    INPUT_ERR, !Z           ; no: error
+                RSUB    TC_RFIP, 1              ; perform testcase
+                RBRA    INPUT_NP, 1             ; new prompt
 
 INPUT_ERR       MOVE    R8, R7
                 MOVE    STR_REGCHK_ER, R8
@@ -377,6 +379,125 @@ _INPUT_RHX_ERR  MOVE    STR_IB_HEX_ERR, R8
                 DECRB
                 SUB     1, SP                   ; avoid stack leak because ...
                 RBRA    INPUT_NP, 1             ; ... we leave w/o RET
+
+;=============================================================================
+; Reads the files with the hardcoded file names "file1.txt", "file2.txt" and
+; "file3.txt" in "parallel", i.e. 2 bytes at a time from each, 20 times in 
+; a row and displays the results.
+; INPUT:  <none>
+; OUTPUT: <none>
+;=============================================================================
+
+TC_RFIP         INCRB
+
+                XOR     R0, R0
+
+                ; open "file1.txt"
+                MOVE    DEVICE_HANDLE, R8           ; R8 = device handle
+                ADD     FAT32$FDH_STRUCT_SIZE, R0   ; clean-up counter
+                SUB     FAT32$FDH_STRUCT_SIZE, SP   ; reserve mem. on stack
+                MOVE    SP, R9                      ; R9 = file handle
+                MOVE    STR_TC_RFIP_F1, R10         ; R10 = file name
+                MOVE    R10, R12                    ; remember name for error
+                XOR     R11, R11                    ; R11 = 0 => / sep.char
+                RSUB    FAT32$FILE_OPEN, 1          ; open file
+                CMP     R10, 0                      ; file not found?
+                RBRA    _TC_RFIP_ERRO, !Z           ; yes: print error and end
+                MOVE    R9, R1                      ; R1 = file handle 1
+
+                ; open "file2.txt"
+                ADD     FAT32$FDH_STRUCT_SIZE, R0
+                SUB     FAT32$FDH_STRUCT_SIZE, SP
+                MOVE    SP, R9                
+                MOVE    STR_TC_RFIP_F2, R10
+                MOVE    R10, R12                 
+                RSUB    FAT32$FILE_OPEN, 1
+                CMP     R10, 0
+                RBRA    _TC_RFIP_ERRO, !Z
+                MOVE    R9, R2                      ; R2 = file handle 2        
+
+                ; open "file3.txt"
+                ADD     FAT32$FDH_STRUCT_SIZE, R0
+                SUB     FAT32$FDH_STRUCT_SIZE, SP
+                MOVE    SP, R9                
+                MOVE    STR_TC_RFIP_F3, R10
+                MOVE    R10, R12                 
+                RSUB    FAT32$FILE_OPEN, 1
+                CMP     R10, 0
+                RBRA    _TC_RFIP_ERRO, !Z
+                MOVE    R9, R3                      ; R3 = file handle 3
+
+                MOVE    20, R4                      ; perform 20 iterations
+_TC_RFIP_LOOP   MOVE    STR_TC_RFIP_LH1, R8
+                SYSCALL(puts, 1)
+                MOVE    R1, R8                      ; file 1
+                RSUB    FAT32$FILE_RB, 1            ; read one byte
+                CMP     R10, 0
+                RBRA    _TC_RFIP_ERRF, !Z
+                MOVE    R9, R8
+                SYSCALL(putc, 1)
+                MOVE    R1, R8
+                RSUB    FAT32$FILE_RB, 1            ; read one byte
+                CMP     R10, 0
+                RBRA    _TC_RFIP_ERRF, !Z
+                MOVE    R9, R8
+                SYSCALL(putc, 1)                
+                MOVE    STR_SPACE2, R8
+                SYSCALL(puts, 1)
+
+                MOVE    STR_TC_RFIP_LH2, R8
+                SYSCALL(puts, 1)
+                MOVE    R2, R8                      ; file 2
+                RSUB    FAT32$FILE_RB, 1            ; read one byte
+                CMP     R10, 0
+                RBRA    _TC_RFIP_ERRF, !Z
+                MOVE    R9, R8
+                SYSCALL(putc, 1)
+                MOVE    R2, R8
+                RSUB    FAT32$FILE_RB, 1            ; read one byte
+                CMP     R10, 0
+                RBRA    _TC_RFIP_ERRF, !Z
+                MOVE    R9, R8
+                SYSCALL(putc, 1)
+                MOVE    STR_SPACE2, R8
+                SYSCALL(puts, 1)
+
+                MOVE    STR_TC_RFIP_LH3, R8
+                SYSCALL(puts, 1)
+                MOVE    R3, R8                      ; file 2
+                RSUB    FAT32$FILE_RB, 1            ; read one byte
+                CMP     R10, 0
+                RBRA    _TC_RFIP_ERRF, !Z
+                MOVE    R9, R8
+                SYSCALL(putc, 1)
+                MOVE    R3, R8
+                RSUB    FAT32$FILE_RB, 1            ; read one byte
+                CMP     R10, 0
+                RBRA    _TC_RFIP_ERRF, !Z
+                MOVE    R9, R8
+                SYSCALL(putc, 1)
+                MOVE    STR_SPACE2, R8
+                SYSCALL(puts, 1)
+
+                SYSCALL(crlf, 1)
+
+                SUB     1, R4
+                RBRA    _TC_RFIP_LOOP, !Z
+
+_TC_RFIP_END    ADD     R0, SP                      ; restore stack
+                DECRB
+                RET
+
+_TC_RFIP_ERRO   MOVE    STR_IB_FNF_ERR, R8
+                SYSCALL(puts, 1);
+                MOVE    R12, R8
+                SYSCALL(puts, 1);
+                SYSCALL(crlf, 1)
+                RBRA    _TC_RFIP_END, 1
+
+_TC_RFIP_ERRF   MOVE    STR_TC_RFIP_EF, R8
+                SYSCALL(puts, 1)
+                RBRA    _TC_RFIP_END, 1
 
 ;=============================================================================
 ; Lists the contents of a file
@@ -764,6 +885,7 @@ STR_INTERACTIVE .ASCII_P "Interactive browing mode:\n"
                 .ASCII_P "        cat <filename> and cathex <filename>\n"
                 .ASCII_P "        for seeking within the file, add a 32bit hex number (8 digits)\n"
                 .ASCII_P "        separated by a : after the filename, e.g. <filename>:00000000\n"
+                .ASCII_P "    run read-files-in-parallel testcase: testcase-rfip\n"
                 .ASCII_W "    end interactive browsing mode using exit\n"
 STR_PROMPT      .ASCII_W "SDCARD> "
 STR_IB_DIR      .ASCII_W "DIR"
@@ -773,10 +895,19 @@ STR_IB_CD_ERR   .ASCII_W "Path not found: "
 STR_IB_EXIT     .ASCII_W "EXIT"
 STR_IB_CAT      .ASCII_W "CAT"
 STR_IB_CATHEX   .ASCII_W "CATHEX"
+STR_IB_TC_RFIP  .ASCII_W "TESTCASE-RFIP"
 STR_IB_FNF_ERR  .ASCII_W "File not found: "
 STR_IB_NOPAR    .ASCII_W "Parameter missing for command: "
 STR_IB_HEX_ERR  .ASCII_W "Illegal 32bit hex number for seek position: "
 STR_IB_SEEK_ERR .ASCII_W "Seek position larger than file size: "
+STR_TC_RFIP_LH1 .ASCII_W "1:"
+STR_TC_RFIP_LH2 .ASCII_W "2:"
+STR_TC_RFIP_LH3 .ASCII_W "3:"
+STR_TC_RFIP_F1  .ASCII_W "file1.txt"
+STR_TC_RFIP_F2  .ASCII_W "file2.txt"
+STR_TC_RFIP_F3  .ASCII_W "file3.txt"
+STR_TC_RFIP_EF  .ASCII_W "Error reading one of the files. Terminated.\n"
+
 
 ;=============================================================================
 ;=============================================================================
@@ -852,6 +983,10 @@ FAT32$PRINT_DE_AS       .ASCII_W "S"
 FAT32$PRINT_DE_AA       .ASCII_W "A"
 FAT32$PRINT_DE_DATE     .ASCII_W "-"
 FAT32$PRINT_DE_TIME     .ASCII_W ":"
+
+; internal static variables
+
+FAT32$BUFFERED_FDH      .BLOCK 1                       ; address of the FDH that is currently buffered in the hardware
 
 ;
 ;*****************************************************************************
