@@ -22,6 +22,8 @@
 ;***************************************************************************************
 ;* IO$GETS reads a zero terminated string from STDIN and echos typing on STDOUT
 ;*
+;* ALWAYS PREFER IO$GETS_S OVER THIS FUNCTION!
+;*
 ;* It accepts CR, LF and CR/LF as input terminator, so it directly works with various
 ;* terminal settings on UART and also with keyboards on PS/2 ("USB"). Furtheron, it
 ;* accepts BACKSPACE for editing the string.
@@ -29,11 +31,48 @@
 ;* R8 has to point to a preallocated memory area to store the input line
 ;***************************************************************************************
 ;
-IO$GETS         INCRB
+IO$GETS         MOVE    R9, @--SP           ; save original R9
+                XOR     R9, R9              ; R9 = 0 means unlimited chars
+                RSUB    IO$GETS_S, 1        ; get the unlimited string
+                MOVE    @SP++, R9           ; restore original R9
+                RET
+;
+;***************************************************************************************
+;* IO$GETS_S reads a zero terminated string from STDIN into a buffer with a
+;*           specified maximum size and echos typing on STDOUT
+;*
+;* It accepts CR, LF and CR/LF as input terminator, so it directly works with various
+;* terminal settings on UART and also with keyboards on PS/2 ("USB"). Furtheron, it
+;* accepts BACKSPACE for editing the string.
+;*
+;* A maximum amount of (R9 - 1) characters will be read, because the function will
+;* add the zero terminator to the string, which then results in R9 words.
+;*
+;* R8 has to point to a preallocated memory area to store the input line
+;* R9 specifies the size of the buffer, so (R9 - 1) characters can be read;
+;     if R9 == 0, then an unlimited amount of characters is being read
+;***************************************************************************************
+;
+IO$GETS_S       INCRB
+                MOVE    R10, @--SP          ; save original R10
+                MOVE    R11, @--SP          ; save original R11
 
-                MOVE    R8, R0              ; save original R8
+                XOR     R11, R11            ; R11 = character counter = 0
+                MOVE    R9, R10             ; R10 = max characters
+                CMP     R10, 0
+                RBRA    _IO$GETS_START, Z
+                SUB     1, R10              ; R10 = R9 - 1 characters
+
+_IO$GETS_START  MOVE    R8, R0              ; save original R8
                 MOVE    R8, R1              ; R1 = working pointer
-_IO$GETS_LOOP   SYSCALL(getc, 1)            ; get char from STDIN
+
+_IO$GETS_LOOP   CMP     R9, 0               ; unlimited characters?
+                RBRA    _IO$GETS_GETC, Z    ; yes
+                CMP     R11, R10            ; buffer size - 1 reached?
+                RBRA    _IO$GETS_LF, Z      ; yes: add zero terminator
+                ADD     1, R11              ; no: next character
+
+_IO$GETS_GETC   SYSCALL(getc, 1)            ; get char from STDIN
                 CMP     R8, 0x000D          ; accept CR as line end
                 RBRA    _IO$GETS_CR, Z
                 CMP     R8, 0x000A          ; accept LF as line end
@@ -49,6 +88,8 @@ _IO$GETS_ECHO   SYSCALL(putc, 1)            ; echo char on STDOUT
 _IO$GETS_LF     MOVE    0, @R1              ; add zero terminator
                 MOVE    R0, R8              ; restore original R8
 
+                MOVE    @SP++, R11          ; restore original R11
+                MOVE    @SP++, R10          ; restore original R10
                 DECRB
                 RET
 

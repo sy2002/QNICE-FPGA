@@ -19,6 +19,8 @@
    enhanced by sy2002 to also test gets_s in December 2016
 */
 
+#include "qmon.h"  
+
 #ifndef __QNICE__
 #error This code is meant to run on QNICE.
 #endif
@@ -30,14 +32,14 @@
 typedef int (*fp)();
 
 #ifdef USE_MONITOR
-    #define gets(x) qmon_gets(x)    
+    #define gets(x)         qmon_gets(x)
+    #define gets_s(x, y)    qmon_gets_s(x, y) 
     #define TITLE_STRING "QNICE Monitor gets testbed - done by sy2002 in December 2016\n" 
 #else
-    #define gets(x) ((fp)0xE004)(x)   
+    #define gets(x)         ((fp)0xE004)(x)
+    #define gets_s(x, y)    ((fp)0xE00A)(x, y)
     #define TITLE_STRING "gets development testbed - done by sy2002 in December 2016\n"
 #endif
-
-#include "qmon.h"   
 
 int main()
 {
@@ -50,7 +52,7 @@ int main()
     qmon_crlf();
 
 #ifndef USE_MONITOR
-    /* check for gets.asm to be loaded at 0xE000 onwards */
+    //check for gets.asm to be loaded at 0xE000 onwards
     for (i = 0; i < 4; i++)
         if (*((int*) 0xE000 + i) != magic[i])
         {
@@ -59,8 +61,7 @@ int main()
         }
 #endif        
 
-    /* test gets */
-
+    //gets test
     qmon_puts("Enter something via gets: ");
     gets(input_buffer);
     qmon_crlf();
@@ -73,5 +74,28 @@ int main()
 
     qmon_puts("You entered via gets: ");
     qmon_puts(input_buffer);
-    qmon_crlf();    
+    qmon_puts("\n\n");   
+
+    //gets_s test
+    qmon_puts("Enter the buffer size using four hexadecimal digits (max 0400): ");
+    int buf_size = qmon_gethex();
+    qmon_crlf();
+    if (buf_size <= 1024)
+    {
+        qmon_puts("Enter something via gets_s: ");
+        gets_s(input_buffer, buf_size);
+        qmon_crlf();
+
+        i = 0;
+        while (*((int*) input_buffer + i) != 0) i++;
+        qmon_puts("Number of chars entered (in hex): ");
+        qmon_puthex(i);
+        qmon_crlf();
+
+        qmon_puts("You entered via gets: ");
+        qmon_puts(input_buffer);
+        qmon_crlf();        
+    }
+    else
+        qmon_puts("Illegal buffer size.\n");
 }
