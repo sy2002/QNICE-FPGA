@@ -98,6 +98,7 @@ f32_pd!         RBRA    FAT32$PRINT_DE, 1
 f32_fopen!      RBRA    FAT32$FILE_OPEN, 1
 f32_fread!      RBRA    FAT32$FILE_RB, 1
 f32_fseek!      RBRA    FAT32$FILE_SEEK, 1
+gets_s!         RBRA    IO$GETS_S, 1
 
 ;
 ;  The actual monitor code starts here:
@@ -305,7 +306,7 @@ QMON$NOT_H      MOVE    QMON$ILLCMDGRP, R8A     ; Illegal command group
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
 
-QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.7 (Bernd Ulmann, November 2016)\n"
+QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.7 (Bernd Ulmann, December 2016)\n"
 #ifdef RAM_MONITOR
                 .ASCII_P    "Running in RAM!\n"
 #endif
