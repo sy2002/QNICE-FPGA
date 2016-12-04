@@ -15,31 +15,29 @@
    activating this mode, compile while defining USE_MONITOR.
 
    done by sy2002 in October 2016
+
+   enhanced by sy2002 to also test gets_s in December 2016
 */
 
 #ifndef __QNICE__
 #error This code is meant to run on QNICE.
 #endif
 
-#ifdef USE_MONITOR
-    #define gets(x)   ((fp)0x0006)(x)   
-    #define TITLE_STRING "QNICE Monitor gets testbed - done by sy2002 in October 2016" 
-#else
-    #define gets(x)   ((fp)0xE004)(x)   
-    #define TITLE_STRING "gets development testbed - done by sy2002 in October 2016"
+#if __STDC_VERSION__ != 199901L
+#error This program needs C99 to compile. Use the -c99 VBCC switch.
 #endif
-
-#define putsnl(x) ((fp)0x0008)(x)
-#define exit(x)   ((fp)0x0016)(x)
-#define puthex(x) ((fp)0x0026)(x)
 
 typedef int (*fp)();
 
-static void puts(char *p)
-{
-  putsnl(p);
-  putsnl("\r\n");
-}
+#ifdef USE_MONITOR
+    #define gets(x) qmon_gets(x)    
+    #define TITLE_STRING "QNICE Monitor gets testbed - done by sy2002 in December 2016\n" 
+#else
+    #define gets(x) ((fp)0xE004)(x)   
+    #define TITLE_STRING "gets development testbed - done by sy2002 in December 2016\n"
+#endif
+
+#include "qmon.h"   
 
 int main()
 {
@@ -47,34 +45,33 @@ int main()
     int magic[4] = {0xFF90, 0x0016, 0x2309, 0x1976};
     char input_buffer[1024];
 
-    puts(TITLE_STRING);
-    puts("supports backspace for editing and CR, LF and CR/LF as input terminator.");
-    puts("");
+    qmon_puts(TITLE_STRING);
+    qmon_puts("supports backspace for editing and CR, LF and CR/LF as input terminator.\n");
+    qmon_crlf();
 
 #ifndef USE_MONITOR
     /* check for gets.asm to be loaded at 0xE000 onwards */
     for (i = 0; i < 4; i++)
         if (*((int*) 0xE000 + i) != magic[i])
         {
-            puts("error: companion routines from gets.asm are not loaded.");
-            exit(1);
+            qmon_puts("error: companion routines from gets.asm are not loaded.\n");
+            return -1;
         }
 #endif        
 
     /* test gets */
 
-    putsnl("Enter something: ");
+    qmon_puts("Enter something via gets: ");
     gets(input_buffer);
-    puts("\n");
+    qmon_crlf();
 
     i = 0;
     while (*((int*) input_buffer + i) != 0) i++;
-    putsnl("Number of chars entered (in hex): ");
-    puthex(i);
-    puts("");
+    qmon_puts("Number of chars entered (in hex): ");
+    qmon_puthex(i);
+    qmon_crlf();
 
-    putsnl("You entered: ");
-    puts(input_buffer);
-
-    exit(0);
+    qmon_puts("You entered via gets: ");
+    qmon_puts(input_buffer);
+    qmon_crlf();    
 }

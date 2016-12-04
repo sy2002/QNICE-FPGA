@@ -29,24 +29,24 @@
 ;* R8 has to point to a preallocated memory area to store the input line
 ;***************************************************************************************
 ;
-GETS            INCRB
+IO$GETS         INCRB
 
                 MOVE    R8, R0              ; save original R8
                 MOVE    R8, R1              ; R1 = working pointer
-GETS_LOOP       SYSCALL(getc, 1)            ; get char from STDIN
+_IO$GETS_LOOP   SYSCALL(getc, 1)            ; get char from STDIN
                 CMP     R8, 0x000D          ; accept CR as line end
-                RBRA    GETS_CR, Z
+                RBRA    _IO$GETS_CR, Z
                 CMP     R8, 0x000A          ; accept LF as line end
-                RBRA    GETS_LF, Z
+                RBRA    _IO$GETS_LF, Z
                 CMP     R8, 0x0008          ; use BACKSPACE for editing
-                RBRA    GETS_BS, Z
+                RBRA    _IO$GETS_BS, Z
                 CMP     R8, 0x007F          ; treat DEL key as BS, e.g. for ..
-                RBRA    GETS_DEL, Z         ; .. MAC compatibility in EMU
-GETS_ADDBUF     MOVE    R8, @R1++           ; store char to buffer
-GETS_ECHO       SYSCALL(putc, 1)            ; echo char on STDOUT
-                RBRA    GETS_LOOP, 1        ; next character
+                RBRA    _IO$GETS_DEL, Z     ; .. MAC compatibility in EMU
+_IO$GETS_ADDBUF MOVE    R8, @R1++           ; store char to buffer
+_IO$GETS_ECHO   SYSCALL(putc, 1)            ; echo char on STDOUT
+                RBRA    _IO$GETS_LOOP, 1    ; next character
 
-GETS_LF         MOVE    0, @R1              ; add zero terminator
+_IO$GETS_LF     MOVE    0, @R1              ; add zero terminator
                 MOVE    R0, R8              ; restore original R8
 
                 DECRB
@@ -68,41 +68,41 @@ GETS_LF         MOVE    0, @R1              ; add zero terminator
                 ; As a simplification, we assume the same waiting time
                 ; for a PS/2 ("USB") keyboard
 
-GETS_CR         MOVE    2000, R3            ; CPU speed vs. transmit speed
-GETS_CR_WAIT    SUB     1, R3
-                RBRA    GETS_CR_WAIT, !Z
+_IO$GETS_CR     MOVE    2000, R3            ; CPU speed vs. transmit speed
+_IO$GETS_CRWAIT SUB     1, R3
+                RBRA    _IO$GETS_CRWAIT, !Z
 
                 MOVE    IO$SWITCH_REG, R2   ; read the switch register
                 MOVE    @R2, R2
                 AND     0x0001, R2          ; lowest bit set?
-                RBRA    GETS_CR_UART, Z     ; no: read from UART
+                RBRA    _IO$GETS_CRUART, Z  ; no: read from UART
 
                 MOVE    IO$KBD_STATE, R2    ; read the keyboard status reg.
                 MOVE    @R2, R2
                 AND     0x0001, R2          ; char waiting/lowest bit set?
-                RBRA    GETS_LF, Z          ; no: then add zero term. and ret.
+                RBRA    _IO$GETS_LF, Z      ; no: then add zero term. and ret.
 
                 MOVE    IO$KBD_DATA, R2     ; yes: read waiting character
                 MOVE    @R2, R2
-                RBRA    GETS_CR_LF, 1       ; check for LF
+                RBRA    _IO$GETS_CR_LF, 1   ; check for LF
 
 
-GETS_CR_UART    MOVE    IO$UART_SRA, R2     ; read UART status register
+_IO$GETS_CRUART MOVE    IO$UART_SRA, R2     ; read UART status register
                 MOVE    @R2, R2
                 AND     0x0001, R2          ; is there a character waiting?
-                RBRA    GETS_LF, Z          ; no: then add zero term. and ret.
+                RBRA    _IO$GETS_LF, Z      ; no: then add zero term. and ret.
 
                 MOVE    IO$UART_RHRA, R2    ; yes: read waiting character
                 MOVE    @R2, R2
 
-GETS_CR_LF      CMP     R2, 0x000A          ; is it a LF (so we have CR/LF)?
-                RBRA    GETS_LF, Z          ; yes: then add zero trm. and ret.
+_IO$GETS_CR_LF  CMP     R2, 0x000A          ; is it a LF (so we have CR/LF)?
+                RBRA    _IO$GETS_LF, Z      ; yes: then add zero trm. and ret.
 
                 ; it is CR/SOMETHING, so add both: CR and "something" to
                 ; the string and go on waiting for input
                 MOVE    0x000D, @R1++
                 MOVE    R2, R8
-                RBRA    GETS_ADDBUF, 1      ; no: add it to buffer and go on
+                RBRA    _IO$GETS_ADDBUF, 1  ; no: add it to buffer and go on
 
                 ; handle BACKSPACE for editing and accept DEL as alias for BS
                 ;
@@ -114,16 +114,16 @@ GETS_CR_LF      CMP     R2, 0x000A          ; is it a LF (so we have CR/LF)?
                 ; For STDOUT = VGA, this needs to be done manually by this
                 ; routine.
 
-GETS_DEL        MOVE    0x0008, R8          ; treat DEL as BS
-GETS_BS         CMP     R0, R1              ; beginning of string?
-                RBRA    GETS_LOOP, Z        ; yes: ignore BACKSPACE key
+_IO$GETS_DEL    MOVE    0x0008, R8          ; treat DEL as BS
+_IO$GETS_BS     CMP     R0, R1              ; beginning of string?
+                RBRA    _IO$GETS_LOOP, Z    ; yes: ignore BACKSPACE key
 
                 SUB     1, R1               ; delete last char in memory                
 
                 MOVE    IO$SWITCH_REG, R2   ; read the switch register
                 MOVE    @R2, R2
                 AND     0x0002, R2          ; bit #1 set?
-                RBRA    GETS_ECHO, Z        ; no: STDOUT = UART: just echo
+                RBRA    _IO$GETS_ECHO, Z    ; no: STDOUT = UART: just echo
 
                 MOVE    VGA$CR_X, R2        ; R2: HW X-register
                 MOVE    VGA$CR_Y, R3        ; R3: HW Y-register
@@ -132,38 +132,38 @@ GETS_BS         CMP     R0, R1              ; beginning of string?
                 MOVE    _VGA$Y, R6          ; R6: SW Y-register
 
                 CMP     @R2, 0              ; cursor already at leftmost pos.?
-                RBRA    GETS_BSLUP, Z       ; yes: scroll one line up
+                RBRA    _IO$GETS_BSLUP, Z   ; yes: scroll one line up
 
                 SUB     1, @R2              ; cursor one position to the left
                 SUB     1, @R5
-GETS_BSX        MOVE    0x0020, @R4         ; delete char on the screen
-                RBRA    GETS_LOOP, 1        ; next char/key
+_IO$GETS_BSX    MOVE    0x0020, @R4         ; delete char on the screen
+                RBRA    _IO$GETS_LOOP, 1    ; next char/key
 
-GETS_BSLUP      CMP     @R3, VGA$MAX_Y      ; cursor already bottom line?
-                RBRA    GETS_BSSUP, Z       ; yes: scroll screen up
+_IO$GETS_BSLUP  CMP     @R3, VGA$MAX_Y      ; cursor already bottom line?
+                RBRA    _IO$GETS_BSSUP, Z   ; yes: scroll screen up
 
                 SUB     1, @R3              ; cursor one line up
                 SUB     1, @R6
-GETS_BSXLU      MOVE    VGA$MAX_X, @R2      ; cursor to the rightpost pos.
+_IO$GETS_BSXLU  MOVE    VGA$MAX_X, @R2      ; cursor to the rightpost pos.
                 MOVE    VGA$MAX_X, @R5
-                RBRA    GETS_BSX, 1         ; delete char on screen and go on
+                RBRA    _IO$GETS_BSX, 1     ; delete char on screen and go on
 
-GETS_BSSUP      MOVE    VGA$OFFS_DISPLAY, R7        ; if RW > DISP then do not
+_IO$GETS_BSSUP  MOVE    VGA$OFFS_DISPLAY, R7        ; if RW > DISP then do not
                 MOVE    VGA$OFFS_RW, R8             ; scroll up the screen
                 CMP     @R8, @R7                    ; see VGA$SCROLL_UP_1 for
-                RBRA    GETS_BSUPSKP, N             ; an explanation
+                RBRA    _IO$GETS_BSUPSP, N          ; an explanation
 
                 SUB     VGA$CHARS_PER_LINE, @R7     ; do the visual scrolling
-GETS_BSUPSKP    SUB     VGA$CHARS_PER_LINE, @R8     ; scroll the RW window
+_IO$GETS_BSUPSP SUB     VGA$CHARS_PER_LINE, @R8     ; scroll the RW window
 
                 CMP     @R7, @R8                    ; if after the scrolling
-                RBRA    GETS_NOCRS, !Z              ; RW = DISP then show
+                RBRA    _IO$GETS_NOCRS, !Z          ; RW = DISP then show
                 MOVE    VGA$STATE, R8               ; the cursor
                 OR      VGA$EN_HW_CURSOR, @R8
 
-GETS_NOCRS      MOVE    VGA$MAX_Y, @R3              ; cursor to bottom
+_IO$GETS_NOCRS  MOVE    VGA$MAX_Y, @R3              ; cursor to bottom
                 MOVE    VGA$MAX_Y, @R6
-                RBRA    GETS_BSXLU, 1               ; cursor to rightmost pos.
+                RBRA    _IO$GETS_BSXLU, 1           ; cursor to rightmost pos.
 
 ;===================== REUSABLE CODE FOR MONITOR ENDS HERE ===================
 
