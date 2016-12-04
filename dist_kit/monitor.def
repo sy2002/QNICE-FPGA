@@ -45,3 +45,4 @@ f32_pd                        	.EQU	0x004E
 f32_fopen                     	.EQU	0x0050
 f32_fread                     	.EQU	0x0052
 f32_fseek                     	.EQU	0x0054
+gets_s                        	.EQU	0x0056

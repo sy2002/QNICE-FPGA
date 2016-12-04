@@ -309,9 +309,9 @@ _IO$GETS_CR_LF  CMP     R2, 0x000A          ; is it a LF (so we have CR/LF)?
                 ; the string and go on waiting for input, but only of the
                 ; buffer is large enough. Otherwise only add CR.
                 MOVE    0x000D, @R1++       ; add CR
-                ADD     1, R11              ; increase amount of stored chars
                 CMP     R11, R10            ; buffer size - 1 reached?
                 RBRA    _IO$GETS_LF, Z      ; yes: add zero terminator and end
+                ADD     1, R11              ; increase amount of stored chars                
                 MOVE    R2, R8              ; no: prepare to add SOMETHING
                 RBRA    _IO$GETS_ADDBUF, 1  ; add it to buffer and go on
 

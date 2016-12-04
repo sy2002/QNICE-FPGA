@@ -45,3 +45,4 @@
 .equ f32_fopen                     ,	0x0050
 .equ f32_fread                     ,	0x0052
 .equ f32_fseek                     ,	0x0054
+.equ gets_s                        ,	0x0056
