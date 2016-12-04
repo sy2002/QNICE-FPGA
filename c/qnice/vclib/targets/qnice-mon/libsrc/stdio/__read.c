@@ -13,6 +13,8 @@
 
 size_t __read(int h, char* p, size_t l)
 {
+    printf("DEBUGOUT: __read: l = %i\n", l);
+
     /* read from STDIN (which is defined by the switches on the FPGA board)
        point to improve: we are ignoring "l" in this case */
     if (h == QNICE_STDIN)

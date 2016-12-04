@@ -16,9 +16,9 @@
 
 int main()
 {
-    FILE* file1 = fopen("file1.txt", "r");
-    FILE* file2 = fopen("file2.txt", "r");
-    FILE* file3 = fopen("file3.txt", "r");
+    FILE* file1 = fopen("/c/test_programs/fread_multi_testfile1.txt", "r");
+    FILE* file2 = fopen("/c/test_programs/fread_multi_testfile2.txt", "r");
+    FILE* file3 = fopen("/c/test_programs/fread_multi_testfile3.txt", "r");
 
     const int MAXCHARS = 20;
 
