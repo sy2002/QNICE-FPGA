@@ -114,8 +114,9 @@
 #define FAT32_DEV_RD_1STCLUS_HI	0x000E                  // root directory first cluster: high word
 #define FAT32_DEV_AD_1STCLUS_LO	0x000F                  // currently active directory first cluster: low word
 #define FAT32_DEV_AD_1STCLUS_HI	0x0010                  // currently active directory first cluster: high word
+#define FAT32_DEV_BUFFERED_FDH 	0x0011                  // FDH which is responsible for the current 512 byte hardware buffer filling
 
-#define FAT32_DEV_STRUCT_SIZE  	0x0011                  // size (words) of the mount data structure (device handle)
+#define FAT32_DEV_STRUCT_SIZE  	0x0012                  // size (words) of the mount data structure (device handle)
 
 // LAYOUT OF THE FILE HANDLE AND DIRECTORY HANDLE (FDH)
 

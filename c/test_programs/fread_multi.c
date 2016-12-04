@@ -2,7 +2,7 @@
     Test multiple "parallel" file read operations to challenge
     the FAT32 lib's internal caching mechanims.
 
-    Used to discover and fix the "read multiple files parallel" bug
+    Used to discover and fix the "read multiple files in parallel" bug
     in the FAT32 lib.
 
     by sy2002 in November 2016

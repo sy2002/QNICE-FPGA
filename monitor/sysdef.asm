@@ -122,8 +122,9 @@ FAT32$DEV_RD_1STCLUS_LO .EQU    0x000D                  ; root directory first c
 FAT32$DEV_RD_1STCLUS_HI .EQU    0x000E                  ; root directory first cluster: high word
 FAT32$DEV_AD_1STCLUS_LO .EQU    0x000F                  ; currently active directory first cluster: low word
 FAT32$DEV_AD_1STCLUS_HI .EQU    0x0010                  ; currently active directory first cluster: high word
+FAT32$DEV_BUFFERED_FDH  .EQU    0x0011                  ; FDH which is responsible for the current 512 byte hardware buffer filling
 
-FAT32$DEV_STRUCT_SIZE   .EQU    0x0011                  ; size (words) of the mount data structure (device handle)
+FAT32$DEV_STRUCT_SIZE   .EQU    0x0012                  ; size (words) of the mount data structure (device handle)
 
 ; LAYOUT OF THE FILE HANDLE AND DIRECTORY HANDLE (FDH)
 

@@ -2,8 +2,9 @@
 ; contains reusable functions that can be the basis for enhancing the monitor
 ; done by sy2002 in June .. August 2016
 ;
-; November 2016: enhanced by new test case and fixed "read multiple files
-; parallel" bug, so that e.g. c/test_programs/fread_basic.c works
+; November 2016 .. December 2016: enhanced by new test case and fixed
+; "read multiple files in parallel" bug, so that for example the test program
+; c/test_programs/fread_basic.c works
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -833,7 +834,7 @@ _OUTPUT_DW_END  SYSCALL(crlf, 1)
 ; Variables
 ;=============================================================================
 
-DEVICE_HANDLE   .BLOCK 17                       ; mount struct / device handle
+DEVICE_HANDLE   .BLOCK FAT32$DEV_STRUCT_SIZE    ; mount struct / device handle
 
 DIR_FLAGS       .BLOCK 1                        ; which file to browse? 
 PRINT_FLAGS     .BLOCK 1                        ; which attributes to print?
@@ -983,10 +984,6 @@ FAT32$PRINT_DE_AS       .ASCII_W "S"
 FAT32$PRINT_DE_AA       .ASCII_W "A"
 FAT32$PRINT_DE_DATE     .ASCII_W "-"
 FAT32$PRINT_DE_TIME     .ASCII_W ":"
-
-; internal static variables
-
-FAT32$BUFFERED_FDH      .BLOCK 1                       ; address of the FDH that is currently buffered in the hardware
 
 ;
 ;*****************************************************************************
@@ -1442,6 +1439,11 @@ _F32_MNT_RVID   MOVE    R0, R8
                 ADD     FAT32$DEV_AD_1STCLUS_HI, R10
                 MOVE    R4, @R10
 
+                ; reset the FDH buffer filling tracker
+                MOVE    R0, R10
+                ADD     FAT32$DEV_BUFFERED_FDH, R10
+                XOR     @R10, @R10
+
                 MOVE    0, R9                       ; no errors occured
 
 _F32_MNT_END    MOVE    @SP++, R12
@@ -1499,6 +1501,12 @@ FAT32$DIR_OPEN  INCRB
 
                 MOVE    R9, R0                      ; remember dir. handle
 
+                ; remember the FDH that is responsible for filling the HW buf.
+                MOVE    R8, R10
+                ADD     FAT32$DEV_BUFFERED_FDH, R10
+                MOVE    R9, @R10
+
+                ; fill 512 byte hardware buffer with the first sector in clst.
                 MOVE    R2, R9                      ; low word of cluster
                 MOVE    R3, R10                     ; high word of cluster
                 MOVE    0, R11                      ; sector
@@ -2004,6 +2012,11 @@ FAT32$FILE_OPEN INCRB
                 ; the internal buffer                
 _F32_FO_READ    RSUB    FAT32$READ_SIC, 1           ; read data
                 MOVE    R9, R10                     ; return OK or err. in R10
+
+                ; remember FDH that was responsible for filling the HW buffer
+                MOVE    R8, R9
+                ADD     FAT32$DEV_BUFFERED_FDH, R9
+                MOVE    R0, @R9
 
 _F32_FO_RET     MOVE    R0, R9                      ; restore org. registers
                 MOVE    R1, R11
@@ -2702,6 +2715,11 @@ _F32_CDROOT     MOVE    R0, R6
 ;* In case of an increased index or sector or cluster value, the 512-byte
 ;* read-buffer is re-read for subsequent read accesses.
 ;*
+;* The above-mentioned "assumed that no read operation needs to be performed"
+;* is only true, if the FDH, which was originally responsible for filling the
+;* hardware buffer is the same, as the one who is currently active. This is
+;* checked by evaluating FAT32$DEV_BUFFERED_FDH.
+;*
 ;* INPUT:  R8: FDH
 ;* OUTPUT: R8: FDH
 ;*         R9: 0, if OK, otherwise error code
@@ -2737,9 +2755,36 @@ FAT32$READ_FDH  INCRB
                 MOVE    FAT32$ERR_ILLEGAL_CLUS, R9
                 RBRA    _F32_RFDH_END, 1
 
+                ; if the current FDH (R1) is not equal to the one, which
+                ; filled the 512 byte hardware buffer, then we need to
+                ; re-read the 512 byte hardware buffer again
+_F32_RFDH_START MOVE    R0, R2
+                ADD     FAT32$DEV_BUFFERED_FDH, R2
+                CMP     R1, @R2
+                RBRA    _F32_RFDH_STRT2, Z          ; cur. FDH == responsible
+
+                MOVE    R1, R2
+                ADD     FAT32$FDH_CLUSTER_LO, R2
+                MOVE    @R2, R9
+                MOVE    R1, R2
+                ADD     FAT32$FDH_CLUSTER_HI, R2
+                MOVE    @R2, R10
+                MOVE    R1, R2
+                ADD     FAT32$FDH_SECTOR, R2
+                MOVE    @R2, R11
+                MOVE    R0, R8
+                RSUB    FAT32$READ_SIC, 1           ; re-read hardware buffer
+
+                MOVE    R0, R2                     
+                ADD     FAT32$DEV_BUFFERED_FDH, R2
+                MOVE    R1, @R2                     ; remember responsible FDH
+
+                CMP     R9, 0
+                RBRA    _F32_RFDH_END, !Z           ; exit on error
+
                 ; if the current "to-be-read" index equals 512, then
                 ; we need to read the next sector within the cluster
-_F32_RFDH_START MOVE    R1, R2
+_F32_RFDH_STRT2 MOVE    R1, R2
                 ADD     FAT32$FDH_INDEX, R2
                 MOVE    @R2, R3                     ; R3 = "to-be-read" index
                 CMP     R3, FAT32$SECTOR_SIZE
@@ -2774,7 +2819,13 @@ _F32_RFDH_START MOVE    R1, R2
                 MOVE    @R2, R10                    ; HI word of cluster
                 MOVE    R4, R11                     ; sector number
                 RSUB    FAT32$READ_SIC, 1           ; read sector in cluster
-                RBRA    _F32_RFDH_END, 1
+
+                ; remember the FDH responsible for filling the HW buffer
+                MOVE    R0, R10
+                ADD     FAT32$DEV_BUFFERED_FDH, R10
+                MOVE    R1, @R10
+
+                RBRA    _F32_RFDH_END, 1            ; done: end function
 
                 ; next cluster:
                 ; 1. reset the sector and index to 0 and write it back
@@ -2838,7 +2889,15 @@ _F32_RFDH_INCC  MOVE    R1, R2
 ;                RBRA    _F32_RFDH_INCC3, Z          ; no: go on
 ;_F32_RFDH_INCCE MOVE    FAT32$ERR_SIZE, R9          ; return size error
 ;                RBRA    _F32_RFDH_END, 1
-_F32_RFDH_INCC3 MOVE    FAT32$DEV_BLOCK_READ, R10   ; R10 = function index
+
+                ; remember, that the current FDH was responsible for filling
+                ; the hardware buffer
+_F32_RFDH_INCC3 MOVE    R0, R10
+                ADD     FAT32$DEV_BUFFERED_FDH, R10
+                MOVE    R1, @R10
+                
+                ; read 512 byte block
+                MOVE    FAT32$DEV_BLOCK_READ, R10   ; R10 = function index
                 MOVE    R0, R11                     ; R11 = device handle
                 RSUB    FAT32$CALL_DEV, 1
                 CMP     R8, 0
@@ -2863,7 +2922,11 @@ _F32_RFDH_INCC4 MOVE    R0, R8                      ; R8 = device handle
                 MOVE    R10, R9                     ; R9 = cluster low word
                 MOVE    R11, R10                    ; R10 = cluster high word
                 XOR     R11, R11                    ; R11 = sector 0
-                RSUB    FAT32$READ_SIC, 1           ; load data sector
+                RSUB    FAT32$READ_SIC, 1           ; load data sector; the
+                                                    ; FAT32$DEV_BUFFERED_FDH
+                                                    ; has already been
+                                                    ; remembered above (see
+                                                    ; label _F32_RFDH_INCC3)
                 RBRA    _F32_RFDH_END, 1
 
                 ; check for access beyond the sector size (means illegal hndl)                
@@ -2972,7 +3035,7 @@ _F32_RSIC_C3    MOVE    FAT32$DEV_BLOCK_READ, R10
                 MOVE    R0, R11
                 RSUB    FAT32$CALL_DEV, 1
                 MOVE    R8, R9
-                MOVE    R0, R8
+                MOVE    R0, R8               
 
 _F32_RSIC_END   DECRB
                 
