@@ -140,10 +140,14 @@ _IO$GETS_CR_LF  CMP     R2, 0x000A          ; is it a LF (so we have CR/LF)?
                 RBRA    _IO$GETS_LF, Z      ; yes: then add zero trm. and ret.
 
                 ; it is CR/SOMETHING, so add both: CR and "something" to
-                ; the string and go on waiting for input
-                MOVE    0x000D, @R1++
-                MOVE    R2, R8
-                RBRA    _IO$GETS_ADDBUF, 1  ; no: add it to buffer and go on
+                ; the string and go on waiting for input, but only of the
+                ; buffer is large enough. Otherwise only add CR.
+                MOVE    0x000D, @R1++       ; add CR
+                ADD     1, R11              ; increase amount of stored chars
+                CMP     R11, R10            ; buffer size - 1 reached?
+                RBRA    _IO$GETS_LF, Z      ; yes: add zero terminator and end
+                MOVE    R2, R8              ; no: prepare to add SOMETHING
+                RBRA    _IO$GETS_ADDBUF, 1  ; add it to buffer and go on
 
                 ; handle BACKSPACE for editing and accept DEL as alias for BS
                 ;
@@ -156,10 +160,12 @@ _IO$GETS_CR_LF  CMP     R2, 0x000A          ; is it a LF (so we have CR/LF)?
                 ; routine.
 
 _IO$GETS_DEL    MOVE    0x0008, R8          ; treat DEL as BS
-_IO$GETS_BS     CMP     R0, R1              ; beginning of string?
+_IO$GETS_BS     SUB     1, R11              ; do not count DEL/BS character
+                CMP     R0, R1              ; beginning of string?
                 RBRA    _IO$GETS_LOOP, Z    ; yes: ignore BACKSPACE key
 
-                SUB     1, R1               ; delete last char in memory                
+                SUB     1, R1               ; delete last char in memory
+                SUB     1, R11              ; do not count last char in mem.                
 
                 MOVE    IO$SWITCH_REG, R2   ; read the switch register
                 MOVE    @R2, R2
