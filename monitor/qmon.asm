@@ -14,8 +14,9 @@
 ;;               monitor continues
 ;;  06-AUG-2015: Basic monitor functions implemented
 ;;  28..30-DEC-2015: VGA- and USB-support
-;;  JAN-2016:    Central dispatch table, scrolling support (by sy2002)
+;;  JAN-2016:    Central dispatch table (by vaxman), VGA scrolling support (by sy2002)
 ;;  OCT-2016:    32bit integer math, SD Card and FAT32 support (by sy2002)
+;;  DEC-2016:    Completely redone string input: gets, gets_s, gets_slf, gets_core (by sy2002)
 ;;
 ;; Known bugs: 
 ;;
@@ -99,7 +100,7 @@ f32_fopen!      RBRA    FAT32$FILE_OPEN, 1
 f32_fread!      RBRA    FAT32$FILE_RB, 1
 f32_fseek!      RBRA    FAT32$FILE_SEEK, 1
 gets_s!         RBRA    IO$GETS_S, 1
-
+gets_slf!       RBRA    IO$GETS_SLF, 1
 ;
 ;  The actual monitor code starts here:
 ;

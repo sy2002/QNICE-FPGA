@@ -1,0 +1,35 @@
+TODO NEXT STEPS:
+
+1. Write a testcase for gets_slf in gets_test.c (also add a hexdump
+   view for all three testcases)
+
+2. Thoroughly test all three routines including the fringe case CR/SOMETHING
+   and check the results (also using the hexdump)
+
+3. Build a new Monitor
+
+4. Use gets_test in the Monitor version to check again all three gets
+   routines
+
+5. Extend qmon to support gets_slf and redo ./compile_and_distribute
+
+6. The goal for __read.c is: Have a reasonably large line buffer, e.g.
+   3 line à 80 chars = 240 chars. This is the amount, where you can use
+   the backspace key. But you can enter larger buffers.
+   Testcase: Buffer = 4. Then enter "12345", press BS multiple times, 
+   but you cannot go back the 4, i.e. "123" are "set in stone"
+
+7. If the testcase (and others) work: Set the buffer finally to 240 chars.
+   
+   ==> gets problem solved
+
+8. In conjunction with the solved multi-file-read: this might be worth
+   another beta release - or - add some basic file functions to the
+   Monitor: browse dir/cd/load file and then this is a kind of final
+   beta V1.39
+
+beta 1.39 would be good enough for a release, too. depends on how much time
+there is at the day
+
+another idea would be: let the beta 1.39 live for a while, play with it and
+only if it really works after some time, release it

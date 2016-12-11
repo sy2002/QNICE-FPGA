@@ -11,9 +11,9 @@ int main()
     char in;
     char alot[100];
 
-    puts("get a lot of chars using gets:");
-    fgets(alot, 100, stdin);
-    /*gets(alot);*/
+    puts("get a lot of chars using fgets:");
+    /*fgets(alot, 100, stdin);*/
+    gets(alot);
     printf("You entered: %s. The string length is %u and the last char has the code %u\n", alot, strlen(alot), (unsigned) alot[strlen(alot) - 1]);
 
 /*

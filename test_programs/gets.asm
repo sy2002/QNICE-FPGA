@@ -32,8 +32,11 @@
 ;***************************************************************************************
 ;
 IO$GETS         MOVE    R9, @--SP           ; save original R9
-                XOR     R9, R9              ; R9 = 0 means unlimited chars
-                RSUB    IO$GETS_S, 1        ; get the unlimited string
+                MOVE    R10, @--SP          ; save original R10
+                XOR     R9, R9              ; R9 = 0: unlimited chars
+                XOR     R10, R10            ; R10 = 0: no LF at end of str.
+                RSUB    IO$GETS_CORE, 1     ; get the unlimited string
+                MOVE    @SP++, R10          ; restore original R10
                 MOVE    @SP++, R9           ; restore original R9
                 RET
 ;
@@ -50,26 +53,71 @@ IO$GETS         MOVE    R9, @--SP           ; save original R9
 ;*
 ;* R8 has to point to a preallocated memory area to store the input line
 ;* R9 specifies the size of the buffer, so (R9 - 1) characters can be read;
-;     if R9 == 0, then an unlimited amount of characters is being read
+;*    if R9 == 0, then an unlimited amount of characters is being read
 ;***************************************************************************************
 ;
-IO$GETS_S       INCRB
+IO$GETS_S       MOVE    R10, @--SP          ; save original R10
+                XOR     R10, R10            ; R10 = 0: no LF at end of str.
+                RSUB    IO$GETS_CORE, 1     ; get string
+                MOVE    @SP++, R10          ; restore original R10
+                RET
+;
+;***************************************************************************************
+;* IO$GETS_SLF reads a zero terminated string from STDIN into a buffer with a specified
+;*             maximum size and echos typing on STDOUT. A line feed character is added
+;*             to the string in case the function is ended not "prematurely" by
+;*             reaching the buffer size, but by pressing CR or LF or CR/LF.
+;*
+;* It accepts CR, LF and CR/LF as input terminator, so it directly works with various
+;* terminal settings on UART and also with keyboards on PS/2 ("USB"). Furtheron, it
+;* accepts BACKSPACE for editing the string.
+;*
+;* A maximum amount of (R9 - 1) characters will be read, because the function will
+;* add the zero terminator to the string, which then results in R9 words.
+;*
+;* R8 has to point to a preallocated memory area to store the input line
+;* R9 specifies the size of the buffer, so (R9 - 1) characters can be read;
+;*    if R9 == 0, then an unlimited amount of characters is being read
+;***************************************************************************************
+;
+IO$GETS_SLF     MOVE    R10, @--SP          ; save original R10
+                MOVE    1, R10              ; R10 = 1: add LF, if the function
+                                            ; ends regularly, i.e. by a key
+                                            ; stroke (LF, CR or CR/LF)
+                RSUB    IO$GETS_CORE, 1     ; get string
+                MOVE    @SP++, R10          ; restore original R10
+                RET
+;
+;***************************************************************************************
+;* IO$GETS_CORE implements the various gets variants.
+;*
+;* Refer to the comments for IO$GETS, IO$GET_S and IO$GET_SLF
+;*
+;* R8  has to point to a preallocated memory area to store the input line
+;* R9  specifies the size of the buffer, so (R9 - 1) characters can be read;
+;*     if R9 == 0, then an unlimited amount of characters is being read
+;* R10 specifies the LF behaviour: R10 = 0 means never add LF, R10 = 1 means: add a
+;*     LF when the input is ended by a key stroke (LF, CR or CR/LF) in contrast to
+;*     automatically ending due to a full buffer
+;***************************************************************************************
+;
+IO$GETS_CORE    INCRB
                 MOVE    R10, @--SP          ; save original R10
                 MOVE    R11, @--SP          ; save original R11
+                MOVE    R12, @--SP          ; save original R12
 
+                MOVE    R10, R12            ; R12 = add LF flag
                 XOR     R11, R11            ; R11 = character counter = 0
                 MOVE    R9, R10             ; R10 = max characters
-                CMP     R10, 0
-                RBRA    _IO$GETS_START, Z
                 SUB     1, R10              ; R10 = R9 - 1 characters
 
-_IO$GETS_START  MOVE    R8, R0              ; save original R8
+                MOVE    R8, R0              ; save original R8
                 MOVE    R8, R1              ; R1 = working pointer
 
 _IO$GETS_LOOP   CMP     R9, 0               ; unlimited characters?
                 RBRA    _IO$GETS_GETC, Z    ; yes
                 CMP     R11, R10            ; buffer size - 1 reached?
-                RBRA    _IO$GETS_LF, Z      ; yes: add zero terminator
+                RBRA    _IO$GETS_ZT, Z      ; yes: add zero terminator
                 ADD     1, R11              ; no: next character
 
 _IO$GETS_GETC   SYSCALL(getc, 1)            ; get char from STDIN
@@ -85,9 +133,14 @@ _IO$GETS_ADDBUF MOVE    R8, @R1++           ; store char to buffer
 _IO$GETS_ECHO   SYSCALL(putc, 1)            ; echo char on STDOUT
                 RBRA    _IO$GETS_LOOP, 1    ; next character
 
-_IO$GETS_LF     MOVE    0, @R1              ; add zero terminator
+_IO$GETS_LF     CMP     R12, 0              ; evaluate LF flag
+                RBRA    _IO$GETS_ZT, Z      ; 0 = do not add LF flag
+                MOVE    0x000A, @R1++       ; add LF
+
+_IO$GETS_ZT     MOVE    0, @R1              ; add zero terminator
                 MOVE    R0, R8              ; restore original R8
 
+                MOVE    @SP++, R12          ; restore original R12
                 MOVE    @SP++, R11          ; restore original R11
                 MOVE    @SP++, R10          ; restore original R10
                 DECRB
@@ -143,10 +196,12 @@ _IO$GETS_CR_LF  CMP     R2, 0x000A          ; is it a LF (so we have CR/LF)?
                 ; the string and go on waiting for input, but only of the
                 ; buffer is large enough. Otherwise only add CR.
                 MOVE    0x000D, @R1++       ; add CR
+                CMP     R9, 0               ; unlimited characters?
+                RBRA    _IO$GETS_CRSS, Z    ; yes: go on and add SOMETHING
                 CMP     R11, R10            ; buffer size - 1 reached?
-                RBRA    _IO$GETS_LF, Z      ; yes: add zero terminator and end
+                RBRA    _IO$GETS_ZT, Z      ; yes: add zero terminator and end
                 ADD     1, R11              ; increase amount of stored chars                
-                MOVE    R2, R8              ; no: prepare to add SOMETHING
+_IO$GETS_CRSS   MOVE    R2, R8              ; no: prepare to add SOMETHING
                 RBRA    _IO$GETS_ADDBUF, 1  ; add it to buffer and go on
 
                 ; handle BACKSPACE for editing and accept DEL as alias for BS

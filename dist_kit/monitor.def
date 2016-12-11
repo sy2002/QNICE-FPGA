@@ -46,3 +46,4 @@ f32_fopen                     	.EQU	0x0050
 f32_fread                     	.EQU	0x0052
 f32_fseek                     	.EQU	0x0054
 gets_s                        	.EQU	0x0056
+gets_slf                      	.EQU	0x0058

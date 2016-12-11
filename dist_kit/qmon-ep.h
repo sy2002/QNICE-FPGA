@@ -46,3 +46,4 @@
 #define QMON_EP_F32_FREAD                     	0x0052
 #define QMON_EP_F32_FSEEK                     	0x0054
 #define QMON_EP_GETS_S                        	0x0056
+#define QMON_EP_GETS_SLF                      	0x0058
