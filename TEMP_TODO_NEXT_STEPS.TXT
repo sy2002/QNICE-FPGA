@@ -1,25 +1,25 @@
 TODO NEXT STEPS:
 
-1. Write a testcase for gets_slf in gets_test.c (also add a hexdump
+(DONE) 1. Write a testcase for gets_slf in gets_test.c (also add a hexdump
    view for all three testcases)
 
-2. Thoroughly test all three routines including the fringe case CR/SOMETHING
+(DONE) 2. Thoroughly test all three routines including the fringe case CR/SOMETHING
    and check the results (also using the hexdump)
 
-3. Build a new Monitor
+(DONE) 3. Build a new Monitor
 
-4. Use gets_test in the Monitor version to check again all three gets
+(DONE) 4. Use gets_test in the Monitor version to check again all three gets
    routines
 
-5. Extend qmon to support gets_slf and redo ./compile_and_distribute
+(DONE) 5. Extend qmon to support gets_slf and redo ./compile_and_distribute
 
-6. The goal for __read.c is: Have a reasonably large line buffer, e.g.
-   3 line à 80 chars = 240 chars. This is the amount, where you can use
+(DONE) 6. The goal for __read.c is: Have a reasonably large line buffer, e.g.
+   2 lines à 80 chars = 160 chars. This is the amount, where you can use
    the backspace key. But you can enter larger buffers.
    Testcase: Buffer = 4. Then enter "12345", press BS multiple times, 
    but you cannot go back the 4, i.e. "123" are "set in stone"
 
-7. If the testcase (and others) work: Set the buffer finally to 240 chars.
+(DONE) 7. If the testcase (and others) work: Set the buffer finally to 160 chars.
    
    ==> gets problem solved
 

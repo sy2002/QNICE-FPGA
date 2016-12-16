@@ -1,6 +1,6 @@
 /*
     Various tests to read one or more chars.
-    by sy2002 in November 2016
+    by sy2002 in December 2016
 */
 
 #include <stdio.h>
@@ -12,8 +12,8 @@ int main()
     char alot[100];
 
     puts("get a lot of chars using fgets:");
-    /*fgets(alot, 100, stdin);*/
-    gets(alot);
+    fgets(alot, 100, stdin);
+    /* gets(alot); */
     printf("You entered: %s. The string length is %u and the last char has the code %u\n", alot, strlen(alot), (unsigned) alot[strlen(alot) - 1]);
 
 /*

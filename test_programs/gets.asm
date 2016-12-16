@@ -7,6 +7,7 @@
 ; It further expects the entry point of GETS to be 0xE004
 ;
 ; done by sy2002 in October 2016
+; enhanced by sy2002 to support gets_s and gets_slf in December 2016
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"

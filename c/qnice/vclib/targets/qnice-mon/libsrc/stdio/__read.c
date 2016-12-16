@@ -4,6 +4,15 @@
     using the device specified by the handle "h". It returns the amount
     of characters read.
 
+    When reading from STDIN, we are working in a line buffered mode, that
+    by default (i.e. when QMON_LINEBUFFER_SIZE is not defined otherwise
+    upon library compile time) supports 159 characters. Within this buffer,
+    users can work with the DEL/BS key to edit. If larger amount of characters
+    are entered, then DEL/BS only goes back until the last "boundary" of the
+    buffer. That also means, that an arbitrary amount of characters can be
+    entered, independent of QMON_LINEBUFFER_SIZE, which must at least be
+    set to 2.
+
     done by sy2002 in November .. December 2016
 */
 
@@ -12,7 +21,9 @@
 #include "qdefs.h"
 #include "qmon.h"
 
-#define LINEBUFFER_SIZE 4
+#ifndef QMON_LINEBUFFER_SIZE
+#define QMON_LINEBUFFER_SIZE 160
+#endif
 
 static char* linebuffer = (char*) 0;
 static char* current_char = (char*) 0;
@@ -24,32 +35,25 @@ size_t __read(int h, char* p, size_t l)
     {
         if (linebuffer == 0 || *current_char == (char) 0)
         {
-            printf("linebuffer was 0. malloc and gets.\n");
-
             if (linebuffer)
                 free(linebuffer);
 
-            linebuffer = malloc(LINEBUFFER_SIZE);
+            linebuffer = malloc(QMON_LINEBUFFER_SIZE);
             current_char = linebuffer;
 
-            qmon_gets_slf(linebuffer, LINEBUFFER_SIZE - 1);
+            qmon_gets_slf(linebuffer, QMON_LINEBUFFER_SIZE);
 
             char* cnt = linebuffer;
             while (*cnt != 0)
                 cnt++;
             if (cnt != linebuffer && *(cnt - 1) == '\n')
-            {
-                qmon_putc('\r');
-                qmon_putc('\n');
-            }
+                qmon_crlf();
         }
 
         size_t n = 0;
         while (n < l)
         {
             char c = *current_char;
-
-            printf("n = %i, l = %i, c = %c\n", n, l, c);
 
             *p = c;
             n++;
@@ -67,27 +71,6 @@ size_t __read(int h, char* p, size_t l)
 
         return n;
     }
-/*
-  size_t n=0;
-  char c;
-
-  while(n<l){
-   c=__mon_getc();
-   if(c<0) break;
-   __mon_putc(c);
-   if(c=='\r'){
-     c='\n';
-     __mon_putc(c);
-   }
-   *p++=c;
-   n++;
-   if(c=='\n')
-    break;
-  }
-
-   return n;        
-    }
-*/
 
     //cannot read from STDOUT or STDERR
     else if (h == QNICE_STDOUT || h == QNICE_STDERR)
@@ -117,5 +100,14 @@ size_t __read(int h, char* p, size_t l)
         }
 
         return bytes_read;
+    }
+}
+
+void _EXIT_2___read(void)
+{
+    if (linebuffer)
+    {
+        free(linebuffer);
+        linebuffer = current_char = (char*) 0;
     }
 }

@@ -100,3 +100,17 @@ Encoding / Languages / Fonts:
   https://en.wikipedia.org/wiki/ISO/IEC_8859-15
   You can look at the font by browsing this textfile:
   vhdl/vga/lat9w-12.txt
+
+Standard C Library:
+
+* stdin works line buffered and the buffer size is 160 words, i.e. when
+  pressing DEL or BS you can maximally go back 159 characters. There is no
+  limit on the amount of characters that can be entered. If you want to
+  enlarge the buffer, then you need to compile the standard C library while
+  defining QMON_LINEBUFFER_SIZE to the value you want it to be.
+
+* While the C compiler, linker and assembler of the VBCC toolchain are
+  open source and therefore included to our distribution package, the
+  standard C library is not. Therefore you need to contact the author,
+  if you need the sources. We are delivering a linkable version of the
+  standard C library, though: c/vbcc/targets/qnice-mon/lib/libvc.a
