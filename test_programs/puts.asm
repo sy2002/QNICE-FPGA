@@ -1,9 +1,10 @@
 #include "../dist_kit/sysdef.asm"
+#include "../dist_kit/monitor.def"
 
                 .ORG    0x8000
                 MOVE    TEXT, R8
                 RSUB    IO$PUTS, 1
-                HALT
+                SYSCALL(exit, 1)
 
 TEXT            .ASCII_W    "Hello world!\n"
 
