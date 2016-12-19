@@ -103,6 +103,8 @@ Encoding / Languages / Fonts:
 
 Standard C Library:
 
+* No support for float and double, yet.
+
 * stdin works line buffered and the buffer size is 160 words, i.e. when
   pressing DEL or BS you can maximally go back 159 characters. There is no
   limit on the amount of characters that can be entered. If you want to

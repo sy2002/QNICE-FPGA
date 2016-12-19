@@ -454,7 +454,7 @@ _KG2DGN_CHECK2  CMP     47, R8                  ; ASCII value > 47?
                 SUB     48, R8                  ; convert ASCII to number
                 MOVE    R8, R7                  ; preserve R8 in case of ENTER
                 MOVE    @R5, R9                 ; retrieve base
-                SYSCALL(mult, 1)                ; R11|R10 = R8 x R9
+                SYSCALL(mulu, 1)                ; R11|R10 = R8 x R9
                 ADD     R10, R4                 ; R10 enough, 2 digits < 100
 
                 ADD     1, R3                   ; next digit
@@ -754,7 +754,6 @@ TILE_DY         .BLOCK 1
 PAL_WS_X        .BLOCK 1
 PAL_WS_Y        .BLOCK 1
 PAL_WS_X_MAX    .BLOCK 1
-PAL_WS_Y        .BLOCK 1
 PAL_WS_Y_MAX    .BLOCK 1
 TILE_WS_X       .BLOCK 1
 TILE_WS_Y       .BLOCK 1

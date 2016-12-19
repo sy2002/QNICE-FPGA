@@ -1,83 +1,49 @@
-Version 1.38   November, 19 2016
+(WIP) Version 1.4    December, xx 2016
 ================================
 
-BETA / Work-In-Progess (WIP) Version
+1. Hardware read-only support for SD Cards. Make sure to read the hints and
+   constraints in doc/contraints.txt. To directly test the hardware without
+   using the new Monitor libraries, use test_programs/sdcard.asm
 
-All 256 register banks are available in the bitstream dist_kit/qnice-v138b.bit
+2. Software read-only support for FAT32 (new Monitor Libraries sd_library.asm
+   and fat32_library.asm).
 
-VBCC toolchain added:
+3. Monitor: It is now possible to browse directories and to load/run files
+   directly from the monitor. Partition #1 of the SD Card is automatically
+   mounted when using directory or file related functions.
+   New top level folder "qbin" contains demo programs that can be executed.
 
-Stable basic C environment including file system access
-(via fopen, fread, ...) and including convenient editing functions due
-to the fact, that the Monitor's new versatile gets() function is used
-when reading from stdin.
+4. C Compiler, Standard C Library: VBCC toolchain including VBCC compiler,
+   VASM assembler and VLINK linker: Stable basic C environment including
+   file system access (via fopen, fread, ...) and including convenient
+   editing functions due to the fact, that the Monitor's new versatile
+   gets_slf() function is used when reading from stdin. Everything is
+   located in the "c" subfolder.
+   
+   Partition 1 of the SD Card is automatically mounted on-demand (upon first
+   call of fopen). To test it, try c/test_programs/fread_basic.c
 
-Partition 1 of the SD Card is automatically mounted on-demand (upon first
-call of fopen). To test it, try c/test_programs/fread_basic.c
+   Monitor library is available, that wraps monitor functions. To test it, try
+   c/test_programs/shell.c
 
-Monitor library available, that wraps monitor functions. To test it, try
-c/test_programs/shell.c
+5. EAE: Extended Arithmetic Element added: This is a 16-bit signed/unsigned
+   integer multiplication (with 32bit results), division and modulo
+   co-processor. An example of the impressive speedup can be seen in the
+   source code comments of mandel_perf_test.asm, which shows a speedup of
+   factor 4.5 compared with release version 1.3.
 
-To work with the VBCC toolchain:
+   For testing it, use the following programs:
+   test_programs/eae.asm
+   test_programs/32bit-mul.asm
 
-1. Open a terminal and cd into "tools" (it is important, that you cd into
-   the folder), and then run ./make-toolchain.sh
+6. Further Library enhancements:
 
-2. Go to the "c" folder.
-
-3. Always enter "source setenv.source" in your current terminal, before
-   starting to work with the VBCC toolchain. This the path and the VBCC
-   environment variable correctly.
-
-4. Now you can compile your .c file by using the qvc command, which also
-   makes sure, that your programs runs from 0x8000 on.
-   Example: Go to c/test_programs, enter qvc shell.c -c99
-
-Version 1.37   October, 4 2016
-==============================
-
-BETA / Work-In-Progess (WIP) Version
-
-Kind of stable version that implements EAE and SD CARD reading for
-SD V1 and V2 cards. SDHC and SDXC works only for some cards. As a rule
-of thumb: Use SD Cards that are up to 2 GB in size. Format them using FAT32
-as described in doc/contraints.txt.
-
-For testing the EAE, use:
-
-    test_programs/eae.asm
-    test_programs/32bit-mul.asm
-
-For testing the SD Card and FAT32 capabilities, use
-
-    test_programs/sdcard.asm
-
-and choose option '2' to mount an SD Card as FAT32 and enter an interactive
-"terminal" browsing mode.
-
-Version x.y    xxx, x xxxx
-==========================
-
-WIP * SD CARD: Hardware capabilities for raw SD CARD reading added. 
-WIP * FAT32
-
-* New gets function that supports CR or LF or CR/LF for ending the editing
-and that supports backspace (BS).
-
-WIP * More new functions in the standard lib (atoi (rename?)), 32bit math, etc.,
-see TODO.txt: decimal.asm, ...
-
-* C Compiler and more: Thanks to Volker Barthelmann (www.compilers.de), we now
-  have an awesome toolchain including a C compiler (VBCC), a linker (VLINK)
-  and an additional assmbler (VASM). Everything related is located in the "c"
-  subfolder.
-* EAE: Extended Arithmetic Element added: This is a 32-bit signed/unsigned
-  integer multiplication, division and modulo co-processor. An example of the
-  impressive speedup can be seen in the source code comments of
-  mandel_perf_test.asm, which shows a speedup of factor 4,5 compared with
-  release version 1.3.
-* Math Library (Monitor) enhanced: mulu, muls, divu, divs, mulu32, divu32
-* String Library (Monitor) enhanced: chr2lower, split, h2dstr
+   * IO Library (Monitor): New gets function that supports CR or LF or CR/LF
+     for ending the editing and that supports backspace (BS). New get_s that
+     only function that reads until the buffer is full. get_slf that adds a LF
+     in case the string input is ended by CR, LF or CR/LF.
+   * Math Library (Monitor): mulu, muls, divu, divs, mulu32, divu32
+   * String Library (Monitor): chr2lower, split, h2dstr
 
 Version 1.3    May, 6 2016
 ==========================

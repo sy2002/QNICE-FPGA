@@ -1,5 +1,3 @@
-! = Necessary for next release V1.4
-
 HARDWARE:
 
 * SD Cards: Writing.
@@ -43,34 +41,29 @@ HARDWARE:
   switch buffers during retrace. And/or for having a good general sync.
   mechanism. To "report" via register and/or interrupt.
 
+* VGA: support a text mode with colors
+
+* VGA: support a graphics mode with colors
+
 * Memory management unit (more than 64kWords of RAM/ROM, pages, etc.)
 
 * Interrupt system
 
 * Debugging mechanisms (e.g. single-step mode in hardware)
 
-MONITOR:
 
-! Basic on-demand mounting (SD Card), browsing and file loading,
-  file running support
+MONITOR:
 
 * Get rid of the hardcoded keyboard locale
 
 * BS/DEL when entering hex digits (and at other reasonable places)
 
+
 ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
-
-! SD / FAT32: be able to manage the buffers, be able to work with multiple
-  streams "at once", e.g. reading from 3 different files and writing to 
-  two different files: Use file handles to check last access / last function
-  call and re-read the 512 buffer, if necessary. In a first step, write a
-  test program that reads from multiple files and outputs that "at once".
-
-! gets_s
 
 * Add writing to SD card support / FAT32 support
 
-* finalize 32 bit arithmetic (muls32, divs32)
+* Finalize 32 bit arithmetic (muls32, divs32)
 
 * String libraries: Switchable locales? UTF8 support?
   (Or - as an alternative to this fully fledged solution: Can we implement a
@@ -83,12 +76,24 @@ ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
   translate some selected chars from UTF-8 to 8859-15 while entering them
   via STDIN=UART. More thoughts to be invested here.)
 
-* Long term: Floating point support (in software? or in hardware? or only
-  in the C lib and not at all on the monitor's level?)
+* Floating point support (in software? or in hardware? or only in the C lib
+  and not at all on the monitor's level?)
+
+
+EMULATOR:
+
+* Emulate the SD Card by being able to mount a reasonable container file
+  format (iso, dmg, ...)
+
+* Emulate the VGA output
+
+* Emulate the USB keyboard
+
 
 NATIVE TOOLCHAIN: ASSEMBLER:
 
 <currently no TODOs>
+
 
 VBCC TOOLCHAIN: C COMPILER:
 
@@ -103,9 +108,10 @@ VBCC TOOLCHAIN: C COMPILER:
   (currently no wait code is being generated, maybe this becomes necessary
   when we switch to 100 MHz)
 
+
 VBCC TOOLCHAIN: C STANDARD LIB:
 
-! Solve __read.c problem and support backspace in line buffered stdin ops
+* Add support for float and double
 
 * Enhance mul32_div32.c by testing much more cases for the 32bit
   multiplication, because the new _lmul.s has not been thoroughly tested,
@@ -116,15 +122,15 @@ VBCC TOOLCHAIN: C STANDARD LIB:
   that check the latest parameters and optimize mod (because the 32bit
   div routine generates also the mode). But this would not be threadsafe.
 
+
 VBCC TOOLCHAIN: MONITOR-LIB:
 
 * Rewrite in pure assembler to avoid overhead.
 
 * Add all meaningful monitor functions.
 
-DEMOS:
 
-! Decide how to handle demos (one global folder vs. c / asm distinction)?
+DEMOS:
 
 * Move shell.c to the global demos folder and write some minimal
   documentation in the getting started guide of how to compile the whole
