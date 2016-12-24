@@ -23,7 +23,7 @@
 #define QMON_EP_GETHEX                        	0x0024
 #define QMON_EP_PUTHEX                        	0x0026
 #define QMON_EP_MULU                          	0x0028
-#define QMON_EP_CLS                           	0x002A
+#define QMON_EP_VGA_CLS                       	0x002A
 #define QMON_EP_DIVU                          	0x002C
 #define QMON_EP_DIVS                          	0x002E
 #define QMON_EP_CHR2LOWER                     	0x0030
@@ -47,3 +47,4 @@
 #define QMON_EP_F32_FSEEK                     	0x0054
 #define QMON_EP_GETS_S                        	0x0056
 #define QMON_EP_GETS_SLF                      	0x0058
+#define QMON_EP_VGA_INIT                      	0x005A

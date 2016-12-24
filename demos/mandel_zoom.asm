@@ -43,7 +43,7 @@ ITERATION       .EQU    0x001A              ; Number of iterations
                 MOVE    Y_END, R7
                 MOVE    @R7, R5             ; R5 contains Y_END
 ;
-_MAIN_LOOP      SYSCALL(cls, 1)
+_MAIN_LOOP      SYSCALL(vga_cls, 1)
                 RSUB    MANDEL, 1           ; Generate one Mandelbrot-set
 ;
                 MOVE    R0, R9              ; This is the step size to be

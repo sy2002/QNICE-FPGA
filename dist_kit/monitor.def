@@ -23,7 +23,7 @@ strchr                        	.EQU	0x0022
 gethex                        	.EQU	0x0024
 puthex                        	.EQU	0x0026
 mulu                          	.EQU	0x0028
-cls                           	.EQU	0x002A
+vga_cls                       	.EQU	0x002A
 divu                          	.EQU	0x002C
 divs                          	.EQU	0x002E
 chr2lower                     	.EQU	0x0030
@@ -47,3 +47,4 @@ f32_fread                     	.EQU	0x0052
 f32_fseek                     	.EQU	0x0054
 gets_s                        	.EQU	0x0056
 gets_slf                      	.EQU	0x0058
+vga_init                      	.EQU	0x005A

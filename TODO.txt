@@ -83,7 +83,9 @@ ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
 EMULATOR:
 
 * Emulate the SD Card by being able to mount a reasonable container file
-  format (iso, dmg, ...)
+  format (iso, dmg, ...) and/or by being able to mount a RAW binary dump
+  of an SD Card (maybe shortened/truncated, if it is sparsely filled with a
+  lot of zeros at the end)
 
 * Emulate the VGA output
 

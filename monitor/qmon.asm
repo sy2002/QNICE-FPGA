@@ -78,7 +78,7 @@ strchr!         RBRA    STR$STRCHR, 1
 gethex!         RBRA    IO$GET_W_HEX, 1
 puthex!         RBRA    IO$PUT_W_HEX, 1
 mulu!           RBRA    MTH$MULU, 1
-cls!            RBRA    VGA$CLS, 1
+vga_cls!        RBRA    VGA$CLS, 1
 divu!           RBRA    MTH$DIVU, 1
 divs!           RBRA    MTH$DIVS, 1
 chr2lower!      RBRA    CHR$TO_LOWER, 1
@@ -102,6 +102,7 @@ f32_fread!      RBRA    FAT32$FILE_RB, 1
 f32_fseek!      RBRA    FAT32$FILE_SEEK, 1
 gets_s!         RBRA    IO$GETS_S, 1
 gets_slf!       RBRA    IO$GETS_SLF, 1
+vga_init!       RBRA    VGA$INIT, 1
 ;
 ;  The actual monitor code starts here:
 ;
