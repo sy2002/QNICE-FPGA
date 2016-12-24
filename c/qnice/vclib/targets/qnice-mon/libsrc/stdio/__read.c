@@ -38,16 +38,23 @@ size_t __read(int h, char* p, size_t l)
             if (linebuffer)
                 free(linebuffer);
 
-            linebuffer = malloc(QMON_LINEBUFFER_SIZE);
-            current_char = linebuffer;
+            if (linebuffer = malloc(QMON_LINEBUFFER_SIZE))
+            {                
+                current_char = linebuffer;
 
-            qmon_gets_slf(linebuffer, QMON_LINEBUFFER_SIZE);
+                qmon_gets_slf(linebuffer, QMON_LINEBUFFER_SIZE);
 
-            char* cnt = linebuffer;
-            while (*cnt != 0)
-                cnt++;
-            if (cnt != linebuffer && *(cnt - 1) == '\n')
-                qmon_crlf();
+                char* cnt = linebuffer;
+                while (*cnt != 0)
+                    cnt++;
+                if (cnt != linebuffer && *(cnt - 1) == '\n')
+                    qmon_crlf();
+            }
+            else
+            {
+                puts("Runtime error in __read.c: Error allocating line buffer.");
+                qmon_exit();
+            }
         }
 
         size_t n = 0;
@@ -60,6 +67,7 @@ size_t __read(int h, char* p, size_t l)
 
             if (c == '\n')
             {
+                printf("Freeing linebuffer %#04x\n", linebuffer)
                 free(linebuffer);
                 linebuffer = current_char = (char*) 0;
                 break;

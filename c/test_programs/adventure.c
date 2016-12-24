@@ -279,11 +279,7 @@ const char *introText = "     Abandoned Farmhouse Adventure\n           By Jeff 
 const char *helpString = "Valid commands:\ngo east/west/north/south/up/down \nlook\nuse <object>\nexamine <object>\ntake <object>\ndrop <object>\ninventory\nhelp\nquit\nYou can abbreviate commands and\ndirections to the first letter.\nType just the first letter of\na direction to move.\n";
 
 /* Line of user input */
-#ifndef __QNICE__
-    char buffer[40];
-#else
-    char buffer[240];
-#endif
+char buffer[240];
 
 /* Clear the screen */
 void clearScreen()
