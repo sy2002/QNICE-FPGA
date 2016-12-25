@@ -117,7 +117,8 @@ Using the File System
 
 * QNICE-FPGA supports SD Cards (microSD Cards on the Nexys 4 DDR), that are
   formatted using FAT32. Make sure that you read the file
-  `doc/constraints.txt` to understand what works and what does not.
+  [doc/constraints.txt](doc/constraints.txt) to understand what works and what
+  does not.
 
 * Copy the folder qbin from the QNICE-FPGA root folder to your SD Card. It
   contains some nice demo programs in the directly loadable `.out` file
