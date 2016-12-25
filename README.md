@@ -180,7 +180,7 @@ app within the Monitor environment:
   ../assembler/asm q-tris.asm
   ```
   Transfer it via your terminal program using Monitor's `M L` command sequence
-  and start Q-TRIS using `C R` and the address `0x8000`.
+  and start Q-TRIS using `C R` and the address `8000`.
 
 Programming in Assembler
 ------------------------
@@ -200,9 +200,9 @@ Programming in Assembler
 
 * Native QNICE assembler:
 
-  * A typical assembler program starts with this sequence that first includes
-    the above-mentioned include file `sysdef.asm` plus the definition file
-    of the "operating system" functions `monitor.def`. Then the program's 
+  * A typical assembler program starts with the following sequence that first
+    includes the above-mentioned include file `sysdef.asm` plus the definition
+    file of the "operating system" functions `monitor.def`. Then the program's 
     start address is set to 0x8000, which is the first address in RAM.
     ```
     #include "../dist_kit/sysdef.asm"
@@ -211,12 +211,29 @@ Programming in Assembler
     ```
 
   * You can use any other address greater or equal to `0x8000` for your
-    program. `test_programs/mandel.asm` for example uses `0xA000`.
+    program. `test_programs/mandel.asm` for example uses `0xA000`. Make sure
+    that you leave enough room for the stack, which grows from top to bottom.
 
   * The folder `test_programs` contains a wealth of examples. You might want
     to start with `hello.asm`, which combines the classical "Hello World!"
     example with some more advanced things like using "operating system"
     functions and sub routines.
+
+* VASM assembler:
+
+  * Each time you open a new command line (terminal) window, make sure, that
+    you go to the folder "c" and enter `source setenv.source`, which sets
+    up the right path and environment variables.
+
+  * In your command line, navigate to `c/test_programs`.
+
+  * Enter `qvasm vasm_test.asm`. Use the `M L` mechanism to transfer the
+    resulting `vasm_test.out` to the RAM of QNICE. Run the program using
+    `C R`and then `8000`.
+
+  * VASM has another syntax than the native QNICE assembler, so you need
+    to use other include files. Have a look at
+    [dist_kit/README.md](dist_kit/README.md) for more details.
 
 Programming in C
 ----------------
