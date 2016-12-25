@@ -32,7 +32,7 @@ int main()
         int res3 = fread(read3, 2, 1, file3);
 
         if (res1 == res2 == res3 == 1)
-            printf("1:%s\t2:%s\t3:%s\n", read1, read2, read3);
+            printf("1:%s    2:%s    3:%s\n", read1, read2, read3);
         else
         {
             puts("Error reading one of the files. Terminated.");

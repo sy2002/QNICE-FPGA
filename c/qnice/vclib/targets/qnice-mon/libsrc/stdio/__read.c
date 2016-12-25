@@ -16,7 +16,6 @@
     done by sy2002 in November .. December 2016
 */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include "qdefs.h"
 #include "qmon.h"
@@ -52,7 +51,7 @@ size_t __read(int h, char* p, size_t l)
             }
             else
             {
-                puts("Runtime error in __read.c: Error allocating line buffer.");
+                qmon_puts("Runtime error in __read.c: Error allocating line buffer.\r\n");
                 qmon_exit();
             }
         }
@@ -67,7 +66,6 @@ size_t __read(int h, char* p, size_t l)
 
             if (c == '\n')
             {
-                printf("Freeing linebuffer %#04x\n", linebuffer);
                 free(linebuffer);
                 linebuffer = current_char = (char*) 0;
                 break;

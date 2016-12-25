@@ -13,7 +13,15 @@
 #define MAXSTEPS     24
 
 #ifdef __QNICE__
+
+    #if __STDC_VERSION__ != 199901L
+    #error This program needs C99 to compile. Use the -c99 VBCC switch.
+    #endif
+
     #define GREETING "Wolfram's Cellular Automata for QNICE"
+
+    #include "sysdef.h"   
+   
 #else
     #define GREETING "Wolfram's Cellular Automata"
 #endif
@@ -112,7 +120,18 @@ void displayState(state* s)
         else
             putchar(' ');
     }
+
+#ifndef __QNICE__
     putchar('\n');
+#else
+    /* Check, if stdout = VGA, because then, due to DISPLAYWIDTH being 80
+       and our textmode width also being 80, we are having an automatic
+       CR/LF when printing a '*' or ' ' at column 80. So in this case
+       we do not need the putchar('\n'). But when we print via UART, then
+       we need it */
+    if (!(*((int*) IO_SWITCH_REG) & 2))
+        putchar('\n');
+#endif
 }
 
 int mul(int a, int b)
@@ -182,5 +201,5 @@ int main()
         evolve(&s1, &s0);
     }
 
-    exit(0);
+    return 0;
 }

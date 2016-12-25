@@ -1,7 +1,11 @@
-Constraints of the QNICE-FPGA (env1) design, that should be mentioned,
-when writing the documentation:
+This file contains constraints of the QNICE-FPGA (env1) design, that should
+be mentioned, when writing the documentation.
 
-SD Card:
+Written by sy2002 / Last modified in December 2016
+
+==============================================================================
+    SD Card
+==============================================================================
 
 * We tested microSD and microSDHC cards in the built-in card slot using a
   Nexys 4 DDR board. Presumably everything also works fine with normal sized
@@ -30,7 +34,9 @@ SD Card:
   Find out <devicename> using "diskutil list". <name> can be chosen
   arbitrarily.
 
-USB Keyboard:
+==============================================================================
+    USB Keyboard
+==============================================================================
 
 When attaching an USB keyboard, be sure to use one that supports the old
 USB boot mode standard. Not all newer keyboards are compatible. These
@@ -41,11 +47,15 @@ keyboards are tested and work:
 * Tacens Scriba
 * VIVANCO 36641 IT-KB USB PS2
 
-VGA:
+==============================================================================
+    VGA
+==============================================================================    
 
 The monitor needs to support 640x480 and 640x400 in 60 Hz.
 
-Encoding / Languages / Fonts:
+==============================================================================
+    Encoding / Languages / Fonts
+==============================================================================
 
 * No support for UTF-8.
 
@@ -101,13 +111,16 @@ Encoding / Languages / Fonts:
   You can look at the font by browsing this textfile:
   vhdl/vga/lat9w-12.txt
 
-Standard C Library:
+==============================================================================
+    Standard C Library
+==============================================================================    
 
 * No support for float and double, yet.
 
 * stdin works line buffered and the buffer size is 160 words, i.e. when
   pressing DEL or BS you can maximally go back 159 characters. There is no
-  limit on the amount of characters that can be entered. If you want to
+  limit on the amount of characters that can be entered, the only limit is
+  how "far you can go back" when pressing DEL or BS. If you want to
   enlarge the buffer, then you need to compile the standard C library while
   defining QMON_LINEBUFFER_SIZE to the value you want it to be.
 
@@ -116,3 +129,40 @@ Standard C Library:
   standard C library is not. Therefore you need to contact the author,
   if you need the sources. We are delivering a linkable version of the
   standard C library, though: c/vbcc/targets/qnice-mon/lib/libvc.a
+  and of course all the header files in c/vbcc/targets/qnice-mon/include.
+  So you are able to work with the standard C library as you would expect
+  it, even without having the source of the lib itself.
+
+* The heap size is currently set to 4096 words. Short version: It grows
+  upwards coming from the end of the application and therefore grows towards
+  the stack which is coming downwards from somewhere near 0xFEFF. Currently
+  there are no checking mechanisms that check a collision between stack and
+  heap.
+
+  Some more details: For avoiding having a lot of 0x0000 elements in the .out
+  files, we currently use the so called "unsafe heap" mechanism, which means,
+  that the heap is basically a pointer to one word after the last word of the
+  application program itself. Have a look at
+  c/qnice/vclib/targets/qnice-mon/libsrc/stdlib/_heap.c to learn more. In the
+  standard C library Makefile, which it located at
+  c/qnice/vclib/targets/qnice-mon/Makefile the heap size can be changed by
+  defining HEAPSIZE.
+  Currently, we are not having any memory and/or heap
+  management mechanisms on operating system level, so obtaining "core memory"
+  currently just means increasing the heap pointer, as you can see here:
+  c/qnice/vclib/targets/qnice-mon/libsrc/stdlib/_core.c
+  That also means, we cannot free core memory and that means, for avoiding
+  memory leaks, it is important, that the THRESHOLD defined in the Makefile
+  is 2 words lower than HEAPSIZE / 4, so in our case as we have 4096 words
+  of heap, THRESHOLD = (4096 / 4) - 2 = 1022.
+  For more details about why is that, you need to know details of the malloc
+  implementation, which is currently not open source (see above).
+
+* If you happen to have access to the standard library source code, then
+  copy it to c/vclib and run the script c/make-vclib.sh to compile it.
+  (Don't forget to enter "source setenv.source" before doing so.) The script
+  is merging the QNICE specific changes of the standard c library, which
+  are located at c/qnice/vclib with the vanilla version of the c library
+  and then starts the compilation.
+  The result, i.e. the binary standard library and the startup code are then
+  copied to c/vbcc/targets/qnice-mon/lib: libvc.a and startup.o
