@@ -7,13 +7,19 @@
 #include <stdlib.h>
 #include "qmon.h"
 
+extern size_t __heapsize;
+
 int main()
 {
+    qmon_puts("[malloc_test]: heapsize = 0x");
+    qmon_puthex(__heapsize);
+    qmon_crlf();
+
     int i;
     char* linebuffer = 0;
     for (i = 0; i < 50; i++)
     {
-        qmon_puts("[malloc_test]: Iteration #");
+        qmon_puts("[malloc_test]: iteration #");
         qmon_puthex(i);
         qmon_crlf();
 

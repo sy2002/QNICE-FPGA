@@ -75,12 +75,21 @@ void *malloc(size_t size)
 {
     qmon_puts("[malloc]: ENTER, size = ");
     qmon_puthex((int) size);
+    qmon_puts(", &current = ");
+    qmon_puthex((int) &current);
     qmon_puts(", current = ");
     qmon_puthex((int) current);
     qmon_crlf();
     
     struct memblock *p,*n;
     size=(size+sizeof(struct memblock)-1)/sizeof(struct memblock);
+
+    qmon_puts("[malloc]: size (after calc.) = ");
+    qmon_puthex(size);
+    qmon_puts(", THRESHOLD = ");
+    qmon_puthex(THRESHOLD);
+    qmon_crlf();
+
     if(size>THRESHOLD){
         /* Large blocks get their own pool. */
         if(!(p=add_mem(size))) return 0;
@@ -100,8 +109,13 @@ void *malloc(size_t size)
             }
         }
     }
+
     /* The next search will start here. */
     current=p;
+    qmon_puts("[malloc]: current=p = ");
+    qmon_puthex((int) current);
+    qmon_crlf();
+
     if(p->size-size<MIN_REST+1){
         /* Use the entire block for this allocation. */
         p->used=1;

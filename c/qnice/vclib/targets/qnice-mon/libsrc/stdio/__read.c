@@ -67,7 +67,7 @@ size_t __read(int h, char* p, size_t l)
 
             if (c == '\n')
             {
-                printf("Freeing linebuffer %#04x\n", linebuffer)
+                printf("Freeing linebuffer %#04x\n", linebuffer);
                 free(linebuffer);
                 linebuffer = current_char = (char*) 0;
                 break;
