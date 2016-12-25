@@ -163,7 +163,7 @@ are routed. All speed calculations are based on a 50 MHz CPU that is equal
 to the CPU revision contained in release V1.4.
 
 Have a look at the current highscore in
-[doc/demos/q-tris-highscore.txt](doc/demos/q-tris-highscore.txt)
+[doc/demos/q-tris-highscore.txt](doc/demos/q-tris-highscore.txt).
 
 The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
 for the QNICE-FPGA: Just use `dist_kit/q-tris.bit` instead of the
@@ -190,12 +190,13 @@ Programming in Assembler
 
 * The `dist_kit` folder contains important include files, that contain
   command shortcuts (RET, INCRB, DECRB, NOP, SYSCALL), register short names
-  (PC, SR, SP), addresses for memory mapped I/O of peripheraldevices and 
+  (PC, SR, SP), addresses for memory mapped I/O of peripheral devices and 
   commonly used constants.
 
 * You can choose between two assemblers: The native QNICE assembler located
   in the folder `assembler` and the VASM assembler, which is a part of the
-  VBCC toolchain.
+  VBCC toolchain and which is located in `c/vasm` (source code) and in
+  `c/vbcc/bin` (executable binary).
 
 * Native QNICE assembler:
 
@@ -211,6 +212,11 @@ Programming in Assembler
 
   * You can use any other address greater or equal to `0x8000` for your
     program. `test_programs/mandel.asm` for example uses `0xA000`.
+
+  * The folder `test_programs` contains a wealth of examples. You might want
+    to start with `hello.asm`, which combines the classical "Hello World!"
+    example with some more advanced things like using "operating system"
+    functions and sub routines.
 
 Programming in C
 ----------------
