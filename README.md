@@ -120,7 +120,7 @@ Using the File System
   [doc/constraints.txt](doc/constraints.txt) to understand what works and what
   does not.
 
-* Copy the folder qbin from the QNICE-FPGA root folder to your SD Card. It
+* Copy the folder `qbin from the QNICE-FPGA root folder to your SD Card. It
   contains some nice demo programs in the directly loadable `.out` file
   format.
 
@@ -162,13 +162,16 @@ Q-TRIS uses the PS2/USB keyboard and VGA, no matter how STDIN/STDOUT
 are routed. All speed calculations are based on a 50 MHz CPU that is equal
 to the CPU revision contained in release V1.4.
 
+Have a look at the current highscore in
+[doc/demos/q-tris-highscore.txt](doc/demos/q-tris-highscore.txt)
+
 The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
 for the QNICE-FPGA: Just use `dist_kit/q-tris.bit` instead of the
 above-mentioned `dist_kit/qnice-v14.bit`. Or, you can run it regularly as an
 app within the Monitor environment:
 
 * If you copied the `qbin` folder on your SD Card, you can load and run it
-  directly from the Monitor by entering `F R` and then `qbin/q-tris.out`.
+  directly from the Monitor by entering `F R` and then `/qbin/q-tris.out`.
 
 * Alternately, you can open a command line, head to the root folder of
   QNICE-FPGA and enter this sequence to compile it:
