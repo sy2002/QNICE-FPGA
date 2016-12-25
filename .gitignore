@@ -19,7 +19,6 @@ emulator/qnice
 *.out
 *.o
 *.rom
-*.bin
 *.def
 *.aux
 *.log
@@ -29,6 +28,7 @@ emulator/qnice
 *.stc
 *.swp
 *.swo
+*.obj
 c/vasm/vasmqnice_std
 c/vasm/vobjdump
 c/vbcc/bin

@@ -15,7 +15,8 @@ system-on-a-chip in portable VHDL on a FPGA. Specifications:
 * 32k words RAM (64kB)
 * UART 115.200 baud, 8-N-1, CTS
 * VGA 80x40 character textmode display (640x480 resolution)
-* PS/2 keyboard support (mapped to USB on the Nexys4 DDR)
+* PS/2 keyboard support (mapped to USB on the Nexys 4 DDR)
+* SD Card and FAT32 support (microSD card on the Nexys 4 DDR)
 * 4-digit 7-segment display
 * 16 hardware toggle switches
 
@@ -36,24 +37,28 @@ Getting Started
 
 * Hardware: Currently, we develop QNICE-FPGA on a Nexys 4 DDR development
   board, so if you own one, the fastest way of getting started is to
-  download the bitstream file `dist_kit/qnice.bit` on the microSD card of the
-  Nexys board and set the jumpers to read the FPGA configuration from the
-  SD card. Do not copy more than one `*.bit` file on the SD card, i.e. do
-  not copy `dist_kit/q-tris.bit`, yet. Do empty the "Recycle Bin" or similar
-  of your host OS between two `*.bit` copies, so that the Nexys board does not
-  accidentally read the `*.bit` from your trash instead of the recent one.
+  download the bitstream file `dist_kit/qnice-v14.bit` on a microSD card or
+  a USB stick, insert it into the Nexys board and set the jumpers to read the
+  FPGA configuration from the SD card or USB stick. Do not copy more than one
+  `*.bit` file on the SD card, i.e. do not copy `dist_kit/q-tris.bit`, yet.
+  Do empty the "Recycle Bin" or similar of your host OS between two `*.bit`
+  copies, so that the Nexys board does not accidentally read the `*.bit` from
+  your trash instead of the recent one.
 
 * If you do not own a Nexys 4 DDR board, then use your VHDL development
   environment to synthesize QNICE-FPGA. The root file for the system
   is `vhdl/env1.vhdl`. Make sure that you connect at least the IO pins
-  for PS2, VGA, UART and the two switches.
+  for PS2, VGA, UART and the two switches. In the file `nexys4ddr/env1.ucf`
+  you will find some advise of how to do the mapping.
 
 * Attach an "old" USB keyboard supporting boot mode to the board and attach
   a VGA monitor. Attach the USB cable to your desktop computer, so that you
   can setup a serial (terminal) connection between the desktop and the FPGA.
+  (The file `doc/constraints.txt` contains a list of known-to-work USB
+  keyboards.)
 
-* On your host computer: Open a terminal and head to the root folder of the
-  QNICE-FPGA GIT repository.
+* On your host computer: Open a command line and head to the root folder of
+  the QNICE-FPGA GIT repository.
 
 * Compile the toolchain: You need to have the GNU compiler toolchain
   installed, particularly `gcc` and `make` will be used. Open a terminal in
@@ -107,7 +112,35 @@ Getting Started
   VGA screen as shown in the above-mentioned screenshot. Use cursor keys
   and page up/down keys to scroll.
 
-More documentation to come.
+Using the File System
+---------------------
+
+* QNICE-FPGA supports SD Cards (microSD Cards on the Nexys 4 DDR), that are
+  formatted using FAT32. Make sure that you read the file
+  `doc/constraints.txt` to understand what works and what does not.
+
+* Copy the folder qbin from the QNICE-FPGA root folder to your SD Card. It
+  contains some nice demo programs in the directly loadable `.out` file
+  format.
+
+* In the Monitor, enter `F` and then `D` to browse a directory.
+
+* Enter `F` and then `C` and then enter `/qbin` to change into the `qbin`
+  folder that you copied (in case you copied it to the root folder of the
+  SD Card, otherwise enter the right path and use `/` as a delimiter for
+  subfolders).
+
+* Enter `F` and then `R` and then enter `adventure.out` to load and run a
+  small text adventure.
+
+* Browse the `qbin` folder using `F` and `D` for more `.out` files, which
+  are QNICE demos. Particularly nice examples are:
+
+  * `q-tris.out` Tetris clone for QNICE-FPGA, VGA and USB keyboard mandatory
+  * `sierpinski.out` Draws Sierpinski fractals on UART or VGA
+  * `ttt2.out` Tic-Tac-Toe on UART or VGA
+  * `wolfram.out` Draws cellular automata according to Wolfram's New Kind of
+    Science
 
 Q-TRIS
 ------
@@ -126,13 +159,54 @@ next level. The game speed increases from level to level. If you clear
 
 Q-TRIS uses the PS2/USB keyboard and VGA, no matter how STDIN/STDOUT
 are routed. All speed calculations are based on a 50 MHz CPU that is equal
-to the CPU revision contained in release V1.3.
+to the CPU revision contained in release V1.4.
 
 The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
 for the QNICE-FPGA: Just use `dist_kit/q-tris.bit` instead of the
-above-mentioned `dist_kit/qnice.bit`. Or, you can run it regularly as an app
-within the Monitor environment. In this case, compile it and then load it with
-the `M L` command sequence and start Q-TRIS using the address `0x8000`.
+above-mentioned `dist_kit/qnice-v14.bit`. Or, you can run it regularly as an
+app within the Monitor environment:
+
+* If you copied the `qbin` folder on your SD Card, you can load and run it
+  directly from the Monitor by entering `F R` and then `qbin/q-tris.out`.
+
+* Alternately, you can open a command line, head to the root folder of
+  QNICE-FPGA and enter this sequence to compile it:
+  ```
+  cd demos
+  ../assembler/asm q-tris.asm
+  ```
+  Transfer it via your terminal program using Monitor's `M L` command sequence
+  and start Q-TRIS using `C R` and the address `0x8000`.
+
+Programming in Assembler
+------------------------
+
+* Read the [Intro](doc/intro/qnice_intro.pdf) and have a look at the
+  [Programming Card](doc/programming_card/programming_card_screen.pdf).
+
+* The `dist_kit` folder contains important include files, that contain
+  command shortcuts (RET, INCRB, DECRB, NOP, SYSCALL), register short names
+  (PC, SR, SP), addresses for memory mapped I/O of peripheraldevices and 
+  commonly used constants.
+
+* You can choose between two assemblers: The native QNICE assembler located
+  in the folder `assembler` and the VASM assembler, which is a part of the
+  VBCC toolchain.
+
+* Native QNICE assembler:
+
+  * A typical assembler program starts with this sequence that first includes
+    the above-mentioned include file `sysdef.asm` plus the definition file
+    of the "operating system" functions `monitor.def`. Then the program's 
+    start address is set to 0x8000, which is the first address in RAM.
+    ```
+    #include "../dist_kit/sysdef.asm"
+    #include "../dist_kit/monitor.def"
+    .ORG    0x8000
+    ```
+
+  * You can use any other address greater or equal to `0x8000` for your
+    program. `test_programs/mandel.asm` for example uses `0xA000`.
 
 Programming in C
 ----------------
@@ -164,8 +238,8 @@ you are getting started:
 * Browse the microSD Card using `dir`, `cd`, `cat` and `cathex` commands.
   Exit the shell using `exit`.
 
-* **Important hint**: You either need to run `source setenv.source` each time you
-  open a new terminal when you want to work with C - or - you need to add
+* **Important hint**: You either need to run `source setenv.source` each time
+  you open a new terminal when you want to work with C - or - you need to add
   the paths and the `VBCC` enviornment variable in your shell preferences,
   so that they are being set automatically.
 

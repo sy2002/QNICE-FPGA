@@ -16,3 +16,11 @@
     .macro  RET
         MOVE @R13++, R15
     .endm
+
+    .macro NOP
+        ABRA    R15, 1
+    .endm
+
+    .macro SYSCALL __routine, __condition
+        ASUB \__routine, \__condition 
+    .endm
