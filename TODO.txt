@@ -1,24 +1,44 @@
 HARDWARE:
 
-* Remove ROM and replace by prefilled RAM
+* SD Cards: Writing.
 
-* Memory management unit (more than 64kWords of RAM/ROM, pages, etc.)
+* SD Cards: Replace SPI access by native access and by doing so, achieve
+  a 100% compatible and reliable system for SD, SDHC, SDCX.
 
-* Interrupt system
+* Research, if the asynchronous RAM (flip flops) for the register banks can
+  be replaced by synchronous RAM (Block RAM) without increasing the amount
+  of CPU cycles per instruction.
 
-* Debugging mechanisms (e.g. single-step mode in hardware)
+* Refactor MMIO for not having so many comperators: use only one register
+  output and link it to all devices; use a smart subtraction to find out
+  registers and drastically shorten the code.
+
+* Shrink the ROM, currently we could go from 0x0000 to 0x1FFF and still have
+  plenty of room left and let programs start at 0x2000, instead of as this
+  is the case today, from 0x8000 on.
+
+* Think about advantages/disadvantages of removing ROM and replacing it by
+  prefilled RAM (could lead to very hard to debug effects, if some renegade
+  program overwrites "operating system" areas). On the other hand, we could
+  do it in a way, that after a RESET, the Monitor RAM area is re-filled from
+  a ROM.
+
+* Get rid of hardcoded clock speed dependencies:
+  + Have a global constant that reflects the speed of the board and refactor
+  all hardcoded frequencies to be dependend formulas from this speed
+  (e.g. UART, SD card, VGA, debouncer, SD$TIMEOUT_HIGH, etc.)
+  + Have a generator that generates the speeds that certain components need
+  as input, e.g. the SD Card component needs currently hardcoded 25 MHz
+  + Keyboard: remove hardcoded 18000 constant
+  + Monitor: gets hardcoded 10000 clock cycles => 2.000 "nop" loops
 
 * Improve design to support 100 MHz
+  + EAE might need the busy flag then (currently the combinatorial net
+    for div and mod takes about 30ns to execute, therefore it is buffered
+    in the FF "res")
 
-* Keyboard: remove hardcoded hardcoded 18000
-
-* Refactor scancode conversion to be more table/ROM like and less
+* PS/2: Refactor scancode conversion to be more table/ROM like and less
   like a huge array of multiplexers
-
-* Add a timer with 0,1us Resolution (10 MHz frequency), so that
-  we can measure performance (e.g. against the emulator)
-
-* Refactor MMIO for not having so many comperators
 
 * Refactor TIL and TIL Mask to support 8 digits / 32 bits
 
@@ -29,18 +49,98 @@ HARDWARE:
   switch buffers during retrace. And/or for having a good general sync.
   mechanism. To "report" via register and/or interrupt.
 
-MONITOR and/or STANDARD LIBs:
+* VGA: support a text mode with colors
 
-* Backspace and CTRL-U support in IO$GETS
+* VGA: support a graphics mode with colors
 
-* Basic mathematical routines * (exists), / (from decimal.asm?), % (ditto?)
+* Debugging mechanisms (e.g. single-step mode in hardware), which do not
+  necessarily need a fully fledged interrupt system
 
-* Decimal converter (from decimal.asm?)
+* Memory management unit (more than 64kWords of RAM/ROM, pages, etc.)
 
-* 32 bit arithmetic
+* Interrupt system (how do we handle I/O, which is full of atomic operations?
+  add ideas of how to do it from the e-mail conversations to an ideas file
+  somewhere in the doc folder)
 
-* Long term: Floating point support
 
-ASSEMBLER:
+MONITOR:
 
-* Issue a warning, when defining a label multiple times.
+* Get rid of the hardcoded keyboard locale
+
+* BS/DEL when entering hex digits (and at other reasonable places)
+
+* Use HW debugging mechanisms to offer single step debugging
+
+
+ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
+
+* Add writing to SD card support / FAT32 support
+
+* Finalize 32 bit arithmetic (muls32, divs32)
+
+* String libraries: Switchable locales? UTF8 support?
+  (Or - as an alternative to this fully fledged solution: Can we implement a
+  workaround that kind of works most of the time? E.g. a translation mechanism
+  that checks STDIN/STDOUT and acts accordingly, e.g.
+  if STDIN=UART and BS is pressed, then assume UTF-8, but if STDIN=USB and
+  BS is pressed, then assume 8859-15? And similar behaviour for
+  non-ASCII chars like "ä"? Mapping depending on STDIN/STDOUT combinations?
+  And always storing single-byte characters? That would mean, that we e.g.
+  translate some selected chars from UTF-8 to 8859-15 while entering them
+  via STDIN=UART. More thoughts to be invested here.)
+
+* Floating point support (in software? or in hardware? or only in the C lib
+  and not at all on the monitor's level?)
+
+
+EMULATOR:
+
+* Emulate the SD Card by being able to mount a reasonable container file
+  format (iso, dmg, ...) and/or by being able to mount a RAW binary dump
+  of an SD Card (maybe shortened/truncated, if it is sparsely filled with a
+  lot of zeros at the end)
+
+* Emulate the VGA output
+
+* Emulate the USB keyboard
+
+
+NATIVE TOOLCHAIN: ASSEMBLER:
+
+<currently no TODOs>
+
+
+VBCC TOOLCHAIN: C COMPILER:
+
+* check/validate correct register bank usage
+
+* Function entry points: remove superflous register MOVEs
+
+* Optimization: Correct "costs", so that e.g. in -O3 constants are
+  loaded in to registers in a loop instead of e.g doing SUB 1, @R1++
+
+* code generation for 16bit multiplication: EAE wait code as soon as necessary
+  (currently no wait code is being generated, maybe this becomes necessary
+  when we switch to 100 MHz)
+
+
+VBCC TOOLCHAIN: C STANDARD LIB:
+
+* Add support for float and double
+
+* Enhance mul32_div32.c by testing much more cases for the 32bit
+  multiplication, because the new _lmul.s has not been thoroughly tested,
+  yet. Also test signed and unsigned.
+
+* Replace more 32bit math functions (div, mod, shl, shr) by faster assembler
+  versions. When doing div and mod, optimize by using static variables
+  that check the latest parameters and optimize mod (because the 32bit
+  div routine generates also the mode). But this would not be threadsafe.
+
+
+VBCC TOOLCHAIN: MONITOR-LIB:
+
+* Rewrite in pure assembler to avoid overhead.
+
+* Add all meaningful monitor functions.
+

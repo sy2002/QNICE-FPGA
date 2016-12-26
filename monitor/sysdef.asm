@@ -56,6 +56,129 @@ EAE$MULU                .EQU    0x0000                  ; Unsigned 16 bit multip
 EAE$MULS                .EQU    0x0001                  ; Signed 16 bit multiplication
 EAE$DIVU                .EQU    0x0002                  ; Unsigned 16 bit division with remainder
 EAE$DIVS                .EQU    0x0003                  ; Signed 16 bit division with remainder
+EAE$BUSY                .EQU    0x8000                  ; Busy flag (1 = operation still running)
+
+; ========== SD CARD ==========
+
+SD$CMD_RESET            .EQU    0x0000                  ; Reset SD card
+SD$CMD_READ             .EQU    0x0001                  ; Read 512 bytes from SD to internal buffer
+SD$CMD_WRITE            .EQU    0x0002                  ; Write 512 bytes from int. buf. to SD
+SD$BIT_ERROR            .EQU    0x4000                  ; Error flag: 1, if last operation failed
+SD$BIT_BUSY             .EQU    0x8000                  ; Busy flag: 1, if current op. is still running
+SD$TIMEOUT_MID          .EQU    0x0479                  ; equals ~75.000.000 cycles, i.e. 1.5sec @ 50 MHz
+
+SD$ERR_MASK             .EQU    0x00FF                  ; AND mask for errors: HI byte = state machine info, so mask it for error checks 
+SD$ERR_R1_ERROR         .EQU    0x0001                  ; SD Card R1 error (R1 bit 6-0)
+SD$ERR_CRC_OR_TIMEOUT   .EQU    0x0002                  ; Read CRC error or Write Timeout error
+SD$ERR_RESPONSE_TOKEN   .EQU    0x0003                  ; Data Response Token error (Token bit 3)
+SD$ERR_ERROR_TOKEN      .EQU    0x0004                  ; Data Error Token error (Token bit 3-0)
+SD$ERR_WRITE_PROTECT    .EQU    0x0005                  ; SD Card Write Protect switch
+SD$ERR_CARD_UNUSABLE    .EQU    0x0006                  ; Unusable SD card
+SD$ERR_NO_CARD          .EQU    0x0007                  ; No SD card (no response from CMD0)
+SD$ERR_READ_TIMEOUT     .EQU    0x0008                  ; Timeout while trying to receive the read start token "FE"
+SD$ERR_TIMEOUT          .EQU    0xEEFF                  ; General timeout
+
+SD$CT_SD_V1             .EQU    0x0001                  ; Card type: SD Version 1
+SD$CT_SD_V2             .EQU    0x0002                  ; Card type: SD Version 2
+SD$CT_SDHC              .EQU    0x0003                  ; Card type: SDHC (or SDXC)
+
+; ========== FAT32 =============
+
+; FAT32 ERROR CODES
+
+FAT32$ERR_MBR           .EQU    0xEE10                  ; no or illegal Master Boot Record (MBR) found
+FAT32$ERR_PARTITION_NO  .EQU    0xEE11                  ; the partition number needs to be in the range 1 .. 4
+FAT32$ERR_PARTTBL       .EQU    0xEE12                  ; no or illegal partition table entry found (e.g. no FAT32 partition)
+FAT32$ERR_NOTIMPL       .EQU    0xEE13                  ; functionality is not implemented
+FAT32$ERR_SIZE          .EQU    0xEE14                  ; partition size or volume size too large (see doc/constraints.txt)
+FAT32$ERR_NOFAT32       .EQU    0xEE15                  ; illegal volume id (either not 512 bytes per sector, or not 2 FATs or wrong magic)
+FAT32$ERR_ILLEGAL_SIC   .EQU    0xEE16                  ; trying to read/write a sector within a cluster that is out of range
+FAT32$ERR_ILLEGAL_CLUS  .EQU    0xEE17                  ; trying to access an illegal cluster number
+FAT32$ERR_CORRUPT_DH    .EQU    0xEE18                  ; corrupt directory handle (e.g. because current to-be-read offs > sector size)
+FAT32$ERR_DIRNOTFOUND   .EQU    0xEE19                  ; directory not found (illegal path name passed to change directory command)
+FAT32$ERR_FILENOTFOUND  .EQU    0xEE20                  ; file not found
+FAT23$ERR_SEEKTOOLARGE  .EQU    0xEE21                  ; seek position > file size
+
+; FAT32 STATUS CODES
+
+FAT32$EOF               .EQU    0xEEEE                  ; end of file reached
+
+; LAYOUT OF THE MOUNT DATA STRUCTURE (DEVICE HANDLE)
+
+FAT32$DEV_RESET         .EQU    0x0000                  ; pointer to device reset function
+FAT32$DEV_BLOCK_READ    .EQU    0x0001                  ; pointer to 512-byte block read function
+FAT32$DEV_BLOCK_WRITE   .EQU    0x0002                  ; pointer to 512-byte block write function
+FAT32$DEV_BYTE_READ     .EQU    0x0003                  ; pointer to 1-byte read function (within block buffer)
+FAT32$DEV_BYTE_WRITE    .EQU    0x0004                  ; pointer to 1-byte write function (within block buffer)
+FAT32$DEV_PARTITION     .EQU    0x0005                  ; number of partition to be mounted
+FAT32$DEV_FS_LO         .EQU    0x0006                  ; file system start address (LBA): low word
+FAT32$DEV_FS_HI         .EQU    0x0007                  ; file system start address (LBA): high word
+FAT32$DEV_FAT_LO        .EQU    0x0008                  ; fat start address (LBA): low word
+FAT32$DEV_FAT_HI        .EQU    0x0009                  ; fat start address (LBA): high word
+FAT32$DEV_CLUSTER_LO    .EQU    0x000A                  ; cluster start address (LBA): low word
+FAT32$DEV_CLUSTER_HI    .EQU    0x000B                  ; cluster start address (LBA): high word
+FAT32$DEV_SECT_PER_CLUS .EQU    0x000C                  ; sectors per cluster
+FAT32$DEV_RD_1STCLUS_LO .EQU    0x000D                  ; root directory first cluster: low word
+FAT32$DEV_RD_1STCLUS_HI .EQU    0x000E                  ; root directory first cluster: high word
+FAT32$DEV_AD_1STCLUS_LO .EQU    0x000F                  ; currently active directory first cluster: low word
+FAT32$DEV_AD_1STCLUS_HI .EQU    0x0010                  ; currently active directory first cluster: high word
+FAT32$DEV_BUFFERED_FDH  .EQU    0x0011                  ; FDH which is responsible for the current 512 byte hardware buffer filling
+
+FAT32$DEV_STRUCT_SIZE   .EQU    0x0012                  ; size (words) of the mount data structure (device handle)
+
+; LAYOUT OF THE FILE HANDLE AND DIRECTORY HANDLE (FDH)
+
+FAT32$FDH_DEVICE        .EQU    0x0000                  ; pointer to the device handle
+FAT32$FDH_CLUSTER_LO    .EQU    0x0001                  ; current cluster (low word)
+FAT32$FDH_CLUSTER_HI    .EQU    0x0002                  ; current cluster (high word)
+FAT32$FDH_SECTOR        .EQU    0x0003                  ; current sector
+FAT32$FDH_INDEX         .EQU    0x0004                  ; current byte index within current sector
+FAT32$FDH_SIZE_LO       .EQU    0x0005                  ; only in case FDH is a file: low word of file size, otherwise undefined
+FAT32$FDH_SIZE_HI       .EQU    0x0006                  ; only in case FDH is a file: high word of file size, otherwise undefined
+FAT32$FDH_READ_LO       .EQU    0x0007                  ; only in case FDH is a file: low word of already read amount of bytes
+FAT32$FDH_READ_HI       .EQU    0x0008                  ; only in case FDH is a file: high word of already read amount of bytes
+
+FAT32$FDH_STRUCT_SIZE   .EQU    0x0009                  ; size of the directory handle structure
+
+; FILE ATTRIBUTES
+
+FAT32$FA_READ_ONLY      .EQU    0x0001                  ; read only file
+FAT32$FA_HIDDEN         .EQU    0x0002                  ; hidden file
+FAT32$FA_SYSTEM         .EQU    0x0004                  ; system file
+FAT32$FA_VOLUME_ID      .EQU    0x0008                  ; volume id (name of the volume)
+FAT32$FA_DIR            .EQU    0x0010                  ; directory
+FAT32$FA_ARCHIVE        .EQU    0x0020                  ; archive flag
+
+FAT32$FA_DEFAULT        .EQU    0x0035                  ; browse for non hidden files and directories but not for the volume id
+FAT32$FA_ALL            .EQU    0x0037                  ; browse for all files, but not for the volume id
+
+; LAYOUT OF THE DIRECTORY ENTRY STRUCTURE
+
+FAT32$DE_NAME           .EQU    0x0000                  ; volume, file or directory name, zero terminated (max 256 characters)
+FAT32$DE_ATTRIB         .EQU    0x0101                  ; file attributes (read-only, hidden, system, volume id, directory, archive)
+FAT32$DE_SIZE_LO        .EQU    0x0102                  ; file size: low word
+FAT32$DE_SIZE_HI        .EQU    0x0103                  ; file size: high word
+FAT32$DE_YEAR           .EQU    0x0104                  ; last file write: year   (valid range 1980 .. 2107)
+FAT32$DE_MONTH          .EQU    0x0105                  ; last file write: month
+FAT32$DE_DAY            .EQU    0x0106                  ; last file write: day
+FAT32$DE_HOUR           .EQU    0x0107                  ; last file write: hour
+FAT32$DE_MINUTE         .EQU    0x0108                  ; last file write: minute
+FAT32$DE_SECOND         .EQU    0x0109                  ; last file write: second (in 2 second steps, valid range 0 .. 58)
+FAT32$DE_CLUS_LO        .EQU    0x010A                  ; start cluster: low word
+FAT32$DE_CLUS_HI        .EQU    0x010B                  ; start cluster: high word
+
+FAT32$DE_STRUCT_SIZE    .EQU    0x010C                  ; size (words) of the directory entry data structure of the
+
+; DISPLAY FLAGS FOR FILE ENTRY PRETTY PRINTER
+
+FAT32$PRINT_SHOW_DIR    .EQU    0x0001                  ; show "<DIR>" indicator
+FAT32$PRINT_SHOW_ATTRIB .EQU    0x0002                  ; show attributes as "HRSA"
+FAT32$PRINT_SHOW_SIZE   .EQU    0x0004                  ; show file size
+FAT32$PRINT_SHOW_DATE   .EQU    0x0008                  ; show file date as YYYY-MM-DD
+FAT32$PRINT_SHOW_TIME   .EQU    0x0010                  ; show file time as HH:MM
+
+FAT32$PRINT_DEFAULT     .EQU    0x001D                  ; print <DIR> indicator, size, date and time (no attributes)
+FAT32$PRINT_ALL         .EQU    0x001F                  ; print all details
 
 ; ========== KEYBOARD ==========
 
@@ -78,6 +201,7 @@ KBD$ALT                 .EQU    0x0040                  ; modifier "ALT" pressed
 KBD$CTRL                .EQU    0x0080                  ; modifier "CTRL" pressed
 
 ; READ REGISTER: COMMON ASCII CODES
+
 KBD$SPACE               .EQU    0x0020
 KBD$ENTER               .EQU    0x000D
 KBD$ESC                 .EQU    0x001B
@@ -153,7 +277,6 @@ CHR$LF          .EQU 0x000a ; Line feed
 ;*  IO-page addresses:
 ;***************************************************************************************
 ;
-IO$BASE             .EQU 0xFF00
 ;
 ;  VGA-registers:
 ;
@@ -184,7 +307,6 @@ VGA$OFFS_RW         .EQU 0xFF05 ; Offset in bytes that is used, when you read
                                 ; or write to the video RAM using VGA$CHAR.
                                 ; Works independently from VGA$OFFS_DISPLAY.
                                 ; Active, when bit #11 in VGA$STATE is set.
-
 ;
 ;  Registers for TIL-display:
 ;
@@ -222,7 +344,7 @@ IO$CYC_STATE    .EQU 0xFF1A     ; status register
 ;                             bit 1 is automatically set to 1 when resetting
 ;    Bit  1 (read/write):     Start/stop counter
 ;
-;  EAE (Extended Arithmetic Element):
+;  EAE (Extended Arithmetic Element) registers:
 ;
 IO$EAE_OPERAND_0    .EQU    0xFF1B
 IO$EAE_OPERAND_1    .EQU    0xFF1C
@@ -230,10 +352,11 @@ IO$EAE_RESULT_LO    .EQU    0xFF1D
 IO$EAE_RESULT_HI    .EQU    0xFF1E
 IO$EAE_CSR          .EQU    0xFF1F ; Command and Status Register
 ;
-; EAE-Opcodes:      0x0000  MULU
-;                   0x0001  MULS
-;                   0x0002  DIVU
-;                   0x0003  DIVS
+;  EAE-Opcodes (CSR):   0x0000  MULU  32-bit result in LO HI
+;                       0x0001  MULS  32-bit result in LO HI
+;                       0x0002  DIVU  result in LO, modulo in HI
+;                       0x0003  DIVS  result in LO, modulo in HI
+;  Bit 15 of CSR is the busy bit. If it is set, the EAE is still busy crunching numbers.
 ;
 ;
 ;  UART-registers:
@@ -241,4 +364,21 @@ IO$EAE_CSR          .EQU    0xFF1F ; Command and Status Register
 IO$UART_SRA     .EQU 0xFF21 ; Status register (relative to base address)
 IO$UART_RHRA    .EQU 0xFF22 ; Receiving register (relative to base address)
 IO$UART_THRA    .EQU 0xFF23 ; Transmitting register (relative to base address)
-
+;
+;  SD CARD INTERFACE registers
+;
+IO$SD_ADDR_LO   .EQU 0xFF24 ; low word of 32bit linear SD card block address
+IO$SD_ADDR_HI   .EQU 0xFF25 ; high word of 32bit linear SD card block address
+IO$SD_DATA_POS  .EQU 0xFF26 ; "Cursor" to navigate the 512-byte data buffer
+IO$SD_DATA      .EQU 0xFF27 ; read/write 1 byte from/to the 512-byte data buffer
+IO$SD_ERROR     .EQU 0xFF28 ; error code of last operation (read only)
+IO$SD_CSR       .EQU 0xFF29 ; Command and Status Register (write to execute command)
+;
+;  SD-Opcodes (CSR):    0x0000  Reset SD card
+;                       0x0001  Read 512 bytes from the linear block address
+;                       0x0002  Write 512 bytes to the linear block address
+;  Bits 0..2 are write-only (reading always returns 0)
+;  Bit 14 of the CSR is the error bit: 1, if the last operation failed. In such
+;                                      a case, the error code is in IO$SD_ERROR and
+;                                      you need to reset the controller to go on
+;  Bit 15 of the CSR is the busy bit: 1, if current operation is still running

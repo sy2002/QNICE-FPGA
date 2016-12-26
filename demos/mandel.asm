@@ -48,7 +48,7 @@ INNER_LOOP      CMP     X_END, R1           ; End reached?
 ;;;
 ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 - z1 * z1) / 256
                 MOVE R3, R9
-                SYSCALL(mult, 1)
+                SYSCALL(muls, 1)
 ;
                 MOVE    Z1SQUARE_LOW, POINTER
                 MOVE    R10, @POINTER       ; Remember the result for later
@@ -57,7 +57,7 @@ ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 
 ;
                 MOVE    R2, R8              ; Compute z0 * z0
                 MOVE    R2, R9
-                SYSCALL(mult, 1)
+                SYSCALL(muls, 1)
 ;
                 MOVE    Z0SQUARE_LOW, POINTER
                 MOVE    R10, @POINTER       ; Remember the result for later
@@ -81,7 +81,7 @@ ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 
                 MOVE    R2, R8
                 ADD     R2, R8              ; R8 = 2 * z0
                 MOVE    R3, R9
-                SYSCALL(mult, 1)          ; R11|R10 = 2 * R2 * R3
+                SYSCALL(muls, 1)          ; R11|R10 = 2 * R2 * R3
                 SWAP    R10, R10
                 AND     0x00FF, R10
                 SWAP    R11, R11

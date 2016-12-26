@@ -65,11 +65,21 @@ port (
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
+
+   -- Extended Arithmetic Element register range $FF1B..$FF1F
+   eae_en            : out std_logic;
+   eae_we            : out std_logic;
+   eae_reg           : out std_logic_vector(2 downto 0);
    
    -- UART register range $FF20..$FF23
    uart_en           : out std_logic;
    uart_we           : out std_logic;
    uart_reg          : out std_logic_vector(1 downto 0);
+   
+   -- SD Card register range $FF24..FF29
+   sd_en             : out std_logic;
+   sd_we             : out std_logic;
+   sd_reg            : out std_logic_vector(2 downto 0);
    
    -- global state and reset management
    reset_pre_pore    : out std_logic;
@@ -205,6 +215,89 @@ begin
       end if;
    end process;
    
+   eae_control : process(addr, data_dir, data_valid)
+   begin
+      eae_en <= '0';
+      eae_we <= '0';
+      eae_reg <= "000";
+      
+      if addr = x"FF1B" then
+         eae_en <= '1';
+         eae_we <= data_dir and data_valid;
+         eae_reg <= "000";
+      elsif addr = x"FF1C" then
+         eae_en <= '1';
+         eae_we <= data_dir and data_valid;
+         eae_reg <= "001";
+      elsif addr = x"FF1D" then
+         eae_en <= '1';
+         eae_we <= data_dir and data_valid;
+         eae_reg <= "010";
+      elsif addr = x"FF1E" then
+         eae_en <= '1';
+         eae_we <= data_dir and data_valid;
+         eae_reg <= "011";
+      elsif addr = x"FF1F" then
+         eae_en <= '1';
+         eae_we <= data_dir and data_valid;
+         eae_reg <= "100";
+      end if;      
+   end process;
+
+   uart_control : process(addr, data_dir, data_valid)
+   begin
+      uart_en <= '0';
+      uart_we <= '0';
+      uart_reg <= "00";
+      
+      if addr = x"FF21" then
+         uart_en <= '1';
+         uart_we <= data_dir and data_valid;
+         uart_reg <= "01";
+      elsif addr = x"FF22" then
+         uart_en <= '1';
+         uart_we <= data_dir and data_valid;
+         uart_reg <= "10";
+      elsif addr = x"FF23" then
+         uart_en <= '1';
+         uart_we <= data_dir and data_valid;
+         uart_reg <= "11";      
+      end if;
+   end process;
+   
+   sd_control : process(addr, data_dir, data_valid)
+   begin
+      sd_en <= '0';
+      sd_we <= '0';
+      sd_reg <= "000";
+      
+      if addr = x"FF24" then
+         sd_en <= '1';
+         sd_we <= data_dir and data_valid;
+         sd_reg <= "000";
+      elsif addr = x"FF25" then
+         sd_en <= '1';
+         sd_we <= data_dir and data_valid;
+         sd_reg <= "001";
+      elsif addr = x"FF26" then
+         sd_en <= '1';
+         sd_we <= data_dir and data_valid;
+         sd_reg <= "010";
+      elsif addr = x"FF27" then
+         sd_en <= '1';
+         sd_we <= data_dir and data_valid;
+         sd_reg <= "011";
+      elsif addr = x"FF28" then
+         sd_en <= '1';
+         sd_we <= data_dir and data_valid;
+         sd_reg <= "100";
+      elsif addr = x"FF29" then
+         sd_en <= '1';
+         sd_we <= data_dir and data_valid;
+         sd_reg <= "101";
+      end if;    
+   end process;
+   
    -- VGA starts at FF00
    vga_control : process(addr, data_dir, data_valid)
    begin
@@ -218,21 +311,7 @@ begin
          vga_reg <= x"0";
       end if;
    end process;
-   
-   -- UART starts at FF20
-   uart_control : process(addr, data_dir, data_valid)
-   begin
-      if addr(15 downto 4) = x"FF2" then
-         uart_en <= '1';
-         uart_we <= data_dir and data_valid;
-         uart_reg <= addr(1 downto 0);
-      else
-         uart_en <= '0';
-         uart_we <= '0';
-         uart_reg <= "00";
-      end if;
-   end process;
-   
+      
    -- generate CPU wait signal   
    -- as long as the RAM is the only device on the bus that can make the
    -- CPU wait, this simple implementation is good enough
@@ -343,5 +422,5 @@ begin
    -- generate external reset signals
    reset_pre_pore <= '1' when (global_state = gsPowerOn or global_state = gsReset or global_state = gsReset_execute) else '0';
    reset_post_pore <= '1' when (global_state = gsPostPoreReset or global_state = gsPostPoreReset_execute) else '0';
+   
 end Behavioral;
-

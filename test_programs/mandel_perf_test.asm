@@ -4,6 +4,20 @@
 ;
 ; speed comparison using UART:
 ;
+;  CPU revision GIT #f6ccada needs 0106 BDF3 = 17.219.059 cycles = 0,3444 sec
+;
+; speed comparison using VGA:
+;
+;  CPU revision GIT #f6ccada needs 009F 12AD = 10.425.005 cycles = 0,2085 sec
+;
+;
+; everything below this line has been done and measured using the software
+; implementation of muls, so these results are not comparable any more with
+; the new results that have been generated using the hardware muls of the EAE
+; ============================================================================
+;
+; speed comparison using UART:
+;
 ;  CPU revision GIT #0a9e0b0 needs 0426 8EF9 = 69.635.833 cycles = 1,3927 sec
 ;  CPU revision GIT #0aeb48e needs 02F9 31C8 = 49.885.640 cycles = 0,9977 sec
 ;  CPU revision GIT #60f1294 needs 02D4 FA6C = 47.512.172 cycles = 0,9502 sec
@@ -60,7 +74,7 @@ INNER_LOOP      CMP     X_END, R1           ; End reached?
 ;;;
 ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 - z1 * z1) / 256
                 MOVE R3, R9
-                SYSCALL(mult, 1)
+                SYSCALL(muls, 1)
 ;
                 MOVE    Z1SQUARE_LOW, POINTER
                 MOVE    R10, @POINTER       ; Remember the result for later
@@ -69,7 +83,7 @@ ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 
 ;
                 MOVE    R2, R8              ; Compute z0 * z0
                 MOVE    R2, R9
-                SYSCALL(mult, 1)
+                SYSCALL(muls, 1)
 ;
                 MOVE    Z0SQUARE_LOW, POINTER
                 MOVE    R10, @POINTER       ; Remember the result for later
@@ -93,7 +107,7 @@ ITERATION_LOOP  MOVE R3, R8                 ; Compute z1 ** 2 for z2 = (z0 * z0 
                 MOVE    R2, R8
                 ADD     R2, R8              ; R8 = 2 * z0
                 MOVE    R3, R9
-                SYSCALL(mult, 1)          ; R11|R10 = 2 * R2 * R3
+                SYSCALL(muls, 1)          ; R11|R10 = 2 * R2 * R3
                 SWAP    R10, R10
                 AND     0x00FF, R10
                 SWAP    R11, R11

@@ -1,3 +1,50 @@
+Version 1.4    December, 26 2016
+================================
+
+1. Hardware read-only support for SD Cards. Make sure to read the hints and
+   constraints in doc/contraints.txt. To directly test the hardware without
+   using the new Monitor libraries, use test_programs/sdcard.asm
+
+2. Software read-only support for FAT32 (new Monitor Libraries sd_library.asm
+   and fat32_library.asm).
+
+3. Monitor: It is now possible to browse directories and to load/run files
+   directly from the monitor. Partition #1 of the SD Card is automatically
+   mounted when using directory or file related functions.
+   New top level folder "qbin" contains demo programs that can be executed.
+
+4. C Compiler, Standard C Library: VBCC toolchain including VBCC compiler,
+   VASM assembler and VLINK linker: Stable basic C environment including
+   file system access (via fopen, fread, ...) and including convenient
+   editing functions due to the fact, that the Monitor's new versatile
+   gets_slf() function is used when reading from stdin. Everything is
+   located in the "c" subfolder.
+   
+   Partition 1 of the SD Card is automatically mounted on-demand (upon first
+   call of fopen). To test it, try c/test_programs/fread_basic.c
+
+   Monitor library is available, that wraps monitor functions. To test it, try
+   c/test_programs/shell.c
+
+5. EAE: Extended Arithmetic Element added: This is a 16-bit signed/unsigned
+   integer multiplication (with 32bit results), division and modulo
+   co-processor. An example of the impressive speedup can be seen in the
+   source code comments of mandel_perf_test.asm, which shows a speedup of
+   factor 4.5 compared with release version 1.3.
+
+   For testing it, use the following programs:
+   test_programs/eae.asm
+   test_programs/32bit-mul.asm
+
+6. Further Library enhancements:
+
+   * IO Library (Monitor): New gets function that supports CR or LF or CR/LF
+     for ending the editing and that supports backspace (BS). New get_s that
+     only function that reads until the buffer is full. get_slf that adds a LF
+     in case the string input is ended by CR, LF or CR/LF.
+   * Math Library (Monitor): mulu, muls, divu, divs, mulu32, divu32
+   * String Library (Monitor): chr2lower, split, h2dstr
+
 Version 1.3    May, 6 2016
 ==========================
 

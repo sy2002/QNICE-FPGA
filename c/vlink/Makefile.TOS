@@ -1,0 +1,17 @@
+# Atari TOS
+
+TARGET = vlink.ttp
+DIR = TOS
+
+CC = vc +tos
+CCOUT = -o $(DUMMYVARIABLE)	# produces the string "-o "
+COPTS = -c99 -c -O1 -DATARI
+CONFIG =
+
+LD = vc +tos
+LDOUT = -o $(DUMMYVARIABLE)	# produces the string "-o "
+LDOPTS =
+LIBS =
+
+
+include make.rules

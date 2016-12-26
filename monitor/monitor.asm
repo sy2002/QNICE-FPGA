@@ -1,6 +1,10 @@
 #undef RAM_MONITOR
 #undef DEBUG
 ;
+#define EAE_NO_WAIT                        ; If this is defined, it is guaranteed that the EAE
+                                           ; returns its results within the instruction cycle, so 
+                                           ; there is no need to check the busy bit in the CSR.
+;
 #ifdef RAM_MONITOR
                 .ORG 0x8000
 #else
@@ -20,8 +24,10 @@
 #include "usb_keyboard_library.asm"
 #include "vga_library.asm"
 #include "math_library.asm"
+#include "sd_library.asm"
+#include "fat32_library.asm"
 ;
-#include "test_library.asm"
+;#include "test_library.asm"
 ;
 QMON$LAST_ADDR  HALT
 ;

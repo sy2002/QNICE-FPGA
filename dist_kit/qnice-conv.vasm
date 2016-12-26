@@ -1,0 +1,26 @@
+; Convenience Macros for VASM
+;
+; together with the other .vasm files in dist_kit, this forms the
+; compatibility layer between QNICE assembler and VASM
+;
+; done by sy2002 in November 2016
+
+    .macro  INCRB
+        ADD 0x100, R14
+    .endm
+
+    .macro  DECRB
+        SUB 0x100, R14
+    .endm
+
+    .macro  RET
+        MOVE @R13++, R15
+    .endm
+
+    .macro NOP
+        ABRA    R15, 1
+    .endm
+
+    .macro SYSCALL __routine, __condition
+        ASUB \__routine, \__condition 
+    .endm

@@ -44,7 +44,7 @@ signal async_reset : std_logic;
 
 begin
 
-   -- process for read and write operation on the rising clock edge
+   -- process for read and write operation on the falling clock edge
    ram_readwrite : process (clk)
    begin
       if falling_edge(clk) then

@@ -53,6 +53,12 @@ void uart_run_down();
 #define CYC_HI                 0xff19
 #define CYC_STATE              0xff1a
 
+#define EAE_OPERAND_0          0xff1b
+#define EAE_OPERAND_1          0xff1c
+#define EAE_RESULT_LO          0xff1d
+#define EAE_RESULT_HI          0xff1e
+#define EAE_CSR                0xff1f
+
 #define NO_OF_INSTRUCTIONS     19
 #define NO_OF_ADDRESSING_MODES 4
 #define READ_MEMORY            0 /* This and the following constants are used to control the access_xxx functions */
@@ -75,7 +81,8 @@ typedef struct statistic_data
 
 int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$verbose = FALSE,
     gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
-    gbl$ctrl_c = FALSE, gbl$breakpoint = -1, gbl$cycle_counter_state = 0;
+    gbl$ctrl_c = FALSE, gbl$breakpoint = -1, gbl$cycle_counter_state = 0, gbl$eae_operand_0 = 0,
+    gbl$eae_operand_1 = 0, gbl$eae_result_lo = 0, gbl$eae_result_hi = 0, gbl$eae_csr = 0;
 
 unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
@@ -174,7 +181,7 @@ unsigned int str2int(char *string)
   if (!string || !*string) /* An empty string is treated as a zero */
     return 0;
 
-  if (!strncmp(string, "0X", 2))
+  if (!strncmp(string, "0X", 2) || !strncmp(string, "0x", 2))
     sscanf(string + 2, "%x", &value);
   else if (*string == '$')
     sscanf(string + 1, "%x", &value);
@@ -231,7 +238,11 @@ void write_register(unsigned int address, unsigned int value)
 */
 unsigned int access_memory(unsigned int address, unsigned int operation, unsigned int value)
 {
+  int eae$temp;
+
   address &= 0xffff;
+  value   &= 0xffff;
+
   if (gbl$gather_statistics)
     gbl$stat.memory_accesses[operation]++;
 
@@ -252,13 +263,23 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       else if (address == SWITCH_REG) /* Read the switch register */
         value = gbl$memory[SWITCH_REG];
       else if (address == CYC_LO) /* Read low word of the cycle (instruction) counter. */
-        value = gbl$cycle_counter & 0xffff;
+        value = gbl$cycle_counter;
       else if (address == CYC_MID)
-        value = (gbl$cycle_counter >> 16) & 0xffff;
+        value = gbl$cycle_counter >> 16;
       else if (address == CYC_HI)
-        value = (gbl$cycle_counter >> 24) & 0xffff;
+        value = gbl$cycle_counter >> 24;
       else if (address == CYC_STATE)
         value = gbl$cycle_counter_state & 0x0003;
+      else if (address == EAE_OPERAND_0)
+        value = gbl$eae_operand_0;
+      else if (address == EAE_OPERAND_1)
+        value = gbl$eae_operand_1;
+      else if (address == EAE_RESULT_LO)
+        value = gbl$eae_result_lo;
+      else if (address == EAE_RESULT_HI)
+        value = gbl$eae_result_hi;
+      else if (address == EAE_CSR)
+        value = gbl$eae_csr;
     }
   }
   else if (operation == WRITE_MEMORY)
@@ -288,6 +309,42 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
           gbl$cycle_counter_state = 0x0002;
         }
       }
+      else if (address == EAE_OPERAND_0)
+        gbl$eae_operand_0 = value;
+      else if (address == EAE_OPERAND_1)
+        gbl$eae_operand_1 = value;
+      else if (address == EAE_CSR)
+      {
+        switch(gbl$eae_csr = value)
+        {
+          case 0: /* Unsigned multiplication */
+            eae$temp = gbl$eae_operand_0 * gbl$eae_operand_1; /* Since both operands are 16 bit, it is naturally unsigned. */
+            gbl$eae_result_lo = eae$temp & 0xffff;
+            gbl$eae_result_hi = (eae$temp >> 16) & 0xffff;
+            break;
+          case 1: /* Signed multiplication */
+            if (gbl$eae_operand_0 & 0x8000) gbl$eae_operand_0 |= 0xffffffffffff8000; /* Perform a sign extension */
+            if (gbl$eae_operand_1 & 0x8000) gbl$eae_operand_1 |= 0xffffffffffff8000;
+            eae$temp = gbl$eae_operand_0 * gbl$eae_operand_1; /* Now, it is a signed operation. */
+            gbl$eae_result_lo = eae$temp & 0xffff;
+            gbl$eae_result_hi = (eae$temp >> 16) & 0xffff;
+            break;
+          case 2: /* Unsigned division */
+            gbl$eae_result_lo = gbl$eae_operand_0 / gbl$eae_operand_1;
+            gbl$eae_result_hi = gbl$eae_operand_0 % gbl$eae_operand_1;
+            break;
+          case 3: /* Signed division */
+            gbl$eae_result_hi = gbl$eae_operand_0 % gbl$eae_operand_1;
+            if (gbl$eae_operand_0 & 0x8000) gbl$eae_operand_0 |= 0xffffffffffff8000; /* Perform a sign extension */
+            if (gbl$eae_operand_1 & 0x8000) gbl$eae_operand_1 |= 0xffffffffffff8000;
+            gbl$eae_result_lo = gbl$eae_operand_0 / gbl$eae_operand_1;
+            break;
+          default:
+            printf("Illegal opcode for the EAE detected - continuing anyway...\n");
+        }
+
+        gbl$eae_csr &= 0x7fff; /* Clear the busy bit just in case... */
+      }
     }
   }
   else
@@ -296,7 +353,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
     exit(-1);
   }
 
-  return value;
+  return value & 0xffff;
 }
 
 /*
@@ -869,11 +926,9 @@ int main(int argc, char **argv)
         return -1;
 
       run();
-//      dump_registers();
       print_statistics();
     }
 
-//    return 0;
   }
 
   for (;;)
@@ -887,12 +942,13 @@ int main(int argc, char **argv)
     if (last_command_was_step && !strlen(command)) /* If STEP was the last command and this is empty, perform the next step. */
       strcpy(command, "STEP");
 
-    upstr(command);
+//    upstr(command);
 
     last_command_was_step = 0;
     tokenize(command, NULL); /* Initialize tokenizing */
     if ((token = tokenize(NULL, delimiters)))
     {
+      upstr(token);
       if (!strcmp(token, "QUIT") || !strcmp(token, "EXIT"))
         return 0;
       else if (!strcmp(token, "CB"))
@@ -944,7 +1000,7 @@ int main(int argc, char **argv)
       {
         token = tokenize(NULL, delimiters);
         value = str2int(tokenize(NULL, delimiters));
-        if (*token == 'R') /* Set a register */
+        if (*token == 'R' || *token == 'r') /* Set a register */
           write_register(str2int(token + 1), value);
         else
           access_memory(str2int(token), WRITE_MEMORY, value & 0xffff);

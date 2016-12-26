@@ -108,8 +108,9 @@ END_GAME_W      RSUB    HANDLE_END, 1           ; prepare for next round
                 RBRA    NEXT_GAME, 1            ; play next game
 
                 ; end Q-TRIS (will only be called in non-stand-alone mode)
-EXIT            RSUB    CLR_SCR, 1              ; clear screen
-                SYSCALL(reset, 1)               ; return to monitor
+EXIT            SYSCALL(vga_init, 1)            ; cursor blinking, etc.
+                SYSCALL(vga_cls, 1)             ; clear screen
+                SYSCALL(exit, 1)                ; return to monitor
 
 
 NEW_TTR     .EQU 0xFFFF ; signal value for RenderedNumber: new Tetromino

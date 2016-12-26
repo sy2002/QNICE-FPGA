@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+vasmqnice_std -Fvobj $1 -o ${1/.asm/}.obj -I$DIST_KIT
+vlink -b rawbin1 -T$VBCC/../qnice/vclib/targets/qnice-mon/vlink.cmd -o ${1/.asm/}.bin ${1/.asm/}.obj
+qniceconv 0x8000 < ${1/.asm/}.bin > ${1/.asm/}.out
+cat ${1/.asm/}.out | pbcopy
