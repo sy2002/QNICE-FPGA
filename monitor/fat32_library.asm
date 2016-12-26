@@ -124,8 +124,9 @@ FAT32$MOUNT_SD  INCRB
 ;* a 512-byte-sized sector using LBA mode. Read and write a byte from within
 ;* a buffer that contains the current sector. Reset the device. The function
 ;* signatures and behaviour needs to be equivalent to the SD card functions
-;* that are part of this library. You need to pass pointers to these functions
-;* to the mount function call in the mount initialization structure.
+;* that are part of the library sd_library.asm. You need to pass pointers to
+;* these functions to the mount function call in the mount initialization
+;* structure.
 ;*
 ;* All subsequent calls to FAT32 functions expect as the first parameter a
 ;* pointer to the mount data structure (aka device handle) that is being
@@ -143,7 +144,7 @@ FAT32$MOUNT_SD  INCRB
 ;*  word #3: pointer to a byte read function, similar to SD$READ_BYTE
 ;*  word #4: pointer to a byte write function, similar to SD$WRITE_BYTE
 ;*  word #5: number of the partition to be mounted (0x0001 .. 0x0004)
-;*  word #6 .. word #17 : will be filled by by FAT32$MOUNT, their layout is
+;*  word #6 .. word #18 : will be filled by by FAT32$MOUNT, their layout is
 ;*                        as described in the FAT32$DEV_* constants beginning
 ;*                        from index #7 on.
 ;*
