@@ -156,3 +156,11 @@ DEMOS:
 * Forth Interpreter
 
 * VGA Textmode games: Snake, Pac Man, 2048
+
+
+DOCUMENTATION:
+
+* Update the Monitor documentation (run create_documentation.pl) having the
+  right TeX/LaTeX installed.
+
+* Add the PDF or HTML documentation version of the VBCC toolchain.
