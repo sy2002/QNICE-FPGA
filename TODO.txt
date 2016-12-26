@@ -13,7 +13,15 @@ HARDWARE:
   output and link it to all devices; use a smart subtraction to find out
   registers and drastically shorten the code.
 
-* Remove ROM and replace by prefilled RAM
+* Shrink the ROM, currently we could go from 0x0000 to 0x1FFF and still have
+  plenty of room left and let programs start at 0x2000, instead of as this
+  is the case today, from 0x8000 on.
+
+* Think about advantages/disadvantages of removing ROM and replacing it by
+  prefilled RAM (could lead to very hard to debug effects, if some renegade
+  program overwrites "operating system" areas). On the other hand, we could
+  do it in a way, that after a RESET, the Monitor RAM area is re-filled from
+  a ROM.
 
 * Get rid of hardcoded clock speed dependencies:
   + Have a global constant that reflects the speed of the board and refactor
@@ -45,11 +53,14 @@ HARDWARE:
 
 * VGA: support a graphics mode with colors
 
+* Debugging mechanisms (e.g. single-step mode in hardware), which do not
+  necessarily need a fully fledged interrupt system
+
 * Memory management unit (more than 64kWords of RAM/ROM, pages, etc.)
 
-* Interrupt system
-
-* Debugging mechanisms (e.g. single-step mode in hardware)
+* Interrupt system (how do we handle I/O, which is full of atomic operations?
+  add ideas of how to do it from the e-mail conversations to an ideas file
+  somewhere in the doc folder)
 
 
 MONITOR:
@@ -57,6 +68,8 @@ MONITOR:
 * Get rid of the hardcoded keyboard locale
 
 * BS/DEL when entering hex digits (and at other reasonable places)
+
+* Use HW debugging mechanisms to offer single step debugging
 
 
 ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
@@ -131,17 +144,3 @@ VBCC TOOLCHAIN: MONITOR-LIB:
 
 * Add all meaningful monitor functions.
 
-
-DEMOS:
-
-* Move shell.c to the global demos folder and write some minimal
-  documentation in the getting started guide of how to compile the whole
-  VBCC and toolchain and finally shell.c. (Make sure to have the Standard
-  C library and the other necessary files in vbcc/targets/qnice-mon.)
-  Plus: Add malloc_check for argv perform_cat and check, if everything
-  still works.
-
-* Improve wolfram.c and sierpinski.c to use the dist_kit headers and then
-  also move them to the global demos folder
-
-* Port something from obfuscated C: http://www.ioccc.org/all/summary.txt
