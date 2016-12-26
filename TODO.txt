@@ -1,5 +1,9 @@
 HARDWARE:
 
+* Split device dependent VHDL code (e.g. TIL) from IDE/Toolchain dependent
+  files, so that we are prepared for porting QNICE to other FPGA architectures
+  and for being able to have a Xilinx ISE and a Xilinx Vivado version.
+
 * SD Cards: Writing.
 
 * SD Cards: Replace SPI access by native access and by doing so, achieve
@@ -144,3 +148,11 @@ VBCC TOOLCHAIN: MONITOR-LIB:
 
 * Add all meaningful monitor functions.
 
+
+DEMOS:
+
+* Basic Interpreter
+
+* Forth Interpreter
+
+* VGA Textmode games: Snake, Pac Man, 2048
