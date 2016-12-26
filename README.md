@@ -179,8 +179,9 @@ app within the Monitor environment:
   cd demos
   ../assembler/asm q-tris.asm
   ```
-  Transfer it via your terminal program using Monitor's `M L` command sequence
-  and start Q-TRIS using `C R` and the address `8000`.
+  Transfer the resulting `q-tris.out` via your terminal program using
+  Monitor's `M L` command sequence and start Q-TRIS using `C R` and the
+  address `8000`.
 
 Programming in Assembler
 ------------------------
@@ -267,15 +268,33 @@ you are getting started:
 
 * **Important hint**: You either need to run `source setenv.source` each time
   you open a new terminal when you want to work with C - or - you need to add
-  the paths and the `VBCC` enviornment variable in your shell preferences,
+  the paths and the enviornment variables in your shell preferences,
   so that they are being set automatically.
+
+* Switch from ANSI-C to C99 using the `-c99` command line switch.
+
+* Standard C Library: When using the `qvc` shell script, located in the
+  folder `c/qnice` and to which `source setenv.source` automatically sets up
+  a path, all the include and library paths are automatically set correctly,
+  so that you can just work with the Standard C Library as you would expect
+  it. For example, have a look at `fread_basic.c`, which shows how to read
+  files and some printf examples. (Make sure you run fread_basic.out while
+  being in the folder /qbin, because only there are the text files needed
+  by the program.)
+
+* Additionally and sometimes alternatively to the Standard C Library, you
+  might want to use the "operating system" library aka the Monitor library.
+  All include and library paths are set, so just include `qmon.h` for
+  getting started. You find it in `c/qnice/monitor-lib/include`. The
+  above-mentioned `shell.c` is an example of how to read files without
+  using the Standard C library but by directly using Monitor functions.
 
 Acknowledgements
 ----------------
 
 * [sy2002](http://www.sy2002.de): Creator and maintainer of QNICE-FPGA:
   hardware development (VHDL), FAT32 library, additional Monitor libraries and
-  functions, additional QNICE specific vbcc toolchain.
+  functions, Q-TRIS, additional QNICE specific vbcc toolchain.
 
 * [vaxman](http://www.vaxman.de): Inventor of the [QNICE ISA](http://qnice.sourceforge.net):
   system architect, assembler, emulator, Monitor and Monitor libraries, tools.

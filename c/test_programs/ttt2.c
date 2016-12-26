@@ -38,6 +38,8 @@ int bi,bj;
 
 main()
 {
+    putsnl("Tic-Tac-Toe for QNICE by Volker Barthelmann in September 2016\r\n");
+
     int i,j,w,amzug,zug;
     char key=0;
 
@@ -45,11 +47,11 @@ main()
         for(j=0;j<3;j++)
             f[i][j]=0;        
 
-    question("Darf ich anfangen (j/n)? ");
-    while(key!='j'&&key!='n')
+    question("May I begin and have the first turn (y/n)? ");
+    while(key!='y'&&key!='n')
       key=getchar();
     putkey(key);
-    if(key=='j') amzug=1; else amzug=0;
+    if(key=='y') amzug=1; else amzug=0;
     puts("");
 
     zug=0;printfield();
@@ -58,25 +60,25 @@ main()
         bi=bj=4;
         if(w=win()){
             if(w>0){
-              puts("Ich habe gewonnen");
+              puts("I won!");
               exit(0);
             }else{
-              puts("Sie haben gewonnen, das darf nicht sein!");
+              puts("You won - this is impossible!");
               exit(0);
             }
         }
         zug++;
         if(zug>9){
-           puts("Unentschieden");
+           puts("Nobody wins - draw!");
            exit(0);
         }
         if(amzug){
             if(zug>1) w=rek(0); else {w=0;bi=bj=1;}
             f[bi][bj]=1;
-            if(w&&zug<9) puts("Ich werde gewinnen");
+            if(w&&zug<9) puts("I will win...");
         }else{
             while(bi<1||bi>3||bj<1||bj>3||f[bi-1][bj-1]){
-                question("Ihr Zug (x,y): ");
+                question("Your turn (x,y): ");
                 bj=bi=0;
                 while(bj<'1'||bj>'3')
                     bj=getchar();
@@ -151,5 +153,3 @@ printfield()
     puts("  1 2 3");
 
 }
-
-
