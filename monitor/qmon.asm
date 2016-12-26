@@ -428,6 +428,8 @@ QMON$CD         SUB     256, SP                 ; memory: 255 characters + zero 
                 MOVE    256, R9                 ; R9 = buffer size
                 RSUB    IO$GETS_S, 1            ; enter string
                 RSUB    IO$PUT_CRLF, 1          ; CR/LF
+                CMP     @R8, 0                  ; completely empty string?
+                RBRA    QMON$CD_E, Z            ; yes: exit
                 MOVE    R8, R11                 ; R11 = saved pointer to input string
                 RSUB    QMON$CHKORMNT, 1        ; get device handle in R8
                 CMP     R8, 0                   ; worked?
@@ -463,6 +465,8 @@ QMON$LOAD       MOVE    0xFFFF, R6              ; R6 = start address of loaded b
                 MOVE    256, R9                 ; R9 = buffer size
                 RSUB    IO$GETS_S, 1            ; enter string
                 RSUB    IO$PUT_CRLF, 1          ; CR/LF
+                CMP     @R8, 0                  ; completely empty string?
+                RBRA    QMON$LOAD_E, Z          ; yes: exit
                 MOVE    R8, R10                 ; R10 = file name
                 MOVE    R8, R12                 ; R12 = saved pointer to file name
                 RSUB    QMON$CHKORMNT, 1        ; get device handle in R8
