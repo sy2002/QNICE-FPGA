@@ -32,6 +32,9 @@ for my $filename (glob('*.asm'))
         close $handle;
     }
 
+    $data =~ s/&/\\&/g;
+    $data =~ s/#/\\#/g;
+
     while ($data =~ /;\*\*\**(.+?);\*\*\**/smg)
     {
         my $text = $1;
