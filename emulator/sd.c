@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define DEBUG
+#undef DEBUG
 #define VERBOSE
 
 FILE *image;
@@ -51,6 +51,8 @@ void sd_detach()
 
 void sd_write_register(unsigned int address, unsigned int value)
 {
+  unsigned int block_start_address;
+
 #ifdef DEBUG
   printf("sd_write_register(%04X, %04X)\n", address & 0xffff, value & 0xffff);
 #endif
@@ -71,7 +73,8 @@ void sd_write_register(unsigned int address, unsigned int value)
     case SD_CSR:
       if ((value & 0xffff) == 1) /* Read 512 bytes from the block addressed by the current LBA. */
       {
-        fseek(image, (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16), SEEK_SET);
+        block_start_address = ((sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16)) * SD_SECTOR_SIZE;
+        fseek(image, block_start_address, SEEK_SET);
         fread(sd_data, SD_SECTOR_SIZE, 1, image);
 #ifdef DEBUG
         printf("SD: Read block %08X.\n", (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16));
@@ -80,10 +83,11 @@ void sd_write_register(unsigned int address, unsigned int value)
       }
       else if ((value & 0xffff) == 2) /* Write 512 bytes to the block address by the current LBA. */
       {
+        block_start_address = ((sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16)) * SD_SECTOR_SIZE;
 #ifdef DEBUG
-        printf("SD: Write block %08X.\n", (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16));
+        printf("SD: Write block %08X.\n", block_start_address);
 #endif
-        fseek(image, (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16), SEEK_SET);
+        fseek(image, block_start_address, SEEK_SET);
         fwrite(sd_data, SD_SECTOR_SIZE, 1, image);
       }
       break;
