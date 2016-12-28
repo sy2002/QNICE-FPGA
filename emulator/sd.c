@@ -22,7 +22,7 @@ void sd_attach(char *filename)
   printf("sd_init: Open >>%s<<\n", filename);
 #endif
 
-  if (!(image = fopen(filename, "r")))
+  if (!(image = fopen(filename, "rb")))
   {
     printf("Unable to attach SD-card image file >>%s<<!\n", filename);
     exit(-1);
@@ -51,15 +51,24 @@ void sd_write_register(unsigned int address, unsigned int value)
       sd_data[sd_data_pos & 0x01ff] = value & 0xffff;
       break;
     case SD_CSR:
-      if (value & 0xffff == 1) /* Read 512 bytes from the block addressed by the current LBA. */
+      if ((value & 0xffff) == 1) /* Read 512 bytes from the block addressed by the current LBA. */
       {
-
+#ifdef VERBOSE
+        printf("SD: Read block %08X.\n", (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16));
+#endif
+        fseek(image, (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16), SEEK_SET);
+        fread(sd_data, SD_SECTOR_SIZE, 1, image);
       }
-      else if (value & 0xffff == 2) /* Write 512 bytes to the block address by the current LBA. */
+      else if ((value & 0xffff) == 2) /* Write 512 bytes to the block address by the current LBA. */
       {
-
+#ifdef VERBOSE
+        printf("SD: Write block %08X.\n", (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16));
+#endif
+        fseek(image, (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16), SEEK_SET);
+        fwrite(sd_data, SD_SECTOR_SIZE, 1, image);
       }
       break;
+    default:
 #ifdef VERBOSE
       printf("sd_write_register: attempt to write illegal register %04X <- %04X.\n", address & 0xffff, value & 0xffff);
 #endif
@@ -82,7 +91,10 @@ unsigned int sd_read_register(unsigned int address)
       value = sd_data_pos;
       break;
     case SD_DATA:
-      value = sd_data[sd_data_pos & 0x01ff];
+      value = sd_data[sd_data_pos & 0x01ff] & 0xffff;
+#ifdef VERBOSE
+      printf("SD: Read from buffer [%05X]: %04X\n", sd_data_pos & 0x01ff, value);
+#endif
       break;
     case SD_ERROR:
       value = sd_error;

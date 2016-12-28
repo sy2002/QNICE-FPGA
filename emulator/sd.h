@@ -4,12 +4,14 @@
 ** 28-DEC-2016, B. Ulmann fecit
 */
 
-#define SD_ADDR_LO  0xff24
-#define SD_ADDR_HI  0xff25
-#define SD_DATA_POS 0xff26
-#define SD_DATA     0xff27
-#define SD_ERROR    0xff28
-#define SD_CSR      0xff29
+#define SD_BASE_ADDRESS 0xff24
+
+#define SD_ADDR_LO  0
+#define SD_ADDR_HI  1
+#define SD_DATA_POS 2
+#define SD_DATA     3
+#define SD_ERROR    4
+#define SD_CSR      5
 
 #define SD_SECTOR_SIZE 512
 

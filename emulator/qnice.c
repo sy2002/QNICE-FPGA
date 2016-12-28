@@ -275,6 +275,14 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       }
 #endif
 
+#ifdef USE_SD
+      if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
+      {
+        value = sd_read_register(address - SD_BASE_ADDRESS);
+        goto skip_read;
+      }
+#endif
+
       if (address == SWITCH_REG) /* Read the switch register */
         value = gbl$memory[SWITCH_REG];
       else if (address == CYC_LO) /* Read low word of the cycle (instruction) counter. */
@@ -321,6 +329,14 @@ skip_read:;
       if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
       {
         writeIDEDeviceRegister(address - IDE_BASE_ADDRESS, value);
+        goto skip_write;
+      }
+#endif
+
+#ifdef USE_SD
+      if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
+      {
+        sd_write_register(address - SD_BASE_ADDRESS, value);
         goto skip_write;
       }
 #endif
