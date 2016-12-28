@@ -119,7 +119,7 @@ unsigned int sd_read_register(unsigned int address)
       value = sd_error & 0xffff;
       break;
     case SD_CSR: /* More or less a dummy operation as there is no room for errors in the emulation. :-) */
-      value = 0x4000; /* Report card type SD V2. */
+      value = 0x2000; /* Report card type SD V2. */
       break;
     default:
 #ifdef VERBOSE
