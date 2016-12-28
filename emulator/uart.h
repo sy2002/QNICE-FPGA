@@ -2,7 +2,10 @@
 **  This is the header file for the generic UART-emulation for the QNICE-emulator.
 **
 ** 02-JUN-2008, B. Ulmann fecit
+** 28-DEC-2016, B. Ulmann Cleanup...
 */
+
+#define UART0_BASE_ADDRESS     0xff20
 
 /* This structure contains all register data of the emulated UART */
 typedef struct uart
@@ -46,3 +49,8 @@ typedef struct uart
 #define OPCR              13
 #define SET_OUTPUT_PORT   14
 #define RESET_OUTPUT_PORT 15
+
+unsigned int uart_read_register(uart *, unsigned int);
+void uart_write_register(uart *, unsigned int, unsigned int);
+void uart_hardware_initialization(uart *);
+void uart_run_down();

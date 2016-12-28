@@ -9,7 +9,6 @@
 
 #undef TEST /* Define to perform stand alone test */
 #define VERBOSE
-#define DEBUG
 
 #include "uart.h"
 #include <stdio.h>
