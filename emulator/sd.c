@@ -13,8 +13,23 @@
 
 FILE *image;
 
-unsigned static int sd_addr_lo = 0, sd_addr_hi = 0, sd_data_pos = 0, sd_error = 0, sd_csr = 0,
-  sd_data[SD_SECTOR_SIZE];
+unsigned static int sd_addr_lo = 0, sd_addr_hi = 0, sd_data_pos = 0, sd_error = 0, sd_csr = 0;
+
+unsigned char sd_data[SD_SECTOR_SIZE];
+
+#ifdef DEBUG
+void dump_sd_buffer()
+{
+    int i;
+
+    for (i = 0; i < SD_SECTOR_SIZE; i++)
+    {
+        if (!(i % 16)) printf("\n");
+        printf("%02x ", sd_data[i]);
+    }
+    printf("\n");
+}
+#endif
 
 void sd_attach(char *filename)
 {
@@ -56,11 +71,12 @@ void sd_write_register(unsigned int address, unsigned int value)
     case SD_CSR:
       if ((value & 0xffff) == 1) /* Read 512 bytes from the block addressed by the current LBA. */
       {
-#ifdef DEBUG
-        printf("SD: Read block %08X.\n", (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16));
-#endif
         fseek(image, (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16), SEEK_SET);
         fread(sd_data, SD_SECTOR_SIZE, 1, image);
+#ifdef DEBUG
+        printf("SD: Read block %08X.\n", (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16));
+        dump_sd_buffer();
+#endif
       }
       else if ((value & 0xffff) == 2) /* Write 512 bytes to the block address by the current LBA. */
       {
@@ -70,8 +86,6 @@ void sd_write_register(unsigned int address, unsigned int value)
         fseek(image, (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16), SEEK_SET);
         fwrite(sd_data, SD_SECTOR_SIZE, 1, image);
       }
-
-      sd_csr = 0x8000;
       break;
     default:
 #ifdef VERBOSE
@@ -96,7 +110,7 @@ unsigned int sd_read_register(unsigned int address)
       value = sd_data_pos;
       break;
     case SD_DATA:
-      value = sd_data[sd_data_pos & 0x01ff] & 0xffff;
+      value = sd_data[sd_data_pos & 0x01ff];
 #ifdef DEBUG
       printf("SD: Read from buffer [%05X]: %04X\n", sd_data_pos & 0x01ff, value);
 #endif
@@ -105,11 +119,7 @@ unsigned int sd_read_register(unsigned int address)
       value = sd_error;
       break;
     case SD_CSR: /* More or less a dummy operation as there is no room for errors in the emulation. :-) */
-#ifdef DEBUG
-      printf("sd_read_register: CSR\n");
-#endif
-      value = sd_csr;
-      sd_csr = 0;
+      value = 0;
       break;
     default:
 #ifdef VERBOSE

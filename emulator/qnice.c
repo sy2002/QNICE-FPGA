@@ -257,7 +257,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
     {
       value = 0;
       if ((gbl$debug))
-        printf("\tread_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
+        printf("\tread_memory: IO-area read access at 0x%04X\n\r", address);
 
       if (address == SWITCH_REG) /* Read the switch register */
         value = gbl$memory[SWITCH_REG];
@@ -279,6 +279,10 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         value = gbl$eae_result_hi;
       else if (address == EAE_CSR)
         value = gbl$eae_csr;
+#ifdef USE_SD
+      else if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
+        value = sd_read_register(address - SD_BASE_ADDRESS);
+#endif
 #ifdef USE_UART
       else if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
         value = uart_read_register(&gbl$first_uart, address - UART0_BASE_ADDRESS);
@@ -286,10 +290,6 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
 #ifdef USE_IDE
       else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
         value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
-#endif
-#ifdef USE_SD
-      else if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
-        value = sd_read_register(address - SD_BASE_ADDRESS);
 #endif
     }
   }
@@ -795,10 +795,9 @@ int execute()
 
   if (read_register(15) == gbl$breakpoint)
   {
-    printf("Breakpoint reached: %04X\n", address);
+    printf("Breakpoint reached: %04X\n", read_register(15));
     return TRUE;
   }
-
 
 /*  write_register(15, read_register(15) + 1); */ /* Update program counter */
   return FALSE; /* No HALT instruction executed */
