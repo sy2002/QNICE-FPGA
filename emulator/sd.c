@@ -116,7 +116,7 @@ unsigned int sd_read_register(unsigned int address)
 #endif
       break;
     case SD_ERROR:
-      value = (sd_error & 0x00ff) | 0x1100;
+      value = sd_error & 0xffff;
       break;
     case SD_CSR: /* More or less a dummy operation as there is no room for errors in the emulation. :-) */
       value = 0x4000; /* Report card type SD V2. */
