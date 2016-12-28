@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#undef DEBUG
+#define DEBUG
 #define VERBOSE
 
 FILE *image;
@@ -36,6 +36,9 @@ void sd_detach()
 
 void sd_write_register(unsigned int address, unsigned int value)
 {
+#ifdef DEBUG
+  printf("sd_write_register(%04X, %04X)\n", address & 0xffff, value & 0xffff);
+#endif
   switch (address)
   {
     case SD_ADDR_LO:
@@ -53,7 +56,7 @@ void sd_write_register(unsigned int address, unsigned int value)
     case SD_CSR:
       if ((value & 0xffff) == 1) /* Read 512 bytes from the block addressed by the current LBA. */
       {
-#ifdef VERBOSE
+#ifdef DEBUG
         printf("SD: Read block %08X.\n", (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16));
 #endif
         fseek(image, (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16), SEEK_SET);
@@ -61,12 +64,14 @@ void sd_write_register(unsigned int address, unsigned int value)
       }
       else if ((value & 0xffff) == 2) /* Write 512 bytes to the block address by the current LBA. */
       {
-#ifdef VERBOSE
+#ifdef DEBUG
         printf("SD: Write block %08X.\n", (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16));
 #endif
         fseek(image, (sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16), SEEK_SET);
         fwrite(sd_data, SD_SECTOR_SIZE, 1, image);
       }
+
+      sd_csr = 0x8000;
       break;
     default:
 #ifdef VERBOSE
@@ -92,7 +97,7 @@ unsigned int sd_read_register(unsigned int address)
       break;
     case SD_DATA:
       value = sd_data[sd_data_pos & 0x01ff] & 0xffff;
-#ifdef VERBOSE
+#ifdef DEBUG
       printf("SD: Read from buffer [%05X]: %04X\n", sd_data_pos & 0x01ff, value);
 #endif
       break;
@@ -100,13 +105,21 @@ unsigned int sd_read_register(unsigned int address)
       value = sd_error;
       break;
     case SD_CSR: /* More or less a dummy operation as there is no room for errors in the emulation. :-) */
-      value = 0;
+#ifdef DEBUG
+      printf("sd_read_register: CSR\n");
+#endif
+      value = sd_csr;
+      sd_csr = 0;
       break;
     default:
 #ifdef VERBOSE
       printf("sd_read_register: attempt to read illegal register %04X.\n", address);
 #endif
   }
+
+#ifdef DEBUG
+  printf("sd_read_register(%04X) -> %04X\n", address & 0xffff, value & 0xffff);
+#endif
 
   return value & 0xffff;
 }

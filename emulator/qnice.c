@@ -259,30 +259,6 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       if ((gbl$debug))
         printf("\tread_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
 
-#ifdef USE_UART
-      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
-      {
-        value = uart_read_register(&gbl$first_uart, address - UART0_BASE_ADDRESS);
-        goto skip_read;
-      }
-#endif
-
-#ifdef USE_IDE
-      if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
-      {
-        value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
-        goto skip_read;
-      }
-#endif
-
-#ifdef USE_SD
-      if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
-      {
-        value = sd_read_register(address - SD_BASE_ADDRESS);
-        goto skip_read;
-      }
-#endif
-
       if (address == SWITCH_REG) /* Read the switch register */
         value = gbl$memory[SWITCH_REG];
       else if (address == CYC_LO) /* Read low word of the cycle (instruction) counter. */
@@ -303,7 +279,18 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         value = gbl$eae_result_hi;
       else if (address == EAE_CSR)
         value = gbl$eae_csr;
-skip_read:;
+#ifdef USE_UART
+      else if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
+        value = uart_read_register(&gbl$first_uart, address - UART0_BASE_ADDRESS);
+#endif
+#ifdef USE_IDE
+      else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
+        value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
+#endif
+#ifdef USE_SD
+      else if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
+        value = sd_read_register(address - SD_BASE_ADDRESS);
+#endif
     }
   }
   else if (operation == WRITE_MEMORY)
@@ -314,32 +301,6 @@ skip_read:;
     {
       if ((gbl$debug))
         printf("\twrite_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
-
-#ifdef USE_UART
-      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
-      {
-        if ((gbl$debug))
-          printf("\twrite uart register: %04X, %02X\n\t", address, value & 0xff);
-        uart_write_register(&gbl$first_uart, address - UART0_BASE_ADDRESS, value & 0xff);
-        goto skip_write;
-      }
-#endif
-
-#ifdef USE_IDE
-      if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
-      {
-        writeIDEDeviceRegister(address - IDE_BASE_ADDRESS, value);
-        goto skip_write;
-      }
-#endif
-
-#ifdef USE_SD
-      if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
-      {
-        sd_write_register(address - SD_BASE_ADDRESS, value);
-        goto skip_write;
-      }
-#endif
 
       if (address == SWITCH_REG) /* Read the switch register */
         gbl$memory[SWITCH_REG] = value;
@@ -387,7 +348,22 @@ skip_read:;
 
         gbl$eae_csr &= 0x7fff; /* Clear the busy bit just in case... */
       }
-skip_write:;
+#ifdef USE_UART
+      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
+      {
+        if ((gbl$debug))
+          printf("\twrite uart register: %04X, %02X\n\t", address, value & 0xff);
+        uart_write_register(&gbl$first_uart, address - UART0_BASE_ADDRESS, value & 0xff);
+      }
+#endif
+#ifdef USE_IDE
+      if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
+        writeIDEDeviceRegister(address - IDE_BASE_ADDRESS, value);
+#endif
+#ifdef USE_SD
+      if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
+        sd_write_register(address - SD_BASE_ADDRESS, value);
+#endif
     }
   }
   else
