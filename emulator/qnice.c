@@ -17,6 +17,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <wordexp.h>
+#include <ctype.h>
 
 #ifdef USE_UART
 # include "uart.h"
@@ -930,7 +932,8 @@ void dump_registers()
 int main(int argc, char **argv)
 {
   char command[STRING_LENGTH], *token, *delimiters = " ,", scratch[STRING_LENGTH];
-  unsigned int start, stop, i, address, value, last_command_was_step = 0;
+  unsigned int start, stop, i, j, address, value, last_command_was_step = 0;
+  wordexp_t expanded_filename;
   FILE *handle;
 
   signal(SIGINT, signal_handler_ctrl_c);
@@ -1011,12 +1014,19 @@ int main(int argc, char **argv)
       {
         start = str2int(tokenize(NULL, delimiters));
         stop  = str2int(tokenize(NULL, delimiters));
+        *scratch = (char) 0;
         for (i = start; i <= stop; i++)
         {
           if (!((i - start) % 8)) /* New row */
-            printf("\n%04x: ", i);
+          {
+            scratch[16] = (char) 0;
+            printf("%s\n%04x: ", scratch, i);
+            j = 0;
+          }
 
-          printf("%04x ", access_memory(i, READ_MEMORY, 0));
+          printf("%04x ", value = access_memory(i, READ_MEMORY, 0));
+          scratch[j++] = isprint((value & 0xff00) > 8) ? (char) (value & 0xff00) > 8 : ' ';
+          scratch[j++] = isprint(value & 0xff) ? (char) value & 0xff : ' ';
         }
         printf("\n");
       }
@@ -1026,7 +1036,8 @@ int main(int argc, char **argv)
           printf("SAVE expects at least a filename as its 1st parameter!\n");
         else
         {
-          if (!(handle = fopen(token, "w")))
+          wordexp(token, &expanded_filename, 0);
+          if (!(handle = fopen(expanded_filename.we_wordv[0], "w")))
             printf("Unable to create file >>%s<<\n", token);
           else
           {
@@ -1044,7 +1055,10 @@ int main(int argc, char **argv)
         if (!(token = tokenize(NULL, delimiters)))
           printf("LOAD expects a filename as its 1st parameter!\n");
         else
-          load_binary_file(token);
+        {
+          wordexp(token, &expanded_filename, 0);
+          load_binary_file(expanded_filename.we_wordv[0]);
+        }
       }
 #ifdef USE_SD
       else if (!strcmp(token, "ATTACH")) /* Attach a disk image to the SD-simulation */
