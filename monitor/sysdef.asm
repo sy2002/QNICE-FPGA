@@ -377,7 +377,11 @@ IO$SD_CSR       .EQU 0xFF29 ; Command and Status Register (write to execute comm
 ;  SD-Opcodes (CSR):    0x0000  Reset SD card
 ;                       0x0001  Read 512 bytes from the linear block address
 ;                       0x0002  Write 512 bytes to the linear block address
-;  Bits 0..2 are write-only (reading always returns 0)
+;  Bits 0 .. 2 are write-only (reading always returns 0)
+;  Bits 13 .. 12 return the card type: 00 = no card / unknown card
+;                                      01 = SD V1
+;                                      10 = SD V2
+;                                      11 = SDHC                       
 ;  Bit 14 of the CSR is the error bit: 1, if the last operation failed. In such
 ;                                      a case, the error code is in IO$SD_ERROR and
 ;                                      you need to reset the controller to go on

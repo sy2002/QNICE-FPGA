@@ -1,6 +1,6 @@
 ; Test the h2dstr routine of the Monitor
 ;
-; done by sy2002 in Octiber 2016
+; done by sy2002 in October 2016
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
