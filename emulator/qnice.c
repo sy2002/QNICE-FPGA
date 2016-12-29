@@ -1020,7 +1020,7 @@ int main(int argc, char **argv)
           if (!((i - start) % 8)) /* New row */
           {
             scratch[16] = (char) 0;
-            printf("%s\n%04x: ", scratch, i);
+            printf("\t%s\n%04x: ", scratch, i);
             j = 0;
           }
 
