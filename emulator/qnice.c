@@ -1066,7 +1066,10 @@ int main(int argc, char **argv)
         if (!(token = tokenize(NULL, delimiters)))
           printf("ATTACH expects a filename as its 1st parameter!\n");
         else
-          sd_attach(token);
+        {
+          wordexp(token, &expanded_filename, 0);
+          sd_attach(expanded_filename.we_wordv[0]);
+        }
       }
       else if (!strcmp(token, "DETACH"))
         sd_detach();

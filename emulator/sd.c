@@ -34,8 +34,6 @@ void dump_sd_buffer()
 
 void sd_attach(char *filename)
 {
-  wordexp_t expanded_filename;
-
 #ifdef DEBUG
   printf("sd_init: Open >>%s<<\n", filename);
 #endif
@@ -43,8 +41,7 @@ void sd_attach(char *filename)
   if (image) /* If there is already an image attached, detach it first. */
     sd_detach();
 
-  wordexp(filename, &expanded_filename, 0);
-  if (!(image = fopen(expanded_filename.we_wordv[0], "rb")))
+  if (!(image = fopen(filename, "rb")))
   {
     printf("Unable to attach SD-card image file >>%s<<!\n", filename);
     return;
