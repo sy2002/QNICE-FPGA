@@ -11,7 +11,7 @@
 #undef DEBUG
 #define VERBOSE
 
-FILE *image;
+FILE *image = (FILE *) 0;
 
 unsigned static int sd_addr_lo = 0, sd_addr_hi = 0, sd_data_pos = 0, sd_error = 0, sd_csr = 0;
 
@@ -36,6 +36,9 @@ void sd_attach(char *filename)
 #ifdef DEBUG
   printf("sd_init: Open >>%s<<\n", filename);
 #endif
+
+  if (image)
+    sd_detach();
 
   if (!(image = fopen(filename, "rb")))
   {

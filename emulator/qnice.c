@@ -952,6 +952,7 @@ int main(int argc, char **argv)
         \"qnice <file.bin>\" will run in batch mode and print statistics\n\n");
       return 0;
     }
+#ifdef USE_SD
     else if (!strcmp(*argv, "-a")) /* We will try to attach an SD-disk image... */
     {
       if (!*++argv) /* No more arguments! */
@@ -962,6 +963,7 @@ int main(int argc, char **argv)
 
       sd_attach(*argv++);
     }
+#endif
 
     if (*argv)
     {
@@ -1044,6 +1046,17 @@ int main(int argc, char **argv)
         else
           load_binary_file(token);
       }
+#ifdef USE_SD
+      else if (!strcmp(token, "ATTACH")) /* Attach a disk image to the SD-simulation */
+      {
+        if (!(token = tokenize(NULL, delimiters)))
+          printf("ATTACH expects a filename as its 1st parameter!\n");
+        else
+          sd_attach(token);
+      }
+      else if (!strcmp(token, "DETACH"))
+        sd_detach();
+#endif
       else if (!strcmp(token, "RDUMP"))
         dump_registers();
       else if (!strcmp(token, "SET"))
@@ -1098,8 +1111,10 @@ int main(int argc, char **argv)
       }
       else if (!strcmp(token, "HELP"))
         printf("\n\
+ATTACH <FILENAME>              Attach a disk image file (only with SD-support)\n\
 CB                             Clear Breakpoint\n\
 DEBUG                          Toggle debug mode (for development only)\n\
+DETACH                         Detach a disk image file\n\
 DIS  <START>, <STOP>           Disassemble a memory region\n\
 DUMP <START>, <STOP>           Dump a memory area, START and STOP can be\n\
                                hexadecimal or plain decimal\n\
