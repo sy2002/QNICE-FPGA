@@ -1618,7 +1618,12 @@ _F32_DF_SUCCESS MOVE    0, R9                   ; operation was successful
                                                 ; ..the length information, ..
                                                 ; ..so we need to predecr. ..
                                                 ; ..and then increase the ..
-                                                ; ..pointer to the next segm.                                                
+                                                ; ..pointer to the next segm.
+                                                ; it now points to the '0' of
+                                                ; the current string
+                ADD     1, R4                   ; now it points to the next ..
+                                                ; .. segment, i.e. to the ..
+                                                ; length information
                 RBRA    _F32_DF_NXSG, 1         ; process next path segment
 
                 ; restore SP
