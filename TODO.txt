@@ -69,6 +69,9 @@ HARDWARE:
 
 MONITOR:
 
+* variables.asm: replace hardcoded blocksize for _SD$DEVICEHANDLE by using
+  FAT32$DEV_STRUCT_SIZE
+
 * Get rid of the hardcoded keyboard locale
 
 * BS/DEL when entering hex digits (and at other reasonable places)
@@ -99,14 +102,12 @@ ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
 
 EMULATOR:
 
-* Emulate the SD Card by being able to mount a reasonable container file
-  format (iso, dmg, ...) and/or by being able to mount a RAW binary dump
-  of an SD Card (maybe shortened/truncated, if it is sparsely filled with a
-  lot of zeros at the end)
-
-* Emulate the VGA output
-
-* Emulate the USB keyboard
+* Emulate the VGA output and the USB keyboard (maybe using something like
+  LIBSDL? SFML? GLFW?). Optimally, the whole thing would by totally
+  dynamically loaded so that the emulator continues to run on text only
+  systems and on systems that don't have a multimedia library installed.
+  If this does not work, then we should just work with #defines within
+  the Emulator's code and compile two versions, like "qnice" and "qnice_vga".
 
 
 NATIVE TOOLCHAIN: ASSEMBLER:
@@ -156,3 +157,8 @@ DEMOS:
 * Forth Interpreter
 
 * VGA Textmode games: Snake, Pac Man, 2048
+
+
+DOCUMENTATION:
+
+* Add the PDF or HTML documentation version of the VBCC toolchain.

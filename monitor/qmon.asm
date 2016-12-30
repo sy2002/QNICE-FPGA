@@ -596,11 +596,11 @@ QMON$LOAD_E1C   SUB     IO$HEX_NIBBLES, R10     ; get numeric representation of 
 ;* Strings
 ;***************************************************************************************
                 
-QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.7 (Bernd Ulmann, December 2016)\n"
+QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 0.7 (Bernd Ulmann, sy2002, December 2016)\n"
 #ifdef RAM_MONITOR
                 .ASCII_P    "Running in RAM!\n"
 #endif
-                .ASCII_W    "----------------------------------------------------------------\n\n"
+                .ASCII_W    "------------------------------------------------------------------------\n\n"
 QMON$PROMPT     .ASCII_W    "QMON> "
 QMON$ILLCMDGRP  .ASCII_W    " *** Illegal command group ***\n"
 QMON$ILLCMD     .ASCII_W    " *** Illegal command ***\n"
@@ -612,7 +612,7 @@ QMON$HELP       .ASCII_P    "ELP:\n\n"
                 .ASCII_P    "        C(hange) D(ump) E(xamine) F(ill) L(oad) M(ove)\n"
                 .ASCII_P    "        di(S)assemble\n"
                 .ASCII_P    "    F(ile group):\n"
-                .ASCII_P    "        List (D)irectory C(hange directory) L(oad) R(run)\n"
+                .ASCII_P    "        List (D)irectory C(hange directory) L(oad) R(un)\n"
                 .ASCII_P    "\n    General: CTRL-E performs a warm start whenever an\n"
                 .ASCII_P    "        input from keyboard is expected.\n"
                 .ASCII_P    "\n    M(emory)L(oad) can be used to load assembler output\n"

@@ -1,7 +1,7 @@
 ; Test the divu32 routine of the Monitor
 ; derived from the original code from 32bit-div.asm
 ;
-; done by sy2002 in Octiber 2016
+; done by sy2002 in October 2016
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"

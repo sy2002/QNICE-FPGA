@@ -1,3 +1,16 @@
+Version 1.41    December, 30 2016
+=================================
+
+* CPU: Fixed a bug which prevented things like ADD @--R4, R4 from working
+  correctly, i.e. when a register was pre-decremented, then used for
+  indirect reading and then the same register was the target register.
+  See test_programs/predec.asm for a thorough description of this bug.
+* EMULATOR: Can emulate the SD Cards introduced in Version 1.4 by being able
+  to mount raw binary images of FAT32 devices. Have a look at doc/emumount.txt
+  to see how it works.
+* EMULATOR: 'dump' now shows ASCII values additionally to the hex values.
+* Fixed a bunch of typos in various places and improved the documentation.
+
 Version 1.4    December, 26 2016
 ================================
 

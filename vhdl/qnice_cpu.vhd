@@ -341,6 +341,12 @@ begin
                   -- put pre decremented address on the data bus for reading
                   fsmCpuAddr <= reg_read_data1 - 1;
                   
+                  -- in case the destination register is equal to the source register,
+                  -- make sure, that the buffer flip/flop Dst_Value is updated
+                  if Dst_RegNo = Src_RegNo then
+                     fsmDst_Value <= reg_read_data1 - 1;
+                  end if;
+                  
                   -- write back the decremented values
                   -- special handling of SR and PC as they are not stored in the register file
                   case Src_RegNo is

@@ -77,10 +77,10 @@ FAT32$PRINT_DE_TIME     .ASCII_W ":"
 ;* Wrapper to simplify the use of the generic FAT32$MOUNT function. Read the
 ;* documentation of FAT32$MOUNT to learn more.
 ;* 
-;* INPUT:  R8 points to a 17 word large empty structure. This structure will
+;* INPUT:  R8 points to a 18 word large empty structure. This structure will
 ;*         be filled by the mount function and it therefore becomes the device
 ;*         handle that you need for subsequent FAT32 function calls. For being
-;*         on the safe side: Instead of hardcoding "17", use the constant
+;*         on the safe side: Instead of hardcoding "18", use the constant
 ;*         FAT32$DEV_STRUCT_SIZE instead.
 ;*         R9 partition number to mount (1 .. 4)
 ;* OUTPUT: R8 points to the handle (identical to the input value of R8)
@@ -124,8 +124,9 @@ FAT32$MOUNT_SD  INCRB
 ;* a 512-byte-sized sector using LBA mode. Read and write a byte from within
 ;* a buffer that contains the current sector. Reset the device. The function
 ;* signatures and behaviour needs to be equivalent to the SD card functions
-;* that are part of this library. You need to pass pointers to these functions
-;* to the mount function call in the mount initialization structure.
+;* that are part of the library sd_library.asm. You need to pass pointers to
+;* these functions to the mount function call in the mount initialization
+;* structure.
 ;*
 ;* All subsequent calls to FAT32 functions expect as the first parameter a
 ;* pointer to the mount data structure (aka device handle) that is being
@@ -134,7 +135,7 @@ FAT32$MOUNT_SD  INCRB
 ;* type of hardware.
 ;*
 ;* INPUT: R8: pointer to the mount initialization structure that is build up
-;* in the following form. Important: The structure is 17 words large, that
+;* in the following form. Important: The structure is 18 words large, that
 ;* means that a call to FAT32$MOUNT will append more words to the structure
 ;* than the ones, that have to be pre-filled before calling FAT32$MOUNT:
 ;*  word #0: pointer to a device reset function, similar to SD$RESET
@@ -143,11 +144,11 @@ FAT32$MOUNT_SD  INCRB
 ;*  word #3: pointer to a byte read function, similar to SD$READ_BYTE
 ;*  word #4: pointer to a byte write function, similar to SD$WRITE_BYTE
 ;*  word #5: number of the partition to be mounted (0x0001 .. 0x0004)
-;*  word #6 .. word #17 : will be filled by by FAT32$MOUNT, their layout is
+;*  word #6 .. word #18 : will be filled by by FAT32$MOUNT, their layout is
 ;*                        as described in the FAT32$DEV_* constants beginning
 ;*                        from index #7 on.
 ;*
-;* For being on the safe side: Instead of hardcoding "17" as the size of the
+;* For being on the safe side: Instead of hardcoding "18" as the size of the
 ;* whole mount data structure (device handle) use the constant 
 ;* FAT32$DEV_STRUCT_SIZE instead.
 ;*
@@ -1617,7 +1618,12 @@ _F32_DF_SUCCESS MOVE    0, R9                   ; operation was successful
                                                 ; ..the length information, ..
                                                 ; ..so we need to predecr. ..
                                                 ; ..and then increase the ..
-                                                ; ..pointer to the next segm.                                                
+                                                ; ..pointer to the next segm.
+                                                ; it now points to the '0' of
+                                                ; the current string
+                ADD     1, R4                   ; now it points to the next ..
+                                                ; .. segment, i.e. to the ..
+                                                ; length information
                 RBRA    _F32_DF_NXSG, 1         ; process next path segment
 
                 ; restore SP

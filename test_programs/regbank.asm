@@ -9,10 +9,16 @@
 ; small stack on RAM is utilized using two nested function calls
 ;
 ; Everything works correct, if the TIL displays the following sequence in 
-; a loop: 8080, 0000, 1700, 0000 
+; a loop: 8080, 0000, 1700, 0000, ...
+;
+; Optional: If you define OUTPUT_STDOUT, then in parallel to seeing the values
+; on TIL, they are also printed on stdout. This only works, if you run this
+; test within the Monitor environment.
 ;
 ; done by sy2002 in August 2015
-; improved in January 2016
+; improved in January 2016, December 2016
+
+#undef OUTPUT_STDOUT
 
 IO$TIL_BASE     .EQU    0xFF10              ; Address of TIL-display
 
@@ -92,11 +98,20 @@ CHECK_LOOP      ADD     R10, R14            ; next bank
 ; input: R8 = register, R9 = expected value, R12 = TIL BASE
 DISPLAY_REG     ADD     NEXT_BANK, R14      ; next register bank
                 MOVE    R8, @R12            ; display value on TIL
+#ifdef OUTPUT_STDOUT                
+                ASUB    0x0026, 1           ; SYSCALL(puthex, 1)
+                ASUB    0x000A, 1           ; SYSCALL(crlf, 1)
+#endif                
                 RSUB    DELAY, 1            ; wait 1 second
                 MOVE    VAR_DIFF, R0        ; memory location of variable
                 MOVE    R8, @R0             ; store register value in var
                 SUB     R9, @R0             ; subtract expected value
                 MOVE    @R0, @R12           ; display difference reg vs. expct
+                MOVE    @R0, R8
+#ifdef OUTPUT_STDOUT                
+                ASUB    0x0026, 1           ; SYSCALL(puthex, 1)
+                ASUB    0x000A, 1           ; SYSCALL(crlf, 1)                
+#endif                
                 RSUB    DELAY, 1            ; wait 1 second 
                 SUB     NEXT_BANK, R14      ; previous register bank
                 MOVE    @R13++, R15         ; return from sub routine

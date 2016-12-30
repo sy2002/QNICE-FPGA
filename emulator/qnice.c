@@ -1,28 +1,35 @@
 /* 
 **  QNICE emulator -- this emulator was written as a proof of concept for the
-** QNICE processor. In most cases Thomas' Perl based emulator will be used. :-)
+** QNICE processor.
 **
 ** B. Ulmann, 16-AUG-2006...03-SEP-2006...04-NOV-2006...29-JUN-2007...
 **            16-DEC-2007...03-JUN-2008...28-DEC-2014...
 **            xx-AUG-2015...xx-MAY-2016...
+**            28-DEC-2016, 29-DEC-2016
 **
 */
 
 #define USE_UART
+#define USE_SD
+#undef  USE_IDE
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
-#include "ide_simulation.h"
+#include <wordexp.h>
+#include <ctype.h>
 
 #ifdef USE_UART
-#include "uart.h"
+# include "uart.h"
+#endif
 
-unsigned int uart_read_register(uart *, int);
-void uart_write_register(uart *, unsigned int, unsigned int);
-void uart_hardware_initialization(uart *);
-void uart_run_down();
+#ifdef USE_SD
+# include "sd.h"
+#endif
+
+#ifdef USE_IDE
+# include "ide_simulation.h"
 #endif
 
 /*
@@ -45,8 +52,6 @@ void uart_run_down();
 /* The top most 245 words of memory are reserverd for memory mapped IO devices */
 #define IO_AREA_START          0xff00
 #define SWITCH_REG             0xff12
-#define UART0_BASE_ADDRESS     0xff20
-#define IDE_BASE_ADDRESS       0xffe0
 
 #define CYC_LO                 0xff17 /* Cycle counter low, middle, high word and state register */
 #define CYC_MID                0xff18
@@ -254,13 +259,9 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
     {
       value = 0;
       if ((gbl$debug))
-        printf("\tread_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
+        printf("\tread_memory: IO-area read access at 0x%04X\n\r", address);
 
-      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
-        value = uart_read_register(&gbl$first_uart, address - UART0_BASE_ADDRESS);
-      else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
-        value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
-      else if (address == SWITCH_REG) /* Read the switch register */
+      if (address == SWITCH_REG) /* Read the switch register */
         value = gbl$memory[SWITCH_REG];
       else if (address == CYC_LO) /* Read low word of the cycle (instruction) counter. */
         value = gbl$cycle_counter;
@@ -280,6 +281,18 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         value = gbl$eae_result_hi;
       else if (address == EAE_CSR)
         value = gbl$eae_csr;
+#ifdef USE_SD
+      else if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
+        value = sd_read_register(address - SD_BASE_ADDRESS);
+#endif
+#ifdef USE_UART
+      else if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
+        value = uart_read_register(&gbl$first_uart, address - UART0_BASE_ADDRESS);
+#endif
+#ifdef USE_IDE
+      else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
+        value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
+#endif
     }
   }
   else if (operation == WRITE_MEMORY)
@@ -291,15 +304,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       if ((gbl$debug))
         printf("\twrite_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
 
-      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
-      {
-        if ((gbl$debug))
-          printf("\twrite uart register: %04X, %02X\n\t", address, value & 0xff);
-        uart_write_register(&gbl$first_uart, address - UART0_BASE_ADDRESS, value & 0xff);
-      }
-      else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
-        writeIDEDeviceRegister(address - IDE_BASE_ADDRESS, value);
-      else if (address == SWITCH_REG) /* Read the switch register */
+      if (address == SWITCH_REG) /* Read the switch register */
         gbl$memory[SWITCH_REG] = value;
       else if (address == CYC_STATE)
       {
@@ -345,6 +350,22 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
 
         gbl$eae_csr &= 0x7fff; /* Clear the busy bit just in case... */
       }
+#ifdef USE_UART
+      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
+      {
+        if ((gbl$debug))
+          printf("\twrite uart register: %04X, %02X\n\t", address, value & 0xff);
+        uart_write_register(&gbl$first_uart, address - UART0_BASE_ADDRESS, value & 0xff);
+      }
+#endif
+#ifdef USE_IDE
+      if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
+        writeIDEDeviceRegister(address - IDE_BASE_ADDRESS, value);
+#endif
+#ifdef USE_SD
+      if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
+        sd_write_register(address - SD_BASE_ADDRESS, value);
+#endif
     }
   }
   else
@@ -768,7 +789,6 @@ int execute()
 // NO, we must not since the PC has already been incremented during the fetch operation!
 //      else if (source_mode == 0x2 && source_regaddr == 0xf) /* This is mode @R15++ */
 //        write_register(15, read_register(15) + 1);
-
       break;
     default:
       printf("PANIK: Illegal instruction found: Opcode %0X at address %04X.\n", opcode, address);
@@ -777,10 +797,9 @@ int execute()
 
   if (read_register(15) == gbl$breakpoint)
   {
-    printf("Breakpoint reached: %04X\n", address);
+    printf("Breakpoint reached: %04X\n", read_register(15));
     return TRUE;
   }
-
 
 /*  write_register(15, read_register(15) + 1); */ /* Update program counter */
   return FALSE; /* No HALT instruction executed */
@@ -789,13 +808,20 @@ int execute()
 void run()
 {
   gbl$ctrl_c = FALSE;
+
+#ifdef USE_UART
   uart_hardware_initialization(&gbl$first_uart);
+#endif
+
   gbl$gather_statistics = TRUE;
   while (!execute() && !gbl$ctrl_c);
   if (gbl$ctrl_c)
     printf("\n\tAborted by CTRL-C!\n");
   gbl$gather_statistics = FALSE;
+
+#ifdef USE_UART
   uart_run_down();
+#endif
 }
 
 void print_statistics()
@@ -906,29 +932,50 @@ void dump_registers()
 int main(int argc, char **argv)
 {
   char command[STRING_LENGTH], *token, *delimiters = " ,", scratch[STRING_LENGTH];
-  unsigned int start, stop, i, address, value, last_command_was_step = 0;
+  unsigned int start, stop, i, j, address, value, last_command_was_step = 0;
+  wordexp_t expanded_filename;
   FILE *handle;
 
   signal(SIGINT, signal_handler_ctrl_c);
   reset_machine();
-  initializeIDEDevice();
 
-  if (argc > 1)
+#ifdef USE_IDE
+  initializeIDEDevice();
+#endif
+
+  if (*++argv) /* At least one argument */
   {
-    if (!strcmp(argv[1], "-h"))
-      printf("\nUsage:\n\
-	\"qnice\" without arguments will start an interactive session\n\
-	\"qnice -h\" will print this help text\n\
-	\"qnice <file.bin>\" will run in batch mode and print statistics\n\n");
-    else /* Assume that the first argument is a file name */
+    if (!strcmp(*argv, "-h"))
     {
-      if (load_binary_file(argv[1]))
+      printf("\nUsage:\n\
+        \"qnice\" without arguments will start an interactive session\n\
+        \"qnice -h\" will print this help text\n\
+        \"qnice -a <disk_image>\" will attach an SD-card image file\n\
+        \"qnice -a <disk_image> <file.bin> \" attaches an images and runs a file\n\
+        \"qnice <file.bin>\" will run in batch mode and print statistics\n\n");
+      return 0;
+    }
+#ifdef USE_SD
+    else if (!strcmp(*argv, "-a")) /* We will try to attach an SD-disk image... */
+    {
+      if (!*++argv) /* No more arguments! */
+      {
+        printf("Expected a filename after -a but none found.\n");
+        return -1;
+      }
+
+      sd_attach(*argv++);
+    }
+#endif
+
+    if (*argv)
+    {
+      if (load_binary_file(*argv))
         return -1;
 
       run();
       print_statistics();
     }
-
   }
 
   for (;;)
@@ -937,12 +984,15 @@ int main(int argc, char **argv)
     fgets(command, STRING_LENGTH, stdin);
     chomp(command);
     if (feof(stdin)) 
+    {
+#ifdef USE_SD
+      sd_detach();
+#endif
       return 0;
+    }
 
     if (last_command_was_step && !strlen(command)) /* If STEP was the last command and this is empty, perform the next step. */
       strcpy(command, "STEP");
-
-//    upstr(command);
 
     last_command_was_step = 0;
     tokenize(command, NULL); /* Initialize tokenizing */
@@ -950,7 +1000,12 @@ int main(int argc, char **argv)
     {
       upstr(token);
       if (!strcmp(token, "QUIT") || !strcmp(token, "EXIT"))
+      {
+#ifdef USE_SD
+        sd_detach();
+#endif
         return 0;
+      }
       else if (!strcmp(token, "CB"))
         gbl$breakpoint = -1;
       else if (!strcmp(token, "SB"))
@@ -959,12 +1014,19 @@ int main(int argc, char **argv)
       {
         start = str2int(tokenize(NULL, delimiters));
         stop  = str2int(tokenize(NULL, delimiters));
+        *scratch = (char) 0;
         for (i = start; i <= stop; i++)
         {
           if (!((i - start) % 8)) /* New row */
-            printf("\n%04x: ", i);
+          {
+            scratch[16] = (char) 0;
+            printf("\t%s\n%04x: ", scratch, i);
+            j = 0;
+          }
 
-          printf("%04x ", access_memory(i, READ_MEMORY, 0));
+          printf("%04x ", value = access_memory(i, READ_MEMORY, 0));
+          scratch[j++] = isprint((value & 0xff00) > 8) ? (char) (value & 0xff00) > 8 : ' ';
+          scratch[j++] = isprint(value & 0xff) ? (char) value & 0xff : ' ';
         }
         printf("\n");
       }
@@ -974,7 +1036,8 @@ int main(int argc, char **argv)
           printf("SAVE expects at least a filename as its 1st parameter!\n");
         else
         {
-          if (!(handle = fopen(token, "w")))
+          wordexp(token, &expanded_filename, 0);
+          if (!(handle = fopen(expanded_filename.we_wordv[0], "w")))
             printf("Unable to create file >>%s<<\n", token);
           else
           {
@@ -992,8 +1055,25 @@ int main(int argc, char **argv)
         if (!(token = tokenize(NULL, delimiters)))
           printf("LOAD expects a filename as its 1st parameter!\n");
         else
-          load_binary_file(token);
+        {
+          wordexp(token, &expanded_filename, 0);
+          load_binary_file(expanded_filename.we_wordv[0]);
+        }
       }
+#ifdef USE_SD
+      else if (!strcmp(token, "ATTACH")) /* Attach a disk image to the SD-simulation */
+      {
+        if (!(token = tokenize(NULL, delimiters)))
+          printf("ATTACH expects a filename as its 1st parameter!\n");
+        else
+        {
+          wordexp(token, &expanded_filename, 0);
+          sd_attach(expanded_filename.we_wordv[0]);
+        }
+      }
+      else if (!strcmp(token, "DETACH"))
+        sd_detach();
+#endif
       else if (!strcmp(token, "RDUMP"))
         dump_registers();
       else if (!strcmp(token, "SET"))
@@ -1048,8 +1128,10 @@ int main(int argc, char **argv)
       }
       else if (!strcmp(token, "HELP"))
         printf("\n\
+ATTACH <FILENAME>              Attach a disk image file (only with SD-support)\n\
 CB                             Clear Breakpoint\n\
 DEBUG                          Toggle debug mode (for development only)\n\
+DETACH                         Detach a disk image file\n\
 DIS  <START>, <STOP>           Disassemble a memory region\n\
 DUMP <START>, <STOP>           Dump a memory area, START and STOP can be\n\
                                hexadecimal or plain decimal\n\

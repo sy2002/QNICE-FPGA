@@ -16,19 +16,11 @@
                 MOVE    STR_TITLE, R8
                 SYSCALL(puts, 1)
 
-                ; read string
-                MOVE    STRBUFFER, R0                
+                ; read string             
                 MOVE    STR_STRING, R8
-                SYSCALL(puts, 1)                
-INPUT_LOOP      SYSCALL(getc, 1)
-                SYSCALL(putc, 1)
-                CMP     R8, 0x000D              ; accept CR as line end
-                RBRA    INPUT_END, Z
-                CMP     R8, 0x000A              ; accept LF as line end
-                RBRA    INPUT_END, Z
-                MOVE    R8, @R0++               ; store character
-                RBRA    INPUT_LOOP, 1
-INPUT_END       MOVE    0, @R0                  ; add zero terminator
+                SYSCALL(puts, 1)
+                MOVE    STRBUFFER, R8
+                SYSCALL(gets, 1)
                 SYSCALL(crlf, 1)
 
                 ; read delimiter

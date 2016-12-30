@@ -120,7 +120,7 @@ Using the File System
   [doc/constraints.txt](doc/constraints.txt) to understand what works and what
   does not.
 
-* Copy the folder `qbin from the QNICE-FPGA root folder to your SD Card. It
+* Copy the folder `qbin` from the QNICE-FPGA root folder to your SD Card. It
   contains some nice demo programs in the directly loadable `.out` file
   format.
 
