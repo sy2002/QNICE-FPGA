@@ -1,0 +1,21 @@
+VBCC is able to use QNICE's register bank feature:
+
+If -opt-speed is set, then VBCC evaluates -rw-threshold, which is 2 by
+default. It means: As soon as more than 2 registers need to be saved, then
+bank switching is performed.
+
+If you need to prevent this, e.g. because you have a recursive function, then
+use the __norbank directive:
+
+__norbank void highly_recursive(int x, int y, int z)
+{
+    ...
+}
+
+If you want to force it, even when the to-be-saved registers are smaller than
+treshold, then use the __rbank directive:
+
+__rbank void always_use_bankswitching(int x)
+{
+    ...
+}
