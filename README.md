@@ -37,7 +37,7 @@ Getting Started
 
 * Hardware: Currently, we develop QNICE-FPGA on a Nexys 4 DDR development
   board, so if you own one, the fastest way of getting started is to
-  download the bitstream file `dist_kit/qnice-v14.bit` on a microSD card or
+  download the bitstream file `dist_kit/qnice-v141.bit` on a microSD card or
   a USB stick, insert it into the Nexys board and set the jumpers to read the
   FPGA configuration from the SD card or USB stick. Do not copy more than one
   `*.bit` file on the SD card, i.e. do not copy `dist_kit/q-tris.bit`, yet.
@@ -167,7 +167,7 @@ Have a look at the current highscore in
 
 The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
 for the QNICE-FPGA: Just use `dist_kit/q-tris.bit` instead of the
-above-mentioned `dist_kit/qnice-v14.bit`. Or, you can run it regularly as an
+above-mentioned `dist_kit/qnice-v141.bit`. Or, you can run it regularly as an
 app within the Monitor environment:
 
 * If you copied the `qbin` folder on your SD Card, you can load and run it
