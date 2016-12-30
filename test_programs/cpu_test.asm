@@ -10,7 +10,9 @@
                 ; the address where the HALT occured.
                 ;
                 ; 05-MAY-2016   Bernd Ulmann
-                ; 30-DEC-2016   sy2002: Added the ADD @--R4, R4 testcase
+                ; 30-DEC-2016   sy2002: Added these testcases: ADD R4, @--R4; ADD @--R4, R4;
+                ;                                              ADD @--R4, @R4; ADD @R4, @--R4;
+                ;                                              ADD @--R4, @--R4
                 ;
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -94,6 +96,14 @@ M8              MOVE    M8_VAR, R4
                 ADD     3, R4
                 ADD     @--R4, @--R4
                 CMP     @R4, 0x1976
+                RBRA    M9, Z
+                HALT
+                ; ADD @R4, @--R4
+M9_VAR          .DW     0x1100, 0x4455
+M9              MOVE    M9_VAR, R4
+                ADD     1, R4
+                ADD     @R4, @--R4
+                CMP     @R4, 0x5555
                 RBRA    CPU_OK, Z
                 HALT
 
