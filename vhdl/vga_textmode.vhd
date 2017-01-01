@@ -32,7 +32,7 @@
 -- register 5: vga read/write offset register used for accessing the whole vram (0..63999)
 --
 -- this component uses Javier Valcarce's vga core
--- http://www.javiervalcarce.eu/wiki/VHDL_Macro:_VGA80x40
+-- http://www.javiervalcarce.eu/html/vhdl-vga80x40-en.html
 
 -- how to make fonts, see http://nafe.sourceforge.net/
 -- then use the psf2coe.rb and then coe2rom.pl toolchain to generate .rom files

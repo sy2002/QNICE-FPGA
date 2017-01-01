@@ -32,6 +32,10 @@
 # include "ide_simulation.h"
 #endif
 
+#ifdef USE_VGA
+# include "vga.h"
+#endif
+
 /*
 ** Some preliminaries...
 */
@@ -929,53 +933,20 @@ void dump_registers()
   printf("\n\n");
 }
 
-int main(int argc, char **argv)
+int main_loop(char **argv)
 {
   char command[STRING_LENGTH], *token, *delimiters = " ,", scratch[STRING_LENGTH];
   unsigned int start, stop, i, j, address, value, last_command_was_step = 0;
   wordexp_t expanded_filename;
   FILE *handle;
 
-  signal(SIGINT, signal_handler_ctrl_c);
-  reset_machine();
-
-#ifdef USE_IDE
-  initializeIDEDevice();
-#endif
-
-  if (*++argv) /* At least one argument */
+  if (*argv)
   {
-    if (!strcmp(*argv, "-h"))
-    {
-      printf("\nUsage:\n\
-        \"qnice\" without arguments will start an interactive session\n\
-        \"qnice -h\" will print this help text\n\
-        \"qnice -a <disk_image>\" will attach an SD-card image file\n\
-        \"qnice -a <disk_image> <file.bin> \" attaches an images and runs a file\n\
-        \"qnice <file.bin>\" will run in batch mode and print statistics\n\n");
-      return 0;
-    }
-#ifdef USE_SD
-    else if (!strcmp(*argv, "-a")) /* We will try to attach an SD-disk image... */
-    {
-      if (!*++argv) /* No more arguments! */
-      {
-        printf("Expected a filename after -a but none found.\n");
-        return -1;
-      }
-
-      sd_attach(*argv++);
-    }
-#endif
-
-    if (*argv)
-    {
       if (load_binary_file(*argv))
         return -1;
 
       run();
       print_statistics();
-    }
   }
 
   for (;;)
@@ -1156,4 +1127,59 @@ VERBOSE                        Toggle verbosity mode\n\
         printf("main: Unknown command >>%s<<\n", token);
     }
   }
+}
+
+#ifdef USE_VGA
+static int emulator_main_loop(void* param)
+{
+    return main_loop((char**) param);
+}
+#endif
+
+int main(int argc, char **argv)
+{
+  signal(SIGINT, signal_handler_ctrl_c);
+  reset_machine();
+
+#ifdef USE_IDE
+  initializeIDEDevice();
+#endif
+
+  if (*++argv) /* At least one argument */
+  {
+    if (!strcmp(*argv, "-h"))
+    {
+      printf("\nUsage:\n\
+        \"qnice\" without arguments will start an interactive session\n\
+        \"qnice -h\" will print this help text\n\
+        \"qnice -a <disk_image>\" will attach an SD-card image file\n\
+        \"qnice -a <disk_image> <file.bin> \" attaches an images and runs a file\n\
+        \"qnice <file.bin>\" will run in batch mode and print statistics\n\n");
+      return 0;
+    }
+#ifdef USE_SD
+    else if (!strcmp(*argv, "-a")) /* We will try to attach an SD-disk image... */
+    {
+      if (!*++argv) /* No more arguments! */
+      {
+        printf("Expected a filename after -a but none found.\n");
+        return -1;
+      }
+
+      sd_attach(*argv++);
+    }
+#endif
+  }
+
+#ifndef USE_VGA
+  return main_loop(argv);
+#else
+  if (vga_init() && vga_create_thread(emulator_main_loop, (void*) argv) && vga_main_loop())
+  {
+    vga_shutdown();
+    return 0;
+  }
+  else
+    return -1;
+#endif
 }

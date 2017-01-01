@@ -1,0 +1,7 @@
+Minimum requirements to work with QNICE-FPGA:
+
+* bash
+* CC or GCC
+* perl
+* If you want to synthesize your own bitstream (.bit): Xilinx ISE
+
