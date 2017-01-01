@@ -7,7 +7,11 @@
 #ifndef _QEMU_VGA_FONT
 #define _QEMU_VGA_FONT
 
-#define QNICE_FONT_SIZE 3072
+// 8x12 font with 256 characters
+#define QNICE_FONT_CHAR_DX_BITS     8
+#define QNICE_FONT_CHAR_DY_BYTES    12
+#define QNICE_FONT_CHARS            256
+#define QNICE_FONT_SIZE             (QNICE_FONT_CHAR_DY_BYTES * 256)
 
 static unsigned char qnice_font[QNICE_FONT_SIZE] =
 {
