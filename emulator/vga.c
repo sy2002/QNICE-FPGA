@@ -11,8 +11,8 @@
 
 static Uint16   vram[65535];
 static Uint16   vga_state;
-static Uint8    vga_x;
-static Uint8    vga_y;
+static Uint16   vga_x;
+static Uint16   vga_y;
 static Uint16   vga_offs_display ;
 static Uint16   vga_offs_rw;
 
@@ -26,11 +26,15 @@ unsigned int vga_read_register(unsigned int address)
     switch (address)
     {
         case VGA_STATE:         return vga_state;
-        case VGA_CR_X:          return vga_x;
-        case VGA_CR_Y:          return vga_y;
-        case VGA_CHAR:          return vram[vga_y * screen_dy + vga_x + vga_offs_rw];
         case VGA_OFFS_DISPLAY:  return vga_offs_display;
-        case VGA_OFFS_RW:       return vga_offs_rw;            
+        case VGA_OFFS_RW:       return vga_offs_rw;
+
+        /* The hardware is currently as of hardware revision V1.41 returning only part of the
+           register bits, so we are emulating this here. See "read_vga_registers" in
+           the file "vga_textmode.vhd". */
+        case VGA_CR_X:          return vga_x & 0x00FF;
+        case VGA_CR_Y:          return vga_y & 0x007F;
+        case VGA_CHAR:          return vram[((vga_y * screen_dx + vga_x) & 0x0FFF) + vga_offs_rw] & 0x00FF;
     }
 
     return 0;
@@ -41,11 +45,16 @@ void vga_write_register(unsigned int address, unsigned int value)
     switch (address)
     {
         case VGA_STATE:         vga_state = value;          break;
-        case VGA_CR_X:          vga_x = value;              break;
-        case VGA_CR_Y:          vga_y = value;              break;
-        case VGA_CHAR:          vram[vga_y * screen_dx + vga_x + vga_offs_rw] = value; break;
         case VGA_OFFS_DISPLAY:  vga_offs_display = value;   break;
         case VGA_OFFS_RW:       vga_offs_rw = value;        break;
+
+        /* As you can see in "write_vga_registers" in file "vga_textmode.vhd" of hardware
+           revision V1.41, there are some distinct - and from my today's one year later view
+           *strange* - things happening when it comes to handling coordinate overflows.
+           To be truly compatible to the hardware, we need to emulate this behaviour. */
+        case VGA_CR_X:          vga_x = value & 0x00FF;     break;
+        case VGA_CR_Y:          vga_y = value & 0x007F;     break;
+        case VGA_CHAR:          vram[((vga_y * screen_dx + vga_x) & 0x0FFF) + vga_offs_rw] = value; break;
     }
 }
 
@@ -99,9 +108,9 @@ SDL_Texture* vga_create_font_texture(SDL_Renderer* renderer)
                     *target_pixel = qnice_font[y_coord] & (128 >> char_x) ? 0x0000ff00 : 0;
                 }
         SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_FreeSurface(surface);        
         if (texture)
             return texture;
-        SDL_FreeSurface(surface);
     }
 
     return 0;
@@ -175,6 +184,6 @@ int vga_main_loop()
 
 void vga_clear_screen()
 {
-    for (int i = 0; i < 65536; i++)
+    for (int i = 0; i < 65535; i++)
         vram[i] = ' ';
 }
