@@ -6,9 +6,7 @@ branch to the regular development folder and/or even release it:
 
 * Multiple Window sizes (640x480, Doubled, 16:9, ..., even free sizing?)
 
-* Full Screen
-
-* Regular starting/stopping of app (inter thread-communication necessary)
+* Full Screen mode (aspect ratio can be chosen: 4:3 or 16:9)
 
 * Emulate all VGA register commands
 
@@ -16,7 +14,14 @@ branch to the regular development folder and/or even release it:
   PS2/USB support, including: German umlauts, U.S. keyboard layout, Mac
   keyboard nitty gritties (e.g. < > ° ^).
 
+* Implement regular thread safety (e.g. the equivalents of Critical Sections
+  when accessing registers).
+
+* Regular starting/stopping of app (inter thread-communication necessary)
+
 Optional:
+
+* Add a make file option that makes a macOS APP bundle
 
 * Test, if compilation and running works under Linux (e.g. Ubuntu)
 
