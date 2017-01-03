@@ -102,17 +102,19 @@ ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
 
 EMULATOR:
 
-* Emulate the VGA output and the USB keyboard (maybe using something like
-  LIBSDL? SFML? GLFW?). Optimally, the whole thing would by totally
-  dynamically loaded so that the emulator continues to run on text only
-  systems and on systems that don't have a multimedia library installed.
-  If this does not work, then we should just work with #defines within
-  the Emulator's code and compile two versions, like "qnice" and "qnice_vga".
+WIP branch "develop-vga-emu": Emulate the VGA output and the USB keyboard.
 
 
 NATIVE TOOLCHAIN: ASSEMBLER:
 
-<currently no TODOs>
+* Linux: Make sure - also by using tools/detect.include - that the whole
+  bootstrap process (tools/make-toolchain.sh) as well as the native
+  toolchain's "asm" command work under Linux. That means, that "pbcopy" must
+  be dynamically replaced there.
+
+* Windows 10 with bash: Ditto (should work like Linux).
+
+* Windows with MinGW: Still necessary? Only Windows 10 with bash?
 
 
 VBCC TOOLCHAIN: C COMPILER:
