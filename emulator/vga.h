@@ -1,5 +1,5 @@
 /*
-** Header file for the VGA emulation.
+** Header file for the VGA and PS2/USB keyboard emulation.
 **
 ** done by sy2002 in December 2016 .. Januar 2017
 */
@@ -9,10 +9,15 @@
 
 #include "SDL.h"
 
+#define VGA_CURSOR_BLINK_SPEED 500  //milliseconds between cursor on/off
+
 typedef int (vga_tft)(void*);
 
 unsigned int vga_read_register(unsigned int address);
 void vga_write_register(unsigned int address, unsigned int value);
+
+unsigned int kbd_read_register(unsigned int address);
+void kbd_write_register(unsigned int address, unsigned int value);
 
 int vga_init();
 void vga_shutdown();
