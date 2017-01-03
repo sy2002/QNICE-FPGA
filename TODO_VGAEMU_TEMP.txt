@@ -1,0 +1,25 @@
+TODO LIST FOR VGAEMU
+====================
+
+When this list is done, then it makes sense to move the VGA emulator from this
+branch to the regular development folder and/or even release it:
+
+* Multiple Window sizes (640x480, Doubled, 16:9, ..., even free sizing?)
+
+* Full Screen
+
+* Regular starting/stopping of app (inter thread-communication necessary)
+
+* Emulate all VGA register commands
+
+* Bring the keyboard emulation on the same level, as the existing hardware
+  PS2/USB support, including: German umlauts, U.S. keyboard layout, Mac
+  keyboard nitty gritties (e.g. < > ° ^).
+
+Optional:
+
+* Test, if compilation and running works under Linux (e.g. Ubuntu)
+
+* Test, if compilation and running works under Windows
+
+* Use sysdef.h also in the main file qnice.c
