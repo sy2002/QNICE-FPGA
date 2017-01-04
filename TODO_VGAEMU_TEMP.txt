@@ -16,8 +16,10 @@ branch to the regular development folder and/or even release it:
   (switchable, using defines) shall give us after a longer round of playing
   a pretty exact view, how the command throughput on hardware is. This can
   be then emulated using the high precision counter and frequency commands
-  from SDL. Probably the speed in the Emulator depends on the display size
-  (640x480 vs ...), so we need to take care of that, too.
+  from SDL. Maybe even an "auto" mode can be implemented, that tries to
+  adjust the speed in realtime, depending on the machine where the
+  Emulator runs. Probably the speed in the Emulator depends on the display
+  size (640x480 vs ...), so we need to take care of that, too.
 
 * Multiple Window sizes (640x480, Doubled, 16:9, ..., even free sizing?)
 
