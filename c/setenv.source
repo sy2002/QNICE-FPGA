@@ -1,3 +1,0 @@
-export PATH=$PATH:$PWD/vbcc/bin:$PWD/qnice
-export VBCC=$PWD/vbcc
-export DIST_KIT=$PWD/../dist_kit

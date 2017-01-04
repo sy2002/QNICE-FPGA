@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-vc $1 -o ${1/.c/}.bin "${@:2}"
-qniceconv 0x8000 < ${1/.c/}.bin > ${1/.c/}.out
-cat ${1/.c/}.out | pbcopy

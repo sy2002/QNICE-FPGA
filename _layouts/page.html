@@ -1,0 +1,35 @@
+---
+layout: default
+---
+
+<div class="page">
+  <h1 class="page-title">{{ page.title }}</h1>
+  {{ content }}
+</div>
+
+{% if page.show_webring  %}
+<!-- ========================================== -->
+<!-- Include this code in each page on the Ring -->
+<p/>
+<center><h2>Homebuilt CPUs WebRing</h2>
+<p/>
+<script src="http://members.iinet.net.au/~daveb/simplex/webring.js"
+        language="JavaScript" type="text/javascript" ></script>
+<form action="http://members.iinet.net.au/~daveb/simplex/webring.js" name="ring" id="ring">
+<input type="button" value="Ring-Home" onclick="ringhome()" />
+<input type="button" value="Previous"  onclick="previous()" />
+<input type="button" value="Next"      onclick="next()" />
+<input type="button" value="Random"    onclick="random()" />
+</form>
+</center>
+<p/>
+<center>JavaScript by <a href="mailto:qirien@earthling.net">Qirien Dhaela</a></center>
+<p/>
+<h3>Join the ring?</h3>
+<p align="center">David Brooks, designer of the Simplex-III homebrew computer, has founded the Homebrew CPUs Web Ring. To join, drop David <a href="mailto:daveb@iinet.net.au">a line</a>,
+mentioning your page's URL. He'll then add it to the list.
+<br/>
+You will need to copy this code fragment into your page. <br/>
+<!-- End of code fragment, in all ring pages.   -->
+<!-- ========================================== -->
+{% endif %}
