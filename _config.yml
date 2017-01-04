@@ -9,14 +9,12 @@ permalink:        pretty
 title:            QNICE-FPGA
 tagline:          '16-bit System-on-a-Chip'
 description:      '16-bit System-on-a-Chip for learning, teaching and having fun.'
-url:              http://www.qnice-fpga.com
-baseurl:          /
+#url:              http://www.qnice-fpga.com
+#baseurl:          /
 
 author:
   name:           'sy2002'
   url:            http://www.sy2002.de
-
-paginate:         5
 
 # Custom vars
 version:          1.41
