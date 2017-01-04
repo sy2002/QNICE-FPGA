@@ -9,7 +9,7 @@ System-on-a-Chip in portable VHDL on a FPGA. Everything - from the hardware
 design in VHDL to the toolchain (assembler and C) is Open Source, so you can
 start hacking right away.
 
-![QNICE_Intro_Img](/public/intro.jpg)
+![QNICE_Intro_Img](public/intro.jpg)
 
 Specifications:
 ---------------
