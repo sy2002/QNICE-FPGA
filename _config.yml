@@ -10,7 +10,7 @@ title:            QNICE-FPGA
 tagline:          '16-bit System-on-a-Chip'
 description:      '16-bit System-on-a-Chip for learning, teaching and having fun.'
 # url:              http://www.qnice-fpga.com
-baseurl:          /
+# baseurl:          /
 
 author:
   name:           'sy2002'
