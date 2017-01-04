@@ -9,3 +9,16 @@ for QNICE-FPGA's project website and documentation:
 
 Switch to the [QNICE-FPGA Master Repository](https://github.com/sy2002/QNICE-FPGA)
 to work with the official release package.
+
+Important hint
+--------------
+
+Do not name any of the root-level folders like one of these, as they are part
+of .gitignore to allow a seamless switch between a regular QNICE git branch
+and this special website branch:
+
+* assembler
+* c
+* emulator
+* monitor
+* pore
