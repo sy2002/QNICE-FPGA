@@ -1,7 +1,7 @@
 ; Classical "Hello World!" example for getting started coding
 ; QNICE assembler using the native toolchain: First, it prints "Hello World!"
 ; and then it counts from 1 to 10 and prints "Count #x", where x is decimal
-; and goes from 1 to 10. So besides the simple "Hellow World!" printing, this
+; and goes from 1 to 10. So besides the simple "Hello World!" printing, this
 ; example also shows how to use "operating system" functions and how to do
 ; sub routine calls.
 ;
