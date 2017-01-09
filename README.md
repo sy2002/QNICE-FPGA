@@ -19,6 +19,8 @@ and this special website branch:
 
 * assembler
 * c
+* demos
 * emulator
 * monitor
 * pore
+* test_programs
