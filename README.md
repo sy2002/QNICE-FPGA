@@ -29,7 +29,8 @@ If you do have FPGA hardware, then read on to learn how to get started. If
 you don't, then you might want to use the emulator to experience QNICE.
 
 Switch to the [VGA Emulator Branch](https://github.com/sy2002/QNICE-FPGA/tree/develop-vga-emu)
-to use the emulator without hardware.
+to use the emulator without hardware and have a look at the README.md in
+that branch to learn more.
 
 Get started using actual FPGA hardware:
 
