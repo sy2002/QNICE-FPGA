@@ -42,8 +42,9 @@ Prerequisites:
 
 ### Steps to install, compile and run Q-TRIS
 
-1. Open a terminal and go to a folder, where git may create a subfolder called
-   `QNICE-FPGA` and enter `git clone https://github.com/sy2002/QNICE-FPGA.git`
+1. Open a terminal and go to a folder, where git is allowed to create a
+   subfolder called `QNICE-FPGA` and enter
+   `git clone https://github.com/sy2002/QNICE-FPGA.git`
 
 2. After that, you should have a folder called `QNICE-FPGA`. `cd` into that
    folder now. From now, all instructions will be relative to this folder.
@@ -84,7 +85,7 @@ Prerequisites:
 17. Check, if you have an executable called `qnice-vga` in your `emulator`
     folder now.
 
-18. Copy the content of the file `QNICE-FPGA/demos/q-tris.out` in your 
+18. Copy the content of the file `../demos/q-tris.out` in your 
     clipboard. If you are on a Mac and if you are still in the folder
     of the emulator, then conveniently enter
     `cat ../demos/q-tris.out | pbcopy` to do that. On other OS you might
@@ -98,7 +99,10 @@ Prerequisites:
     is the emulated QNICE terminal window running the "Monitor" operating
     system.
 
-20. Click on the QNICE terminal window to give it the keyboard focus and
+20. Click on the QNICE terminal window to give it the keyboard focus. You
+    should see a blinking cursor and the prompt `QMON>`. If you see a black
+    screen, then this is the wrong window (VGA monitor emulation, that is
+    still black as the game is not loaded, yet). Being at the `QMON>` prompt,
     press `H` for "Help" to test, if everything works. You should see the
     help text of the Monitor.
 
