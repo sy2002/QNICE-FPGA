@@ -1,9 +1,13 @@
+[develop-vga-emu branch]
+========================
+
 QNICE-FPGA  16-bit System-on-a-Chip
 ===================================
 
 **YOU SELECTED THE BRANCH develop-vga-emu WHICH IS COOL BUT NOT YET REALLY
-STABLE. SWITCH BACK TO MASTER UNLESS YOU WANT TO PLAY Q-TRIS ON YOUR WINDOWS,
-MAC OR LINUX MACHINE IN THE VGA EMULATOR. IN THE LATTER CASE, READ ON.**
+STABLE. I RECOMMEND THAT YOU SWITCH BACK TO THE BRANCH master.
+STAY HERE, IF YOU WANT TO PLAY Q-TRIS ON YOUR WINDOWS, MAC OR LINUX MACHINE IN
+THE VGA EMULATOR.**
 
 Development Branch for the VGA Emulator
 ---------------------------------------
@@ -40,15 +44,23 @@ Prerequisites:
    `QNICE-FPGA` and enter `git clone https://github.com/sy2002/QNICE-FPGA.git`
 
 2. After that, you should have a folder called `QNICE-FPGA`. `cd` into that
-   folder now.
+   folder now. From now, all instructions will be relative to this folder.
 
+3. `git checkout develop-vga-emu`
 
+4. Check if this worked by entering `git branch` and see, if you see
+   something like
+   ```
+* develop-vga-emu
+  master
+   ```   
 
-
-![QNICE_Intro_Img](doc/github/intro.jpg)
+5. 
 
 What is QNICE-FPGA?
 -------------------
+
+![QNICE_Intro_Img](doc/github/intro.jpg)
 
 QNICE-FPGA is a 16-bit computer system build as a fully-fledged
 system-on-a-chip in portable VHDL on a FPGA. Specifications:
