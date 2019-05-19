@@ -25,6 +25,14 @@ The main purpose of QNICE-FPGA is learning, teaching and having fun.
 Getting Started
 ---------------
 
+If you do have FPGA hardware, then read on to learn how to get started. If
+you don't, then you might want to use the emulator to experience QNICE.
+
+Switch to the [VGA Emulator Branch](https://github.com/sy2002/QNICE-FPGA/tree/develop-vga-emu)
+to use the emulator without hardware.
+
+Get started using actual FPGA hardware:
+
 * Clone GitHub repo: Make sure you have `git` installed on your computer,
   open a Terminal or Command Line. We will automatically create a subdirectory
   called QNICE-FPGA, so navigate to an appropriate folder. Use this command
