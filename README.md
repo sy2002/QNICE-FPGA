@@ -28,6 +28,8 @@ version of the VGA version of the QNICE emulator. As it uses SDL2, it is
 portable and should run on Windows, Mac as well as Linux. As for now, I only
 did test it on a Mac.
 
+![QNICE_VGA_EMU_Img](doc/github/vgaemu.jpg)
+
 Prerequisites:
 
 * Make sure you have `git` installed on your computer, because
@@ -49,13 +51,75 @@ Prerequisites:
 3. `git checkout develop-vga-emu`
 
 4. Check if this worked by entering `git branch` and see, if you see
-   something like
-   ```
-* develop-vga-emu
-  master
-   ```   
+   something like `* develop-vga-emu`.
 
-5. 
+5. `cd tools`
+
+6. `./make-toolchain.sh` 
+
+7. Answer all questions you are being asked by pressing `ENTER` to choose
+   the proposed default answer.
+
+8. Check, if you see a message like `QNICE: Toolchain successfully made, if
+   you do not see any error messages above.`
+
+9. `cd ../demos`
+
+10. `../assembler/asm q-tris.asm`
+
+11. Check, if you see something like `qasm2rom: 4580 ROM lines written.`
+
+12. `cd ../monitor`
+
+13. `../assembler/asm monitor.asm`
+
+14. It is OK, to see warnings about `Unicode character <U+2212>`. Just ignore
+    them, but what you should see at the end of the process is something like
+    `qasm2rom: 6477 ROM lines written.`
+
+15. `cd ../emulator`
+
+16. `./make-vga.bash`
+
+17. Check, if you have an executable called `qnice-vga` in your `emulator`
+    folder now.
+
+18. Copy the content of the file `QNICE-FPGA/demos/q-tris.out` in your 
+    clipboard. If you are on a Mac and if you are still in the folder
+    of the emulator, then conveniently enter
+    `cat ../demos/q-tris.out | pbcopy` to do that. On other OS you might
+    want to open the `.out` file in any text editor and manually copy
+    *all the contents* into your clipboard. Make sure to go back to the
+    `emulator` folder afterwards.
+
+19. Start the VGA emulator by entering `./qnice-vga ../monitor/monitor.out`.
+    This will load the "operating system" called "Monitor" and show two
+    windows: One window is the emulated VGA screen and the other window
+    is the emulated QNICE terminal window running the "Monitor" operating
+    system.
+
+20. Click on the QNICE terminal window to give it the keyboard focus and
+    press `H` for "Help" to test, if everything works. You should see the
+    help text of the Monitor.
+
+21. Enter `M` and then `L` into the Monitor window. After that, you should
+    see something like `QMON> MEMORY/LOAD - ENTER ADDRESS/VALUE PAIRS,
+    TERMINATE WITH CTRL-E`
+
+22. Now *PASTE* what you copied in step (18) into the Monitor terminal
+    window. (Make sure, that you did not overwrite your clipboard in step (19)
+    by copying the emulator start command into your clipboard.). You should
+    see a ton of numbers being pasted (and on Mac you might even hear
+    the "terminal bell" from time to time). The last numbers are `91AD000000`.
+
+23. Press `CTRL-E` now, to go back to the Monitor.
+
+24. Enter `C` and then `R` and then `8000`.
+
+25. The Q-TRIS start screen should be immediatelly visible in the VGA
+    monitor window. Click it to pass the focus, press `SPACE` and start
+    playing. It might be a bit fast, as I did not yet implement a simulation
+    of the correct speed of the QNICE-FPGA hardware.
 
 What is QNICE-FPGA?
 -------------------
