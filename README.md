@@ -95,9 +95,9 @@ Prerequisites:
 
 19. Start the VGA emulator by entering `./qnice-vga ../monitor/monitor.out`.
     This will load the "operating system" called "Monitor" and show two
-    windows: One window is the emulated VGA screen and the other window
-    is the emulated QNICE terminal window running the "Monitor" operating
-    system.
+    windows: One window is the emulated VGA screen (black) and the other
+    window is the emulated QNICE terminal window running the "Monitor"
+    operating system and showing a blinking cursor and a `QMON>` prompt.
 
 20. Click on the QNICE terminal window to give it the keyboard focus. You
     should see a blinking cursor and the prompt `QMON>`. If you see a black
