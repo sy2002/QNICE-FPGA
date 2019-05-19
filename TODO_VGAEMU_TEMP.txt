@@ -4,11 +4,11 @@ TODO LIST FOR VGAEMU
 When this list is done, then it makes sense to move the VGA emulator from this
 branch to the regular development folder and/or even release it:
 
-* Package a working monitor.ou and a playable Q-TRIS and or make
+* Package a working monitor.out and a playable Q-TRIS and/or make
   a small FAT32 mountable file with the goal of having a small
   instruction / documentation somewhere, that brings a playable
   Q-Tris right after downloading the repo. (Might be part of
-  the overall "getting started") routine as a motivational element.)
+  the overall "getting started") routine as a motivational element.
 
 * Fix the bug, that CTRL+C only works, when the Monitor has been loaded
   via the command line, but not, when it has been loaded via the "load"

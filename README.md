@@ -116,7 +116,8 @@ Prerequisites:
     see a ton of numbers being pasted (and on Mac you might even hear
     the "terminal bell" from time to time). The last numbers are `91AD000000`.
 
-23. Press `CTRL-E` now, to go back to the Monitor.
+23. Press `CTRL-E` now, to go back to the Monitor. You should see the `QMON>`
+    prompt again.
 
 24. Enter `C` and then `R` and then `8000`.
 
@@ -124,6 +125,9 @@ Prerequisites:
     monitor window. Click it to pass the focus, press `SPACE` and start
     playing. It might be a bit fast, as I did not yet implement a simulation
     of the correct speed of the QNICE-FPGA hardware.
+
+There are a lot of TODOs and known issues as you can see in
+[TODO_VGAEMU_TEMP.txt](TODO_VGAEMU_TEMP.txt). Feedback and PRs welcome.
 
 What is QNICE-FPGA?
 -------------------
