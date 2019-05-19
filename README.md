@@ -1,6 +1,50 @@
 QNICE-FPGA  16-bit System-on-a-Chip
 ===================================
 
+**YOU SELECTED THE BRANCH develop-vga-emu WHICH IS COOL BUT NOT YET REALLY
+STABLE. SWITCH BACK TO MASTER UNLESS YOU WANT TO PLAY Q-TRIS ON YOUR WINDOWS,
+MAC OR LINUX MACHINE IN THE VGA EMULATOR. IN THE LATTER CASE, READ ON.**
+
+Development Branch for the VGA Emulator
+---------------------------------------
+
+You can use the VGA Emulator to experience QNICE even without having any
+real FGPA hardware and software.
+
+Originally, when doing this development branch for the VGA Emulator in 
+January 2017, I thought this will be just a quick temporary branch, as I would
+soon finish it. Now, at the time of writing this in May 2019 I saw, that other
+projects drew my attention and that therefore this project is currently dormant.
+
+So to preserve the `develop-vga-emu project` at least in a "runable" state,
+I decided to document, how you can use it.
+
+Here are the instructions of how to play Q-TRIS using the first experimental
+version of the VGA version of the QNICE emulator. As it uses SDL2, it is
+portable and should run on Windows, Mac as well as Linux. As for now, I only
+did test it on a Mac.
+
+Prerequisites:
+
+* Make sure you have `git` installed on your computer, because
+  some build scripts rely on the fact, that there is an underlying git
+  repository. That means just downloading this repo from GitHub is not enough.
+* Have SDL2 installed. On macOS, I recommend using [Homebrew](https://brew.sh/),
+  so that you can just enter `brew install SDL2`.
+* You need to have the GNU compiler toolchain
+  installed, particularly `gcc` and `make` will be used.
+
+### Steps to install, compile and run Q-TRIS
+
+1. Open a terminal and go to a folder, where git may create a subfolder called
+   `QNICE-FPGA` and enter `git clone https://github.com/sy2002/QNICE-FPGA.git`
+
+2. After that, you should have a folder called `QNICE-FPGA`. `cd` into that
+   folder now.
+
+
+
+
 ![QNICE_Intro_Img](doc/github/intro.jpg)
 
 What is QNICE-FPGA?
