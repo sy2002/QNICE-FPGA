@@ -31,6 +31,12 @@ const int font_dy = QNICE_FONT_CHAR_DY_BYTES;
 
 static bool cursor = false;
 
+SDL_Window* win;
+SDL_Renderer* renderer;
+SDL_Texture* font_tex;
+SDL_Event event;
+bool event_quit;
+
 unsigned int kbd_read_register(unsigned int address)
 {
     switch (address)
@@ -198,9 +204,41 @@ void vga_write_register(unsigned int address, unsigned int value)
     }
 }
 
+int vga_setup_emu()
+{
+    win = SDL_CreateWindow("QNICE Emulator", 100, 100, 640, 480, SDL_WINDOW_OPENGL);
+    if (win)
+    {
+        renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+        if (renderer)
+        {
+            font_tex = vga_create_font_texture(renderer);
+            if (font_tex)
+                return 1;
+            else
+            {
+                printf("Unable to create font texture: %s\n", SDL_GetError());
+                return 0;
+            }
+        }
+        else
+        {
+            printf("Unable to create renderer: %s\n", SDL_GetError());
+            return 0;
+        }
+    }
+    else
+    {
+        printf("Unable to create window: %s\n", SDL_GetError());
+        return 0;
+    }
+}
+
 int vga_init()
 {
+#ifndef __EMSCRIPTEN__
     SDL_SetMainReady();
+#endif
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
@@ -214,11 +252,14 @@ int vga_init()
     kbd_state = KBD_LOCALE_DE; //for now, we hardcode german keyboard layout
     kbd_data = 0;
 
-    return 1;
+    return vga_setup_emu();
 }
 
 void vga_shutdown()
 {
+    SDL_DestroyTexture(font_tex);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(win);
     SDL_Quit();
 }
 
@@ -237,7 +278,15 @@ int vga_create_thread(vga_tft thread_func, void* param)
     }
 }
 
-SDL_Texture* vga_create_font_texture(SDL_Renderer* renderer)
+void vga_clear_screen()
+{
+    vga_state |= VGA_BUSY | VGA_CLR_SCRN;
+    for (int i = 0; i < 65535; i++)
+        vram[i] = ' ';
+    vga_state &= ~(VGA_BUSY | VGA_CLR_SCRN);
+}
+
+SDL_Texture* vga_create_font_texture()
 {
 
     SDL_Surface* surface = SDL_CreateRGBSurface(0, 8, QNICE_FONT_SIZE, 32, 0, 0, 0, 0);
@@ -260,7 +309,7 @@ SDL_Texture* vga_create_font_texture(SDL_Renderer* renderer)
     return 0;
 }
 
-void vga_render_vram(SDL_Renderer* renderer, SDL_Texture* font_tex)
+void vga_render_vram()
 {
     SDL_Rect font_rect = {0, 0, font_dx, font_dy};
     SDL_Rect screen_rect = {0, 0, font_dx, font_dy};
@@ -275,7 +324,7 @@ void vga_render_vram(SDL_Renderer* renderer, SDL_Texture* font_tex)
         }
 }
 
-void vga_render_cursor(SDL_Renderer* renderer, SDL_Texture* font_tex)
+void vga_render_cursor()
 {
     static Uint32 milliseconds;
     if (vga_state & VGA_EN_HW_CURSOR)
@@ -295,68 +344,37 @@ void vga_render_cursor(SDL_Renderer* renderer, SDL_Texture* font_tex)
     }
 }
 
+void vga_one_iteration_keyboard()
+{
+    while (SDL_PollEvent(&event))
+    {
+        if (event.type == SDL_QUIT)
+            event_quit = true;
+
+        if (event.type == SDL_KEYDOWN)
+        {
+            SDL_Keycode keycode = ((SDL_KeyboardEvent*) &event)->keysym.sym;
+            SDL_Keymod keymod = SDL_GetModState();
+            kbd_handle_keydown(keycode, keymod);
+        }
+    }
+}
+
+void vga_one_iteration_screen()
+{
+    SDL_RenderClear(renderer);  
+    vga_render_vram();
+    vga_render_cursor();
+    SDL_RenderPresent(renderer);
+}
+
 int vga_main_loop()
 {
-    SDL_Window* win = SDL_CreateWindow("QNICE Emulator", 100, 100, 640, 480, SDL_WINDOW_OPENGL);
-    if (win)
+    event_quit = false;
+    while (!event_quit)
     {
-        SDL_Renderer* renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-        if (renderer)
-        {
-            SDL_Texture* font_tex = vga_create_font_texture(renderer);
-            if (font_tex)
-            {
-                SDL_Event e;
-                bool quit = false;
-                while (!quit)
-                {
-                    while (SDL_PollEvent(&e))
-                    {
-                        if (e.type == SDL_QUIT)
-                            quit = true;
-
-                        if (e.type == SDL_KEYDOWN)
-                        {
-                            SDL_Keycode keycode = ((SDL_KeyboardEvent*) &e)->keysym.sym;
-                            SDL_Keymod keymod = SDL_GetModState();
-                            kbd_handle_keydown(keycode, keymod);
-                        }
-                    }
-
-                    SDL_RenderClear(renderer);  
-                    vga_render_vram(renderer, font_tex);
-                    vga_render_cursor(renderer, font_tex);
-                    SDL_RenderPresent(renderer);
-                }
-                SDL_DestroyTexture(font_tex);
-                return 1;
-            }
-            else
-            {
-                printf("Unable to create font texture: %s\n", SDL_GetError());
-                return 0;
-            }
-            SDL_DestroyRenderer(renderer);
-        }
-        else
-        {
-            printf("Unable to create renderer: %s\n", SDL_GetError());
-            return 0;
-        }
-        SDL_DestroyWindow(win);        
+        vga_one_iteration_keyboard();
+        vga_one_iteration_screen();
     }
-    else
-    {
-        printf("Unable to create window: %s\n", SDL_GetError());
-        return 0;
-    }
+    return 1;
 }
-
-void vga_clear_screen()
-{
-    vga_state |= VGA_BUSY | VGA_CLR_SCRN;
-    for (int i = 0; i < 65535; i++)
-        vram[i] = ' ';
-    vga_state &= ~(VGA_BUSY | VGA_CLR_SCRN);
-}
-

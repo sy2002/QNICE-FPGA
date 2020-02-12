@@ -35,6 +35,12 @@ IMPORTANT: hdiutil is only able to create FAT32 images, when the size of the
 image (the "-megabytes" parameter) is larger than 32, so we use 33 in the
 above-mentioned example.
 
+IMPORTANT: In 2016, above-mentioned step (1) worked on my then current macOS
+and machine. In 2020, step (1) strangely enough led to 100% CPU usage without
+any file being created. Workaround: Remove the two "-srcfolder" statements,
+let hdiutil create an empty DMG and then mount it using Finder. Then manually
+copy the files you need. Then unmount and proceed with step (2).
+
 Creating a raw image file from an existing device
 -------------------------------------------------
 
@@ -59,7 +65,7 @@ to do it on a Mac:
 Mounting a raw image file
 -------------------------
 
-Use the new command like parameter -a to mount a far image file:
+Use the new command line parameter -a to mount a raw image file:
 
 ./qnice -a <raw image file>
 
@@ -99,3 +105,4 @@ Example of how to do it on a Mac:
 
 
 written by sy2002 in December 2016
+latest update by sy2002 in February 2020

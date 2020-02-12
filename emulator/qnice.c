@@ -7,31 +7,52 @@
 **            xx-AUG-2015...xx-MAY-2016...
 **            28-DEC-2016, 29-DEC-2016
 **
+** sy2002, on-again-off-again 2017 and 2020: vga emulator and emscripten
+**
+** The following defines are available:
+**
+**   USE_IDE   (currently always undefined)
+**   USE_SD
+**   USE_UART
+**   USE_VGA
+**
+** The different make scripts "make.bash", "make-vga.bash" and "make-emscripten" are defining these.
+** The emscripten environment is automatically defining __EMSCRIPTEN__.
 */
 
-#define USE_UART
-#define USE_SD
-#undef  USE_IDE
+#undef USE_IDE
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <wordexp.h>
-#include <ctype.h>
+
+#ifdef __EMSCRIPTEN__
+# include "emscripten.h"
+
+  const int hardcoded_argc = 2;
+  const char* hardcoded_argv[] = {
+    "qnice-wasm",
+    "monitor.out"
+  };
+
+#else
+# include <signal.h>
+#endif
 
 #include "../dist_kit/sysdef.h"
 
-#ifdef USE_UART
-# include "uart.h"
+#ifdef USE_IDE
+# include "ide_simulation.h"
 #endif
 
 #ifdef USE_SD
 # include "sd.h"
 #endif
 
-#ifdef USE_IDE
-# include "ide_simulation.h"
+#ifdef USE_UART
+# include "uart.h"
 #endif
 
 #ifdef USE_VGA
@@ -107,6 +128,19 @@ statistic_data gbl$stat;
 
 #ifdef USE_UART
 uart gbl$first_uart;
+#endif
+
+/*
+** QNICE VGA wordexp stub for emscripten
+** as wordexp is not yet supported by emscripten as of writing this port
+** see also https://github.com/emscripten-core/emscripten/issues/10403
+*/
+#ifdef __EMSCRIPTEN__
+int wordexp(const char *s, wordexp_t *p, int flags)
+{
+    p->we_wordv[0] = (char*) s;
+    return 0;
+}
 #endif
 
 /*
@@ -411,6 +445,11 @@ void reset_machine()
   for (i = 0; i < NO_OF_ADDRESSING_MODES; i++)
     gbl$stat.addressing_modes[0][i] = gbl$stat.addressing_modes[1][i] = 0;
   gbl$stat.memory_accesses[0] = gbl$stat.memory_accesses[1] = 0;
+
+  /* Route use the USB keyboard emulation for stdin and VGA for stdout */
+#ifdef __EMSCRIPTEN__
+  gbl$memory[IO_SWITCH_REG] = 3;
+#endif
 
   if (gbl$debug || gbl$verbose)
     printf("\treset_machine: done\n");
@@ -947,6 +986,19 @@ void dump_registers()
   printf("\n\n");
 }
 
+#ifdef __EMSCRIPTEN__
+void emscripten_one_iteration()
+{
+  for (int i = 0; i < 15000; i++)
+  {
+    if (i % 100 == 0)
+      vga_one_iteration_keyboard();
+    execute();
+  }
+  vga_one_iteration_screen();
+}
+#endif
+
 int main_loop(char **argv)
 {
   char command[STRING_LENGTH], *token, *delimiters = " ,", scratch[STRING_LENGTH];
@@ -1152,7 +1204,13 @@ static int emulator_main_loop(void* param)
 
 int main(int argc, char **argv)
 {
+#ifdef __EMSCRIPTEN__
+  argc = hardcoded_argc;
+  argv = (char**) hardcoded_argv;
+#else
   signal(SIGINT, signal_handler_ctrl_c);
+#endif
+
   reset_machine();
 
 #ifdef USE_IDE
@@ -1185,15 +1243,43 @@ int main(int argc, char **argv)
 #endif
   }
 
+// -----------------------------------------------------------------------------------------
+// Standard environment emulating an UART on a POSIX terminal
+// -----------------------------------------------------------------------------------------
 #ifndef USE_VGA
   return main_loop(argv);
 #else
-  if (vga_init() && vga_create_thread(emulator_main_loop, (void*) argv) && vga_main_loop())
+
+// -----------------------------------------------------------------------------------------
+// WebAssembly/WebGL environment
+// -----------------------------------------------------------------------------------------
+#  ifdef __EMSCRIPTEN__
+
+  if (*argv)
+  {
+      if (load_binary_file(*argv))
+        return -1;
+  }
+
+  emscripten_wget("myimage.img", "myimage.img");
+  sd_attach("myimage.img");
+
+  vga_init();
+  emscripten_set_main_loop(emscripten_one_iteration, 0, 0);
+  
+// -----------------------------------------------------------------------------------------
+// Multithreaded local environment
+// -----------------------------------------------------------------------------------------
+#  else
+
+  if (vga_init() && vga_create_thread(emulator_main_loop, (void*) argv) && vga_main_loop())  
   {
     vga_shutdown();
     return 0;
   }
   else
     return -1;
+
+#  endif
 #endif
 }
