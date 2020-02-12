@@ -6,8 +6,10 @@
 
 #include <stdbool.h>
 #include <string.h>
+
 #include "vga.h"
 #include "vga_font.h"
+
 #include "../dist_kit/sysdef.h"
 
 /* Currently, this is not threadsafe at all and therefore subject to strange
@@ -24,6 +26,11 @@ static Uint16   vga_offs_rw;
 
 static Uint16   kbd_state;
 static Uint16   kbd_data;
+const int       kbd_fifo_size = 100;
+static Uint16   kbd_fifo[kbd_fifo_size];
+static Uint16   kbd_fifo_cnt;
+static Uint16   kbd_fifo_head;
+static Uint16   kbd_fifo_tail;
 
 const int screen_dx = 80;
 const int screen_dy = 40;
@@ -44,6 +51,37 @@ unsigned long fps_framecounter;
 unsigned int fps;
 char fps_print_buffer[12];
 
+void fifo_push(Uint16 data)
+{
+    if (kbd_fifo_cnt < (kbd_fifo_size - 1))
+    {
+        kbd_fifo[kbd_fifo_head] = data;
+        kbd_fifo_cnt++;
+        if (kbd_fifo_head < (kbd_fifo_size - 1))
+            kbd_fifo_head++;
+        else
+            kbd_fifo_head = 0;
+        
+        //debug-only
+        //printf("Pushed: %c  Fifo-Head: %d, Fifo-Tail: %d, Fifo-Count: %d\n", kbd_data & 0x00FF, kbd_fifo_head, kbd_fifo_tail, kbd_fifo_cnt);
+    }
+}
+
+Uint16 fifo_pull()
+{
+    Uint16 retval = 0;
+    if (kbd_fifo_cnt)
+    {
+        retval = kbd_fifo[kbd_fifo_tail];
+        kbd_fifo_cnt--;
+        if (kbd_fifo_tail < (kbd_fifo_size -1))
+            kbd_fifo_tail++;
+        else
+            kbd_fifo_tail = 0;
+    }
+    return retval;    
+}
+
 unsigned int kbd_read_register(unsigned int address)
 {
     switch (address)
@@ -52,8 +90,18 @@ unsigned int kbd_read_register(unsigned int address)
             return kbd_state;
 
         case IO_KBD_DATA:
+#ifndef __EMSCRIPTEN__        
             kbd_state &= 0xFFFC; //clear new key indicators
             return kbd_data;
+#else
+            if (kbd_fifo_cnt)
+            {
+                //no more keys after this key?
+                if (kbd_fifo_cnt == 1)
+                    kbd_state &= 0xFFFC;
+                return fifo_pull();
+            }
+#endif
     }
 
     return 0;
@@ -141,6 +189,10 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
            As soon as the flag is set, the CPU in the parallel thread is
            likely to read the data. */
         kbd_state |= KBD_NEW_ASCII;
+
+#ifdef __EMSCRIPTEN__
+        fifo_push(kbd_data);
+#endif
     }
     else
     {
@@ -166,6 +218,10 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
 
         //see description above at KBD_NEW_ASCII
         kbd_state |= KBD_NEW_SPECIAL;
+
+#ifdef __EMSCRIPTEN__
+        fifo_push(kbd_data);
+#endif
     }
 }
 
@@ -261,6 +317,8 @@ int vga_init()
 
     sdl_ticks_prev = SDL_GetTicks();
     fps = fps_framecounter = 0;
+
+    kbd_fifo_cnt = kbd_fifo_head = kbd_fifo_tail = 0;
 
     return vga_setup_emu();
 }

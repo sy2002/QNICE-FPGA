@@ -980,19 +980,6 @@ void dump_registers()
   printf("\n\n");
 }
 
-#ifdef __EMSCRIPTEN__
-void emscripten_one_iteration()
-{
-  for (int i = 0; i < 2000000; i++)
-  {
-    if (i % 100 == 0)
-      vga_one_iteration_keyboard();
-    execute();
-  }
-  vga_one_iteration_screen();
-}
-#endif
-
 int main_loop(char **argv)
 {
   char command[STRING_LENGTH], *token, *delimiters = " ,", scratch[STRING_LENGTH];
@@ -1252,7 +1239,15 @@ int main(int argc, char **argv)
   sd_attach("qnice_disk.img");
 
   vga_init();
-  emscripten_set_main_loop(emscripten_one_iteration, 0, 0);
+  while (1)
+  {
+    for (int i = 0; i < 1000000; i++)
+      execute();
+      
+    emscripten_sleep(0);
+    vga_one_iteration_keyboard();
+    vga_one_iteration_screen();
+  }
   
 // -----------------------------------------------------------------------------------------
 // Multithreaded local environment
