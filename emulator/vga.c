@@ -5,6 +5,7 @@
 */
 
 #include <stdbool.h>
+#include <string.h>
 #include "vga.h"
 #include "vga_font.h"
 #include "../dist_kit/sysdef.h"
@@ -36,6 +37,12 @@ SDL_Renderer* renderer;
 SDL_Texture* font_tex;
 SDL_Event event;
 bool event_quit;
+
+unsigned long sdl_ticks_prev;
+unsigned long sdl_ticks_curr;
+unsigned long fps_framecounter; 
+unsigned int fps;
+char fps_print_buffer[12];
 
 unsigned int kbd_read_register(unsigned int address)
 {
@@ -252,6 +259,9 @@ int vga_init()
     kbd_state = KBD_LOCALE_DE; //for now, we hardcode german keyboard layout
     kbd_data = 0;
 
+    sdl_ticks_prev = SDL_GetTicks();
+    fps = fps_framecounter = 0;
+
     return vga_setup_emu();
 }
 
@@ -285,6 +295,13 @@ void vga_clear_screen()
         vram[i] = ' ';
     vga_state &= ~(VGA_BUSY | VGA_CLR_SCRN);
 }
+
+void vga_print(int x, int y, bool absolute, char* s)
+{
+    int offs = absolute ? 0 : vga_offs_rw;
+    for (int i = 0; i < strlen(s); i++)
+        vram[y * screen_dx + x + offs + i] = s[i];
+}    
 
 SDL_Texture* vga_create_font_texture()
 {
@@ -365,6 +382,21 @@ void vga_one_iteration_screen()
     SDL_RenderClear(renderer);  
     vga_render_vram();
     vga_render_cursor();
+
+#ifdef VGA_SHOW_FPS
+    fps_framecounter++;
+    sdl_ticks_curr = SDL_GetTicks();
+    if (sdl_ticks_curr - sdl_ticks_prev > 1000)
+    {
+        sdl_ticks_prev = sdl_ticks_curr;
+        fps = fps_framecounter;
+        fps_framecounter = 0;
+    }
+
+    sprintf(fps_print_buffer, "FPS: %d", fps);
+    vga_print(80 - strlen(fps_print_buffer), 0, false, fps_print_buffer);
+#endif
+
     SDL_RenderPresent(renderer);
 }
 

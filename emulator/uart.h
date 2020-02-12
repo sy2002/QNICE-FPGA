@@ -5,6 +5,8 @@
 ** 28-DEC-2016, B. Ulmann Cleanup...
 */
 
+#include <stdbool.h>
+
 #define UART0_BASE_ADDRESS     0xff20
 
 /* This structure contains all register data of the emulated UART */
@@ -49,6 +51,9 @@ typedef struct uart
 #define OPCR              13
 #define SET_OUTPUT_PORT   14
 #define RESET_OUTPUT_PORT 15
+
+//flag to ensure restoring a working terminal when closing the emulator by closing the SDL window
+bool uart_has_run_down;
 
 unsigned int uart_read_register(uart *, unsigned int);
 void uart_write_register(uart *, unsigned int, unsigned int);

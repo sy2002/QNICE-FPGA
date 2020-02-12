@@ -19,7 +19,7 @@ emulator/qnice.js
 emulator/qnice.html
 emulator/qnice.wasm
 emulator/qnice.data
-emulator/myimage.img
+emulator/qnice_disk.img
 *.bin
 *.lis
 *.out

@@ -8,7 +8,7 @@ if [[ ! -f qnice.js ]] || [[ ! -f qnice.wasm ]] || [[ ! -f qnice.html ]]; then
     echo "* Emscripten is a dependency: https://emscripten.org/"
     echo "* You need to have SDL2 installed for compiling."
     echo "* The Emscripten environment needs to be active: source emsdk_env.sh"
-    echo "* A FAT32 SD Card image named myimage.img needs to be present"
+    echo "* A FAT32 SD Card image named qnice_disk.img needs to be present"
     echo "  (read ../doc/emumount.txt to learn how to create one)"
     echo "* The monitor needs to be present at ../monitor/monitor.out"
     echo "* The resulting executables are qnice.wasm, qnice.js and qnice.html"
@@ -19,7 +19,7 @@ if [[ ! -f qnice.js ]] || [[ ! -f qnice.wasm ]] || [[ ! -f qnice.html ]]; then
 fi
 
 FILES="qnice.c vga.c sd.c"
-DEF_SWITCHES="-DUSE_SD -DUSE_VGA"
+DEF_SWITCHES="-DUSE_SD -DUSE_VGA -DVGA_SHOW_FPS"
 UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART"
 PRELOAD_FILES="--preload-file monitor.out"
 

@@ -43,4 +43,4 @@ fi
 
 DEF_SWITCHES="-DUSE_SD -DUSE_UART -DUSE_VGA"
 UNDEF_SWITCHES="-UUSE_IDE -U__EMSCRIPTEN__"
-$COMPILER qnice.c ide_simulation.c uart.c sd.c vga.c -o qnice-vga -O3 $DEF_SWITCHES $UNDEF_SWITCHES $SDL2_CFLAGS $SDL2_LIBS
+$COMPILER qnice.c uart.c sd.c vga.c -o qnice-vga -O3 $DEF_SWITCHES $UNDEF_SWITCHES $SDL2_CFLAGS $SDL2_LIBS

@@ -7,6 +7,7 @@
 #ifndef _QEMU_VGA
 #define _QEMU_VGA
 
+#include <stdbool.h>
 #include "SDL.h"
 
 #define VGA_CURSOR_BLINK_SPEED 500  //milliseconds between cursor on/off
@@ -23,6 +24,7 @@ int             vga_init();
 void            vga_shutdown();
 int             vga_create_thread(vga_tft thread_func, void* param);
 void            vga_clear_screen();
+void            vga_print(int x, int y, bool absolute, char* s);
 SDL_Texture*    vga_create_font_texture();
 void            vga_one_iteration_keyboard();
 void            vga_one_iteration_screen();

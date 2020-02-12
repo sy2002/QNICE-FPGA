@@ -11,10 +11,11 @@
 **
 ** The following defines are available:
 **
-**   USE_IDE   (currently always undefined)
+**   USE_IDE         (currently always undefined)
 **   USE_SD
 **   USE_UART
 **   USE_VGA
+**   VGA_SHOW_FPS
 **
 ** The different make scripts "make.bash", "make-vga.bash" and "make-emscripten" are defining these.
 ** The emscripten environment is automatically defining __EMSCRIPTEN__.
@@ -30,13 +31,6 @@
 
 #ifdef __EMSCRIPTEN__
 # include "emscripten.h"
-
-  const int hardcoded_argc = 2;
-  const char* hardcoded_argv[] = {
-    "qnice-wasm",
-    "monitor.out"
-  };
-
 #else
 # include <signal.h>
 #endif
@@ -989,7 +983,7 @@ void dump_registers()
 #ifdef __EMSCRIPTEN__
 void emscripten_one_iteration()
 {
-  for (int i = 0; i < 15000; i++)
+  for (int i = 0; i < 2000000; i++)
   {
     if (i % 100 == 0)
       vga_one_iteration_keyboard();
@@ -1204,10 +1198,7 @@ static int emulator_main_loop(void* param)
 
 int main(int argc, char **argv)
 {
-#ifdef __EMSCRIPTEN__
-  argc = hardcoded_argc;
-  argv = (char**) hardcoded_argv;
-#else
+#ifndef __EMSCRIPTEN__
   signal(SIGINT, signal_handler_ctrl_c);
 #endif
 
@@ -1255,14 +1246,10 @@ int main(int argc, char **argv)
 // -----------------------------------------------------------------------------------------
 #  ifdef __EMSCRIPTEN__
 
-  if (*argv)
-  {
-      if (load_binary_file(*argv))
-        return -1;
-  }
-
-  emscripten_wget("myimage.img", "myimage.img");
-  sd_attach("myimage.img");
+  if (load_binary_file("monitor.out"))
+    return -1;
+  emscripten_wget("qnice_disk.img", "qnice_disk.img");
+  sd_attach("qnice_disk.img");
 
   vga_init();
   emscripten_set_main_loop(emscripten_one_iteration, 0, 0);
@@ -1275,6 +1262,10 @@ int main(int argc, char **argv)
   if (vga_init() && vga_create_thread(emulator_main_loop, (void*) argv) && vga_main_loop())  
   {
     vga_shutdown();
+#if USE_UART
+    if (!uart_has_run_down)
+      uart_run_down();
+#endif
     return 0;
   }
   else

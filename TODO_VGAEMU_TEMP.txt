@@ -10,10 +10,6 @@ branch to the regular development folder and/or even release it:
   Q-Tris right after downloading the repo. (Might be part of
   the overall "getting started") routine as a motivational element.
 
-* Fix the bug, that CTRL+C only works, when the Monitor has been loaded
-  via the command line, but not, when it has been loaded via the "load"
-  command. (Ditto: Command line attach vs. interactive "attach" command.)
-
 * Add basic speed regulators (similar to how DOSBox does it?). For finding
   out a somewhat exact regulation, e.g. to play Q-TRIS in the exactly same
   speed as on hardware (currently, the Emulator is faster): Add a new
