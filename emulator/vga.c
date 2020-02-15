@@ -1,10 +1,14 @@
 /*
 ** QNICE VGA and PS2/USB keyboard Emulator
 **
-** done by sy2002 in December 2016 .. Januar 2017
+** done by sy2002 in December 2016 .. January 2017
+** emscripten/WebGL version in February 2020
+**
+** 
 */
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "vga.h"
@@ -26,30 +30,43 @@ static Uint16   vga_offs_rw;
 
 static Uint16   kbd_state;
 static Uint16   kbd_data;
-const int       kbd_fifo_size = 100;
+const  Uint16   kbd_fifo_size = 100;
 static Uint16   kbd_fifo[kbd_fifo_size];
 static Uint16   kbd_fifo_cnt;
 static Uint16   kbd_fifo_head;
 static Uint16   kbd_fifo_tail;
 
-const int screen_dx = 80;
-const int screen_dy = 40;
-const int font_dx = QNICE_FONT_CHAR_DX_BITS;
-const int font_dy = QNICE_FONT_CHAR_DY_BYTES;
+#ifdef __EMSCRIPTEN__
+const Uint16    display_dx  = 960;
+const Uint16    display_dy  = 534;
+#else
+const Uint16    display_dx  = 1280;
+const Uint16    display_dy  = 712;
+#endif
+const Uint16    render_dx   = 640;
+const Uint16    render_dy   = 480;
+const Uint16    screen_dx   = 80;
+const Uint16    screen_dy   = 40;
+const Uint16    font_dx     = QNICE_FONT_CHAR_DX_BITS;
+const Uint16    font_dy     = QNICE_FONT_CHAR_DY_BYTES;
+const float     zoom_x      = (float) display_dx / (float) render_dx;
+const float     zoom_y      = (float) display_dy / (float) render_dy;
+static Uint32   font[font_dx * font_dy * QNICE_FONT_CHARS];
 
-static bool cursor = false;
+static bool     cursor = false;
 
-SDL_Window* win;
-SDL_Renderer* renderer;
-SDL_Texture* font_tex;
-SDL_Event event;
-bool event_quit;
+SDL_Window*     win;
+SDL_Renderer*   renderer;
+SDL_Texture*    screen_texture;
+Uint32*         screen_pixels;
+SDL_Event       event;
+bool            event_quit;
 
-unsigned long sdl_ticks_prev;
-unsigned long sdl_ticks_curr;
-unsigned long fps_framecounter; 
-unsigned int fps;
-char fps_print_buffer[12];
+unsigned long   sdl_ticks_prev;
+unsigned long   sdl_ticks_curr;
+unsigned long   fps_framecounter; 
+unsigned int    fps;
+char            fps_print_buffer[12];
 
 void fifo_push(Uint16 data)
 {
@@ -61,9 +78,6 @@ void fifo_push(Uint16 data)
             kbd_fifo_head++;
         else
             kbd_fifo_head = 0;
-        
-        //debug-only
-        //printf("Pushed: %c  Fifo-Head: %d, Fifo-Tail: %d, Fifo-Count: %d\n", kbd_data & 0x00FF, kbd_fifo_head, kbd_fifo_tail, kbd_fifo_cnt);
     }
 }
 
@@ -155,7 +169,7 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
         alt_pressed = false;
     }
 
-    if (keycode > 0 && keycode < 128)
+    if ((keycode > 0 && keycode < 128) || keycode == 60 || keycode == 94 || keycode == 223 || keycode == 228 || keycode == 246 || keycode == 252)
     {
         kbd_data = keycode;
 
@@ -165,17 +179,36 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
                 kbd_data -= 32; //to upper
             else switch (keycode)
             {
-                case '1': kbd_data = '!';   break;
-                case '2': kbd_data = '"';   break;
-                case '3': kbd_data = 0xA7;  break;
-                case '4': kbd_data = '$';   break;
-                case '5': kbd_data = '%';   break;
-                case '6': kbd_data = '&';   break;
-                case '7': kbd_data = '/';   break;
-                case '8': kbd_data = '(';   break;
-                case '9': kbd_data = ')';   break;
-                case '0': kbd_data = '=';   break;
+                //whole mapping table is currently DE keyboard specific
+                case '1':   kbd_data = '!';   break;
+                case '2':   kbd_data = '"';   break;
+                case '3':   kbd_data = 0xA7;  break;
+                case '4':   kbd_data = '$';   break;
+                case '5':   kbd_data = '%';   break;
+                case '6':   kbd_data = '&';   break;
+                case '7':   kbd_data = '/';   break;
+                case '8':   kbd_data = '(';   break;
+                case '9':   kbd_data = ')';   break;
+                case '0':   kbd_data = '=';   break;
+                case ',':   kbd_data = ';';   break;
+                case '.':   kbd_data = ':';   break;
+                case '-':   kbd_data = '_';   break;
+                case '+':   kbd_data = '*';   break;
+                case '#':   kbd_data = 0x27;  break;
+
+                case 60:    kbd_data = 0xB0;  break;
+                case 94:    kbd_data = 0x3E;  break;
+                case 223:   kbd_data = '?';   break;
+                case 228:   kbd_data = 0xC4;  break;
+                case 246:   kbd_data = 0xD6;  break;
+                case 252:   kbd_data = 0xDC;  break;
             }
+        }
+        else switch(keycode)
+        {
+            case 60:    kbd_data = 0x5E;  break;
+            case 94:    kbd_data = 0x3C;  break;
+            case 223:   kbd_data = 0xDF;  break;
         }
 
         //CTRL + <letter> "overwrites" any other behaviour to 1 .. 26
@@ -254,46 +287,34 @@ void vga_write_register(unsigned int address, unsigned int value)
                 vga_clear_screen();
             break;
 
-        case VGA_OFFS_DISPLAY:  vga_offs_display = value;   break;
-        case VGA_OFFS_RW:       vga_offs_rw = value;        break;        
+        case VGA_OFFS_RW:
+            vga_offs_rw = value;
+            break;        
+
+        case VGA_OFFS_DISPLAY:
+            vga_offs_display = value;
+            for (int y = 0; y < screen_dy; y++)
+                for (int x = 0; x < screen_dx; x++)
+                    vga_render_vram(x, y, (Uint8) vram[y * screen_dx + x + vga_offs_display]);
+            break;
 
         /* As you can see in "write_vga_registers" in file "vga_textmode.vhd" of hardware
            revision V1.41, there are some distinct - and from my today's one year later view
            *strange* - things happening when it comes to handling coordinate overflows.
            To be truly compatible to the hardware, we need to emulate this behaviour. */
-        case VGA_CR_X:          vga_x = value & 0x00FF;     break;
-        case VGA_CR_Y:          vga_y = value & 0x007F;     break;
-        case VGA_CHAR:          vram[((vga_y * screen_dx + vga_x) & 0x0FFF) + vga_offs_rw] = value; break;
-    }
-}
+        case VGA_CR_X:
+            vga_x = value & 0x00FF;
+            break;
 
-int vga_setup_emu()
-{
-    win = SDL_CreateWindow("QNICE Emulator", 100, 100, 640, 480, SDL_WINDOW_OPENGL);
-    if (win)
-    {
-        renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-        if (renderer)
-        {
-            font_tex = vga_create_font_texture(renderer);
-            if (font_tex)
-                return 1;
-            else
-            {
-                printf("Unable to create font texture: %s\n", SDL_GetError());
-                return 0;
-            }
-        }
-        else
-        {
-            printf("Unable to create renderer: %s\n", SDL_GetError());
-            return 0;
-        }
-    }
-    else
-    {
-        printf("Unable to create window: %s\n", SDL_GetError());
-        return 0;
+        case VGA_CR_Y:
+            vga_y = value & 0x007F;
+            break;
+
+        case VGA_CHAR:
+            vram[((vga_y * screen_dx + vga_x) & 0x0FFF) + vga_offs_rw] = value;
+            if (vga_x >= 0 && vga_x < screen_dx && vga_y >=0 && vga_y < screen_dy)
+                vga_render_vram(vga_x, vga_y, (Uint8) value);
+            break;
     }
 }
 
@@ -310,7 +331,6 @@ int vga_init()
     }
 
     vga_state = vga_x = vga_y = vga_offs_display = vga_offs_rw = 0;
-    vga_clear_screen();
 
     kbd_state = KBD_LOCALE_DE; //for now, we hardcode german keyboard layout
     kbd_data = 0;
@@ -320,12 +340,53 @@ int vga_init()
 
     kbd_fifo_cnt = kbd_fifo_head = kbd_fifo_tail = 0;
 
-    return vga_setup_emu();
+    unsigned long pixelheap = render_dx * render_dy * sizeof(Uint32);
+    if ((screen_pixels = malloc(pixelheap)) == 0)
+    {
+        printf("Out of memory. Need %lu bytes of heap.", pixelheap);
+        return 0;
+    }
+
+    win = SDL_CreateWindow("QNICE Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, display_dx, display_dy, SDL_WINDOW_OPENGL);
+    if (win)
+    {
+        renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+        if (renderer)
+        {
+            SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 0);
+            screen_texture = SDL_CreateTexture( renderer,
+                                                SDL_PIXELFORMAT_ARGB8888,
+                                                SDL_TEXTUREACCESS_STREAMING,
+                                                render_dx,
+                                                render_dy);
+            if (!screen_texture)
+            {
+                printf("Unable to screen texture: %s\n", SDL_GetError());
+                return 0;
+            }
+        }
+        else
+        {
+            printf("Unable to create renderer: %s\n", SDL_GetError());
+            return 0;
+        }
+    }
+    else
+    {
+        printf("Unable to create window: %s\n", SDL_GetError());
+        return 0;
+    }
+
+    vga_create_font_cache();    
+    vga_clear_screen();
+    return 1;
 }
 
 void vga_shutdown()
 {
-    SDL_DestroyTexture(font_tex);
+    free(screen_pixels);
+    SDL_DestroyTexture(screen_texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(win);
     SDL_Quit();
@@ -351,6 +412,8 @@ void vga_clear_screen()
     vga_state |= VGA_BUSY | VGA_CLR_SCRN;
     for (int i = 0; i < 65535; i++)
         vram[i] = ' ';
+    for (unsigned int i = 0; i < render_dx * render_dy; i++)
+        screen_pixels[i] = 0;
     vga_state &= ~(VGA_BUSY | VGA_CLR_SCRN);
 }
 
@@ -358,64 +421,51 @@ void vga_print(int x, int y, bool absolute, char* s)
 {
     int offs = absolute ? 0 : vga_offs_rw;
     for (int i = 0; i < strlen(s); i++)
+    {
         vram[y * screen_dx + x + offs + i] = s[i];
+        vga_render_vram(x + i, y, s[i]);
+    }
 }    
 
-SDL_Texture* vga_create_font_texture()
+void vga_create_font_cache()
 {
-
-    SDL_Surface* surface = SDL_CreateRGBSurface(0, 8, QNICE_FONT_SIZE, 32, 0, 0, 0, 0);
-    if (surface)
-    {
-        for (int i = 0; i < QNICE_FONT_CHARS; i++)
-            for (int char_y = 0; char_y < font_dy; char_y++)
-                for (int char_x = 0; char_x < font_dx; char_x++)
-                {                        
-                    Uint32 y_coord = i * font_dy + char_y;
-                    Uint32* target_pixel = (Uint32*) ((Uint8*) surface->pixels + y_coord * surface->pitch + char_x * sizeof *target_pixel);
-                    *target_pixel = qnice_font[y_coord] & (128 >> char_x) ? 0x0000ff00 : 0;
-                }
-        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_FreeSurface(surface);        
-        if (texture)
-            return texture;
-    }
-
-    return 0;
+    const Uint32 green = 0x0000ff00;
+    for (int i = 0; i < QNICE_FONT_CHARS; i++)
+        for (int char_y = 0; char_y < font_dy; char_y++)
+            for (int char_x = 0; char_x < font_dx; char_x++)
+                font[i * font_dx * font_dy + char_y * font_dx + char_x] = qnice_font[i * font_dy + char_y] & (128 >> char_x) ? green : 0;
 }
 
-void vga_render_vram()
+void vga_render_vram(int x, int y, Uint8 c)
 {
-    SDL_Rect font_rect = {0, 0, font_dx, font_dy};
-    SDL_Rect screen_rect = {0, 0, font_dx, font_dy};
-
-    for (int y = 0; y < screen_dy; y++)
-        for (int x = 0; x < screen_dx; x++)
-        {
-            font_rect.y = vram[y * screen_dx + x + vga_offs_display] * font_dy;
-            screen_rect.x = x * font_dx;
-            screen_rect.y = y * font_dy;
-            SDL_RenderCopy(renderer, font_tex, &font_rect, &screen_rect);
-        }
+    unsigned long scr_offs = y * font_dy * render_dx + x * font_dx;
+    unsigned long fnt_offs = font_dx * font_dy * c;
+    for (int char_y = 0; char_y < font_dy; char_y++)
+    {
+        for (int char_x = 0; char_x < font_dx; char_x++)
+            screen_pixels[scr_offs + char_x] = font[fnt_offs + char_x]; 
+        scr_offs += render_dx;
+        fnt_offs += font_dx;
+    }
 }
 
 void vga_render_cursor()
 {
     static Uint32 milliseconds;
+
     if (vga_state & VGA_EN_HW_CURSOR)
     {
         if (SDL_GetTicks() > milliseconds + VGA_CURSOR_BLINK_SPEED)
         {
-            cursor = !cursor;
             milliseconds = SDL_GetTicks();
+            cursor = !cursor;
         }
 
         if (cursor)
         {
-            SDL_Rect font_rect = {0, 0x11 * font_dy, font_dx, font_dy};  //0x11 is the char used as cursor
-            SDL_Rect screen_rect = {vga_x * font_dx, vga_y * font_dy, font_dx, font_dy};
-            SDL_RenderCopy(renderer, font_tex, &font_rect, &screen_rect);
-        }    
+            SDL_Rect cursor_rect = {vga_x * font_dx * zoom_x, vga_y * font_dy * zoom_y, font_dx * zoom_x, font_dy * zoom_y};
+            SDL_RenderFillRect(renderer, &cursor_rect);
+        }
     }
 }
 
@@ -438,9 +488,7 @@ void vga_one_iteration_keyboard()
 void vga_one_iteration_screen()
 {
     SDL_RenderClear(renderer);  
-    vga_render_vram();
-    vga_render_cursor();
-
+    
 #ifdef VGA_SHOW_FPS
     fps_framecounter++;
     sdl_ticks_curr = SDL_GetTicks();
@@ -455,6 +503,9 @@ void vga_one_iteration_screen()
     vga_print(80 - strlen(fps_print_buffer), 0, false, fps_print_buffer);
 #endif
 
+    SDL_UpdateTexture(screen_texture, NULL, screen_pixels, render_dx * sizeof(Uint32));
+    SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+    vga_render_cursor();    
     SDL_RenderPresent(renderer);
 }
 

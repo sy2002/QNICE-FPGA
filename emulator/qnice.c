@@ -1241,9 +1241,9 @@ int main(int argc, char **argv)
   vga_init();
   while (1)
   {
-    for (int i = 0; i < 1000000; i++)
+    for (unsigned long i = 0; i < 500000; i++)
       execute();
-      
+
     emscripten_sleep(0);
     vga_one_iteration_keyboard();
     vga_one_iteration_screen();
@@ -1258,7 +1258,7 @@ int main(int argc, char **argv)
   {
     vga_shutdown();
 #if USE_UART
-    if (!uart_has_run_down)
+    if (uart_status == uart_init)
       uart_run_down();
 #endif
     return 0;

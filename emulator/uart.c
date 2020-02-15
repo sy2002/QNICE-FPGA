@@ -19,7 +19,7 @@
 
 /* Ugly global variable to hold the original tty state in order to restore it during rundown */
 struct termios tty_state_old, tty_state;
-bool uart_has_run_down;
+enum uart_status_t uart_status = uart_undef;
 
 unsigned int uart_read_register(uart *state, unsigned int address)
 {
@@ -178,7 +178,6 @@ void uart_hardware_initialization(uart *state)
   tty_state.c_lflag &= ~ICANON;
   tty_state.c_lflag &= ~ECHO;
   tcsetattr(STDIN_FILENO, TCSANOW, &tty_state);
-  uart_has_run_down = false;
 
   /*
   ** bit 1, 0: 11 -> 8 bits/character
@@ -196,13 +195,15 @@ void uart_hardware_initialization(uart *state)
   state->x_x_test = state->rhrb = state->input_ports = state->start_counter = state->stop_counter =
   state->csra = state->cra = state->thra = state->acr = state->imr = state->crur = state->ctlr = state->csrb = state->crb =
   state->thrb = state->opcr = state->set_output_port = state->reset_output_port = (unsigned int) 0;
+
+  uart_status = uart_init;
 }
 
 void uart_run_down()
 {
   /* Reset the terminal to its original settings */
   tcsetattr(STDIN_FILENO, TCSANOW, &tty_state_old);
-  uart_has_run_down = true;
+  uart_status = uart_rundown;
 }
 
 /*
