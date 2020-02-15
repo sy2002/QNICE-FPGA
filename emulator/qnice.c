@@ -120,6 +120,12 @@ char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SH
 
 statistic_data gbl$stat;
 
+#ifdef USE_VGA
+unsigned long         gbl$mips_inst_cnt = 0;
+Uint32                gbl$mips_tick_cnt = 0;
+extern unsigned long  gbl$sdl_ticks;
+#endif
+
 #ifdef USE_UART
 uart gbl$first_uart;
 #endif
@@ -663,6 +669,16 @@ int execute()
     source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits;
 
   int condition, cmp_0, cmp_1;
+
+#ifdef USE_VGA
+  //global instruction counter for MIPS calcluation; slightly different semantics than gbl$cycle_counter++
+  gbl$mips_inst_cnt++;
+  if (gbl$sdl_ticks - gbl$mips_tick_cnt > 1000)
+  {
+    gbl$mips_inst_cnt = 0;
+    gbl$mips_tick_cnt = gbl$sdl_ticks;
+  }
+#endif
 
   if (gbl$cycle_counter_state & 0x0002)
     gbl$cycle_counter++; /* Increment cycle counter which is an instruction counter in the emulator as opposed to the hardware. */

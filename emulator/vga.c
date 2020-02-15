@@ -37,11 +37,15 @@ static Uint16   kbd_fifo_head;
 static Uint16   kbd_fifo_tail;
 
 #ifdef __EMSCRIPTEN__
-const Uint16    display_dx  = 960;
+const Uint16    display_dx  = 960;      //the hardware runs at a 1.8 : 1 ratio, see screenshots on GitHub
 const Uint16    display_dy  = 534;
+//const Uint16    display_dx  = 960;
+//const Uint16    display_dy  = 600;
 #else
-const Uint16    display_dx  = 1280;
+const Uint16    display_dx  = 1280;     //1.8 : 1 ratio
 const Uint16    display_dy  = 712;
+//const Uint16    display_dx  = 1280;
+//const Uint16    display_dy  = 800;
 #endif
 const Uint16    render_dx   = 640;
 const Uint16    render_dy   = 480;
@@ -62,11 +66,15 @@ Uint32*         screen_pixels;
 SDL_Event       event;
 bool            event_quit;
 
+unsigned long   gbl$sdl_ticks;
 unsigned long   sdl_ticks_prev;
 unsigned long   sdl_ticks_curr;
 unsigned long   fps_framecounter; 
 unsigned int    fps;
-char            fps_print_buffer[12];
+char            fps_print_buffer[80];
+
+float           mips;
+extern unsigned long gbl$mips_inst_cnt;
 
 void fifo_push(Uint16 data)
 {
@@ -215,17 +223,16 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
         if (ctrl_pressed && keycode >= 'a' && keycode <= 'z')
             kbd_data = keycode - 96; // a = 1, b = 2, ...
 
-        /* For avoiding race conditions, this needs to be the last statement
-           within this if branch and this is also the reason, why in the
-           following else branch the KBD_NEW_SPECIAL assignment is done like
-           it is done including the not so nice goto statement:
-           As soon as the flag is set, the CPU in the parallel thread is
-           likely to read the data. */
-        kbd_state |= KBD_NEW_ASCII;
-
 #ifdef __EMSCRIPTEN__
         fifo_push(kbd_data);
 #endif
+
+        /* For avoiding race conditions, this needs to be the last statement
+           within this if branch and this is also the reason, why in the
+           following else branch the KBD_NEW_SPECIAL assignment is done like
+           it is done: As soon as the flag is set,
+           the CPU in the parallel thread is likely to read the data. */
+        kbd_state |= KBD_NEW_ASCII;
     }
     else
     {
@@ -249,12 +256,12 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
                     return;
         }
 
-        //see description above at KBD_NEW_ASCII
-        kbd_state |= KBD_NEW_SPECIAL;
-
 #ifdef __EMSCRIPTEN__
         fifo_push(kbd_data);
 #endif
+
+        //see description above at KBD_NEW_ASCII
+        kbd_state |= KBD_NEW_SPECIAL;
     }
 }
 
@@ -335,8 +342,9 @@ int vga_init()
     kbd_state = KBD_LOCALE_DE; //for now, we hardcode german keyboard layout
     kbd_data = 0;
 
-    sdl_ticks_prev = SDL_GetTicks();
+    gbl$sdl_ticks = SDL_GetTicks();
     fps = fps_framecounter = 0;
+    mips = 0;
 
     kbd_fifo_cnt = kbd_fifo_head = kbd_fifo_tail = 0;
 
@@ -410,9 +418,9 @@ int vga_create_thread(vga_tft thread_func, void* param)
 void vga_clear_screen()
 {
     vga_state |= VGA_BUSY | VGA_CLR_SCRN;
-    for (int i = 0; i < 65535; i++)
+    for (Uint32 i = 0; i < 65535; i++)
         vram[i] = ' ';
-    for (unsigned int i = 0; i < render_dx * render_dy; i++)
+    for (Uint32 i = 0; i < render_dx * render_dy; i++)
         screen_pixels[i] = 0;
     vga_state &= ~(VGA_BUSY | VGA_CLR_SCRN);
 }
@@ -455,9 +463,9 @@ void vga_render_cursor()
 
     if (vga_state & VGA_EN_HW_CURSOR)
     {
-        if (SDL_GetTicks() > milliseconds + VGA_CURSOR_BLINK_SPEED)
+        if (gbl$sdl_ticks > milliseconds + VGA_CURSOR_BLINK_SPEED)
         {
-            milliseconds = SDL_GetTicks();
+            milliseconds = gbl$sdl_ticks;;
             cursor = !cursor;
         }
 
@@ -491,15 +499,16 @@ void vga_one_iteration_screen()
     
 #ifdef VGA_SHOW_FPS
     fps_framecounter++;
-    sdl_ticks_curr = SDL_GetTicks();
-    if (sdl_ticks_curr - sdl_ticks_prev > 1000)
+    gbl$sdl_ticks = SDL_GetTicks();
+    if (gbl$sdl_ticks - sdl_ticks_prev > 1000)
     {
-        sdl_ticks_prev = sdl_ticks_curr;
+        sdl_ticks_prev = gbl$sdl_ticks;
         fps = fps_framecounter;
         fps_framecounter = 0;
+        mips = (float) gbl$mips_inst_cnt / (float) 1000000;
     }
 
-    sprintf(fps_print_buffer, "FPS: %d", fps);
+    sprintf(fps_print_buffer, "    %.0f MIPS @ %d FPS", mips, fps);
     vga_print(80 - strlen(fps_print_buffer), 0, false, fps_print_buffer);
 #endif
 
