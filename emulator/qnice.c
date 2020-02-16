@@ -51,6 +51,9 @@
 
 #ifdef USE_VGA
 # include "vga.h"
+# if defined(USE_UART) && !defined(__EMSCRIPTEN__)
+#  include <unistd.h>
+# endif
 #endif
 
 /*
@@ -100,9 +103,9 @@
 
 typedef struct statistic_data
 {
-  unsigned int instruction_frequency[NO_OF_INSTRUCTIONS], /* Count the number of executions per instruction */
-    addressing_modes[2][NO_OF_ADDRESSING_MODES],          /* 0 -> read, 1 -> write */
-    memory_accesses[2];                                   /* 0 -> read, 1 -> write */
+  unsigned long long instruction_frequency[NO_OF_INSTRUCTIONS], /* Count the number of executions per instruction */
+    addressing_modes[2][NO_OF_ADDRESSING_MODES],                /* 0 -> read, 1 -> write */
+    memory_accesses[2];                                         /* 0 -> read, 1 -> write */
 } statistic_data;
 
 int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$verbose = FALSE,
@@ -113,12 +116,15 @@ int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$
 unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
-                                "NOT", "AND", "OR", "XOR", "CMP", "rsrvd", "HALT"},
+                                "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "HALT"},
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNVIM",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
 
 statistic_data gbl$stat;
+
+bool gbl$cpu_running      = false;
+bool gbl$shutdown_signal  = false;
 
 #ifdef USE_VGA
 unsigned long         gbl$mips_inst_cnt = 0;
@@ -512,7 +518,7 @@ void disassemble(unsigned int start, unsigned int stop)
     {
       if (opcode == 0xd) /* This one is reserved for future use! */
       {
-        strcpy(mnemonic, "RSRVD");
+        strcpy(mnemonic, "RSVD");
         *operands = (char) 0;
       }
       else
@@ -881,7 +887,9 @@ void run()
 #endif
 
   gbl$gather_statistics = TRUE;
-  while (!execute() && !gbl$ctrl_c);
+  gbl$cpu_running = true;
+  while (!execute() && !gbl$ctrl_c && !gbl$shutdown_signal);
+  gbl$cpu_running = false;
   if (gbl$ctrl_c)
     printf("\n\tAborted by CTRL-C!\n");
   gbl$gather_statistics = FALSE;
@@ -893,19 +901,19 @@ void run()
 
 void print_statistics()
 {
-  unsigned int i, value;
+  unsigned long long i, value;
 
   for (i = value = 0; i < NO_OF_INSTRUCTIONS; value += gbl$stat.instruction_frequency[i++]);
   if (!value)
     printf("No statistics have been gathered so far!\n");
   else
   {
-    printf("\n%d memory reads, %d memory writes and\n%d instructions have been executed so far:\n\n\
-INSTR ABSOLUTE RELATIVE INSTR ABSOLUTE RELATIVE\n\
------------------------------------------------\n", 
+    printf("\n%llu memory reads, %llu memory writes and\n%llu instructions have been executed so far:\n\n\
+INSTR ABSOLUTE         RELATIVE INSTR ABSOLUTE         RELATIVE\n\
+---------------------------------------------------------------\n", 
            gbl$stat.memory_accesses[READ_MEMORY], gbl$stat.memory_accesses[WRITE_MEMORY], value);
     for (i = 0; i < NO_OF_INSTRUCTIONS; i++)
-      printf("%s%-4s: %8d (%5.2f%%)\t",
+      printf("%s%-4s: %16llu (%5.2f%%)\t",
              !(i & 1) && i ? "\n" : "", /* New line every second round */
              i < GENERIC_BRANCH_OPCODE ? gbl$normal_mnemonics[i]
                                        : gbl$branch_mnemonics[i - GENERIC_BRANCH_OPCODE],
@@ -918,11 +926,11 @@ INSTR ABSOLUTE RELATIVE INSTR ABSOLUTE RELATIVE\n\
       printf("\n\nThere have not been any memory references so far!\n");
     else
     {
-      printf("\n\n     READ ACCESSES                   WRITE ACCESSES\n\
-MODE   ABSOLUTE RELATIVE        MODE   ABSOLUTE RELATIVE\n\
------------------------------------------------------------\n");
+      printf("\n\n         READ ACCESSES                       WRITE ACCESSES\n\
+MODE   ABSOLUTE         RELATIVE        MODE   ABSOLUTE         RELATIVE\n\
+------------------------------------------------------------------------\n");
       for (i = 0; i < NO_OF_ADDRESSING_MODES; i++)
-        printf("%-5s: %8d (%5.2f%%) \t%-5s: %8d (%5.2f%%)\n", 
+        printf("%-5s: %16llu (%5.2f%%) \t%-5s: %16llu (%5.2f%%)\n", 
                gbl$addressing_mnemonics[i], gbl$stat.addressing_modes[0][i],
                  (float) (100 * gbl$stat.addressing_modes[0][i]) / (float) value, 
                gbl$addressing_mnemonics[i], gbl$stat.addressing_modes[1][i],
@@ -1014,6 +1022,9 @@ int main_loop(char **argv)
 
   for (;;)
   {
+#ifdef USE_VGA
+    gbl$mips_inst_cnt = 0;
+#endif
     printf("Q> ");
     fgets(command, STRING_LENGTH, stdin);
     chomp(command);
@@ -1158,7 +1169,18 @@ int main_loop(char **argv)
       {
         if ((token = tokenize(NULL, delimiters)))
           write_register(15, str2int(token));
+#if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
+        gbl$cpu_running = true; //uart_getchar_thread needs a running CPU
+        vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL);
+        while (!uart_getchar_thread_running)
+          usleep(10000);
         run();
+        gbl$cpu_running = false; //this will end uart_getchar_thread
+        while (uart_getchar_thread_running)
+          usleep(10000);
+#else
+        run();
+#endif
       }
       else if (!strcmp(token, "HELP"))
         printf("\n\
@@ -1195,7 +1217,9 @@ VERBOSE                        Toggle verbosity mode\n\
 #ifdef USE_VGA
 static int emulator_main_loop(void* param)
 {
-    return main_loop((char**) param);
+    int retval = main_loop((char**) param);
+    gbl$shutdown_signal = true;
+    return retval;
 }
 #endif
 
@@ -1247,7 +1271,7 @@ int main(int argc, char **argv)
 // -----------------------------------------------------------------------------------------
 // WebAssembly/WebGL environment
 // -----------------------------------------------------------------------------------------
-#  ifdef __EMSCRIPTEN__
+# ifdef __EMSCRIPTEN__
 
   if (load_binary_file("monitor.out"))
     return -1;
@@ -1268,20 +1292,38 @@ int main(int argc, char **argv)
 // -----------------------------------------------------------------------------------------
 // Multithreaded local environment
 // -----------------------------------------------------------------------------------------
-#  else
+# else
 
-  if (vga_init() && vga_create_thread(emulator_main_loop, (void*) argv) && vga_main_loop())  
+#  ifdef USE_UART
+  uart_fifo_init();
+#  endif
+
+  if (vga_init() && 
+      vga_create_thread(emulator_main_loop, "thread: main_loop", (void*) argv) && 
+#  ifdef USE_UART
+      vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL) &&
+#  endif
+      vga_main_loop())  
   {
+    gbl$shutdown_signal = true;
+    while (gbl$cpu_running)
+      usleep(10000);
     vga_shutdown();
-#if USE_UART
-    if (uart_status == uart_init)
+#  ifdef USE_UART
+    if (uart_status == uart_init)    
+    {
       uart_run_down();
-#endif
+      while (uart_getchar_thread_running)
+        usleep(10000);
+      uart_fifo_free();
+    }
+    printf("\n");
+#  endif
     return 0;
   }
   else
     return -1;
 
-#  endif
+# endif
 #endif
 }

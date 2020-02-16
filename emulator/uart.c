@@ -17,6 +17,15 @@
 #include <stdlib.h>
 #include <termios.h>
 
+#ifdef USE_VGA
+# include "fifo.h"
+# include "poll.h"
+fifo_t*             uart_fifo;
+const unsigned int  uart_fifo_size = 256;
+bool                uart_getchar_thread_running;  //flag to safely free the FIFO's memory
+extern bool         gbl$cpu_running;              //the getchar thread stops when the CPU stops
+#endif
+
 /* Ugly global variable to hold the original tty state in order to restore it during rundown */
 struct termios tty_state_old, tty_state;
 enum uart_status_t uart_status = uart_undef;
@@ -42,6 +51,7 @@ unsigned int uart_read_register(uart *state, unsigned int address)
       value = state->mr1a;
       break;
     case SRA:
+#ifndef USE_VGA
       /* Check if there is a character in the input buffer */
       if ((ret_val = select(1, &fd, NULL, NULL, &tv)) == -1)
       {
@@ -51,13 +61,19 @@ unsigned int uart_read_register(uart *state, unsigned int address)
         state->sra &= 0xfe; /* Do not touch the transmit-ready bit! */
       else /* Data available */
         state->sra |= 1;
-
+#else
+      if (uart_fifo->count)
+        state->sra |= 1;
+      else
+        state->sra &= 0xfe;
+#endif
       value = state->sra;
       break;
     case BRG_TEST:
       value = state->brg_test;
       break;
     case RHRA:
+#ifndef USE_VGA
       if ((ret_val = select(1, &fd, NULL, NULL, &tv)) == -1)
       {
         /* Don't stop here as it might be caused by a catched CTRL-C signal! */
@@ -66,7 +82,12 @@ unsigned int uart_read_register(uart *state, unsigned int address)
         state->rhra = 0;
       else /* Data available */
         state->rhra = getchar() & 0xff;
-
+#else
+      if (uart_fifo->count)
+        state->rhra = fifo_pull(uart_fifo);
+      else
+        state->rhra = 0;
+#endif
       value = state->rhra;
       break;
     case IPCR:
@@ -169,6 +190,38 @@ void uart_write_register(uart *state, unsigned int address, unsigned int value)
 #endif
   }
 }
+
+#ifdef USE_VGA
+void uart_fifo_init()
+{
+  uart_fifo = fifo_init(uart_fifo_size);
+}
+
+void uart_fifo_free()
+{
+  fifo_free(uart_fifo);
+}
+
+int uart_getchar_thread(void* param)
+{
+  //wait unti CPU is running (it is started in main thread after uart_getchar_thread_running = true)
+  while (!gbl$cpu_running)
+    usleep(10000);
+
+  struct pollfd fds = {.fd = 0, .events = POLLIN}; // 0 means STDIN
+  int ret_val;
+
+  uart_getchar_thread_running = true;
+  while (gbl$cpu_running)
+  {
+      ret_val = poll(&fds, 1, 5); //timeout = 5ms
+      if (ret_val)
+        fifo_push(uart_fifo, getchar() & 0xff);
+  }
+  uart_getchar_thread_running = false;
+  return 1;
+}
+#endif
 
 void uart_hardware_initialization(uart *state)
 {

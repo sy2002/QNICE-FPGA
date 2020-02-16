@@ -23,7 +23,7 @@ void            kbd_write_register(unsigned int address, unsigned int value);
 int             vga_init();
 void            vga_shutdown();
 void            vga_create_font_cache();
-int             vga_create_thread(vga_tft thread_func, void* param);
+int             vga_create_thread(vga_tft thread_func, const char* thread_name, void* param);
 void            vga_clear_screen();
 void            vga_render_vram(int x, int y, Uint8 c);
 void            vga_print(int x, int y, bool absolute, char* s);

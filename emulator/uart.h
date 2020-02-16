@@ -59,3 +59,10 @@ unsigned int uart_read_register(uart *, unsigned int);
 void uart_write_register(uart *, unsigned int, unsigned int);
 void uart_hardware_initialization(uart *);
 void uart_run_down();
+
+#ifdef USE_VGA
+int  uart_getchar_thread(void* param);
+bool uart_getchar_thread_running;
+void uart_fifo_init();
+void uart_fifo_free();
+#endif

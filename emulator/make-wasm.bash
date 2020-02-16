@@ -18,7 +18,7 @@ if [[ ! -f qnice.js ]] || [[ ! -f qnice.wasm ]] || [[ ! -f qnice.html ]]; then
     read -p "Press ENTER to continue or CTRL+C to quit."
 fi
 
-FILES="qnice.c vga.c sd.c"
+FILES="qnice.c fifo.c sd.c vga.c"
 DEF_SWITCHES="-DUSE_SD -DUSE_VGA -DVGA_SHOW_FPS"
 UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART"
 PRELOAD_FILES="--preload-file monitor.out"

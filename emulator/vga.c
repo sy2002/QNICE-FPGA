@@ -4,13 +4,13 @@
 ** done by sy2002 in December 2016 .. January 2017
 ** emscripten/WebGL version in February 2020
 **
-** 
 */
 
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "fifo.h"
 #include "vga.h"
 #include "vga_font.h"
 
@@ -31,10 +31,7 @@ static Uint16   vga_offs_rw;
 static Uint16   kbd_state;
 static Uint16   kbd_data;
 const  Uint16   kbd_fifo_size = 100;
-static Uint16   kbd_fifo[kbd_fifo_size];
-static Uint16   kbd_fifo_cnt;
-static Uint16   kbd_fifo_head;
-static Uint16   kbd_fifo_tail;
+fifo_t*         kbd_fifo;
 
 #ifdef __EMSCRIPTEN__
 const Uint16    display_dx  = 960;      //the hardware runs at a 1.8 : 1 ratio, see screenshots on GitHub
@@ -74,35 +71,9 @@ unsigned int    fps;
 char            fps_print_buffer[80];
 
 float           mips;
+
 extern unsigned long gbl$mips_inst_cnt;
-
-void fifo_push(Uint16 data)
-{
-    if (kbd_fifo_cnt < (kbd_fifo_size - 1))
-    {
-        kbd_fifo[kbd_fifo_head] = data;
-        kbd_fifo_cnt++;
-        if (kbd_fifo_head < (kbd_fifo_size - 1))
-            kbd_fifo_head++;
-        else
-            kbd_fifo_head = 0;
-    }
-}
-
-Uint16 fifo_pull()
-{
-    Uint16 retval = 0;
-    if (kbd_fifo_cnt)
-    {
-        retval = kbd_fifo[kbd_fifo_tail];
-        kbd_fifo_cnt--;
-        if (kbd_fifo_tail < (kbd_fifo_size -1))
-            kbd_fifo_tail++;
-        else
-            kbd_fifo_tail = 0;
-    }
-    return retval;    
-}
+extern bool          gbl$shutdown_signal;
 
 unsigned int kbd_read_register(unsigned int address)
 {
@@ -116,12 +87,12 @@ unsigned int kbd_read_register(unsigned int address)
             kbd_state &= 0xFFFC; //clear new key indicators
             return kbd_data;
 #else
-            if (kbd_fifo_cnt)
+            if (kbd_fifo->count)
             {
                 //no more keys after this key?
-                if (kbd_fifo_cnt == 1)
+                if (kbd_fifo->count == 1)
                     kbd_state &= 0xFFFC;
-                return fifo_pull();
+                return fifo_pull(kbd_fifo);
             }
 #endif
     }
@@ -177,6 +148,8 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
         alt_pressed = false;
     }
 
+//    printf("%i\n", keycode);
+
     if ((keycode > 0 && keycode < 128) || keycode == 60 || keycode == 94 || keycode == 223 || keycode == 228 || keycode == 246 || keycode == 252)
     {
         kbd_data = keycode;
@@ -224,7 +197,7 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
             kbd_data = keycode - 96; // a = 1, b = 2, ...
 
 #ifdef __EMSCRIPTEN__
-        fifo_push(kbd_data);
+        fifo_push(kbd_fifo, kbd_data);
 #endif
 
         /* For avoiding race conditions, this needs to be the last statement
@@ -257,7 +230,7 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
         }
 
 #ifdef __EMSCRIPTEN__
-        fifo_push(kbd_data);
+        fifo_push(kbd_fifo, kbd_data);
 #endif
 
         //see description above at KBD_NEW_ASCII
@@ -346,7 +319,7 @@ int vga_init()
     fps = fps_framecounter = 0;
     mips = 0;
 
-    kbd_fifo_cnt = kbd_fifo_head = kbd_fifo_tail = 0;
+    kbd_fifo = fifo_init(kbd_fifo_size);
 
     unsigned long pixelheap = render_dx * render_dy * sizeof(Uint32);
     if ((screen_pixels = malloc(pixelheap)) == 0)
@@ -393,6 +366,7 @@ int vga_init()
 
 void vga_shutdown()
 {
+    fifo_free(kbd_fifo);
     free(screen_pixels);
     SDL_DestroyTexture(screen_texture);
     SDL_DestroyRenderer(renderer);
@@ -400,9 +374,9 @@ void vga_shutdown()
     SDL_Quit();
 }
 
-int vga_create_thread(vga_tft thread_func, void* param)
+int vga_create_thread(vga_tft thread_func, const char* thread_name, void* param)
 {
-    SDL_Thread* mlt = SDL_CreateThread(thread_func, "main_loop", param);
+    SDL_Thread* mlt = SDL_CreateThread(thread_func, thread_name, param);
     if (mlt)
     {
         SDL_DetachThread(mlt);
@@ -521,7 +495,7 @@ void vga_one_iteration_screen()
 int vga_main_loop()
 {
     event_quit = false;
-    while (!event_quit)
+    while (!event_quit && !gbl$shutdown_signal)
     {
         vga_one_iteration_keyboard();
         vga_one_iteration_screen();
