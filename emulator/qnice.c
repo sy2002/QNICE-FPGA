@@ -1,6 +1,5 @@
 /* 
-**  QNICE emulator -- this emulator was written as a proof of concept for the
-** QNICE processor.
+**  QNICE emulator -- this emulator was written as a proof of concept for the QNICE processor.
 **
 ** B. Ulmann, 16-AUG-2006...03-SEP-2006...04-NOV-2006...29-JUN-2007...
 **            16-DEC-2007...03-JUN-2008...28-DEC-2014...
@@ -17,8 +16,8 @@
 **   USE_VGA
 **   VGA_SHOW_FPS
 **
-** The different make scripts "make.bash", "make-vga.bash" and "make-emscripten" are defining these.
-** The emscripten environment is automatically defining __EMSCRIPTEN__.
+** The different make scripts "make.bash", "make-vga.bash" and "make-emscripten.bash"
+** are defining these. The emscripten environment is automatically defining __EMSCRIPTEN__.
 */
 
 #undef USE_IDE
@@ -29,13 +28,13 @@
 #include <stdlib.h>
 #include <wordexp.h>
 
+#include "../dist_kit/sysdef.h"
+
 #ifdef __EMSCRIPTEN__
 # include "emscripten.h"
 #else
 # include <signal.h>
 #endif
-
-#include "../dist_kit/sysdef.h"
 
 #ifdef USE_IDE
 # include "ide_simulation.h"
@@ -127,6 +126,7 @@ bool gbl$cpu_running      = false;
 bool gbl$shutdown_signal  = false;
 
 #ifdef USE_VGA
+float                 gbl$mips = 0;
 unsigned long         gbl$mips_inst_cnt = 0;
 Uint32                gbl$mips_tick_cnt = 0;
 extern unsigned long  gbl$sdl_ticks;
@@ -681,6 +681,7 @@ int execute()
   gbl$mips_inst_cnt++;
   if (gbl$sdl_ticks - gbl$mips_tick_cnt > 1000)
   {
+    gbl$mips = (float) gbl$mips_inst_cnt / (float) 1000000;
     gbl$mips_inst_cnt = 0;
     gbl$mips_tick_cnt = gbl$sdl_ticks;
   }
@@ -897,6 +898,13 @@ void run()
 #ifdef USE_UART
   uart_run_down();
 #endif
+
+#if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
+  //wait until the the asynchronous (non-blocking) keyboard input thread ended
+  //(the end signal is setting gbl$cpu_running to false)
+  while (uart_getchar_thread_running)
+    usleep(10000);
+#endif
 }
 
 void print_statistics()
@@ -1024,6 +1032,7 @@ int main_loop(char **argv)
   {
 #ifdef USE_VGA
     gbl$mips_inst_cnt = 0;
+    gbl$mips = 0;
 #endif
     printf("Q> ");
     fgets(command, STRING_LENGTH, stdin);
@@ -1170,17 +1179,9 @@ int main_loop(char **argv)
         if ((token = tokenize(NULL, delimiters)))
           write_register(15, str2int(token));
 #if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
-        gbl$cpu_running = true; //uart_getchar_thread needs a running CPU
         vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL);
-        while (!uart_getchar_thread_running)
-          usleep(10000);
-        run();
-        gbl$cpu_running = false; //this will end uart_getchar_thread
-        while (uart_getchar_thread_running)
-          usleep(10000);
-#else
-        run();
 #endif
+        run();
       }
       else if (!strcmp(token, "HELP"))
         printf("\n\
@@ -1313,8 +1314,6 @@ int main(int argc, char **argv)
     if (uart_status == uart_init)    
     {
       uart_run_down();
-      while (uart_getchar_thread_running)
-        usleep(10000);
       uart_fifo_free();
     }
     printf("\n");

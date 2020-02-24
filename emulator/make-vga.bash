@@ -41,6 +41,7 @@ else
     SDL2_LIBS=`sdl2-config --static-libs`
 fi
 
+FILES="qnice.c fifo.c sd.c uart.c vga.c"
 DEF_SWITCHES="-DUSE_SD -DUSE_UART -DUSE_VGA -DVGA_SHOW_FPS"
 UNDEF_SWITCHES="-UUSE_IDE -U__EMSCRIPTEN__"
-$COMPILER qnice.c fifo.c sd.c uart.c vga.c -o qnice-vga -O3 $DEF_SWITCHES $UNDEF_SWITCHES $SDL2_CFLAGS $SDL2_LIBS
+$COMPILER $FILES -O3 $DEF_SWITCHES $UNDEF_SWITCHES $SDL2_CFLAGS $SDL2_LIBS -o qnice-vga

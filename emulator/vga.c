@@ -70,8 +70,7 @@ unsigned long   fps_framecounter;
 unsigned int    fps;
 char            fps_print_buffer[80];
 
-float           mips;
-
+extern float         gbl$mips;
 extern unsigned long gbl$mips_inst_cnt;
 extern bool          gbl$shutdown_signal;
 
@@ -317,8 +316,7 @@ int vga_init()
 
     gbl$sdl_ticks = SDL_GetTicks();
     fps = fps_framecounter = 0;
-    mips = 0;
-
+    
     kbd_fifo = fifo_init(kbd_fifo_size);
 
     unsigned long pixelheap = render_dx * render_dy * sizeof(Uint32);
@@ -479,10 +477,9 @@ void vga_one_iteration_screen()
         sdl_ticks_prev = gbl$sdl_ticks;
         fps = fps_framecounter;
         fps_framecounter = 0;
-        mips = (float) gbl$mips_inst_cnt / (float) 1000000;
     }
 
-    sprintf(fps_print_buffer, "    %.0f MIPS @ %d FPS", mips, fps);
+    sprintf(fps_print_buffer, "    %.0f MIPS @ %d FPS", gbl$mips, fps);
     vga_print(80 - strlen(fps_print_buffer), 0, false, fps_print_buffer);
 #endif
 

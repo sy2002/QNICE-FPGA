@@ -3,6 +3,7 @@
 **
 ** 02-JUN-2008, B. Ulmann fecit
 ** 28-DEC-2016, B. Ulmann Cleanup...
+** FEB-2020, sy2002 added non-blocking multithreaded version for the VGA emulator
 */
 
 #include <stdbool.h>
