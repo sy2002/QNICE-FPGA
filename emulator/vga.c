@@ -21,6 +21,9 @@
    To make this correct, all accesses to register variables throughout the
    whole code needs to be packed in the SDL equivalent of critical sections. */
 
+//in native VGA mode (no emscripten): stabilize display thread to ~60 FPS
+const unsigned long stable_fps_ms = 15; 
+
 static Uint16   vram[65535];
 static Uint16   vga_state;
 static Uint16   vga_x;
@@ -489,13 +492,21 @@ void vga_one_iteration_screen()
     SDL_RenderPresent(renderer);
 }
 
+#if defined(USE_VGA) || !defined(__EMSCRIPTEN__)
 int vga_main_loop()
 {
     event_quit = false;
     while (!event_quit && !gbl$shutdown_signal)
     {
+        unsigned long elapsed_ms = SDL_GetTicks();
+
         vga_one_iteration_keyboard();
         vga_one_iteration_screen();
+
+        elapsed_ms = gbl$sdl_ticks - elapsed_ms;
+        if (elapsed_ms < stable_fps_ms)
+            SDL_Delay(stable_fps_ms - elapsed_ms);
     }
     return 1;
 }
+#endif

@@ -29,6 +29,9 @@ void            vga_render_vram(int x, int y, Uint8 c);
 void            vga_print(int x, int y, bool absolute, char* s);
 void            vga_one_iteration_keyboard();
 void            vga_one_iteration_screen();
+
+#if defined(USE_VGA) || !defined(__EMSCRIPTEN__)
 int             vga_main_loop();
+#endif
 
 #endif
