@@ -29,12 +29,6 @@
 
 #include "../dist_kit/sysdef.h"
 
-#ifdef __EMSCRIPTEN__
-# include "emscripten.h"
-#else
-# include <signal.h>
-#endif
-
 #ifdef USE_IDE
 # include "ide_simulation.h"
 #endif
@@ -49,9 +43,16 @@
 
 #ifdef USE_VGA
 # include "vga.h"
-# if defined(USE_UART) && !defined(__EMSCRIPTEN__)
+# ifndef __EMSCRIPTEN__
+#  include <time.h>
 #  include <unistd.h>
 # endif
+#endif
+
+#ifdef __EMSCRIPTEN__
+# include "emscripten.h"
+#else
+# include <signal.h>
 #endif
 
 /*
@@ -129,6 +130,21 @@ float                 gbl$mips = 0;
 unsigned long         gbl$mips_inst_cnt = 0;
 Uint32                gbl$mips_tick_cnt = 0;
 extern unsigned long  gbl$sdl_ticks;
+unsigned long         gbl$instructions_per_iteration = 500000;
+
+/* According to ../test_programs/mandel_perf_test.asm, the current QNICE hardware,
+   which runs at 50 MHz performs at 12.93 MIPS.
+   The speed regulation occurs every 10 milliseconds, which is why we introduce
+   a "target instructions per 10-milliseconds" measurement using gbl$target_iptms.
+   Since there is system jitter, the gbl$target_iptms needs to be adjusted,
+   which is done by sampling the actual MIPS every 3 seconds and calculating
+   the gbl$target_iptms_adjustment_factor in the thread "mips_adjustment_thread" */
+const float           gbl$qnice_mips   = 12.93;
+float                 gbl$target_mips  = gbl$qnice_mips;
+unsigned long         gbl$target_iptms = ((gbl$qnice_mips * 1e6) / 1e3) * 10;
+float                 gbl$target_iptms_adjustment_factor = 1.0;
+const unsigned long   gbl$target_sampling_s = 3;
+bool                  mips_adjustment_thread_running = false;
 #endif
 
 #ifdef USE_UART
@@ -452,7 +468,7 @@ void reset_machine()
   gbl$stat.memory_accesses[0] = gbl$stat.memory_accesses[1] = 0;
 
   /* Route use the USB keyboard emulation for stdin and VGA for stdout */
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || (defined(USE_VGA) && !defined(USE_UART))
   gbl$memory[IO_SWITCH_REG] = 3;
 #endif
 
@@ -676,7 +692,7 @@ int execute()
   int condition, cmp_0, cmp_1;
 
 #ifdef USE_VGA
-  //global instruction counter for MIPS calcluation; slightly different semantics than gbl$cycle_counter++
+  /* global instruction counter for MIPS calcluation; slightly different semantics than gbl$cycle_counter++ */
   gbl$mips_inst_cnt++;
   if (gbl$sdl_ticks - gbl$mips_tick_cnt > 1000)
   {
@@ -878,6 +894,34 @@ int execute()
   return FALSE; /* No HALT instruction executed */
 }
 
+#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
+int mips_adjustment_thread(void* param)
+{
+  mips_adjustment_thread_running = true;
+  usleep(1e6);
+  float samples = 0;
+  int sample_count = 0;
+  while (!gbl$shutdown_signal)
+  {
+    usleep(1e6);
+    samples += gbl$mips;
+    sample_count++;
+    if (sample_count == gbl$target_sampling_s)
+    {
+      float avg_mips = samples / (float) gbl$target_sampling_s;
+      if (avg_mips != 0 && avg_mips > 10) //avoiding division by zero and trouble due to too low sampling after restarting after CTRL+C
+        gbl$target_iptms_adjustment_factor *= (gbl$target_mips / avg_mips); // "*=" because the factor itself needs to be adjusted
+      else
+        gbl$target_iptms_adjustment_factor = 1.0;
+      samples = 0;
+      sample_count = 0;
+    }
+  }
+  mips_adjustment_thread_running = false;  
+  return 1;
+}
+#endif
+
 void run()
 {
   gbl$ctrl_c = FALSE;
@@ -888,7 +932,28 @@ void run()
 
   gbl$gather_statistics = TRUE;
   gbl$cpu_running = true;
-  while (!execute() && !gbl$ctrl_c && !gbl$shutdown_signal);
+
+#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
+  unsigned long instruction_counter = gbl$target_iptms;
+  struct timespec tstart, tend;
+  clock_gettime(CLOCK_REALTIME, &tstart);
+#endif
+
+  while (!execute() && !gbl$ctrl_c && !gbl$shutdown_signal)
+  {
+#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
+    if (!--instruction_counter)
+    {
+      clock_gettime(CLOCK_REALTIME, &tend);
+      unsigned long delta_us = ((tend.tv_sec * 1e9 + tend.tv_nsec) - (tstart.tv_sec * 1e9 + tstart.tv_nsec)) / 1000.0f;
+      if (delta_us < 10e3)
+        usleep(10e3 - delta_us);
+      instruction_counter = (unsigned long) ((float) gbl$target_iptms * (float) gbl$target_iptms_adjustment_factor);
+      clock_gettime(CLOCK_REALTIME, &tstart);
+    }
+#endif
+  }
+
   gbl$cpu_running = false;
   if (gbl$ctrl_c)
     printf("\n\tAborted by CTRL-C!\n");
@@ -899,8 +964,8 @@ void run()
 #endif
 
 #if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
-  //wait until the the asynchronous (non-blocking) keyboard input thread ended
-  //(the end signal is setting gbl$cpu_running to false)
+  /* wait until the the asynchronous (non-blocking) keyboard input thread ended
+     (the end signal is setting gbl$cpu_running to false) */
   while (uart_getchar_thread_running)
     usleep(10000);
 #endif
@@ -1173,6 +1238,22 @@ int main_loop(char **argv)
 
         printf("Switch register contains: %04X\n", access_memory(SWITCH_REG, READ_MEMORY, 0));
       }
+#if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
+      else if (!strcmp(token, "MIPS"))
+      {
+        if ((token = tokenize(NULL, delimiters)))
+        {
+          float new_mips = atof(token);
+          printf("new_mips = %.2f\n", new_mips);
+          gbl$target_mips = new_mips > 0 ? new_mips : gbl$qnice_mips;
+          gbl$target_iptms = ((new_mips * 1e6) / 1e3) * 10;
+          printf("QNICE hardware MIPS is %.2f\nNew target MIPS is %.2f\n", gbl$qnice_mips, gbl$target_mips);
+        }
+        else
+          printf("QNICE hardware MIPS is %.2f\nCurrent target MIPS is %.2f\n", gbl$qnice_mips, gbl$target_mips);
+
+      }
+#endif
       else if (!strcmp(token, "RUN"))
       {
         if ((token = tokenize(NULL, delimiters)))
@@ -1261,16 +1342,16 @@ int main(int argc, char **argv)
 #endif
   }
 
-// -----------------------------------------------------------------------------------------
-// Standard environment emulating an UART on a POSIX terminal
-// -----------------------------------------------------------------------------------------
+/* -----------------------------------------------------------------------------------------
+   Standard environment emulating an UART on a POSIX terminal
+   ----------------------------------------------------------------------------------------- */
 #ifndef USE_VGA
   return main_loop(argv);
 #else
 
-// -----------------------------------------------------------------------------------------
-// WebAssembly/WebGL environment
-// -----------------------------------------------------------------------------------------
+/* -----------------------------------------------------------------------------------------
+   WebAssembly/WebGL environment
+   ----------------------------------------------------------------------------------------- */
 # ifdef __EMSCRIPTEN__
 
   if (load_binary_file("monitor.out"))
@@ -1281,7 +1362,7 @@ int main(int argc, char **argv)
   vga_init();
   while (1)
   {
-    for (unsigned long i = 0; i < 500000; i++)
+    for (unsigned long i = 0; i < gbl$instructions_per_iteration; i++)
       execute();
 
     emscripten_sleep(0);
@@ -1289,9 +1370,9 @@ int main(int argc, char **argv)
     vga_one_iteration_screen();
   }
   
-// -----------------------------------------------------------------------------------------
-// Multithreaded local environment
-// -----------------------------------------------------------------------------------------
+/* -----------------------------------------------------------------------------------------
+   Multithreaded local environment
+   ----------------------------------------------------------------------------------------- */
 # else
 
 #  ifdef USE_UART
@@ -1301,13 +1382,14 @@ int main(int argc, char **argv)
   if (vga_init() && 
       vga_create_thread(emulator_main_loop, "thread: main_loop", (void*) argv) && 
       vga_create_thread(vga_timebase_thread, "thread: vga_timebase", NULL) &&
+      vga_create_thread(mips_adjustment_thread, "thread: mips_adjustment", NULL) &&
 #  ifdef USE_UART
       vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL) &&
 #  endif
       vga_main_loop())  
   {
     gbl$shutdown_signal = true;
-    while (gbl$cpu_running || vga_timebase_thread_running)
+    while (gbl$cpu_running || vga_timebase_thread_running || mips_adjustment_thread_running)
       usleep(10000);
     vga_shutdown();
 #  ifdef USE_UART

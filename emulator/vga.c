@@ -489,7 +489,7 @@ void vga_one_iteration_screen()
         fps_framecounter = 0;
     }
 
-    sprintf(fps_print_buffer, "    %.0f MIPS @ %d FPS", gbl$mips, fps);
+    sprintf(fps_print_buffer, "    %.1f MIPS @ %d FPS", gbl$mips, fps);
     vga_print(80 - strlen(fps_print_buffer), 0, false, fps_print_buffer);
 
     SDL_UpdateTexture(screen_texture, NULL, screen_pixels, render_dx * sizeof(Uint32));
