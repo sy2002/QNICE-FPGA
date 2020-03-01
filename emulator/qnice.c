@@ -14,7 +14,6 @@
 **   USE_SD
 **   USE_UART
 **   USE_VGA
-**   VGA_SHOW_FPS
 **
 ** The different make scripts "make.bash", "make-vga.bash" and "make-emscripten.bash"
 ** are defining these. The emscripten environment is automatically defining __EMSCRIPTEN__.
@@ -1301,13 +1300,14 @@ int main(int argc, char **argv)
 
   if (vga_init() && 
       vga_create_thread(emulator_main_loop, "thread: main_loop", (void*) argv) && 
+      vga_create_thread(vga_timebase_thread, "thread: vga_timebase", NULL) &&
 #  ifdef USE_UART
       vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL) &&
 #  endif
       vga_main_loop())  
   {
     gbl$shutdown_signal = true;
-    while (gbl$cpu_running)
+    while (gbl$cpu_running || vga_timebase_thread_running)
       usleep(10000);
     vga_shutdown();
 #  ifdef USE_UART
@@ -1315,7 +1315,7 @@ int main(int argc, char **argv)
     {
       uart_run_down();
       uart_fifo_free();
-    }
+    }    
     printf("\n");
 #  endif
     return 0;

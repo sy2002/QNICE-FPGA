@@ -1,25 +1,26 @@
 /*
-**  This module implements the emulation of a generic UART which will be eventually used in the actual hardware implementation
-** of QNICE.
+** This module implements the emulation of a generic UART which will be eventually used
+** in the actual hardware implementation of QNICE.
 **
 ** 02-JUN-2008, B. Ulmann fecit.
 ** 03-AUG-2015, B. Ulmann Changed from curses to select-calls.
 ** 28-DEC-2015, B. Ulmann Adapted to the current FPGA-implementation.
+** FEB-2020, sy2002 added non-blocking multithreaded version for the VGA emulator
 */
 
 #undef TEST /* Define to perform stand alone test */
 #define VERBOSE
 
-#include "uart.h"
 #include <stdio.h>
-
-#include <unistd.h>
 #include <stdlib.h>
 #include <termios.h>
+#include <unistd.h>
+
+#include "uart.h"
 
 #ifdef USE_VGA
+# include <poll.h>
 # include "fifo.h"
-# include "poll.h"
 fifo_t*             uart_fifo;
 const unsigned int  uart_fifo_size = 256;
 bool                uart_getchar_thread_running;  //flag to safely free the FIFO's memory

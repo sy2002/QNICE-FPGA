@@ -22,7 +22,7 @@
    whole code needs to be packed in the SDL equivalent of critical sections. */
 
 //in native VGA mode (no emscripten): stabilize display thread to ~60 FPS
-const unsigned long stable_fps_ms = 15; 
+const unsigned long stable_fps_ms = 16; 
 
 static Uint16   vram[65535];
 static Uint16   vga_state;
@@ -76,6 +76,10 @@ char            fps_print_buffer[80];
 extern float         gbl$mips;
 extern unsigned long gbl$mips_inst_cnt;
 extern bool          gbl$shutdown_signal;
+
+#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
+bool            vga_timebase_thread_running = false;
+#endif
 
 unsigned int kbd_read_register(unsigned int address)
 {
@@ -317,7 +321,9 @@ int vga_init()
     kbd_state = KBD_LOCALE_DE; //for now, we hardcode german keyboard layout
     kbd_data = 0;
 
-    gbl$sdl_ticks = SDL_GetTicks();
+#ifdef __EMSCRIPTEN__
+    gbl$sdl_ticks = SDL_GetTicks(); //in non-emscripten mode done by vga_timebase_thread
+#endif
     fps = fps_framecounter = 0;
     
     kbd_fifo = fifo_init(kbd_fifo_size);
@@ -472,9 +478,10 @@ void vga_one_iteration_screen()
 {
     SDL_RenderClear(renderer);  
     
-#ifdef VGA_SHOW_FPS
     fps_framecounter++;
+#ifdef __EMSCRIPTEN__
     gbl$sdl_ticks = SDL_GetTicks();
+#endif
     if (gbl$sdl_ticks - sdl_ticks_prev > 1000)
     {
         sdl_ticks_prev = gbl$sdl_ticks;
@@ -484,7 +491,6 @@ void vga_one_iteration_screen()
 
     sprintf(fps_print_buffer, "    %.0f MIPS @ %d FPS", gbl$mips, fps);
     vga_print(80 - strlen(fps_print_buffer), 0, false, fps_print_buffer);
-#endif
 
     SDL_UpdateTexture(screen_texture, NULL, screen_pixels, render_dx * sizeof(Uint32));
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
@@ -492,7 +498,7 @@ void vga_one_iteration_screen()
     SDL_RenderPresent(renderer);
 }
 
-#if defined(USE_VGA) || !defined(__EMSCRIPTEN__)
+#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
 int vga_main_loop()
 {
     event_quit = false;
@@ -503,10 +509,22 @@ int vga_main_loop()
         vga_one_iteration_keyboard();
         vga_one_iteration_screen();
 
-        elapsed_ms = gbl$sdl_ticks - elapsed_ms;
+        elapsed_ms = SDL_GetTicks() - elapsed_ms;
         if (elapsed_ms < stable_fps_ms)
             SDL_Delay(stable_fps_ms - elapsed_ms);
     }
+    return 1;
+}
+
+int vga_timebase_thread(void* param)
+{
+    vga_timebase_thread_running = true;
+    while (!gbl$shutdown_signal)
+    {
+        gbl$sdl_ticks = SDL_GetTicks();
+        SDL_Delay(1);
+    }
+    vga_timebase_thread_running = false;    
     return 1;
 }
 #endif

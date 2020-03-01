@@ -19,7 +19,7 @@ if [[ ! -f qnice.js ]] || [[ ! -f qnice.wasm ]] || [[ ! -f qnice.html ]]; then
 fi
 
 FILES="qnice.c fifo.c sd.c vga.c"
-DEF_SWITCHES="-DUSE_SD -DUSE_VGA -DVGA_SHOW_FPS"
+DEF_SWITCHES="-DUSE_SD -DUSE_VGA"
 UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART"
 PRELOAD_FILES="--preload-file monitor.out"
 

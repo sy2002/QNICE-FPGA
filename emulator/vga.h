@@ -30,8 +30,10 @@ void            vga_print(int x, int y, bool absolute, char* s);
 void            vga_one_iteration_keyboard();
 void            vga_one_iteration_screen();
 
-#if defined(USE_VGA) || !defined(__EMSCRIPTEN__)
+#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
 int             vga_main_loop();
+bool            vga_timebase_thread_running;
+int             vga_timebase_thread(void* param);
 #endif
 
 #endif
