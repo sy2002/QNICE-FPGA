@@ -909,10 +909,18 @@ int mips_adjustment_thread(void* param)
     if (sample_count == gbl$target_sampling_s)
     {
       float avg_mips = samples / (float) gbl$target_sampling_s;
-      if (avg_mips != 0 && avg_mips > 10) //avoiding division by zero and trouble due to too low sampling after restarting after CTRL+C
+      /* avoiding division by zero and trouble due to too low sampling after restarting after CTRL+C */
+      if (avg_mips > 1)
         gbl$target_iptms_adjustment_factor *= (gbl$target_mips / avg_mips); // "*=" because the factor itself needs to be adjusted
       else
         gbl$target_iptms_adjustment_factor = 1.0;
+
+      // make sure that the value of the factor is not going off-limits in edge-cases
+      if (gbl$target_iptms_adjustment_factor < 0.25)
+        gbl$target_iptms_adjustment_factor = 0.25;
+      else if (gbl$target_iptms_adjustment_factor > 3)
+        gbl$target_iptms_adjustment_factor = 3;
+
       samples = 0;
       sample_count = 0;
     }
@@ -1241,12 +1249,11 @@ int main_loop(char **argv)
 #if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
       else if (!strcmp(token, "MIPS"))
       {
-        if ((token = tokenize(NULL, delimiters)))
+        if ((token = tokenize(NULL, " ")))
         {
           float new_mips = atof(token);
-          printf("new_mips = %.2f\n", new_mips);
           gbl$target_mips = new_mips > 0 ? new_mips : gbl$qnice_mips;
-          gbl$target_iptms = ((new_mips * 1e6) / 1e3) * 10;
+          gbl$target_iptms = ((gbl$target_mips * 1e6) / 1e3) * 10;
           printf("QNICE hardware MIPS is %.2f\nNew target MIPS is %.2f\n", gbl$qnice_mips, gbl$target_mips);
         }
         else
@@ -1273,6 +1280,7 @@ DIS  <START>, <STOP>           Disassemble a memory region\n\
 DUMP <START>, <STOP>           Dump a memory area, START and STOP can be\n\
                                hexadecimal or plain decimal\n\
 LOAD <FILENAME>                Loads a binary file into main memory\n\
+MIPS [<TARGET MIPS>]           Displays/sets the emulator's speed in MIPS\n\
 QUIT/EXIT                      Stop the emulator and return to the shell\n\
 RESET                          Reset the whole machine\n\
 RDUMP                          Print a register dump\n\
