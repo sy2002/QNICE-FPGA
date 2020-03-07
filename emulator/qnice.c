@@ -1357,6 +1357,13 @@ STEP [<ADDR>]                  Executes a single instruction at address\n\
 SWITCH [<VALUE>]               Set the switch register to a value\n\
 VERBOSE                        Toggle verbosity mode\n\
 ");
+
+#if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
+        printf("\n\
+Keyboard shortcuts for the VGA window:\n\n\
+ALT+f                          Toggle SPEEDSTATS\n\
+");
+#endif
       }
       else
         printf("main: Unknown command >>%s<<\n", token);

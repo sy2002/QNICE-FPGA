@@ -150,6 +150,12 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
     {
         kbd_state |= KBD_ALT;
         alt_pressed = true;
+
+        if (keycode == 'f')
+        {
+            gbl$speedstats = !gbl$speedstats;
+            keycode = 0;
+        }
     }
     else
     {
@@ -489,6 +495,7 @@ void vga_one_iteration_screen()
 {
     SDL_RenderClear(renderer);  
     
+    //calculate FPS
     fps_framecounter++;
 #ifdef __EMSCRIPTEN__
     gbl$sdl_ticks = SDL_GetTicks();
@@ -519,12 +526,14 @@ void vga_one_iteration_screen()
         speedstats_old = gbl$speedstats;
     }
 
+    //show MIPS and FPS
     if (gbl$speedstats)
     {
         sprintf(fps_print_buffer, "    %.1f MIPS @ %d FPS", gbl$mips, fps);
         vga_print(80 - strlen(fps_print_buffer), 0, false, fps_print_buffer);
     }
 
+    //high-performance way of displaying the screen using streaming textures
     SDL_UpdateTexture(screen_texture, NULL, screen_pixels, render_dx * sizeof(Uint32));
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     vga_render_cursor();    
@@ -542,6 +551,8 @@ int vga_main_loop()
         vga_one_iteration_keyboard();
         vga_one_iteration_screen();
 
+        /* do not waste performance by displaying too many FPS: the real performance bottleneck
+           is the emulation of the system (i.e. the MIPS), maximizing FPS does not make any sense */
         elapsed_ms = SDL_GetTicks() - elapsed_ms;
         if (elapsed_ms < stable_fps_ms)
             SDL_Delay(stable_fps_ms - elapsed_ms);
