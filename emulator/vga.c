@@ -59,29 +59,41 @@ static Uint32   font[font_dx * font_dy * QNICE_FONT_CHARS];
 
 static bool     cursor = false;
 
-SDL_Window*     win;
-SDL_Renderer*   renderer;
-SDL_Texture*    screen_texture;
-Uint32*         screen_pixels;
-SDL_Event       event;
-bool            event_quit;
+//data structures for rendering on screen
+SDL_Window*          win;
+SDL_Renderer*        renderer;
+SDL_Texture*         screen_texture;
+Uint32*              screen_pixels;
 
-unsigned long   gbl$sdl_ticks;
-unsigned long   sdl_ticks_prev;
-unsigned long   sdl_ticks_curr;
-unsigned long   fps_framecounter; 
-unsigned int    fps;
-char            fps_print_buffer[80];
-Uint16          fps_background_save[19];
+SDL_Event            event;
+bool                 event_quit;
+
+unsigned long        gbl$sdl_ticks;
+unsigned long        sdl_ticks_prev;
+unsigned long        sdl_ticks_curr;
+unsigned long        fps_framecounter; 
+unsigned int         fps;
+char                 fps_print_buffer[screen_dx];
+Uint16               fps_background_save[19];
 
 extern float         gbl$mips;
 extern unsigned long gbl$mips_inst_cnt;
 extern bool          gbl$shutdown_signal;
 extern bool          gbl$speedstats;
-bool                 speedstats_old;
+bool                 speedstats_rendered;
 
-#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
-bool            vga_timebase_thread_running = false;
+const unsigned int   speed_change_timer_duration = 3000;    //display duration of speed change in ms
+unsigned int         speed_change_timer = 0;
+char                 speed_change_msg[screen_dx];
+
+
+#ifndef __EMSCRIPTEN__
+bool                 vga_timebase_thread_running = false;
+extern void          gbl_set_target_mips(float new_mips);
+extern void          gbl_change_target_mips(float delta);
+extern float         gbl$qnice_mips;
+extern float         gbl$max_mips;
+extern float         gbl$target_mips;
 #endif
 
 unsigned int kbd_read_register(unsigned int address)
@@ -148,13 +160,41 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
 
     if (keymod & KMOD_ALT)
     {
+        float delta, sign;
+
         kbd_state |= KBD_ALT;
         alt_pressed = true;
 
-        if (keycode == 'f')
+        const char* hotkeys = "fcvnm";
+        if (strchr(hotkeys, keycode))
         {
-            gbl$speedstats = !gbl$speedstats;
+            switch (keycode)
+            {
+                case 'f':
+                    gbl$speedstats = !gbl$speedstats;                
+                    return;
+
+                case 'c':
+                    gbl_set_target_mips(gbl$qnice_mips);
+                    sprintf(speed_change_msg, "Set target MIPS to QNICE hardware (%.1f MIPS)", gbl$qnice_mips);
+                    break;
+
+                case 'v':
+                    gbl_set_target_mips(gbl$max_mips);
+                    sprintf(speed_change_msg, "Set target MIPS to MAXIMUM");
+                    break;
+
+                case 'n':
+                case 'm':
+                    delta = shift_pressed  ?  1.0 : 0.1;
+                    sign  = keycode == 'n' ? -1.0 : 1.0;
+                    gbl_change_target_mips(sign * delta);
+                    sprintf(speed_change_msg, "Set target MIPS to %.1f MIPS", gbl$target_mips);
+                    break;
+            }
             keycode = 0;
+            vga_refresh_rendering();
+            speed_change_timer = gbl$sdl_ticks;
         }
     }
     else
@@ -290,7 +330,7 @@ void vga_write_register(unsigned int address, unsigned int value)
             vga_offs_display = value;
             for (int y = 0; y < screen_dy; y++)
                 for (int x = 0; x < screen_dx; x++)
-                    vga_render_vram(x, y, (Uint8) vram[y * screen_dx + x + vga_offs_display]);
+                    vga_render_to_pixelbuffer(x, y, (Uint8) vram[y * screen_dx + x + vga_offs_display]);
             break;
 
         /* As you can see in "write_vga_registers" in file "vga_textmode.vhd" of hardware
@@ -308,7 +348,7 @@ void vga_write_register(unsigned int address, unsigned int value)
         case VGA_CHAR:
             vram[((vga_y * screen_dx + vga_x) & 0x0FFF) + vga_offs_rw] = value;
             if (vga_x >= 0 && vga_x < screen_dx && vga_y >=0 && vga_y < screen_dy)
-                vga_render_vram(vga_x, vga_y, (Uint8) value);
+                vga_render_to_pixelbuffer(vga_x, vga_y, (Uint8) value);
             break;
     }
 }
@@ -334,7 +374,7 @@ int vga_init()
     gbl$sdl_ticks = SDL_GetTicks(); //in non-emscripten mode done by vga_timebase_thread
 #endif
     fps = fps_framecounter = 0;
-    speedstats_old = gbl$speedstats;
+    speedstats_rendered = gbl$speedstats;
     
     kbd_fifo = fifo_init(kbd_fifo_size);
 
@@ -416,14 +456,12 @@ void vga_clear_screen()
     vga_state &= ~(VGA_BUSY | VGA_CLR_SCRN);
 }
 
-void vga_print(int x, int y, bool absolute, char* s)
+/* Prints to pixel buffer without modifying the video ram (vram).
+   This means that vga_print must be call upon each render iteration, otherwise nothing is visible */
+void vga_print(int x, int y, char* s)
 {
-    int offs = absolute ? 0 : vga_offs_rw;
     for (int i = 0; i < strlen(s); i++)
-    {
-        vram[y * screen_dx + x + offs + i] = s[i];
-        vga_render_vram(x + i, y, s[i]);
-    }
+        vga_render_to_pixelbuffer(x + i, y, s[i]);
 }    
 
 void vga_create_font_cache()
@@ -439,10 +477,10 @@ void vga_refresh_rendering()
 {
     for (int y = 0; y < screen_dy; y++)
         for (int x = 0; x < screen_dx; x++)
-            vga_render_vram(x, y, vram[y * screen_dx + x + vga_offs_rw]);
+            vga_render_to_pixelbuffer(x, y, vram[y * screen_dx + x + vga_offs_rw]);
 }
 
-void vga_render_vram(int x, int y, Uint8 c)
+void vga_render_to_pixelbuffer(int x, int y, Uint8 c)
 {
     unsigned long scr_offs = y * font_dy * render_dx + x * font_dx;
     unsigned long fnt_offs = font_dx * font_dy * c;
@@ -491,6 +529,49 @@ void vga_one_iteration_keyboard()
     }
 }
 
+void vga_render_speedwin(const char* message)
+{
+    unsigned int x, y, dx, dy;
+    char win[screen_dx];    
+    char spaces[screen_dx];    
+
+    dx = strlen(message) + 6;
+    dy = 5;
+    x = screen_dx / 2 - dx / 2;
+    y = screen_dy / 2 - dy / 2;
+
+    for (int i = 0; i < dx; spaces[i++] = 0x20);
+    spaces[dx] = 0;
+    vga_print(x, y, spaces);
+
+    win[0] = 0x20;
+    win[1] = 0x86;
+    for (int i = 0; i < dx - 3; win[2 + i++] = 0x8A);
+    win[dx - 2] = 0x8C;
+    win[dx - 1] = 0x20;
+    win[dx] = 0;
+    vga_print(x, y+1, win);
+
+    win[0] = 0x20;
+    win[1] = 0x85;
+    win[2] = 0x20;
+    for (int i = 0; i < dx; i++)
+        win[3 + i] = i < strlen(message) ? message[i] : 0x20;
+    win[dx - 2] = 0x85;
+    win[dx - 1] = 0x20;
+    win[dx] = 0;
+    vga_print(x, y+2, win);
+
+    win[0] = 0x20;
+    win[1] = 0x83;
+    for (int i = 0; i < dx - 3; win[2 + i++] = 0x8A);
+    win[dx - 2] = 0x89;
+    win[dx - 1] = 0x20;
+    win[dx] = 0;
+    vga_print(x, y+3, win);
+    vga_print(x, y+4, spaces);
+}
+
 void vga_one_iteration_screen()
 {
     SDL_RenderClear(renderer);  
@@ -507,30 +588,29 @@ void vga_one_iteration_screen()
         fps_framecounter = 0;
     }
 
-    if (speedstats_old != gbl$speedstats)
-    {
-        //save background before activating MIPS and FPS display
-        if (gbl$speedstats)
-        {
-            for (int i = 0; i < 19; i++)
-                fps_background_save[i] = vram[61 + i];
-        }
-
-        //restore background after deactivating MIPS and FPS display
-        else
-        {
-            for (int i = 0; i < 19; i++)
-                vram[61 + i] = fps_background_save[i];
-            vga_refresh_rendering();
-        }
-        speedstats_old = gbl$speedstats;
-    }
-
     //show MIPS and FPS
     if (gbl$speedstats)
     {
         sprintf(fps_print_buffer, "    %.1f MIPS @ %d FPS", gbl$mips, fps);
-        vga_print(80 - strlen(fps_print_buffer), 0, false, fps_print_buffer);
+        vga_print(screen_dx - strlen(fps_print_buffer), 0, fps_print_buffer);
+        speedstats_rendered = true;
+    }
+    else if (speedstats_rendered)
+    {
+        vga_refresh_rendering();
+        speedstats_rendered = false;
+    }
+
+    //show speed change window
+    if (speed_change_timer > 0)
+    {
+        if (gbl$sdl_ticks - speed_change_timer < speed_change_timer_duration)
+            vga_render_speedwin(speed_change_msg);
+        else
+        {
+            vga_refresh_rendering();
+            speed_change_timer = 0;
+        }
     }
 
     //high-performance way of displaying the screen using streaming textures
@@ -540,7 +620,7 @@ void vga_one_iteration_screen()
     SDL_RenderPresent(renderer);
 }
 
-#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
+#ifndef __EMSCRIPTEN__
 int vga_main_loop()
 {
     event_quit = false;

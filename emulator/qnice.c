@@ -100,6 +100,10 @@
 
 #define GENERIC_BRANCH_OPCODE  0xf /* All branches share this common opcode */
 
+#ifdef USE_UART
+uart gbl$first_uart;
+#endif
+
 typedef struct statistic_data
 {
   unsigned long long instruction_frequency[NO_OF_INSTRUCTIONS], /* Count the number of executions per instruction */
@@ -157,10 +161,28 @@ float                 gbl$target_iptms_adjustment_factor = 1.0;
 const unsigned long   gbl$target_sampling_s = 3;
 bool                  mips_adjustment_thread_running = false;
 bool                  gbl$target_mips_changed = false;
-#endif
 
-#ifdef USE_UART
-uart gbl$first_uart;
+void gbl_set_target_mips(float new_mips)
+{
+  if (new_mips != gbl$max_mips)
+  {
+    gbl$target_mips = new_mips > 0 ? new_mips : gbl$qnice_mips;
+    gbl$target_iptms = ((gbl$target_mips * 1e6) / 1e3) * 10;
+  }
+  else
+  {
+    gbl$target_mips = gbl$max_mips;
+    gbl$target_iptms = 1000;
+  }
+}
+
+void gbl_change_target_mips(float delta)
+{
+  if (gbl$target_mips == gbl$max_mips)
+    gbl_set_target_mips(gbl$mips + delta);
+  else
+    gbl_set_target_mips(gbl$target_mips + delta);
+}
 #endif
 
 /*
@@ -177,7 +199,7 @@ int wordexp(const char *s, wordexp_t *p, int flags)
 #endif
 
 /*
-**
+** use CTRL+c to pause emulation and to return back to the emulator's console
 */
 static void signal_handler_ctrl_c(int signo)
 {
@@ -1279,21 +1301,23 @@ int main_loop(char **argv)
           upstr(token);
           if (!strcmp(token, "MAX"))
           {
-            gbl$target_mips = gbl$max_mips;
-            gbl$target_iptms = 1;
+            gbl_set_target_mips(gbl$max_mips);
             printf("QNICE hardware MIPS is %.2f\nNew target MIPS is MAXIMUM\n", gbl$qnice_mips);
           }
           else
           {
-            float new_mips = atof(token);
-            gbl$target_mips = new_mips > 0 ? new_mips : gbl$qnice_mips;
-            gbl$target_iptms = ((gbl$target_mips * 1e6) / 1e3) * 10;
+            gbl_set_target_mips(atof(token));
             printf("QNICE hardware MIPS is %.2f\nNew target MIPS is %.2f\n", gbl$qnice_mips, gbl$target_mips);
           }
           gbl$target_mips_changed = true;
         }
         else
-          printf("QNICE hardware MIPS is %.2f\nCurrent target MIPS is %.2f\n", gbl$qnice_mips, gbl$target_mips);
+        {
+          if (gbl$target_mips == gbl$max_mips)
+            printf("QNICE hardware MIPS is MAXIMUM\n");
+          else
+            printf("QNICE hardware MIPS is %.2f\nCurrent target MIPS is %.2f\n", gbl$qnice_mips, gbl$target_mips);
+        }
       }
       else if (!strcmp(token, "SPEEDSTATS"))
       {
@@ -1362,7 +1386,11 @@ VERBOSE                        Toggle verbosity mode\n\
         printf("\n\
 Keyboard shortcuts for the VGA window:\n\n\
 ALT+f                          Toggle SPEEDSTATS\n\
-");
+ALT[+SHIFT]+m                  Increase MIPS by 0.1 [or 1.0]\n\
+ALT[+SHIFT]+n                  Decrease MIPS by 0.1 [or 1.0]\n\
+ALT+c                          Set to QNICE hardware speed (%.1f MIPS)\n\
+ALT+v                          Set to maximum hardware speed\n\
+", gbl$qnice_mips);
 #endif
       }
       else
