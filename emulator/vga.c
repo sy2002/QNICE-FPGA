@@ -86,7 +86,6 @@ const unsigned int   speed_change_timer_duration = 3000;    //display duration o
 unsigned int         speed_change_timer = 0;
 char                 speed_change_msg[screen_dx];
 
-
 #ifndef __EMSCRIPTEN__
 bool                 vga_timebase_thread_running = false;
 extern void          gbl_set_target_mips(float new_mips);
@@ -94,6 +93,9 @@ extern void          gbl_change_target_mips(float delta);
 extern float         gbl$qnice_mips;
 extern float         gbl$max_mips;
 extern float         gbl$target_mips;
+#else
+extern unsigned long gbl$ipi_default;
+extern unsigned long gbl$instructions_per_iteration;
 #endif
 
 unsigned int kbd_read_register(unsigned int address)
@@ -174,6 +176,7 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
                     gbl$speedstats = !gbl$speedstats;                
                     return;
 
+#ifndef __EMSCRIPTEN__
                 case 'c':
                     gbl_set_target_mips(gbl$qnice_mips);
                     sprintf(speed_change_msg, "Set target MIPS to QNICE hardware (%.1f MIPS)", gbl$qnice_mips);
@@ -191,6 +194,31 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
                     gbl_change_target_mips(sign * delta);
                     sprintf(speed_change_msg, "Set target MIPS to %.1f MIPS", gbl$target_mips);
                     break;
+#else
+                case 'c':
+                    gbl$instructions_per_iteration = gbl$ipi_default;
+                    sprintf(speed_change_msg, "Set instructions per frame to default (%lu)", gbl$ipi_default);
+                    break;
+
+                case 'v':
+                    sprintf(speed_change_msg, "Current instructions per frame: %lu", gbl$instructions_per_iteration);
+                    break;
+
+                case 'n':
+                case 'm':
+                    delta = shift_pressed  ?  100000 : 2500;
+                    if (keycode == 'n')
+                    {
+                        if (gbl$instructions_per_iteration > delta)
+                            gbl$instructions_per_iteration -= delta;
+                        else
+                            gbl$instructions_per_iteration = 0;
+                    }
+                    else
+                        gbl$instructions_per_iteration += delta;
+                    sprintf(speed_change_msg, "Set instructions per frame to %lu", gbl$instructions_per_iteration);
+                    break;
+#endif
             }
             keycode = 0;
             vga_refresh_rendering();

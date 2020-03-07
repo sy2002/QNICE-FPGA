@@ -143,7 +143,8 @@ bool                  gbl$speedstats = false;   //show MIPS and FPS in VGA windo
         3. handle keyboard
         4. draw screen
 */
-unsigned long         gbl$instructions_per_iteration = 500000;
+const unsigned long   gbl$ipi_default                = 500000;
+unsigned long         gbl$instructions_per_iteration = gbl$ipi_default;
 #endif
 
 /* According to ../test_programs/mandel_perf_test.asm, the current QNICE hardware,
