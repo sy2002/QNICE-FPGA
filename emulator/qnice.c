@@ -126,11 +126,20 @@ bool gbl$cpu_running      = false;
 bool gbl$shutdown_signal  = false;
 
 #ifdef USE_VGA
-float                 gbl$mips = 0;
-unsigned long         gbl$mips_inst_cnt = 0;
-Uint32                gbl$mips_tick_cnt = 0;
-extern unsigned long  gbl$sdl_ticks;
+float                 gbl$mips = 0;             //actual MIPS (measured each second)
+unsigned long         gbl$mips_inst_cnt = 0;    //amount of instructions in the current second
+Uint32                gbl$mips_tick_cnt = 0;    //used to measure a second (1000 ticks == 1000 ms == 1s)
+extern unsigned long  gbl$sdl_ticks;            //global timer in milliseconds
+
+#ifdef __EMSCRIPTEN__
+/* one iteration in emscripten mode means:
+        1. execute n instructions, where n == gbl$instructions_per_iteration
+        2. hand back control to the browser (cooperative multitasking)
+        3. handle keyboard
+        4. draw screen
+*/
 unsigned long         gbl$instructions_per_iteration = 500000;
+#endif
 
 /* According to ../test_programs/mandel_perf_test.asm, the current QNICE hardware,
    which runs at 50 MHz performs at 12.93 MIPS.
@@ -140,11 +149,13 @@ unsigned long         gbl$instructions_per_iteration = 500000;
    which is done by sampling the actual MIPS every 3 seconds and calculating
    the gbl$target_iptms_adjustment_factor in the thread "mips_adjustment_thread" */
 const float           gbl$qnice_mips   = 12.93;
+const float           gbl$max_mips     = INFINITY;
 float                 gbl$target_mips  = gbl$qnice_mips;
 unsigned long         gbl$target_iptms = ((gbl$qnice_mips * 1e6) / 1e3) * 10;
 float                 gbl$target_iptms_adjustment_factor = 1.0;
 const unsigned long   gbl$target_sampling_s = 3;
 bool                  mips_adjustment_thread_running = false;
+bool                  gbl$target_mips_changed = false;
 #endif
 
 #ifdef USE_UART
@@ -179,8 +190,7 @@ void upstr(char *string)
 {
   while (*string)
   {
-    if (*string >= 'a' && *string <= 'z')
-      *string += -'a' + 'A';
+    *string = (char) toupper(*string);
     string++;
   }
 }
@@ -909,18 +919,26 @@ int mips_adjustment_thread(void* param)
     if (sample_count == gbl$target_sampling_s)
     {
       float avg_mips = samples / (float) gbl$target_sampling_s;
-      /* avoiding division by zero and trouble due to too low sampling after restarting after CTRL+C */
-      if (avg_mips > 1)
+      /* avg_mips > 0: avoiding division by zero after restarting after CTRL+C 
+         checking gbl$target_mips_changed: if the mips value recently was changed in the other thread using the MIPS command,
+         then the avg_mips value contains nonsense and the whole process of regulating speed would take longer than necessary,
+         since a few more iterations of this adjustment cycle would need to run; this is why we avoid this by checking */
+      if (avg_mips > 0 && !gbl$target_mips_changed && gbl$target_mips != gbl$max_mips)
+      {
         gbl$target_iptms_adjustment_factor *= (gbl$target_mips / avg_mips); // "*=" because the factor itself needs to be adjusted
+
+        // make sure that the value of the factor is not going off-limits in edge-cases
+        if (gbl$target_iptms_adjustment_factor < 0.25)
+          gbl$target_iptms_adjustment_factor = 0.25;
+        else if (gbl$target_iptms_adjustment_factor > 3)
+          gbl$target_iptms_adjustment_factor = 3;
+      }
       else
+      {
         gbl$target_iptms_adjustment_factor = 1.0;
-
-      // make sure that the value of the factor is not going off-limits in edge-cases
-      if (gbl$target_iptms_adjustment_factor < 0.25)
-        gbl$target_iptms_adjustment_factor = 0.25;
-      else if (gbl$target_iptms_adjustment_factor > 3)
-        gbl$target_iptms_adjustment_factor = 3;
-
+        if (gbl$target_mips_changed)
+          gbl$target_mips_changed = false;
+      }
       samples = 0;
       sample_count = 0;
     }
@@ -950,15 +968,16 @@ void run()
   while (!execute() && !gbl$ctrl_c && !gbl$shutdown_signal)
   {
 #if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
-    if (!--instruction_counter)
-    {
-      clock_gettime(CLOCK_REALTIME, &tend);
-      unsigned long delta_us = ((tend.tv_sec * 1e9 + tend.tv_nsec) - (tstart.tv_sec * 1e9 + tstart.tv_nsec)) / 1000.0f;
-      if (delta_us < 10e3)
-        usleep(10e3 - delta_us);
-      instruction_counter = (unsigned long) ((float) gbl$target_iptms * (float) gbl$target_iptms_adjustment_factor);
-      clock_gettime(CLOCK_REALTIME, &tstart);
-    }
+    if (gbl$target_mips != gbl$max_mips)
+      if (!--instruction_counter)
+      {
+        clock_gettime(CLOCK_REALTIME, &tend);
+        unsigned long delta_us = ((tend.tv_sec * 1e9 + tend.tv_nsec) - (tstart.tv_sec * 1e9 + tstart.tv_nsec)) / 1000.0f;
+        if (delta_us < 10e3)
+          usleep(10e3 - delta_us);
+        instruction_counter = (unsigned long) ((float) gbl$target_iptms * (float) gbl$target_iptms_adjustment_factor);
+        clock_gettime(CLOCK_REALTIME, &tstart);
+      }
 #endif
   }
 
@@ -1251,10 +1270,21 @@ int main_loop(char **argv)
       {
         if ((token = tokenize(NULL, " ")))
         {
-          float new_mips = atof(token);
-          gbl$target_mips = new_mips > 0 ? new_mips : gbl$qnice_mips;
-          gbl$target_iptms = ((gbl$target_mips * 1e6) / 1e3) * 10;
-          printf("QNICE hardware MIPS is %.2f\nNew target MIPS is %.2f\n", gbl$qnice_mips, gbl$target_mips);
+          upstr(token);
+          if (!strcmp(token, "MAX"))
+          {
+            gbl$target_mips = gbl$max_mips;
+            gbl$target_iptms = 1;
+            printf("QNICE hardware MIPS is %.2f\nNew target MIPS is MAXIMUM\n", gbl$qnice_mips);
+          }
+          else
+          {
+            float new_mips = atof(token);
+            gbl$target_mips = new_mips > 0 ? new_mips : gbl$qnice_mips;
+            gbl$target_iptms = ((gbl$target_mips * 1e6) / 1e3) * 10;
+            printf("QNICE hardware MIPS is %.2f\nNew target MIPS is %.2f\n", gbl$qnice_mips, gbl$target_mips);
+          }
+          gbl$target_mips_changed = true;
         }
         else
           printf("QNICE hardware MIPS is %.2f\nCurrent target MIPS is %.2f\n", gbl$qnice_mips, gbl$target_mips);
@@ -1271,6 +1301,7 @@ int main_loop(char **argv)
         run();
       }
       else if (!strcmp(token, "HELP"))
+      {
         printf("\n\
 ATTACH <FILENAME>              Attach a disk image file (only with SD-support)\n\
 CB                             Clear Breakpoint\n\
@@ -1279,8 +1310,12 @@ DETACH                         Detach a disk image file\n\
 DIS  <START>, <STOP>           Disassemble a memory region\n\
 DUMP <START>, <STOP>           Dump a memory area, START and STOP can be\n\
                                hexadecimal or plain decimal\n\
-LOAD <FILENAME>                Loads a binary file into main memory\n\
-MIPS [<TARGET MIPS>]           Displays/sets the emulator's speed in MIPS\n\
+LOAD <FILENAME>                Loads a binary file into main memory\n");
+#if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
+        printf("\
+MIPS [<TARGET MIPS> | MAX]     Displays/sets the emulator's speed in MIPS\n");
+#endif
+        printf("\
 QUIT/EXIT                      Stop the emulator and return to the shell\n\
 RESET                          Reset the whole machine\n\
 RDUMP                          Print a register dump\n\
@@ -1297,6 +1332,7 @@ STEP [<ADDR>]                  Executes a single instruction at address\n\
 SWITCH [<VALUE>]               Set the switch register to a value\n\
 VERBOSE                        Toggle verbosity mode\n\
 ");
+      }
       else
         printf("main: Unknown command >>%s<<\n", token);
     }
