@@ -2,8 +2,7 @@
 ** QNICE VGA and PS2/USB keyboard Emulator
 **
 ** done by sy2002 in December 2016 .. January 2017
-** emscripten/WebGL version in February 2020
-**
+** emscripten/WebGL version in February and March 2020
 */
 
 #include <stdbool.h>
@@ -356,9 +355,7 @@ void vga_write_register(unsigned int address, unsigned int value)
 
         case VGA_OFFS_DISPLAY:
             vga_offs_display = value;
-            for (int y = 0; y < screen_dy; y++)
-                for (int x = 0; x < screen_dx; x++)
-                    vga_render_to_pixelbuffer(x, y, (Uint8) vram[y * screen_dx + x + vga_offs_display]);
+            vga_refresh_rendering();
             break;
 
         /* As you can see in "write_vga_registers" in file "vga_textmode.vhd" of hardware
@@ -374,8 +371,11 @@ void vga_write_register(unsigned int address, unsigned int value)
             break;
 
         case VGA_CHAR:
+            //store character to video ram (vram)
             vram[((vga_y * screen_dx + vga_x) & 0x0FFF) + vga_offs_rw] = value;
-            if (vga_x >= 0 && vga_x < screen_dx && vga_y >=0 && vga_y < screen_dy)
+            //make sure that the to-be-printed char is within the visible window
+            unsigned int print_addr = vga_offs_rw + vga_y * screen_dx + vga_x;
+            if (print_addr >= vga_offs_display && print_addr < vga_offs_display + screen_dy * screen_dx)
                 vga_render_to_pixelbuffer(vga_x, vga_y, (Uint8) value);
             break;
     }
@@ -449,6 +449,15 @@ int vga_init()
     return 1;
 }
 
+void vga_create_font_cache()
+{
+    const Uint32 green = 0x0000ff00;
+    for (int i = 0; i < QNICE_FONT_CHARS; i++)
+        for (int char_y = 0; char_y < font_dy; char_y++)
+            for (int char_x = 0; char_x < font_dx; char_x++)
+                font[i * font_dx * font_dy + char_y * font_dx + char_x] = qnice_font[i * font_dy + char_y] & (128 >> char_x) ? green : 0;
+}
+
 void vga_shutdown()
 {
     fifo_free(kbd_fifo);
@@ -485,31 +494,29 @@ void vga_clear_screen()
 }
 
 /* Prints to pixel buffer without modifying the video ram (vram).
-   This means that vga_print must be call upon each render iteration, otherwise nothing is visible */
+   This means that vga_print must be called upon each render iteration, otherwise nothing is visible */
 void vga_print(int x, int y, char* s)
 {
     for (int i = 0; i < strlen(s); i++)
         vga_render_to_pixelbuffer(x + i, y, s[i]);
 }    
 
-void vga_create_font_cache()
-{
-    const Uint32 green = 0x0000ff00;
-    for (int i = 0; i < QNICE_FONT_CHARS; i++)
-        for (int char_y = 0; char_y < font_dy; char_y++)
-            for (int char_x = 0; char_x < font_dx; char_x++)
-                font[i * font_dx * font_dy + char_y * font_dx + char_x] = qnice_font[i * font_dy + char_y] & (128 >> char_x) ? green : 0;
-}
-
+/* For performance reasons, during normal operation, the vram is not completely rendered, but only the
+   region that changed while writing a char using the respective registers.
+   vga_refresh_rendering is used to restore the vram on screen (inside the pixelbuffer), e.g. to restore
+   the background after having shown the speed change window or the speedstats */
 void vga_refresh_rendering()
 {
     for (int y = 0; y < screen_dy; y++)
         for (int x = 0; x < screen_dx; x++)
-            vga_render_to_pixelbuffer(x, y, vram[y * screen_dx + x + vga_offs_rw]);
+            vga_render_to_pixelbuffer(x, y, vram[y * screen_dx + x + vga_offs_display]);
 }
 
 void vga_render_to_pixelbuffer(int x, int y, Uint8 c)
 {
+    if (x < 0 || x >= screen_dx || y < 0 || y >= screen_dy)
+        return;
+
     unsigned long scr_offs = y * font_dy * render_dx + x * font_dx;
     unsigned long fnt_offs = font_dx * font_dy * c;
     for (int char_y = 0; char_y < font_dy; char_y++)

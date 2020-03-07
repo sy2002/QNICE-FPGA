@@ -1,7 +1,8 @@
 /*
 ** Header file for the VGA and PS2/USB keyboard emulation.
 **
-** done by sy2002 in December 2016 .. Januar 2017
+** done by sy2002 in December 2016 .. January 2017
+** emscripten/WebGL version in February and March 2020
 */
 
 #ifndef _QEMU_VGA
