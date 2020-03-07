@@ -130,6 +130,7 @@ float                 gbl$mips = 0;             //actual MIPS (measured each sec
 unsigned long         gbl$mips_inst_cnt = 0;    //amount of instructions in the current second
 Uint32                gbl$mips_tick_cnt = 0;    //used to measure a second (1000 ticks == 1000 ms == 1s)
 extern unsigned long  gbl$sdl_ticks;            //global timer in milliseconds
+bool                  gbl$speedstats = false;   //show MIPS and FPS in VGA window
 
 #ifdef __EMSCRIPTEN__
 /* one iteration in emscripten mode means:
@@ -914,8 +915,13 @@ int mips_adjustment_thread(void* param)
   while (!gbl$shutdown_signal)
   {
     usleep(1e6);
-    samples += gbl$mips;
-    sample_count++;
+
+    if (gbl$cpu_running)
+    {
+      samples += gbl$mips;
+      sample_count++;
+    }
+
     if (sample_count == gbl$target_sampling_s)
     {
       float avg_mips = samples / (float) gbl$target_sampling_s;
@@ -1288,7 +1294,21 @@ int main_loop(char **argv)
         }
         else
           printf("QNICE hardware MIPS is %.2f\nCurrent target MIPS is %.2f\n", gbl$qnice_mips, gbl$target_mips);
-
+      }
+      else if (!strcmp(token, "SPEEDSTATS"))
+      {
+        if ((token = tokenize(NULL, " ")))
+        {
+          upstr(token);
+          if (!strcmp(token, "ON"))
+            gbl$speedstats = true;
+          else if (!strcmp(token, "OFF"))
+            gbl$speedstats = false;
+          else
+            printf("Illegal switch. Use ON or OFF. SPEEDSTATS is currently %s\n", gbl$speedstats ? "ON": "OFF");
+        }
+        else
+          printf("Show MIPS and FPS in VGA window is currently %s\n", gbl$speedstats ? "ON": "OFF");
       }
 #endif
       else if (!strcmp(token, "RUN"))
@@ -1320,9 +1340,14 @@ QUIT/EXIT                      Stop the emulator and return to the shell\n\
 RESET                          Reset the whole machine\n\
 RDUMP                          Print a register dump\n\
 RUN [<ADDR>]                   Run a program beginning at ADDR\n\
-SET <REG|ADDR> <VALUE>         Either set a register or a memory cell\n\
+SET <REG | ADDR> <VALUE>       Either set a register or a memory cell\n\
 SAVE <FILENAME> <START> <STOP> Create a loadable binary file\n\
-SB <ADDR>                      Set breakpoint to an address\n\
+SB <ADDR>                      Set breakpoint to an address\n");
+#if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
+        printf("\
+SPEEDSTATS [ON | OFF]          Set the display of MIPS and FPS in VGA window\n");
+#endif
+        printf("\
 STAT                           Displays some execution statistics\n\
 STEP [<ADDR>]                  Executes a single instruction at address\n\
                                ADDR. If not address is specified the current\n\

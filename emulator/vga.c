@@ -72,10 +72,13 @@ unsigned long   sdl_ticks_curr;
 unsigned long   fps_framecounter; 
 unsigned int    fps;
 char            fps_print_buffer[80];
+Uint16          fps_background_save[19];
 
 extern float         gbl$mips;
 extern unsigned long gbl$mips_inst_cnt;
 extern bool          gbl$shutdown_signal;
+extern bool          gbl$speedstats;
+bool                 speedstats_old;
 
 #if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
 bool            vga_timebase_thread_running = false;
@@ -325,6 +328,7 @@ int vga_init()
     gbl$sdl_ticks = SDL_GetTicks(); //in non-emscripten mode done by vga_timebase_thread
 #endif
     fps = fps_framecounter = 0;
+    speedstats_old = gbl$speedstats;
     
     kbd_fifo = fifo_init(kbd_fifo_size);
 
@@ -425,6 +429,13 @@ void vga_create_font_cache()
                 font[i * font_dx * font_dy + char_y * font_dx + char_x] = qnice_font[i * font_dy + char_y] & (128 >> char_x) ? green : 0;
 }
 
+void vga_refresh_rendering()
+{
+    for (int y = 0; y < screen_dy; y++)
+        for (int x = 0; x < screen_dx; x++)
+            vga_render_vram(x, y, vram[y * screen_dx + x + vga_offs_rw]);
+}
+
 void vga_render_vram(int x, int y, Uint8 c)
 {
     unsigned long scr_offs = y * font_dy * render_dx + x * font_dx;
@@ -489,8 +500,30 @@ void vga_one_iteration_screen()
         fps_framecounter = 0;
     }
 
-    sprintf(fps_print_buffer, "    %.1f MIPS @ %d FPS", gbl$mips, fps);
-    vga_print(80 - strlen(fps_print_buffer), 0, false, fps_print_buffer);
+    if (speedstats_old != gbl$speedstats)
+    {
+        //save background before activating MIPS and FPS display
+        if (gbl$speedstats)
+        {
+            for (int i = 0; i < 19; i++)
+                fps_background_save[i] = vram[61 + i];
+        }
+
+        //restore background after deactivating MIPS and FPS display
+        else
+        {
+            for (int i = 0; i < 19; i++)
+                vram[61 + i] = fps_background_save[i];
+            vga_refresh_rendering();
+        }
+        speedstats_old = gbl$speedstats;
+    }
+
+    if (gbl$speedstats)
+    {
+        sprintf(fps_print_buffer, "    %.1f MIPS @ %d FPS", gbl$mips, fps);
+        vga_print(80 - strlen(fps_print_buffer), 0, false, fps_print_buffer);
+    }
 
     SDL_UpdateTexture(screen_texture, NULL, screen_pixels, render_dx * sizeof(Uint32));
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);

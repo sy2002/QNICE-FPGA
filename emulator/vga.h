@@ -25,6 +25,7 @@ void            vga_shutdown();
 void            vga_create_font_cache();
 int             vga_create_thread(vga_tft thread_func, const char* thread_name, void* param);
 void            vga_clear_screen();
+void            vga_refresh_rendering();
 void            vga_render_vram(int x, int y, Uint8 c);
 void            vga_print(int x, int y, bool absolute, char* s);
 void            vga_one_iteration_keyboard();
