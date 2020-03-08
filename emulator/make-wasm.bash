@@ -24,5 +24,5 @@ UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART"
 PRELOAD_FILES="--preload-file monitor.out"
 
 cp ../monitor/monitor.out .
-emcc $FILES -O3 -s ASYNCIFY -s ASYNCIFY_IGNORE_INDIRECT -s USE_SDL=2 --shell-file qnice-wasm-shell.html $DEF_SWITCHES $UNDEF_SWITCHES $PRELOAD_FILES -o qnice.html
+emcc $FILES -O3 -s ASYNCIFY -s ASYNCIFY_IGNORE_INDIRECT -s USE_SDL=2 --shell-file wasm-shell.html $DEF_SWITCHES $UNDEF_SWITCHES $PRELOAD_FILES -o qnice.html
 rm monitor.out
