@@ -47,9 +47,15 @@ c/vclib*.tgz
 c/qnice/monitor-lib/lib/*.asm
 _site
 assembler
+dist_kit
 c
 demos
+doc
 emulator
 monitor
+nexys4ddr
 pore
+qbin
 test_programs
+tools
+vhdl

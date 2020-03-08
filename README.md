@@ -18,9 +18,15 @@ of .gitignore to allow a seamless switch between a regular QNICE git branch
 and this special website branch:
 
 * assembler
+* dist_kit
 * c
 * demos
+* doc
 * emulator
 * monitor
+* nexys4ddr
 * pore
+* qbin
 * test_programs
+* tools
+* vhdl
