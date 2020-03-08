@@ -1,6 +1,7 @@
 ---
 layout: page
 title: Introducing QNICE-FPGA
+menu_order: 1
 show_webring: true
 ---
 
@@ -11,8 +12,8 @@ start hacking right away.
 
 ![QNICE_Intro_Img](public/intro.jpg)
 
-Specifications:
----------------
+Specifications
+--------------
 
 * 16-bit QNICE CPU featuring 16 registers, 8 of them in 256 register banks
 * 32k words ROM (64kB)
@@ -28,9 +29,11 @@ Getting Started
 ---------------
 
  * Currently, we are developing QNICE-FPGA using a
- [Nexys 4 DDR](http://store.digilentinc.com/nexys-4-ddr-artix-7-fpga-trainer-board-recommended-for-ece-curriculum/)
- FPGA development board. We recommend using it, too, since this will greatly
- speed up things for you.
+   [Nexys 4 DDR](https://store.digilentinc.com/nexys-4-ddr-artix-7-fpga-trainer-board-recommended-for-ece-curriculum/)
+   FPGA development board. Nexys updated and renamed it to
+   [Nexys A7](https://store.digilentinc.com/nexys-a7-fpga-trainer-board-recommended-for-ece-curriculum/)
+   We recommend using either the old Nexys 4 DDR board or the new Nexys A7 board,
+   too, since this will greatly speed up things for you.
 
  * You need a Bash Shell and GCC or CC to work with our toolchain. macOS and
    Linux work out of the box. On Windows, you might want to install the Ubuntu
@@ -46,7 +49,7 @@ Getting Started
    synthesize with any other tool for any other FPGA.
 
  * If you are using a Mac, the optimal setup is running Xilinx ISE under
-   Windows in [Parallels](http://www.parallels.com/products/desktop/)
+   Windows in [Parallels](https://www.parallels.com/products/desktop/)
    and then working with the rest of the toolchain
    directly in the macOS Terminal. For connecting with the UART of QNICE-FPGA,
    we are recommending to use [Serial](https://www.decisivetactics.com/products/serial/).

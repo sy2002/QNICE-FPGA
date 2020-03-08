@@ -19,8 +19,7 @@
         `layout: page` in the front-matter. See readme for usage.
       {% endcomment %}
 
-      {% comment %}
-      {% assign pages_list = site.pages %}
+      {% assign pages_list = site.pages | sort: 'menu_order' %}
       {% for node in pages_list %}
         {% if node.title != null %}
           {% if node.layout == "page" %}
@@ -28,7 +27,6 @@
           {% endif %}
         {% endif %}
       {% endfor %}
-      {% endcomment %}
 
       <a class="sidebar-nav-item" href="{{ site.github.repo }}">Visit our GitHub Project</a>
       <a class="sidebar-nav-item" href="{{ site.github.repo }}/archive/V{{ site.version }}.zip">Download</a>
