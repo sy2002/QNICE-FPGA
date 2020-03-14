@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
+source ./detect.include
+
 cd ..
-gcc assembler/qasm.c -o assembler/qasm
-gcc assembler/qasm2rom.c -o assembler/qasm2rom -std=c99
+$COMPILER assembler/qasm.c -o assembler/qasm
+$COMPILER assembler/qasm2rom.c -o assembler/qasm2rom -std=c99
 
 cd emulator
 ./make.bash
