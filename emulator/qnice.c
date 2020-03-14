@@ -1468,7 +1468,7 @@ int main(int argc, char **argv)
      inside the largely empty disk image file. But just in case: Show a "Please wait: ..." message
      and remove it after the download finished */
   emscripten_run_script("Module.setStatus('Please wait: Downloading 32MB SD card disk image...');");    
-  emscripten_wget("http://sy2002x.de/hwdp/qnice_disk.img", "qnice_disk.img");
+  emscripten_wget("https://sy2002x.de/hwdp/qnice_disk.img", "qnice_disk.img");
   emscripten_run_script("statusElement.style.display = 'none';");
   sd_attach("qnice_disk.img");
 
