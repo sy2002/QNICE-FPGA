@@ -50,15 +50,21 @@ More Programs to Try
 * Tic-Tac-Toe: run `ttt2.out`
 * Moveable and Zoomable Mandelbrot: run `mandel_zoom.out`
 
-Playing Q-Tris
+Playing Q-TRIS
 --------------
 
 ![Q-Tris Image](public/q-tris.jpg)
 
+* Q-TRIS is a Tetris clone and the first game ever developed for QNICE-FPGA
+  The rules of the game are very close to the "official" Tetris rules as they
+  can be found on
+  [Wikia](http://tetris.wikia.com/wiki/Tetris_Guideline).
 * Switch to the `qbin` folder as described above, or while being in the
   root folder enter `f` and then `r` and then `qbin/q-tris.out`
 * Run the game for having a realistic baseline and while it runs, adjust
-  the emulation speed to match 12.9 MIPS as close as possible.
+  the emulation speed to match 12.9 MIPS as close as possible. This provides
+  you with the same gaming experience as you would have on the QNICE-FPGA
+  hardware.
 * The current high score can be found
   [here (Link)](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/demos/q-tris-highscore.txt).
 
