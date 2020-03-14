@@ -24,7 +24,6 @@ For macOS:
 Here is an example, how you can add the folders "test_programs" and "qbin"
 from the QNICE-FPGA root folder to a newly created raw image file.
 
-
 1. hdiutil create -megabytes 33 -fs MS-DOS -fsargs "-F 32" -volname myimage -srcfolder qbin -srcfolder test_programs -o myimage.dmg
 
 2. hdiutil convert myimage.dmg -format UDTO -o myimage
