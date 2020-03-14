@@ -16,9 +16,31 @@ There are three flavors of QNICE emulators:
   build, download a disk image and run.
 
 * WebAssembly/WebGL: Running in any modern web browser, the WebAssembly/WebGL
-  flavor of the emulator is extremely easy to use and very portable. Try it on
-  [http://qnice-fpga.com/emulator.html](http://qnice-fpga.com/emulator.html).
+  flavor of the emulator is extremely easy to use and very portable. 
   Needs Emscripten and SDL2 to compile. Use `make-wasm.bash` to build.
+  Try a prebuilt version that mounts a FAT32 disk image that contains among
+  other things also Q-TRIS here:
+  [http://qnice-fpga.com/emulator.html](http://qnice-fpga.com/emulator.html).
+
+WIP ** TODO ** WIP ** TODO ** WIP ** TODO
+-----------------------------------------
+
+For README.md
+
+ Due to the fact that the minimum disk image size of FAT32 images is 32MB, it makes sense
+ to have the web server GZIP the file before sending it to the browser. This can be done
+ on Apache web servers using the following commands in the .htaccess file:
+
+      <IfModule mod_deflate.c>
+      AddOutputFilter DEFLATE img
+      </IfModule>
+
+ If the download server is on another domain than the WASM file, then due to CORS, the
+ following needs to be added to the .htaccess file:
+
+<IfModule mod_headers.c>
+Header set Access-Control-Allow-Origin "*"
+</IfModule>
 
 WIP ** TODO ** WIP ** TODO ** WIP ** TODO
 -----------------------------------------
