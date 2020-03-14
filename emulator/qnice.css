@@ -1,0 +1,25 @@
+body {
+    font-family: arial;
+    margin: 0;
+    padding: none;
+  }
+
+  .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
+  div.emscripten { text-align: left; }      
+  /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
+  canvas.emscripten { border: 0px none; background-color: black; }
+
+  #status {
+    display: inline-block;
+    vertical-align: top;
+    margin-top: 30px;
+    margin-left: 20px;
+    font-weight: bold;
+    color: rgb(120, 120, 120);
+  }
+
+  #progress {
+    height: 20px;
+    width: 300px;
+  }
+  

@@ -6,12 +6,14 @@ if [[ ! -f qnice.js ]] || [[ ! -f qnice.wasm ]] || [[ ! -f qnice.html ]]; then
     echo ""
     echo "Some hints:"
     echo "* Emscripten is a dependency: https://emscripten.org/"
-    echo "* You need to have SDL2 installed for compiling."
     echo "* The Emscripten environment needs to be active: source emsdk_env.sh"
+    echo "* You need to have SDL2 installed for compiling."
     echo "* A FAT32 SD Card image named qnice_disk.img needs to be present"
     echo "  (read ../doc/emumount.txt to learn how to create one)"
     echo "* The monitor needs to be present at ../monitor/monitor.out"
     echo "* The resulting executables are qnice.wasm, qnice.js and qnice.html"
+    echo "* If you want to create an embeddable release version of qnice.html"
+    echo "  then run this script having RELEASE as parameter: ./make-wasm.bash RELEASE"
     echo "* Use for example Python's minimal webserver to serve the executables:"
     echo "  python -m SimpleHTTPServer 8000"
     echo ""
@@ -23,6 +25,14 @@ DEF_SWITCHES="-DUSE_SD -DUSE_VGA"
 UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART"
 PRELOAD_FILES="--preload-file monitor.out"
 
+if [ "$1" == "DEVELOP-RELEASE" ]; then
+    SHELL_FILE="--shell-file wasm-shell.html"
+fi
+
+if [ "$1" == "RELEASE" ]; then
+    SHELL_FILE="--shell-file wasm-shell-release.html"
+fi
+
 cp ../monitor/monitor.out .
-emcc $FILES -O3 -s ASYNCIFY -s ASYNCIFY_IGNORE_INDIRECT -s USE_SDL=2 --shell-file wasm-shell.html $DEF_SWITCHES $UNDEF_SWITCHES $PRELOAD_FILES -o qnice.html
+emcc $FILES -O3 -s ASYNCIFY -s ASYNCIFY_IGNORE_INDIRECT -s USE_SDL=2 $SHELL_FILE $DEF_SWITCHES $UNDEF_SWITCHES $PRELOAD_FILES -o qnice.html
 rm monitor.out

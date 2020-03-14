@@ -415,7 +415,7 @@ int vga_init()
 
     Uint32 create_win_flags = SDL_WINDOW_OPENGL;
 #ifndef __EMSCRIPTEN__
-    create_win_flags |=  SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
+    create_win_flags |=  SDL_WINDOW_RESIZABLE;
 #endif
 
     win = SDL_CreateWindow("QNICE Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, display_dx, display_dy, create_win_flags);

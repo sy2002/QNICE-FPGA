@@ -1459,9 +1459,17 @@ int main(int argc, char **argv)
    ----------------------------------------------------------------------------------------- */
 # ifdef __EMSCRIPTEN__
 
+  /* The --preload-file switch used in make-wasm.bash lets emscripten build a virtual file
+     system that contains the "operating system" in the file "monitor.out" */
   if (load_binary_file("monitor.out"))
     return -1;
-  emscripten_wget("qnice_disk.img", "qnice_disk.img");
+
+  /* If GZIP is enabled on the web server, then the download is quick, due to a lot of zeros
+     inside the largely empty disk image file. But just in case: Show a "Please wait: ..." message
+     and remove it after the download finished */
+  emscripten_run_script("Module.setStatus('Please wait: Downloading 32MB SD card disk image...');");    
+  emscripten_wget("http://sy2002x.de/hwdp/qnice_disk.img", "qnice_disk.img");
+  emscripten_run_script("statusElement.style.display = 'none';");
   sd_attach("qnice_disk.img");
 
   vga_init();
@@ -1470,7 +1478,7 @@ int main(int argc, char **argv)
     for (unsigned long i = 0; i < gbl$instructions_per_iteration; i++)
       execute();
 
-    emscripten_sleep(0);
+    emscripten_sleep(0); //cooperative multitasking, otherwise the browser kills the emulator
     vga_one_iteration_keyboard();
     vga_one_iteration_screen();
   }
