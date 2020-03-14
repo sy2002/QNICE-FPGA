@@ -1,7 +1,7 @@
 QNICE Emulator
 ==============
 
-![QNICE_VGA_EMU_Img](doc/github/vgaemu.jpg)
+![QNICE_VGA_EMU_Img](../doc/github/vgaemu.jpg)
 
 There are three flavors of QNICE emulators:
 
