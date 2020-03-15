@@ -61,8 +61,8 @@ Playing Q-TRIS
   [Wikia](http://tetris.wikia.com/wiki/Tetris_Guideline).
 * If you switched to the `qbin` folder as described above, then now enter
   `f`and then `r` and then `q-tris.out` to start the game. If you are somewhere
-  else in the file system, you can enter `/qbin/q-tris.out` (including the
-  leading forward slash `/`) to start the game.
+  else in the file system, you can enter `f` and then `r` and then 
+  `/qbin/q-tris.out` (including the leading forward slash `/`) to start the game.
 * Run the game for having a realistic baseline and while it runs, adjust
   the emulation speed to match 12.9 MIPS as close as possible. This provides
   you with the same gaming experience as you would have on the QNICE-FPGA
