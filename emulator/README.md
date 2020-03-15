@@ -5,17 +5,17 @@ QNICE Emulator
 
 There are three flavors of QNICE emulators:
 
-* POSIX Terminal: Emulation of a QNICE system that only offers a serial
+* **POSIX Terminal**: Emulation of a QNICE system that only offers a serial
   connection for input/output. Runs in any POSIX terminal. Use `make.bash`
   to build.
 
-* VGA: Full QNICE-FPGA emulation including VGA and PS/2 keyboard. Will open
+* **VGA**: Full QNICE-FPGA emulation including VGA and PS/2 keyboard. Will open
   two windows: One using the POSIX terminal for emulating a serial connection
   and in parallel a graphics window for the VGA output. Needs SDL2 to compile.
   Use `make-vga.bash` to build or use `run-vga.bash` to automatically
   build, download a disk image and run.
 
-* WebAssembly/WebGL: Running in any modern web browser, the WebAssembly/WebGL
+* **WebAssembly/WebGL**: Running in any modern web browser, the WebAssembly/WebGL
   flavor of the emulator is extremely easy to use and very portable. 
   Needs Emscripten and SDL2 to compile. Use `make-wasm.bash` to build.
   Try a prebuilt version that mounts a FAT32 disk image that contains among
@@ -24,6 +24,11 @@ There are three flavors of QNICE emulators:
 
 WIP ** TODO ** WIP ** TODO ** WIP ** TODO
 -----------------------------------------
+
+Explain how to use speed regulators. Basic usage pattern of copy/paste with
+ML as an alternative to SD cards.
+
+Link to how to make an own SD Card.
 
 For README.md
 

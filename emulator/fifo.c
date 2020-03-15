@@ -17,6 +17,9 @@ fifo_t* fifo_init(unsigned int size)
     fifo_t* fifo = malloc(sizeof(fifo_t));
     if (fifo && (fifo->data = malloc(size * sizeof(int))))
     {
+#ifndef __EMSCRIPTEN__ 
+        fifo->mutex = SDL_CreateMutex();
+#endif
         fifo->size = size;
         fifo_clear(fifo);
         return fifo;
@@ -31,17 +34,29 @@ fifo_t* fifo_init(unsigned int size)
 
 void fifo_free(fifo_t* fifo)
 {
+#ifndef __EMSCRIPTEN__    
+    SDL_DestroyMutex(fifo->mutex);
+#endif
     free(fifo->data);
     free(fifo);
 }
 
 void fifo_clear(fifo_t* fifo)
 {
+#ifndef __EMSCRIPTEN__
+    SDL_LockMutex(fifo->mutex);
     fifo->head = fifo->tail = fifo->count = 0;
+    SDL_UnlockMutex(fifo->mutex);
+#else
+    fifo->head = fifo->tail = fifo->count = 0;
+#endif
 }
 
 void fifo_push(fifo_t* fifo, int data)
 {
+#ifndef __EMSCRIPTEN__
+    SDL_LockMutex(fifo->mutex);
+#endif
     if (fifo->count < fifo->size)
     {
         fifo->data[fifo->head] = data;
@@ -51,10 +66,16 @@ void fifo_push(fifo_t* fifo, int data)
         else
             fifo->head = 0;
     }
+#ifndef __EMSCRIPTEN__
+    SDL_UnlockMutex(fifo->mutex);
+#endif
 }
 
 int fifo_pull(fifo_t* fifo)
 {
+#ifndef __EMSCRIPTEN__
+    SDL_LockMutex(fifo->mutex);
+#endif
     int retval = 0;
     if (fifo->count)
     {
@@ -65,5 +86,8 @@ int fifo_pull(fifo_t* fifo)
         else
             fifo->tail = 0;
     }
+#ifndef __EMSCRIPTEN__
+    SDL_UnlockMutex(fifo->mutex);
+#endif
     return retval;
 }

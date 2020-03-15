@@ -21,10 +21,15 @@
 #ifdef USE_VGA
 # include <poll.h>
 # include "fifo.h"
-fifo_t*             uart_fifo;
-const unsigned int  uart_fifo_size = 256;
+fifo_t*             uart_fifo; 
 bool                uart_getchar_thread_running;  //flag to safely free the FIFO's memory
 extern bool         gbl$cpu_running;              //the getchar thread stops when the CPU stops
+
+/* Needs to be as large as the maximum amount of words that can be pasted while doing
+   copy/paste in the M/L mode. Reason: The uart thread might pick up the data slower,
+   than the operating systemm is pasting the data into the window. For being on the
+   safe side, we chose double the size of the current size of 32k words */
+const unsigned int  uart_fifo_size = 2*32*1024;
 #endif
 
 /* Ugly global variable to hold the original tty state in order to restore it during rundown */
