@@ -126,8 +126,9 @@ char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SH
 
 statistic_data gbl$stat;
 
-bool gbl$cpu_running      = false;
-bool gbl$shutdown_signal  = false;
+bool gbl$cpu_running      = false;              //thread-sync: is the CPU currently running?
+bool gbl$shutdown_signal  = false;              //thread-sync: shut down the emulator when set to true
+bool gbl$initial_run      = true;               //thread-sync: is the current run() the very first one?
 
 #ifdef USE_VGA
 float                 gbl$mips = 0;             //actual MIPS (measured each second)
@@ -984,6 +985,8 @@ int mips_adjustment_thread(void* param)
 
 void run()
 {
+  if (gbl$initial_run)
+    gbl$initial_run = false;
   gbl$ctrl_c = FALSE;
 
 #ifdef USE_UART
@@ -1346,7 +1349,8 @@ int main_loop(char **argv)
         if ((token = tokenize(NULL, delimiters)))
           write_register(15, str2int(token));
 #if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
-        vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL);
+        if (!gbl$initial_run)
+          vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL);
 #endif
         run();
       }

@@ -210,7 +210,7 @@ void uart_fifo_free()
 
 int uart_getchar_thread(void* param)
 {
-  //wait unti CPU is running (it is started in main thread after uart_getchar_thread_running = true)
+  //wait until CPU is running (it is started in main thread after uart_getchar_thread_running = true)
   while (!gbl$cpu_running)
     usleep(10000);
 

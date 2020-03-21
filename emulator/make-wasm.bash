@@ -12,11 +12,12 @@ if [[ ! -f qnice.js ]] || [[ ! -f qnice.wasm ]] || [[ ! -f qnice.html ]] || [[ !
     echo "  (read ../doc/emumount.txt to learn how to create one)"
     echo "* The monitor needs to be present at ../monitor/monitor.out"
     echo "* The resulting executables are qnice.wasm, qnice.js and qnice.html"
+    echo "  and qnice.data contains the Monitor (operating system)"
     echo "* If you want to create an embeddable release version of qnice.html"
     echo "  then run this script having RELEASE as parameter: ./make-wasm.bash RELEASE"
     echo "* If you are developing the release version, then use the parameter DEVELOP-RELEASE"
     echo "* Use for example Python's minimal webserver to serve the executables:"
-    echo "  python -m SimpleHTTPServer 8000"
+    echo "  python -m SimpleHTTPServer 8080"
     echo ""
     read -p "Press ENTER to continue or CTRL+C to quit."
 fi
