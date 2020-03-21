@@ -3,6 +3,17 @@
 **
 ** done by sy2002 in December 2016 .. January 2017
 ** emscripten/WebGL version in February and March 2020
+**
+** Known harmless race-conditions:
+** In multithreaded native VGA mode, this codes contains some possibilities for
+** harmless race-conditions: Registers are being read or written by the CPU thread
+** where in parallel the SDL thread accesses the same memory for the screen or
+** for the keyboard. The consequences are minor and cannot be observed by humans
+** since their timespan of occurrence is too small and the situation heals itself.
+** In this context and for better code readability, we did not prevent these
+** harmless race-conditions. If this changes one day, here are the sensitive areas:
+** kbd_state, kbd_data, vga_state, vga_x, vga_y, vga_offs_display,
+** vga_offs_rw, vram, screen_pixels
 */
 
 #include <stdbool.h>
@@ -225,8 +236,6 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
         kbd_state &= ~KBD_ALT;
         alt_pressed = false;
     }
-
-//    printf("%i\n", keycode);
 
     if ((keycode > 0 && keycode < 128) || keycode == 60 || keycode == 94 || keycode == 223 || keycode == 228 || keycode == 246 || keycode == 252)
     {
