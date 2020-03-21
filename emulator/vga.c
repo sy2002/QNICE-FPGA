@@ -15,11 +15,6 @@
 
 #include "../dist_kit/sysdef.h"
 
-/* Currently, this is not threadsafe at all and therefore subject to strange
-   things (though everything is obviously working very fine currently).
-   To make this correct, all accesses to register variables throughout the
-   whole code needs to be packed in the SDL equivalent of critical sections. */
-
 //in native VGA mode (no emscripten): stabilize display thread to ~60 FPS
 const unsigned long stable_fps_ms = 16; 
 
@@ -57,6 +52,7 @@ const float     zoom_y      = (float) display_dy / (float) render_dy;
 static Uint32   font[font_dx * font_dy * QNICE_FONT_CHARS];
 
 static bool     cursor = false;
+static float    cursor_fx, cursor_fy; //compensation factors for non-propotionally resized window
 
 //data structures for rendering on screen
 SDL_Window*          win;
@@ -398,6 +394,8 @@ int vga_init()
     kbd_state = KBD_LOCALE_DE; //for now, we hardcode german keyboard layout
     kbd_data = 0;
 
+    cursor_fx = cursor_fy = 1.0;
+
 #ifdef __EMSCRIPTEN__
     gbl$sdl_ticks = SDL_GetTicks(); //in non-emscripten mode done by vga_timebase_thread
 #endif
@@ -547,7 +545,12 @@ void vga_render_cursor()
 
         if (cursor)
         {
-            SDL_Rect cursor_rect = {vga_x * font_dx * zoom_x, vga_y * font_dy * zoom_y, font_dx * zoom_x, font_dy * zoom_y};
+            SDL_Rect cursor_rect = {
+                vga_x * font_dx * zoom_x * cursor_fx,
+                vga_y * font_dy * zoom_y * cursor_fy,
+                font_dx * zoom_x * cursor_fx,
+                font_dy * zoom_y * cursor_fy
+            };
             SDL_RenderFillRect(renderer, &cursor_rect);
         }
     }
@@ -557,15 +560,21 @@ void vga_one_iteration_keyboard()
 {
     while (SDL_PollEvent(&event))
     {
-        if (event.type == SDL_QUIT)
-            event_quit = true;
-
         if (event.type == SDL_KEYDOWN)
         {
             SDL_Keycode keycode = ((SDL_KeyboardEvent*) &event)->keysym.sym;
             SDL_Keymod keymod = SDL_GetModState();
             kbd_handle_keydown(keycode, keymod);
         }
+
+        else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+        {
+            cursor_fx = event.window.data1 / (float) display_dx;
+            cursor_fy = event.window.data2 / (float) display_dy;
+        }
+
+        else if (event.type == SDL_QUIT)
+            event_quit = true;
     }
 }
 

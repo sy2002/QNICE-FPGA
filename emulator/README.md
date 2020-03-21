@@ -25,6 +25,8 @@ There are three flavors of QNICE emulators:
 WIP ** TODO ** WIP ** TODO ** WIP ** TODO
 -----------------------------------------
 
+switch 3 im vga modus erklären und die beiden screens erklären
+
 Explain how to use speed regulators. Basic usage pattern of copy/paste with
 ML as an alternative to SD cards.
 

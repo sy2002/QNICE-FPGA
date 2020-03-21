@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ ! -f qnice.js ]] || [[ ! -f qnice.wasm ]] || [[ ! -f qnice.html ]]; then
+if [[ ! -f qnice.js ]] || [[ ! -f qnice.wasm ]] || [[ ! -f qnice.html ]] || [[ ! -f qnice.data ]]; then
     echo "Build the QNICE Emulator with VGA and PS/2 (USB) keyboard support"
     echo "for the WebAssembly/WebGL target using the Emscripten toolchain"
     echo ""
@@ -14,10 +14,23 @@ if [[ ! -f qnice.js ]] || [[ ! -f qnice.wasm ]] || [[ ! -f qnice.html ]]; then
     echo "* The resulting executables are qnice.wasm, qnice.js and qnice.html"
     echo "* If you want to create an embeddable release version of qnice.html"
     echo "  then run this script having RELEASE as parameter: ./make-wasm.bash RELEASE"
+    echo "* If you are developing the release version, then use the parameter DEVELOP-RELEASE"
     echo "* Use for example Python's minimal webserver to serve the executables:"
     echo "  python -m SimpleHTTPServer 8000"
     echo ""
     read -p "Press ENTER to continue or CTRL+C to quit."
+fi
+
+command -v emcc >/dev/null 2>&1 || { 
+    echo >&2 ""
+    echo >&2 "emcc from Emscripten toolchain not found."
+    echo >&2 "Activate it with: source <path-to-emsdk>/emsdk_env.sh"
+    echo ""
+    exit 1
+}
+
+if [[ ! -f qnice_disk.img ]]; then
+    echo "Warning: qnice_disk.img not found. You can still compile the emulator."
 fi
 
 FILES="qnice.c fifo.c sd.c vga.c"
