@@ -177,7 +177,6 @@ WebAssembly/WebGL in a Web Browser: Emulation of the VGA Screen and the PS/2 Key
   instead of the online version:
   ```
   emscripten_wget("qnice_disk.img", "qnice_disk.img");
-
   ```
 
 * Build the emulator using `./make-wasm.bash`.
@@ -231,7 +230,6 @@ Apache web servers using the following commands in the .htaccess file:
 <IfModule mod_deflate.c>
 AddOutputFilter DEFLATE img
 </IfModule>
-
 ```
 
 For other web servers there are similar mechanisms available.
@@ -374,6 +372,7 @@ Emulator Architecture
   package files that big into the virtual file system. This is why the disk
   image is loaded via the Internet using `emscripten_wget(...)` in `qnice.c`.
 
+
 * At the time of writing `qnice-wasm`, WebAssembly only supports
   single-threaded apps, which are forced to yield CPU cycles back to the
   browser in the sense of cooperative multitasking. `emscripten_sleep(...)`
@@ -391,4 +390,25 @@ Emulator Architecture
 
 * Depending on the setting of `gbl$instructions_per_iteration`, the interval
   between two keyboard buffer reads might be quite high, this is why the
-  FIFO buffer from `fifo.c` is utilized in `vga.c`.
+  FIFO buffer from `fifo.c` is utilized in `vga.c` so that even if the
+  FPS (aka "iterations per second") are low, no key presses
+  are lost.
+
+* `qnice.html` uses the Emscripten
+  [Module interface](https://emscripten.org/docs/api_reference/module.html).
+  `wasm-shell.html` contains the HTML5 and JavaScript code that hosts
+  the WebAssembly/WebGL app. The `<canvas>` element is used for the WebGL
+  drawing context. The `setStatus` function contains the code that makes
+  sure that the user receives status update while the app itself and the 32 MB
+  disk image is being loaded. The `emscripten_run_script(...)` functions
+  in `qnice.c` are interacting with `setStatus` and the `statusElement`.
+
+* The GitHub web pages that host `qnice-wasm` are available at
+  [qnice-fpga.com](https://qnice-fpga.com) and are rendered using
+  [Jekyll](https://jekyllrb.com/). Switch to the branch
+  [gh-pages](https://github.com/sy2002/QNICE-FPGA/tree/gh-pages) to learn
+  more. The way the Jekyll template is built does not allow to import
+  a fully fledged HTML5 file but only the inner part of the `<body>` tag.
+  Therefore the file `wasm-shell-release.html` needs to be updated
+  manually, after changes in `wasm-shell.html` have been made.
+
