@@ -220,7 +220,7 @@ static void signal_handler_ctrl_c(int signo)
 }
 
 #if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
-static int signal_handler_ctrl_c_multitheaded(void* param)
+static int signal_handler_ctrl_c_multithreaded(void* param)
 {
   ctrlc_thread_id = pthread_self();
   while (!gbl$shutdown_signal)
@@ -1547,7 +1547,7 @@ int main(int argc, char **argv)
       vga_create_thread(emulator_main_loop, "thread: main_loop", (void*) argv) && 
       vga_create_thread(vga_timebase_thread, "thread: vga_timebase", NULL) &&
       vga_create_thread(mips_adjustment_thread, "thread: mips_adjustment", NULL) &&
-      vga_create_thread(signal_handler_ctrl_c_multitheaded, "thread: ctrl_c_handler", NULL) &&
+      vga_create_thread(signal_handler_ctrl_c_multithreaded, "thread: ctrl_c_handler", NULL) &&
 #  ifdef USE_UART
       vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL) &&
 #  endif

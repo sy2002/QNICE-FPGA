@@ -1,138 +1,10 @@
-[develop-vga-emu branch]
-========================
-
 QNICE-FPGA  16-bit System-on-a-Chip
 ===================================
 
-**YOU SELECTED THE BRANCH develop-vga-emu WHICH IS COOL BUT NOT YET REALLY
-STABLE. I RECOMMEND THAT YOU SWITCH BACK TO THE BRANCH master.
-STAY HERE, IF YOU WANT TO PLAY Q-TRIS ON YOUR WINDOWS, MAC OR LINUX MACHINE IN
-THE VGA EMULATOR.**
-
-Development Branch for the VGA Emulator
----------------------------------------
-
-You can use the VGA Emulator to experience QNICE even without having any
-real FGPA hardware and software.
-
-Originally, when doing this development branch for the VGA Emulator in 
-January 2017, I thought this will be just a quick temporary branch, as I would
-soon finish it. Now, at the time of writing this in May 2019 I saw, that other
-projects drew my attention and that therefore this project is currently dormant.
-
-So to preserve the `develop-vga-emu project` at least in a "runable" state,
-I decided to document, how you can use it.
-
-Here are the instructions of how to play Q-TRIS using the first experimental
-version of the VGA version of the QNICE emulator. As it uses SDL2, it is
-portable and should run on Windows, Mac as well as Linux. As for now, I only
-did test it on a Mac.
-
-![QNICE_VGA_EMU_Img](doc/github/vgaemu.jpg)
-
-Prerequisites:
-
-* Make sure you have `git` installed on your computer, because
-  some build scripts rely on the fact, that there is an underlying git
-  repository. That means just downloading this repo from GitHub is not enough.
-* Have SDL2 installed. On macOS, I recommend using [Homebrew](https://brew.sh/),
-  so that you can just enter `brew install SDL2`.
-* You need to have the GNU compiler toolchain
-  installed, particularly `gcc` and `make` will be used.
-
-### Steps to install, compile and run Q-TRIS
-
-1. Open a terminal and go to a folder, where git is allowed to create a
-   subfolder called `QNICE-FPGA` and enter
-   `git clone https://github.com/sy2002/QNICE-FPGA.git`
-
-2. After that, you should have a folder called `QNICE-FPGA`. `cd` into that
-   folder now. From now, all instructions will be relative to this folder.
-
-3. `git checkout develop-vga-emu`
-
-4. Check if this worked by entering `git branch` and see, if you see
-   something like `* develop-vga-emu`.
-
-5. `cd tools`
-
-6. `./make-toolchain.sh` 
-
-7. Answer all questions you are being asked by pressing `ENTER` to choose
-   the proposed default answer.
-
-8. Check, if you see a message like `QNICE: Toolchain successfully made, if
-   you do not see any error messages above.`
-
-9. `cd ../demos`
-
-10. `../assembler/asm q-tris.asm`
-
-11. Check, if you see something like `qasm2rom: 4580 ROM lines written.`
-
-12. `cd ../monitor`
-
-13. `../assembler/asm monitor.asm`
-
-14. It is OK, to see warnings about `Unicode character <U+2212>`. Just ignore
-    them, but what you should see at the end of the process is something like
-    `qasm2rom: 6477 ROM lines written.`
-
-15. `cd ../emulator`
-
-16. `./make-vga.bash`
-
-17. Check, if you have an executable called `qnice-vga` in your `emulator`
-    folder now.
-
-18. Copy the content of the file `../demos/q-tris.out` in your 
-    clipboard. If you are on a Mac and if you are still in the folder
-    of the emulator, then conveniently enter
-    `cat ../demos/q-tris.out | pbcopy` to do that. On other OS you might
-    want to open the `.out` file in any text editor and manually copy
-    *all the contents* into your clipboard. Make sure to go back to the
-    `emulator` folder afterwards.
-
-19. Start the VGA emulator by entering `./qnice-vga ../monitor/monitor.out`.
-    This will load the "operating system" called "Monitor" and show two
-    windows: One window is the emulated VGA screen (black) and the other
-    window is the emulated QNICE terminal window running the "Monitor"
-    operating system and showing a blinking cursor and a `QMON>` prompt.
-
-20. Click on the QNICE terminal window to give it the keyboard focus. You
-    should see a blinking cursor and the prompt `QMON>`. If you see a black
-    screen, then this is the wrong window (VGA monitor emulation, that is
-    still black as the game is not loaded, yet). Being at the `QMON>` prompt,
-    press `H` for "Help" to test, if everything works. You should see the
-    help text of the Monitor.
-
-21. Enter `M` and then `L` into the Monitor window. After that, you should
-    see something like `QMON> MEMORY/LOAD - ENTER ADDRESS/VALUE PAIRS,
-    TERMINATE WITH CTRL-E`
-
-22. Now *PASTE* what you copied in step (18) into the Monitor terminal
-    window. (Make sure, that you did not overwrite your clipboard in step (19)
-    by copying the emulator start command into your clipboard.). You should
-    see a ton of numbers being pasted (and on Mac you might even hear
-    the "terminal bell" from time to time). The last numbers are `91AD000000`.
-
-23. Press `CTRL-E` now, to go back to the Monitor. You should see the `QMON>`
-    prompt again.
-
-24. Enter `C` and then `R` and then `8000`.
-
-25. The Q-TRIS start screen should be immediatelly visible in the VGA
-    monitor window. Click it to pass the focus, press `SPACE` and start
-    playing. It might be a bit fast, as I did not yet implement a simulation
-    of the correct speed of the QNICE-FPGA hardware.
-
-There are a lot of TODOs and known issues as you can see in
-[TODO_VGAEMU_TEMP.txt](TODO_VGAEMU_TEMP.txt). Feedback and PRs welcome.
+![QNICE_Intro_Img](doc/github/intro.jpg)
 
 What is QNICE-FPGA?
 -------------------
-
-![QNICE_Intro_Img](doc/github/intro.jpg)
 
 QNICE-FPGA is a 16-bit computer system build as a fully-fledged
 system-on-a-chip in portable VHDL on a FPGA. Specifications:
@@ -152,6 +24,15 @@ The main purpose of QNICE-FPGA is learning, teaching and having fun.
 
 Getting Started
 ---------------
+
+If you do have FPGA hardware, then read on to learn how to get started. If
+you don't, then you might want to use the emulator to experience QNICE.
+
+Switch to the [VGA Emulator Branch](https://github.com/sy2002/QNICE-FPGA/tree/develop-vga-emu)
+to use the emulator without hardware and have a look at the README.md in
+that branch to learn more.
+
+Get started using actual FPGA hardware:
 
 * Clone GitHub repo: Make sure you have `git` installed on your computer,
   open a Terminal or Command Line. We will automatically create a subdirectory
