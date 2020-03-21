@@ -1,3 +1,12 @@
+Version 1.5     March, 23 2020
+==============================
+
+This version greatly enhances the capabilities and the stability of the
+emulator. Detailed description: emulator/README.md
+
+* qnice-vga: VGA screen and PS/2 keyboard emulation
+* qnice-wasm: WebAssembly/WebGL version that runs in the web browser
+
 Version 1.41    December, 30 2016
 =================================
 

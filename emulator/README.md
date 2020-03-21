@@ -187,7 +187,7 @@ WebAssembly/WebGL in a Web Browser: Emulation of the VGA Screen and the PS/2 Key
 
 * Enter `F` and then `R` and then `qbin/q-tris.out` to play Q-TRIS.
 
-#### Adjusting the Emulation Speed
+### Adjusting the Emulation Speed
 
 * In contrast to the native qnice-vga version of the emulator, the
   WebAssembly/WebGL version is not capable to automatically regulate the
@@ -219,7 +219,7 @@ WebAssembly/WebGL in a Web Browser: Emulation of the VGA Screen and the PS/2 Key
 
 * `ALT+m`: increase IPF by 2,500
 
-#### Using GZIP on the Web Server
+### Using GZIP on the Web Server
 
 Due to the fact that the minimum disk image size of FAT32 images is 32MB, it
 makes sense to have the web server GZIP the file before sending it to the
@@ -410,5 +410,8 @@ Emulator Architecture
   more. The way the Jekyll template is built does not allow to import
   a fully fledged HTML5 file but only the inner part of the `<body>` tag.
   Therefore the file `wasm-shell-release.html` needs to be updated
-  manually, after changes in `wasm-shell.html` have been made.
+  manually, after changes in `wasm-shell.html` have been made. This is
+  why you need to call `./make-wasm.bash RELEASE`, if you want to use
+  the resulting files to update the GitHub web pages.
+
 
