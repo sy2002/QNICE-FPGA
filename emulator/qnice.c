@@ -188,9 +188,13 @@ void gbl_change_target_mips(float delta)
 
 /*
 ** QNICE VGA wordexp stub for emscripten
-** as wordexp is not yet supported by emscripten as of writing this port
+** some versions of emscripten might not supoprt wordexp
 ** see also https://github.com/emscripten-core/emscripten/issues/10403
+** if your version does not support it, then activate this stub
+** by commenting in the following section
 */
+
+/*
 #ifdef __EMSCRIPTEN__
 int wordexp(const char *s, wordexp_t *p, int flags)
 {
@@ -198,6 +202,7 @@ int wordexp(const char *s, wordexp_t *p, int flags)
     return 0;
 }
 #endif
+*/
 
 /*
 ** use CTRL+c to pause emulation and to return back to the emulator's console

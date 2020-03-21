@@ -29,6 +29,12 @@ command -v emcc >/dev/null 2>&1 || {
     exit 1
 }
 
+EMCC_VERSION=`emcc --version|grep emcc|egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+if [[ $EMCC_VERSION != "1.39.10" ]]; then
+    echo "Warning: Emscripten SDK other than 1.39.10 might lead to errors."
+    echo "(see also https://github.com/emscripten-core/emscripten/issues/10746)"
+fi
+
 if [[ ! -f qnice_disk.img ]]; then
     echo "Warning: qnice_disk.img not found. You can still compile the emulator."
 fi
