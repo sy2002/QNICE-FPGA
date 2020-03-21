@@ -33,7 +33,7 @@ Getting Started
  * Currently, we are developing QNICE-FPGA using a
    [Nexys 4 DDR](https://store.digilentinc.com/nexys-4-ddr-artix-7-fpga-trainer-board-recommended-for-ece-curriculum/)
    FPGA development board. Nexys updated and renamed it to
-   [Nexys A7](https://store.digilentinc.com/nexys-a7-fpga-trainer-board-recommended-for-ece-curriculum/)
+   [Nexys A7](https://store.digilentinc.com/nexys-a7-fpga-trainer-board-recommended-for-ece-curriculum/).
    We recommend using either the old Nexys 4 DDR board or the new Nexys A7 board,
    too, since this will greatly speed up things for you.
 
