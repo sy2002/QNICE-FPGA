@@ -46,6 +46,7 @@
 # ifndef __EMSCRIPTEN__
 #  include <time.h>
 #  include <unistd.h>
+#  include <pthread.h>
 # endif
 #endif
 
@@ -130,6 +131,11 @@ bool gbl$cpu_running      = false;              //thread-sync: is the CPU curren
 bool gbl$shutdown_signal  = false;              //thread-sync: shut down the emulator when set to true
 bool gbl$initial_run      = true;               //thread-sync: is the current run() the very first one?
 
+#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
+sigset_t  gbl$sigset;                           //multithreaded signal handling
+pthread_t ctrlc_thread_id = 0;                  //used for killing the signal handler thread
+#endif
+
 #ifdef USE_VGA
 float                 gbl$mips = 0;             //actual MIPS (measured each second)
 unsigned long         gbl$mips_inst_cnt = 0;    //amount of instructions in the current second
@@ -212,6 +218,21 @@ static void signal_handler_ctrl_c(int signo)
 {
   gbl$ctrl_c = TRUE;
 }
+
+#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
+static int signal_handler_ctrl_c_multitheaded(void* param)
+{
+  ctrlc_thread_id = pthread_self();
+  while (!gbl$shutdown_signal)
+  {
+      int signum;     
+      sigwait(&gbl$sigset, &signum);
+      gbl$ctrl_c = TRUE;
+  } 
+  ctrlc_thread_id = 0;
+  return 0;
+}
+#endif
 
 /*
 ** upstr converts a string into upper case.
@@ -1420,10 +1441,31 @@ static int emulator_main_loop(void* param)
 
 int main(int argc, char **argv)
 {
-#ifndef __EMSCRIPTEN__
-  signal(SIGINT, signal_handler_ctrl_c);
-#endif
+  /* CTRL+C can be used in the terminal window to stop a running program
+     (e.g. the Monitor) and to return back to the Q> shell.
 
+     * In Emscripten, this is not needed, because we do not have a Q> shell.
+     * In the single threaded POSIX shell environment, a simple signal handler can
+       be used by the signal() library function.
+     * In multithreaded environments, signal() is not working reliably.
+       On macOS 10.14 for example, we had the behaviour, that CTRL+C only worked, if a
+       command line parameter such as "../monitor/monitor.out" has been given before but not
+       when for example the monitor was loaded using the "Q> load ../monitor/monitor.out"
+       command. This is why we implemented the reliable solution described here, that
+       uses a separate thread and sigwait():
+       https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
+  */
+#ifndef __EMSCRIPTEN__
+# ifndef USE_VGA
+  signal(SIGINT, signal_handler_ctrl_c);
+# else
+  //block CTRL+C in the main thread and wait for it in signal_handler_ctrl_c_multitheaded() instead
+  sigemptyset(&gbl$sigset);
+  sigaddset(&gbl$sigset, SIGINT);
+  pthread_sigmask(SIG_BLOCK, &gbl$sigset, NULL);
+# endif
+#endif
+  
   reset_machine();
 
 #ifdef USE_IDE
@@ -1505,13 +1547,15 @@ int main(int argc, char **argv)
       vga_create_thread(emulator_main_loop, "thread: main_loop", (void*) argv) && 
       vga_create_thread(vga_timebase_thread, "thread: vga_timebase", NULL) &&
       vga_create_thread(mips_adjustment_thread, "thread: mips_adjustment", NULL) &&
+      vga_create_thread(signal_handler_ctrl_c_multitheaded, "thread: ctrl_c_handler", NULL) &&
 #  ifdef USE_UART
       vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL) &&
 #  endif
       vga_main_loop())  
   {
     gbl$shutdown_signal = true;
-    while (gbl$cpu_running || vga_timebase_thread_running || mips_adjustment_thread_running)
+    pthread_kill(ctrlc_thread_id, SIGINT);
+    while (gbl$cpu_running || vga_timebase_thread_running || mips_adjustment_thread_running || (ctrlc_thread_id != 0))
       usleep(10000);
     vga_shutdown();
 #  ifdef USE_UART
