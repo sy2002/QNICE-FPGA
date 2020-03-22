@@ -30,6 +30,7 @@ Getting Started
 
  * Before diving into the details, you might want to get an overview of how the system looks and feels by
    trying our [online emulator](http://qnice-fpga.com/emulator.html).
+   
  * Currently, we are developing QNICE-FPGA using a
    [Nexys 4 DDR](https://store.digilentinc.com/nexys-4-ddr-artix-7-fpga-trainer-board-recommended-for-ece-curriculum/)
    FPGA development board. Nexys updated and renamed it to
