@@ -46,7 +46,6 @@ Getting Started
   ```
   You will be asked several questions. Answer them using the default answers
   by pressing `Enter` instead of answering manually by choosing `y` or `n`.
-  When done, `cd ..` back to the QNICE root folder.
 
 * Compile the Monitor, which is akin to an operating system for QNICE-FPGA. If
   you are still in the `tools` folder, then enter:
@@ -72,7 +71,12 @@ Getting Started
 
 ### POSIX Terminal: Emulation using Serial I/O
 
-* Navigate to the `emulator` path and compile it using `./make.bash`.
+* Make sure you are not overwriting your clipboard contents (which should
+  contain `mandel.out`) by typing the following commands manually instead of
+  copy pasting them from here.
+
+* Navigate to the `emulator` folder and compile the emulator
+  using `./make.bash`.
 
 * Run the emulator and let it instantly load the Monitor:
   `./qnice ../monitor/monitor.out`
@@ -85,8 +89,9 @@ Getting Started
   in your clipboard, if you followed the above-mentioned steps.
 
 * Press `CTRL-E` now, to go back to the Monitor. You should see the `QMON>`
-  prompt again. (This mechanism can also be used in the below-mentioned
-  qnice-vga, even though it is not explicitly mentioned again there.)
+  prompt again. (This mechanism of loading `.out` files into the emulator can
+  also be used while running the below-mentioned `qnice-vga`, even though
+  it is not explicitly mentioned again there.)
 
 * Enter `C` and then `R` and then `A000`.
 
@@ -121,6 +126,14 @@ Getting Started
   `CTRL+C` to end Q-TRIS.
 
 * Enter `help` to see the various Monitor commands and keyboard shortcuts.
+
+* You can for example use the `mips max` command to set the emulation speed
+  to the maximum speed that your computer can support. After that, enter
+  `speedstats on` to see how many MIPS this will mean and after that enter
+  `run $8000` to restart Q-TRIS. You should now see the new MIPS at the top
+  right corner of the VGA screen. After having seen the new speed, press
+  `CTRL+C` in the terminal emulation screen to return to the
+  emulator's `Q>` prompt.
 
 * Instead of loading a file from the virtual FAT32 formatted SD Card that is
   located in the file `qnice_disk.img` (downloaded when you first run
@@ -179,7 +192,7 @@ WebAssembly/WebGL in a Web Browser: Emulation of the VGA Screen and the PS/2 Key
   emscripten_wget("qnice_disk.img", "qnice_disk.img");
   ```
 
-* Build the emulator using `./make-wasm.bash`.
+* Build the WebAssembly/WebGL version of the emulator using `./make-wasm.bash`.
 
 * Run a local webserver by entering `python -m SimpleHTTPServer 8080`.
 
@@ -258,11 +271,11 @@ Emulator Architecture
   hardware (IDE, SD card, UART, VGA in the respective `.h` and `.c` files).
 
 * The FAT32 emulation is part of the Monitor, so that the SD card emulation
-  of the emulator nothing more than a buffered direct file access.
+  of the emulator is nothing more than a buffered file access.
 
 * `qnice-vga` and `qnice-wasm` need a FIFO for their keyboard input, albeit
   at completely different spots in their logic. `fifo.c` is a simple
-  but thread-safe implementation of such a FIFO.
+  but yet thread-safe implementation of such a FIFO.
 
 ### POSIX Terminal (`qnice`) Specifics
 
@@ -345,7 +358,7 @@ Emulator Architecture
   `void vga_render_speedwin(...)` in `vga.c`.
 
 * The keyboard management is currently hardcoded to a German keyboard using
-  a large and nested `if` and `case` structures in
+  large and nested `if` and `case` structures in
   `void kbd_handle_keydown(...)` (`vga.c`). Future versions of the emulator
   might want to utilize more flexible mechanisms.
 
@@ -370,7 +383,7 @@ Emulator Architecture
 
 * The minimum file size of a FAT32 disk image is 32MB. Emscripten cannot
   package files that big into the virtual file system. This is why the disk
-  image is loaded via the Internet using `emscripten_wget(...)` in `qnice.c`.
+  image is loaded from a server using `emscripten_wget(...)` in `qnice.c`.
 
 
 * At the time of writing `qnice-wasm`, WebAssembly only supports

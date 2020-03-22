@@ -14,7 +14,7 @@ source setenv.source
 ./make-vasm.sh
 ./make-vlink.sh
 ./make-vbcc.sh
-gcc qnice/qniceconv.c -o qnice/qniceconv
+$COMPILER qnice/qniceconv.c -o qnice/qniceconv
 
 echo "QNICE: Toolchain successfully made, if you do not see any error messages above."
 echo "(Outputs like \"mkdir: config: File exists\" are OK.)"
