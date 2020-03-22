@@ -303,10 +303,12 @@ Acknowledgements
 
 * [sy2002](http://www.sy2002.de): Creator and maintainer of QNICE-FPGA:
   hardware development (VHDL), FAT32 library, additional Monitor libraries and
-  functions, Q-TRIS, additional QNICE specific vbcc toolchain.
+  functions, Q-TRIS, additional QNICE specific vbcc toolchain,
+  VGA and WebAssembly versions of the emulator.
 
 * [vaxman](http://www.vaxman.de): Inventor of the [QNICE ISA](http://qnice.sourceforge.net):
-  system architect, assembler, emulator, Monitor and Monitor libraries, tools.
+  system architect, assembler, original POSIX version of the emulator,
+  Monitor and Monitor libraries, tools.
 
 * [Volker Barthelmann](http://www.compilers.de): vbcc compiler system,
   QNICE specific vbcc backend incl. standard C library.
