@@ -102,17 +102,52 @@ ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
 
 EMULATOR:
 
-* Emulate the VGA output and the USB keyboard (maybe using something like
-  LIBSDL? SFML? GLFW?). Optimally, the whole thing would by totally
-  dynamically loaded so that the emulator continues to run on text only
-  systems and on systems that don't have a multimedia library installed.
-  If this does not work, then we should just work with #defines within
-  the Emulator's code and compile two versions, like "qnice" and "qnice_vga".
+* Use defines from ../dist_kit/sysdef.h instead of redefining them in qnice.c
+
+* Test, if compilation and running works under Linux (e.g. Ubuntu)
+
+* Test, if compilation and running works under Windows
+
+* Emulate all VGA register commands
+
+* WASM: Investigate if switching the WebGL context to high performance mode
+  makes sense; currently we run on the low performance mode on most browsers,
+  which means on Mac Books that the low performance GPU is used. Currently it
+  looks like this works absolutely well enough, but nevertheless investigating
+  this topic might be worth a try.
+  + Reference Emscripten Changelog.md: 1.39.9 searcch for #10505
+  + https://www.khronos.org/registry/webgl/specs/latest/1.0/
+    and search for "powerPreference"
+
+* macOS only: Make file option for creating a installable/clickable Mac
+  executable (learn how to do that first and also how to sign). Maybe the
+  demo disk image from qnice-fpga.com should also be mounted there by default
+  (but still other images should be mountable, too)
+
+* U.S. keyboard support
+
+* Homogeneous code style like vaxmans original style
+  (pointers, indentation, etc.) => try to find and use a coding style
+  modification tool and throughly check that no bugs are introduced
+
+* Better support for window resizing: offer some presets incl. aspect ratios
+  (see above) using Q> commands and maybe additionally also using ALT+<key>
+  combinations or a small "windowed menu" building on the speed regulator
+  window "system" . Optionally, as a bonus: Research menu items in SDL and
+  offer this via menus (seems to need very platformm specific code;
+  plugins/open source available?) 
+
+* Improve the Full Screen mode by allowing various aspect ratios such as
+  1.8:1 which is optimal for Q-TRIS, or standards like 4:3 and 16:9.
+
+* Support High-DPI Mode (needs to be signed on Mac?)
 
 
 NATIVE TOOLCHAIN: ASSEMBLER:
 
-<currently no TODOs>
+* Get rid of hardcoded gcc in the assembler/asm script for precompiling.
+  Use tools/detect.include. But this needs thorough testing, if for example
+  the precompiler invokation works the same in clang vs. gcc.
 
 
 VBCC TOOLCHAIN: C COMPILER:
@@ -156,7 +191,7 @@ DEMOS:
 
 * Forth Interpreter
 
-* VGA Textmode games: Snake, Pac Man, 2048
+* VGA Textmode games: BreakOut, Snake, Pac Man, 2048
 
 
 DOCUMENTATION:

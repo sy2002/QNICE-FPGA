@@ -1,24 +1,40 @@
 /*
-**  This module implements the emulation of a generic UART which will be eventually used in the actual hardware implementation
-** of QNICE.
+** This module implements the emulation of a generic UART which will be eventually used
+** in the actual hardware implementation of QNICE.
 **
 ** 02-JUN-2008, B. Ulmann fecit.
 ** 03-AUG-2015, B. Ulmann Changed from curses to select-calls.
 ** 28-DEC-2015, B. Ulmann Adapted to the current FPGA-implementation.
+** FEB-2020, sy2002 added non-blocking multithreaded version for the VGA emulator
 */
 
 #undef TEST /* Define to perform stand alone test */
 #define VERBOSE
 
-#include "uart.h"
 #include <stdio.h>
-
-#include <unistd.h>
 #include <stdlib.h>
 #include <termios.h>
+#include <unistd.h>
+
+#include "uart.h"
+
+#ifdef USE_VGA
+# include <poll.h>
+# include "fifo.h"
+fifo_t*             uart_fifo; 
+bool                uart_getchar_thread_running;  //flag to safely free the FIFO's memory
+extern bool         gbl$cpu_running;              //the getchar thread stops when the CPU stops
+
+/* Needs to be as large as the maximum amount of words that can be pasted while doing
+   copy/paste in the M/L mode. Reason: The uart thread might pick up the data slower,
+   than the operating systemm is pasting the data into the window. For being on the
+   safe side, we chose double the size of the current size of 32k words */
+const unsigned int  uart_fifo_size = 2*32*1024;
+#endif
 
 /* Ugly global variable to hold the original tty state in order to restore it during rundown */
 struct termios tty_state_old, tty_state;
+enum uart_status_t uart_status = uart_undef;
 
 unsigned int uart_read_register(uart *state, unsigned int address)
 {
@@ -41,6 +57,7 @@ unsigned int uart_read_register(uart *state, unsigned int address)
       value = state->mr1a;
       break;
     case SRA:
+#ifndef USE_VGA
       /* Check if there is a character in the input buffer */
       if ((ret_val = select(1, &fd, NULL, NULL, &tv)) == -1)
       {
@@ -50,13 +67,19 @@ unsigned int uart_read_register(uart *state, unsigned int address)
         state->sra &= 0xfe; /* Do not touch the transmit-ready bit! */
       else /* Data available */
         state->sra |= 1;
-
+#else
+      if (uart_fifo->count)
+        state->sra |= 1;
+      else
+        state->sra &= 0xfe;
+#endif
       value = state->sra;
       break;
     case BRG_TEST:
       value = state->brg_test;
       break;
     case RHRA:
+#ifndef USE_VGA
       if ((ret_val = select(1, &fd, NULL, NULL, &tv)) == -1)
       {
         /* Don't stop here as it might be caused by a catched CTRL-C signal! */
@@ -65,7 +88,12 @@ unsigned int uart_read_register(uart *state, unsigned int address)
         state->rhra = 0;
       else /* Data available */
         state->rhra = getchar() & 0xff;
-
+#else
+      if (uart_fifo->count)
+        state->rhra = fifo_pull(uart_fifo);
+      else
+        state->rhra = 0;
+#endif
       value = state->rhra;
       break;
     case IPCR:
@@ -169,6 +197,38 @@ void uart_write_register(uart *state, unsigned int address, unsigned int value)
   }
 }
 
+#ifdef USE_VGA
+void uart_fifo_init()
+{
+  uart_fifo = fifo_init(uart_fifo_size);
+}
+
+void uart_fifo_free()
+{
+  fifo_free(uart_fifo);
+}
+
+int uart_getchar_thread(void* param)
+{
+  //wait until CPU is running (it is started in main thread after uart_getchar_thread_running = true)
+  while (!gbl$cpu_running)
+    usleep(10000);
+
+  struct pollfd fds = {.fd = 0, .events = POLLIN}; // 0 means STDIN
+  int ret_val;
+
+  uart_getchar_thread_running = true;
+  while (gbl$cpu_running)
+  {
+      ret_val = poll(&fds, 1, 5); //timeout = 5ms
+      if (ret_val)
+        fifo_push(uart_fifo, getchar() & 0xff);
+  }
+  uart_getchar_thread_running = false;
+  return 1;
+}
+#endif
+
 void uart_hardware_initialization(uart *state)
 {
   /* Turn off buffering on STDIN and save original state for later */
@@ -194,12 +254,15 @@ void uart_hardware_initialization(uart *state)
   state->x_x_test = state->rhrb = state->input_ports = state->start_counter = state->stop_counter =
   state->csra = state->cra = state->thra = state->acr = state->imr = state->crur = state->ctlr = state->csrb = state->crb =
   state->thrb = state->opcr = state->set_output_port = state->reset_output_port = (unsigned int) 0;
+
+  uart_status = uart_init;
 }
 
 void uart_run_down()
 {
   /* Reset the terminal to its original settings */
   tcsetattr(STDIN_FILENO, TCSANOW, &tty_state_old);
+  uart_status = uart_rundown;
 }
 
 /*

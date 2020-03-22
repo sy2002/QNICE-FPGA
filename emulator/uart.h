@@ -3,7 +3,10 @@
 **
 ** 02-JUN-2008, B. Ulmann fecit
 ** 28-DEC-2016, B. Ulmann Cleanup...
+** FEB-2020, sy2002 added non-blocking multithreaded version for the VGA emulator
 */
+
+#include <stdbool.h>
 
 #define UART0_BASE_ADDRESS     0xff20
 
@@ -50,7 +53,17 @@ typedef struct uart
 #define SET_OUTPUT_PORT   14
 #define RESET_OUTPUT_PORT 15
 
+//flag to ensure restoring a working terminal when closing the emulator by closing the SDL window
+enum uart_status_t {uart_undef, uart_init, uart_rundown} uart_status;
+
 unsigned int uart_read_register(uart *, unsigned int);
 void uart_write_register(uart *, unsigned int, unsigned int);
 void uart_hardware_initialization(uart *);
 void uart_run_down();
+
+#ifdef USE_VGA
+int  uart_getchar_thread(void* param);
+bool uart_getchar_thread_running;
+void uart_fifo_init();
+void uart_fifo_free();
+#endif
