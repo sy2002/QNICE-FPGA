@@ -14,6 +14,12 @@ assembler/qasm
 assembler/qasm2rom
 register_file.sym
 emulator/qnice
+emulator/qnice-vga
+emulator/qnice.js
+emulator/qnice.html
+emulator/qnice.wasm
+emulator/qnice.data
+emulator/qnice_disk.img
 *.bin
 *.lis
 *.out

@@ -25,6 +25,14 @@ The main purpose of QNICE-FPGA is learning, teaching and having fun.
 Getting Started
 ---------------
 
+If you do have FPGA hardware, then read on to learn how to get started. If
+you don't, then you might want to use the emulator to experience QNICE:
+[Try it online](https://qnice-fpga.com/emulator.html) or have a look at
+[emulator/README.md](emulator/README.md) to learn how to build and run your
+own emulator.
+
+Get started using actual FPGA hardware:
+
 * Clone GitHub repo: Make sure you have `git` installed on your computer,
   open a Terminal or Command Line. We will automatically create a subdirectory
   called QNICE-FPGA, so navigate to an appropriate folder. Use this command
@@ -36,7 +44,8 @@ Getting Started
   the fact, that there is an underlying git repository.)
 
 * Hardware: Currently, we develop QNICE-FPGA on a Nexys 4 DDR development
-  board, so if you own one, the fastest way of getting started is to
+  board. Nexys updated and renamed it to Nexys A7.
+  So, if you own one of those, the fastest way of getting started is to
   download the bitstream file `dist_kit/qnice-v141.bit` on a microSD card or
   a USB stick, insert it into the Nexys board and set the jumpers to read the
   FPGA configuration from the SD card or USB stick. Do not copy more than one
@@ -45,7 +54,7 @@ Getting Started
   copies, so that the Nexys board does not accidentally read the `*.bit` from
   your trash instead of the recent one.
 
-* If you do not own a Nexys 4 DDR board, then use your VHDL development
+* If you do not own a Nexys 4 DDR or A7 board, then use your VHDL development
   environment to synthesize QNICE-FPGA. The root file for the system
   is `vhdl/env1.vhdl`. Make sure that you connect at least the IO pins
   for PS2, VGA, UART and the two switches. In the file `nexys4ddr/env1.ucf`
@@ -294,10 +303,12 @@ Acknowledgements
 
 * [sy2002](http://www.sy2002.de): Creator and maintainer of QNICE-FPGA:
   hardware development (VHDL), FAT32 library, additional Monitor libraries and
-  functions, Q-TRIS, additional QNICE specific vbcc toolchain.
+  functions, Q-TRIS, additional QNICE specific vbcc toolchain,
+  VGA and WebAssembly versions of the emulator.
 
 * [vaxman](http://www.vaxman.de): Inventor of the [QNICE ISA](http://qnice.sourceforge.net):
-  system architect, assembler, emulator, Monitor and Monitor libraries, tools.
+  system architect, assembler, original POSIX version of the emulator,
+  Monitor and Monitor libraries, tools.
 
 * [Volker Barthelmann](http://www.compilers.de): vbcc compiler system,
   QNICE specific vbcc backend incl. standard C library.
