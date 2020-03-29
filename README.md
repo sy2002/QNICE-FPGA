@@ -54,11 +54,11 @@ Get started using actual FPGA hardware:
   copies, so that the Nexys board does not accidentally read the `*.bit` from
   your trash instead of the recent one.
 
-* If you do not own a Nexys 4 DDR or A7 board, then use your VHDL development
-  environment to synthesize QNICE-FPGA. The root file for the system
-  is `vhdl/env1.vhdl`. Make sure that you connect at least the IO pins
-  for PS2, VGA, UART and the two switches. In the file `nexys4ddr/env1.ucf`
-  you will find some advise of how to do the mapping.
+* If you do not own a Nexys 4 DDR or A7 board or if you want to synthesize
+  the FPGA configuration bitstream by yourself, then go to the hardware
+  folder `hw`. It contains the FPGA, board and toolchain (IDE) specific files.
+  QNICE-FPGA has been designed to be portable. Have a look at
+  [hw/README.md](hw/README.md) to learn more.
 
 * Attach an "old" USB keyboard supporting boot mode to the board and attach
   a VGA monitor. Attach the USB cable to your desktop computer, so that you
