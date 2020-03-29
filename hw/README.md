@@ -40,7 +40,7 @@ Nexys 4 DDR and Nexys A7
 
 Currently, our reference development board is a 
 [Nexys 4 DDR](https://store.digilentinc.com/nexys-4-ddr-artix-7-fpga-trainer-board-recommended-for-ece-curriculum/),
-which has been retired by Nexys but you can still get them on eBay. As far as
+which has been retired by Nexys but you can still get it on eBay. As far as
 we know, the sucessor
 [Nexys A7](https://store.digilentinc.com/nexys-a7-fpga-trainer-board-recommended-for-ece-curriculum/)
 is quite compatible, so we currently assume, that you can use the Nexys 4 DDR
