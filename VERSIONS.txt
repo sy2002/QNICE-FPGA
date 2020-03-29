@@ -1,3 +1,11 @@
+Version 1.51    xxxxx, xx 2020
+==============================
+
+TODO * <describe: cleaned up file and folder structure; toolchain can now
+  be used with Vivado as well as ISE and is prepared for more IDEs now>
+TODO * EMULATOR: <todo write explanation and reference to
+  https://github.com/emscripten-core/emscripten/issues/10746>
+
 Version 1.5     March, 22 2020
 ==============================
 

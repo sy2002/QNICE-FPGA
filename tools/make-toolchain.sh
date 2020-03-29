@@ -6,6 +6,10 @@ cd ..
 $COMPILER assembler/qasm.c -o assembler/qasm
 $COMPILER assembler/qasm2rom.c -o assembler/qasm2rom -std=c99
 
+cd pore
+./compile_pore.sh
+cd ..
+
 cd emulator
 ./make.bash
 
