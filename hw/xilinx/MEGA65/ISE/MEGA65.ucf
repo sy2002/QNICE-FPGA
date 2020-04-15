@@ -1,0 +1,75 @@
+## Nexys 4 DDR specific mapping of "QNICE-FPGA Environment 1"
+## done by sy2002 in 2015, 2016
+
+## Clock signal
+NET "CLK"                  LOC = V13  | IOSTANDARD = "LVCMOS33";
+NET "CLK" TNM_NET = sys_clk_pin;
+TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 100 MHz HIGH 50%; 
+
+NET "SLOW_CLOCK" TNM_NET = SLOW_CLOCK;
+TIMESPEC TS_SLOW_CLOCK = PERIOD "SLOW_CLOCK" 50 MHz HIGH 50%;
+
+## EAE's combinatorial division networks take longer than
+## the regular clock period, so we specify a timing constraint
+## for them (see also the comments in EAE.vhd)
+INST "eae_inst/op*" TNM="EAE_OPS";
+INST "eae_inst/res*" TNM="EAE_RES";
+TIMESPEC TS_EAE=FROM "EAE_OPS" TO "EAE_RES" 32 ns;
+
+## Reset button
+NET "RESET"              LOC = M13 | IOSTANDARD = LVCMOS33;
+
+## USB-RS232 Interface
+NET "UART_RXD"             LOC = L14  | IOSTANDARD = LVCMOS33;
+NET "UART_TXD"             LOC = L13  | IOSTANDARD = LVCMOS33;
+#NET "UART_CTS"             LOC = D3  | IOSTANDARD = LVCMOS33;
+#NET "UART_RTS"             LOC = E5  | IOSTANDARD = LVCMOS33;
+
+## PS/2 keyboard
+#NET "PS2_CLK"              LOC = F4  | IOSTANDARD = LVCMOS33;
+#NET "PS2_DAT"              LOC = B2  | IOSTANDARD = LVCMOS33;
+
+## VGA
+NET "vga_red[0]"           LOC = U15   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[1]"           LOC = V15   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[2]"           LOC = T14   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[3]"           LOC = Y17   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[4]"           LOC = Y16   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[5]"           LOC = AB17  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[6]"           LOC = AA16  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[7]"           LOC = AB16  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+
+NET "vga_green[0]"         LOC = Y14   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[1]"         LOC = W14   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[2]"         LOC = AA15  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[3]"         LOC = AB15  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[4]"         LOC = Y13   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[5]"         LOC = AA14  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[6]"         LOC = AA13  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[7]"         LOC = AB13  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+
+NET "vga_blue[0]"          LOC = W10   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[1]"          LOC = Y12   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[2]"          LOC = AB12  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[3]"          LOC = AA11  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[4]"          LOC = AB11  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[5]"          LOC = Y11   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[6]"          LOC = AB10  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[7]"          LOC = AA10  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+
+NET "vga_hs"               LOC = W12   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_vs"               LOC = V14   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+
+NET "vdac_clk"             LOC = AA9   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vdac_sync_n"          LOC = V10   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vdac_blank_n"         LOC = W11   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+
+##Micro SD Connector
+#NET "SD_RESET"             LOC = E2  | IOSTANDARD = LVCMOS33;
+#NET "SD_CLK"               LOC = B1  | IOSTANDARD = LVCMOS33;
+#NET "SD_MOSI"              LOC = C1  | IOSTANDARD = LVCMOS33;
+#NET "SD_MISO"              LOC = C2  | IOSTANDARD = LVCMOS33;
+#NET "sd_dat<1>"            LOC = E1  | IOSTANDARD = LVCMOS33;
+#NET "sd_dat<2>"            LOC = F1  | IOSTANDARD = LVCMOS33;
+#NET "sd_dat<3>"            LOC = D2  | IOSTANDARD = LVCMOS33;
+#NET "sd_cd"                LOC = A1  | IOSTANDARD = LVCMOS33;

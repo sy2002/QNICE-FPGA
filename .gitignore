@@ -8,6 +8,8 @@ hw/xilinx/nexys4ddr/ISE/iseconfig
 hw/xilinx/nexys4ddr/ISE/_xmsgs
 hw/xilinx/nexys4ddr/ISE/env1.gise
 hw/xilinx/nexys4ddr/ISE/env1_summary.html
+hw/xilinx/MEGA65/ISE/work
+hw/xilinx/MEGA65/ISE/iseconfig
 impact.xsl
 impact_impact.xwbt
 assembler/qasm

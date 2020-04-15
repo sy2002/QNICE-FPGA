@@ -48,22 +48,23 @@ use work.env1_globals.all;
 
 entity vga_textmode is
 port (
-   reset    : in std_logic;     -- async reset
-   clk      : in std_logic;     -- system clock
-   clk50MHz : in std_logic;     -- needs to be a 50 MHz clock
+   reset       : in std_logic;     -- async reset
+   clk         : in std_logic;     -- system clock
+   clk50MHz    : in std_logic;     -- needs to be a 50 MHz clock
 
    -- VGA registers
-   en       : in std_logic;     -- enable for reading from or writing to the bus
-   we       : in std_logic;     -- write to VGA's registers via system's data bus
-   reg      : in std_logic_vector(3 downto 0);     -- register selector
-   data     : inout std_logic_vector(15 downto 0); -- system's data bus
+   en          : in std_logic;     -- enable for reading from or writing to the bus
+   we          : in std_logic;     -- write to VGA's registers via system's data bus
+   reg         : in std_logic_vector(3 downto 0);     -- register selector
+   data        : inout std_logic_vector(15 downto 0); -- system's data bus
    
    -- VGA output signals, monochrome only
-   R        : out std_logic;
-   G        : out std_logic;
-   B        : out std_logic;
-   hsync    : out std_logic;
-   vsync    : out std_logic
+   R           : out std_logic;
+   G           : out std_logic;
+   B           : out std_logic;
+   hsync       : out std_logic;
+   vsync       : out std_logic;
+   pixelclock  : out std_logic
 );
 end vga_textmode;
 
@@ -485,5 +486,6 @@ begin
    
    clk25MHz <= '0' when reset = '1' else
                not clk25MHz when rising_edge(clk50MHz);
+   pixelclock <= clk25MHz;
    vga_busy <= '0' when vga_cmd = vc_idle else '1';
 end beh;
