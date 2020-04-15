@@ -397,6 +397,7 @@ int vga_init()
         printf("\nUnable to initialize SDL:  %s\n", SDL_GetError());
         return 0;
     }
+    SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
 
     vga_state = vga_x = vga_y = vga_offs_display = vga_offs_rw = 0;
 
