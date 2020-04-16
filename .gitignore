@@ -10,6 +10,8 @@ hw/xilinx/nexys4ddr/ISE/env1.gise
 hw/xilinx/nexys4ddr/ISE/env1_summary.html
 hw/xilinx/MEGA65/ISE/work
 hw/xilinx/MEGA65/ISE/iseconfig
+hw/xilinx/MEGA65/ISE/webtalk_impact.xml
+hw/xilinx/MEGA65/ISE/mega65.ipf
 impact.xsl
 impact_impact.xwbt
 assembler/qasm

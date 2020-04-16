@@ -17,7 +17,7 @@ INST "eae_inst/res*" TNM="EAE_RES";
 TIMESPEC TS_EAE=FROM "EAE_OPS" TO "EAE_RES" 32 ns;
 
 ## Reset button
-NET "RESET"              LOC = M13 | IOSTANDARD = LVCMOS33;
+NET "RESET_N"              LOC = M13 | IOSTANDARD = LVCMOS33;
 
 ## USB-RS232 Interface
 NET "UART_RXD"             LOC = L14  | IOSTANDARD = LVCMOS33;

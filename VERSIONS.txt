@@ -1,4 +1,4 @@
-Version 1.51    xxxxx, xx 2020
+Version 1.6     xxxxx, 22 2020
 ==============================
 
 <add DE10-Nano?, if yes, then advertize it in DE10-Nano specific places>
@@ -9,8 +9,7 @@ WIP * TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
   Structured all hardware dependencies in the new folder 'hw'.
 TODO * EMULATOR: <todo write explanation and reference to
   https://github.com/emscripten-core/emscripten/issues/10746
-  and update make-wasm.bash
-  >
+  and update make-wasm.bash>
 
 Version 1.5     March, 22 2020
 ==============================

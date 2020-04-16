@@ -16,7 +16,7 @@ use work.env1_globals.all;
 entity MEGA65 is
 port (
    CLK            : in std_logic;                  -- 100 MHz clock
-   RESET          : in std_logic;                  -- CPU reset button
+   RESET_N        : in std_logic;                  -- CPU reset button
    
    -- serial communication
    UART_RXD    : in std_logic;                     -- receive data
@@ -479,7 +479,7 @@ begin
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
       port map (
-         HW_RESET => '0', --not RESET_N,
+         HW_RESET => not RESET_N,
          CLK => SLOW_CLOCK,                  -- @TODO change debouncer bitsize when going to 100 MHz
          addr => cpu_addr,
          data_dir => cpu_data_dir,
