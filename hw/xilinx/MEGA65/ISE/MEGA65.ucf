@@ -1,5 +1,5 @@
-## Nexys 4 DDR specific mapping of "QNICE-FPGA Environment 1"
-## done by sy2002 in 2015, 2016
+## MEGA65 mapping for QNICE-FPGA
+## done by sy2002 in April 2020
 
 ## Clock signal
 NET "CLK"                  LOC = V13  | IOSTANDARD = "LVCMOS33";
@@ -19,15 +19,14 @@ TIMESPEC TS_EAE=FROM "EAE_OPS" TO "EAE_RES" 32 ns;
 ## Reset button
 NET "RESET_N"              LOC = M13 | IOSTANDARD = LVCMOS33;
 
-## USB-RS232 Interface
+## USB-RS232 Interface (rxd, txd only; rts/cts are not available)
 NET "UART_RXD"             LOC = L14  | IOSTANDARD = LVCMOS33;
 NET "UART_TXD"             LOC = L13  | IOSTANDARD = LVCMOS33;
-#NET "UART_CTS"             LOC = D3  | IOSTANDARD = LVCMOS33;
-#NET "UART_RTS"             LOC = E5  | IOSTANDARD = LVCMOS33;
 
-## PS/2 keyboard
-#NET "PS2_CLK"              LOC = F4  | IOSTANDARD = LVCMOS33;
-#NET "PS2_DAT"              LOC = B2  | IOSTANDARD = LVCMOS33;
+## MEGA65 smart keyboard controller
+NET "kb_io0"               LOC = A14  | IOSTANDARD = LVCMOS33;
+NET "kb_io1"               LOC = A13  | IOSTANDARD = LVCMOS33;
+NET "kb_io2"               LOC = C13  | IOSTANDARD = LVCMOS33;
 
 ## VGA
 NET "vga_red[0]"           LOC = U15   | IOSTANDARD = LVCMOS33 | SLEW = FAST;

@@ -4,7 +4,7 @@
 -- Top Module for synthesizing the whole machine
 -- 
 -- done on-again-off-again in 2015, 2016 by sy2002
--- MEGA65 port done in April 2020
+-- MEGA65 port done in April 2020 by sy2002
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -18,16 +18,11 @@ port (
    CLK            : in std_logic;                  -- 100 MHz clock
    RESET_N        : in std_logic;                  -- CPU reset button
    
-   -- serial communication
+   -- serial communication (rxd, txd only; rts/cts are not available)
+   -- 115.200 baud, 8-N-1
    UART_RXD    : in std_logic;                     -- receive data
    UART_TXD    : out std_logic;                    -- send data
---   UART_RTS    : in std_logic;                     -- (active low) equals cts from dte, i.e. fpga is allowed to send to dte
---   UART_CTS    : out std_logic;                    -- (active low) clear to send (dte is allowed to send to fpga)   
-      
---   -- PS/2 keyboard
---   PS2_CLK     : in std_logic;
---   PS2_DAT     : in std_logic;
-
+     
    -- VGA
    VGA_RED        : out std_logic_vector(7 downto 0);
    VGA_GREEN      : out std_logic_vector(7 downto 0);
@@ -38,7 +33,12 @@ port (
    -- VDAC
    vdac_clk       : out std_logic;
    vdac_sync_n    : out std_logic;
-   vdac_blank_n   : out std_logic
+   vdac_blank_n   : out std_logic;
+   
+   -- MEGA65 smart keyboard controller
+   kb_io0 : out std_logic;                         -- clock to keyboard
+   kb_io1 : out std_logic;                         -- data output to keyboard
+   kb_io2 : in std_logic                           -- data input from keyboard   
    
 --   -- SD Card
 --   SD_RESET    : out std_logic;
@@ -150,26 +150,26 @@ port (
 );
 end component;
 
----- PS/2 keyboard
---component keyboard is
---generic (
---   clk_freq      : integer
---);
---port (
---   clk           : in std_logic;               -- system clock input
---   reset         : in std_logic;               -- system reset
---
---   -- PS/2
---   ps2_clk       : in std_logic;               -- clock signal from PS/2 keyboard
---   ps2_data      : in std_logic;               -- data signal from PS/2 keyboard
---   
---   -- conntect to CPU's data bus (data high impedance when all reg_* are 0)
---   kbd_en        : in std_logic;
---   kbd_we        : in std_logic;
---   kbd_reg       : in std_logic_vector(1 downto 0);   
---   cpu_data      : inout std_logic_vector(15 downto 0)
---);
---end component;
+component keyboard is
+generic (
+   clk_freq      : integer                     -- system clock frequency
+);
+port (
+   clk           : in std_logic;               -- system clock
+   reset         : in std_logic;               -- system reset
+   
+   -- MEGA65 smart keyboard controller
+   kb_io0 : out std_logic;                     -- clock to keyboard
+   kb_io1 : out std_logic;                     -- data output to keyboard
+   kb_io2 : in std_logic;                      -- data input from keyboard   
+   
+   -- connect to CPU's data bus (data high impedance when all reg_* are 0)
+   kbd_en        : in std_logic;
+   kbd_we        : in std_logic;
+   kbd_reg       : in std_logic_vector(1 downto 0);   
+   cpu_data      : inout std_logic_vector(15 downto 0)
+);
+end component;
 
 -- clock cycle counter
 component cycle_counter is
@@ -423,21 +423,22 @@ begin
          cpu_data => cpu_data         
       );
 
---   -- PS/2 keyboard
---   kbd : keyboard
---      generic map (
---         clk_freq => 50000000                -- see @TODO in keyboard.vhd and TODO.txt
---      )
---      port map (
---         clk => SLOW_CLOCK,
---         reset => reset_ctl,
---         ps2_clk => PS2_CLK,
---         ps2_data => PS2_DAT,
---         kbd_en => kbd_en,
---         kbd_we => kbd_we,
---         kbd_reg => kbd_reg,
---         cpu_data => cpu_data
---      );
+   -- MEGA65 keyboard
+   kbd : keyboard
+      generic map (
+         clk_freq => 50000000
+      )
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         kb_io0 => kb_io0,
+         kb_io1 => kb_io1,
+         kb_io2 => kb_io2,
+         kbd_en => kbd_en,
+         kbd_we => kbd_we,
+         kbd_reg => kbd_reg,
+         cpu_data => cpu_data
+      );
       
    -- cycle counter
    cyc : cycle_counter

@@ -10,6 +10,7 @@ WIP * TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
 TODO * EMULATOR: <todo write explanation and reference to
   https://github.com/emscripten-core/emscripten/issues/10746
   and update make-wasm.bash>
+TODO <document the switch register>
 
 Version 1.5     March, 22 2020
 ==============================
