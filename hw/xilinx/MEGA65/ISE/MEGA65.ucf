@@ -63,12 +63,8 @@ NET "vdac_clk"             LOC = AA9   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
 NET "vdac_sync_n"          LOC = V10   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
 NET "vdac_blank_n"         LOC = W11   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
 
-##Micro SD Connector
-#NET "SD_RESET"             LOC = E2  | IOSTANDARD = LVCMOS33;
-#NET "SD_CLK"               LOC = B1  | IOSTANDARD = LVCMOS33;
-#NET "SD_MOSI"              LOC = C1  | IOSTANDARD = LVCMOS33;
-#NET "SD_MISO"              LOC = C2  | IOSTANDARD = LVCMOS33;
-#NET "sd_dat<1>"            LOC = E1  | IOSTANDARD = LVCMOS33;
-#NET "sd_dat<2>"            LOC = F1  | IOSTANDARD = LVCMOS33;
-#NET "sd_dat<3>"            LOC = D2  | IOSTANDARD = LVCMOS33;
-#NET "sd_cd"                LOC = A1  | IOSTANDARD = LVCMOS33;
+## Micro SD Connector
+NET "SD_RESET"             LOC = B15   | IOSTANDARD = LVCMOS33;
+NET "SD_CLK"               LOC = B17   | IOSTANDARD = LVCMOS33;
+NET "SD_MOSI"              LOC = B16   | IOSTANDARD = LVCMOS33;
+NET "SD_MISO"              LOC = B18   | IOSTANDARD = LVCMOS33;

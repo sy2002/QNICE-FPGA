@@ -135,6 +135,7 @@ signal key_up              : std_logic;
 
 -- connectivity for MEGA65 keyboard matrix to ASCII converter
 signal ascii_key           : unsigned(7 downto 0);
+signal ascii_key_mapped    : unsigned(7 downto 0);
 signal bucky_key           : std_logic_vector(6 downto 0);
 signal ascii_key_valid     : std_logic;
 
@@ -211,7 +212,7 @@ begin
    end process;
    
    ff_stdinout_handler : process(clk, reset, key_restore_n, ascii_key_valid, ascii_key)
-   begin
+   begin        
       if reset = '1' then
          ff_stdinout <= "11"; -- default: STDIN=MEGA65 keyboard and STDOUT=VGA
       else
@@ -230,7 +231,7 @@ begin
       
    ff_ascii_new_handler : process(ascii_key_valid, reset, reset_ff_ascii_new)
    begin
-      if reset = '1' or reset_ff_ascii_new = '1' then
+      if reset = '1' or reset_ff_ascii_new = '1' or (key_restore_n = '0' and ascii_key_valid = '1') then
          ff_ascii_new <= '0';
       else
          if rising_edge(ascii_key_valid) then
@@ -248,6 +249,14 @@ begin
             ff_spec_new <= '1';
          end if;
       end if;
+   end process;
+   
+   map_mega65_to_qnice : process(ascii_key)
+   begin
+      case ascii_key is
+         when x"14" =>  ascii_key_mapped <= x"08";  -- INST/DEL => Backspace
+         when others => ascii_key_mapped <= ascii_key;
+      end case;
    end process;
    
    write_ff_locale: process(clk, kbd_en, kbd_we, kbd_reg, reset)
@@ -281,7 +290,7 @@ begin
                
             -- read data register
             when "01" =>
-               cpu_data <= spec_code & std_logic_vector(ascii_key);
+               cpu_data <= spec_code & std_logic_vector(ascii_key_mapped);
                reset_ff_ascii_new <= '1';
                reset_ff_spec_new <= '1';
                

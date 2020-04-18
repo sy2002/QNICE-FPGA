@@ -67,6 +67,15 @@ HARDWARE:
   somewhere in the doc folder)
 
 
+MEGA65 HARDWARE:
+
+* Support both SD card slots. In a step one, we could implement a similar
+  smart switching mechanism than the MEGA65, so it would be a hardware-only
+  feature. Later, we could support two SD cards simultaneously, but this would
+  need a Monitor enhancement.
+
+* Support somehow this mega cool floppy drive
+
 MONITOR:
 
 * variables.asm: replace hardcoded blocksize for _SD$DEVICEHANDLE by using

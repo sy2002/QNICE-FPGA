@@ -36,16 +36,15 @@ port (
    vdac_blank_n   : out std_logic;
    
    -- MEGA65 smart keyboard controller
-   kb_io0 : out std_logic;                         -- clock to keyboard
-   kb_io1 : out std_logic;                         -- data output to keyboard
-   kb_io2 : in std_logic                           -- data input from keyboard   
+   kb_io0         : out std_logic;                 -- clock to keyboard
+   kb_io1         : out std_logic;                 -- data output to keyboard
+   kb_io2         : in std_logic;                  -- data input from keyboard   
    
---   -- SD Card
---   SD_RESET    : out std_logic;
---   SD_CLK      : out std_logic;
---   SD_MOSI     : out std_logic;
---   SD_MISO     : in std_logic;
---   SD_DAT      : out std_logic_vector(3 downto 1)
+   -- SD Card
+   SD_RESET       : out std_logic;
+   SD_CLK         : out std_logic;
+   SD_MOSI        : out std_logic;
+   SD_MISO        : in std_logic
 ); 
 end MEGA65;
 
@@ -202,25 +201,25 @@ port (
 );
 end component;
 
----- SD Card
---component sdcard is
---port (
---   clk      : in std_logic;         -- system clock
---   reset    : in std_logic;         -- async reset
---   
---   -- registers
---   en       : in std_logic;         -- enable for reading from or writing to the bus
---   we       : in std_logic;         -- write to the registers via system's data bus
---   reg      : in std_logic_vector(2 downto 0);      -- register selector
---   data     : inout std_logic_vector(15 downto 0);  -- system's data bus
---   
---   -- hardware interface
---   sd_reset : out std_logic;
---   sd_clk   : out std_logic;
---   sd_mosi  : out std_logic;
---   sd_miso  : in std_logic
---);
---end component;
+-- SD Card
+component sdcard is
+port (
+   clk      : in std_logic;         -- system clock
+   reset    : in std_logic;         -- async reset
+   
+   -- registers
+   en       : in std_logic;         -- enable for reading from or writing to the bus
+   we       : in std_logic;         -- write to the registers via system's data bus
+   reg      : in std_logic_vector(2 downto 0);      -- register selector
+   data     : inout std_logic_vector(15 downto 0);  -- system's data bus
+   
+   -- hardware interface
+   sd_reset : out std_logic;
+   sd_clk   : out std_logic;
+   sd_mosi  : out std_logic;
+   sd_miso  : in std_logic
+);
+end component;
 
 
 -- multiplexer to control the data bus (enable/disable the different parties)
@@ -418,8 +417,8 @@ begin
          reset => reset_ctl,
          rx => UART_RXD,
          tx => UART_TXD,
-         rts => '0',      -- TODO
-         cts => open,     -- TODO
+         rts => '0',
+         cts => open,
          uart_en => uart_en,
          uart_we => uart_we,
          uart_reg => uart_reg,
@@ -466,20 +465,20 @@ begin
          data => cpu_data         
       );
 
---   -- SD Card
---   sd_card : sdcard
---      port map (
---         clk => SLOW_CLOCK,
---         reset => reset_ctl,
---         en => sd_en,
---         we => sd_we,
---         reg => sd_reg,
---         data => cpu_data,
---         sd_reset => SD_RESET,
---         sd_clk => SD_CLK,
---         sd_mosi => SD_MOSI,
---         sd_miso => SD_MISO
---      );
+   -- SD Card
+   sd_card : sdcard
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         en => sd_en,
+         we => sd_we,
+         reg => sd_reg,
+         data => cpu_data,
+         sd_reset => SD_RESET,
+         sd_clk => SD_CLK,
+         sd_mosi => SD_MOSI,
+         sd_miso => SD_MISO
+      );
                         
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
@@ -553,9 +552,6 @@ begin
    SWITCHES(15 downto 2) <= "00000000000000";
    
    -- generate the general reset signal
-   reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';
+   reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';   
    
-   -- pull DAT1, DAT2 and DAT3 to GND (Nexys' pull-ups by default pull to VDD)
-   --SD_DAT <= "000";
 end beh;
-

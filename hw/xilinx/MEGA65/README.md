@@ -1,6 +1,14 @@
 QNICE-FPGA on the MEGA65
 ========================
 
+SD Card
+-------
+
+The MEGA65 features two SD card slots: One at the rear side of the case and
+one at the bottom of the case under a cover.
+
+Currently, QNICE-FPGA only supports the one at the bottom under the cover.
+
 Using Serial I/O as STDIN/STDOUT
 --------------------------------
 
@@ -23,6 +31,9 @@ Using Serial I/O as STDIN/STDOUT
 Press the `RESTORE` key together with the `1` to toggle STDIN between the
 MEGA65 keyboard and the UART. Press `RESTORE` plus `2` to toggle STDOUT
 between VGA and the UART.
+
+Caveat: After switching STDIN to another input, you still need to press one
+more key on the old input, before the switch to the new input is finally active.
 
 ### Technical Background Info
 
