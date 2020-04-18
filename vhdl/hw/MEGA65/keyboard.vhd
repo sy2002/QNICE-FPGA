@@ -47,7 +47,10 @@ port (
    kbd_en        : in std_logic;
    kbd_we        : in std_logic;
    kbd_reg       : in std_logic_vector(1 downto 0);   
-   cpu_data      : inout std_logic_vector(15 downto 0)
+   cpu_data      : inout std_logic_vector(15 downto 0);
+   
+   -- allow to control STDIN/STDOUT via pressing <RESTORE>+<1|2> (1=toggle STDIN, 2=toggle STDOUT)
+   stdinout      : out std_logic_vector(1 downto 0)
 );
 end keyboard;
 
@@ -143,6 +146,9 @@ signal reset_ff_spec_new   : std_logic;
 signal ff_locale           : std_logic_vector(2 downto 0);
 signal modifiers           : std_logic_vector(2 downto 0);
 
+-- stdin/stdout
+signal ff_stdinout         : std_logic_vector(1 downto 0) := "11";
+
 begin
 
    mega65kbd_ctrl : mega65kbd_to_matrix
@@ -201,6 +207,24 @@ begin
          else
            matrix_col_idx <= 0;
          end if;      
+      end if;
+   end process;
+   
+   ff_stdinout_handler : process(clk, reset, key_restore_n, ascii_key_valid, ascii_key)
+   begin
+      if reset = '1' then
+         ff_stdinout <= "11"; -- default: STDIN=MEGA65 keyboard and STDOUT=VGA
+      else
+         if rising_edge(clk) then
+            if key_restore_n = '0' and ascii_key_valid = '1' then -- active low
+               if ascii_key = x"31" then -- 1 pressed: toggle STDIN
+                  ff_stdinout(0) <= not ff_stdinout(0);
+               end if;
+               if ascii_key = x"32" then -- 2 pressed: toggle STDOUT
+                  ff_stdinout(1) <= not ff_stdinout(1);
+               end if;
+            end if;
+         end if;
       end if;
    end process;
       
@@ -269,6 +293,7 @@ begin
          cpu_data <= (others => 'Z');
       end if;   
    end process;
-
+   
+   stdinout <= ff_stdinout;
 end beh;
  

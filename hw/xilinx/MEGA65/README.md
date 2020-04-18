@@ -20,6 +20,12 @@ Using Serial I/O as STDIN/STDOUT
 
 ### Routing QNICE-FPGA's STDIN/STDOUT
 
+Press the `RESTORE` key together with the `1` to toggle STDIN between the
+MEGA65 keyboard and the UART. Press `RESTORE` plus `2` to toggle STDOUT
+between VGA and the UART.
+
+### Technical Background Info
+
 The initial Nexys 4 DDR version of QNICE-FPGA sports 16 switches, which are
 directly linked with the "Switch Register" `0xFF12`
 (see also `IO$SWITCH_REG` in the file `dist_kit/sysdef.asm`). The rightmost
@@ -32,7 +38,8 @@ switch is Bit #0.
 |Bit #1         | 0     |STDOUT = UART            |
 |Bit #1         | 1     |STDOUT = MEGA65 VGA out  |
 
-
+The above mentioned `RESTORE` key combinations are toggling the bits #0 and #1
+of the Switch Register.
 
 Porting Notes
 -------------

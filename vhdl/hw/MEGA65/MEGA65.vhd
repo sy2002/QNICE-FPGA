@@ -167,7 +167,10 @@ port (
    kbd_en        : in std_logic;
    kbd_we        : in std_logic;
    kbd_reg       : in std_logic_vector(1 downto 0);   
-   cpu_data      : inout std_logic_vector(15 downto 0)
+   cpu_data      : inout std_logic_vector(15 downto 0);
+   
+   -- allow to control STDIN/STDOUT via pressing <RESTORE>+<1|2> (1=toggle STDIN, 2=toggle STDOUT)
+   stdinout      : out std_logic_vector(1 downto 0)   
 );
 end component;
 
@@ -437,7 +440,8 @@ begin
          kbd_en => kbd_en,
          kbd_we => kbd_we,
          kbd_reg => kbd_reg,
-         cpu_data => cpu_data
+         cpu_data => cpu_data,
+         stdinout => SWITCHES(1 downto 0)
       );
       
    -- cycle counter
@@ -546,7 +550,7 @@ begin
    -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
    -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
    -- bit #1: use UART AS STDOUT (0) / use VGA as STDOUT (1)
-   SWITCHES <= "0000000000000011";
+   SWITCHES(15 downto 2) <= "00000000000000";
    
    -- generate the general reset signal
    reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';
