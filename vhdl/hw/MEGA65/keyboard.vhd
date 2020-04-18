@@ -151,7 +151,7 @@ begin
       
       flopmotor      => '0',
       flopled        => '0',
-      powerled       => '0',
+      powerled       => '1',
       
       kio8           => kb_io0,
       kio9           => kb_io1,

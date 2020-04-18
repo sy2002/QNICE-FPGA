@@ -544,7 +544,9 @@ begin
    vdac_blank_n <= '1';
    
    -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
-   SWITCHES <= "0000000000000010";
+   -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
+   -- bit #1: use UART AS STDOUT (0) / use VGA as STDOUT (1)
+   SWITCHES <= "0000000000000011";
    
    -- generate the general reset signal
    reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';
