@@ -47,8 +47,21 @@ MAIN_LOOP       MOVE    _VGA$X, R0          ; current x, y coordinates
                 MOVE    @R4, R8
                 CMP     KBD$CTRL_E, R8
                 RBRA    EXIT, Z             ; yes: exit
-                SYSCALL(putc, 1)            ; no: print char
-                MOVE    R8, R11             ; remember it for printing
+                CMP     KBD$ENTER, R8       ; ENTER?
+                RBRA    _BS, !Z             ; no? check BS
+                MOVE    _VGA$X, R0          ; x=0
+                XOR     @R0, @R0
+                MOVE    _VGA$Y, R0          ; y++
+                ADD     1, @R0
+                RBRA    _CONT, 1                
+_BS             CMP     KBD$BACKSPACE, R8   ; BACKSPACE?
+                RBRA    _PRINT, !Z          ; no? print
+                MOVE    _VGA$X, R0          ; x--
+                SUB     1, @R0
+                RBRA    _CONT, 1
+
+_PRINT          SYSCALL(putc, 1)            
+_CONT           MOVE    R8, R11             ; remember it for printing
 
 _NO_NEW_ASCII   MOVE    IO$KBD_STATE, R4
                 MOVE    @R4, R4

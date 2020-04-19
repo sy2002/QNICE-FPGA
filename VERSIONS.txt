@@ -4,13 +4,26 @@ Version 1.6     xxxxx, 22 2020
 <add DE10-Nano?, if yes, then advertize it in DE10-Nano specific places>
 <QNICE MEGA65 ;-)>
 <ability to upload qbins for the web emu? filling the virtual file system via
-upload? if this is not for v1.51, then put his to the TODO.txt>
+upload? if this is not for v1.6, then put his to the TODO.txt; maybe even
+easier is to load it directly into the RAM without going the route via the
+file system>
 WIP * TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
   Structured all hardware dependencies in the new folder 'hw'.
 TODO * EMULATOR: <todo write explanation and reference to
   https://github.com/emscripten-core/emscripten/issues/10746
   and update make-wasm.bash>
 TODO <document the switch register>
+<README.md in hw folder: restructure? or bring down to just a hw folder guide
+(incl. a hint to the vhdl/hw folder) and then put some docu in DOC including a
+README.md? also: which key combos e.g. MEGA+DOWN = PAGE DOWN, RESTORE+1...>
+<Monitor calibration: hint in the doc, at least a small program in
+test_programs and in qbin (!); use "8" and other large chars and fill the
+screen with them; maybe allow multiple screens/chars to follow, so that one
+can see, if the calibration worked.>
+
+<make auto-repeat work also with up/left>
+<German Umlauts with MEGA key incl ß and €, handle Shift for upper>
+<* key>
 
 Version 1.5     March, 22 2020
 ==============================
