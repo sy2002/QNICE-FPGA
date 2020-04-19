@@ -30,6 +30,8 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
+use work.kbd_constants.all;
+
 entity keyboard is
 generic (
    clk_freq      : integer                     -- system clock frequency
@@ -119,9 +121,6 @@ component matrix_to_ascii is
         );
 end component;   
 
-signal spec_new            : std_logic := '0';
-signal spec_code           : std_logic_vector(7 downto 0) := x"00";
-
 -- connectivity for the MEGA65 hardware keyboard controller
 signal matrix_col          : std_logic_vector(7 downto 0);
 signal matrix_col_idx      : integer range 0 to 8 := 0;
@@ -135,7 +134,7 @@ signal key_up              : std_logic;
 
 -- connectivity for MEGA65 keyboard matrix to ASCII converter
 signal ascii_key           : unsigned(7 downto 0);
-signal ascii_key_mapped    : unsigned(7 downto 0);
+signal ff_ascii_key        : std_logic_vector(7 downto 0) := x"00";
 signal bucky_key           : std_logic_vector(6 downto 0);
 signal ascii_key_valid     : std_logic;
 
@@ -146,6 +145,11 @@ signal ff_spec_new         : std_logic;
 signal reset_ff_spec_new   : std_logic;
 signal ff_locale           : std_logic_vector(2 downto 0);
 signal modifiers           : std_logic_vector(2 downto 0);
+
+-- QNICE special key handling
+signal spec_new            : std_logic := '0';
+signal spec_code           : std_logic_vector(7 downto 0);
+signal ff_spec_code        : std_logic_vector(7 downto 0) := x"00";
 
 -- stdin/stdout
 signal ff_stdinout         : std_logic_vector(1 downto 0) := "11";
@@ -228,37 +232,61 @@ begin
          end if;
       end if;
    end process;
-      
-   ff_ascii_new_handler : process(ascii_key_valid, reset, reset_ff_ascii_new)
+               
+   map_mega65_to_qnice : process(reset, ascii_key_valid, ascii_key, reset_ff_ascii_new, reset_ff_spec_new)
    begin
-      if reset = '1' or reset_ff_ascii_new = '1' or (key_restore_n = '0' and ascii_key_valid = '1') then
-         ff_ascii_new <= '0';
+      if reset = '1' or reset_ff_ascii_new = '1' or reset_ff_spec_new = '1' then
+         ff_ascii_new <= (not reset) and (not reset_ff_ascii_new);
+         ff_spec_new  <= (not reset) and (not reset_ff_spec_new);
       else
          if rising_edge(ascii_key_valid) then
-            ff_ascii_new <= '1';
-         end if;
+            case ascii_key is
+               when x"14" =>
+                  ff_ascii_key <= x"08";  -- INST/DEL => Backspace
+                  ff_ascii_new <= '1';
+                  ff_spec_code <= x"00";
+                  ff_spec_new  <= '0';
+               
+               when x"1d" =>              -- CURSOR RIGHT
+                  ff_ascii_key <= x"00";
+                  ff_ascii_new <= '0';
+                  ff_spec_code <= key_cur_right;
+                  ff_spec_new  <= '1';
+                  
+               when x"9d" =>              -- CURSOR LEFT
+                  ff_ascii_key <= x"00";
+                  ff_ascii_new <= '0';                  
+                  ff_spec_code <= key_cur_left;
+                  ff_spec_new  <= '1';                  
+               
+               when x"91" =>              -- CURSOR UP
+                  ff_ascii_key <= x"00";
+                  ff_ascii_new <= '0';                  
+                  ff_spec_code <= key_cur_up;
+                  ff_spec_new  <= '1';                  
+                  
+               when x"11" =>              -- CURSOR DOWN
+                  ff_ascii_key <= x"00";
+                  ff_ascii_new <= '0';                  
+                  ff_spec_code <= key_cur_down;
+                  ff_spec_new  <= '1';  
+
+               when x"fc" =>              -- F12
+                  ff_ascii_key <= x"00";
+                  ff_ascii_new <= '0';
+                  ff_spec_code <= key_f12;
+                  ff_spec_new  <= '1';
+                  
+               when others =>
+                  ff_ascii_key <= std_logic_vector(ascii_key);
+                  ff_ascii_new <= '1';
+                  ff_spec_code <= x"00";
+                  ff_spec_new  <= '0';
+            end case;          
+          end if;
       end if;
    end process;
-   
-   ff_spec_new_handler : process(spec_new, reset, reset_ff_spec_new)
-   begin
-      if reset = '1' or reset_ff_spec_new = '1' then
-         ff_spec_new <= '0';
-      else
-         if rising_edge(spec_new) then
-            ff_spec_new <= '1';
-         end if;
-      end if;
-   end process;
-   
-   map_mega65_to_qnice : process(ascii_key)
-   begin
-      case ascii_key is
-         when x"14" =>  ascii_key_mapped <= x"08";  -- INST/DEL => Backspace
-         when others => ascii_key_mapped <= ascii_key;
-      end case;
-   end process;
-   
+                  
    write_ff_locale: process(clk, kbd_en, kbd_we, kbd_reg, reset)
    begin
       if reset = '1' then
@@ -272,7 +300,7 @@ begin
       end if;
    end process;
       
-   read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new, ascii_key, spec_code, modifiers)
+   read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new, ff_ascii_key, ff_spec_code, modifiers)
    begin
       reset_ff_ascii_new <= '0';
       reset_ff_spec_new <= '0';
@@ -286,11 +314,11 @@ begin
                            modifiers &    -- bits 7 .. 5: ctrl/alt/shift
                            ff_locale &    -- bits 4 .. 2: 000 = US, 001 = DE
                            ff_spec_new &  -- bit 1: new special key
-                           ff_ascii_new;  -- bit 0: new ascii key
+                           (ff_ascii_new and not ff_spec_new);  -- bit 0: new ascii key
                
             -- read data register
-            when "01" =>
-               cpu_data <= spec_code & std_logic_vector(ascii_key_mapped);
+            when "01" =>              
+               cpu_data <= ff_spec_code & ff_ascii_key;
                reset_ff_ascii_new <= '1';
                reset_ff_spec_new <= '1';
                
@@ -303,6 +331,9 @@ begin
       end if;   
    end process;
    
-   stdinout <= ff_stdinout;
+   modifiers(2)   <= bucky_key(2);                   -- CTRL
+   modifiers(1)   <= bucky_key(4);                   -- ALT
+   modifiers(0)   <= bucky_key(0) or bucky_key(1);   -- SHIFT
+   stdinout       <= ff_stdinout;
 end beh;
  

@@ -63,7 +63,7 @@ NET "vdac_clk"             LOC = AA9   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
 NET "vdac_sync_n"          LOC = V10   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
 NET "vdac_blank_n"         LOC = W11   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
 
-## Micro SD Connector
+## Micro SD Connector (this is the slot at the bottom side of the case under the cover)
 NET "SD_RESET"             LOC = B15   | IOSTANDARD = LVCMOS33;
 NET "SD_CLK"               LOC = B17   | IOSTANDARD = LVCMOS33;
 NET "SD_MOSI"              LOC = B16   | IOSTANDARD = LVCMOS33;
