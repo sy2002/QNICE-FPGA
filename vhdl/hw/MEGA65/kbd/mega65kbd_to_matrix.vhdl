@@ -1,6 +1,8 @@
 -- Original MEGA65 keyboard driver file by Paul Gardner-Stephen
--- modified for QNICE-FPGA by sy2002 in April 2020
--- see README.md for details
+-- see README.md for details and license
+--
+-- Modified for QNICE-FPGA by sy2002 in April 2020:
+--   commented out debugtools and report outputs
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -21,7 +23,7 @@ entity mega65kbd_to_matrix is
     kio10 : in std_logic; -- data input from keyboard
 
     matrix_col : out std_logic_vector(7 downto 0) := (others => '1');
-    matrix_col_idx : in integer range 0 to 8;
+    matrix_col_idx : in integer range 0 to 9;
 
     delete_out : out std_logic;
     return_out : out std_logic;

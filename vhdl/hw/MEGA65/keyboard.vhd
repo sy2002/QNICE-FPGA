@@ -7,7 +7,7 @@
 -- go high impedance when not enabled.
 --
 -- IMPORTANT: kbd_constants.vhd contains locales, special characters, modifiers
---            The subfolder "kbd" contains the original MEGA65 keyboard driver
+--            The subfolder "kbd" contains the modified MEGA65 keyboard driver
 --
 -- Registers:
 --
@@ -72,8 +72,8 @@ component mega65kbd_to_matrix is
     kio10 : in std_logic; -- data input from keyboard
 
     matrix_col : out std_logic_vector(7 downto 0) := (others => '1');
-    matrix_col_idx : in integer range 0 to 8;
-
+    matrix_col_idx : in integer range 0 to 9;
+    
     delete_out : out std_logic;
     return_out : out std_logic;
     fastkey_out : out std_logic;
@@ -144,18 +144,13 @@ signal reset_ff_ascii_new  : std_logic;
 signal ff_spec_new         : std_logic;
 signal reset_ff_spec_new   : std_logic;
 signal ff_locale           : std_logic_vector(2 downto 0);
+signal ascii_key_locale    : std_logic_vector(7 downto 0);
 signal modifiers           : std_logic_vector(2 downto 0);
 
 -- QNICE special key handling (cursor left and up need special treatment)
 signal spec_new            : std_logic := '0';
 signal spec_code           : std_logic_vector(7 downto 0);
 signal ff_spec_code        : std_logic_vector(7 downto 0) := x"00";
-signal ff_cur_left         : std_logic := '0';
-signal reset_cur_left_cnt  : integer := 0;
-signal ff_cur_up           : std_logic := '0';
-signal reset_cur_up_cnt    : integer := 0;
-signal start_reset_cur_left_cnt  : integer;
-signal start_reset_cur_up_cnt    : integer;
 
 -- stdin/stdout
 signal ff_stdinout         : std_logic_vector(1 downto 0) := "11";
@@ -176,7 +171,7 @@ begin
       
       matrix_col     => matrix_col,
       matrix_col_idx => matrix_col_idx,
-      
+            
       delete_out     => key_delete,
       return_out     => key_return,
       fastkey_out    => key_fast,
@@ -213,7 +208,7 @@ begin
    matrix_col_idx_handler : process(clk)
    begin
       if rising_edge(clk) then
-         if matrix_col_idx < 8 then
+         if matrix_col_idx < 9 then
            matrix_col_idx <= matrix_col_idx + 1;
          else
            matrix_col_idx <= 0;
@@ -239,54 +234,26 @@ begin
       end if;
    end process;
    
-   ff_cur_left_handler : process(reset, reset_cur_left_cnt, key_left)
+   ascii_key_locale_handler : process(ascii_key, modifiers)
    begin
-      if reset = '1' or reset_cur_left_cnt = 1 then
-         ff_cur_left <= '0';
+      -- German Locale: provide German Umlauts ä, ö, ü including ß and the Euro sign (€)
+      if ff_locale = loc_DE then
+         case ascii_key is
+            when x"c1"  => -- MEGA+a => ä
+               if modifiers(0) = '1' then ascii_key_locale <= x"c4"; else ascii_key_locale <= x"e4"; end if;             
+            when x"cf"  => -- MEGA+o => ö
+               if modifiers(0) = '1' then ascii_key_locale <= x"d6"; else ascii_key_locale <= x"f6"; end if; 
+            when x"d5"  => -- MEGA+ü => ü
+               if modifiers(0) = '1' then ascii_key_locale <= x"dc"; else ascii_key_locale <= x"fc"; end if;
+            when x"d3"  => ascii_key_locale <= x"df"; -- MEGA+s => ß
+            when x"c5"  => ascii_key_locale <= x"a4"; -- MEGA+e => €            
+            when others => ascii_key_locale <= std_logic_vector(ascii_key);
+         end case;
       else
-         if rising_edge(key_left) then
-            ff_cur_left <= '1';
-         end if;
+         ascii_key_locale <= std_logic_vector(ascii_key);
       end if;
    end process;
    
-   reset_cur_left_cnt_handler : process(clk, start_reset_cur_left_cnt, reset_cur_left_cnt)
-   begin
-      if start_reset_cur_left_cnt > 0 then
-         reset_cur_left_cnt <= start_reset_cur_left_cnt;
-      else
-         if rising_edge(clk) then
-            if reset_cur_left_cnt > 0 then
-               reset_cur_left_cnt <= reset_cur_left_cnt - 1;
-            end if;
-         end if;
-      end if;
-   end process;
-   
-   ff_cur_up_handler : process(reset, reset_cur_up_cnt, key_up)
-   begin
-      if reset = '1' or reset_cur_up_cnt = 1 then
-         ff_cur_up <= '0';
-      else
-         if rising_edge(key_up) then
-            ff_cur_up <= '1';
-         end if;
-      end if;
-   end process;
-   
-   reset_cur_up_cnt_handler : process(clk, start_reset_cur_up_cnt, reset_cur_up_cnt)
-   begin
-      if start_reset_cur_up_cnt > 0 then
-         reset_cur_up_cnt <= start_reset_cur_up_cnt;
-      else
-         if rising_edge(clk) then
-            if reset_cur_up_cnt > 0 then
-               reset_cur_up_cnt <= reset_cur_up_cnt - 1;
-            end if;
-         end if;
-      end if;
-   end process;
-                  
    map_mega65_to_qnice : process(reset, ascii_key_valid, ascii_key, bucky_key, reset_ff_ascii_new, reset_ff_spec_new, key_restore_n)
    begin
       if reset = '1' or reset_ff_ascii_new = '1' or reset_ff_spec_new = '1' or key_restore_n = '0' then
@@ -303,15 +270,25 @@ begin
                when x"14" =>              -- INST/DEL => Backspace
                   ff_ascii_key <= x"08";
                   ff_ascii_new <= '1';
-                                 
-               when x"1d" =>              -- CURSOR RIGHT
-                  ff_spec_code <= key_cur_right;
-                  ff_spec_new  <= '1';
                   
-               when x"9d" =>              -- CURSOR LEFT
-                  ff_spec_code <= key_cur_left;
-                  ff_spec_new  <= '1';                  
-               
+               when x"ea" =>              -- LEFT ARROW
+                  ff_ascii_key <= x"1b";
+                  ff_ascii_new <= '1';
+                  
+               when x"eb" =>              -- RIGHT ARROW
+                  ff_ascii_key <= x"1a";
+                  ff_ascii_new <= '1';
+                  
+               when x"e0" =>              -- UP ARROW
+                  ff_ascii_key <= x"18";
+                  ff_ascii_new <= '1';
+                  
+               when x"e8" =>              -- DOWN ARROW
+                  ff_ascii_key <= x"19";
+                  ff_ascii_new <= '1';
+                                                                  
+               -- cursor keys incl. PGUP, PGDN, POS1, END
+                                                                                 
                when x"91" =>              -- CURSOR UP
                   ff_spec_code <= key_cur_up;
                   ff_spec_new  <= '1';                  
@@ -320,13 +297,31 @@ begin
                   ff_spec_code <= key_cur_down;
                   ff_spec_new  <= '1';
                   
-               when x"EE" =>              -- MEGA65 key + CUSOR DOWN = PAGE DOWN
+               when x"9d" =>              -- CURSOR LEFT
+                  ff_spec_code <= key_cur_left;
+                  ff_spec_new  <= '1';                  
+
+               when x"1d" =>              -- CURSOR RIGHT
+                  ff_spec_code <= key_cur_right;
+                  ff_spec_new  <= '1';
+                                                      
+               when x"db" =>              -- MEGA65 key + CUSOR UP = PAGE UP
+                  ff_spec_code <= key_pg_up;
+                  ff_spec_new  <= '1';
+                                    
+               when x"ee" =>              -- MEGA65 key + CUSOR DOWN = PAGE DOWN
                   ff_spec_code <= key_pg_down;
                   ff_spec_new  <= '1';
                   
-               when x"ED" =>              -- MEGA65 key + CURSOR RIGHT = END
+               when x"dc" =>              -- MEGA65 key + CUSOR LEFT = POS1
+                  ff_spec_code <= key_pos1;
+                  ff_spec_new  <= '1';
+                                    
+               when x"ed" =>              -- MEGA65 key + CURSOR RIGHT = END
                   ff_spec_code <= key_end;
                   ff_spec_new  <= '1';
+
+               -- function keys
 
                when x"f1" =>              -- F1
                   ff_spec_code <= key_f1;
@@ -376,6 +371,28 @@ begin
                   ff_spec_code <= key_f12;
                   ff_spec_new  <= '1';
                   
+               -- keys that are conditionally mapped depending on the locale
+               
+               when x"c1" =>              -- MEGA+a => ä
+                  ff_ascii_key <= ascii_key_locale;
+                  ff_ascii_new  <= '1';
+
+               when x"cf" =>              -- MEGA+o => ö
+                  ff_ascii_key <= ascii_key_locale;
+                  ff_ascii_new  <= '1';
+
+               when x"d5" =>              -- MEGA+ü => ü
+                  ff_ascii_key <= ascii_key_locale;
+                  ff_ascii_new  <= '1';
+                  
+               when x"d3" =>              -- MEGA+s => ß
+                  ff_ascii_key <= ascii_key_locale;
+                  ff_ascii_new  <= '1';
+
+               when x"c5" =>              -- MEGA+e => €
+                  ff_ascii_key <= ascii_key_locale;
+                  ff_ascii_new  <= '1';
+                                                                        
                when others =>
                   ff_ascii_key <= std_logic_vector(ascii_key);
                   ff_ascii_new <= '1';
@@ -397,12 +414,10 @@ begin
       end if;
    end process;
       
-   read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new, ff_ascii_key, ff_spec_code, ff_cur_left, ff_cur_up, modifiers)
+   read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new, ff_ascii_key, ff_spec_code, modifiers)
    begin
       reset_ff_ascii_new <= '0';
       reset_ff_spec_new <= '0';
-      start_reset_cur_left_cnt <= 0;
-      start_reset_cur_up_cnt <= 0;
       
       if kbd_en = '1' and kbd_we = '0' then
          case kbd_reg is
@@ -412,32 +427,14 @@ begin
                cpu_data <= "00000000" &
                            modifiers &    -- bits 7 .. 5: ctrl/alt/shift
                            ff_locale &    -- bits 4 .. 2: 000 = US, 001 = DE
-                           (ff_spec_new or ff_cur_left or ff_cur_up) &  -- bit 1: new special key
-                           (ff_ascii_new and not ff_spec_new and not ff_cur_left and not ff_cur_up);  -- bit 0: new ascii key
+                           ff_spec_new &  -- bit 1: new special key
+                           (ff_ascii_new and not ff_spec_new); -- bit 0: new ascii key
                
             -- read data register
             when "01" =>
-               -- the cursor left/up keys need special treatment
-               if ff_cur_left = '1' then
-                  if bucky_key(3) = '0' then -- standard cursor left
-                     cpu_data <= key_cur_left & x"00";
-                  else -- MEGA65 key + LEFT = POS1/Home
-                     cpu_data <= key_pos1 & x"00";
-                  end if;
-                  start_reset_cur_left_cnt <= 2;
-               elsif ff_cur_up = '1' then
-                  if bucky_key(3) = '0' then -- standard cursor up
-                     cpu_data <= key_cur_up & x"00";
-                  else -- MEGA65 key + UP = Page Up
-                     cpu_data <= key_pg_up & x"00";
-                  end if;
-                  start_reset_cur_up_cnt <= 2;
-               -- all other keys
-               else
-                  cpu_data <= ff_spec_code & ff_ascii_key;
-                  reset_ff_ascii_new <= '1';
-                  reset_ff_spec_new <= '1';
-               end if;
+               cpu_data <= ff_spec_code & ff_ascii_key;
+               reset_ff_ascii_new <= '1';
+               reset_ff_spec_new <= '1';
                
             when others =>
                cpu_data <= (others => '0');

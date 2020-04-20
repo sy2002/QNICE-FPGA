@@ -1,6 +1,14 @@
 -- Original MEGA65 keyboard driver file by Paul Gardner-Stephen
--- modified for QNICE-FPGA by sy2002 in April 2020
--- see README.md for details
+-- see README.md for details and license
+--
+-- Modified for QNICE-FPGA by sy2002 in April 2020:
+--   added support for the CURSOR LEFT and CURSOR UP keys (they appear like the shifted versions of RIGHT/DOWN)
+--   added support for MEGA65 key + CURSOR LEFT/CURSOR UP ($dc/$db)
+--   the asterisk (*) key is now also transmitted without shift
+--   the British Pound (�) key now works without alt
+--   arrow left/shift arrow left are now $ea/$eb
+--   arrow right/shift arrow right are now $e0/$e8
+--   commented out debugtools and report outputs
 
 use WORK.ALL;
 
@@ -41,6 +49,9 @@ entity matrix_to_ascii is
 end entity matrix_to_ascii;
   
 architecture behavioral of matrix_to_ascii is
+  -- Number of the highest key to read from the hardware controller's matrix RAM
+  constant MAXKEY : integer := 79;
+  
   -- Number of CPU cycles between each key scan event.
   constant keyscan_delay : integer := clock_frequency/(72*scan_frequency);
   
@@ -48,7 +59,7 @@ architecture behavioral of matrix_to_ascii is
   -- Automatic key repeat (just repeats ascii_key_valid strobe periodically)
   -- (As key repeat is checked on each of the 72 key tests, we don't need to
   -- divide the maximum repeat counters by 72.)
-  signal repeat_key : integer range 0 to 71 := 0;
+  signal repeat_key : integer range 0 to MAXKEY := 0;
   constant repeat_start_timer : integer := clock_frequency/scan_frequency/2; -- 0.5 sec
   constant repeat_again_timer : integer := clock_frequency/scan_frequency/10; -- 0.1 sec
 
@@ -57,11 +68,11 @@ architecture behavioral of matrix_to_ascii is
   signal repeat_key_timer : integer range 0 to repeat_start_timer := 0;
 
   -- This one snoops the input and gets atomically snapshotted at each keyscan interval
-  signal matrix_in : std_logic_vector(71 downto 0);
+  signal matrix_in : std_logic_vector(MAXKEY downto 0);
 
-  signal matrix : std_logic_vector(71 downto 0) := (others => '1');
+  signal matrix : std_logic_vector(MAXKEY downto 0) := (others => '1');
   signal bucky_key_internal : std_logic_vector(6 downto 0) := (others => '0');
-  signal matrix_internal : std_logic_vector(71 downto 0) := (others => '1');
+  signal matrix_internal : std_logic_vector(MAXKEY downto 0) := (others => '1');
 
   -- These are the current single output bits from the debounce and last matrix rams
   signal debounce_key_state : std_logic;
@@ -81,7 +92,7 @@ architecture behavioral of matrix_to_ascii is
   
   signal reset : std_logic := '1';
   
-  type key_matrix_t is array(0 to 71) of unsigned(7 downto 0);
+  type key_matrix_t is array(0 to MAXKEY) of unsigned(7 downto 0);
   signal matrix_normal : key_matrix_t := (
     0 => x"14", -- INS/DEL
     1 => x"0D", -- RET/NO KEY
@@ -131,16 +142,16 @@ architecture behavioral of matrix_to_ascii is
     45 => x"3a", -- [/:
     46 => x"40", -- NO KEY/@
     47 => x"2c", -- </,
-    48 => x"00", -- SPECIAL/UNPRINTABLE/NO KEY
-    49 => x"00", -- */NO KEY
+    48 => x"A3", -- British pound
+    49 => x"2a", -- */NO KEY
     50 => x"3b", -- ]/;
     51 => x"13", -- CLR/HOM
     52 => x"00", -- RIGHT/SHIFT
     53 => x"3d", -- }/=
-    54 => x"00", -- SPECIAL/UNPRINTABLE/^
+    54 => x"e0", -- ARROW UP KEY
     55 => x"2f", -- ?//
     56 => x"31", -- !/1
-    57 => x"5f", -- SPECIAL/UNPRINTABLE/_
+    57 => x"ea", -- ARROW LEFT KEY
     58 => x"00", -- CTRL/NO KEY
     59 => x"32", -- "/2
     60 => x"20", -- SPACE/BAR
@@ -155,6 +166,14 @@ architecture behavioral of matrix_to_ascii is
     69 => x"fb", -- F12/F11
     70 => x"fd", -- F14/F13
     71 => x"1b", -- ESC/NO KEY
+    72 => x"00", -- CAPSLOCK (ignore, handled otherwise)
+    73 => x"91", -- CURSOR UP = SHIFT+VERT/CRSR
+    74 => x"9d", -- CURSOR LEFT = SHIFT+HORZ/CRSR
+    75 => x"00",
+    76 => x"00",
+    77 => x"00",
+    78 => x"00",
+    79 => x"00",
 
     others => x"00"
     );
@@ -214,10 +233,10 @@ architecture behavioral of matrix_to_ascii is
     51 => x"93", -- CLR/HOM
     52 => x"00", -- RIGHT/SHIFT
     53 => x"5f", -- _/=
-    54 => x"00", -- SPECIAL/UNPRINTABLE/^
+    54 => x"e8", -- ARROW UP KEY (shifted) => ARROW DOWN
     55 => x"3f", -- ?//
     56 => x"21", -- !/1
-    57 => x"60", -- `/_
+    57 => x"eb", -- ARROW LEFT KEY (shifted) => ARROW RIGHT
     58 => x"00", -- CTRL/NO KEY
     59 => x"22", -- "/2
     60 => x"20", -- SPACE/BAR
@@ -232,7 +251,15 @@ architecture behavioral of matrix_to_ascii is
     69 => x"fc", -- F12/F11
     70 => x"fe", -- F14/F13
     71 => x"1b", -- ESC/NO KEY
-
+    72 => x"00", -- CAPSLOCK (ignore, handled otherwise)
+    73 => x"91", -- CURSOR UP = SHIFT+VERT/CRSR
+    74 => x"9d", -- CURSOR LEFT = SHIFT+HORZ/CRSR
+    75 => x"00",
+    76 => x"00",
+    77 => x"00",
+    78 => x"00",
+    79 => x"00",
+    
     others => x"00"
     );
 
@@ -309,7 +336,15 @@ architecture behavioral of matrix_to_ascii is
     69 => x"fc", -- F12/F11
     70 => x"fe", -- F14/F13
     71 => x"1b", -- ESC/NO KEY
-
+    72 => x"00", -- CAPSLOCK (ignore, handled otherwise)
+    73 => x"91", -- CURSOR UP = SHIFT+VERT/CRSR
+    74 => x"9d", -- CURSOR LEFT = SHIFT+HORZ/CRSR
+    75 => x"00",
+    76 => x"00",
+    77 => x"00",
+    78 => x"00",
+    79 => x"00",
+        
     others => x"00"
     );
 
@@ -386,7 +421,15 @@ architecture behavioral of matrix_to_ascii is
     69 => x"fc", -- F12/F11
     70 => x"fe", -- F14/F13
     71 => x"1b", -- ESC/NO KEY
-
+    72 => x"00", -- CAPSLOCK (ignore, handled otherwise)
+    73 => x"db", -- MEGA65 + CURSOR UP
+    74 => x"dc", -- MEGA65 + CURSOR LEFT
+    75 => x"00",
+    76 => x"00",
+    77 => x"00",
+    78 => x"00",
+    79 => x"00",
+    
     others => x"00"
     );
 
@@ -439,7 +482,7 @@ architecture behavioral of matrix_to_ascii is
     45 => x"E4", -- Ä/ä
     46 => x"A8", -- Diaresis (umlaut without letter under) (was NO KEY/@)
     47 => x"AB", -- <</,
-    48 => x"A3", -- British pound?
+    48 => x"00", -- British pound moved to normal matrix
     49 => x"B7", -- Middle dot
     50 => x"E4", -- Also Ä/ä (for convenience for German typists)
     51 => x"00", -- CLR/HOM
@@ -463,12 +506,20 @@ architecture behavioral of matrix_to_ascii is
     69 => x"BD", -- 1/2 fraction
     70 => x"BE", -- 3/4 fraction
     71 => x"00", -- ESC/NO KEY
-
+    72 => x"00", -- CAPSLOCK (ignore, handled otherwise)
+    73 => x"91", -- CURSOR UP = SHIFT+VERT/CRSR
+    74 => x"9d", -- CURSOR LEFT = SHIFT+HORZ/CRSR
+    75 => x"00",
+    76 => x"00",
+    77 => x"00",
+    78 => x"00",
+    79 => x"00",
+    
     others => x"00"
     );
 
   
-  signal key_num : integer range 0 to 71 := 0;
+  signal key_num : integer range 0 to MAXKEY := 0;
 
 begin
   
@@ -689,11 +740,11 @@ begin
           null;
         end if;
         
-        if key_num /= 71 then
+        if key_num /= MAXKEY then
           key_num <= key_num + 1;
         else
           key_num <= 0;
-          -- If we hit key_num 71 and the repeat key has expired then reset it.
+          -- If we hit key_num MAXKEY and the repeat key has expired then reset it.
           -- otherwise we set it so we do the repeat check on the next pass and
           -- then reset it.
           if repeat_timer_expired = '1' then
