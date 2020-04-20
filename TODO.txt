@@ -74,6 +74,8 @@ MEGA65 HARDWARE:
   feature. Later, we could support two SD cards simultaneously, but this would
   need a Monitor enhancement.
 
+* Support HDMI
+
 * Support somehow this mega cool floppy drive
 
 MONITOR:

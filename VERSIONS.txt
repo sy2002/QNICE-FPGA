@@ -8,10 +8,9 @@ TODO * EMULATOR: <todo write explanation and reference to
   https://github.com/emscripten-core/emscripten/issues/10746
   and update make-wasm.bash>
 TODO * DOCUMENTATION: Added README.md with basic documentation
-<describe at least: Nexys Switches, MEGA65 specialities (keys: restore, 
-cursor, pgup & co, German umlauts when DE locale is on (still y=y, should
-me mentioned)), restructure the README.md in the hardware folder to be only
-a hw folder docu, 
+<describe at least: Nexys Switches, MEGA65 specialities (German umlauts when
+DE locale is on (still y=y, should be mentioned)), restructure the README.md
+in the hardware folder to be only a hw folder docu.
 
 <add DE10-Nano?, if yes, then advertize it in DE10-Nano specific places, if
 not add it to TODO.txt>

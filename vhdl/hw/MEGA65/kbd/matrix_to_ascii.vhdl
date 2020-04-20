@@ -4,10 +4,14 @@
 -- Modified for QNICE-FPGA by sy2002 in April 2020:
 --   added support for the CURSOR LEFT and CURSOR UP keys (they appear like the shifted versions of RIGHT/DOWN)
 --   added support for MEGA65 key + CURSOR LEFT/CURSOR UP ($dc/$db)
---   the asterisk (*) key is now also transmitted without shift
+--   the asterisk (*) key is now transmitted without shift
+--   shift + asterisk sends $e3
 --   the British Pound (�) key now works without alt
 --   arrow left/shift arrow left are now $ea/$eb
---   arrow right/shift arrow right are now $e0/$e8
+--   arrow up/shift arrow up are now $e0/$e8
+--   the pi symbol (MEGA65 + arrow up) sends $ec
+--   MEGA65 + 0 => degree symbol (�)
+--   tab stays tab, also under shift, ctrl and alt
 --   commented out debugtools and report outputs
 
 use WORK.ALL;
@@ -140,10 +144,10 @@ architecture behavioral of matrix_to_ascii is
     43 => x"2d", -- NO KEY/-
     44 => x"2e", -- >/.
     45 => x"3a", -- [/:
-    46 => x"40", -- NO KEY/@
+    46 => x"40", -- @
     47 => x"2c", -- </,
     48 => x"A3", -- British pound
-    49 => x"2a", -- */NO KEY
+    49 => x"2a", -- *
     50 => x"3b", -- ]/;
     51 => x"13", -- CLR/HOM
     52 => x"00", -- RIGHT/SHIFT
@@ -159,7 +163,7 @@ architecture behavioral of matrix_to_ascii is
     62 => x"71", -- Q/q
     63 => x"03", -- RUN/STOP
     64 => x"00", -- NO/SCRL
-    65 => x"09", -- TAB/NO KEY
+    65 => x"09", -- TAB
     66 => x"00", -- ALT/NO KEY
     67 => x"00", -- HELP/NO KEY
     68 => x"f9", -- F10/F9
@@ -225,10 +229,10 @@ architecture behavioral of matrix_to_ascii is
     43 => x"00", -- NO KEY/-
     44 => x"3e", -- >/.
     45 => x"5b", -- [/:
-    46 => x"00", -- NO KEY/@
+    46 => x"40", -- @
     47 => x"3c", -- </,
-    48 => x"00", -- SPECIAL/UNPRINTABLE/NO KEY
-    49 => x"2a", -- */NO KEY
+    48 => x"A3", -- British pound
+    49 => x"e3", -- * (shifted) => ^
     50 => x"5d", -- ]/;
     51 => x"93", -- CLR/HOM
     52 => x"00", -- RIGHT/SHIFT
@@ -244,7 +248,7 @@ architecture behavioral of matrix_to_ascii is
     62 => x"51", -- Q/q
     63 => x"a3", -- RUN/STOP
     64 => x"00", -- NO/SCRL
-    65 => x"0f", -- TAB/NO KEY
+    65 => x"09", -- TAB
     66 => x"00", -- ALT/NO KEY
     67 => x"00", -- HELP/NO KEY
     68 => x"fa", -- F10/F9
@@ -310,9 +314,9 @@ architecture behavioral of matrix_to_ascii is
     43 => x"2d", -- NO KEY/-
     44 => x"2e", -- >/.
     45 => x"3a", -- [/:
-    46 => x"40", -- NO KEY/@
+    46 => x"40", -- @
     47 => x"2c", -- </,
-    48 => x"00", -- SPECIAL/UNPRINTABLE/NO KEY
+    48 => x"A3", -- British pound
     49 => x"EF", -- */NO KEY      --- CTRL + * = Matrix mode toggle
     50 => x"3b", -- ]/;
     51 => x"93", -- CLR/HOM
@@ -329,7 +333,7 @@ architecture behavioral of matrix_to_ascii is
     62 => x"11", -- Q/SPECIAL/UNPRINTABLE
     63 => x"a3", -- RUN/STOP
     64 => x"00", -- NO/SCRL
-    65 => x"0f", -- TAB/NO KEY
+    65 => x"09", -- TAB
     66 => x"00", -- ALT/NO KEY
     67 => x"00", -- HELP/NO KEY
     68 => x"fa", -- F10/F9
@@ -384,7 +388,7 @@ architecture behavioral of matrix_to_ascii is
     32 => x"92", -- )/NO KEY
     33 => x"c9", -- I/SPECIAL/UNPRINTABLE
     34 => x"ca", -- J/SPECIAL/UNPRINTABLE
-    35 => x"81", -- {/SPECIAL/UNPRINTABLE
+    35 => x"B0", -- Degree symbol
     36 => x"cd", -- M/SPECIAL/UNPRINTABLE
     37 => x"cb", -- K/SPECIAL/UNPRINTABLE
     38 => x"cf", -- O/SPECIAL/UNPRINTABLE
@@ -395,15 +399,15 @@ architecture behavioral of matrix_to_ascii is
     43 => x"2d", -- NO KEY/-
     44 => x"7c", -- >/./|
     45 => x"7b", -- [/:/{
-    46 => x"40", -- NO KEY/@
+    46 => x"40", -- @
     47 => x"7e", -- </,/~
-    48 => x"00", -- SPECIAL/UNPRINTABLE/NO KEY
+    48 => x"A3", -- British pound
     49 => x"00", -- */NO KEY     
     50 => x"7d", -- ]/;/}
     51 => x"93", -- CLR/HOM
     52 => x"00", -- RIGHT/SHIFT
     53 => x"5f", -- _/=
-    54 => x"00", -- SPECIAL/UNPRINTABLE/^
+    54 => x"ec", -- MEGA65 + ARROW UP
     55 => x"5c", -- ?///\
     56 => x"81", -- !/SPECIAL/UNPRINTABLE
     57 => x"60", -- _/`/`
@@ -482,7 +486,7 @@ architecture behavioral of matrix_to_ascii is
     45 => x"E4", -- Ä/ä
     46 => x"A8", -- Diaresis (umlaut without letter under) (was NO KEY/@)
     47 => x"AB", -- <</,
-    48 => x"00", -- British pound moved to normal matrix
+    48 => x"A3", -- British pound
     49 => x"B7", -- Middle dot
     50 => x"E4", -- Also Ä/ä (for convenience for German typists)
     51 => x"00", -- CLR/HOM

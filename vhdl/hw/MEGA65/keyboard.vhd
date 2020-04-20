@@ -286,6 +286,14 @@ begin
                when x"e8" =>              -- DOWN ARROW
                   ff_ascii_key <= x"19";
                   ff_ascii_new <= '1';
+                  
+               when x"ec" =>              -- Pi symbol
+                  ff_ascii_key <= x"1f";
+                  ff_ascii_new <= '1';
+                  
+               when x"e3" =>              -- SHIFT + * => ^
+                  ff_ascii_key <= x"5e";
+                  ff_ascii_new <= '1';
                                                                   
                -- cursor keys incl. PGUP, PGDN, POS1, END
                                                                                  
