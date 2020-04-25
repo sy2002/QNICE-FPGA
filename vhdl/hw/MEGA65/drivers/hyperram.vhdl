@@ -1,12 +1,21 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use ieee.numeric_std.all;
+
+package cache_row_type is
+type cache_row_t is array (0 to 7) of unsigned(7 downto 0);
+end package cache_row_type;
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use ieee.numeric_std.all;
+use work.cache_row_type.all;
 --use Std.TextIO.all;
 --use work.debugtools.all;
 --use work.cputypes.all;
 
 entity hyperram is
-  Port ( pixelclock : in STD_LOGIC; -- For slow devices bus interface is
+  Port ( pixelclock : in std_logic; -- For slow devices bus interface is
          -- actually on pixelclock to reduce latencies
          -- Also pixelclock is the natural clock speed we apply to the HyperRAM.
          clock163 : in std_logic; -- Used for fast clock for HyperRAM
@@ -392,8 +401,8 @@ begin
           fake_data_ready_strobe <= '1';
           fake_rdata <= block_data(to_integer(address(4 downto 3)))(to_integer(address(2 downto 0)));
           --report "DISPATCH: Returning data $"
-            & to_hstring(block_data(to_integer(address(4 downto 3)))(to_integer(address(2 downto 0))))
-            & " from read block.";
+          --  & to_hstring(block_data(to_integer(address(4 downto 3)))(to_integer(address(2 downto 0))))
+          --  & " from read block.";
           -- Now update current cache line to speed up subsequent reads
           current_cache_line_update <= block_data(to_integer(address(4 downto 3)));
           current_cache_line_new_address <= address(26 downto 3);
@@ -1257,7 +1266,7 @@ begin
               hr_command(7 downto 0) <= x"00";
             end if;
             
-            report "Writing command byte $" & to_hstring(hr_command(47 downto 40));
+--            report "Writing command byte $" & to_hstring(hr_command(47 downto 40));
             
             if countdown = 3 and (config_reg_write='0' or ram_reading_held='1') then
               if hyperram2_select='0' then

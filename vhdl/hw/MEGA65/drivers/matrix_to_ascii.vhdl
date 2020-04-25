@@ -13,6 +13,7 @@
 --   MEGA65 + 0 => degree symbol (°)
 --   tab stays tab, also under shift, ctrl and alt
 --   commented out debugtools and report outputs
+--   bugfix: did put suppress_key_glitches on sensitivity list of process
 
 use WORK.ALL;
 
@@ -568,7 +569,7 @@ begin
     );
     
     -- combinatorial processes
-  process(ram_read_index,debounce_col_out,current_col_out,last_col_out,keyscan_counter,key_num)
+  process(ram_read_index,debounce_col_out,current_col_out,last_col_out,keyscan_counter,key_num,suppress_key_glitches)
     variable read_index : integer range 0 to 15;
     variable key_num_vec : std_logic_vector(6 downto 0);
     variable key_num_bit : integer range 0 to 7;

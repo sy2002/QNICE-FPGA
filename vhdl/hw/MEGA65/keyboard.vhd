@@ -234,7 +234,7 @@ begin
       end if;
    end process;
    
-   ascii_key_locale_handler : process(ascii_key, modifiers)
+   ascii_key_locale_handler : process(ascii_key, modifiers, ff_locale)
    begin
       -- German Locale: provide German Umlauts ä, ö, ü including ß and the Euro sign (€)
       if ff_locale = loc_DE then

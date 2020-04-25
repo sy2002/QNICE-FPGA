@@ -11,6 +11,9 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
+library UNISIM;
+use UNISIM.VCOMPONENTS.ALL;
+
 use work.env1_globals.all;
 
 entity MEGA65 is
@@ -44,7 +47,19 @@ port (
    SD_RESET       : out std_logic;
    SD_CLK         : out std_logic;
    SD_MOSI        : out std_logic;
-   SD_MISO        : in std_logic
+   SD_MISO        : in std_logic;
+   
+   -- HyperRAM
+   hr_d           : inout unsigned(7 downto 0);    -- Data/Address
+   hr_rwds        : inout std_logic;               -- RW Data strobe
+   hr_reset       : out std_logic;                 -- Active low RESET line to HyperRAM
+   hr_clk_p       : out std_logic;
+   hr2_d          : inout unsigned(7 downto 0);    -- Data/Address
+   hr2_rwds       : inout std_logic;               -- RW Data strobe
+   hr2_reset      : out std_logic;                 -- Active low RESET line to HyperRAM
+   hr2_clk_p      : out std_logic;
+   hr_cs0         : out std_logic;
+   hr_cs1         : out std_logic   
 ); 
 end MEGA65;
 
@@ -221,6 +236,36 @@ port (
 );
 end component;
 
+-- HyperRAM
+component hyperram_ctl is
+port(
+   -- HyperRAM needs a base clock and then one with 2x speed and one with 4x speed
+   clk         : in std_logic;               -- currently 50 MHz QNICE system clock
+   clk2x       : in std_logic;
+   clk4x       : in std_logic;
+   
+   reset       : in std_logic;
+   
+   -- connect to CPU's data bus (data high impedance when all reg_* are 0)
+   hram_en     : in std_logic;
+   hram_we     : in std_logic;
+   hram_reg    : in std_logic_vector(3 downto 0); 
+   hram_cpu_ws : out std_logic;              -- insert CPU wait states (aka WAIT_FOR_DATA)
+   cpu_data    : inout std_logic_vector(15 downto 0);
+   
+   -- hardware connections
+   hr_d        : inout unsigned(7 downto 0); -- Data/Address
+   hr_rwds     : inout std_logic;            -- RW Data strobe
+   hr_reset    : out std_logic;              -- Active low RESET line to HyperRAM
+   hr_clk_p    : out std_logic;
+   hr2_d       : inout unsigned(7 downto 0); -- Data/Address
+   hr2_rwds    : inout std_logic;            -- RW Data strobe
+   hr2_reset   : out std_logic;              -- Active low RESET line to HyperRAM
+   hr2_clk_p   : out std_logic;
+   hr_cs0      : out std_logic;
+   hr_cs1      : out std_logic
+);
+end component;
 
 -- multiplexer to control the data bus (enable/disable the different parties)
 component mmio_mux is
@@ -269,6 +314,10 @@ port (
    sd_en             : out std_logic;
    sd_we             : out std_logic;
    sd_reg            : out std_logic_vector(2 downto 0);   
+   hram_en           : out std_logic;
+   hram_we           : out std_logic;
+   hram_reg          : out std_logic_vector(3 downto 0); 
+   hram_cpu_ws       : in std_logic;
    reset_pre_pore    : out std_logic;
    reset_post_pore   : out std_logic   
 );
@@ -309,8 +358,11 @@ signal eae_we                 : std_logic;
 signal eae_reg                : std_logic_vector(2 downto 0);
 signal sd_en                  : std_logic;
 signal sd_we                  : std_logic;
-signal sd_reg                 : std_logic_vector(2 downto 0); 
-
+signal sd_reg                 : std_logic_vector(2 downto 0);
+signal hram_en                : std_logic;
+signal hram_we                : std_logic;
+signal hram_reg               : std_logic_vector(3 downto 0); 
+signal hram_cpu_ws            : std_logic;
 signal reset_pre_pore         : std_logic;
 signal reset_post_pore        : std_logic;
 
@@ -321,6 +373,11 @@ signal vga_b                  : std_logic;
 
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
+
+-- Fast clocks for HRAM
+signal CLK2x                  : std_logic;   -- 4x SLOW_CLOCK = 200 MHz
+signal pll_locked_main        : std_logic;
+signal clk_fb_main            : std_logic;
 
 -- combined pre- and post pore reset
 signal reset_ctl              : std_logic;
@@ -333,6 +390,26 @@ signal i_til_data_in          : std_logic_vector(15 downto 0);
 signal SWITCHES               : std_logic_vector(15 downto 0);
 
 begin
+
+  clk_main: mmcme2_base
+  generic map
+  (
+    clkin1_period    => 10.0,       --   100 MHz (10 ns)
+    clkfbout_mult_f  => 8.0,        --   800 MHz common multiply
+    divclk_divide    => 1,          --   800 MHz /1 common divide to stay within 600MHz-1600MHz range
+    clkout0_divide_f => 4.0         --   200 MHz /4.0
+    --bandwidth        => "LOW"
+  )
+  port map
+  (
+    pwrdwn   => '0',
+    rst      => '0',
+    clkin1   => CLK,
+    clkfbin  => clk_fb_main,
+    clkfbout => clk_fb_main,
+    clkout0  => CLK2x,              --  200 MHz
+    locked   => pll_locked_main
+  );
 
    -- QNICE CPU
    cpu : QNICE_CPU
@@ -479,6 +556,30 @@ begin
          sd_mosi => SD_MOSI,
          sd_miso => SD_MISO
       );
+      
+   -- HyperRAM
+   HRAM : hyperram_ctl
+      port map (
+         clk => SLOW_CLOCK,
+         clk2x => CLK,
+         clk4x => CLK2x,
+         reset => reset_ctl,
+         hram_en => hram_en,
+         hram_we => hram_we,
+         hram_reg => hram_reg,
+         hram_cpu_ws => hram_cpu_ws,
+         cpu_data => cpu_data,
+         hr_d => hr_d,
+         hr_rwds => hr_rwds,
+         hr_reset => hr_reset,
+         hr_clk_p => hr_clk_p,
+         hr2_d => hr2_d,
+         hr2_rwds => hr2_rwds,
+         hr2_reset => hr2_reset,
+         hr2_clk_p => hr2_clk_p,
+         hr_cs0 => hr_cs0,
+         hr_cs1 => hr_cs1
+      );
                         
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
@@ -517,6 +618,10 @@ begin
          sd_en => sd_en,
          sd_we => sd_we,
          sd_reg => sd_reg,
+         hram_en => hram_en,
+         hram_we => hram_we,
+         hram_reg => hram_reg,
+         hram_cpu_ws => hram_cpu_ws,         
          reset_pre_pore => reset_pre_pore,
          reset_post_pore => reset_post_pore
       );
@@ -538,7 +643,7 @@ begin
          SLOW_CLOCK <= not SLOW_CLOCK;
       end if;
    end process;
-              
+                    
    -- wire the simplified color system of the VGA component to the VGA outputs
    VGA_RED   <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
    VGA_GREEN <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
@@ -552,6 +657,6 @@ begin
    SWITCHES(15 downto 2) <= "00000000000000";
    
    -- generate the general reset signal
-   reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';   
+   reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1' or pll_locked_main = '0') else '0';   
    
 end beh;

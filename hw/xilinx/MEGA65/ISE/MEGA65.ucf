@@ -4,7 +4,7 @@
 ## Clock signal
 NET "CLK"                  LOC = V13  | IOSTANDARD = "LVCMOS33";
 NET "CLK" TNM_NET = sys_clk_pin;
-TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 100 MHz HIGH 50%; 
+TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 100 MHz HIGH 50%;
 
 NET "SLOW_CLOCK" TNM_NET = SLOW_CLOCK;
 TIMESPEC TS_SLOW_CLOCK = PERIOD "SLOW_CLOCK" 50 MHz HIGH 50%;
@@ -68,3 +68,32 @@ NET "SD_RESET"             LOC = B15   | IOSTANDARD = LVCMOS33;
 NET "SD_CLK"               LOC = B17   | IOSTANDARD = LVCMOS33;
 NET "SD_MOSI"              LOC = B16   | IOSTANDARD = LVCMOS33;
 NET "SD_MISO"              LOC = B18   | IOSTANDARD = LVCMOS33;
+
+## HyperRAM (standard)
+NET "hr_clk_p"             LOC = D22 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr_d[0]"              LOC = A21 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr_d[1]"              LOC = D21 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr_d[2]"              LOC = C20 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr_d[3]"              LOC = A20 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr_d[4]"              LOC = B20 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr_d[5]"              LOC = A19 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr_d[6]"              LOC = E21 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr_d[7]"              LOC = E22 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr_rwds"              LOC = B21 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr_reset"             LOC = B22 | IOSTANDARD = LVCMOS33;
+NET "hr_cs0"               LOC = C22 | IOSTANDARD = LVCMOS33;
+
+## Additional HyperRAM on trap-door PMOD
+## Pinout is for one of these: https://github.com/blackmesalabs/hyperram
+NET "hr2_clk_p"             LOC = G1 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr2_d[0]"              LOC = B2 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr2_d[1]"              LOC = E1 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr2_d[2]"              LOC = G4 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr2_d[3]"              LOC = E3 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr2_d[4]"              LOC = D2 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr2_d[5]"              LOC = B1 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr2_d[6]"              LOC = C2 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr2_d[7]"              LOC = D1 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr2_rwds"              LOC = H4 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "hr2_reset"             LOC = H5 | IOSTANDARD = LVCMOS33;
+NET "hr_cs1"                LOC = J5 | IOSTANDARD = LVCMOS33;
