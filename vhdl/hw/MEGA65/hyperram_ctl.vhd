@@ -1,5 +1,5 @@
 -- QNICE-MEGA65 HyperRAM controller
--- done by sy2002 in April 2020
+-- done by sy2002 in April and May 2020
 --
 -- Wraps the MEGA65 HyperRAM controller so that it can be connected
 -- to the QNICE CPU's data bus and controled via MMIO. 
@@ -103,12 +103,31 @@ signal hram_busy              : std_logic;
 signal hram_addr_lo_ff        : unsigned(15 downto 0) := (others => '0');
 signal hram_addr_hi_ff        : unsigned(15 downto 0) := (others => '0');
 signal hram_rdata_ff          : unsigned(7 downto 0)  := (others => '0');
-signal reg_status_ff          : std_logic_vector(1 downto 0) := "00";
-signal action_cnt             : unsigned(3 downto 0)  := (others => '0');
-signal set_action_cnt         : unsigned(3 downto 0);
-signal rd_action_cnt          : unsigned(7 downto 0)  := (others => '0');
-signal set_rd_action_cnt      : unsigned(7 downto 0);
 signal dbg_ever_wrote         : unsigned(7 downto 0) := (others => '0');
+
+type tDBG_FSM_States is (  s_idle,
+                           s_start,
+                           s_w1,
+                           s_w2,
+                           s_w3,
+                           s_wreq,
+                           s_w4,
+                           s_rreq,
+                           s_waitfordata,
+                           s_readdata
+                        );
+
+signal dbg_state_ff     : tDBG_FSM_States;
+signal dbg_state_next   : tDBG_FSM_States;
+signal dbg_start        : std_logic := '0';
+signal set_dbg_start    : std_logic;
+signal reset_dbg_start  : std_logic;
+
+signal dbg_chkadd_ff    : unsigned(7 downto 0) := x"00";
+
+signal fsm_state_next   : tDBG_FSM_States;
+signal fsm_chkadd       : unsigned(7 downto 0);
+signal fsm_rdata        : unsigned(7 downto 0);
 
 begin
 
@@ -136,6 +155,108 @@ begin
       hr_cs1 => hr_cs1
    );
    
+   dbg_start_handler : process(clk, reset, reset_dbg_start, set_dbg_start)
+   begin
+      if set_dbg_start = '1' then
+         dbg_start <= '1';
+      else
+         if falling_edge(clk) then
+            if reset = '1' or reset_dbg_start = '1' then
+               dbg_start <= '0';
+            end if;
+         end if;
+      end if;
+   end process;
+      
+   fsm_advance_state : process(clk, reset, dbg_chkadd_ff,
+                               fsm_state_next, fsm_chkadd, fsm_rdata)
+   begin
+      if reset = '1' then
+         dbg_state_ff <= s_idle;
+         dbg_chkadd_ff <= (others => '0');
+         hram_rdata_ff <= x"00";
+      else
+         if rising_edge(clk) then
+            dbg_state_ff <= fsm_state_next;
+            dbg_chkadd_ff <= dbg_chkadd_ff + fsm_chkadd;
+            hram_rdata_ff <= fsm_rdata;
+         end if;
+      end if;
+   end process;
+      
+   fsm_output_decode : process(dbg_state_ff, dbg_start, dbg_state_next, hram_busy, hram_data_ready_strobe, hram_rdata, hram_rdata_ff)
+   begin
+      fsm_state_next <= dbg_state_next;
+      fsm_chkadd <= x"00";
+      fsm_rdata <= hram_rdata_ff;
+      reset_dbg_start <= '0';
+      hram_write_request <= '0';
+      
+      case dbg_state_ff is
+         when s_idle =>
+            if dbg_start = '1' then
+               fsm_state_next <= s_start;
+            end if;
+               
+         when s_start =>
+            fsm_chkadd <= x"01";
+            reset_dbg_start <= '1';
+               
+         when s_w1 =>
+            fsm_chkadd <= x"02";
+         
+         when s_w2 =>
+            fsm_chkadd <= x"04";
+         
+         when s_w3 =>
+            if hram_busy = '1' then
+               fsm_state_next <= s_w3;
+            end if;
+            fsm_chkadd <= x"08";
+         
+         when s_wreq =>
+            fsm_chkadd <= x"10";
+            hram_write_request <= '1';
+            
+         when s_w4 =>
+            if hram_busy = '1' then
+               fsm_state_next <= s_w4;
+            end if;
+            fsm_chkadd <= x"20";
+            
+         when s_rreq =>
+            hram_read_request <= '1';
+            
+         when s_waitfordata =>
+            if hram_data_ready_strobe = '0' then
+               fsm_state_next <= s_waitfordata;
+               fsm_chkadd <= x"01";
+            else
+               fsm_rdata <= hram_rdata;
+            end if;
+            
+         when s_readdata => null;
+            
+                              
+      end case;
+   end process;
+   
+   fsm_next_state_decode : process (dbg_state_ff)
+   begin
+      case dbg_state_ff is
+         when s_idle          => dbg_state_next <= s_idle;  
+         when s_start         => dbg_state_next <= s_w1;
+         when s_w1            => dbg_state_next <= s_w2;
+         when s_w2            => dbg_state_next <= s_w3;
+         when s_w3            => dbg_state_next <= s_wreq;
+         when s_wreq          => dbg_state_next <= s_w4;
+         when s_w4            => dbg_state_next <= s_rreq;
+         when s_rreq          => dbg_state_next <= s_waitfordata;
+         when s_waitfordata   => dbg_state_next <= s_readdata;
+         when s_readdata      => dbg_state_next <= s_idle;         
+      end case;
+   end process;   
+   
    dbg_ever_wrote_handler : process(reset, hram_write_request, hram_wdata_ff)
    begin
       if reset = '1' then
@@ -146,48 +267,25 @@ begin
          end if;
       end if;
    end process;
+           
+--   read_byte : process(clk, reset, hram_data_ready_strobe, hram_rdata)
+--   begin
+--      if reset = '1' then
+--         hram_rdata_ff <= (others => '0');
+--      else
+--         if rising_edge(clk) then
+--            if hram_data_ready_strobe = '1' then
+--               hram_rdata_ff <= hram_rdata;
+--            end if;
+--         end if;
+--      end if;
+--   end process;
      
-   action_count_handler : process(clk, action_cnt, set_action_cnt)
+   read_registers : process(hram_en, hram_we, hram_reg, hram_data_ready_strobe, hram_busy, hram_address, hram_rdata_ff,
+                            dbg_chkadd_ff, dbg_ever_wrote)
    begin
-      if set_action_cnt /= x"0" then
-         action_cnt <= set_action_cnt;
-      else
-         if rising_edge(clk) then
-            if action_cnt /= x"0" then
-               action_cnt <= action_cnt - 1;
-            end if;
-         end if;
-      end if;
-   end process;
-   
-   rd_action_count_handler : process(clk, rd_action_cnt, set_rd_action_cnt)
-   begin
-      if set_rd_action_cnt /= x"0" then
-         rd_action_cnt <= set_rd_action_cnt;
-      else
-         if rising_edge(clk) then
-            if rd_action_cnt /= x"0" then
-               rd_action_cnt <= rd_action_cnt - 1;
-            end if;
-         end if;
-      end if;
-   end process;
-   
-   read_byte : process(clk, reset, hram_data_ready_strobe, hram_rdata)
-   begin
-      if reset = '1' then
-         hram_rdata_ff <= (others => '0');
-      else
-         if rising_edge(clk) then
-            if hram_data_ready_strobe = '1' then
-               hram_rdata_ff <= hram_rdata;
-            end if;
-         end if;
-      end if;
-   end process;
-     
-   read_registers : process(hram_en, hram_we, hram_reg, hram_data_ready_strobe, hram_busy, hram_address, hram_rdata_ff)
-   begin
+      --hram_read_request <= '0';
+      
       if hram_en = '1' and hram_we = '0' then
          case hram_reg is
             
@@ -199,7 +297,7 @@ begin
             
             -- read data
             when x"3" =>
-               hram_read_request <= '1';
+               --hram_read_request <= '1';
                cpu_data <= (others => '0');
             when x"4" =>
                cpu_data <= x"00" & std_logic_vector(hram_rdata_ff);
@@ -207,6 +305,9 @@ begin
             -- debug
             when x"5" =>
                cpu_data <= x"00" & std_logic_vector(dbg_ever_wrote);
+               
+            when x"6" =>
+               cpu_data <= x"EE" & std_logic_vector(dbg_chkadd_ff);
                         
             when others =>
                cpu_data <= (others => '0');
@@ -218,7 +319,6 @@ begin
 
    write_registers : process(clk, reset, hram_en, hram_we, hram_reg, cpu_data)
    begin
-      set_action_cnt <= x"0";
       if reset = '1' then
          hram_addr_lo_ff <= (others => '0');
          hram_addr_hi_ff <= (others => '0');
@@ -237,17 +337,18 @@ begin
                   -- write data register
                   when x"3" =>
                      hram_wdata_ff <= unsigned(cpu_data(7 downto 0));
-                     set_action_cnt <= x"2";
-                  
+                                                            
                   when others => null;
                end case;
             end if;
          end if;
       end if;
-   end process;
+   end process;   
+
+   set_dbg_start <= '1' when (hram_en = '1' and hram_we = '1' and hram_reg = x"6") else '0';
 
    -- map status register to HRAM control signals;
-   hram_write_request <= '1' when action_cnt = x"1" else '0';
+--   hram_write_request <= '1' when action_cnt = x"1" else '0';
 --   hram_read_request <= '1' when rd_action_cnt = x"1" else '0';
    
    -- build address signal from two flip-flops

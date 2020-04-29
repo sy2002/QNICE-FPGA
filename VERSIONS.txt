@@ -12,6 +12,9 @@ TODO * DOCUMENTATION: Added README.md with basic documentation
 DE locale is on (still y=y, should be mentioned)), restructure the README.md
 in the hardware folder to be only a hw folder docu.
 
+<Ubuntu: basic compatibility enhancements like -x c and smart OS detect by
+include in assembler/asm and the likes...>
+
 <add DE10-Nano?, if yes, then advertize it in DE10-Nano specific places, if
 not add it to TODO.txt>
 

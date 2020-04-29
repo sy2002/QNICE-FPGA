@@ -37,7 +37,7 @@ _rwa            CMP     0x0678, @R1             ; check, if hi word is correct
  _write         MOVE    STR_B_WD, R8
                 SYSCALL(puts, 1)
                 MOVE    0x2309, @R0
-                MOVE    0x10, @R1
+                MOVE    0x0, @R1
                 MOVE    0x76, @R2
 
                 NOP
@@ -100,6 +100,17 @@ _PEND           MOVE    R4, R8
                 MOVE    0xFFFE, @R0
                 MOVE    0x7F, @R1
                 MOVE    @R2, R4
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP                                                                                                                                                
                 MOVE    @R3, R8               
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)                                
@@ -107,6 +118,17 @@ _PEND           MOVE    R4, R8
                 MOVE    0xFFFF, @R0
                 MOVE    0x7F, @R1
                 MOVE    @R2, R4
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP                                                                                                                                                
                 MOVE    @R3, R8               
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
@@ -114,6 +136,17 @@ _PEND           MOVE    R4, R8
                 MOVE    0, @R0
                 MOVE    0, @R1
                 MOVE    @R2, R4
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP                                                                                                                                                
                 MOVE    @R3, R8               
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)                                
@@ -121,10 +154,75 @@ _PEND           MOVE    R4, R8
                 MOVE    0x0, @R0
                 MOVE    0x10, @R1
                 MOVE    @R2, R4
-                MOVE    @R3, R8               
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP                                                                                                                                                
+                MOVE    @R3, R8
                 SYSCALL(puthex, 1)
-                SYSCALL(crlf, 1)                                
+                SYSCALL(crlf, 1)
 
+
+                ; read and print 0x00002309
+                MOVE    0x2309, @R0
+                MOVE    0x0, @R1
+                MOVE    @R0, R8
+                SYSCALL(puthex, 1)
+                MOVE    @R1, R8
+                SYSCALL(puthex, 1)
+                MOVE    0xFF65, R8
+                MOVE    @R8, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; read debug FSM before starting the FSM
+                MOVE    0xFF66, R9
+                MOVE    @R9, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; activate debug FSM and read result
+                MOVE    0xFF, @R9
+                MOVE    @R9, R8
+                SYSCALL(puthex, 1)
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                NOP
+                MOVE    @R9, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; show the "everwritten" debug output
+                MOVE    0xFF65, R8
+                MOVE    @R8, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; show the result of the fsm's read
+                MOVE    @R3, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+                MOVE    @R9, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)                
 
 _END            SYSCALL(exit, 1)
 
@@ -132,7 +230,7 @@ _END            SYSCALL(exit, 1)
 ; R8 = Title
 ; R9 = offset lo
 ; R10 = offset hi
-; R11: output DWORD, when R11 = 1, else output WORD
+; R11: output DWORD, when R11 = 1, else output WORDs
 OUTPUT_DW       INCRB
                 DECRB
                 RET
