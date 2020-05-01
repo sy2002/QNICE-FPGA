@@ -4,6 +4,11 @@ TODO DOC
 MEGA65
 ------
 
+### VHDL Development for the MEGA65
+
+Some hints, learnings: "Digitlent Device", how to map VGA port so that
+they work, ...
+
 ### Keys
 
 | Key Combination | Meaning                                |

@@ -386,3 +386,8 @@ IO$SD_CSR       .EQU 0xFF29 ; Command and Status Register (write to execute comm
 ;                                      a case, the error code is in IO$SD_ERROR and
 ;                                      you need to reset the controller to go on
 ;  Bit 15 of the CSR is the busy bit: 1, if current operation is still running
+;
+;
+;  Reserved for MEGA65 registers
+;
+IO$RESERVED_M65 .EQU 0xFF60 ; RESERVED SPACE FROM 0xFF60 TO 0xFF6F

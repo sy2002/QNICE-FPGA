@@ -1,9 +1,9 @@
 ----------------------------------------------------------------------------------
 -- MEGA65 version of QNICE's MMIO controller
--- enhanced by sy2002 in April 2020
+-- enhanced by sy2002 in April and May 2020
 --
 -- Changes to the standard controller:
--- * Added HyperRAM handling ($FF60 .. $FF63) including CPU wait states
+-- * Added HyperRAM handling ($FF60 .. $FF62) including CPU wait states
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -77,7 +77,7 @@ port (
    sd_we             : out std_logic;
    sd_reg            : out std_logic_vector(2 downto 0);
    
-   -- HyerRAM register range $FF60 .. $FF63
+   -- HyerRAM register range $FF60 .. $FF62
    hram_en           : out std_logic;
    hram_we           : out std_logic;
    hram_reg          : out std_logic_vector(3 downto 0); 
