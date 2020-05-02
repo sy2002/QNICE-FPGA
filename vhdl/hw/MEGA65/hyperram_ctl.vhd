@@ -97,10 +97,10 @@ type tHRAM_FSM_States is ( s_idle,
 
                            s_read_start,
                            s_read_waitfordata,
-                           s_read_waitforcpu
+                           s_read_waitforcpu,
                            
---                           s_write_waitforcpu,
---                           s_write_start
+                           s_write1,
+                           s_write2
                           );
 
 signal state_ff               : tHRAM_FSM_States := s_idle;
@@ -108,9 +108,6 @@ signal state_next             : tHRAM_FSM_States;
 signal start_read_ff          : std_logic := '0';
 signal set_start_read         : std_logic;
 signal reset_start_read       : std_logic;
---signal start_write_ff         : std_logic := '0';
---signal set_start_write        : std_logic;
---signal reset_start_write      : std_logic;
 
 signal fsm_state_next         : tHRAM_FSM_States;
 signal fsm_hram_rdata         : unsigned(7 downto 0)  := (others => '0');
@@ -162,20 +159,7 @@ begin
          end if;
       end if;
    end process;
-   
---   start_write_handler : process(clk, reset, reset_start_write, set_start_write)
---   begin
---      if set_start_write <= '1' then
---         start_write_ff <= '1';
---      else
---         if falling_edge(clk) then
---            if reset = '1' or reset_start_write = '1' then
---               start_write_ff <= '0';
---            end if;
---         end if;
---      end if;
---   end process;
-         
+            
    fsm_advance_state : process(clk, reset, dbg_chkadd_ff,
                                fsm_state_next, fsm_hram_rdata, fsm_chkadd)
    begin
@@ -203,8 +187,8 @@ begin
          when s_read_waitfordata    => state_next <= s_read_waitforcpu;
          when s_read_waitforcpu     => state_next <= s_idle;
          
---         when s_write_waitforcpu    => state_next <= s_write_start;
---         when s_write_start         => state_next <= s_idle;
+         when s_write1              => state_next <= s_write2;
+         when s_write2              => state_next <= s_idle;
       end case;
    end process;   
          
@@ -212,7 +196,6 @@ begin
                                hram_reg, hram_en, hram_we, start_read_ff)
    begin
       reset_start_read <= '0';
-      --reset_start_write <= '0';
       hram_cpu_ws <= '0';
       hram_read_request <= '0';
       hram_write_request <= '0';
@@ -228,10 +211,9 @@ begin
                if hram_busy = '0' then
                   fsm_state_next <= s_read_start;
                end if;
---            elsif start_write_ff = '1' then
---               if hram_busy = '0' then
---                  fsm_state_next <= s_write_waitforcpu;
---               end if;
+            elsif hram_en = '1' and hram_we = '1' and hram_reg = x"2" then
+               hram_cpu_ws <= '1';
+               fsm_state_next <= s_write1;
             end if;
             
          -- READING
@@ -269,11 +251,11 @@ begin
             
          -- WRITING
             
---         when s_write_waitforcpu =>
---            reset_start_write <= '1';
---         
---         when s_write_start =>
---            hram_write_request <= '1';            
+         when s_write1 =>
+            hram_write_request <= '1';            
+         
+         when s_write2 =>
+            null;
             
       end case;      
    end process;
@@ -335,10 +317,7 @@ begin
          end if;
       end if;
    end process;
-   
-   -- set_start_write <= '0';
-   -- set_start_write <= '1' when (hram_en = '1' and hram_we = '1' and hram_reg = x"2") else '0';
-   
+      
    -- build address signal from two flip-flops
    hram_address <= hram_addr_hi_ff(10 downto 0) & hram_addr_lo_ff(15 downto 0);      
 end beh;
