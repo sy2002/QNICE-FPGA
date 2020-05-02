@@ -211,9 +211,12 @@ begin
                if hram_busy = '0' then
                   fsm_state_next <= s_read_start;
                end if;
+               
             elsif hram_en = '1' and hram_we = '1' and hram_reg = x"2" then
                hram_cpu_ws <= '1';
-               fsm_state_next <= s_write1;
+               if hram_busy = '0' then
+                  fsm_state_next <= s_write1;
+               end if;
             end if;
             
          -- READING
@@ -254,6 +257,7 @@ begin
          when s_write1 =>
             hram_write_request <= '1';            
          
+         -- TODO: Check, if necessary
          when s_write2 =>
             null;
             

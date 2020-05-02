@@ -133,7 +133,50 @@ _rwa            CMP     0x0678, @R1             ; check, if hi word is correct
                 MOVE    @R2, R8
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
-                
+
+                MOVE    0x0002, @R1
+                MOVE    0x0003, R5
+_wloop          MOVE    R5, @R0
+                MOVE    R5, @R2
+                ADD     1, R5
+                CMP     0x00A0, R5
+                RBRA    _wloop, !Z
+
+                MOVE    0x0003, R5
+                MOVE    R5, R6
+_rloop          MOVE    R5, @R0
+                MOVE    @R2, R8
+                SYSCALL(puthex, 1)
+                CMP     R8, R5
+                RBRA    _rloop_cnt, Z
+                MOVE    R5, @--SP
+                MOVE    R8, @--SP
+                ADD     1, R6
+_rloop_cnt      ADD     1, R5
+                CMP     0x00A0, R5
+                RBRA    _rloop, !Z
+                SYSCALL(crlf, 1)
+
+                CMP     0, R6
+                RBRA    _END, Z
+
+                MOVE    ERR_READ, R8
+                SYSCALL(puts, 1)
+                MOVE    R6, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+_show_err       MOVE    @SP++, R7
+                MOVE    @SP++, R8
+                SYSCALL(puthex, 1)
+                MOVE    STR_COLON_SPACE, R8
+                SYSCALL(puts, 1)
+                MOVE    R7, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)                                
+                SUB     1, R6
+                RBRA    _show_err, !Z
+
 _END            SYSCALL(exit, 1)
 
 ; Function xyz
@@ -159,9 +202,9 @@ STR_TITLE       .ASCII_P "MEGA65 HyperRAM development testbed  -  done by sy2002
                 .ASCII_W "==================================================================\n\n"
 
 ERR_RWADDR      .ASCII_W "Error: HyperRAM address register is not working: "
+ERR_READ        .ASCII_W "Read Errors: "
 
-STR_B_WD        .ASCII_W "Before Writing\n"
-STR_B_RD        .ASCII_W "Before Reading\n"
+STR_COLON_SPACE .ASCII_W ": "
 STR_OK          .ASCII_W "OK\n"
 
 
