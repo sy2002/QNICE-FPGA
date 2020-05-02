@@ -139,11 +139,11 @@ _rwa            CMP     0x0678, @R1             ; check, if hi word is correct
 _wloop          MOVE    R5, @R0
                 MOVE    R5, @R2
                 ADD     1, R5
-                CMP     0x00A0, R5
+                CMP     0x00F0, R5
                 RBRA    _wloop, !Z
 
+                XOR     R6, R6
                 MOVE    0x0003, R5
-                MOVE    R5, R6
 _rloop          MOVE    R5, @R0
                 MOVE    @R2, R8
                 SYSCALL(puthex, 1)
@@ -153,7 +153,7 @@ _rloop          MOVE    R5, @R0
                 MOVE    R8, @--SP
                 ADD     1, R6
 _rloop_cnt      ADD     1, R5
-                CMP     0x00A0, R5
+                CMP     0x00F0, R5
                 RBRA    _rloop, !Z
                 SYSCALL(crlf, 1)
 
