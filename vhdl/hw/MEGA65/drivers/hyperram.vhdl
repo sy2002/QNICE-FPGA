@@ -1529,8 +1529,8 @@ begin
         if current_cache_line_plus_1_matches_block = '1'
         then
 --          report "DISPATCHER: Presenting next 8 bytes to slow_devices. Was $"
-            & to_hstring(current_cache_line_address&"000") & ", new is $"
-            & to_hstring(current_cache_line_address(26 downto 5)&(current_cache_line_address(4 downto 3) + 1)&"000");
+--            & to_hstring(current_cache_line_address&"000") & ", new is $"
+--            & to_hstring(current_cache_line_address(26 downto 5)&(current_cache_line_address(4 downto 3) + 1)&"000");
           current_cache_line_address_drive(26 downto 5) <= block_address;
           current_cache_line_address_drive(4 downto 3) <= "00";
           current_cache_line_drive <= block_data(0);
@@ -1590,13 +1590,13 @@ begin
         if cache_row0_address_matches_cache_row_update_address = '1' then
           if cache_row_update_lo='1' then
 --            report "DISPATCH: Updating cache0 via write: $" & to_hstring((cache_row_update_address&"000")+cache_row_update_byte)
-              & " gets $" & to_hstring(cache_row_update_value);
+--              & " gets $" & to_hstring(cache_row_update_value);
             cache_row0_valids(cache_row_update_byte) <= '1';
             cache_row0_data(cache_row_update_byte) <= cache_row_update_value;
           end if;
           if cache_row_update_hi='1' then
 --            report "DISPATCH: Updating cache0 via write: $" & to_hstring((cache_row_update_address&"001")+cache_row_update_byte)
-              & " gets $" & to_hstring(cache_row_update_value);
+--              & " gets $" & to_hstring(cache_row_update_value);
             cache_row0_valids(cache_row_update_byte+1) <= '1';
             cache_row0_data(cache_row_update_byte+1) <= cache_row_update_value_hi;
           end if;
@@ -1605,13 +1605,13 @@ begin
         if cache_row1_address_matches_cache_row_update_address = '1' then
           if cache_row_update_lo='1' then
 --            report "DISPATCH: Updating cache1 via write: $" & to_hstring((cache_row_update_address&"000")+cache_row_update_byte)
-              & " gets $" & to_hstring(cache_row_update_value);
+--              & " gets $" & to_hstring(cache_row_update_value);
             cache_row1_valids(cache_row_update_byte) <= '1';
             cache_row1_data(cache_row_update_byte) <= cache_row_update_value;
           end if;
           if cache_row_update_hi='1' then
 --            report "DISPATCH: Updating cache1 via write: $" & to_hstring((cache_row_update_address&"001")+cache_row_update_byte)
-              & " gets $" & to_hstring(cache_row_update_value);
+--              & " gets $" & to_hstring(cache_row_update_value);
             cache_row1_valids(cache_row_update_byte+1) <= '1';
             cache_row1_data(cache_row_update_byte+1) <= cache_row_update_value_hi;
           end if;
@@ -1620,13 +1620,13 @@ begin
         if block_address_matches_cache_row_update_address = '1' then
           if cache_row_update_lo='1' then
 --            report "DISPATCH: Updating block data via write: $" & to_hstring((cache_row_update_address&"000")+cache_row_update_byte)
-              & " gets $" & to_hstring(cache_row_update_value);
+--              & " gets $" & to_hstring(cache_row_update_value);
             block_data(to_integer(cache_row_update_address(4 downto 3)))(cache_row_update_byte)
               <= cache_row_update_value;
           end if;
           if cache_row_update_hi='1' then
 --            report "DISPATCH: Updating block data via write: $" & to_hstring((cache_row_update_address&"000")+cache_row_update_byte)
-              & " gets $" & to_hstring(cache_row_update_value);
+--              & " gets $" & to_hstring(cache_row_update_value);
             block_data(to_integer(cache_row_update_address(4 downto 3)))(cache_row_update_byte+1)
               <= cache_row_update_value_hi;
           end if;
@@ -2753,7 +2753,7 @@ begin
                   end if;
                 else
 --                  report "WRITE: Decrementing background_write_count from " & integer'image(background_write_count)
-                    & ", write_continues = " & integer'image(write_continues);
+--                    & ", write_continues = " & integer'image(write_continues);
                   if background_write_count /= 0 then
                     background_write_count <= background_write_count - 1;
                     if background_write_count = 3 and write_continues /= 0 then
