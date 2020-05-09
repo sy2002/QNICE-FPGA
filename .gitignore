@@ -12,6 +12,7 @@ hw/xilinx/MEGA65/ISE/work
 hw/xilinx/MEGA65/ISE/iseconfig
 hw/xilinx/MEGA65/ISE/webtalk_impact.xml
 hw/xilinx/MEGA65/ISE/mega65.ipf
+hw/xilinx/MEGA65/ISE/mega65_xdb
 impact.xsl
 impact_impact.xwbt
 assembler/qasm

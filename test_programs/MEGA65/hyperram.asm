@@ -10,6 +10,7 @@
                 MOVE    STR_TITLE, R8
                 SYSCALL(puts, 1)
 
+                ; DEBUG
                 MOVE    0xFF66, R8
                 MOVE    @R8, R8
                 SYSCALL(puthex, 1)
@@ -44,25 +45,21 @@ _rwa            CMP     0x0678, @R1             ; check, if hi word is correct
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
-                ; For some reason (bug?) we need to read something, which will
-                ; be wrong and only from then on, it will work
-;                MOVE    0x0000, @R0
-;                MOVE    0x0000, @R1
-;                MOVE    @R2, R8
-;                SYSCALL(puthex, 1)
-;                MOVE    @R4, R8
-;                SYSCALL(puthex, 1)
-;                SYSCALL(crlf, 1)
-;                MOVE    @R2, R8
-;                SYSCALL(puthex, 1)
-;                MOVE    @R4, R8
-;                SYSCALL(puthex, 1)
-;                SYSCALL(crlf, 1)
+                ; expected output of the two "DEBUG" mentioned above is
+                ; two times 0x0000
 
+                ; Some currently yet unclear magic from hyperramtest.c
+                ; leads to more stable mass reading/writing
+                MOVE    0x03FF, @R1
+                MOVE    0xFFF5, @R0
+                MOVE    0, @R2                  ; disable read delay
+                MOVE    0xFFF2, @R0          
+                MOVE    0x00B0, @R2             ; turn cache on
 
+                ; read id0lo
                 MOVE    0x0001, @R0
                 MOVE    0x0200, @R1
-                MOVE    @R2, R8
+                MOVE    @R2, R8                 ; hw bug: 3 reads necessary!
                 MOVE    @R2, R8
                 MOVE    @R2, R8
                 SYSCALL(puthex, 1)
@@ -70,6 +67,7 @@ _rwa            CMP     0x0678, @R1             ; check, if hi word is correct
                 SYSCALL(puthex,1)
                 SYSCALL(crlf, 1)
 
+                ; read id0hi
                 MOVE    0x0000, @R0
                 MOVE    @R2, R8                                
                 SYSCALL(puthex,1)
@@ -77,6 +75,7 @@ _rwa            CMP     0x0678, @R1             ; check, if hi word is correct
                 SYSCALL(puthex,1)
                 SYSCALL(crlf, 1)
 
+                ; read cr0lo
                 MOVE    0x1001, @R0
                 MOVE    @R2, R8                             
                 MOVE    @R2, R8                             
@@ -85,6 +84,7 @@ _rwa            CMP     0x0678, @R1             ; check, if hi word is correct
                 SYSCALL(puthex,1)
                 SYSCALL(crlf, 1)
 
+                ; read cr0hi
                 MOVE    0x1000, @R0
                 MOVE    @R2, R8
                 SYSCALL(puthex, 1)
@@ -92,20 +92,10 @@ _rwa            CMP     0x0678, @R1             ; check, if hi word is correct
                 SYSCALL(puthex,1)                
                 SYSCALL(crlf,1)
 
-;                MOVE    0x0000, @R0
-;                MOVE    0x0000, @R1
-;                MOVE    @R2, R8
-;                SYSCALL(puthex, 1)
-;                MOVE    @R2, R8
-;                SYSCALL(puthex, 1)
-;                MOVE    @R2, R8
-;                SYSCALL(puthex, 1)
-;                MOVE    @R2, R8
-;                SYSCALL(puthex, 1)
-;                MOVE    @R2, R8
-;                SYSCALL(puthex, 1)
-;                SYSCALL(crlf, 1)
+                ; expected output of the sequence ABOVE consisting of
+                ; id0lo, id0hi, cr0lo, cr0hi is: $81, $0C, $F6, $FF
 
+                ; read 5 times at 0x0011000
                 MOVE    0x1000, @R0
                 MOVE    0x0001, @R1
                 MOVE    @R2, R8
@@ -120,8 +110,10 @@ _rwa            CMP     0x0678, @R1             ; check, if hi word is correct
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
+                ; write 0x23 at 0x0011000
                 MOVE    0x23, @R2
 
+                ; again, read 5 times at 0x0011000
                 MOVE    @R2, R8
                 SYSCALL(puthex, 1)
                 MOVE    @R2, R8
@@ -134,6 +126,8 @@ _rwa            CMP     0x0678, @R1             ; check, if hi word is correct
                 SYSCALL(puthex, 1)
                 SYSCALL(crlf, 1)
 
+                ; fill 240 bytes (F0) starting from 0x0020003 with increasing
+                ; values starting from 3 (3 .. 239)
                 MOVE    0x0002, @R1
                 MOVE    0x0003, R5
 _wloop          MOVE    R5, @R0
@@ -142,6 +136,11 @@ _wloop          MOVE    R5, @R0
                 CMP     0x00F0, R5
                 RBRA    _wloop, !Z
 
+                ; read and compare 240 bytes starting from 0x0020003:
+                ; is the memory containing, what we wrote?
+                ; if not, push the positions of the wrong values and the
+                ; wrong values itself on the stack
+                ; R6 contains the amount of errors
                 XOR     R6, R6
                 MOVE    0x0003, R5
 _rloop          MOVE    R5, @R0
@@ -157,9 +156,11 @@ _rloop_cnt      ADD     1, R5
                 RBRA    _rloop, !Z
                 SYSCALL(crlf, 1)
 
+                ; no errors? end test program
                 CMP     0, R6
                 RBRA    _END, Z
 
+                ; print errors
                 MOVE    ERR_READ, R8
                 SYSCALL(puts, 1)
                 MOVE    R6, R8
@@ -189,12 +190,6 @@ OUTPUT_DW       INCRB
                 RET
 
 ;=============================================================================
-; Variables
-;=============================================================================
-
-A_VARIABLE  .BLOCK 1                            ; mount struct / device handle
-
-;=============================================================================
 ; String constants
 ;=============================================================================
 
@@ -217,4 +212,4 @@ STR_OK          .ASCII_W "OK\n"
 ;
 IO$M65HRAM_LO       .EQU 0xFF60 ; Low word of address  (15 downto 0)
 IO$M65HRAM_HI       .EQU 0xFF61 ; High word of address (26 downto 16)
-IO$M65HRAM_DATA     .EQU 0xFF62 ; Data in/out
+IO$M65HRAM_DATA     .EQU 0xFF62 ; 8-bit data in/out
