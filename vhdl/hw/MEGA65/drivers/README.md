@@ -56,4 +56,6 @@ The MEGA65 HyperRAM driver consists of the file `hyperram.vhdl`.
 
 #### Modifications
 
-* Moved `cache_row_t` from separate file into `hyperram.vhdl`
+* Made it stand-alone by removing the `debugtools` and `cputypes` 
+  dependencies: Moved `cache_row_t` from separate file into `hyperram.vhdl`
+  and commented out all `report` statements.
