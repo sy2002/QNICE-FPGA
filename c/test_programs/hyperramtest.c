@@ -120,10 +120,7 @@ void setup_hyperram(void)
   for(addr=0x8001000;(lpeek(0x8000000)==0xbd)&&(addr!=0x9000000);addr+=0x1000)
     {
       if (!(addr&0xfffff))
-      {
         printf(".");
-        fflush(stdout);
-      }
 
       bust_cache();
       
@@ -691,8 +688,8 @@ void test_speed(void)
 
 int main()
 {
-   printf("\nHyperRAM Test (port of original MEGA65 hyperramtest.c)\n")
-   printf("======================================================\n\n")
+   printf("\nHyperRAM Test (port of original MEGA65 hyperramtest.c)\n");
+   printf("======================================================\n\n");
 
   // XXX - The following are needed temporarily, while we bed everything down.
   // Disable fast prefetch logic

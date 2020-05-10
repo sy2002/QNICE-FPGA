@@ -11,7 +11,7 @@ int set_interface_attribs (int fd, int speed, int parity)
         struct termios tty;
         if (tcgetattr (fd, &tty) != 0)
         {
-                printf("error %d from tcgetattr\n", errno);
+                printf("Error %d from tcgetattr\n", errno);
                 return -1;
         }
 
@@ -39,7 +39,7 @@ int set_interface_attribs (int fd, int speed, int parity)
 
         if (tcsetattr (fd, TCSANOW, &tty) != 0)
         {
-                printf("error %d from tcsetattr\n", errno);
+                printf("Error %d from tcsetattr\n", errno);
                 return -1;
         }
         return 0;
@@ -51,7 +51,7 @@ void set_blocking (int fd, int should_block)
         memset (&tty, 0, sizeof tty);
         if (tcgetattr (fd, &tty) != 0)
         {
-                printf("error %d from tggetattr\n", errno);
+                printf("Error %d from tggetattr\n", errno);
                 return;
         }
 
@@ -59,7 +59,7 @@ void set_blocking (int fd, int should_block)
         tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
 
         if (tcsetattr (fd, TCSANOW, &tty) != 0)
-                printf("error %d setting term attributes", errno);
+                printf("Error %d setting term attributes", errno);
 }
 
 uint16_t calc_crc(char* buffer, unsigned int size)
@@ -79,24 +79,84 @@ uint16_t calc_crc(char* buffer, unsigned int size)
 
 int main(int argc, char* argv[])
 {
-    char *portname = "/dev/cu.usbserial-25163305978D1";
+    char* portname;
+    FILE* inputf;
     char buf[100];
+    char response[100];
 
+    if (argc < 3 || (inputf = fopen(argv[1], "r")) == 0)
+    {
+        printf("qtransfer <filename> <portname>\n");
+        return 1;
+    }
+
+    portname = argv[2];
     int fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
     if (fd < 0)
     {
-            printf("error %d opening %s: %s\n", errno, portname, strerror (errno));
+            printf("Error %d opening %s: %s\n", errno, portname, strerror (errno));
             return 1;
     }
 
     set_interface_attribs (fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
     set_blocking (fd, 0);                    // set no blocking
 
+    //initial handshake: send "START\n" and receive a zero terminated "ACK"
     write (fd, "START\n", 6);
     usleep (20 * 100);
     int n = read(fd, buf, sizeof(buf));
-    printf("Received: n=%i, buf=%s\n", n, buf);
-    printf("CRC = %hx\n", calc_crc(buf, n - 1));
+    if (n != 4 || strcmp(buf, "ACK") != 0)
+    {
+        printf("Protocol error. (Are you running qtransfer.asm on QNICE?)\n");
+        return 1;
+    }
+
+    char line[100];
+    while (1)
+    {
+        fgets(line, sizeof(line), inputf);
+        if (feof(inputf))
+            break;
+
+        //build transmit string: <address><data><crc>\n
+        strncpy(&buf[0], &line[2], 4);
+        strncpy(&buf[4], &line[9], 4);
+        sprintf(&buf[8], "%04hX", calc_crc(buf, 8));
+        buf[12] = '\n';
+
+        //send
+        write(fd, buf, 13);
+        usleep(2 * 100);
+
+        //receive answer (or fill up the buffer on QNICE side with '\n')
+        int fill = 0;
+        while ((n = read(fd, response, sizeof(response))) == 0)
+        {
+            usleep(2 * 100);
+            write(fd, &buf[12], 1);
+            usleep(10 * 100);
+            if (fill++ > 13)
+            {
+                printf("Error transmitting to QNICE.\n");
+                return 1;
+            }
+        }
+
+        //everything worked: next line of .out file
+        if (n == 4 && strcmp(response, "ACK") == 0)
+            continue;
+        else if (n == 7 && strcmp(response, "CRCERR") == 0)
+        {
+            printf("CRC Error! %s\n", buf);
+            return 1;
+        }
+    }
+
+    write(fd, "END\n", 4);
+    usleep(100 * 100);
+
+    fclose(inputf);
+    close(fd);
 
 /*
     usleep ((7 + 25) * 100);             // sleep enough to transmit the 7 plus
