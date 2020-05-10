@@ -1,6 +1,5 @@
 ; MEGA65 HyperRAM development testbed
 ; done by sy2002 in April and May 2020
-;
 
 #include "../../dist_kit/sysdef.asm"
 #include "../../dist_kit/monitor.def"

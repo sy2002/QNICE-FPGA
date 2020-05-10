@@ -46,7 +46,9 @@ c/vbcc/bin
 c/vlink/vlink
 c/test_programs/mapfile
 c/qnice/qniceconv
+c/qnice/mapfile
 c/test_programs/wolfram
 c/vclib
 c/vclib*.tgz
 c/qnice/monitor-lib/lib/*.asm
+tools/qtransfer
