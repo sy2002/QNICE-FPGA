@@ -1,5 +1,5 @@
 # meant to be included in various QNICE bash scripts
-# done by sy2002 in December 2016
+# done by sy2002 in December 2016 and May 2020
 
 case "$OSTYPE" in
   solaris*) OSTP="SOLARIX" ;;
@@ -22,5 +22,11 @@ elif hash gcc 2>/dev/null; then
 else
     echo ""
     echo "error: neither cc nor gcc has been found!"
+    exit
+fi;
+
+if ! hash sed 2>/dev/null; then
+    echo ""
+    echo "error: sed is not found!"
     exit
 fi;

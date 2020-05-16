@@ -37,6 +37,12 @@ can see, if the calibration worked.>
 Then adjust all the 12.9 MIPS claims (also in documentation, various
 README.MDs, because it looks like we are way below 12.9 MIPS in reality)
 
+<The following things have been done to improve Linux compatibility, tested
+under Ubuntu. Shorten the list to some more generic statements before releasing:
+assembler/asm script now works under Linux
+you might want to install xclip for more convenience (.out copied to clipboard after assembler ran)
+>
+
 Version 1.5     March, 22 2020
 ==============================
 
