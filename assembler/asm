@@ -4,7 +4,9 @@
 # QNICE assembler. Assembling QNICE sources is done invoking this script
 # with the source file name as its only parameter.
 
-source ../tools/detect.include
+ASM_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+source $ASM_SCRIPT_DIR/../tools/detect.include
 
 temp_file=__temp__.asm
 
