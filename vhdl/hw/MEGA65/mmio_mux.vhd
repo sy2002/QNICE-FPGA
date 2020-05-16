@@ -71,6 +71,7 @@ port (
    uart_en           : out std_logic;
    uart_we           : out std_logic;
    uart_reg          : out std_logic_vector(1 downto 0);
+   uart_cpu_ws       : in std_logic;
    
    -- SD Card register range $FF24..FF29
    sd_en             : out std_logic;
@@ -342,6 +343,8 @@ begin
       elsif pore_rom_enable_i = '1' and pore_rom_busy = '1' then
          cpu_wait_for_data <= '1';
       elsif hram_cpu_ws = '1' then
+         cpu_wait_for_data <= '1';
+      elsif uart_cpu_ws = '1' then
          cpu_wait_for_data <= '1';
       else
          cpu_wait_for_data <= '0';

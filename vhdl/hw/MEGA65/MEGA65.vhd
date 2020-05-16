@@ -160,6 +160,7 @@ port (
    uart_en        : in std_logic;
    uart_we        : in std_logic;
    uart_reg       : in std_logic_vector(1 downto 0);
+   uart_cpu_ws    : out std_logic;   
    cpu_data       : inout std_logic_vector(15 downto 0)
 );
 end component;
@@ -305,6 +306,7 @@ port (
    uart_en           : out std_logic;
    uart_we           : out std_logic;
    uart_reg          : out std_logic_vector(1 downto 0);
+   uart_cpu_ws       : in std_logic;   
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
@@ -350,6 +352,7 @@ signal vga_reg                : std_logic_vector(3 downto 0);
 signal uart_en                : std_logic;
 signal uart_we                : std_logic;
 signal uart_reg               : std_logic_vector(1 downto 0);
+signal uart_cpu_ws            : std_logic;
 signal cyc_en                 : std_logic;
 signal cyc_we                 : std_logic;
 signal cyc_reg                : std_logic_vector(1 downto 0);
@@ -499,6 +502,7 @@ begin
          uart_en => uart_en,
          uart_we => uart_we,
          uart_reg => uart_reg,
+         uart_cpu_ws => uart_cpu_ws,         
          cpu_data => cpu_data         
       );
 
@@ -609,6 +613,7 @@ begin
          uart_en => uart_en,
          uart_we => uart_we,
          uart_reg => uart_reg,
+         uart_cpu_ws => uart_cpu_ws,
          cyc_en => cyc_en,
          cyc_we => cyc_we,
          cyc_reg => cyc_reg,

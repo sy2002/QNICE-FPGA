@@ -1,6 +1,11 @@
 Version 1.6     xxxxx, 22 2020
 ==============================
 
+<added a 32 Byte FIFO to the UART. This makes RTS/CTS unnecessary in most
+cases; did that because MEGA65 does not have RTS/CTS (mention that in the
+porting notes) write some docu somewhere: for being on the safe side RTS/CTS is 
+good; TODO: test, if RTS/CTS still works on Nexys4 DDR: might be just the other way round than implemented>
+
 WIP * MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
 WIP * TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
   Structured all hardware dependencies in the new folder 'hw'.

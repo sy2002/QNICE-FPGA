@@ -50,6 +50,7 @@ constant VGA_RAM_SIZE         : natural   := 64000;
 --    1562500 -> 4
 --    2083333 -> 3
 constant UART_DIVISOR          : natural  := 27; -- above mentioned / 2, as long as we are using SLOW_CLOCK with 50 MHz
+constant UART_FIFO_SIZE        : natural  := 32; -- size of the UART's FIFO buffer in bytes
 
 -- Amount of CPU cycles, that the reset signal shall be active
 constant RESET_DURATION        : natural  := 16;
