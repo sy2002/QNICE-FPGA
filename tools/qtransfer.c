@@ -1,8 +1,9 @@
 #include <errno.h>
 #include <fcntl.h> 
-#include <string.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -90,6 +91,15 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    fseek(inputf, 0L, SEEK_END);
+    unsigned long file_lines = ftell(inputf) / 14;
+    if (ftell(inputf) % 14 != 0)
+    {
+        printf("Error: Input file %s seems to be corrupt.\n", argv[1]);
+        return 1;
+    }
+    rewind(inputf);
+
     portname = argv[2];
     int fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
     if (fd < 0)
@@ -112,6 +122,7 @@ int main(int argc, char* argv[])
     }
 
     char line[100];
+    unsigned long lines_done = 0;
     while (1)
     {
         fgets(line, sizeof(line), inputf);
@@ -119,6 +130,7 @@ int main(int argc, char* argv[])
             break;
 
         //build transmit string: <address><data><crc>\n
+        memset(buf, 0, sizeof(buf));
         strncpy(&buf[0], &line[2], 4);
         strncpy(&buf[4], &line[9], 4);
         sprintf(&buf[8], "%04hX", calc_crc(buf, 8));
@@ -144,7 +156,13 @@ int main(int argc, char* argv[])
 
         //everything worked: next line of .out file
         if (n == 4 && strcmp(response, "ACK") == 0)
+        {
+            lines_done++;
+            printf("%lu of %lu done.\n", lines_done, file_lines);
             continue;
+        }
+
+        //CRC error
         else if (n == 7 && strcmp(response, "CRCERR") == 0)
         {
             printf("CRC Error! %s\n", buf);
