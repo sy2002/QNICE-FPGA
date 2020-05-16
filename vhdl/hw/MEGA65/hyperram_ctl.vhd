@@ -105,9 +105,6 @@ type tHRAM_FSM_States is ( s_idle,
 
 signal state_ff               : tHRAM_FSM_States := s_idle;
 signal state_next             : tHRAM_FSM_States;
-signal start_read_ff          : std_logic := '0';
-signal set_start_read         : std_logic;
-signal reset_start_read       : std_logic;
 
 signal fsm_state_next         : tHRAM_FSM_States;
 signal fsm_hram_rdata         : unsigned(7 downto 0)  := (others => '0');
@@ -141,25 +138,7 @@ begin
       hr_cs0 => hr_cs0,
       hr_cs1 => hr_cs1
    );
-   
---   hr2_d       <= (others => 'Z');
---   hr2_rwds    <= 'Z';
---   hr2_reset   <= '0';
---   hr2_clk_p   <= '0';
-   
-   start_read_handler : process(clk, reset, reset_start_read, set_start_read)
-   begin
-      if set_start_read = '1' then
-         start_read_ff <= '1';
-      else
-         if falling_edge(clk) then
-            if reset = '1' or reset_start_read = '1' then
-               start_read_ff <= '0';
-            end if;
-         end if;
-      end if;
-   end process;
-            
+               
    fsm_advance_state : process(clk, reset, dbg_chkadd_ff,
                                fsm_state_next, fsm_hram_rdata, fsm_chkadd)
    begin
@@ -193,9 +172,8 @@ begin
    end process;   
          
    fsm_output_decode : process(state_ff, state_next, hram_rdata_ff, hram_rdata, hram_data_ready_strobe, hram_busy,
-                               hram_reg, hram_en, hram_we, start_read_ff)
+                               hram_reg, hram_en, hram_we)
    begin
-      reset_start_read <= '0';
       hram_cpu_ws <= '0';
       hram_read_request <= '0';
       hram_write_request <= '0';
@@ -206,7 +184,7 @@ begin
             
       case state_ff is
          when s_idle =>
-            if start_read_ff = '1' then
+            if hram_en = '1' and hram_we = '0' and hram_reg = x"2" then
                hram_cpu_ws <= '1';
                if hram_busy = '0' then
                   fsm_state_next <= s_read_start;
@@ -248,8 +226,6 @@ begin
             -- wait for CPU to deassert reading so that we can synchronously reset start_read_ff
             if hram_en = '1' and hram_we = '0' and hram_reg = x"2" then
                fsm_state_next <= s_read_waitforcpu;
-            else
-               reset_start_read <= '1';
             end if;
             
          -- WRITING
@@ -267,7 +243,6 @@ begin
    read_registers : process(hram_en, hram_we, hram_reg, hram_data_ready_strobe, hram_busy, hram_address, hram_rdata_ff,
                             dbg_chkadd_ff)
    begin
-      set_start_read <= '0';
       if hram_en = '1' and hram_we = '0' then
          case hram_reg is
             
@@ -279,7 +254,6 @@ begin
             
             -- read data
             when x"2" =>
-               set_start_read <= '1';
                cpu_data <= x"00" & std_logic_vector(hram_rdata_ff);
                
             -- debug              

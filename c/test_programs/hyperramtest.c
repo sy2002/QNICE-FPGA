@@ -697,7 +697,7 @@ int main()
   // Disable read delay
   lpoke(0xbfffff5,0);
 
-  setup_hyperram();
+  //setup_hyperram();
 
   // Turn cache back on before reading config registers etc
   lpoke(0xbfffff2,fast_flags|cache_bit);
