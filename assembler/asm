@@ -9,7 +9,6 @@ ASM_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd 
 source $ASM_SCRIPT_DIR/../tools/detect.include
 
 temp_file=__temp__.asm
-temp_file2=__temp2__.asm
 
 if [ $# -ne 1 ]
 then
@@ -26,16 +25,13 @@ romfile=${1/.asm/}.rom
 rm $destination 2> /dev/null
 rm $romfile 2> /dev/null
 
-# replace ";" by "//" to avoid preprocessor warnings
-cat $1 | sed "s/;/\/\//g" > $temp_file2
-
 #
 # We use the standard C-preprocessor to perform the necessary 
 # preprocessor steps for the QNICE-assembler. Since the preprocessor
 # inserts lines starting with a '#' which the assembler does
 # not like, these are subsequently removed with sed.
 #
-$COMPILER -xc -E $temp_file2 | sed '/^#.*/d' > $temp_file
+$COMPILER -xc -E $1 | sed '/^#.*/d' > $temp_file
 
 $assembler $temp_file $destination
 if [ $? -ne 0 ]
@@ -46,7 +42,6 @@ then
 fi
 
 rm $temp_file
-rm $temp_file2
 
 $makerom $destination $romfile
 

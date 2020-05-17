@@ -1,68 +1,30 @@
-#include <errno.h>
-#include <fcntl.h> 
-#include <math.h>
+/*  qtransfer - Safely transfer .out files to QNICE
+    done by sy2002 in May 2020
+
+    Use case: Transfer .out files and be sure, that they arrive correctly on
+    the QNICE. Particularly in situations (such as MEGA65) where no RTS/CTS
+    is available, the built in CRC16 makes sure, that everything went OK.
+
+    qtransfer.asm needs to run on QNICE, before you run qtransfer.c
+
+    Dependency:
+    https://sigrok.org/wiki/Libserialport
+    Mac: brew install libserialport
+
+    How to compile:
+    cc qtransfer.c -o qtransfer -O3 -lserialport
+*/
+
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <termios.h>
+
 #include <unistd.h>
 
-int set_interface_attribs (int fd, int speed, int parity)
-{
-        struct termios tty;
-        if (tcgetattr (fd, &tty) != 0)
-        {
-                printf("Error %d from tcgetattr\n", errno);
-                return -1;
-        }
+#include <libserialport.h>
 
-        cfsetospeed (&tty, speed);
-        cfsetispeed (&tty, speed);
-
-        tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
-        // disable IGNBRK for mismatched speed tests; otherwise receive break
-        // as \000 chars
-        tty.c_iflag &= ~IGNBRK;         // disable break processing
-        tty.c_lflag = 0;                // no signaling chars, no echo,
-                                        // no canonical processing
-        tty.c_oflag = 0;                // no remapping, no delays
-        tty.c_cc[VMIN]  = 0;            // read doesn't block
-        tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
-
-        tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
-
-        tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
-                                        // enable reading
-        tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
-        tty.c_cflag |= parity;
-        tty.c_cflag &= ~CSTOPB;
-        tty.c_cflag &= ~CRTSCTS;
-
-        if (tcsetattr (fd, TCSANOW, &tty) != 0)
-        {
-                printf("Error %d from tcsetattr\n", errno);
-                return -1;
-        }
-        return 0;
-}
-
-void set_blocking (int fd, int should_block)
-{
-        struct termios tty;
-        memset (&tty, 0, sizeof tty);
-        if (tcgetattr (fd, &tty) != 0)
-        {
-                printf("Error %d from tggetattr\n", errno);
-                return;
-        }
-
-        tty.c_cc[VMIN]  = should_block ? 1 : 0;
-        tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
-
-        if (tcsetattr (fd, TCSANOW, &tty) != 0)
-                printf("Error %d setting term attributes", errno);
-}
-
+//Calculate CRC16 for each byte of the given buffer
 uint16_t calc_crc(char* buffer, unsigned int size)
 {
     const uint16_t mask = 0xA001;
@@ -78,9 +40,42 @@ uint16_t calc_crc(char* buffer, unsigned int size)
     return crc;
 }
 
+//Helper function for error handling
+int check(enum sp_return result)
+{
+        char *error_message;
+ 
+        switch (result) {
+        case SP_ERR_ARG:
+                printf("Error: Invalid argument.\n");
+                abort();
+        case SP_ERR_FAIL:
+                error_message = sp_last_error_message();
+                printf("Error: Failed: %s\n", error_message);
+                sp_free_error_message(error_message);
+                abort();
+        case SP_ERR_SUPP:
+                printf("Error: Not supported.\n");
+                abort();
+        case SP_ERR_MEM:
+                printf("Error: Couldn't allocate memory.\n");
+                abort();
+        case SP_OK:
+        default:
+                return result;
+        }
+}
+
+const unsigned int std_timeout = 200;   //0.2sec
+const unsigned short BURST_SIZE = 30;   // when increasing: revisit std_timeout
+                                        // and adjust BURST_WORDS in qtransfer.asm
+
 int main(int argc, char* argv[])
 {
     char* portname;
+    struct sp_port* port;
+    int result;
+
     FILE* inputf;
     char buf[100];
     char response[100];
@@ -100,87 +95,111 @@ int main(int argc, char* argv[])
     }
     rewind(inputf);
 
-    portname = argv[2];
-    int fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
-    if (fd < 0)
-    {
-            printf("Error %d opening %s: %s\n", errno, portname, strerror (errno));
-            return 1;
-    }
-
-    set_interface_attribs (fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
-    set_blocking (fd, 0);                    // set no blocking
+    check(sp_get_port_by_name(argv[2], &port));
+    check(sp_open(port, SP_MODE_READ_WRITE));
+    check(sp_set_baudrate(port, 115200));
+    check(sp_set_bits(port, 8));
+    check(sp_set_parity(port, SP_PARITY_NONE));
+    check(sp_set_stopbits(port, 1));
+    check(sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE));
 
     //initial handshake: send "START\n" and receive a zero terminated "ACK"
-    write (fd, "START\n", 6);
-    usleep (20 * 100);
-    int n = read(fd, buf, sizeof(buf));
-    if (n != 4 || strcmp(buf, "ACK") != 0)
+    check(sp_blocking_write(port, "START\n", 6, std_timeout));
+    check(sp_drain(port));
+    if (check(sp_blocking_read(port, buf, 4, std_timeout)) != 4 || strcmp(buf, "ACK") != 0)
     {
         printf("Protocol error. (Are you running qtransfer.asm on QNICE?)\n");
         return 1;
     }
 
-    char line[100];
     unsigned long lines_done = 0;
-    while (1)
-    {
-        fgets(line, sizeof(line), inputf);
-        if (feof(inputf))
-            break;
+    unsigned long lines_lp = 0;
 
-        //build transmit string: <address><data><crc>\n
+    char lines[BURST_SIZE][100];
+    char crcbuf[BURST_SIZE][8];
+
+    uint16_t lines_cnt = BURST_SIZE;
+    uint16_t start_address; 
+
+    while (lines_cnt == BURST_SIZE)
+    {   
+        for (lines_cnt = 0; lines_cnt < BURST_SIZE; lines_cnt++)
+        {
+            fgets(lines[lines_cnt], sizeof(lines[lines_cnt]), inputf);
+            if (feof(inputf))
+                break;
+        }
+
+        //announce current burst size
+        char burst_str[6];
+        sprintf(burst_str, "%04hX\n", (uint16_t) lines_cnt);
+        check(sp_blocking_write(port, burst_str, 5, std_timeout));
+        check(sp_drain(port));
+
+        //build transmit string: (<burst> x (<address><data>\n))<crc>\n
+        for (uint16_t n = 0; n < lines_cnt; n++)            
+        {                        
+            memset(buf, 0, sizeof(buf));
+            strncpy(&buf[0], &lines[n][2], 4);
+            strncpy(&buf[4], &lines[n][9], 4);
+            buf[8] = '\n';
+            check(sp_blocking_write(port, buf, 9, std_timeout));
+            strncpy(crcbuf[n], buf, 8);
+
+            if (lines_done == 0 && n == 0)
+            {
+                lines[0][6] = 0;
+                start_address = strtol(&lines[0][2], NULL, 16);
+            }
+        }        
         memset(buf, 0, sizeof(buf));
-        strncpy(&buf[0], &line[2], 4);
-        strncpy(&buf[4], &line[9], 4);
-        sprintf(&buf[8], "%04hX", calc_crc(buf, 8));
-        buf[12] = '\n';
-
-        //send
-        write(fd, buf, 13);
-        usleep(2 * 100);
+        sprintf(&buf[0], "%04hX", calc_crc((char*) crcbuf, lines_cnt * 8));
+        buf[4] = '\n';
+        check(sp_blocking_write(port, buf, 5, std_timeout));
+        check(sp_drain(port));
 
         //receive answer (or fill up the buffer on QNICE side with '\n')
-        int fill = 0;
-        while ((n = read(fd, response, sizeof(response))) == 0)
+        int actual;
+        if ((actual = check(sp_blocking_read(port, buf, 4, std_timeout))) == 4 && strcmp(buf, "ACK") == 0)
         {
-            usleep(2 * 100);
-            write(fd, &buf[12], 1);
-            usleep(10 * 100);
-            if (fill++ > 13)
+            lines_done += lines_cnt;
+            if (lines_done - lines_lp > file_lines / 10)
             {
-                printf("Error transmitting to QNICE.\n");
-                return 1;
+                printf("  %.0f%% done\n", ((float) lines_done / (float) file_lines) * 100);
+                lines_lp = lines_done;
             }
+            continue;            
         }
-
-        //everything worked: next line of .out file
-        if (n == 4 && strcmp(response, "ACK") == 0)
+        else
         {
-            lines_done++;
-            printf("%lu of %lu done.\n", lines_done, file_lines);
-            continue;
-        }
-
-        //CRC error
-        else if (n == 7 && strcmp(response, "CRCERR") == 0)
-        {
-            printf("CRC Error! %s\n", buf);
+            int input_waiting = check(sp_input_waiting(port));
+            if (input_waiting)
+                actual += check(sp_blocking_read(port, &buf[actual], input_waiting, std_timeout));
+            buf[actual] = 0;
+            if (strcmp(buf, "CRCERR") == 0)
+                printf("CRC ERROR between line %lu and %lu\n", lines_done, lines_done + lines_cnt);
+            else
+                printf("UNKNOWN ERROR! (%s)\n", buf);
             return 1;
         }
     }
 
-    write(fd, "END\n", 4);
-    usleep(100 * 100);
-
     fclose(inputf);
-    close(fd);
 
-/*
-    usleep ((7 + 25) * 100);             // sleep enough to transmit the 7 plus
-                                         // receive 25:  approx 100 uS per char transmit
-    char buf [100];
-    int n = read (fd, buf, sizeof buf);  // read up to 100 characters if ready to read
-*/
+    //notify about end of bursts
+    check(sp_blocking_write(port, "END\n", 4, std_timeout));
+    printf(" 100%% done\n");    
+
+    //transmit start address and length
+    sprintf(buf, "%04hX\n", (uint16_t) start_address);
+    check(sp_blocking_write(port, buf, 5, std_timeout));
+    sprintf(buf, "%04hX\n", (uint16_t) file_lines);
+    check(sp_blocking_write(port, buf, 5, std_timeout));
+    check(sp_drain(port));
+    usleep(300000);
+
+    check(sp_close(port));
+    sp_free_port(port);
+
     return 0;
 }
