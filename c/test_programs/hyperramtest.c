@@ -80,7 +80,7 @@ void lcopy(long source_address, long destination_address, unsigned int count)
 
 void lfill(long destination_address, unsigned char value, unsigned int count)
 {
-    for (long n = 0; i < count; n++)
+    for (long n = 0; n < count; n++)
         lpoke(destination_address + n, value);
 }
 
@@ -120,7 +120,10 @@ void setup_hyperram(void)
   for(addr=0x8001000;(lpeek(0x8000000)==0xbd)&&(addr!=0x9000000);addr+=0x1000)
     {
       if (!(addr&0xfffff))
+      {
         printf(".");
+        fflush(stdout);
+      }
 
       bust_cache();
       
@@ -161,11 +164,8 @@ void setup_hyperram(void)
 
   if ((addr!=0x8800000)&&(addr!=0x9000000)) {
     printf("\nError(s) while testing Slow RAM\n");
-    printf("\nPress any key to continue...\n");
-    while(PEEK(0xD610)) POKE(0xD610,0);
-    while(!PEEK(0xD610));
-    if (PEEK(0xd610)==0x03) return;
-    while(PEEK(0xD610)) POKE(0xD610,0);
+    printf("\nPress ENTER to continue...\n");
+    getc(stdin);
   }
 
   // Pre-fill all hyperram for convenience
@@ -176,13 +176,16 @@ void setup_hyperram(void)
   // Allow for upto 16MB of HyperRAM
   for(addr=0x8000000;(addr<upper_addr);addr+=0x8000)
     { lfill(addr,0x00,0x8000);
-      if (!(addr&0xfffff)) printf(".");
+      if (!(addr&0xfffff))
+      {
+        printf(".");
+        fflush(stdout);
+      }
     }
-  printf("\n");
- 
-  
+  printf("\n");  
 }
 
+/*
 void test_continuousread(void)
 {
   i=0;
@@ -409,11 +412,6 @@ void test_miswrite(void)
 	    if (PEEK(0xc000+j)) {
 	      printf("ERROR: Read $%02x from $%08lx, expected $00 (i=%d)\n",
 		     PEEK(0xc000+j),addr+j,i);
-	      /*
-	    while(PEEK(0xD610)) POKE(0xD610,0);
-	    while(!PEEK(0xD610));
-	    while(PEEK(0xD610)) POKE(0xD610,0);
-	      */
 	    }	    
 	  }
 	  else
@@ -522,10 +520,11 @@ void test_checkerboard(void)
     }
   printf("\n");  
 }
+*/
 
 void show_info(void)
 {
-  printf("%cUpper limit of Slow RAM is $%08lx\n",0x13,upper_addr);
+  printf("Upper limit of Slow RAM is $%08lx\n",upper_addr);
   mbs=(unsigned int)((addr-0x8000000L)>>20L);
   printf("Slow RAM is %u MB\n",mbs);
   printf("Chip ID: %u rows, %u columns\n",
@@ -697,7 +696,7 @@ int main()
   // Disable read delay
   lpoke(0xbfffff5,0);
 
-  //setup_hyperram();
+  setup_hyperram();
 
   // Turn cache back on before reading config registers etc
   lpoke(0xbfffff2,fast_flags|cache_bit);
