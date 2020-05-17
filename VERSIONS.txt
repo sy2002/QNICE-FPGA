@@ -1,6 +1,7 @@
 Version 1.6     xxxxx, 22 2020
 ==============================
 
+<rename QNICE @ MEGA65 in boot message; have some general QNICE #ifdefs?>
 <added a 32 Byte FIFO to the UART. This makes RTS/CTS unnecessary in most
 cases; did that because MEGA65 does not have RTS/CTS (mention that in the
 porting notes) write some docu somewhere: for being on the safe side RTS/CTS is 

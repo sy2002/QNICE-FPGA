@@ -51,7 +51,7 @@ unsigned char cache_bit=0x80; // =0x80;
 #define IO_M65HRAM_HI       0xFF61 // High word of address (26 downto 16)
 #define IO_M65HRAM_DATA     0xFF62 // 8-bit data in/out
 
-#define QNICE_HRAM( __x ) *((unsigned int*) __x )
+#define QNICE_HRAM( __x ) *((unsigned int volatile *) __x )
 
 void qnice_set_hram_address(unsigned long addr)
 {

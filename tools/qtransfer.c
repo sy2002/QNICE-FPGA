@@ -130,6 +130,11 @@ int main(int argc, char* argv[])
                 break;
         }
 
+        //if there is nothing to transmit, because the amount of lines
+        //(file_lines) mod BURST_SIZE == 0 then exit loop and transmit END
+        if (lines_cnt == 0)
+            break;
+
         //announce current burst size
         char burst_str[6];
         sprintf(burst_str, "%04hX\n", (uint16_t) lines_cnt);
