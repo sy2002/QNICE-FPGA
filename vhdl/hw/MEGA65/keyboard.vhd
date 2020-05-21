@@ -216,7 +216,7 @@ begin
       end if;
    end process;
    
-   ff_stdinout_handler : process(clk, reset, key_restore_n, ascii_key_valid, ascii_key)
+   ff_stdinout_handler : process(clk, reset)
    begin        
       if reset = '1' then
          ff_stdinout <= "11"; -- default: STDIN=MEGA65 keyboard and STDOUT=VGA
@@ -409,7 +409,7 @@ begin
       end if;
    end process;
                   
-   write_ff_locale: process(clk, kbd_en, kbd_we, kbd_reg, reset)
+   write_ff_locale: process(clk, reset)
    begin
       if reset = '1' then
          ff_locale <= (others => '0');

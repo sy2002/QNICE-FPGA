@@ -49,7 +49,7 @@ end hyperram_ctl;
 architecture beh of hyperram_ctl is
 
 component hyperram is
-  Port ( pixelclock : in STD_LOGIC;
+  Port ( pixelclock : in std_logic;
          clock163 : in std_logic;
          clock325 : in std_logic;
 
@@ -139,8 +139,7 @@ begin
       hr_cs1 => hr_cs1
    );
                
-   fsm_advance_state : process(clk, reset, dbg_chkadd_ff,
-                               fsm_state_next, fsm_hram_rdata, fsm_chkadd)
+   fsm_advance_state : process(clk, reset)
    begin
       if reset = '1' then
          state_ff <= s_idle;
@@ -240,8 +239,8 @@ begin
       end case;      
    end process;
                       
-   read_registers : process(hram_en, hram_we, hram_reg, hram_data_ready_strobe, hram_busy, hram_address, hram_rdata_ff,
-                            dbg_chkadd_ff)
+   read_registers : process(hram_en, hram_we, hram_reg, hram_data_ready_strobe, hram_busy, 
+                            hram_address, hram_rdata_ff, dbg_chkadd_ff)
    begin
       if hram_en = '1' and hram_we = '0' then
          case hram_reg is
@@ -268,7 +267,7 @@ begin
       end if;
    end process;
 
-   write_registers : process(clk, reset, hram_en, hram_we, hram_reg, cpu_data)
+   write_registers : process(clk, reset)
    begin
       if reset = '1' then
          hram_addr_lo_ff <= (others => '0');
