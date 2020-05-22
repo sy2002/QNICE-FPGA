@@ -13,6 +13,12 @@ hw/xilinx/MEGA65/ISE/iseconfig
 hw/xilinx/MEGA65/ISE/webtalk_impact.xml
 hw/xilinx/MEGA65/ISE/mega65.ipf
 hw/xilinx/MEGA65/ISE/mega65_xdb
+hw/xilinx/MEGA65/Vivado/*.jou
+hw/xilinx/MEGA65/Vivado/*.str
+hw/xilinx/MEGA65/Vivado/*.cache
+hw/xilinx/MEGA65/Vivado/*.hw
+hw/xilinx/MEGA65/Vivado/*.ip_user_files
+hw/xilinx/MEGA65/Vivado/*.runs
 impact.xsl
 impact_impact.xwbt
 assembler/qasm
