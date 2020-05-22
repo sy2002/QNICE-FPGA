@@ -58,7 +58,10 @@ begin
    return rom_v;                                                  
 end function;
 
-shared variable ram : ram_t := read_romfile(CONTENT_FILE);
+signal ram : ram_t := read_romfile(CONTENT_FILE);
+
+attribute ramstyle : string;
+attribute ramstyle of ram : signal is "block";
 
 begin
 
@@ -67,7 +70,7 @@ process (clk)
 begin
     if rising_edge(clk) then
         if(we = '1') then
-            ram(conv_integer(address_i)) := to_bitvector(data_i);
+            ram(conv_integer(address_i)) <= to_bitvector(data_i);
         end if;
         data1_o <= to_stdlogicvector(ram(conv_integer(address1_o)));
         data2_o <= to_stdlogicvector(ram(conv_integer(address2_o)));

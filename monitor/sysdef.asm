@@ -32,7 +32,7 @@
 
 VGA$MAX_X               .EQU    79                      ; Max. X-coordinate in decimal!
 VGA$MAX_Y               .EQU    39                      ; Max. Y-coordinate in decimal!
-VGA$MAX_CHARS           .EQU    3200                    ; VGA$MAX_X * VGA$MAX_Y
+VGA$MAX_CHARS           .EQU    3200                    ; 80 * 40 chars
 VGA$CHARS_PER_LINE      .EQU    80  
 
 VGA$EN_HW_CURSOR        .EQU    0x0040                  ; Show hardware cursor
