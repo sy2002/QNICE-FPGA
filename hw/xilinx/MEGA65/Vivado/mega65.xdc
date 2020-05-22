@@ -1,33 +1,33 @@
 ## MEGA65 mapping for QNICE-FPGA
 ## done by sy2002 in April and May 2020
 
-## Clock signal
-set_property PACKAGE_PIN V13 [get_ports CLK]
-# Z:/Documents/Privat/GNR/dev/QNICE-FPGA/hw/xilinx/MEGA65/ISE/MEGA65.ucf:5
-# The conversion of 'IOSTANDARD' constraint on 'net' object 'CLK' has been applied to the port object 'CLK'.
-set_property IOSTANDARD LVCMOS33 [get_ports CLK]
+# In xdc, all clocks are related by default. This differs from ucf, where clocks are
+# unrelated unless specified otherwise. As a result, you may now see cross-clock paths
+# that were previously unconstrained in ucf. Commented out xdc false path constraints
+# have been generated and can be uncommented, should you wish to remove these new paths.
+# These commands are located after the last clock definition
 
-# All timing constraint translations are rough conversions, intended to act as a template for further manual refinement. The translations should not be expected to produce semantically identical results to the original ucf. Each xdc timing constraint must be manually inspected and verified to ensure it captures the desired intent
-
-# In xdc, all clocks are related by default. This differs from ucf, where clocks are unrelated unless specified otherwise. As a result, you may now see cross-clock paths that were previously unconstrained in ucf. Commented out xdc false path constraints have been generated and can be uncommented, should you wish to remove these new paths. These commands are located after the last clock definition
-
-# Z:/Documents/Privat/GNR/dev/QNICE-FPGA/hw/xilinx/MEGA65/ISE/MEGA65.ucf:7
+## External clock signal (100 MHz)
+set_property -dict {PACKAGE_PIN V13 IOSTANDARD LVCMOS33} [get_ports CLK]
 create_clock -name CLK -period 10.000 [get_ports CLK]
 
-# Z:/Documents/Privat/GNR/dev/QNICE-FPGA/hw/xilinx/MEGA65/ISE/MEGA65.ucf:10
-# A PERIOD placed on an internal net will result in a clock defined with an internal source. Any upstream source clock latency will not be analyzed
-create_clock -name SLOW_CLOCK -period 20.000 [get_pins SLOW_CLOCK/Q]
+## Internal clock divider SLOW_CLOCK that creates the 50 MHz used throughout the system
+create_generated_clock -name SLOW_CLOCK -source [get_ports CLK] -divide_by 2 [get_pins SLOW_CLOCK_reg/Q]
+
+## VGA pixelclock
+create_generated_clock -name clk25MHz -source [get_pins SLOW_CLOCK_reg/Q] -divide_by 2 [get_pins vga_screen/clk25MHz_reg/Q]
 
 # The following cross clock domain false path constraints can be uncommented in order to mimic ucf constraints behavior (see message at the beginning of this file)
 # set_false_path -from [get_clocks CLK] -to [get_clocks SLOW_CLOCK]
 # set_false_path -from [get_clocks SLOW_CLOCK] -to [get_clocks CLK]
 
-
 ## EAE's combinatorial division networks take longer than
 ## the regular clock period, so we specify a timing constraint
 ## for them (see also the comments in EAE.vhd)
-# Z:/Documents/Privat/GNR/dev/QNICE-FPGA/hw/xilinx/MEGA65/ISE/MEGA65.ucf:17
-set_max_delay 32.000 -from [get_cells eae_inst/op*] -to [get_cells eae_inst/res*]
+#set_max_delay 32.000 -from [get_cells eae_inst/op*] -to [get_cells eae_inst/res*]
+
+#set_max_delay 32.000 -from [all_fanout -from [get_nets clk_rx] -flat -endpoints_only] -to [all_fanout -from [get_nets clk_tx] -flat -endpoints_only] 5
+
 
 ## Reset button
 set_property -dict {PACKAGE_PIN M13 IOSTANDARD LVCMOS33} [get_ports RESET_N]
@@ -77,34 +77,22 @@ set_property -dict {PACKAGE_PIN V10  IOSTANDARD LVCMOS33 SLEW FAST} [get_ports v
 set_property -dict {PACKAGE_PIN W11  IOSTANDARD LVCMOS33 SLEW FAST} [get_ports vdac_blank_n]
 
 ## Micro SD Connector (this is the slot at the bottom side of the case under the cover)
-set_property PACKAGE_PIN B15 [get_ports SD_RESET]
-# Z:/Documents/Privat/GNR/dev/QNICE-FPGA/hw/xilinx/MEGA65/ISE/MEGA65.ucf:67
-# The conversion of 'IOSTANDARD' constraint on 'net' object 'SD_RESET' has been applied to the port object 'SD_RESET'.
-set_property IOSTANDARD LVCMOS33 [get_ports SD_RESET]
-set_property PACKAGE_PIN B17 [get_ports SD_CLK]
-# Z:/Documents/Privat/GNR/dev/QNICE-FPGA/hw/xilinx/MEGA65/ISE/MEGA65.ucf:68
-# The conversion of 'IOSTANDARD' constraint on 'net' object 'SD_CLK' has been applied to the port object 'SD_CLK'.
-set_property IOSTANDARD LVCMOS33 [get_ports SD_CLK]
-set_property PACKAGE_PIN B16 [get_ports SD_MOSI]
-# Z:/Documents/Privat/GNR/dev/QNICE-FPGA/hw/xilinx/MEGA65/ISE/MEGA65.ucf:69
-# The conversion of 'IOSTANDARD' constraint on 'net' object 'SD_MOSI' has been applied to the port object 'SD_MOSI'.
-set_property IOSTANDARD LVCMOS33 [get_ports SD_MOSI]
-set_property PACKAGE_PIN B18 [get_ports SD_MISO]
-# Z:/Documents/Privat/GNR/dev/QNICE-FPGA/hw/xilinx/MEGA65/ISE/MEGA65.ucf:70
-# The conversion of 'IOSTANDARD' constraint on 'net' object 'SD_MISO' has been applied to the port object 'SD_MISO'.
-set_property IOSTANDARD LVCMOS33 [get_ports SD_MISO]
+set_property -dict {PACKAGE_PIN B15 IOSTANDARD LVCMOS33} [get_ports SD_RESET]
+set_property -dict {PACKAGE_PIN B17 IOSTANDARD LVCMOS33} [get_ports SD_CLK]
+set_property -dict {PACKAGE_PIN B16 IOSTANDARD LVCMOS33} [get_ports SD_MOSI]
+set_property -dict {PACKAGE_PIN B18 IOSTANDARD LVCMOS33} [get_ports SD_MISO]
 
 ## HyperRAM (standard)
-set_property -dict {PACKAGE_PIN D22 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 24} [get_ports hr_clk_p]
-set_property -dict {PACKAGE_PIN A21 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 24} [get_ports {hr_d[0]}]
-set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 24} [get_ports {hr_d[1]}]
-set_property -dict {PACKAGE_PIN C20 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 24} [get_ports {hr_d[2]}]
-set_property -dict {PACKAGE_PIN A20 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 24} [get_ports {hr_d[3]}]
-set_property -dict {PACKAGE_PIN B20 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 24} [get_ports {hr_d[4]}]
-set_property -dict {PACKAGE_PIN A19 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 24} [get_ports {hr_d[5]}]
-set_property -dict {PACKAGE_PIN E21 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 24} [get_ports {hr_d[6]}]
-set_property -dict {PACKAGE_PIN E22 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 24} [get_ports {hr_d[7]}]
-set_property -dict {PACKAGE_PIN B21 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 24} [get_ports hr_rwds]
+set_property -dict {PACKAGE_PIN D22 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports hr_clk_p]
+set_property -dict {PACKAGE_PIN A21 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports {hr_d[0]}]
+set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports {hr_d[1]}]
+set_property -dict {PACKAGE_PIN C20 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports {hr_d[2]}]
+set_property -dict {PACKAGE_PIN A20 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports {hr_d[3]}]
+set_property -dict {PACKAGE_PIN B20 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports {hr_d[4]}]
+set_property -dict {PACKAGE_PIN A19 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports {hr_d[5]}]
+set_property -dict {PACKAGE_PIN E21 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports {hr_d[6]}]
+set_property -dict {PACKAGE_PIN E22 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports {hr_d[7]}]
+set_property -dict {PACKAGE_PIN B21 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports hr_rwds]
 set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS33 PULLUP FALSE} [get_ports hr_reset]
 set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS33 PULLUP FALSE} [get_ports hr_cs0]
 
@@ -122,4 +110,4 @@ set_property -dict {PACKAGE_PIN C2 IOSTANDARD LVCMOS33 PULLUP FALSE} [get_ports 
 set_property -dict {PACKAGE_PIN D1 IOSTANDARD LVCMOS33 PULLUP FALSE} [get_ports {hr2_d[7]}]
 set_property -dict {PACKAGE_PIN H4 IOSTANDARD LVCMOS33 PULLUP FALSE} [get_ports hr2_rwds]
 set_property -dict {PACKAGE_PIN H5 IOSTANDARD LVCMOS33 PULLUP FALSE} [get_ports hr2_reset]
-set_property -dict {PACKAGE_PIN J5 IOSTANDARD LVCMOS33 PULLUP FALSE} [get_ports hr2_cs0]
+set_property -dict {PACKAGE_PIN J5 IOSTANDARD LVCMOS33 PULLUP FALSE} [get_ports hr_cs1]
