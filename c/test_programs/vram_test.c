@@ -2,15 +2,19 @@
 
     Tests read/write patterns of the video ram to check.
 
-    Background: Commit ab32ecd in branch develop introduced a new kind of
-    video ram: Single clock, dual port vs dual clock dual port before.
-    Therefore it is important so test, if reading/writing still works
-    as intended.
+    Background: Commit c5bfb88 in branch develop introduced a new kind of
+    video ram: Single clock, dual port vs dual clock dual port before. The
+    reason was, that Vivado synthesized the old version as LUTs and used up
+    the whole FPGAs resources by doing so.
+
+    The new version works on both - ISE and Vivado. Therefore it is important
+    to test, if reading/writing the video RAM still works as intended.
     
     done by sy2002 in May 2020
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "sysdef.h"
 #include "qmon.h"
@@ -19,6 +23,7 @@
 
 const char* key = "öalskdfKAJ";
 
+//pseudo random generator
 unsigned long MurmurHash2 (const void* key, long len, unsigned long seed)
 {
     // 'm' and 'r' are mixing constants generated offline.
@@ -73,19 +78,19 @@ unsigned long MurmurHash2 (const void* key, long len, unsigned long seed)
 
 int main()
 {
-    unsigned int c = 0;
+    unsigned int page, x, y, diff1, diff2, diff3, c;
+
+    page = diff1 = diff2 = diff3 = c = 0;
 
     qmon_vga_cls();
     printf("Video RAM Test - done by sy2002 in May 2020\n");
     printf("===========================================\n\n");
-    printf("Test #1: Randomly fill pages 2 and 3 and compare the values: ");
-    fflush(stdin);
-
-//    MMIO(VGA_STATE) |= 0x800; //switch on multi-pages via VGA_OFFS_RW
+    printf("Test #1: Non-linear: Fill page 2 and backup to page 3 and compare: ");
+    fflush(stdout);
 
     //Test #1: WRITE
-    for (int y = 0; y < 40; y++)
-        for (int x = 0; x < 80; x++)
+    for (y = 0; y < 40; y++)
+        for (x = 0; x < 80; x++)
         {
             unsigned int random_char = (unsigned int) MurmurHash2(key, strlen(key), 239 + (x * y) + c++) % 256;
             MMIO(VGA_CR_X) = x;
@@ -97,10 +102,103 @@ int main()
         }
 
     //Test #1: READ/COMPARE
+    for (y = 0; y < 40; y++)
+        for (x = 0; x < 80; x++)
+        {
+            MMIO(VGA_CR_X) = x;
+            MMIO(VGA_CR_Y) = y;
+            MMIO(VGA_OFFS_RW) = 3200; //"page" 2 (screen directly following the current screen)
+            int val1 = MMIO(VGA_CHAR);
 
-//    MMIO(VGA_STATE) &= ~0x800; //switch  off multi-pages
+            MMIO(VGA_OFFS_RW) = 6400; //"page" 3
+            int val2 = MMIO(VGA_CHAR);
 
+            if (val1 != val2)
+                diff1++;
+        }
 
+    MMIO(VGA_OFFS_RW) = 0;
+    printf(diff1 == 0 ? "OK\n" : "FAILED!\n");
+
+    printf("Test #2: Linear fill page 1 to 20 and compare: <Press ENTER>\n");
+    getc(stdin);
+
+    //Test #2: WRITE
+    for (page = 0; page < 20; page++)
+    {
+        MMIO(VGA_OFFS_RW) = MMIO(VGA_OFFS_DISPLAY) = 3200 * page;
+
+        for (y = 0; y < 40; y++)
+            for (x = 0; x < 80; x++)
+            {
+                MMIO(VGA_CR_X) = x;
+                MMIO(VGA_CR_Y) = y;
+                MMIO(VGA_CHAR) = (unsigned int) MurmurHash2(key, strlen(key), 1976 + (x * y) + page) % 256;
+            }
+    }
+
+    //Test #2: READ/COMPARE
+    for (page = 0; page < 20; page++)
+    {
+        MMIO(VGA_OFFS_RW) = MMIO(VGA_OFFS_DISPLAY) = 3200 * page;
+
+        for (y = 0; y < 40; y++)
+            for (x = 0; x < 80; x++)
+            {
+                MMIO(VGA_CR_X) = x;
+                MMIO(VGA_CR_Y) = y;
+
+                if (MMIO(VGA_CHAR) != (unsigned int) MurmurHash2(key, strlen(key), 1976 + (x * y) + page) % 256)
+                    diff2++;
+            }
+    }
+
+    MMIO(VGA_OFFS_RW) = MMIO(VGA_OFFS_DISPLAY) = 0;
+    qmon_vga_cls();
+    printf("Video RAM Test - done by sy2002 in May 2020\n");
+    printf("===========================================\n\n");
+    printf("Test #1: Non-linear: Fill page 2 and backup to page 3 and compare: ");
+    printf(diff1 == 0 ? "OK\n" : "FAILED!\n");
+    printf("Test #2: Linear fill page 1 to 20 and compare: ");    
+    printf(diff2 == 0 ? "OK\n" : "FAILED!\n");
+    printf("Test #3: Non-linear, random 64000 writes and compares: <Press ENTER>\n");
+    getc(stdin);
+
+    //Test #3: WRITE
+    MMIO(VGA_CR_X) = 0;
+    MMIO(VGA_CR_Y) = 0;
+    for (unsigned int i = 0; i < 64000; i++)
+    {
+        unsigned int random = MurmurHash2(key, strlen(key), i);
+        MMIO(VGA_OFFS_RW) = MMIO(VGA_OFFS_DISPLAY) = random;
+        MMIO(VGA_CHAR) = random % 256;
+    }
+
+    //Test #3: READ/COMPARE
+    for (unsigned int i = 0; i < 64000; i++)
+    {
+        unsigned int random = MurmurHash2(key, strlen(key), i);
+        MMIO(VGA_OFFS_RW) = MMIO(VGA_OFFS_DISPLAY) = random;
+        if (MMIO(VGA_CHAR) != random % 256)
+            diff3++;
+    }
+
+    MMIO(VGA_OFFS_RW) = MMIO(VGA_OFFS_DISPLAY) = 0;
+    qmon_vga_cls();
+    printf("Video RAM Test - done by sy2002 in May 2020\n");
+    printf("===========================================\n\n");
+    printf("Test #1: Non-linear: Fill page 2 and backup to page 3 and compare: ");
+    printf(diff1 == 0 ? "OK\n" : "FAILED!\n");
+    printf("Test #2: Linear fill page 1 to 20 and compare: ");    
+    printf(diff2 == 0 ? "OK\n" : "FAILED!\n");
+    printf("Test #3: Non-linear, random 64000 writes and compares: ");
+    printf(diff3 == 0 ? "OK\n\n" : "FAILED!\n\n");
+
+    unsigned int error_count = diff1 + diff2 + diff3;
+    if (error_count == 0)
+        printf("SUCCESS! Video RAM passed all tests.\n");
+    else
+        printf("FAILURE! Corrupt Video RAM! %u errors detected.\n", error_count);
 
     return 0;
 }
