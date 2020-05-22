@@ -49,7 +49,7 @@ use work.env1_globals.all;
 entity vga_textmode is
 port (
    reset       : in std_logic;     -- async reset
-   clk         : in std_logic;     -- system clock
+   clk         : in std_logic;     -- system clock (needs to be a multiple of 50 MHz)
    clk50MHz    : in std_logic;     -- needs to be a 50 MHz clock
 
    -- VGA registers
@@ -108,33 +108,17 @@ generic (
 );
 port (
    clk            : in std_logic;
+
    we             : in std_logic;   
    address_i      : in std_logic_vector(15 downto 0);
-   address_o      : in std_logic_vector(15 downto 0);
    data_i         : in std_logic_vector(7 downto 0);
-   data_o         : out std_logic_vector(7 downto 0);
 
-   -- performant reading facility
-   pr_clk         : in std_logic;
-   pr_addr        : in std_logic_vector(15 downto 0);
-   pr_data        : out std_logic_vector(7 downto 0)   
+   address1_o     : in std_logic_vector(15 downto 0);
+   data1_o        : out std_logic_vector(7 downto 0);
+   address2_o     : in std_logic_vector(15 downto 0);
+   data2_o        : out std_logic_vector(7 downto 0)
 );
 end component;
-
-component SyTargetCounter is
-generic (
-   COUNTER_FINISH : integer;                 -- target value
-   COUNTER_WIDTH  : integer range 2 to 32    -- bit width of target value
-);
-port (
-   clk       : in std_logic;                 -- clock
-   reset     : in std_logic;                 -- async reset
-   
-   cnt       : out std_logic_vector(COUNTER_WIDTH -1 downto 0); -- current value
-   overflow  : out std_logic := '0' -- true for one clock cycle when the counter wraps around
-);
-end component;
-
 
 -- VGA specific clock, also used for video ram and font rom
 signal clk25MHz            : std_logic;
@@ -221,15 +205,17 @@ begin
          DEFAULT_VALUE => x"20"                          -- ACSII code of the space character
       )
       port map (
-         clk => clk25MHz,
+         clk => clk,
+         
          we => vmem_we,
-         address_o => vmem_disp_addr,
-         data_o => vga_text_d,
          address_i => vmem_addr,
          data_i => vmem_data,
-         pr_clk => clk,
-         pr_addr => print_addr_w_offs,
-         pr_data => vga_read_data
+         
+         address1_o => vmem_disp_addr,
+         data1_o => vga_text_d,
+         
+         address2_o => print_addr_w_offs,
+         data2_o => vga_read_data
       );
       
    font_rom : video_bram
@@ -240,14 +226,13 @@ begin
          DEFAULT_VALUE => x"00"
       )
       port map (
-         clk => clk25MHz,
+         clk => clk,
          we => '0',
-         address_o => "0000" & vga_font_a,
-         data_o => vga_font_d,
+         address1_o => "0000" & vga_font_a,
+         data1_o => vga_font_d,
          address_i => (others => '0'),
          data_i => (others => '0'),
-         pr_clk => '0',
-         pr_addr => (others => '0')
+         address2_o => (others => '0')
       );
          
    fsm_advance_state : process(clk25MHz, reset)

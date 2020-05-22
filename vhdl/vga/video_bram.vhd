@@ -24,17 +24,14 @@ generic (
 port (
    clk            : in std_logic;
 
-   we             : in std_logic;
-   
+   we             : in std_logic;   
    address_i      : in std_logic_vector(15 downto 0);
-   address_o      : in std_logic_vector(15 downto 0);
    data_i         : in std_logic_vector(7 downto 0);
-   data_o         : out std_logic_vector(7 downto 0);
-   
-   -- performant reading facility
-   pr_clk         : in std_logic;
-   pr_addr        : in std_logic_vector(15 downto 0);
-   pr_data        : out std_logic_vector(7 downto 0)
+
+   address1_o     : in std_logic_vector(15 downto 0);
+   data1_o        : out std_logic_vector(7 downto 0);
+   address2_o     : in std_logic_vector(15 downto 0);
+   data2_o        : out std_logic_vector(7 downto 0)
 );
 end video_bram;
 
@@ -72,16 +69,9 @@ begin
         if(we = '1') then
             ram(conv_integer(address_i)) := to_bitvector(data_i);
         end if;
-        data_o <= to_stdlogicvector(ram(conv_integer(address_o)));
+        data1_o <= to_stdlogicvector(ram(conv_integer(address1_o)));
+        data2_o <= to_stdlogicvector(ram(conv_integer(address2_o)));
     end if;
-end process;
-
--- process for performant reading
-process(pr_clk)
-begin
-   if rising_edge(pr_clk) then
-      pr_data <= to_stdlogicvector(ram(conv_integer(pr_addr)));
-   end if;
 end process;
 
 end beh;
