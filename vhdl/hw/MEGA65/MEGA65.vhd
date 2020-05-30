@@ -121,10 +121,9 @@ end component;
 -- VGA 80x40 monoschrome screen
 component vga_textmode
 port (
-   reset       : in  std_logic;     -- async reset
-   clk         : in std_logic;      -- system clock
-   clk50MHz    : in  std_logic;     -- needs to be a 50 MHz clock
-
+   reset       : in  std_logic;    -- async reset
+   clk25MHz    : in std_logic;
+   clk50MHz    : in std_logic;
    -- VGA registers
    en          : in std_logic;     -- enable for reading from or writing to the bus
    we          : in std_logic;     -- write to VGA's registers via system's data bus
@@ -375,10 +374,12 @@ signal vga_g                  : std_logic;
 signal vga_b                  : std_logic;
 
 -- 50 MHz as long as we did not solve the timing issues of the register file
-signal SLOW_CLOCK             : std_logic := '0';
+signal SLOW_CLOCK             : std_logic;
 
 -- Fast clocks for HRAM
+signal CLK1x                  : std_logic;   -- 100 MHz clock created by mmcme2 for congruent phase
 signal CLK2x                  : std_logic;   -- 4x SLOW_CLOCK = 200 MHz
+signal clk25MHz               : std_logic;
 signal pll_locked_main        : std_logic;
 signal clk_fb_main            : std_logic;
 
@@ -400,7 +401,10 @@ begin
     clkin1_period    => 10.0,       --   100 MHz (10 ns)
     clkfbout_mult_f  => 8.0,        --   800 MHz common multiply
     divclk_divide    => 1,          --   800 MHz /1 common divide to stay within 600MHz-1600MHz range
-    clkout0_divide_f => 4.0         --   200 MHz /4.0
+    clkout0_divide_f => 4.0,        --   200 MHz /4.0
+    clkout1_divide   => 8,          --   100 MHz /8
+    clkout2_divide   => 16,         --   50  MHz /16
+    clkout3_divide   => 32          --   25  MHz /32
     --bandwidth        => "LOW"
   )
   port map
@@ -411,6 +415,9 @@ begin
     clkfbin  => clk_fb_main,
     clkfbout => clk_fb_main,
     clkout0  => CLK2x,              --  200 MHz
+    clkout1  => CLK1x,              --  100 MHz
+    clkout2  => SLOW_CLOCK,         --  50 MHz
+    clkout3  => clk25MHz,
     locked   => pll_locked_main
   );
 
@@ -473,7 +480,7 @@ begin
    vga_screen : vga_textmode
       port map (
          reset => reset_ctl,
-         clk => SLOW_CLOCK,
+         clk25MHz => clk25MHz,
          clk50MHz => SLOW_CLOCK,
          R => vga_r,
          G => vga_g,
@@ -565,7 +572,7 @@ begin
    HRAM : hyperram_ctl
       port map (
          clk => SLOW_CLOCK,
-         clk2x => CLK,
+         clk2x => CLK1x,
          clk4x => CLK2x,
          reset => reset_ctl,
          hram_en => hram_en,
@@ -640,15 +647,7 @@ begin
          cpu_data <= (others => 'Z');
       end if;
    end process;
-   
-   -- clock divider: create a 50 MHz clock from the 100 MHz input
-   generate_slow_clock : process(CLK)
-   begin
-      if rising_edge(CLK) then
-         SLOW_CLOCK <= not SLOW_CLOCK;
-      end if;
-   end process;
-                    
+                       
    -- wire the simplified color system of the VGA component to the VGA outputs
    VGA_RED   <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
    VGA_GREEN <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;

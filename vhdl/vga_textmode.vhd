@@ -49,8 +49,8 @@ use work.env1_globals.all;
 entity vga_textmode is
 port (
    reset       : in std_logic;     -- async reset
-   clk         : in std_logic;     -- system clock (needs to be a multiple of 50 MHz)
-   clk50MHz    : in std_logic;     -- needs to be a 50 MHz clock
+   clk25MHz    : in std_logic;
+   clk50MHz    : in std_logic;
 
    -- VGA registers
    en          : in std_logic;     -- enable for reading from or writing to the bus
@@ -139,9 +139,6 @@ port (
 );
 end component;
 
--- VGA specific clock, also used for video ram and font rom
-signal clk25MHz            : std_logic;
-
 -- signals for wiring video and font ram with the vga80x40 component
 signal vga_text_a          : std_logic_vector(11 downto 0);
 signal vga_text_d          : std_logic_vector(7 downto 0);
@@ -224,7 +221,7 @@ begin
          DEFAULT_VALUE => x"20"                          -- ACSII code of the space character
       )
       port map (
-         clk => clk,
+         clk => clk50Mhz,
          
          we => vmem_we,
          address_i => vmem_addr,
@@ -338,7 +335,7 @@ begin
       end case;
    end process;
       
-   write_vga_registers : process(clk, reset)
+   write_vga_registers : process(clk50MHz, reset)
       variable vx : IEEE.NUMERIC_STD.unsigned(7 downto 0);
       variable vy : IEEE.NUMERIC_STD.unsigned(6 downto 0);
       variable memory_pos : std_logic_vector(13 downto 0); -- x + (80 * y)
@@ -354,7 +351,7 @@ begin
          offs_display <= (others => '0');
          offs_rw <= (others => '0');
       else                  
-         if falling_edge(clk) then
+         if falling_edge(clk50MHz) then
             if en = '1' and we = '1' then
                case reg is
                   -- status register
@@ -398,12 +395,12 @@ begin
       end if;
    end process;
    
-   detect_vga_print : process(clk, reset, reset_vga_print)
+   detect_vga_print : process(clk50MHz, reset, reset_vga_print)
    begin
       if reset = '1' or reset_vga_print = '1' then
          vga_print <= '0';
       else
-         if falling_edge(clk) then
+         if falling_edge(clk50MHz) then
             if en = '1' and we = '1' and reg = x"3" then         
                vga_print <= '1';
             end if;
@@ -411,12 +408,12 @@ begin
       end if;
    end process;
    
-   detect_vga_clrscr : process(clk, reset, reset_vga_clrscr)
+   detect_vga_clrscr : process(clk50MHz, reset, reset_vga_clrscr)
    begin
       if reset = '1' or reset_vga_clrscr = '1' then
          vga_clrscr <= '0';
       else
-         if falling_edge(clk) then
+         if falling_edge(clk50MHz) then
             if en = '1' and we = '1' and reg = x"0" then
                vga_clrscr <= data(8);
             end if;
@@ -484,8 +481,6 @@ begin
       end if;
    end process;
    
-   clk25MHz <= '0' when reset = '1' else
-               not clk25MHz when rising_edge(clk50MHz);
    pixelclock <= clk25MHz;
    vga_busy <= '0' when vga_cmd = vc_idle else '1';
 end beh;
