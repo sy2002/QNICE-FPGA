@@ -63,8 +63,7 @@ port (
    G           : out std_logic;
    B           : out std_logic;
    hsync       : out std_logic;
-   vsync       : out std_logic;
-   pixelclock  : out std_logic
+   vsync       : out std_logic
 );
 end vga_textmode;
 
@@ -481,6 +480,5 @@ begin
       end if;
    end process;
    
-   pixelclock <= clk25MHz;
    vga_busy <= '0' when vga_cmd = vc_idle else '1';
 end beh;

@@ -135,8 +135,7 @@ port (
    G           : out std_logic;
    B           : out std_logic;
    hsync       : out std_logic;
-   vsync       : out std_logic;
-   pixelclock  : out std_logic
+   vsync       : out std_logic
 );
 end component;
 
@@ -487,7 +486,6 @@ begin
          B => vga_b,
          hsync => VGA_HS,
          vsync => VGA_VS,
-         pixelclock => vdac_clk,
          en => vga_en,
          we => vga_we,
          reg => vga_reg,
@@ -654,6 +652,7 @@ begin
    VGA_BLUE  <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
    vdac_sync_n <= '0';
    vdac_blank_n <= '1';
+   vdac_clk <= clk25MHz;
    
    -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
    -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
