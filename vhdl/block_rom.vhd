@@ -10,14 +10,15 @@ use STD.TEXTIO.ALL;
 entity BROM is
 generic (
    FILE_NAME   : string;
-   ROM_LINES   : integer
+   ROM_LINES   : integer;
+   ROM_WIDTH   : integer := 16
 );
 port (
    clk         : in std_logic;                        -- read and write on rising clock edge
    ce          : in std_logic;                        -- chip enable, when low then high impedance on output
    
    address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
-   data        : out std_logic_vector(15 downto 0);   -- read data
+   data        : out std_logic_vector(ROM_WIDTH - 1 downto 0);   -- read data
    
    -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes high impedance
    -- if not needed (ce = 0) and can therefore directly be connected to a bus
@@ -27,13 +28,13 @@ end BROM;
 
 architecture beh of BROM is
 
-signal output : std_logic_vector(15 downto 0);
+signal output : std_logic_vector(ROM_WIDTH - 1 downto 0);
 
 signal counter : std_logic := '1'; -- important to be initialized to one
 signal address_old : std_logic_vector(14 downto 0) := (others => 'U');
 signal async_reset : std_logic;
 
-type brom_t is array (0 to ROM_LINES - 1) of bit_vector(15 downto 0);
+type brom_t is array (0 to ROM_LINES - 1) of bit_vector(ROM_WIDTH - 1 downto 0);
 
 impure function read_romfile(rom_file_name : in string) return brom_t is
    file     rom_file  : text is in rom_file_name;                       

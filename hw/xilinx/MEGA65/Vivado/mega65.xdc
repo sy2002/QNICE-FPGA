@@ -9,7 +9,7 @@
 
 ## External clock signal (100 MHz)
 set_property -dict {PACKAGE_PIN V13 IOSTANDARD LVCMOS33} [get_ports CLK]
-create_clock -name CLK -period 10.000 [get_ports CLK]
+create_clock -period 10.000 -name CLK [get_ports CLK]
 
 ## Internal clock divider SLOW_CLOCK that creates the 50 MHz used throughout the system
 create_generated_clock -name SLOW_CLOCK -source [get_ports CLK] -divide_by 2 [get_pins SLOW_CLOCK_reg/Q]
@@ -18,16 +18,16 @@ create_generated_clock -name SLOW_CLOCK -source [get_ports CLK] -divide_by 2 [ge
 create_generated_clock -name clk25MHz -source [get_pins SLOW_CLOCK_reg/Q] -divide_by 2 [get_pins vga_screen/clk25MHz_reg/Q]
 
 # The following cross clock domain false path constraints can be uncommented in order to mimic ucf constraints behavior (see message at the beginning of this file)
-# set_false_path -from [get_clocks CLK] -to [get_clocks SLOW_CLOCK]
-# set_false_path -from [get_clocks SLOW_CLOCK] -to [get_clocks CLK]
+#set_false_path -from [get_clocks CLK] -to [get_clocks SLOW_CLOCK]
+#set_false_path -from [get_clocks SLOW_CLOCK] -to [get_clocks CLK]
+#set_false_path -from [get_clocks SLOW_CLOCK] -to [get_clocks clk25MHz]
+#set_false_path -from [get_clocks clk25MHz] -to [get_clocks SLOW_CLOCK]
 
 ## EAE's combinatorial division networks take longer than
 ## the regular clock period, so we specify a timing constraint
 ## for them (see also the comments in EAE.vhd)
 #set_max_delay 32.000 -from [get_cells eae_inst/op*] -to [get_cells eae_inst/res*]
-
-#set_max_delay 32.000 -from [all_fanout -from [get_nets clk_rx] -flat -endpoints_only] -to [all_fanout -from [get_nets clk_tx] -flat -endpoints_only] 5
-
+set_max_delay -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells {eae_inst/res_reg[*]}] 34.000
 
 ## Reset button
 set_property -dict {PACKAGE_PIN M13 IOSTANDARD LVCMOS33} [get_ports RESET_N]
@@ -77,10 +77,10 @@ set_property -dict {PACKAGE_PIN V10  IOSTANDARD LVCMOS33 SLEW FAST} [get_ports v
 set_property -dict {PACKAGE_PIN W11  IOSTANDARD LVCMOS33 SLEW FAST} [get_ports vdac_blank_n]
 
 ## Micro SD Connector (this is the slot at the bottom side of the case under the cover)
-set_property -dict {PACKAGE_PIN B15 IOSTANDARD LVCMOS33} [get_ports SD_RESET]
-set_property -dict {PACKAGE_PIN B17 IOSTANDARD LVCMOS33} [get_ports SD_CLK]
-set_property -dict {PACKAGE_PIN B16 IOSTANDARD LVCMOS33} [get_ports SD_MOSI]
-set_property -dict {PACKAGE_PIN B18 IOSTANDARD LVCMOS33} [get_ports SD_MISO]
+set_property -dict {PACKAGE_PIN B15  IOSTANDARD LVCMOS33} [get_ports SD_RESET]
+set_property -dict {PACKAGE_PIN B17  IOSTANDARD LVCMOS33} [get_ports SD_CLK]
+set_property -dict {PACKAGE_PIN B16  IOSTANDARD LVCMOS33} [get_ports SD_MOSI]
+set_property -dict {PACKAGE_PIN B18  IOSTANDARD LVCMOS33} [get_ports SD_MISO]
 
 ## HyperRAM (standard)
 set_property -dict {PACKAGE_PIN D22 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports hr_clk_p]

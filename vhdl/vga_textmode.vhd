@@ -120,6 +120,25 @@ port (
 );
 end component;
 
+component BROM is
+generic (
+   FILE_NAME   : string;
+   ROM_LINES   : integer;
+   ROM_WIDTH   : integer   
+);
+port (
+   clk         : in std_logic;                        -- read and write on rising clock edge
+   ce          : in std_logic;                        -- chip enable, when low then high impedance on output
+   
+   address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
+   data        : out std_logic_vector(ROM_WIDTH - 1 downto 0);   -- read data
+   
+   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes high impedance
+   -- if not needed (ce = 0) and can therefore directly be connected to a bus
+   busy        : out std_logic                       
+);
+end component;
+
 -- VGA specific clock, also used for video ram and font rom
 signal clk25MHz            : std_logic;
 
@@ -218,21 +237,17 @@ begin
          data2_o => vga_read_data
       );
       
-   font_rom : video_bram
+   font_rom : BROM
       generic map (
-         SIZE_BYTES => 3072,
-         CONTENT_FILE => "lat9w-12_sy2002.rom",
-         FILE_LINES => 3072,
-         DEFAULT_VALUE => x"00"
+         FILE_NAME => "vga/lat9w-12_sy2002.rom",
+         ROM_LINES => 3072,
+         ROM_WIDTH => 8
       )
       port map (
-         clk => clk,
-         we => '0',
-         address1_o => "0000" & vga_font_a,
-         data1_o => vga_font_d,
-         address_i => (others => '0'),
-         data_i => (others => '0'),
-         address2_o => (others => '0')
+         clk => clk25MHz,
+         ce => '1',
+         address => "000" & vga_font_a,
+         data => vga_font_d
       );
          
    fsm_advance_state : process(clk25MHz, reset)
