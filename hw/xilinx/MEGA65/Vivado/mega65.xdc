@@ -24,10 +24,14 @@ set_clock_groups -asynchronous \
 #set_false_path -from [get_clocks clk25MHz] -to [get_clocks SLOW_CLOCK]
 
 ## EAE's combinatorial division networks take longer than
-## the regular clock period, so we specify a timing constraint
-## for them (see also the comments in EAE.vhd)
-#set_max_delay 32.000 -from [get_cells eae_inst/op*] -to [get_cells eae_inst/res*]
-set_max_delay -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells {eae_inst/res_reg[*]}] 34.000
+## the regular clock period, so we specify a multicycle path
+## see also the comments in EAE.vhd and explanations in UG903/chapter 5/Multicycle Paths as well as ug911/page 25
+set_multicycle_path -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells {eae_inst/res_reg[*]}] -setup 3
+set_multicycle_path -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells {eae_inst/res_reg[*]}] -hold 2
+
+## The following set_max delay works fine, too at 50 MHz main clock and is an alternative to the multicycle path
+#set_max_delay -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells {eae_inst/res_reg[*]}] 34.000
+
 
 ## Reset button
 set_property -dict {PACKAGE_PIN M13 IOSTANDARD LVCMOS33} [get_ports RESET_N]
