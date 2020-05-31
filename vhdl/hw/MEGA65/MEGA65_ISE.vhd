@@ -410,7 +410,6 @@ begin
     clkout1_divide   => 8,          --   100 MHz /8
 --    clkout2_divide   => 16,         --   50  MHz /16
     clkout3_divide   => 4          --    200 MHz /4
-    --bandwidth        => "LOW"
   )
   port map
   (
