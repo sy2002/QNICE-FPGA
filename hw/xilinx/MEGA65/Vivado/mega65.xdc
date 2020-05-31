@@ -1,28 +1,16 @@
 ## MEGA65 mapping for QNICE-FPGA
 ## done by sy2002 in April and May 2020
 
-# In xdc, all clocks are related by default. This differs from ucf, where clocks are
-# unrelated unless specified otherwise. As a result, you may now see cross-clock paths
-# that were previously unconstrained in ucf. Commented out xdc false path constraints
-# have been generated and can be uncommented, should you wish to remove these new paths.
-# These commands are located after the last clock definition
-
 ## External clock signal (100 MHz)
 set_property -dict {PACKAGE_PIN V13 IOSTANDARD LVCMOS33} [get_ports CLK]
 create_clock -period 10.000 -name CLK [get_ports CLK]
 
 ## Make the general clocks and the pixelclock unrelated to other to avoid erroneous timing
-## violations, and hopefully make everything synthesise faster.
+## violations, and hopefully make everything synthesise faster
 set_clock_groups -asynchronous \
      -group { CLK CLK1x CLK2x CLKFBIN SLOW_CLOCK } \
      -group [get_clocks -of_objects [get_pins clk_main/CLKOUT0]]
      
-# The following cross clock domain false path constraints can be uncommented in order to mimic ucf constraints behavior (see message at the beginning of this file)
-#set_false_path -from [get_clocks CLK] -to [get_clocks SLOW_CLOCK]
-#set_false_path -from [get_clocks SLOW_CLOCK] -to [get_clocks CLK]
-#set_false_path -from [get_clocks SLOW_CLOCK] -to [get_clocks clk25MHz]
-#set_false_path -from [get_clocks clk25MHz] -to [get_clocks SLOW_CLOCK]
-
 ## EAE's combinatorial division networks take longer than
 ## the regular clock period, so we specify a multicycle path
 ## see also the comments in EAE.vhd and explanations in UG903/chapter 5/Multicycle Paths as well as ug911/page 25
@@ -31,7 +19,6 @@ set_multicycle_path -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]
 
 ## The following set_max delay works fine, too at 50 MHz main clock and is an alternative to the multicycle path
 #set_max_delay -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells {eae_inst/res_reg[*]}] 34.000
-
 
 ## Reset button
 set_property -dict {PACKAGE_PIN M13 IOSTANDARD LVCMOS33} [get_ports RESET_N]

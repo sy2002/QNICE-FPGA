@@ -372,13 +372,13 @@ signal vga_r                  : std_logic;
 signal vga_g                  : std_logic;
 signal vga_b                  : std_logic;
 
--- 50 MHz as long as we did not solve the timing issues of the register file
+-- Main clock: 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic;
 
--- Fast clocks for HRAM
+-- Pixelclock and fast clock for HRAM
 signal CLK1x                  : std_logic;   -- 100 MHz clock created by mmcme2 for congruent phase
 signal CLK2x                  : std_logic;   -- 4x SLOW_CLOCK = 200 MHz
-signal clk25MHz               : std_logic;
+signal clk25MHz               : std_logic;   -- 25.175 MHz pixelclock for 640x480 @ 60 Hz
 signal pll_locked_main        : std_logic;
 signal clk_fb_main            : std_logic;
 
@@ -404,7 +404,6 @@ begin
     clkout1_divide   => 8,          --   100 MHz /8
     clkout2_divide   => 16,         --   50  MHz /16
     clkout3_divide   => 4          --    200 MHz /4
-    --bandwidth        => "LOW"
   )
   port map
   (
