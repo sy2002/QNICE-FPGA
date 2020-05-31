@@ -1,7 +1,7 @@
 -- 80x40 Textmode VGA
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
 -- tristate outputs go high impedance when not enabled
--- done by sy2002 in December 2015/January 2016
+-- done by sy2002 in December 2015/January 2016, refactored in Mai/June 2020
 
 -- Features:
 -- * 80x40 text mode
@@ -98,22 +98,19 @@ port (
 );   
 end component;
 
-component video_bram
+component video_bram is
 generic (
-   SIZE_BYTES     : integer;    -- size of the RAM/ROM in bytes
-   CONTENT_FILE   : string;     -- if not empty then a prefilled RAM ("ROM") from a .rom file is generated
-   FILE_LINES     : integer;    -- size of the content file in lines (files may be smaller than the RAM/ROM size)   
-   DEFAULT_VALUE  : bit_vector  -- default value to fill the memory with
+   SIZE_BYTES     : integer
 );
 port (
-   clk            : in std_logic;
-
+   clk1           : in std_logic;
    we             : in std_logic;   
    address_i      : in std_logic_vector(15 downto 0);
    data_i         : in std_logic_vector(7 downto 0);
-
    address1_o     : in std_logic_vector(15 downto 0);
    data1_o        : out std_logic_vector(7 downto 0);
+
+   clk2           : in std_logic;
    address2_o     : in std_logic_vector(15 downto 0);
    data2_o        : out std_logic_vector(7 downto 0)
 );
@@ -211,28 +208,24 @@ begin
          ocry => "0" & vga_y,
          octl => vga_ctl
       );
-
+      
    video_ram : video_bram
       generic map (
-         SIZE_BYTES => VGA_RAM_SIZE,                     -- see env1_globals.vhd
-         CONTENT_FILE => "../vga_textmode.vhd",          -- dummy file that is not read ...
-         FILE_LINES => 0,                                -- ... because FILE_LINES = 0
-         DEFAULT_VALUE => x"20"                          -- ACSII code of the space character
+         SIZE_BYTES => VGA_RAM_SIZE
       )
       port map (
-         clk => clk50Mhz,
-         
+         clk1 => clk50Mhz,
          we => vmem_we,
          address_i => vmem_addr,
          data_i => vmem_data,
+         address1_o => print_addr_w_offs,
+         data1_o => vga_read_data,
          
-         address1_o => vmem_disp_addr,
-         data1_o => vga_text_d,
-         
-         address2_o => print_addr_w_offs,
-         data2_o => vga_read_data
+         clk2 => clk25Mhz,
+         address2_o => vmem_disp_addr,
+         data2_o => vga_text_d                  
       );
-      
+       
    font_rom : BROM
       generic map (
          FILE_NAME => "vga/lat9w-12_sy2002.rom",
@@ -246,13 +239,13 @@ begin
          data => vga_font_d
       );
          
-   fsm_advance_state : process(clk25MHz, reset)
+   fsm_advance_state : process(clk50MHz, reset)
    begin
       if reset = '1' then
          vga_cmd <= vc_idle;
          clrscr_cnt <= (others => '0');
       else
-         if falling_edge(clk25MHz) then
+         if falling_edge(clk50MHz) then
             vga_cmd <= fsm_next_vga_cmd;
             clrscr_cnt <= fsm_clrscr_cnt;
          end if;

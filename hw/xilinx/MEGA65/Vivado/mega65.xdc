@@ -11,6 +11,12 @@
 set_property -dict {PACKAGE_PIN V13 IOSTANDARD LVCMOS33} [get_ports CLK]
 create_clock -period 10.000 -name CLK [get_ports CLK]
 
+## Make the general clocks and the pixelclock unrelated to other to avoid erroneous timing
+## violations, and hopefully make everything synthesise faster.
+set_clock_groups -asynchronous \
+     -group { CLK CLK1x CLK2x CLKFBIN SLOW_CLOCK } \
+     -group [get_clocks -of_objects [get_pins clk_main/CLKOUT0]]
+     
 # The following cross clock domain false path constraints can be uncommented in order to mimic ucf constraints behavior (see message at the beginning of this file)
 #set_false_path -from [get_clocks CLK] -to [get_clocks SLOW_CLOCK]
 #set_false_path -from [get_clocks SLOW_CLOCK] -to [get_clocks CLK]

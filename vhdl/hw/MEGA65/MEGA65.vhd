@@ -400,10 +400,10 @@ begin
     clkin1_period    => 10.0,       --   100 MHz (10 ns)
     clkfbout_mult_f  => 8.0,        --   800 MHz common multiply
     divclk_divide    => 1,          --   800 MHz /1 common divide to stay within 600MHz-1600MHz range
-    clkout0_divide_f => 4.0,        --   200 MHz /4.0
+    clkout0_divide_f => 31.7775571, --   25.175 MHz / 31.7775571 == pixelclock
     clkout1_divide   => 8,          --   100 MHz /8
     clkout2_divide   => 16,         --   50  MHz /16
-    clkout3_divide   => 32          --   25  MHz /32
+    clkout3_divide   => 4          --    200 MHz /4
     --bandwidth        => "LOW"
   )
   port map
@@ -413,10 +413,10 @@ begin
     clkin1   => CLK,
     clkfbin  => clk_fb_main,
     clkfbout => clk_fb_main,
-    clkout0  => CLK2x,              --  200 MHz
+    clkout0  => clk25MHz,           --  pixelclock
     clkout1  => CLK1x,              --  100 MHz
     clkout2  => SLOW_CLOCK,         --  50 MHz
-    clkout3  => clk25MHz,
+    clkout3  => CLK2x,              --  200 MHz
     locked   => pll_locked_main
   );
 
