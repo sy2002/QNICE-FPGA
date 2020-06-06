@@ -8,8 +8,8 @@ This folder contains the FPGA vendor specific and board (hardware instance)
 specific files necessary to synthesize the QNICE-FPGA bitstream. Currently
 we are supporting these vendor/board/toolchain combinations:
 
-* Xilinx: Nexys4 DDR and Nexys A7 using Vivado or ISE
-* Xilinx: MEGA65 using Vivado or ISE
+* Xilinx: **Nexys4 DDR** and **Nexys A7** using Vivado or ISE
+* Xilinx: **MEGA65** using Vivado or ISE
 
 Scroll down to the respective section learn more about a particular supported
 combinations. And if your hardware is not included here, please read on
