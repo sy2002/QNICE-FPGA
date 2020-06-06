@@ -36,6 +36,8 @@ Out of the box, this repository contains support for the
 development boards as well as for the
 [MEGA65](hw/README.md#mega65).
 
+| Nexys4 DDR and Nexys A7     | MEGA65                   |
+|-----------------------------|--------------------------|
 |![](doc/github/nexys4ddr.jpg)|![](doc/github/mega65.jpg)|
 
 Getting Started
