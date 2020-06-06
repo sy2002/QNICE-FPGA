@@ -73,6 +73,19 @@ The MEGA65 is an open source / open hardware project available
 "Cores", which means that you can upload your own hardware to MEGA65's FPGA,
 which is a Xilinx Artix-7 in a `xc7a100tfgg484` package.
 
+Hint: ISE or Vivado bitstreams (`.bit` files) need to be converted into
+MEGA65 Cores (`.cor` files) by using the `tools/bit2cor` tool.
+
+### ISE 14.7
+
+Use the project `hw/xilinx/MEGA65/ISE/QNICE-MEGA65.xise` to synthesize
+for MEGA65 using ISE.
+
+### Vivado 2019.2 (or newer)
+
+Use the project `hw/xilinx/MEGA65/Vivado/MEGA65.xpr` to synthesize for MEGA65
+using Vivado.
+
 ### TODO how to make a core: use tools/bit2core
 
 ... ISE config derived from several xcd commands
