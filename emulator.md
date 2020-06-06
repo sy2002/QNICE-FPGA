@@ -8,7 +8,7 @@ wasm: true
 
 <br>
 This is the online version of the
-[QNICE emulator](https://github.com/sy2002/QNICE-FPGA/tree/master/emulator).
+[QNICE emulator](https://github.com/sy2002/QNICE-FPGA/blob/master/emulator/README.md).
 It uses WebAssembly and WebGL, so if you are not seeing a `QMON>` prompt
 and a blinking cursor above, then your web browser probably does not support
 these technologies. You might want to use the native offline version in this
