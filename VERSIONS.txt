@@ -1,7 +1,7 @@
 Version 1.6     xxxxx, 22 2020
 ==============================
 
-<explain qtransfer somewhere>
+<explain qtransfer and bit2core somewhere>
 
 <improve README.md and explain briefly the folder structure (in a table) and
 the meaning: e.g. "Monitor" is the operating system. It offers IO functions,
@@ -22,7 +22,7 @@ WIP * TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
 TODO * EMULATOR: <todo write explanation and reference to
   https://github.com/emscripten-core/emscripten/issues/10746
   and update make-wasm.bash>
-  
+
 TODO * DOCUMENTATION: Added README.md with basic documentation
 <describe at least: Nexys Switches, MEGA65 specialities (German umlauts when
 DE locale is on (still y=y, should be mentioned)), restructure the README.md
@@ -58,6 +58,9 @@ under Ubuntu. Shorten the list to some more generic statements before releasing:
 assembler/asm script now works under Linux
 you might want to install xclip for more convenience (.out copied to clipboard after assembler ran)
 >
+
+<share a working Q-TRIS core with the MEGA community. maybe even a graphically
+enhanced version using the animations via HyperRAM as a HyperRAM PoC?>
 
 Version 1.5     March, 22 2020
 ==============================

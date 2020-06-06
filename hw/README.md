@@ -8,11 +8,12 @@ This folder contains the FPGA vendor specific and board (hardware instance)
 specific files necessary to synthesize the QNICE-FPGA bitstream. Currently
 we are supporting these vendor/board/toolchain combinations:
 
-* Xilinx: Nexys4 DDR and NexysA7 using Vivado or ISE
+* Xilinx: Nexys4 DDR and Nexys A7 using Vivado or ISE
 * Xilinx: MEGA65 using Vivado or ISE
 
-If your hardware is not included here, please read on at the next section:
-"General advise for porting".
+Scroll down to the respective section learn more about a particular supported
+combinations. And if your hardware is not included here, please read on
+at the next section: "General advise for porting".
 
 The structure of this folder is:
 
@@ -104,8 +105,7 @@ Vivado is the successor of ISE. Even though ISE can still be downloaded for
 free from Xilinx as the time of writing, Vivado is way to go when developing
 for Xilinx FPGAs. So we made a port of QNIEC-FPGA to Vivado, which you can
 [download here](https://www.xilinx.com/support/download.html); we recommend
-to use the "HLx Editions" and the free Vivado WebPACK license is sufficient
-for working with QNICE-FPGA.
+to use the "HLx Editions" with the free Vivado WebPACK license.
 Open the project `hw/xilinx/nexys4ddr/Vivado/qnice_nexys.xpr`
 to synthesize using Vivado.
 
