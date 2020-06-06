@@ -41,6 +41,8 @@ we know, the sucessor
 is compatible, so we currently assume, that you can use the Nexys 4 DDR
 IDE files to also synthesize for the Nexys A7.
 
+The top file for this platform is [env1.vhd](../vhdl/hw/nexys4ddr/env1.vhd).
+
 ### ISE 14.7
 
 We created the original QNICE-FPGA using
@@ -85,6 +87,13 @@ for MEGA65 using ISE. The bitstream format is already configured to be
 compatible with MEGA65 Cores. Right-click "Generate Programming File" in 
 ISE's process view and choose "Process Properties" to learn more.
 
+The top file for MEGA65 using ISE is
+[MEGA65_ISE.vhd](../vhdl/hw/MEGA65/MEGA65_ISE.vhd). For some reason ISE is
+not able to synthesize the design using a Xilinx specific MMCME clock
+generator for generating the 50 MHz `SLOW_CLOCK`. So we use a simple
+clock divider. This is the only difference between the ISE and the Vivado
+version of the top file.
+
 ### Vivado 2019.2 (or newer)
 
 Use the project `hw/xilinx/MEGA65/Vivado/MEGA65.xpr` to synthesize for MEGA65
@@ -92,6 +101,9 @@ using Vivado. The bitstream format is already configured to be compatible
 with MEGA65 Cores. Look at the
 [XDC file](../hw/xilinx/MEGA65/Vivado/mega65.xdc), section
 "## Configuration and Bitstream properties" to learn more.
+
+The top file for MEGA65 using Vivado is
+[MEGA65_Vivado.vhd](../vhdl/hw/MEGA65/MEGA65_Vivado.vhd).
 
 ### Porting Notes
 
@@ -103,7 +115,7 @@ with MEGA65 Cores. Look at the
   vdac_blank_n <= '1';
   ```
 * The MEGA65 keyboard is accessed via a smart controller which is implemented
-  on a CPLD. Additionally, the MEGA65 supports 8MB HyperRAM by default.
+  on a CPLD. Additionally, the MEGA65 supports 8MB of HyperRAM by default.
   Both components are accessed using specific Core-FPGA pins and we are
   reusing original MEGA65 VHDL to implement the necessary
   hardware driver components. Go to the
