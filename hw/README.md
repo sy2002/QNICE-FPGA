@@ -122,6 +122,12 @@ The top file for MEGA65 using Vivado is
   [README.md in vhdl/hw/MEGA65/drivers](../vhdl/hw/MEGA65/drivers/README.md)
   to learn more.
 
+* The routing of STDIN/STDOUT
+  (as described [here](@TODO))
+  that is done via the physical switches 0 and 1 on a Nexys board is done
+  via special `RESTORE` key combinations
+  (as described [here](@TODO)).
+
 General advise for porting
 --------------------------
 

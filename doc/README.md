@@ -1,12 +1,23 @@
 QNICE-FPGA: Overview
 ====================
 
+
+
 As an intro, mention the hardware that QNICE-FPGA is able to run on with
 some nice pictures.
 
 Explain folder structure in main folder and also here in the doc folder.
 
 Explain what the Monitor is (operating system)
+
+Data transfer via SD Card and via a serial connection (link to the
+description in the getting started section and point out to the qtransfer
+system as an alternative)
+
+Explain how you can route STDIN/STDOUT using the switch register, which can
+be implemented differently on different hardware: Nexys4 DDR/Nexys A7:
+physical switches. MEGA65: RESTORE key combinations. As soon as done:
+update @TODO in README.md in hw folder to link here.
 
 MEGA65
 ------

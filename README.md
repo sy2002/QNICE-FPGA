@@ -22,6 +22,23 @@ system-on-a-chip in portable VHDL on a FPGA. Specifications:
 
 The main purpose of QNICE-FPGA is learning, teaching and having fun.
 
+Platforms
+---------
+
+Due to the portable nature of the way this project has been developed,
+QNICE-FPGA is able to run on any sufficiently powerful FPGA platform.
+Additionally, there is an
+[emulator](emulator/README.md) available for macOS, Linux and
+[WebGL](https://qnice-fpga.com/emulator.html).
+
+Out of the box, this repository contains support for the
+[Nexys4 DDR and Nexys A7](hw/README.md#nexys-4-ddr-and-nexys-a7)
+development boards as well as for the
+[MEGA65](hw/README.md#mega65).
+
+-------------|--------------
+![](doc/gitub/doc/github/nexys4ddr.jpg)|![](doc/github/mega65.jpg)
+
 Getting Started
 ---------------
 
