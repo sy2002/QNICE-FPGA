@@ -26,12 +26,12 @@ Folder Structure
 
 | Folder name   | Description
 |---------------|------------------------------------------------------------
-| assembler     | 
-| c             |
-| demos         |
-| dist_kit      |
-| doc           |
-| emulator      |
+| assembler     | Native QNICE assembler: Main file is `qasm.c`. You usually call it via the script `asm`, which utilizes the C preprocessor.
+| c             | C programming environment based on the vbcc compiler system. You need to activate `setenv.source` (e.g. via `source`) to use it. The subfolder `test_programs` contains experiments and demos written in C.
+| demos         | QNICE demos written in assembler. Most noteworthy is `q-tris.asm`.
+| dist_kit      | Distribution Kit: Contains standard include files for assembler and C as well as ready-made bitstreams and MEGA Core files
+| doc           | Documentation: See explanation of file and folder structure below.
+| emulator      | Emulator: Learn more via [emulator/README.md](../emulator/README.md)
 | hw            |
 | monitor       |
 | pore          |
