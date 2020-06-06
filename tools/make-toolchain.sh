@@ -2,6 +2,8 @@
 
 source ./detect.include
 
+$COMPILER bit2core.c -O3 -o bit2core
+
 cd ..
 $COMPILER assembler/qasm.c -o assembler/qasm
 $COMPILER assembler/qasm2rom.c -o assembler/qasm2rom -std=c99

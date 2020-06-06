@@ -112,7 +112,7 @@ to synthesize using Vivado.
 MEGA65
 ------
 
-### TODO how to make a core
+### TODO how to make a core: use tools/bit2core
 
 ... ISE config derived from several xcd commands
 
