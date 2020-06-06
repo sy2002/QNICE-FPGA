@@ -8,6 +8,13 @@ hw/xilinx/nexys4ddr/ISE/iseconfig
 hw/xilinx/nexys4ddr/ISE/_xmsgs
 hw/xilinx/nexys4ddr/ISE/env1.gise
 hw/xilinx/nexys4ddr/ISE/env1_summary.html
+hw/xilinx/nexys4ddr/Vivado/*.jou
+hw/xilinx/nexys4ddr/Vivado/*.str
+hw/xilinx/nexys4ddr/Vivado/*.cache
+hw/xilinx/nexys4ddr/Vivado/*.hw
+hw/xilinx/nexys4ddr/Vivado/*.ip_user_files
+hw/xilinx/nexys4ddr/Vivado/*.runs
+hw/xilinx/nexys4ddr/Vivado/.Xil
 hw/xilinx/MEGA65/ISE/work
 hw/xilinx/MEGA65/ISE/iseconfig
 hw/xilinx/MEGA65/ISE/webtalk_impact.xml

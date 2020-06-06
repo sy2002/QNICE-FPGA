@@ -5,8 +5,13 @@ We created QNICE-FPGA as a portable System-on-a-Chip, so that it should be
 possible to synthesize it for any suitably powerful FPGA board.
 
 This folder contains the FPGA vendor specific and board (hardware instance)
-specific files necessary to synthesize the QNICE-FPGA bitstream. If your
-hardware is not included here, please read on at the next section:
+specific files necessary to synthesize the QNICE-FPGA bitstream. Currently
+we are supporting these vendor/board/toolchain combinations:
+
+* Xilinx: Nexys4 DDR and NexysA7 using Vivado or ISE
+* Xilinx: MEGA65 using Vivado or ISE
+
+If your hardware is not included here, please read on at the next section:
 "General advise for porting".
 
 The structure of this folder is:
