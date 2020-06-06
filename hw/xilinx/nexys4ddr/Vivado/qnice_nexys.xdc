@@ -5,6 +5,9 @@
 set_property -dict {PACKAGE_PIN E3 IOSTANDARD LVCMOS33} [get_ports CLK]
 create_clock -period 10.000 -name CLK [get_ports CLK]
 
+## Internal clock divider SLOW_CLOCK that creates the 50 MHz used throughout the system
+create_generated_clock -name SLOW_CLOCK -source [get_ports CLK] -divide_by 2 [get_pins SLOW_CLOCK_reg/Q]
+
 ## Make the general clocks and the pixelclock unrelated to other to avoid erroneous timing
 ## violations, and hopefully make everything synthesise faster
 set_clock_groups -asynchronous \
