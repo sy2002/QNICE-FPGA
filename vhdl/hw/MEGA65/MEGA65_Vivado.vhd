@@ -651,7 +651,12 @@ begin
    VGA_BLUE  <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
    vdac_sync_n <= '0';
    vdac_blank_n <= '1';
-   vdac_clk <= clk25MHz;
+   
+   -- Fix of the Vivado induced "blurry VGA screen":
+   -- As of the  time writing this (June 2020): it is absolutely unclear for me, why I need to
+   -- invert the phase of the vdac_clk when use Vivado 2019.2. When using ISE 14.7, it works
+   -- fine without the phase shift.
+   vdac_clk <= not clk25MHz;
    
    -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
    -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
