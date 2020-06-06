@@ -74,17 +74,24 @@ The MEGA65 is an open source / open hardware project available
 which is a Xilinx Artix-7 in a `xc7a100tfgg484` package.
 
 Hint: ISE or Vivado bitstreams (`.bit` files) need to be converted into
-MEGA65 Cores (`.cor` files) by using the `tools/bit2cor` tool.
+MEGA65 Cores (`.cor` files) by using the `tools/bit2core` tool. The bitstream
+needs to be in a specific format as described [here](../tools/bit2core.c#L16)
+to work as a Core on the MEGA65.
 
 ### ISE 14.7
 
 Use the project `hw/xilinx/MEGA65/ISE/QNICE-MEGA65.xise` to synthesize
-for MEGA65 using ISE.
+for MEGA65 using ISE. The bitstream format is already configured to be
+compatible with MEGA65 Cores. Right-click "Generate Programming File" in 
+ISE's process view and choose "Process Properties" to learn more.
 
 ### Vivado 2019.2 (or newer)
 
 Use the project `hw/xilinx/MEGA65/Vivado/MEGA65.xpr` to synthesize for MEGA65
-using Vivado.
+using Vivado. The bitstream format is already configured to be compatible
+with MEGA65 Cores. Look at the
+[XDC file](../hw/xilinx/MEGA65/Vivado/mega65.xdc), section
+"## Configuration and Bitstream properties" to learn more.
 
 ### TODO how to make a core: use tools/bit2core
 
