@@ -88,18 +88,26 @@ Currently, our reference development board is a
 which has been retired by Nexys but you can still get it on eBay. As far as
 we know, the sucessor
 [Nexys A7](https://store.digilentinc.com/nexys-a7-fpga-trainer-board-recommended-for-ece-curriculum/)
-is quite compatible, so we currently assume, that you can use the Nexys 4 DDR
+is compatible, so we currently assume, that you can use the Nexys 4 DDR
 IDE files to also synthesize for the Nexys A7.
 
 ### ISE 14.7
 
 We created the original QNICE-FPGA using
 [Xilinx' ISE 14.7](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/archive-ise.html).
+The free ISE WebPACK license is sufficient for working with QNICE-FPGA.
 Open the project `hw/xilinx/nexys4ddr/ISE/env1.xise` to synthesize using ISE.
 
-### Vivado <Version>
+### Vivado 2019.2 (or newer)
 
-Work in progress ...  `xilinx/nexys4ddr/Vivado`
+Vivado is the successor of ISE. Even though ISE can still be downloaded for
+free from Xilinx as the time of writing, Vivado is way to go when developing
+for Xilinx FPGAs. So we made a port of QNIEC-FPGA to Vivado, which you can
+[download here](https://www.xilinx.com/support/download.html); we recommend
+to use the "HLx Editions" and the free Vivado WebPACK license is sufficient
+for working with QNICE-FPGA.
+Open the project `hw/xilinx/nexys4ddr/Vivado/qnice_nexys.xpr`
+to synthesize using Vivado.
 
 MEGA65
 ------
