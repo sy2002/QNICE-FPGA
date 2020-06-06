@@ -1,9 +1,9 @@
 ----------------------------------------------------------------------------------
--- @TODO: find name for the overall computer system (QBM-1?)
+-- QNICE-FPGA on a Nexys4 DDR board
 --
 -- Top Module for synthesizing the whole machine
--- 
--- done on-again-off-again in 2015, 2016 by sy2002
+--
+-- done on-again-off-again in 2015, 2016, 2020 by sy2002
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -11,6 +11,13 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 use work.env1_globals.all;
+
+-- UNISIM is used for the Xilinx specific clock generator MMCME. 
+-- Comment everything about it out and comment in below-mentioned "generate_clk25MHz" process
+-- to port this top file to another hardware and for more details refer to the file
+-- "hw/README.md" section "General advise for porting"
+library UNISIM;
+use UNISIM.VCOMPONENTS.ALL;
 
 entity env1 is
 port (
@@ -107,24 +114,24 @@ port (
 end component;
 
 -- VGA 80x40 monoschrome screen
-component vga_textmode
+component vga_textmode is
 port (
-   reset    : in  std_logic;     -- async reset
-   clk      : in std_logic;      -- system clock
-   clk50MHz : in  std_logic;     -- needs to be a 50 MHz clock
+   reset       : in std_logic;     -- async reset
+   clk25MHz    : in std_logic;
+   clk50MHz    : in std_logic;
 
    -- VGA registers
-   en       : in std_logic;     -- enable for reading from or writing to the bus
-   we       : in std_logic;     -- write to VGA's registers via system's data bus
-   reg      : in std_logic_vector(3 downto 0);     -- register selector
-   data     : inout std_logic_vector(15 downto 0); -- system's data bus
+   en          : in std_logic;     -- enable for reading from or writing to the bus
+   we          : in std_logic;     -- write to VGA's registers via system's data bus
+   reg         : in std_logic_vector(3 downto 0);     -- register selector
+   data        : inout std_logic_vector(15 downto 0); -- system's data bus
    
-   -- VGA signals, monochrome only
-   R        : out std_logic;
-   G        : out std_logic;
-   B        : out std_logic;
-   hsync    : out std_logic;
-   vsync    : out std_logic
+   -- VGA output signals, monochrome only
+   R           : out std_logic;
+   G           : out std_logic;
+   B           : out std_logic;
+   hsync       : out std_logic;
+   vsync       : out std_logic
 );
 end component;
 
@@ -338,6 +345,16 @@ signal vga_b                  : std_logic;
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
 
+-- 25 MHz or 25.175 MHz pixelclock for VGA
+-- The 25.175 MHz pixelclock creates a much sharper image on most monitors, but the
+-- code for creating it is not as portable as the 25 MHz code (which is a simple clock divider)
+-- Have a look at hw/README.md "General advise for porting"
+signal clk25MHz               : std_logic := '0';
+
+-- MMCME related signals
+signal clk_fb_main            : std_logic;
+signal pll_locked_main        : std_logic;
+
 -- combined pre- and post pore reset
 signal reset_ctl              : std_logic;
 
@@ -346,6 +363,28 @@ signal i_til_reg0_enable      : std_logic;
 signal i_til_data_in          : std_logic_vector(15 downto 0);
 
 begin
+
+  -- Non portable (Xilinx specific) way to generate the 25.175 MHz pixel clock
+  -- Comment out and replace by the below-mentioned process "generate_clk25MHz"
+  -- if you want to be portable and have a look at hw/README.md "General advise for porting"
+  clk_main: mmcme2_base
+  generic map
+  (
+    clkin1_period    => 10.0,       --   100 MHz (10 ns)
+    clkfbout_mult_f  => 8.0,        --   800 MHz common multiply
+    divclk_divide    => 1,          --   800 MHz /1 common divide to stay within 600MHz-1600MHz range
+    clkout0_divide_f => 31.7775571  --   25.175 MHz / 31.7775571 == pixelclock
+  )
+  port map
+  (
+    pwrdwn   => '0',
+    rst      => '0',
+    clkin1   => CLK,
+    clkfbin  => clk_fb_main,
+    clkfbout => clk_fb_main,
+    clkout0  => clk25MHz,           --  pixelclock
+    locked   => pll_locked_main
+  );
 
    -- QNICE CPU
    cpu : QNICE_CPU
@@ -402,11 +441,11 @@ begin
          busy        => pore_rom_busy
       );
                  
-   -- VGA: 80x40 textmode VGA adaptor
+   -- VGA: 80x40 textmode VGA adaptor   
    vga_screen : vga_textmode
       port map (
          reset => reset_ctl,
-         clk => SLOW_CLOCK,
+         clk25MHz => clk25MHz,
          clk50MHz => SLOW_CLOCK,
          R => vga_r,
          G => vga_g,
@@ -558,8 +597,16 @@ begin
    begin
       if rising_edge(CLK) then
          SLOW_CLOCK <= not SLOW_CLOCK;
-      end if;
+      end if;      
    end process;
+   
+   -- clock divider of the clock divider: create a 25 MHz clock from the 50 MHz clock
+--   generate_clk25MHz : process(SLOW_CLOCK)
+--   begin
+--      if rising_edge(SLOW_CLOCK) then
+--         clk25MHz <= not clk25MHz;
+--      end if;
+--   end process;
        
    -- debug mode handling: if switch 2 is on then:
    --   show the current cpu address in realtime on the LEDs

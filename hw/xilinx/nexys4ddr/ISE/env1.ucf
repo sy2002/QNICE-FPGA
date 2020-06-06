@@ -1,20 +1,27 @@
-## Nexys 4 DDR specific mapping of "QNICE-FPGA Environment 1"
+## Nexys 4 DDR specific mapping of QNICE-FPGA
 ## done by sy2002 in 2015, 2016
 
-## Clock signal
+## Hardware's 100 MHz clock signal (input)
 NET "CLK"                  LOC = E3  | IOSTANDARD = "LVCMOS33";
 NET "CLK" TNM_NET = sys_clk_pin;
 TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 100 MHz HIGH 50%; 
 
+## QNICE-FPGA main clock: 50 MHz
 NET "SLOW_CLOCK" TNM_NET = SLOW_CLOCK;
 TIMESPEC TS_SLOW_CLOCK = PERIOD "SLOW_CLOCK" 50 MHz HIGH 50%;
+
+## VGA pixelclock: 25 MHz
+## comment this in, if you want to be portable and are not using
+## the Xilinx specific MMCME (see also hw/README.md "General advise for porting"
+#NET "clk25MHz" TNM_NET = clk25MHz;
+#TIMESPEC TS_clk25MHz = PERIOD "clk25MHz" 25 MHz HIGH 50%;
 
 ## EAE's combinatorial division networks take longer than
 ## the regular clock period, so we specify a timing constraint
 ## for them (see also the comments in EAE.vhd)
 INST "eae_inst/op*" TNM="EAE_OPS";
 INST "eae_inst/res*" TNM="EAE_RES";
-TIMESPEC TS_EAE=FROM "EAE_OPS" TO "EAE_RES" 32 ns;
+TIMESPEC TS_EAE=FROM "EAE_OPS" TO "EAE_RES" 34 ns;
 
 ## Reset button
 NET "RESET_N"              LOC = C12 | IOSTANDARD = LVCMOS33;

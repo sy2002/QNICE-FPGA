@@ -1,9 +1,5 @@
 HARDWARE:
 
-* Split device dependent VHDL code (e.g. TIL) from IDE/Toolchain dependent
-  files, so that we are prepared for porting QNICE to other FPGA architectures
-  and for being able to have a Xilinx ISE and a Xilinx Vivado version.
-
 * SD Cards: Writing.
 
 * SD Cards: Replace SPI access by native access and by doing so, achieve
@@ -41,12 +37,15 @@ HARDWARE:
     for div and mod takes about 30ns to execute, therefore it is buffered
     in the FF "res")
 
+* Add pipelining to the CPU
+  + Create a comprehensive CPU testsuite first
+  + Create comprehensive measurement mechanisms first, so that we can
+    measure the speedup ("before/after")
+
 * PS/2: Refactor scancode conversion to be more table/ROM like and less
   like a huge array of multiplexers
 
 * Refactor TIL and TIL Mask to support 8 digits / 32 bits
-
-* Refactor Video RAM: avoid inferring two RAMs for video RAM
 
 * VGA being able to report the vertical retrace for flicker-free graphics,
   e.g. for being able to enhance Q-TRIS to work double-buffered and to
@@ -77,6 +76,7 @@ MEGA65 HARDWARE:
 * Support HDMI
 
 * Support somehow this mega cool floppy drive
+
 
 MONITOR:
 

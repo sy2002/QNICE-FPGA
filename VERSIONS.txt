@@ -1,6 +1,13 @@
 Version 1.6     xxxxx, 22 2020
 ==============================
 
+<explain qtransfer somewhere>
+
+<improve README.md and explain briefly the folder structure (in a table) and
+the meaning: e.g. "Monitor" is the operating system. It offers IO functions,
+math functions, ...  "dist_kit" is the distribution kit. It contains headers
+for programming and, ...>
+
 <rename QNICE @ MEGA65 in boot message; have some general QNICE #ifdefs?>
 <added a 32 Byte FIFO to the UART. This makes RTS/CTS unnecessary in most
 cases; did that because MEGA65 does not have RTS/CTS (mention that in the
@@ -8,11 +15,14 @@ porting notes) write some docu somewhere: for being on the safe side RTS/CTS is
 good; TODO: test, if RTS/CTS still works on Nexys4 DDR: might be just the other way round than implemented>
 
 WIP * MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
+
 WIP * TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
   Structured all hardware dependencies in the new folder 'hw'.
+
 TODO * EMULATOR: <todo write explanation and reference to
   https://github.com/emscripten-core/emscripten/issues/10746
   and update make-wasm.bash>
+  
 TODO * DOCUMENTATION: Added README.md with basic documentation
 <describe at least: Nexys Switches, MEGA65 specialities (German umlauts when
 DE locale is on (still y=y, should be mentioned)), restructure the README.md
