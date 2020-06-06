@@ -1,10 +1,10 @@
 QNICE-FPGA: Overview
 ====================
 
-
-
 As an intro, mention the hardware that QNICE-FPGA is able to run on with
 some nice pictures.
+
+Also mention the emulator and link to it.
 
 Explain folder structure in main folder and also here in the doc folder.
 
@@ -18,6 +18,27 @@ Explain how you can route STDIN/STDOUT using the switch register, which can
 be implemented differently on different hardware: Nexys4 DDR/Nexys A7:
 physical switches. MEGA65: RESTORE key combinations. As soon as done:
 update @TODO in README.md in hw folder to link here.
+
+Folder Structure
+----------------
+
+### QNICE-FPGA Root Folder
+
+| Folder name   | Description
+|---------------|------------------------------------------------------------
+| assembler     | 
+| c             |
+| demos         |
+| dist_kit      |
+| doc           |
+| emulator      |
+| hw            |
+| monitor       |
+| pore          |
+| qbin          |
+| test_programs |
+| tools         |
+| vhdl          |
 
 MEGA65
 ------

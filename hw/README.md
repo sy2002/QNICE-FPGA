@@ -43,6 +43,12 @@ IDE files to also synthesize for the Nexys A7.
 
 The top file for this platform is [env1.vhd](../vhdl/hw/nexys4ddr/env1.vhd).
 
+For a quickstart, you can download the bitstream
+[here](@TODO). If you just want use your Nexys board as a Q-TRIS Arcade
+machine, then you can download
+[this](@TODO)
+bitstream.
+
 ### ISE 14.7
 
 We created the original QNICE-FPGA using
@@ -79,6 +85,12 @@ Hint: ISE or Vivado bitstreams (`.bit` files) need to be converted into
 MEGA65 Cores (`.cor` files) by using the `tools/bit2core` tool. The bitstream
 needs to be in a specific format as described [here](../tools/bit2core.c#L16)
 to work as a Core on the MEGA65.
+
+For a quickstart, you can download the ready-made QNICE-FPGA Core for MEGA65
+[here](@TODO). If you want to use the MEGA65 as a Q-TRIS Arcade machine,
+then download
+[this](@TODO)
+Core.
 
 ### ISE 14.7
 

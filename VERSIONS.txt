@@ -1,7 +1,20 @@
 Version 1.6     xxxxx, 22 2020
 ==============================
 
+<enhance make-toolchain to also make qtransfer; cleverly check (maybe similar
+to to make-emu-...) if the dependency is there and for Mac and Linux suggest
+how the dependecy can be resolved. Also offer to skip making qtransfer
+as it is not mission critical.>
+
 <explain qtransfer and bit2core somewhere>
+
+<make sure to update the Getting Started section to reflect all the news
+about ISE and Vivado and also about the platforms. Have also a MEGA65.bit
+and a MEGA65.cor in the dist_kit and mention it in the Getting Started 
+section>
+
+<replace the @TODO sections in hw/README.md with links to the bitsstream
+and core files>
 
 <improve README.md and explain briefly the folder structure (in a table) and
 the meaning: e.g. "Monitor" is the operating system. It offers IO functions,
