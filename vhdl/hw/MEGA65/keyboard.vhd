@@ -1,5 +1,5 @@
 -- QNICE-MEGA65 keyboard controller
--- done by sy2002 in April 2020
+-- done by sy2002 in April and June 2020
 --
 -- Wraps the MEGA65 specifics and outputs ASCII and special key signals
 -- just as QNICE expects it. The component is meant to be connected
@@ -140,9 +140,8 @@ signal ascii_key_valid     : std_logic;
 
 -- signals that together form the status register
 signal ff_ascii_new        : std_logic;
-signal reset_ff_ascii_new  : std_logic;
 signal ff_spec_new         : std_logic;
-signal reset_ff_spec_new   : std_logic;
+signal reset_ff_new        : std_logic;
 signal ff_locale           : std_logic_vector(2 downto 0);
 signal ascii_key_locale    : std_logic_vector(7 downto 0);
 signal modifiers           : std_logic_vector(2 downto 0);
@@ -236,17 +235,17 @@ begin
    
    ascii_key_locale_handler : process(ascii_key, modifiers, ff_locale)
    begin
-      -- German Locale: provide German Umlauts ä, ö, ü including ß and the Euro sign (€)
+      -- German Locale: provide German Umlauts ï¿½, ï¿½, ï¿½ including ï¿½ and the Euro sign (ï¿½)
       if ff_locale = loc_DE then
          case ascii_key is
-            when x"c1"  => -- MEGA+a => ä
+            when x"c1"  => -- MEGA+a => ï¿½
                if modifiers(0) = '1' then ascii_key_locale <= x"c4"; else ascii_key_locale <= x"e4"; end if;             
-            when x"cf"  => -- MEGA+o => ö
+            when x"cf"  => -- MEGA+o => ï¿½
                if modifiers(0) = '1' then ascii_key_locale <= x"d6"; else ascii_key_locale <= x"f6"; end if; 
-            when x"d5"  => -- MEGA+ü => ü
+            when x"d5"  => -- MEGA+ï¿½ => ï¿½
                if modifiers(0) = '1' then ascii_key_locale <= x"dc"; else ascii_key_locale <= x"fc"; end if;
-            when x"d3"  => ascii_key_locale <= x"df"; -- MEGA+s => ß
-            when x"c5"  => ascii_key_locale <= x"a4"; -- MEGA+e => €            
+            when x"d3"  => ascii_key_locale <= x"df"; -- MEGA+s => ï¿½
+            when x"c5"  => ascii_key_locale <= x"a4"; -- MEGA+e => ï¿½            
             when others => ascii_key_locale <= std_logic_vector(ascii_key);
          end case;
       else
@@ -254,158 +253,160 @@ begin
       end if;
    end process;
    
-   map_mega65_to_qnice : process(reset, ascii_key_valid, ascii_key, bucky_key, reset_ff_ascii_new, reset_ff_spec_new, key_restore_n)
+   map_mega65_to_qnice : process(clk, reset, reset_ff_new, key_restore_n)
    begin
-      if reset = '1' or reset_ff_ascii_new = '1' or reset_ff_spec_new = '1' or key_restore_n = '0' then
-         ff_ascii_new <= (not reset) and (not reset_ff_ascii_new) and key_restore_n;
-         ff_spec_new  <= (not reset) and (not reset_ff_spec_new) and key_restore_n;
+      if reset = '1' or reset_ff_new = '1' or key_restore_n = '0' then
+         ff_ascii_new <= '0';
+         ff_spec_new <= '0';
       else
-         if rising_edge(ascii_key_valid) then
-            ff_ascii_key <= x"00";
-            ff_ascii_new <= '0';
-            ff_spec_code <= x"00";
-            ff_spec_new  <= '0';
-            
-            case ascii_key is
-               when x"14" =>              -- INST/DEL => Backspace
-                  ff_ascii_key <= x"08";
-                  ff_ascii_new <= '1';
-                  
-               when x"ea" =>              -- LEFT ARROW
-                  ff_ascii_key <= x"1b";
-                  ff_ascii_new <= '1';
-                  
-               when x"eb" =>              -- RIGHT ARROW
-                  ff_ascii_key <= x"1a";
-                  ff_ascii_new <= '1';
-                  
-               when x"e0" =>              -- UP ARROW
-                  ff_ascii_key <= x"18";
-                  ff_ascii_new <= '1';
-                  
-               when x"e8" =>              -- DOWN ARROW
-                  ff_ascii_key <= x"19";
-                  ff_ascii_new <= '1';
-                  
-               when x"ec" =>              -- Pi symbol
-                  ff_ascii_key <= x"1f";
-                  ff_ascii_new <= '1';
-                  
-               when x"e3" =>              -- SHIFT + * => ^
-                  ff_ascii_key <= x"5e";
-                  ff_ascii_new <= '1';
-                                                                  
-               -- cursor keys incl. PGUP, PGDN, POS1, END
-                                                                                 
-               when x"91" =>              -- CURSOR UP
-                  ff_spec_code <= key_cur_up;
-                  ff_spec_new  <= '1';                  
-                  
-               when x"11" =>              -- CURSOR DOWN
-                  ff_spec_code <= key_cur_down;
-                  ff_spec_new  <= '1';
-                  
-               when x"9d" =>              -- CURSOR LEFT
-                  ff_spec_code <= key_cur_left;
-                  ff_spec_new  <= '1';                  
-
-               when x"1d" =>              -- CURSOR RIGHT
-                  ff_spec_code <= key_cur_right;
-                  ff_spec_new  <= '1';
-                                                      
-               when x"db" =>              -- MEGA65 key + CUSOR UP = PAGE UP
-                  ff_spec_code <= key_pg_up;
-                  ff_spec_new  <= '1';
-                                    
-               when x"ee" =>              -- MEGA65 key + CUSOR DOWN = PAGE DOWN
-                  ff_spec_code <= key_pg_down;
-                  ff_spec_new  <= '1';
-                  
-               when x"dc" =>              -- MEGA65 key + CUSOR LEFT = POS1
-                  ff_spec_code <= key_pos1;
-                  ff_spec_new  <= '1';
-                                    
-               when x"ed" =>              -- MEGA65 key + CURSOR RIGHT = END
-                  ff_spec_code <= key_end;
-                  ff_spec_new  <= '1';
-
-               -- function keys
-
-               when x"f1" =>              -- F1
-                  ff_spec_code <= key_f1;
-                  ff_spec_new  <= '1';
-                  
-               when x"f2" =>              -- F2
-                  ff_spec_code <= key_f2;
-                  ff_spec_new  <= '1';
-                  
-               when x"f3" =>              -- F3
-                  ff_spec_code <= key_f3;
-                  ff_spec_new  <= '1';
-                  
-               when x"f4" =>              -- F4
-                  ff_spec_code <= key_f4;
-                  ff_spec_new  <= '1';
-                  
-               when x"f5" =>              -- F5
-                  ff_spec_code <= key_f5;
-                  ff_spec_new  <= '1';
-                  
-               when x"f6" =>              -- F6
-                  ff_spec_code <= key_f6;
-                  ff_spec_new  <= '1';
-                  
-               when x"f7" =>              -- F7
-                  ff_spec_code <= key_f7;
-                  ff_spec_new  <= '1';
-                  
-               when x"f8" =>              -- F8
-                  ff_spec_code <= key_f8;
-                  ff_spec_new  <= '1';
-                  
-               when x"f9" =>              -- F9
-                  ff_spec_code <= key_f9;
-                  ff_spec_new  <= '1';
-                  
-               when x"fa" =>              -- F10
-                  ff_spec_code <= key_f10;
-                  ff_spec_new  <= '1';
-                  
-               when x"fb" =>              -- F11
-                  ff_spec_code <= key_f11;
-                  ff_spec_new  <= '1';
-                  
-               when x"fc" =>              -- F12
-                  ff_spec_code <= key_f12;
-                  ff_spec_new  <= '1';
-                  
-               -- keys that are conditionally mapped depending on the locale
+         if rising_edge(clk) then        
+            if ascii_key_valid = '1' then
+               ff_ascii_key <= x"00";
+               ff_ascii_new <= '0';
+               ff_spec_code <= x"00";
+               ff_spec_new  <= '0';
                
-               when x"c1" =>              -- MEGA+a => ä
-                  ff_ascii_key <= ascii_key_locale;
-                  ff_ascii_new  <= '1';
-
-               when x"cf" =>              -- MEGA+o => ö
-                  ff_ascii_key <= ascii_key_locale;
-                  ff_ascii_new  <= '1';
-
-               when x"d5" =>              -- MEGA+ü => ü
-                  ff_ascii_key <= ascii_key_locale;
-                  ff_ascii_new  <= '1';
+               case ascii_key is
+                  when x"14" =>              -- INST/DEL => Backspace
+                     ff_ascii_key <= x"08";
+                     ff_ascii_new <= '1';
+                     
+                  when x"ea" =>              -- LEFT ARROW
+                     ff_ascii_key <= x"1b";
+                     ff_ascii_new <= '1';
+                     
+                  when x"eb" =>              -- RIGHT ARROW
+                     ff_ascii_key <= x"1a";
+                     ff_ascii_new <= '1';
+                     
+                  when x"e0" =>              -- UP ARROW
+                     ff_ascii_key <= x"18";
+                     ff_ascii_new <= '1';
+                     
+                  when x"e8" =>              -- DOWN ARROW
+                     ff_ascii_key <= x"19";
+                     ff_ascii_new <= '1';
+                     
+                  when x"ec" =>              -- Pi symbol
+                     ff_ascii_key <= x"1f";
+                     ff_ascii_new <= '1';
+                     
+                  when x"e3" =>              -- SHIFT + * => ^
+                     ff_ascii_key <= x"5e";
+                     ff_ascii_new <= '1';
+                                                                     
+                  -- cursor keys incl. PGUP, PGDN, POS1, END
+                                                                                    
+                  when x"91" =>              -- CURSOR UP
+                     ff_spec_code <= key_cur_up;
+                     ff_spec_new  <= '1';                  
+                     
+                  when x"11" =>              -- CURSOR DOWN
+                     ff_spec_code <= key_cur_down;
+                     ff_spec_new  <= '1';
+                     
+                  when x"9d" =>              -- CURSOR LEFT
+                     ff_spec_code <= key_cur_left;
+                     ff_spec_new  <= '1';                  
+   
+                  when x"1d" =>              -- CURSOR RIGHT
+                     ff_spec_code <= key_cur_right;
+                     ff_spec_new  <= '1';
+                                                         
+                  when x"db" =>              -- MEGA65 key + CUSOR UP = PAGE UP
+                     ff_spec_code <= key_pg_up;
+                     ff_spec_new  <= '1';
+                                       
+                  when x"ee" =>              -- MEGA65 key + CUSOR DOWN = PAGE DOWN
+                     ff_spec_code <= key_pg_down;
+                     ff_spec_new  <= '1';
+                     
+                  when x"dc" =>              -- MEGA65 key + CUSOR LEFT = POS1
+                     ff_spec_code <= key_pos1;
+                     ff_spec_new  <= '1';
+                                       
+                  when x"ed" =>              -- MEGA65 key + CURSOR RIGHT = END
+                     ff_spec_code <= key_end;
+                     ff_spec_new  <= '1';
+   
+                  -- function keys
+   
+                  when x"f1" =>              -- F1
+                     ff_spec_code <= key_f1;
+                     ff_spec_new  <= '1';
+                     
+                  when x"f2" =>              -- F2
+                     ff_spec_code <= key_f2;
+                     ff_spec_new  <= '1';
+                     
+                  when x"f3" =>              -- F3
+                     ff_spec_code <= key_f3;
+                     ff_spec_new  <= '1';
+                     
+                  when x"f4" =>              -- F4
+                     ff_spec_code <= key_f4;
+                     ff_spec_new  <= '1';
+                     
+                  when x"f5" =>              -- F5
+                     ff_spec_code <= key_f5;
+                     ff_spec_new  <= '1';
+                     
+                  when x"f6" =>              -- F6
+                     ff_spec_code <= key_f6;
+                     ff_spec_new  <= '1';
+                     
+                  when x"f7" =>              -- F7
+                     ff_spec_code <= key_f7;
+                     ff_spec_new  <= '1';
+                     
+                  when x"f8" =>              -- F8
+                     ff_spec_code <= key_f8;
+                     ff_spec_new  <= '1';
+                     
+                  when x"f9" =>              -- F9
+                     ff_spec_code <= key_f9;
+                     ff_spec_new  <= '1';
+                     
+                  when x"fa" =>              -- F10
+                     ff_spec_code <= key_f10;
+                     ff_spec_new  <= '1';
+                     
+                  when x"fb" =>              -- F11
+                     ff_spec_code <= key_f11;
+                     ff_spec_new  <= '1';
+                     
+                  when x"fc" =>              -- F12
+                     ff_spec_code <= key_f12;
+                     ff_spec_new  <= '1';
+                     
+                  -- keys that are conditionally mapped depending on the locale
                   
-               when x"d3" =>              -- MEGA+s => ß
-                  ff_ascii_key <= ascii_key_locale;
-                  ff_ascii_new  <= '1';
-
-               when x"c5" =>              -- MEGA+e => €
-                  ff_ascii_key <= ascii_key_locale;
-                  ff_ascii_new  <= '1';
-                                                                        
-               when others =>
-                  ff_ascii_key <= std_logic_vector(ascii_key);
-                  ff_ascii_new <= '1';
-            end case;          
-          end if;
+                  when x"c1" =>              -- MEGA+a => ï¿½
+                     ff_ascii_key <= ascii_key_locale;
+                     ff_ascii_new  <= '1';
+   
+                  when x"cf" =>              -- MEGA+o => ï¿½
+                     ff_ascii_key <= ascii_key_locale;
+                     ff_ascii_new  <= '1';
+   
+                  when x"d5" =>              -- MEGA+ï¿½ => ï¿½
+                     ff_ascii_key <= ascii_key_locale;
+                     ff_ascii_new  <= '1';
+                     
+                  when x"d3" =>              -- MEGA+s => ï¿½
+                     ff_ascii_key <= ascii_key_locale;
+                     ff_ascii_new  <= '1';
+   
+                  when x"c5" =>              -- MEGA+e => ï¿½
+                     ff_ascii_key <= ascii_key_locale;
+                     ff_ascii_new  <= '1';
+                                                                           
+                  when others =>
+                     ff_ascii_key <= std_logic_vector(ascii_key);
+                     ff_ascii_new <= '1';
+               end case;          
+            end if;
+         end if;
       end if;
    end process;
                   
@@ -424,8 +425,7 @@ begin
       
    read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new, ff_ascii_key, ff_spec_code, modifiers)
    begin
-      reset_ff_ascii_new <= '0';
-      reset_ff_spec_new <= '0';
+      reset_ff_new <= '0';
       
       if kbd_en = '1' and kbd_we = '0' then
          case kbd_reg is
@@ -441,8 +441,7 @@ begin
             -- read data register
             when "01" =>
                cpu_data <= ff_spec_code & ff_ascii_key;
-               reset_ff_ascii_new <= '1';
-               reset_ff_spec_new <= '1';
+               reset_ff_new <= '1';
                
             when others =>
                cpu_data <= (others => '0');

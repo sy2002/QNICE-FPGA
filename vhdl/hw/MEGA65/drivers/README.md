@@ -54,8 +54,14 @@ to count from 0 to 9 (versus 0 to 8 in the original driver).
 
 The MEGA65 HyperRAM driver consists of the file `hyperram.vhdl`.
 
+I took it on June, 6 2020 from the
+[MEGA65 GitHub Core Repo](https://github.com/MEGA65/mega65-core)
+using branch `165-hyperram`.
+[This link points to the relevant Commit #a100863](https://github.com/MEGA65/mega65-core/blob/a100863955f5feb67949f872cbb112d81aa7ce1e/src/vhdl/hyperram.vhdl),
+in case you need to get the file from the original source.
+
 #### Modifications
 
-* Made it stand-alone by removing the `debugtools` and `cputypes` 
-  dependencies: Moved `cache_row_t` from separate file into `hyperram.vhdl`
-  and commented out all `report` statements.
+* Made it stand-alone by including the `debugtools` and `cputypes` 
+  dependencies into `hyperram.vhdl`: Two new packages at the top of the file:
+  `package cache_row_type` and `package `debugtools`.

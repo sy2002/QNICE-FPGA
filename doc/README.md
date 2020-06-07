@@ -26,13 +26,13 @@ Folder Structure
 
 | Folder name   | Description
 |---------------|------------------------------------------------------------
-| assembler     | Native QNICE assembler: Main file is `qasm.c`. You usually call it via the script `asm`, which utilizes the C preprocessor.
-| c             | C programming environment based on the vbcc compiler system. You need to activate `setenv.source` (e.g. via `source`) to use it. The subfolder `test_programs` contains experiments and demos written in C.
+| assembler     | Native QNICE assembler: Main file is `qasm.c`. You usually call it via the script `asm`, which utilizes the C preprocessor (mainly for `#include`, `#define`, `#ifdef`, etc).
+| c             | C programming environment based on the [vbcc](http://www.compilers.de/vbcc.html) compiler system. You need to activate `setenv.source` (e.g. via `source`) to use it and then use `qvc <sources> <options>` to compile and link. The subfolder `test_programs` contains experiments and demos written in C.
 | demos         | QNICE demos written in assembler. Most noteworthy is `q-tris.asm`.
-| dist_kit      | Distribution Kit: Contains standard include files for assembler and C as well as ready-made bitstreams and MEGA Core files
+| dist_kit      | Distribution Kit: Contains standard include files for assembler and C as well as ready-made bitstreams and MEGA Core files. You might want to set this folder as your default folder for includes.
 | doc           | Documentation: See explanation of file and folder structure below.
-| emulator      | Emulator: Learn more via [emulator/README.md](../emulator/README.md)
-| hw            |
+| emulator      | QNICE Emulator: Learn more via [emulator/README.md](../emulator/README.md)
+| hw            | Project files for the supported hardware
 | monitor       |
 | pore          |
 | qbin          |

@@ -1,6 +1,13 @@
 Version 1.6     xxxxx, 22 2020
 ==============================
 
+<did Paul finally fix the strange Hyperram smoking gun? If not, then I need
+to write a note, that HyperRAM right now only works in Vivado and explain why>
+
+<is the double read of id0lo (or in general the first control register)
+still necessary? hardware bug still there? ref hyperram.asm "hw bug: 2 reads necessary!"
+reproduce on C65; notify Paul>
+
 <enhance make-toolchain to also make qtransfer; cleverly check (maybe similar
 to to make-emu-...) if the dependency is there and for Mac and Linux suggest
 how the dependecy can be resolved. Also offer to skip making qtransfer

@@ -10,7 +10,8 @@
 --
 -- Register $FF60: Low word of address  (15 downto 0)
 -- Register $FF61: High word of address (26 downto 16)
--- Register $FF62: Data in/out
+-- Register $FF62: 8-bit data in/out (native mode: HyperRAM is 8-bit)
+-- Register $FF63: 16-bit data in/out (leads to address being multiplied by two)
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -49,7 +50,7 @@ end hyperram_ctl;
 architecture beh of hyperram_ctl is
 
 component hyperram is
-  Port ( pixelclock : in std_logic;
+  port ( pixelclock : in std_logic;
          clock163 : in std_logic;
          clock325 : in std_logic;
 
@@ -64,6 +65,13 @@ component hyperram is
          rdata : out unsigned(7 downto 0);
          data_ready_strobe : out std_logic;
          busy : out std_logic;
+
+         -- 16-bit enhancements
+         wen_hi : in std_logic;            
+         wen_lo : in std_logic;                  
+         wdata_hi : in unsigned(7 downto 0);
+         rdata_hi : out unsigned(7 downto 0);
+         rdata_16en : in std_logic;
          
          -- HyperRAM hardware signals
          hr_d : inout unsigned(7 downto 0);
@@ -83,15 +91,20 @@ end component;
 signal hram_read_request      : std_logic;
 signal hram_write_request     : std_logic;
 signal hram_address           : unsigned(26 downto 0);
-signal hram_wdata_ff          : unsigned(7 downto 0)  := (others => '0');
-signal hram_rdata             : unsigned(7 downto 0);
+signal hram_wdata_ff          : unsigned(15 downto 0)  := (others => '0');
+signal hram_rdata             : unsigned(15 downto 0);
 signal hram_data_ready_strobe : std_logic;
 signal hram_busy              : std_logic;
+signal hram_wen_hi            : std_logic;            
+signal hram_wen_lo            : std_logic;
+signal hram_rdata_16en        : std_logic;
 
 -- Controller logic
 signal hram_addr_lo_ff        : unsigned(15 downto 0) := (others => '0');
 signal hram_addr_hi_ff        : unsigned(15 downto 0) := (others => '0');
-signal hram_rdata_ff          : unsigned(7 downto 0)  := (others => '0');
+signal hram_rdata_ff          : unsigned(15 downto 0)  := (others => '0');
+signal hram_16bit_ff          : std_logic := '0';
+
 
 type tHRAM_FSM_States is ( s_idle,
 
@@ -107,7 +120,8 @@ signal state_ff               : tHRAM_FSM_States := s_idle;
 signal state_next             : tHRAM_FSM_States;
 
 signal fsm_state_next         : tHRAM_FSM_States;
-signal fsm_hram_rdata         : unsigned(7 downto 0)  := (others => '0');
+signal fsm_hram_rdata         : unsigned(15 downto 0);
+signal fsm_hram_16bit         : std_logic;
 
 
 signal dbg_chkadd_ff          : unsigned(15 downto 0)  := x"0000";
@@ -123,8 +137,13 @@ begin
       read_request => hram_read_request,
       write_request => hram_write_request,
       address => hram_address,
-      wdata => hram_wdata_ff,
-      rdata => hram_rdata,
+      wdata => hram_wdata_ff(7 downto 0),
+      wdata_hi => hram_wdata_ff(15 downto 8),
+      rdata => hram_rdata(7 downto 0),
+      rdata_hi => hram_rdata(15 downto 8),
+      wen_hi => hram_wen_hi,            
+      wen_lo => hram_wen_lo,
+      rdata_16en => hram_rdata_16en,      
       data_ready_strobe => hram_data_ready_strobe,
       busy => hram_busy,
       hr_d => hr_d,
@@ -143,13 +162,15 @@ begin
    begin
       if reset = '1' then
          state_ff <= s_idle;
-         hram_rdata_ff <= x"00";
+         hram_rdata_ff <= x"0000";
+         hram_16bit_ff <= '0';
          
          dbg_chkadd_ff <= (others => '0');
       else
          if rising_edge(clk) then
             state_ff <= fsm_state_next;
             hram_rdata_ff <= fsm_hram_rdata;
+            hram_16bit_ff <= fsm_hram_16bit;
             
             dbg_chkadd_ff <= dbg_chkadd_ff + fsm_chkadd;
          end if;
@@ -171,25 +192,39 @@ begin
    end process;   
          
    fsm_output_decode : process(state_ff, state_next, hram_rdata_ff, hram_rdata, hram_data_ready_strobe, hram_busy,
-                               hram_reg, hram_en, hram_we)
+                               hram_16bit_ff, hram_reg, hram_en, hram_we)
    begin
       hram_cpu_ws <= '0';
       hram_read_request <= '0';
       hram_write_request <= '0';
+      hram_wen_lo <= '1';
+      hram_wen_hi <= '0';      
+      hram_rdata_16en <= '0';      
 
       fsm_state_next <= state_next;
       fsm_chkadd <= x"0000";
       fsm_hram_rdata <= hram_rdata_ff;
-            
+      fsm_hram_16bit <= hram_16bit_ff;
+                  
       case state_ff is
          when s_idle =>
-            if hram_en = '1' and hram_we = '0' and hram_reg = x"2" then
+        
+            -- detect 16-bit mode       
+            if hram_reg = x"3" then
+               fsm_hram_16bit <= '1';
+            else
+               fsm_hram_16bit <= '0';
+            end if;
+               
+            -- start read process
+            if hram_en = '1' and hram_we = '0' and (hram_reg = x"2" or hram_reg = x"3") then
                hram_cpu_ws <= '1';
                if hram_busy = '0' then
                   fsm_state_next <= s_read_start;
                end if;
                
-            elsif hram_en = '1' and hram_we = '1' and hram_reg = x"2" then
+            -- stsart write process
+            elsif hram_en = '1' and hram_we = '1' and (hram_reg = x"2" or hram_reg = x"3") then
                hram_cpu_ws <= '1';
                if hram_busy = '0' then
                   fsm_state_next <= s_write1;
@@ -201,7 +236,8 @@ begin
          when s_read_start =>
             hram_cpu_ws <= '1';
             hram_read_request <= '1';
-            fsm_chkadd <= x"0100";            
+            hram_rdata_16en <= hram_16bit_ff;            
+            fsm_chkadd <= x"0100";
             if hram_busy = '0' and hram_data_ready_strobe = '0' then
                fsm_state_next <= s_read_start;
             else
@@ -213,7 +249,7 @@ begin
             end if;
          
          when s_read_waitfordata =>
-            hram_cpu_ws <= '1'; 
+            hram_cpu_ws <= '1';
             fsm_chkadd <= x"0001";
             if hram_data_ready_strobe = '1' then
                fsm_hram_rdata <= hram_rdata;
@@ -230,7 +266,8 @@ begin
          -- WRITING
             
          when s_write1 =>
-            hram_write_request <= '1';            
+            hram_write_request <= '1';
+            hram_wen_hi <= hram_16bit_ff;                        
          
          -- TODO: Check, if necessary
          when s_write2 =>
@@ -251,9 +288,13 @@ begin
             -- read (partial) high word of address
             when x"1" => cpu_data <= std_logic_vector("00000" & hram_address(26 downto 16));
             
-            -- read data
+            -- read 8-bit data
             when x"2" =>
-               cpu_data <= x"00" & std_logic_vector(hram_rdata_ff);
+               cpu_data <= x"00" & std_logic_vector(hram_rdata_ff(7 downto 0));
+               
+            -- read 16-bit data
+            when x"3" =>
+               cpu_data <= std_logic_vector(hram_rdata_ff);
                
             -- debug              
             when x"6" =>
@@ -284,9 +325,13 @@ begin
                   -- write high word of address
                   when x"1" => hram_addr_hi_ff <= unsigned(cpu_data);
                   
-                  -- write data register
+                  -- write 8-bit data register
                   when x"2" =>
-                     hram_wdata_ff <= unsigned(cpu_data(7 downto 0));                     
+                     hram_wdata_ff <= x"00" & unsigned(cpu_data(7 downto 0));
+                     
+                  -- write 16-bit data register
+                  when x"3" =>
+                     hram_wdata_ff <= unsigned(cpu_data);    
                      
                   when others => null;
                end case;
@@ -295,6 +340,45 @@ begin
       end if;
    end process;
       
-   -- build address signal from two flip-flops
-   hram_address <= hram_addr_hi_ff(10 downto 0) & hram_addr_lo_ff(15 downto 0);      
+   calc_hram_address : process(hram_addr_hi_ff, hram_addr_lo_ff, hram_16bit_ff)
+   begin
+      -- 8-bit mode: address = plain concatenation of hi and low word
+      if hram_16bit_ff = '0' then
+         hram_address <= hram_addr_hi_ff(10 downto 0) & hram_addr_lo_ff(15 downto 0);
+         
+      -- 16-bit mode: address is x2
+      -- multiplication is done by a shift left which itself is done by wiring the
+      -- two source flip flops appropriately, so that everything happens combinatorically in "no time"
+      -- TODO: refactor
+      else
+         hram_address(26) <= hram_addr_hi_ff(9);
+         hram_address(25) <= hram_addr_hi_ff(8);
+         hram_address(24) <= hram_addr_hi_ff(7);
+         hram_address(23) <= hram_addr_hi_ff(6);
+         hram_address(22) <= hram_addr_hi_ff(5);
+         hram_address(21) <= hram_addr_hi_ff(4);
+         hram_address(20) <= hram_addr_hi_ff(3);
+         hram_address(19) <= hram_addr_hi_ff(2);
+         hram_address(18) <= hram_addr_hi_ff(1);
+         hram_address(17) <= hram_addr_hi_ff(0);
+         hram_address(16) <= hram_addr_lo_ff(15);
+         hram_address(15) <= hram_addr_lo_ff(14);
+         hram_address(14) <= hram_addr_lo_ff(13);
+         hram_address(13) <= hram_addr_lo_ff(12);
+         hram_address(12) <= hram_addr_lo_ff(11);
+         hram_address(11) <= hram_addr_lo_ff(10);
+         hram_address(10) <= hram_addr_lo_ff(9);
+         hram_address(9)  <= hram_addr_lo_ff(8);
+         hram_address(8)  <= hram_addr_lo_ff(7);
+         hram_address(7)  <= hram_addr_lo_ff(6);
+         hram_address(6)  <= hram_addr_lo_ff(5);
+         hram_address(5)  <= hram_addr_lo_ff(4);
+         hram_address(4)  <= hram_addr_lo_ff(3);
+         hram_address(3)  <= hram_addr_lo_ff(2);
+         hram_address(2)  <= hram_addr_lo_ff(1);
+         hram_address(1)  <= hram_addr_lo_ff(0);
+         hram_address(0)  <= '0';     
+      end if;      
+   end process;
+            
 end beh;

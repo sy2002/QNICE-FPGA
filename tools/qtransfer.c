@@ -1,5 +1,5 @@
 /*  qtransfer - Safely transfer .out files to QNICE
-    done by sy2002 in May 2020
+    done by sy2002 in May and June 2020
 
     Use case: Transfer .out files and be sure, that they arrive correctly on
     the QNICE. Particularly in situations (such as MEGA65) where no RTS/CTS
@@ -170,7 +170,9 @@ int main(int argc, char* argv[])
             lines_done += lines_cnt;
             if (lines_done - lines_lp > file_lines / 10)
             {
-                printf("  %.0f%% done\n", ((float) lines_done / (float) file_lines) * 100);
+                float percentage = ((float) lines_done / (float) file_lines) * 100;
+                if (percentage != 100.0)
+                    printf("  %.0f%% done\n", percentage);
                 lines_lp = lines_done;
             }
             continue;            
