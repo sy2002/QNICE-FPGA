@@ -223,7 +223,7 @@ begin
                   fsm_state_next <= s_read_start;
                end if;
                
-            -- stsart write process
+            -- start write process
             elsif hram_en = '1' and hram_we = '1' and (hram_reg = x"2" or hram_reg = x"3") then
                hram_cpu_ws <= '1';
                if hram_busy = '0' then
