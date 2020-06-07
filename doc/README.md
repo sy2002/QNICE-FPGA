@@ -32,13 +32,13 @@ Folder Structure
 | dist_kit      | Distribution Kit: Contains standard include files for assembler and C as well as ready-made bitstreams and MEGA Core files. You might want to set this folder as your default folder for includes.
 | doc           | Documentation: See explanation of file and folder structure below.
 | emulator      | QNICE Emulator: Learn more via [emulator/README.md](../emulator/README.md)
-| hw            | Project files for the supported hardware
-| monitor       |
-| pore          |
-| qbin          |
-| test_programs |
-| tools         |
-| vhdl          |
+| hw            | Project files for IDEs to synthesize QNICE-FPGA: Learn more via [hw/README.md](../hw/README.md)
+| monitor       | Monitor is the "operating system" of QNICE. Use `compile_and_distribute.sh` to compile it and to update `dist_kit`. Make sure that the amount of lines that is printed as output from `compile_and_distribute.sh` is equal to the constant `ROM_SIZE` in the file `vhdl/env1_globals.vhd`.
+| pore          | Power On & Reset Execution ROM. This code is executed on power on and on each reset of the system, even before any standard operating system like the Monitor is being executed from ROM address 0. PORE is mainly responsible for printing the boot message. Use `compile_pore.sh` to compile it. Make sure that the amount of lines that is printed as output from `compile_pore.sh` is equal to the constant `PORE_ROM_SIZE` in the file `vhdl/env1_globals.vhd`.
+| qbin          | Compiled binaries (`.out` format) that can be put on an SD Card. You can load them directly when the Monitor is running using the File/Run command via `F` and `R`.
+| test_programs | Experiements, development testbeds and simple tests written in QNICE assembler.
+| tools         | Various tools. Use `make_toolchain.sh` to compile the QNICE toolchain and `qtransfer.c` to transfer data from your Mac or PC to QNICE-FPGA while `qtransfer.asm` is running on QNICE-FGA.
+| vhdl          | Portable QNICE-FPGA implementation. Subfolder `hw` contains hardware specific VHDL code.
 
 MEGA65
 ------

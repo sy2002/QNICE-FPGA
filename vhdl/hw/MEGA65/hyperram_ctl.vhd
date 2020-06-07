@@ -259,7 +259,7 @@ begin
                                    
          when s_read_waitforcpu =>
             -- wait for CPU to deassert reading so that we can synchronously reset start_read_ff
-            if hram_en = '1' and hram_we = '0' and hram_reg = x"2" then
+            if hram_en = '1' and hram_we = '0' and (hram_reg = x"2" or hram_reg = x"3") then
                fsm_state_next <= s_read_waitforcpu;
             end if;
             

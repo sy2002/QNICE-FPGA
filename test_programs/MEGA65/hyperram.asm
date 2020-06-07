@@ -233,10 +233,14 @@ _16bl_write     MOVE    R5, @R2                 ; write test value
 
                 ; linearily check, if the 1MB data that was written above
                 ; is now accessible in the HRAM
-_16bit_check    MOVE    0x0033, @R1             ; hi-word of 0x0333333
-                MOVE    0x3333, @R0             ; lo-word
+_16bit_check    MOVE    0x0066, @R1             ; hi-word of 0x0333333
+                MOVE    0x666A, @R0             ; lo-word
                 XOR     R5, R5                  ; repeatedly runs to 0xFFFF
                 XOR     R6, R6                  ; R6 = error counter
+
+                ; DEBUG
+                MOVE    0x0036, R5
+                MOVE    IO$M65HRAM_DATA8, R2    ; 8-bit data access  
 
 _16bit_cloop    MOVE    STR_OK, R8
                 SYSCALL(puts, 1)
@@ -259,7 +263,6 @@ _16bl_check     MOVE    @R2, R8
 
                 MOVE    STR_OK, R8
                 SYSCALL(puts, 1)
-                RBRA    _16bit_res, 1
 
                 CMP     R5, @R2                 ; HRAM = test value?
                 RBRA    _16bit_err, !Z          ; no: error
