@@ -1,10 +1,28 @@
-/*  Visually appealing HyperRAM test that displays a scene from
+/*  UNFINISHED FIRST WIP DRAFT THAT DOES NOT REALLY WORK
+
+    Visually appealing HyperRAM test that displays a scene from
     "The Matrix" as ASCII art.
 
     The correct functioning of the HyperRAM is checked via CRC.
     The ASCII video is taken from: http://www.media4u.ch/de/the-matrix.html
 
-    done by sy2002 in June 2020
+    started and left (for now) unfinished by sy2002 in June 2020
+
+    TODO: Implement a smarter way to scale the original 238x87 down to the
+          80x40 that QNICE needs. First idea:
+
+          1. Fist of all write a small analyzer that calculates the
+             "brightness" value of each letter that is used. E.g. use python
+             and a dictionary and then count the amount of pixels (and maybe
+             add some intelligence about the distribution) in each character.
+
+          2. After we have a table that maps brightness values to ASCII
+             we can analyze e.g. a gliding window of 3x2 and take the average
+             instead of just throwing away each second line and two out of
+             three columns
+
+    Alternately, encoding the whole thing natively to 80x40 using some tool
+    from the internet might work nicely, too.
 */
 
 #include <stdio.h>
