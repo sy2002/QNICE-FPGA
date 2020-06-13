@@ -6,6 +6,8 @@
 
                 .ORG 0x8000
 
+                ABRA    _start, 1
+
                 ; DEBUG/SIMULATION
                 MOVE    IO$M65HRAM_LO, R0       ; lo word of the address
                 MOVE    IO$M65HRAM_HI, R1       ; hi word of the address
@@ -49,12 +51,12 @@ _dbgend         MOVE    0x3333, @R0
                 ;SYSCALL(crlf, 1)
 
                 ; HyperRAM registers addresses
-                MOVE    IO$M65HRAM_LO, R0       ; lo word of the address
+_start          MOVE    IO$M65HRAM_LO, R0       ; lo word of the address
                 MOVE    IO$M65HRAM_HI, R1       ; hi word of the address
                 MOVE    IO$M65HRAM_DATA8, R2    ; 8-bit data access
                 MOVE    0xFF66, R4              ; DEBUG
 
-                RBRA    _start_16bit, 1
+                ;RBRA    _start_16bit, 1
 
                 ; check reading/writing address
                 MOVE    0x4321, @R0             ; lo word is full 16bit wide

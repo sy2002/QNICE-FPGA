@@ -18,7 +18,7 @@
 ; done by sy2002 in August 2015
 ; improved in January 2016, December 2016
 
-#undef OUTPUT_STDOUT
+#define OUTPUT_STDOUT
 
 IO$TIL_BASE     .EQU    0xFF10              ; Address of TIL-display
 

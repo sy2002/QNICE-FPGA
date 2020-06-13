@@ -68,3 +68,5 @@ c/vclib
 c/vclib*.tgz
 c/qnice/monitor-lib/lib/*.asm
 tools/qtransfer
+tools/bit2core
+
