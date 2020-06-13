@@ -91,7 +91,7 @@ For a quickstart, you can download the ready-made QNICE-FPGA Core for MEGA65
 then download
 [this](@TODO)
 Core.
-
+ 
 ### ISE 14.7
 
 Use the project `hw/xilinx/MEGA65/ISE/QNICE-MEGA65.xise` to synthesize

@@ -28,7 +28,7 @@ MEGA 65 Drivers
 ---------------
 
 The MEGA65 Hardware Drivers were written by Paul Gardner-Stephen, who is also
-co-founder of the MEGA65 project.
+co-founder of the MEGA65 project. They are located in the `drivers` subfolder.
 
 The GitHub repository of the MEGA65 Core is here:
 [https://github.com/MEGA65/mega65-core](https://github.com/MEGA65/mega65-core).
@@ -73,7 +73,7 @@ in case you need to get these files from the original source.
 Important: Due to the cursor key enhancements, `matrix_col_idx` needs now
 to count from 0 to 9 (versus 0 to 8 in the original driver).
 
-### HyperRAM Driver
+### !!! WIP !!! HyperRAM Driver
 
 The MEGA65 HyperRAM driver consists of the file `hyperram.vhdl`.
 
@@ -89,7 +89,18 @@ in case you need to get the file from the original source.
   dependencies into `hyperram.vhdl`: Two new packages at the top of the file:
   `package cache_row_type` and `package `debugtools`.
 
+MEGA65 Wrappers
+---------------
 
+* `hyperram_ctl.vhd` HyperRAM statemachine and MMIO wrapper
+* `keyboard.vhd` Keyboard statemachine and MMIO wrapper
+
+MEGA65 Ports
+------------
+
+* `MEGA65_ISE.vhd` Top file for synthesizing with ISE
+* `MEGA65_Vivado.vhd` Top file for synthesizing with Vivado
+* `mmio_mux.vhd` MMIO multiplexer 
 
 ### Porting Notes
 
@@ -103,8 +114,7 @@ in case you need to get the file from the original source.
 
 * For some strange and not yet fully understood reasons, the Vivado bitstream
   had severe problems with a blurry VGA display, while the ISE bitstream
-  had not. The solution was to
-  [invert the phase of the VDAC clock](https://github.com/sy2002/QNICE-FPGA/blob/develop/vhdl/hw/MEGA65/MEGA65_Vivado.vhd#L655)
+  had not. The solution was to invert the phase of the VDAC clock
   in the Vivado version. Now we have a crisp and clear image in both versions.
   We suspected that Vivado has another BRAM timing, so that the signals were
   not "ready" when the VDAC tried to latch them and now using the phase shift
@@ -131,5 +141,9 @@ in case you need to get the file from the original source.
   via special `RESTORE` key combinations
   (as described [here](@TODO)).
 
+MEGA65 Simulation files
+-----------------------
 
 
+
+### HyperRAM Simulation
