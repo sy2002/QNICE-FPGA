@@ -7,6 +7,14 @@ Version 1.6     xxxxx, 22 2020
   but not with the versions in between). The background of this phenomenon is
   explained here: https://github.com/emscripten-core/emscripten/issues/10746
 
+* TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
+  Structured all hardware dependencies in the new folder 'hw' and added
+  a documentation in 'hw/README.md'.
+
+* TOOLCHAIN: Added Ubuntu Linux support, which means it should also run on
+  any other Debian based distribution.
+<TODO: Emu: VGA und WASM build>
+
 <did Paul finally fix the strange Hyperram smoking gun? If not, then I need
 to write a note, that HyperRAM right now only works in Vivado and explain why>
 
@@ -42,18 +50,10 @@ good; TODO: test, if RTS/CTS still works on Nexys4 DDR: might be just the other 
 
 WIP * MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
 
-WIP * TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
-  Structured all hardware dependencies in the new folder 'hw'.
-
 TODO * DOCUMENTATION: Added README.md with basic documentation
 <describe at least: Nexys Switches, MEGA65 specialities (German umlauts when
 DE locale is on (still y=y, should be mentioned)), restructure the README.md
 in the hardware folder to be only a hw folder docu.
-
-<Ubuntu: basic compatibility enhancements like -x c and smart OS detect by
-include in assembler/asm and the likes... ...and VGA emubuild under Ubuntu?
-also test assembling q-tris and binary compare it; pbcopy workflow:
-https://garywoodfine.com/use-pbcopy-on-ubuntu/ >
 
 <add DE10-Nano?, if yes, then advertize it in DE10-Nano specific places, if
 not add it to TODO.txt>
