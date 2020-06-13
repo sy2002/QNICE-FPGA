@@ -241,7 +241,8 @@ begin
             if hram_busy = '0' and hram_data_ready_strobe = '0' then
                fsm_state_next <= s_read_start;
             else
-               hram_read_request <= '0';            
+               hram_read_request <= '0';
+               hram_rdata_16en <= '0'; -- is this correct?            
                if hram_data_ready_strobe = '1' then
                   fsm_hram_rdata <= hram_rdata;
                   fsm_state_next <= s_read_waitforcpu;
@@ -340,44 +341,19 @@ begin
       end if;
    end process;
       
-   calc_hram_address : process(hram_addr_hi_ff, hram_addr_lo_ff, hram_16bit_ff)
+   calc_hram_address : process(hram_addr_hi_ff, hram_addr_lo_ff, hram_16bit_ff, fsm_hram_16bit)
    begin
       -- 8-bit mode: address = plain concatenation of hi and low word
-      if hram_16bit_ff = '0' then
+      if hram_16bit_ff = '0'  and fsm_hram_16bit = '0' then
          hram_address <= hram_addr_hi_ff(10 downto 0) & hram_addr_lo_ff(15 downto 0);
          
       -- 16-bit mode: address is x2
       -- multiplication is done by a shift left which itself is done by wiring the
       -- two source flip flops appropriately, so that everything happens combinatorically in "no time"
-      -- TODO: refactor
       else
-         hram_address(26) <= hram_addr_hi_ff(9);
-         hram_address(25) <= hram_addr_hi_ff(8);
-         hram_address(24) <= hram_addr_hi_ff(7);
-         hram_address(23) <= hram_addr_hi_ff(6);
-         hram_address(22) <= hram_addr_hi_ff(5);
-         hram_address(21) <= hram_addr_hi_ff(4);
-         hram_address(20) <= hram_addr_hi_ff(3);
-         hram_address(19) <= hram_addr_hi_ff(2);
-         hram_address(18) <= hram_addr_hi_ff(1);
-         hram_address(17) <= hram_addr_hi_ff(0);
-         hram_address(16) <= hram_addr_lo_ff(15);
-         hram_address(15) <= hram_addr_lo_ff(14);
-         hram_address(14) <= hram_addr_lo_ff(13);
-         hram_address(13) <= hram_addr_lo_ff(12);
-         hram_address(12) <= hram_addr_lo_ff(11);
-         hram_address(11) <= hram_addr_lo_ff(10);
-         hram_address(10) <= hram_addr_lo_ff(9);
-         hram_address(9)  <= hram_addr_lo_ff(8);
-         hram_address(8)  <= hram_addr_lo_ff(7);
-         hram_address(7)  <= hram_addr_lo_ff(6);
-         hram_address(6)  <= hram_addr_lo_ff(5);
-         hram_address(5)  <= hram_addr_lo_ff(4);
-         hram_address(4)  <= hram_addr_lo_ff(3);
-         hram_address(3)  <= hram_addr_lo_ff(2);
-         hram_address(2)  <= hram_addr_lo_ff(1);
-         hram_address(1)  <= hram_addr_lo_ff(0);
-         hram_address(0)  <= '0';     
+         hram_address(26 downto 17) <= hram_addr_hi_ff(9 downto 0);
+         hram_address(16 downto 1)  <= hram_addr_lo_ff(15 downto 0);
+         hram_address(0)            <= '0';
       end if;      
    end process;
             

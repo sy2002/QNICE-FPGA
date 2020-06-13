@@ -6,6 +6,38 @@
 
                 .ORG 0x8000
 
+                ; DEBUG/SIMULATION
+                MOVE    IO$M65HRAM_LO, R0       ; lo word of the address
+                MOVE    IO$M65HRAM_HI, R1       ; hi word of the address
+                MOVE    IO$M65HRAM_DATA16, R2   ; 16-bit data access
+
+                MOVE    0x3333, @R0
+                MOVE    0x0033, @R1
+                MOVE    0xAAAA, @R2
+
+                MOVE    @R2, R8
+                MOVE    @R2, R8                 ; system gets stuck here
+
+                SYSCALL(puthex, 1)              ; this is never executed
+                SYSCALL(exit, 1)
+
+                MOVE    0xAAAA, R5
+                XOR     R6, R6
+
+_dbgloop        CMP     0x0001, R6
+                RBRA    _dbgend, Z
+                MOVE    R5, @R2
+                ADD     1, R5
+                ADD     1, R6
+                ADD     1, @R0
+                RBRA    _dbgloop, 1
+
+_dbgend         MOVE    0x3333, @R0
+                MOVE    @R2, R8
+                MOVE    @R2, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(exit, 1)
+
                 MOVE    STR_TITLE, R8
                 SYSCALL(puts, 1)
 
@@ -22,7 +54,7 @@
                 MOVE    IO$M65HRAM_DATA8, R2    ; 8-bit data access
                 MOVE    0xFF66, R4              ; DEBUG
 
-                ;RBRA    _dbgstart, 1
+                RBRA    _start_16bit, 1
 
                 ; check reading/writing address
                 MOVE    0x4321, @R0             ; lo word is full 16bit wide
@@ -147,7 +179,7 @@ _readctl        MOVE    STR_CTRL, R8
 
                 ; fill 240 bytes (F0) starting from 0x0020003 with increasing
                 ; values starting from 3 (3 .. 239)
-_dbgstart       MOVE    0x0002, @R1
+                MOVE    0x0002, @R1
                 MOVE    0x0003, R5
 _wloop          MOVE    R5, @R0
                 MOVE    R5, @R2
@@ -217,7 +249,7 @@ _start_16bit    MOVE    STR_16BIT, R8
                 XOR     R5, R5                  ; repeatedly runs to 0xFFFF
 
                 ; DEBUG                
-                MOVE    0x1234, R5
+                MOVE    0x4321, R5
 
 _16bit_loop     CMP     0x0043, @R1             ; hi-word of 1MB reached?
                 RBRA    _16bl_write, !Z         ; no: write next word
@@ -233,14 +265,25 @@ _16bl_write     MOVE    R5, @R2                 ; write test value
 
                 ; linearily check, if the 1MB data that was written above
                 ; is now accessible in the HRAM
-_16bit_check    MOVE    0x0066, @R1             ; hi-word of 0x0333333
-                MOVE    0x666A, @R0             ; lo-word
+_16bit_check    MOVE    0x0033, @R1             ; hi-word of 0x0333333
+                MOVE    0x3333, @R0             ; lo-word
                 XOR     R5, R5                  ; repeatedly runs to 0xFFFF
                 XOR     R6, R6                  ; R6 = error counter
 
                 ; DEBUG
-                MOVE    0x0036, R5
-                MOVE    IO$M65HRAM_DATA8, R2    ; 8-bit data access  
+_dbgstart       MOVE    STR_OK, R8
+                SYSCALL(puts, 1)
+
+                MOVE    @R2, R8
+                SYSCALL(puthex, 1)
+                MOVE    @R2, R8
+                SYSCALL(puthex, 1)
+                MOVE    @R2, R8
+                SYSCALL(puthex, 1)                                
+                RBRA    _END, 1
+                
+                ; DEBUG
+                ;MOVE    IO$M65HRAM_DATA8, R2    ; 8-bit data access  
 
 _16bit_cloop    MOVE    STR_OK, R8
                 SYSCALL(puts, 1)

@@ -27,6 +27,8 @@ hw/xilinx/MEGA65/Vivado/*.hw
 hw/xilinx/MEGA65/Vivado/*.ip_user_files
 hw/xilinx/MEGA65/Vivado/*.runs
 hw/xilinx/MEGA65/Vivado/.Xil
+hw/xilinx/MEGA65
+hw/xilinx/MEGA65/Vivado/MEGA65.sim
 impact.xsl
 impact_impact.xwbt
 assembler/qasm
