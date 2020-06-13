@@ -68,7 +68,6 @@
       </File>
       <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/sim/sim_hram_mmio_mux.vhd">
         <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
@@ -293,6 +292,7 @@
       </Config>
     </FileSet>
     <FileSet Name="sim_hram" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_hram">
+      <Filter Type="Srcs"/>
       <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/sim/debugtools.vhdl">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
