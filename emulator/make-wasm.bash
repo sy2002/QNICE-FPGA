@@ -31,9 +31,11 @@ command -v emcc >/dev/null 2>&1 || {
 }
 
 EMCC_VERSION=`emcc --version|grep emcc|egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
-if [[ $EMCC_VERSION != "1.39.10" ]]; then
-    echo "Warning: Emscripten SDK other than 1.39.10 might lead to errors."
+if [[ $EMCC_VERSION = "1.39.11" ]] || [[ $EMCC_VERSION = "1.39.12" ]] || [[ $EMCC_VERSION = "1.39.13" ]]; then
+    echo "Error: This Emscripten SDK version will not work. Please upgrade."
     echo "(see also https://github.com/emscripten-core/emscripten/issues/10746)"
+    echo ""
+    exit 1
 fi
 
 if [[ ! -f qnice_disk.img ]]; then

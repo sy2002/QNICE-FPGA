@@ -1,6 +1,12 @@
 Version 1.6     xxxxx, 22 2020
 ==============================
 
+(SMOKE CHECK BEFORE RELEASE 1.6: Upgrade Emscripten to the newest version and then play Q-TRIS)
+* EMULATOR: Made the WebAssembly target compatible with Emscripten 1.39.14
+  (and newer and it still works with 1.39.10 and some of the older versions,
+  but not with the versions in between). The background of this phenomenon is
+  explained here: https://github.com/emscripten-core/emscripten/issues/10746
+
 <did Paul finally fix the strange Hyperram smoking gun? If not, then I need
 to write a note, that HyperRAM right now only works in Vivado and explain why>
 
@@ -39,17 +45,10 @@ WIP * MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
 WIP * TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
   Structured all hardware dependencies in the new folder 'hw'.
 
-TODO * EMULATOR: <todo write explanation and reference to
-  https://github.com/emscripten-core/emscripten/issues/10746
-  and update make-wasm.bash>
-
 TODO * DOCUMENTATION: Added README.md with basic documentation
 <describe at least: Nexys Switches, MEGA65 specialities (German umlauts when
 DE locale is on (still y=y, should be mentioned)), restructure the README.md
 in the hardware folder to be only a hw folder docu.
-
-<Bash: check for emcc 1.39.10 (still allow this one) or for 1.39.14 and newer
-and mention 1.39.10 and 1.39.14 as tested and reference this big issue>
 
 <Ubuntu: basic compatibility enhancements like -x c and smart OS detect by
 include in assembler/asm and the likes... ...and VGA emubuild under Ubuntu?

@@ -124,6 +124,6 @@ of the Switch Register.
 
 ### VHDL Development for the MEGA65
 
-Some hints, learnings: "Digitlent Device", how to map VGA port so that
+Some hints, learnings: "Digilent Device", how to map VGA port so that
 they work, ...
 
