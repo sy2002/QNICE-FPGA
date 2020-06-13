@@ -3,7 +3,7 @@
 -- Monocrome Text Mode Video Controller VHDL Macro
 -- 80x40 characters. Pixel resolution is 640x480/60Hz
 -- 
--- Copyright (c) 2007 Javier Valcarce García, javier.valcarce@gmail.com
+-- Copyright (c) 2007 Javier Valcarce Garcï¿½a, javier.valcarce@gmail.com
 --
 -- Bugfixed by Proboscide99 at 31/08/08
 -- Enhanced and bugfixed by sy2002 in 2015/2016
@@ -45,7 +45,9 @@ entity vga80x40 is
     G           : out std_logic;
     B           : out std_logic;
     hsync       : out std_logic;
-    vsync       : out std_logic
+    vsync       : out std_logic;
+    
+    hdmi_de     : out std_logic
     );   
 end vga80x40;
 
@@ -151,6 +153,8 @@ begin
 -- Proboscide99 31/08/08
 --  blank <= '0' when (hctr > 639) or (vctr > 479) else '1';
   blank <= '0' when (hctr < 8) or (hctr > 647) or (vctr > 479) else '1';
+
+  hdmi_de <= '1' when (hctr > 7 and hctr < 648 and vctr < 480) else '0'; 
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------  

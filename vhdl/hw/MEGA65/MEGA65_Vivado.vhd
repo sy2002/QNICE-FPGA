@@ -38,6 +38,16 @@ port (
    vdac_sync_n    : out std_logic;
    vdac_blank_n   : out std_logic;
    
+   -- HDMI via ADV7511
+   hdmi_vsync     : out std_logic;
+   hdmi_hsync     : out std_logic;
+   hdmired        : out std_logic_vector(7 downto 0);
+   hdmigreen      : out std_logic_vector(7 downto 0);
+   hdmiblue       : out std_logic_vector(7 downto 0);
+   hdmi_clk       : out std_logic;      
+   hdmi_de        : out std_logic;                 -- high when valid pixels being output
+   hdmi_spdif     : out std_logic := '0';          -- unused: GND
+   
    -- MEGA65 smart keyboard controller
    kb_io0         : out std_logic;                 -- clock to keyboard
    kb_io1         : out std_logic;                 -- data output to keyboard
@@ -49,11 +59,13 @@ port (
    SD_MOSI        : out std_logic;
    SD_MISO        : in std_logic;
    
-   -- HyperRAM
+   -- Built-in HyperRAM
    hr_d           : inout unsigned(7 downto 0);    -- Data/Address
    hr_rwds        : inout std_logic;               -- RW Data strobe
    hr_reset       : out std_logic;                 -- Active low RESET line to HyperRAM
    hr_clk_p       : out std_logic;
+   
+   -- Optional additional HyperRAM in trap-door slot
    hr2_d          : inout unsigned(7 downto 0);    -- Data/Address
    hr2_rwds       : inout std_logic;               -- RW Data strobe
    hr2_reset      : out std_logic;                 -- Active low RESET line to HyperRAM
@@ -135,7 +147,9 @@ port (
    G           : out std_logic;
    B           : out std_logic;
    hsync       : out std_logic;
-   vsync       : out std_logic
+   vsync       : out std_logic;
+   
+   hdmi_de     : out std_logic   
 );
 end component;
 
@@ -487,6 +501,7 @@ begin
          B => vga_b,
          hsync => vga_hsync,
          vsync => vga_vsync,
+         hdmi_de => hdmi_de,
          en => vga_en,
          we => vga_we,
          reg => vga_reg,
@@ -647,17 +662,22 @@ begin
       end if;
    end process;
                        
-   vga_out_latches : process(clk25MHz)
+   video_signal_latches : process(clk25MHz)
    begin
       if rising_edge(clk25MHz) then
-         -- wire the simplified color system of the VGA component to the VGA outputs         
-         VGA_RED   <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
-         VGA_GREEN <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
-         VGA_BLUE  <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
+         -- VGA: wire the simplified color system of the VGA component to the VGA outputs         
+         VGA_RED     <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
+         VGA_GREEN   <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
+         VGA_BLUE    <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
          
          -- VGA horizontal and vertical sync
-         VGA_HS    <= vga_hsync;
-         VGA_VS    <= vga_vsync;
+         VGA_HS      <= vga_hsync;
+         VGA_VS      <= vga_vsync;
+         
+         -- HDMI: color signal
+         hdmired     <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
+         hdmigreen   <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
+         hdmiblue    <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
       end if;
    end process;
 
@@ -670,8 +690,13 @@ begin
    -- invert the phase of the vdac_clk when use Vivado 2019.2. When using ISE 14.7, it works
    -- fine without the phase shift.   
    vdac_clk <= not clk25MHz;
-   
-   -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
+
+   -- HDMI   
+   hdmi_hsync  <= vga_hsync;
+   hdmi_vsync  <= vga_vsync;            
+   hdmi_clk    <= clk25MHz;
+
+-- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
    -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
    -- bit #1: use UART AS STDOUT (0) / use VGA as STDOUT (1)
    SWITCHES(15 downto 2) <= "00000000000000";

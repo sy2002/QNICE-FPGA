@@ -63,7 +63,9 @@ port (
    G           : out std_logic;
    B           : out std_logic;
    hsync       : out std_logic;
-   vsync       : out std_logic
+   vsync       : out std_logic;
+   
+   hdmi_de     : out std_logic   
 );
 end vga_textmode;
 
@@ -82,19 +84,21 @@ port (
    vsync       : out std_logic;
    
    -- address and data lines of video ram for text
-   TEXT_A           : out std_logic_vector(11 downto 0);
-   TEXT_D           : in  std_logic_vector(07 downto 0);
+   TEXT_A      : out std_logic_vector(11 downto 0);
+   TEXT_D      : in  std_logic_vector(07 downto 0);
    
    -- address and data lines of font rom
-   FONT_A           : out std_logic_vector(11 downto 0);
-   FONT_D           : in  std_logic_vector(07 downto 0);
+   FONT_A      : out std_logic_vector(11 downto 0);
+   FONT_D      : in  std_logic_vector(07 downto 0);
    
    -- hardware cursor x and y positions
-   ocrx    : in  std_logic_vector(7 downto 0);
-   ocry    : in  std_logic_vector(7 downto 0);
+   ocrx        : in  std_logic_vector(7 downto 0);
+   ocry        : in  std_logic_vector(7 downto 0);
    
    -- control register
-   octl    : in  std_logic_vector(7 downto 0)
+   octl        : in  std_logic_vector(7 downto 0);
+   
+   hdmi_de     : out std_logic   
 );   
 end component;
 
@@ -206,7 +210,8 @@ begin
          FONT_D => vga_font_d,
          ocrx => vga_x,
          ocry => "0" & vga_y,
-         octl => vga_ctl
+         octl => vga_ctl,
+         hdmi_de => hdmi_de
       );
       
    video_ram : video_bram
