@@ -44,10 +44,15 @@ port (
    hdmired        : out std_logic_vector(7 downto 0);
    hdmigreen      : out std_logic_vector(7 downto 0);
    hdmiblue       : out std_logic_vector(7 downto 0);
+   
    hdmi_clk       : out std_logic;      
    hdmi_de        : out std_logic;                 -- high when valid pixels being output
-   hdmi_spdif     : out std_logic := '0';          -- unused: GND
    
+   hdmi_int       : in std_logic;                  -- interrupts by ADV7511
+   hdmi_spdif     : out std_logic := '0';          -- unused: GND
+   hdmi_scl       : inout std_logic;               -- I2C to/from ADV7511: serial clock
+   hdmi_sda       : inout std_logic;               -- I2C to/from ADV7511: serial data
+
    -- MEGA65 smart keyboard controller
    kb_io0         : out std_logic;                 -- clock to keyboard
    kb_io1         : out std_logic;                 -- data output to keyboard

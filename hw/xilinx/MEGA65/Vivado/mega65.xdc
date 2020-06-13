@@ -100,9 +100,9 @@ set_property -dict {PACKAGE_PIN R6   IOSTANDARD LVCMOS33} [get_ports hdmi_vsync]
 set_property -dict {PACKAGE_PIN R2   IOSTANDARD LVCMOS33} [get_ports hdmi_de]
 set_property -dict {PACKAGE_PIN Y2   IOSTANDARD LVCMOS33} [get_ports hdmi_clk]
 
-#set_property -dict {PACKAGE_PIN T3   IOSTANDARD LVCMOS33} [get_ports hdmi_scl]
-#set_property -dict {PACKAGE_PIN U7   IOSTANDARD LVCMOS33} [get_ports hdmi_sda]
-#set_property -dict {PACKAGE_PIN Y9   IOSTANDARD LVCMOS33} [get_ports hdmi_int]
+set_property -dict {PACKAGE_PIN T3   IOSTANDARD LVCMOS33} [get_ports hdmi_scl]
+set_property -dict {PACKAGE_PIN U7   IOSTANDARD LVCMOS33} [get_ports hdmi_sda]
+set_property -dict {PACKAGE_PIN Y9   IOSTANDARD LVCMOS33} [get_ports hdmi_int]
 set_property -dict {PACKAGE_PIN AA1  IOSTANDARD LVCMOS33} [get_ports hdmi_spdif]
 #set_property -dict {PACKAGE_PIN AA8  IOSTANDARD LVCMOS33} [get_ports hdmi_spdif_out]
 
