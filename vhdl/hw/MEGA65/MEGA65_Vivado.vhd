@@ -371,6 +371,8 @@ signal reset_post_pore        : std_logic;
 signal vga_r                  : std_logic;
 signal vga_g                  : std_logic;
 signal vga_b                  : std_logic;
+signal vga_hsync              : std_logic;
+signal vga_vsync              : std_logic;
 
 -- Main clock: 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic;
@@ -483,8 +485,8 @@ begin
          R => vga_r,
          G => vga_g,
          B => vga_b,
-         hsync => VGA_HS,
-         vsync => VGA_VS,
+         hsync => vga_hsync,
+         vsync => vga_vsync,
          en => vga_en,
          we => vga_we,
          reg => vga_reg,
@@ -645,17 +647,28 @@ begin
       end if;
    end process;
                        
-   -- wire the simplified color system of the VGA component to the VGA outputs
-   VGA_RED   <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
-   VGA_GREEN <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
-   VGA_BLUE  <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
+   vga_out_latches : process(clk25MHz)
+   begin
+      if rising_edge(clk25MHz) then
+         -- wire the simplified color system of the VGA component to the VGA outputs         
+         VGA_RED   <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
+         VGA_GREEN <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
+         VGA_BLUE  <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
+         
+         -- VGA horizontal and vertical sync
+         VGA_HS    <= vga_hsync;
+         VGA_VS    <= vga_vsync;
+      end if;
+   end process;
+
+   -- make the VDAC output the image    
    vdac_sync_n <= '0';
    vdac_blank_n <= '1';
    
    -- Fix of the Vivado induced "blurry VGA screen":
    -- As of the  time writing this (June 2020): it is absolutely unclear for me, why I need to
    -- invert the phase of the vdac_clk when use Vivado 2019.2. When using ISE 14.7, it works
-   -- fine without the phase shift.
+   -- fine without the phase shift.   
    vdac_clk <= not clk25MHz;
    
    -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
