@@ -38,7 +38,7 @@ Folder Structure
 | qbin          | Compiled binaries (`.out` format) that can be put on an SD Card. You can load them directly when the Monitor is running using the File/Run command via `F` and `R`.
 | test_programs | Experiements, development testbeds and simple tests written in QNICE assembler.
 | tools         | Various tools. Use `make_toolchain.sh` to compile the QNICE toolchain and `qtransfer.c` to transfer data from your Mac or PC to QNICE-FPGA while `qtransfer.asm` is running on QNICE-FGA.
-| vhdl          | Portable QNICE-FPGA implementation. Subfolder `hw` contains hardware specific VHDL code.
+| vhdl          | Portable QNICE-FPGA implementation. Subfolder `hw` contains hardware specific VHDL code. [vhdl/hw/MEGA65/README.md](../vhdl/hw/MEGA65/README.md) contains information about MEGA65 specific sources.
 
 MEGA65
 ------

@@ -144,6 +144,26 @@ MEGA65 Ports
 MEGA65 Simulation files
 -----------------------
 
-
-
 ### HyperRAM Simulation
+
+The HyperRAM simulation is a testbed and debugging environment for HyperRAM.
+It consists of a minimal QNICE-FPGA on MEGA65 simulation: Just the core
+computer plus the HyperRAM (no VGA, no UART, no keyboard, etc.). The top file
+is `sim_hram_dbg.vhd`. It makes sure, that `sim_hram_dbg.rom` is being loaded,
+which is the result of compiling `sim_hram_dbg.asm`. The HyperRAM istself
+is simulated using `s27kl0641.vhd`.
+
+The following files are part of the HyperRAM simulation:
+
+```
+conversions.vhd
+gen_utils.vhd
+s27kl0641.vhd
+sim_hram_dbg.asm
+sim_hram_dbg.vhd
+sim_hram_dbg_globals.vhd
+sim_hram_mmio_mux.vhd
+```
+
+You can start the simulation in the Vivado IDE using `sim_hram` from the
+`Simulation Sources` branch in the sources view of the Project Manager.
