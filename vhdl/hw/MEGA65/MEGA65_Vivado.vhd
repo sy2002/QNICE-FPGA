@@ -158,6 +158,22 @@ port (
 );
 end component;
 
+component hdmi_i2c
+  generic (
+   clock_frequency : integer
+  );
+  port (
+    clock : in std_logic;
+
+    -- HDMI interrupt to trigger automatic reset
+    hdmi_int : in std_logic;
+    
+    -- I2C bus
+    sda : inout std_logic;
+    scl : inout std_logic
+  );
+end component;
+
 -- UART
 component bus_uart is
 generic (
@@ -511,6 +527,18 @@ begin
          we => vga_we,
          reg => vga_reg,
          data => cpu_data
+      );
+      
+   -- I2C communication with the HDMI transcoder ADV7511
+   hdmi_i2c2: hdmi_i2c
+      generic map (
+         clock_frequency => 50000000
+      )
+      port map (
+         clock => SLOW_CLOCK,
+         hdmi_int => '1',     
+         sda => hdmi_sda,
+         scl => hdmi_scl
       );
 
    -- special UART with FIFO that can be directly connected to the CPU bus
