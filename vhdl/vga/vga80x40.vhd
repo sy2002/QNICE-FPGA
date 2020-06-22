@@ -154,7 +154,7 @@ begin
 --  blank <= '0' when (hctr > 639) or (vctr > 479) else '1';
   blank <= '0' when (hctr < 8) or (hctr > 647) or (vctr > 479) else '1';
 
-  hdmi_de <= '1' when (hctr > 7 and hctr < 648 and vctr < 480) else '0'; 
+  hdmi_de <= '1' when (hctr > 7 and hctr < 650 and vctr < 480) else '0'; 
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------  
