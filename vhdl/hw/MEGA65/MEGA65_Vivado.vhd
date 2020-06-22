@@ -52,6 +52,11 @@ port (
    hdmi_spdif     : out std_logic := '0';          -- unused: GND
    hdmi_scl       : inout std_logic;               -- I2C to/from ADV7511: serial clock
    hdmi_sda       : inout std_logic;               -- I2C to/from ADV7511: serial data
+   
+   -- TPD12S016 companion chip for ADV7511
+   --hpd_a          : inout std_logic;
+   ct_hpd         : out std_logic := '1';          -- assert to connect ADV7511 to the actual port
+   ls_oe          : out std_logic := '1';          -- ditto
 
    -- MEGA65 smart keyboard controller
    kb_io0         : out std_logic;                 -- clock to keyboard

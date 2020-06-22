@@ -176,20 +176,22 @@ architecture behavioural of hdmi_i2c is
     ---------------
     -- Input mode
     ---------------
-    x"3C11", -- PAL 576p 4:3 aspect ratio video mode
+    --x"3C11", -- PAL 576p 4:3 aspect ratio video mode
+    x"3C01", -- VGA 640x480
     x"1500", -- Simple RGB video (was $06 = YCbCr 422, DDR, External sync), 44.1KHz audio sample rate
     x"4810", -- Left justified data (D23 downto 8)
     -- according to documenation, style 2 should be x"1637" but it isn't. ARGH!
 --            x"1637", -- 444 output, 8 bit style 2, 1st half on rising edge - YCrCb clipping
     x"1630", -- more boring pixel format
-    x"1700", -- input aspect ratio 4:3, external DE 
+--    x"1700", -- input aspect ratio 4:3, external DE
+    x"1760", -- output aspect ratio 4:3 and 640x480 means inverted VSYNC and HSYNC 
     x"5619", -- ouput aspect ratio 4:3, 
-    x"D03C", -- auto sync data - must be set for DDR modes. No DDR clock delay
+--    x"D03C", -- auto sync data - must be set for DDR modes. No DDR clock delay
     ---------------
     -- Output mode
     ---------------
     x"AF06", -- HDMI mode
-    x"4c04", -- Deep colour off (HDMI only?)     - not needed
+    x"4C04", -- Deep colour off (HDMI only?)     - not needed
     x"40C0", -- Turn on main HDMI data packets
 
     ---------------
@@ -197,16 +199,16 @@ architecture behavioural of hdmi_i2c is
     ---------------
     
 --    x"0A1D",  -- SPDIF audio format, auto CTS
-    x"0A10",  -- SPDIF audio format, auto CTS, 128x sample rate, audio sample
+--    x"0A10",  -- SPDIF audio format, auto CTS, 128x sample rate, audio sample
               -- packet instead of HBR audio stream packet
-    x"0B8E",  -- SPDIF audio TX enable, extract MCLK from SPDIF audio
+--    x"0B8E",  -- SPDIF audio TX enable, extract MCLK from SPDIF audio
     -- stream, i.e no separate MCLK
-    x"0C00",  -- Use sampling rate encoded in the SPDIF stream instead
+--    x"0C00",  -- Use sampling rate encoded in the SPDIF stream instead
     -- of specifying the rate.
-    x"1220",  -- Mark audio stream as PCM audio, no copyright
-    x"1403",  -- Indicate 20 bits per sample    
-    x"7301",  -- stereo
-    x"7600",  -- clear channel allocations
+--    x"1220",  -- Mark audio stream as PCM audio, no copyright
+--    x"1403",  -- Indicate 20 bits per sample    
+--    x"7301",  -- stereo
+--    x"7600",  -- clear channel allocations
 
     -- Audio CTS and N values
     -- See p93 SS4.4.2 of https://www.analog.com/media/en/technical-documentation/user-guides/ADV7511_Programming_Guide.pdf
@@ -215,8 +217,8 @@ architecture behavioural of hdmi_i2c is
     -- Clock is 27MHz exactly, so the above values should work fine
     -- Big-endian byte order.
     -- Use $6000 for 192KHz audio sample rate
-    x"0100",x"0218",x"0380",  -- N   =  6272
-    x"0700",x"0875",x"0930",  -- CTS = 30000
+--    x"0100",x"0218",x"0380",  -- N   =  6272
+--    x"0700",x"0875",x"0930",  -- CTS = 30000
     
 --            -- Set HDMI device name
 --            x"1F80",x"4478", -- Allow setting HDMI packet memory
@@ -231,8 +233,8 @@ architecture behavioural of hdmi_i2c is
 --            x"1d00",x"1e00",x"1f00",x"2000",
 --            x"FE7A",
 
-    x"1F00", -- Hand packet memory back to HDMI controller
-    x"4479", -- Set up which info frames  are included.  $79 = audio info frame
+--    x"1F00", -- Hand packet memory back to HDMI controller
+--    x"4479", -- Set up which info frames  are included.  $79 = audio info frame
              -- on, $71 = audio info frame off.
 
     x"FE00",  -- get I2C register offset for reading back to 0

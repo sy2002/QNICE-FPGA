@@ -106,6 +106,11 @@ set_property -dict {PACKAGE_PIN Y9   IOSTANDARD LVCMOS33} [get_ports hdmi_int]
 set_property -dict {PACKAGE_PIN AA1  IOSTANDARD LVCMOS33} [get_ports hdmi_spdif]
 #set_property -dict {PACKAGE_PIN AA8  IOSTANDARD LVCMOS33} [get_ports hdmi_spdif_out]
 
+## TPD12S016 companion chip for ADV7511
+#set_property -dict {PACKAGE_PIN Y8   IOSTANDARD LVCMOS33} [get_ports hpd_a]
+set_property -dict {PACKAGE_PIN M15  IOSTANDARD LVCMOS33} [get_ports ct_hpd]
+set_property -dict {PACKAGE_PIN AB8  IOSTANDARD LVCMOS33} [get_ports ls_oe]
+
 ## Micro SD Connector (this is the slot at the bottom side of the case under the cover)
 set_property -dict {PACKAGE_PIN B15  IOSTANDARD LVCMOS33} [get_ports SD_RESET]
 set_property -dict {PACKAGE_PIN B17  IOSTANDARD LVCMOS33} [get_ports SD_CLK]
