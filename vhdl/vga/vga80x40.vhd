@@ -7,6 +7,7 @@
 --
 -- Bugfixed by Proboscide99 at 31/08/08
 -- Enhanced and bugfixed by sy2002 in 2015/2016
+-- Support for ADV7511 HDMI Data Enable signal by sy2002 in June 2020 
 --
 ----------------------------------------------------------------------------------------------------
 -- This program is free software: you can redistribute it and/or modify
@@ -47,8 +48,12 @@ entity vga80x40 is
     hsync       : out std_logic;
     vsync       : out std_logic;
     
-    hdmi_de     : out std_logic
-    );   
+    -- ADV7511: HDMI Data Enable: high when valid pixels being output
+    hdmi_de     : out std_logic;
+    de_hctr_min : integer range 793 downto 0 := 9;
+    de_hctr_max : integer range 793 downto 0 := 650;
+    de_vctr_max : integer range 524 downto 0 := 480
+  ); 
 end vga80x40;
 
 
@@ -154,7 +159,8 @@ begin
 --  blank <= '0' when (hctr > 639) or (vctr > 479) else '1';
   blank <= '0' when (hctr < 8) or (hctr > 647) or (vctr > 479) else '1';
 
-  hdmi_de <= '1' when (hctr > 7 and hctr < 650 and vctr < 480) else '0'; 
+  -- ADV7511 Data Enable
+  hdmi_de <= '1' when (hctr > de_hctr_min and hctr < de_hctr_max and vctr < de_vctr_max) else '0'; 
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------  

@@ -307,6 +307,9 @@ VGA$OFFS_RW         .EQU 0xFF05 ; Offset in bytes that is used, when you read
                                 ; or write to the video RAM using VGA$CHAR.
                                 ; Works independently from VGA$OFFS_DISPLAY.
                                 ; Active, when bit #11 in VGA$STATE is set.
+VGA$HDMI_H_MIN      .EQU 0xFF06 ; HDMI Data Enable: X: minimum valid column
+VGA$HDMI_H_MAX      .EQU 0xFF07 ; HDMI Data Enable: X: maximum valid column
+VGA$HDMI_V_MAX      .EQU 0xFF08 ; HDMI Data Enable: Y: maximum row (line)                                
 ;
 ;  Registers for TIL-display:
 ;
@@ -331,7 +334,7 @@ IO$KBD_STATE    .EQU 0xFF13 ; Status register of USB keyboard
 ;
 IO$KBD_DATA     .EQU 0xFF14 ; Data register of USB keyboard
 ;    Contains the ASCII character in bits 7 downto 0  or the special key code
-;    in 15 downto 0. The "or" is meant exclusive, i.e. it cannot happen that
+;    in 15 downto 8. The "or" is meant exclusive, i.e. it cannot happen that
 ;    one transmission contains an ASCII character PLUS a special character.
 ;
 ;  CYCLE-COUNT-registers       

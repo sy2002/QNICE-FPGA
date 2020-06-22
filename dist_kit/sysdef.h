@@ -24,7 +24,7 @@
 
 #define VGA_MAX_X              	79                      // Max. X-coordinate in decimal!
 #define VGA_MAX_Y              	39                      // Max. Y-coordinate in decimal!
-#define VGA_MAX_CHARS          	3200                    // VGA_MAX_X * VGA_MAX_Y
+#define VGA_MAX_CHARS          	3200                    // 80 * 40 chars
 #define VGA_CHARS_PER_LINE     	80  
 
 #define VGA_EN_HW_CURSOR       	0x0040                  // Show hardware cursor
@@ -299,6 +299,9 @@
                                 // or write to the video RAM using VGA_CHAR.
                                 // Works independently from VGA_OFFS_DISPLAY.
                                 // Active, when bit #11 in VGA_STATE is set.
+#define VGA_HDMI_H_MIN     	0xFF06 // HDMI Data Enable: X: minimum valid column
+#define VGA_HDMI_H_MAX     	0xFF07 // HDMI Data Enable: X: maximum valid column
+#define VGA_HDMI_V_MAX     	0xFF08 // HDMI Data Enable: Y: maximum row (line)                                
 //
 //  Registers for TIL-display:
 //
@@ -323,7 +326,7 @@
 //
 #define IO_KBD_DATA    	0xFF14 // Data register of USB keyboard
 //    Contains the ASCII character in bits 7 downto 0  or the special key code
-//    in 15 downto 0. The "or" is meant exclusive, i.e. it cannot happen that
+//    in 15 downto 8. The "or" is meant exclusive, i.e. it cannot happen that
 //    one transmission contains an ASCII character PLUS a special character.
 //
 //  CYCLE-COUNT-registers       

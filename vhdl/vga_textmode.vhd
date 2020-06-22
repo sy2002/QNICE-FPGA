@@ -30,6 +30,9 @@
 --             read: bits (7 downto 0) contains the character in video ram at address (cursor x, y)
 -- register 4: vga display offset register used e.g. for hardware scrolling (0..63999)
 -- register 5: vga read/write offset register used for accessing the whole vram (0..63999)
+-- register 6: hctr_min: HDMI Data Enable: X: minimum valid column
+-- register 7: hctr_max: HDMI Data Enable: X: maximum valid column
+-- register 8: vctr_max: HDMI Data Enable: Y: maximum valid row (line)
 --
 -- this component uses Javier Valcarce's vga core
 -- http://www.javiervalcarce.eu/html/vhdl-vga80x40-en.html
@@ -65,7 +68,7 @@ port (
    hsync       : out std_logic;
    vsync       : out std_logic;
    
-   hdmi_de     : out std_logic   
+   hdmi_de     : out std_logic
 );
 end vga_textmode;
 
@@ -98,7 +101,11 @@ port (
    -- control register
    octl        : in  std_logic_vector(7 downto 0);
    
-   hdmi_de     : out std_logic   
+   -- ADV7511: HDMI Data Enable: high when valid pixels being output   
+   hdmi_de     : out std_logic;
+   de_hctr_min : integer range 793 downto 0;
+   de_hctr_max : integer range 793 downto 0;
+   de_vctr_max : integer range 524 downto 0   
 );   
 end component;
 
@@ -178,19 +185,24 @@ signal offs_display        : std_logic_vector(15 downto 0) := (others => '0');
 signal offs_rw             : std_logic_vector(15 downto 0) := (others => '0');
 signal print_addr_w_offs   : std_logic_vector(15 downto 0);
 
+-- HDMI data enable
+signal reg_hctr_min        : integer range 793 downto 0;
+signal reg_hctr_max        : integer range 793 downto 0;
+signal reg_vctr_max        : integer range 524 downto 0;
+
 -- command type: print char
 signal vga_print           : std_logic := '0';
 signal reset_vga_print     : std_logic;
 signal print_addr          : std_logic_vector(11 downto 0);
 
 -- command type: clear screen
-signal clrscr_cnt          : IEEE.NUMERIC_STD.unsigned(15 downto 0);
+signal clrscr_cnt          : unsigned(15 downto 0);
 signal vga_clrscr          : std_logic := '0';
 signal reset_vga_clrscr    : std_logic;
 
 -- state machine signals
 signal fsm_next_vga_cmd    : vga_command_type;
-signal fsm_clrscr_cnt      : IEEE.NUMERIC_STD.unsigned(15 downto 0);
+signal fsm_clrscr_cnt      : unsigned(15 downto 0);
 
 
 begin
@@ -211,7 +223,10 @@ begin
          ocrx => vga_x,
          ocry => "0" & vga_y,
          octl => vga_ctl,
-         hdmi_de => hdmi_de
+         hdmi_de => hdmi_de,
+         de_hctr_min => reg_hctr_min,
+         de_hctr_max => reg_hctr_max,
+         de_vctr_max => reg_vctr_max
       );
       
    video_ram : video_bram
@@ -347,6 +362,11 @@ begin
          vmem_offs_rw <= '0';         
          offs_display <= (others => '0');
          offs_rw <= (others => '0');
+         
+         -- default settings so that the whole screen is visible
+         reg_hctr_min <= 9;
+         reg_hctr_max <= 650;
+         reg_vctr_max <= 480;                     
       else                  
          if falling_edge(clk50MHz) then
             if en = '1' and we = '1' then
@@ -360,24 +380,24 @@ begin
                   -- cursor x register
                   when x"1" =>
                      vga_x <= data(7 downto 0);
-                     vx := IEEE.NUMERIC_STD.unsigned(data(7 downto 0));
-                     vy := IEEE.NUMERIC_STD.unsigned(vga_y);
+                     vx := unsigned(data(7 downto 0));
+                     vy := unsigned(vga_y);
                      memory_pos := std_logic_vector(vx + (vy * 80));                     
                      print_addr <= memory_pos(11 downto 0);
                   
                   -- cursor y register
                   when x"2" =>
                      vga_y <= data(6 downto 0);
-                     vx := IEEE.NUMERIC_STD.unsigned(vga_x);
-                     vy := IEEE.NUMERIC_STD.unsigned(data(6 downto 0));
+                     vx := unsigned(vga_x);
+                     vy := unsigned(data(6 downto 0));
                      memory_pos := std_logic_vector(vx + (vy * 80));
                      print_addr <= memory_pos(11 downto 0);
 
                   -- character print register
                   when x"3" =>
                      vga_char <= data(7 downto 0);                  
-                     vx := IEEE.NUMERIC_STD.unsigned(vga_x);
-                     vy := IEEE.NUMERIC_STD.unsigned(vga_y);
+                     vx := unsigned(vga_x);
+                     vy := unsigned(vga_y);
                      memory_pos := std_logic_vector(vx + (vy * 80));                  
                      print_addr <= memory_pos(11 downto 0);
                      
@@ -385,6 +405,11 @@ begin
                   when x"4" => offs_display <= data;
                   when x"5" => offs_rw <= data;
                   
+                  -- ADV7511 HDMI DE config registers
+                  when x"6" => reg_hctr_min <= to_integer(unsigned(data));
+                  when x"7" => reg_hctr_max <= to_integer(unsigned(data));
+                  when x"8" => reg_vctr_max <= to_integer(unsigned(data));
+                                    
                   when others => null;
                end case;
             end if;
@@ -434,6 +459,12 @@ begin
             when x"3" => data <= x"00"  & vga_read_data;                -- character print/read register
             when x"4" => data <= offs_display;                          -- display offset register
             when x"5" => data <= offs_rw;                               -- memory access (read/write) offset register
+            
+            -- ADV7511 HDMI DE config registers
+            when x"6" => data <= std_logic_vector(to_unsigned(reg_hctr_min, 16));
+            when x"7" => data <= std_logic_vector(to_unsigned(reg_hctr_max, 16));
+            when x"8" => data <= std_logic_vector(to_unsigned(reg_vctr_max, 16));
+      
             when others => data <= (others => '0');
          end case;
       else
@@ -442,13 +473,13 @@ begin
    end process;
    
    calc_vmem_disp_addr : process(vmem_offs_display, offs_display, vga_text_a)
-      variable disp_addr : IEEE.NUMERIC_STD.unsigned(16 downto 0);
-      variable disp_offs : IEEE.NUMERIC_STD.unsigned(16 downto 0);
+      variable disp_addr : unsigned(16 downto 0);
+      variable disp_offs : unsigned(16 downto 0);
    begin
       if vmem_offs_display = '1' then
          -- address for display = address generated by the vga80x40 component plus offset
-         disp_offs := "0" & IEEE.NUMERIC_STD.unsigned(offs_display);
-         disp_addr := disp_offs + IEEE.NUMERIC_STD.unsigned(vga_text_a);
+         disp_offs := "0" & unsigned(offs_display);
+         disp_addr := disp_offs + unsigned(vga_text_a);
          
          -- manual wrap around due to the (0..VGA_RAM_SIZE-1) memory size
          if disp_addr > (VGA_RAM_SIZE - 1) then
@@ -462,12 +493,12 @@ begin
    end process;
    
    calc_print_addr_w_offs : process(vmem_offs_rw, offs_rw, print_addr)
-      variable disp_addr : IEEE.NUMERIC_STD.unsigned(16 downto 0);
-      variable disp_offs : IEEE.NUMERIC_STD.unsigned(16 downto 0);   
+      variable disp_addr : unsigned(16 downto 0);
+      variable disp_offs : unsigned(16 downto 0);   
    begin
       if vmem_offs_rw = '1' then
-         disp_offs := "0" & IEEE.NUMERIC_STD.unsigned(offs_rw);
-         disp_addr := disp_offs + IEEE.NUMERIC_STD.unsigned(print_addr);
+         disp_offs := "0" & unsigned(offs_rw);
+         disp_addr := disp_offs + unsigned(print_addr);
          if disp_addr > (VGA_RAM_SIZE - 1) then
             disp_addr := disp_addr - VGA_RAM_SIZE;
          end if;
