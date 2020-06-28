@@ -23,7 +23,8 @@ section>
   a documentation in 'hw/README.md'.
 
 * TOOLCHAIN: Added Ubuntu Linux support, which means it should also run on
-  any other Debian based distribution.
+  any other Debian based distribution. You might want to install xclip for
+  more convenience (.out copied to clipboard after assembler ran).
 <TODO: Emu: VGA und WASM build>
 
 <make ISE work again: 
@@ -71,15 +72,6 @@ can see, if the calibration worked.>
 <Do real speed test on hardware with mandel_perf but also with Q-TRIS.
 Then adjust all the 12.9 MIPS claims (also in documentation, various
 README.MDs, because it looks like we are way below 12.9 MIPS in reality)
-
-<The following things have been done to improve Linux compatibility, tested
-under Ubuntu. Shorten the list to some more generic statements before releasing:
-assembler/asm script now works under Linux
-you might want to install xclip for more convenience (.out copied to clipboard after assembler ran)
->
-
-<share a working Q-TRIS core with the MEGA community. maybe even a graphically
-enhanced version using the animations via HyperRAM as a HyperRAM PoC?>
 
 Version 1.5     March, 22 2020
 ==============================

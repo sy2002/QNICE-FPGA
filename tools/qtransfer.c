@@ -10,8 +10,9 @@
     Dependency:
     https://sigrok.org/wiki/Libserialport
     Mac: brew install libserialport
+    Linux (Ubuntu/Debian): sudo apt-get install libserialport-dev
 
-    How to compile:
+    How to compile: Use cc on macOS and gcc on Linux:
     cc qtransfer.c -o qtransfer -O3 -lserialport
 */
 
