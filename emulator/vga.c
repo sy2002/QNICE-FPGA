@@ -398,9 +398,11 @@ int vga_init()
         return 0;
     }
 
+#ifdef __EMSCRIPTEN__
     /* The following SDL Hint is necessary due to this issue:
        https://github.com/emscripten-core/emscripten/issues/10746 */
     SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
+#endif
 
     vga_state = vga_x = vga_y = vga_offs_display = vga_offs_rw = 0;
 
