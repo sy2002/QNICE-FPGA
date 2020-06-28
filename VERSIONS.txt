@@ -25,14 +25,14 @@ Version 1.6     xxxxx, xx 2020
 
 * DOCUMENTATION: Added doc/README.md, hw/README.md & vhdl/hw/MEGA65/README.md
 
-<restructure dist_kit and have .bit and .cor files ready and then update
-all the links @TODO, for example in the hw/README.md and doc/README.md,
-others?>
+<rename QNICE @ MEGA65 in boot message; have some general QNICE #ifdefs?>
 
-<make sure to update the Getting Started section to reflect all the news
-about ISE and Vivado and also about the platforms. Have also a MEGA65.bit
-and a MEGA65.cor in the dist_kit and mention it in the Getting Started 
-section>
+<Do real speed test on hardware with mandel_perf but also with Q-TRIS.
+Then adjust all the 12.9 MIPS claims (also in documentation, various
+README.MDs, because it looks like we are way below 12.9 MIPS in reality:
+We need a hardware based instruction counter.)
+
+HYPERRAM:
 
 <make ISE work again: 
 1. Merge HDMI
@@ -43,12 +43,21 @@ to write a note, that HyperRAM right now only works in Vivado and explain why>
 still necessary? hardware bug still there? ref hyperram.asm "hw bug: 2 reads necessary!"
 reproduce on C65; notify Paul>
 
-<rename QNICE @ MEGA65 in boot message; have some general QNICE #ifdefs?>
+FINAL TOUCHES JUST BEFORE RELEASING:
 
-<Do real speed test on hardware with mandel_perf but also with Q-TRIS.
-Then adjust all the 12.9 MIPS claims (also in documentation, various
-README.MDs, because it looks like we are way below 12.9 MIPS in reality:
-We need a hardware based instruction counter.)
+1. <restructure dist_kit and have .bit and .cor files ready and then update
+all the links @TODO, for example in the hw/README.md and doc/README.md,
+others?>
+
+2. <make sure to update the Getting Started section to reflect all the news
+about ISE and Vivado and also about the platforms. Have also a MEGA65.bit
+and a MEGA65.cor in the dist_kit and mention it in the Getting Started 
+section>
+
+DIRECTLY AFTER RELEASE:
+
+<Update the qnice-fpga.com website: new version number, mention hardware
+platforms, mention Vivado>
 
 Version 1.5     March, 22 2020
 ==============================
