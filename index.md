@@ -18,7 +18,7 @@ Specifications
 * 16-bit QNICE CPU featuring 16 registers, 8 of them in 256 register banks
 * 32k words ROM (64kB)
 * 32k words RAM (64kB)
-* UART 115.200 baud, 8-N-1, CTS
+* UART 115,200 baud, 8-N-1, CTS
 * VGA 80x40 character textmode display (640x480 resolution)
 * PS/2 keyboard support
 * SD Card and FAT32 support
