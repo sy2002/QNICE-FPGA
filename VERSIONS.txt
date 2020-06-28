@@ -12,7 +12,10 @@ section>
 
 * MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
 
-(SMOKE CHECK BEFORE RELEASE 1.6: Upgrade Emscripten to the newest version and then play Q-TRIS)
+* UART: Added a 32 Byte FIFO to the UART. This was necessary because the
+  MEGA65 serial over JTag does not support RTS/CTS and therefore we needed
+  more stability. Now RTS/CTS should be unnecessary in most cases.
+
 * EMULATOR: Made the WebAssembly target compatible with Emscripten 1.39.14
   (and newer and it still works with 1.39.10 and some of the older versions,
   but not with the versions in between). The background of this phenomenon is
@@ -25,7 +28,8 @@ section>
 * TOOLCHAIN: Added Ubuntu Linux support, which means it should also run on
   any other Debian based distribution. You might want to install xclip for
   more convenience (.out copied to clipboard after assembler ran).
-<TODO: Emu: VGA und WASM build>
+
+* DOCUMENTATION: Added doc/README.md, hw/README.md & vhdl/hw/MEGA65/README.md
 
 <make ISE work again: 
 1. Merge HDMI
@@ -41,28 +45,10 @@ to to make-emu-...) if the dependency is there and for Mac and Linux suggest
 how the dependecy can be resolved. Also offer to skip making qtransfer
 as it is not mission critical.>
 
-<replace the @TODO sections in hw/README.md with links to the bitsstream
-and core files>
-
 <rename QNICE @ MEGA65 in boot message; have some general QNICE #ifdefs?>
-
-<added a 32 Byte FIFO to the UART. This makes RTS/CTS unnecessary in most
-cases; did that because MEGA65 does not have RTS/CTS (mention that in the
-porting notes) write some docu somewhere: for being on the safe side RTS/CTS is 
-good; TODO: test, if RTS/CTS still works on Nexys4 DDR: might be just the other way round than implemented>
-
-TODO * DOCUMENTATION: Added README.md with basic documentation
-<describe at least: Nexys Switches, MEGA65 specialities (German umlauts when
-DE locale is on (still y=y, should be mentioned)), restructure the README.md
-in the hardware folder to be only a hw folder docu.
 
 <add DE10-Nano?, if yes, then advertize it in DE10-Nano specific places, if
 not add it to TODO.txt>
-
-<ability to upload qbins for the web emu? filling the virtual file system via
-upload? if this is not for v1.6, then put his to the TODO.txt; maybe even
-easier is to load it directly into the RAM without going the route via the
-file system>
 
 <Monitor calibration: hint in the doc, at least a small program in
 test_programs and in qbin (!); use "8" and other large chars and fill the
@@ -71,7 +57,8 @@ can see, if the calibration worked.>
 
 <Do real speed test on hardware with mandel_perf but also with Q-TRIS.
 Then adjust all the 12.9 MIPS claims (also in documentation, various
-README.MDs, because it looks like we are way below 12.9 MIPS in reality)
+README.MDs, because it looks like we are way below 12.9 MIPS in reality:
+We need a hardware based instruction counter.)
 
 Version 1.5     March, 22 2020
 ==============================

@@ -83,6 +83,8 @@ MEGA65 HARDWARE:
 
 MONITOR:
 
+* Add qtransfer as standard functionality to the Monitor
+
 * variables.asm: replace hardcoded blocksize for _SD$DEVICEHANDLE by using
   FAT32$DEV_STRUCT_SIZE
 
@@ -92,8 +94,6 @@ MONITOR:
 
 * Make IO$GETCHAR smarter, so that switching STDIN does not require "one last
   keypress" on the old STDIN any more before reading from the new STDIN
-
-* Add qtransfer as standard functionality to the Monitor
 
 * Use HW debugging mechanisms to offer single step debugging
 
@@ -123,9 +123,10 @@ EMULATOR:
 
 * Use defines from ../dist_kit/sysdef.h instead of redefining them in qnice.c
 
-* Test, if compilation and running works under Linux (e.g. Ubuntu)
-
 * Test, if compilation and running works under Windows
+
+* WASM: Ability to upload .out files (directly fill them into RAM?) and
+  ability to mount FAT32 file systems via upload
 
 * Emulate all VGA register commands
 

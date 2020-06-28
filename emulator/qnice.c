@@ -160,11 +160,15 @@ unsigned long         gbl$instructions_per_iteration = gbl$ipi_default;
    a "target instructions per 10-milliseconds" measurement using gbl$target_iptms.
    Since there is system jitter, the gbl$target_iptms needs to be adjusted,
    which is done by sampling the actual MIPS every 3 seconds and calculating
-   the gbl$target_iptms_adjustment_factor in the thread "mips_adjustment_thread" */
+   the gbl$target_iptms_adjustment_factor in the thread "mips_adjustment_thread"
+
+   Linux gcc does not allow gbl$qnice_mips to be used within gbl$target_mips and
+   gbl$target_iptms, therefore the value 12.93 is repeated.
+*/
 const float           gbl$qnice_mips   = 12.93;
-const float           gbl$max_mips     = INFINITY;
-float                 gbl$target_mips  = gbl$qnice_mips;
-unsigned long         gbl$target_iptms = ((gbl$qnice_mips * 1e6) / 1e3) * 10;
+const float           gbl$max_mips     = INFINITY; 
+float                 gbl$target_mips  = 12.93;
+unsigned long         gbl$target_iptms = ((12.93 * 1e6) / 1e3) * 10;
 float                 gbl$target_iptms_adjustment_factor = 1.0;
 const unsigned long   gbl$target_sampling_s = 3;
 bool                  mips_adjustment_thread_running = false;

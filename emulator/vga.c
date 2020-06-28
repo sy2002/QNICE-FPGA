@@ -42,22 +42,20 @@ const  Uint16   kbd_fifo_size = 100;
 fifo_t*         kbd_fifo;
 
 #ifdef __EMSCRIPTEN__
-const Uint16    display_dx  = 960;      //the hardware runs at a 1.8 : 1 ratio, see screenshots on GitHub
-const Uint16    display_dy  = 534;
-//const Uint16    display_dx  = 960;
-//const Uint16    display_dy  = 600;
+    #define display_dx ((Uint16) 960)      //the hardware runs at a 1.8 : 1 ratio, see screenshots on GitHub
+    #define display_dy ((Uint16) 534)      //600 would be a 1.6 : 1 ratio
 #else
-const Uint16    display_dx  = 1280;     //1.8 : 1 ratio
-const Uint16    display_dy  = 712;
-//const Uint16    display_dx  = 1280;
-//const Uint16    display_dy  = 800;
+    #define display_dx ((Uint16) 1280)     //1.8 : 1 ratio
+    #define display_dy ((Uint16) 712)      //800 would be a 1.6 : 1 ratio
 #endif
-const Uint16    render_dx   = 640;
-const Uint16    render_dy   = 480;
-const Uint16    screen_dx   = 80;
-const Uint16    screen_dy   = 40;
-const Uint16    font_dx     = QNICE_FONT_CHAR_DX_BITS;
-const Uint16    font_dy     = QNICE_FONT_CHAR_DY_BYTES;
+
+#define render_dx ((Uint16) 640)
+#define render_dy ((Uint16) 480)
+#define screen_dx ((Uint16) 80)
+#define screen_dy ((Uint16) 40)
+#define font_dx   ((Uint16) QNICE_FONT_CHAR_DX_BITS)
+#define font_dy   ((Uint16) QNICE_FONT_CHAR_DY_BYTES)
+
 const float     zoom_x      = (float) display_dx / (float) render_dx;
 const float     zoom_y      = (float) display_dy / (float) render_dy;
 static Uint32   font[font_dx * font_dy * QNICE_FONT_CHARS];
