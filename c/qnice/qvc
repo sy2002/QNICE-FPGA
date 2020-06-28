@@ -9,8 +9,8 @@ source $SCRIPT_DIR/../../tools/detect.include
 
 if [ $OSTP = "LINUX" ]; then
     if hash xclip 2>/dev/null; then
-        cat $destination | xclip -selection clipboard
+        cat ${1/.c/}.out | xclip -selection clipboard
     fi;
 elif [ $OSTP = "OSX" ]; then
-    cat $destination | pbcopy
+    cat ${1/.c/}.out | pbcopy
 fi;
