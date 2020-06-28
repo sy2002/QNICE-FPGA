@@ -25,7 +25,7 @@ Folder Structure
 |------------------|----------------------------------------------------------
 | demos            | Screenshots for the web site and for the main README.md showing the demos. Additionally, this folder contains the all-time high-scores for Q-TRIS in [q-tris-highscore.txt](demos/q-tris-highscore.txt).
 | github           | Images used for the presentation of the project on GitHub
-| history          | Right now, this folder only contains an old paper (`nice_can.pdf`) about the predecessor of QNICE: The NICE architecture. QNICE albeit a 16-bit architecture was created later than the 32-bit NIEC architecture.
+| history          | Right now, this folder only contains an old paper (`nice_can.pdf`) about the predecessor of QNICE: The NICE architecture. QNICE albeit a 16-bit architecture was created later than the 32-bit NICE architecture.
 | intro            | LaTeX source and [PDF version](intro/qnice_intro.pdf) of the QNICE introduction presentation
 | monitor          | The script [create_documentation.pl](../monitor/create_documentation.pl) uses LaTeX to generate the basic Monitor library function documentation in the PDF file [doc.pdf](monitor/doc.pdf).
 | programming_card | LaTeX source and [PDF version](programming_card/programming_card_screen.pdf) of a convenient QNICE Assembler programming card (quick guide)
@@ -48,15 +48,15 @@ Basics
   of the repository including the "Getting Started" section, before reading
   on here.
 
-* If you want to get started on a specific hardware, that QNICE-FPGA supports
+* If you want to get started on a specific hardware that QNICE-FPGA supports
   or learn more about porting, then have a look at
   [hw/README.md](../hw/README.md).
 
-* The "Monitor" is QNICE-FPGA's operating system. It offers the user interface
-  as well as library functions that can be used by Assembler and C programs.
-  Have a look at the various examples in the folder `test_programs` to learn
-  more about how to use library functions in your own programs using the
-  `SYSCALL` macro. [hello.asm](../test_programs/hello.asm) might be a good
+* The "Monitor" is QNICE-FPGA's operating system. It provides the user
+  interface as well as library functions that can be used by Assembler and C
+  programs. Have a look at the various examples in the folder `test_programs`
+  to learn more about how to use library functions in your own programs using
+  the `SYSCALL` macro. [hello.asm](../test_programs/hello.asm) might be a good
   starting point. [dist_kit/monitor.def](../dist_kit/monitor.def) contains
   the call table to all available library functions and
   [here is a PDF file](monitor/doc.pdf) that contains a brief documentation of
@@ -65,7 +65,7 @@ Basics
 * QNICE-FPGA uses Memory Mapped I/O (MMIO) to communicate with all hardware
   components. [dist_kit/sysdef.asm](../dist_kit/sysdef.asm) contains the
   MMIO addresses of the hardware registers as well as constant definitions
-  for a convenient access.
+  for convenient access.
 
 * QNICE-FPGA supports the concept of routable STDIN and STDOUT. All Monitor IO
   functions as well as the C runtime are written to support this. Currently,
@@ -84,9 +84,9 @@ switch is Bit #0.
 |Switch Register| Value | Meaning                 |
 |-------------- |-------|-------------------------|
 |Bit #0         | 0     |STDIN  = UART            |
-|Bit #0         | 1     |STDIN  = MEGA65 keyboard |
+|Bit #0         | 1     |STDIN  = Keyboard        |
 |Bit #1         | 0     |STDOUT = UART            |
-|Bit #1         | 1     |STDOUT = MEGA65 VGA out  |
+|Bit #1         | 1     |STDOUT = VGA/HDMI out    |
 
 The below-mentioned `RESTORE` key combinations of the MEGA65 are toggling
 the bits #0 and #1 of the Switch Register.
@@ -105,7 +105,7 @@ transfer it:
    connect to QNICE-FPGA via your terminal program (see hardware specific
    serial settings below). Use the keystrokes `M` and then `L` to enter
    Monitor's "Memory/Load" mode. Copy/Paste the content of the `.out` file
-   that you want to transfer to the terminal window of your host computer.
+   that you want to transfer into the terminal window of your host computer.
    Press `CTRL+E` when done to return to the Monitor. Hint: The script
    `assembler/asm` automatically copies the `.out` file to the clipboard:
    On macOS using `pbcopy` and on Linux using `xclip` (if available).
@@ -158,6 +158,13 @@ Specifics of the Nexys 4 DDR and Nexys A7 hardware
 Specifics of the MEGA65 hardware
 --------------------------------
 
+### SD Card
+
+The MEGA65 features two SD card slots: One at the rear side of the case and
+one at the bottom of the case under a cover.
+
+Currently, QNICE-FPGA only supports the one at the bottom under the cover.
+
 ### Installing the QNICE core on MEGA65
 
 1. Copy the [QNICE @ MEGA65 core](../dist_kit/@TODO) onto a FAT32 formatted
@@ -165,9 +172,9 @@ Specifics of the MEGA65 hardware
 
 2. Power-on the MEGA65 while you hold the `No Scroll` key.
 
-3. Choose an empty slot using `CTRL` plus the number of the empty slot
+3. Choose an empty slot using `CTRL` plus the number of the empty slot.
 
-4. Choose a `.cor` file from your SD Card using the arrow keys and `Return`
+4. Choose a `.cor` file from your SD Card using the arrow keys and `Return`.
 
 5. The MEGA65 is storing the core in non-volatile memory so that from now on,
    you can directly boot the core.
@@ -230,7 +237,7 @@ theoretically, the system should also be able to work with 16MB.
 HyperRAM is slower than the built-in RAM and QNICE-FPGA currently does not
 have a memory controller, paging, DMA or similar mechanism implemented, yet.
 Therefore HyperRAM can only be accessed via registers: 
-`IO$M65HRAM_LO`, `IO$M65HRAM_HI`, `IO$M65HRAM_DATA8` and IO$M65HRAM_DATA16`.
+`IO$M65HRAM_LO`, `IO$M65HRAM_HI`, `IO$M65HRAM_DATA8` and `IO$M65HRAM_DATA16`.
 
 Have a look at
 [test_programs/MEGA65/hyperram.asm](../test_programs/MEGA65/hyperram.asm)
@@ -259,13 +266,6 @@ on the screen:
 | MEGA + u        | German Umlaut ü (+SHIFT: Ü)            |
 | MEGA + s        | German Umlaut ß                        |
 
-### SD Card
-
-The MEGA65 features two SD card slots: One at the rear side of the case and
-one at the bottom of the case under a cover.
-
-Currently, QNICE-FPGA only supports the one at the bottom under the cover.
-
 ### Using Serial I/O as STDIN/STDOUT
 
 The MEGA65 does not come with a serial interface by default. The DevKit
@@ -275,7 +275,8 @@ built-in. For other versions you need to purchase and install the programmer.
 #### Preparing your PC or Mac
 
 * You need to use the `TE-0790` JTAG programmer as described in the chapter
-  "Flashing the FPGAs and CPLDs in the MEGA65" of the MEGA65 User's Guide.
+  "Flashing the FPGAs and CPLDs in the MEGA65" of the
+  [MEGA65 User's Guide](https://github.com/MEGA65/mega65-user-guide/blob/master/MEGA65-Book_draft.pdf).
 
 * On some operating systems you might need to install FTDI drivers. On a Mac
   it works without additional drivers.
