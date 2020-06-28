@@ -135,8 +135,9 @@ in case you need to get these files from the original source.
 * The ADV7511 chip is configured for 640x480 in `hdmi_i2c.vhdl`. Additionally,
   the sound transmission was de-activated. The array `reg_value_pairs` 
   contains the QNICE-FPGA specific configuration. More information can be
-  found in the "ADV7511 Programming Guide" by Analog Devices, which is
-  publicly available for download.
+  found in the
+  [ADV7511 Programming Guide](https://www.analog.com/media/en/technical-documentation/user-guides/ADV7511_Programming_Guide.pdf)
+  by Analog Devices, which is publicly available for download.
 
 MEGA65 Wrappers
 ---------------
