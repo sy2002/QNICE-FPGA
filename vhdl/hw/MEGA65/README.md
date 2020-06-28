@@ -1,8 +1,12 @@
-MEGA65 Hardware Specific Files
-==============================
+MEGA65R2 Hardware Specific Files
+================================
 
 Visit [https://mega65.org/](https://mega65.org/) to learn more about the
 MEGA65 project.
+
+Currently, QNICE-FPGA supports board revision 2 of the MEGA65 aka MEGA65R2.
+Have a look at chapter "Board and hardware revisions" in
+[doc/README.md](../../../doc/README.md) to learn more.
 
 This folder contains four types of MEGA65 specific files:
 
