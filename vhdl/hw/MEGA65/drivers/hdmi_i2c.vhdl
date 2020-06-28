@@ -2,6 +2,9 @@
 -- Written by
 --    Paul Gardner-Stephen, Flinders University <paul.gardner-stephen@flinders.edu.au>  2018-2019
 --
+-- Adjusted for QNICE @ MEGA65 by sy2002 in June 2020:
+--    changed ADV7511 registers for VGA 640x480 and deactivated sound
+--
 -- XXX - We are reading rubbish sometimes from the I2C devices.
 -- It is being worked-around by using a de-glitch/de-bounce algorithm,
 -- but we should really find out the real cause and fix it at some point.

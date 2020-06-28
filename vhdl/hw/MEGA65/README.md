@@ -27,17 +27,31 @@ This folder contains four types of MEGA65 specific files:
 MEGA 65 Drivers
 ---------------
 
-The MEGA65 Hardware Drivers were written by Paul Gardner-Stephen, who is also
-co-founder of the MEGA65 project. They are located in the `drivers` subfolder.
+The MEGA65 Hardware Drivers were mainly written by Paul Gardner-Stephen, who
+is also co-founder of the MEGA65 project.
 
 The GitHub repository of the MEGA65 Core is here:
 [https://github.com/MEGA65/mega65-core](https://github.com/MEGA65/mega65-core).
+
+One file (`i2c_master.vhdl`) has been written by Scott Larson, who
+open-sourced the file
+[here](https://www.digikey.com/eewiki/pages/viewpage.action?pageId=10125324).
+
+All the driver files are located in the `drivers` subfolder.
 
 ### License
 
 Paul licensed the MEGA65 sources under GNU LESSER GENERAL PUBLIC LICENSE,
 Version 3, 29 June 2007.
 
+Scott Larson licensed his I2C bus master using an "provided as-is" freeware
+Open Source license.
+
+### Debugtools
+
+Many of Pauls drivers make use of the file `debugtools.vhdl`, which is only
+being used during simulation. The synthesizer in ISE and Vivado will remove
+everything when creating bitstreams for real hardware.
 
 ### Keyboard Driver
 
@@ -89,6 +103,41 @@ in case you need to get the file from the original source.
   dependencies into `hyperram.vhdl`: Two new packages at the top of the file:
   `package cache_row_type` and `package `debugtools`.
 
+### HDMI Driver
+
+MEGA65 board revision 2 (MEGA65R2) uses the ADV7511 chip to generate HDMI
+output and the TPD12S016 companion chip to protect the ADV7511 from static
+and other interferences. While the TPD12S016 is just "switched on" inside
+the top file by asserting the pins `ct_hpd` and `ls_oe`, the ADV7511 needs a
+pretty sophisticated configuration via its I2C bus.
+
+The HDMI driver files are:
+
+```
+hdmi_i2c.vhdl
+i2c_master.vhdl
+```
+
+I took them on June, 14 2020 from the
+[MEGA65 GitHub Core Repo](https://github.com/MEGA65/mega65-core)
+using branch `138-hdmi-audio-27mhz`.
+[This link points to the relevant Commit #50a9201](https://github.com/MEGA65/mega65-core/tree/50a920187ef547cc89ecaaea0b1ef55dcf69342c/src/vhdl),
+in case you need to get these files from the original source.
+
+#### Modifications
+
+* Paul modified Steven's original `i2c_master.vhdl` which was made with and
+  for Intel's Quartus design software so that it can be synthesized using
+  Xilinx' ISE and Vivado: The `case` statement in lines 85-103 of Steven's
+  original file was replaced by the `if` `elsif` statements in Paul's
+  file in lines 99-116. Furthermore, Paul added debug output for simulation.
+
+* The ADV7511 chip is configured for 640x480 in `hdmi_i2c.vhdl`. Additionally,
+  the sound transmission was de-activated. The array `reg_value_pairs` 
+  contains the QNICE-FPGA specific configuration. More information can be
+  found in the "ADV7511 Programming Guide" by Analog Devices, which is
+  publicly available for download.
+
 MEGA65 Wrappers
 ---------------
 
@@ -120,6 +169,11 @@ MEGA65 Ports
   not "ready" when the VDAC tried to latch them and now using the phase shift
   we won some time. Maybe this is true, but as of now the whole thing is as
   riddle.
+
+* Board revision MEGA65R2 has two chips for generating the HDMI output signal:
+  ADV7511 and TPD12S016. See section "HDMI Driver" above for details. Future
+  board revisions might work differently, so we will probably need to adjust
+  the MEGA65 port of QNICE-FPGA then.  
 
 * Another difference between the ISE and Vivado version: For some reason ISE
   is not able to synthesize the design using a Xilinx specific MMCME clock

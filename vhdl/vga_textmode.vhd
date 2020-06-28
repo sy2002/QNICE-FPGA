@@ -30,6 +30,9 @@
 --             read: bits (7 downto 0) contains the character in video ram at address (cursor x, y)
 -- register 4: vga display offset register used e.g. for hardware scrolling (0..63999)
 -- register 5: vga read/write offset register used for accessing the whole vram (0..63999)
+--
+-- The following registers currently only make sense on a MEGA65 R2 board that uses the ADV7511;
+-- on other platforms they do not harm though:
 -- register 6: hctr_min: HDMI Data Enable: X: minimum valid column
 -- register 7: hctr_max: HDMI Data Enable: X: maximum valid column
 -- register 8: vctr_max: HDMI Data Enable: Y: maximum valid row (line)

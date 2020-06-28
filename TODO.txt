@@ -68,14 +68,17 @@ HARDWARE:
 
 MEGA65 HARDWARE:
 
+* Support newer board revisions than MEGA65R2
+
 * Support both SD card slots. In a step one, we could implement a similar
   smart switching mechanism than the MEGA65, so it would be a hardware-only
   feature. Later, we could support two SD cards simultaneously, but this would
   need a Monitor enhancement.
 
-* Support HDMI
-
 * Support somehow this mega cool floppy drive
+
+* Create a small open hardware project: Serial-to-USB via FTDI using one of
+  the two joystick ports
 
 
 MONITOR:
@@ -86,6 +89,11 @@ MONITOR:
 * Get rid of the hardcoded keyboard locale
 
 * BS/DEL when entering hex digits (and at other reasonable places)
+
+* Make IO$GETCHAR smarter, so that switching STDIN does not require "one last
+  keypress" on the old STDIN any more before reading from the new STDIN
+
+* Add qtransfer as standard functionality to the Monitor
 
 * Use HW debugging mechanisms to offer single step debugging
 
@@ -204,7 +212,15 @@ DEMOS:
 
 * VGA Textmode games: BreakOut, Snake, Pac Man, 2048
 
+* HyperRAM: Finalize "The Matrix Demo" or create something similar
+
 
 DOCUMENTATION:
+
+* Improve the overall documentation. Start with improving doc/README.md:
+  Nearly each bullet point in the "Basics" section would deserve one or
+  more own chapters. Then we need more documentation on how to program in
+  Assembler and in C. Possibly also the dist_kit folder needs some explanation
+  of how to use the folder, how to use the include files, etc.
 
 * Add the PDF or HTML documentation version of the VBCC toolchain.

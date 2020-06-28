@@ -164,19 +164,19 @@ port (
 end component;
 
 component hdmi_i2c
-  generic (
+generic (
    clock_frequency : integer
-  );
-  port (
-    clock : in std_logic;
+);
+port (
+   clock : in std_logic;
 
-    -- HDMI interrupt to trigger automatic reset
-    hdmi_int : in std_logic;
+   -- HDMI interrupt to trigger automatic reset
+   hdmi_int : in std_logic;
     
-    -- I2C bus
-    sda : inout std_logic;
-    scl : inout std_logic
-  );
+   -- I2C bus
+   sda : inout std_logic;
+   scl : inout std_logic
+);
 end component;
 
 -- UART

@@ -1,6 +1,19 @@
 Version 1.6     xxxxx, 22 2020
 ==============================
 
+<restructure dist_kit and have .bit and .cor files ready and then update
+all the links @TODO, for example in the hw/README.md and doc/README.md,
+others?>
+
+<make sure, we use OpenGL on macOS as well, not metal for now; plus research a bit
+more so that we can store some weblinks in the docu PLUS set a TODO in the TODO file
+to re-investigate this in future, maybe metal is better then>
+https://stackoverflow.com/questions/59700423/why-is-sdl-so-much-slower-on-mac-than-linux
+
+<make sure MEGA65 @ ISE works as well>
+
+<update porting documentation on HDMI and mention HDMI for the specs / MEGA65>
+
 (SMOKE CHECK BEFORE RELEASE 1.6: Upgrade Emscripten to the newest version and then play Q-TRIS)
 * EMULATOR: Made the WebAssembly target compatible with Emscripten 1.39.14
   (and newer and it still works with 1.39.10 and some of the older versions,
@@ -15,7 +28,9 @@ Version 1.6     xxxxx, 22 2020
   any other Debian based distribution.
 <TODO: Emu: VGA und WASM build>
 
-<did Paul finally fix the strange Hyperram smoking gun? If not, then I need
+<make ISE work again: 
+1. Merge HDMI
+2. did Paul finally fix the strange Hyperram smoking gun? If not, then I need
 to write a note, that HyperRAM right now only works in Vivado and explain why>
 
 <is the double read of id0lo (or in general the first control register)

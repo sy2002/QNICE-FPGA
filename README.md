@@ -13,7 +13,7 @@ system-on-a-chip in portable VHDL on a FPGA. Specifications:
   (learn more in [qnice_intro.pdf](doc/intro/qnice_intro.pdf))
 * 32k words ROM (64kB)
 * 32k words RAM (64kB)
-* UART 115.200 baud, 8-N-1, CTS
+* UART 115,200 baud, 8-N-1, CTS
 * VGA 80x40 character textmode display (640x480 resolution)
 * PS/2 keyboard support (mapped to USB on the Nexys 4 DDR)
 * SD Card and FAT32 support (microSD card on the Nexys 4 DDR)
@@ -108,7 +108,7 @@ Get started using actual FPGA hardware:
   ignore this and manually copy the file `demos/mandel.out` into your
   clipboard/pasteboard.
 
-* Open a serial terminal program, configure it as 115.200 baud, 8-N-1, CTS ON,
+* Open a serial terminal program, configure it as 115,200 baud, 8-N-1, CTS ON,
   attach the QNICE-FPGA, turn it on, after the bitstream loaded from the SD
   card, connect the terminal program to the serial interface of the FPGA and
   press the reset button. You should see a welcome message and the `QMON>`

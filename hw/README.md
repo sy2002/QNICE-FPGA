@@ -39,7 +39,7 @@ which has been retired by Nexys but you can still get it on eBay. As far as
 we know, the sucessor
 [Nexys A7](https://store.digilentinc.com/nexys-a7-fpga-trainer-board-recommended-for-ece-curriculum/)
 is compatible, so we currently assume, that you can use the Nexys 4 DDR
-IDE files to also synthesize for the Nexys A7.
+files to also synthesize for the Nexys A7.
 
 The top file for this platform is [env1.vhd](../vhdl/hw/nexys4ddr/env1.vhd).
 
@@ -90,7 +90,8 @@ For a quickstart, you can download the ready-made QNICE-FPGA Core for MEGA65
 [here](@TODO). If you want to use the MEGA65 as a Q-TRIS Arcade machine,
 then download
 [this](@TODO)
-Core.
+Core. Have a look at [doc/README.md](../doc/README.md) to learn how to install
+and run the QNICE-FPGA core on the MEGA65.
  
 ### ISE 14.7
 
@@ -112,6 +113,19 @@ with MEGA65 Cores. Look at the
 
 The top file for MEGA65 using Vivado is
 [MEGA65_Vivado.vhd](../vhdl/hw/MEGA65/MEGA65_Vivado.vhd).
+
+### MEGA65 board revisions and hardware versions
+
+For the QNICE @ MEGA65 release at hand, we used the very first MEGA65
+prototype computer, which has the board revision 2 (MEGA65R2). There where
+only a couple of those prototypes produced, so you will probably have a newer
+board revision: The first publicly available MEGA65 computer will be the
+[MEGA65 DevKit](https://shop.trenz-electronic.de/en/30390-MEGA65-Development-Kit-highly-advanced-C64-and-C65-compatible-8-bit-computer)
+with board revision 3 (MEGA65R3). And the final product for the market might
+have an even higher board revision.
+
+For learning more about how QNICE-FPGA supports the different MEGA65 hardware
+versions, have a look at [doc/README.md](../doc/README.md).
 
 General advise for porting
 --------------------------

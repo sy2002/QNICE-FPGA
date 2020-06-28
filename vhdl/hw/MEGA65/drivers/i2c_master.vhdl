@@ -1,5 +1,7 @@
 --------------------------------------------------------------------------------
 --
+--   MODIFIED VERSION: SEE ../README.MD FOR DETAILS
+--
 --   FileName:         i2c_master.vhd
 --   Dependencies:     none
 --   Design Software:  Quartus II 64-bit Version 13.1 Build 162 SJ Full Version
