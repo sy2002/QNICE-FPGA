@@ -1,18 +1,16 @@
-Version 1.6     xxxxx, 22 2020
+Version 1.6     xxxxx, xx 2020
 ==============================
 
 <restructure dist_kit and have .bit and .cor files ready and then update
 all the links @TODO, for example in the hw/README.md and doc/README.md,
 others?>
 
-<make sure, we use OpenGL on macOS as well, not metal for now; plus research a bit
-more so that we can store some weblinks in the docu PLUS set a TODO in the TODO file
-to re-investigate this in future, maybe metal is better then>
-https://stackoverflow.com/questions/59700423/why-is-sdl-so-much-slower-on-mac-than-linux
+<make sure to update the Getting Started section to reflect all the news
+about ISE and Vivado and also about the platforms. Have also a MEGA65.bit
+and a MEGA65.cor in the dist_kit and mention it in the Getting Started 
+section>
 
-<make sure MEGA65 @ ISE works as well>
-
-<update porting documentation on HDMI and mention HDMI for the specs / MEGA65>
+* MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
 
 (SMOKE CHECK BEFORE RELEASE 1.6: Upgrade Emscripten to the newest version and then play Q-TRIS)
 * EMULATOR: Made the WebAssembly target compatible with Emscripten 1.39.14
@@ -42,28 +40,15 @@ to to make-emu-...) if the dependency is there and for Mac and Linux suggest
 how the dependecy can be resolved. Also offer to skip making qtransfer
 as it is not mission critical.>
 
-<explain qtransfer and bit2core somewhere>
-
-<make sure to update the Getting Started section to reflect all the news
-about ISE and Vivado and also about the platforms. Have also a MEGA65.bit
-and a MEGA65.cor in the dist_kit and mention it in the Getting Started 
-section>
-
 <replace the @TODO sections in hw/README.md with links to the bitsstream
 and core files>
 
-<improve README.md and explain briefly the folder structure (in a table) and
-the meaning: e.g. "Monitor" is the operating system. It offers IO functions,
-math functions, ...  "dist_kit" is the distribution kit. It contains headers
-for programming and, ...>
-
 <rename QNICE @ MEGA65 in boot message; have some general QNICE #ifdefs?>
+
 <added a 32 Byte FIFO to the UART. This makes RTS/CTS unnecessary in most
 cases; did that because MEGA65 does not have RTS/CTS (mention that in the
 porting notes) write some docu somewhere: for being on the safe side RTS/CTS is 
 good; TODO: test, if RTS/CTS still works on Nexys4 DDR: might be just the other way round than implemented>
-
-WIP * MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
 
 TODO * DOCUMENTATION: Added README.md with basic documentation
 <describe at least: Nexys Switches, MEGA65 specialities (German umlauts when

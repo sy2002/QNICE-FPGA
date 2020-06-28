@@ -211,8 +211,9 @@ have an even higher board revision.
 (*) means: "estimated"
 
 Currently, we only fully support the MEGA65R2 board. That means that HDMI
-output only works there. On other boards, the release (even the binary `.cor`
-file) should work out-of-the-box, too, but only with VGA output.
+output only works there. On other boards, this release (even the binary `.cor`
+file) should work out-of-the-box, too. But it will only generate VGA output
+and no HDMI output.
 
 ### HDMI
 
