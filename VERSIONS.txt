@@ -43,6 +43,9 @@ to write a note, that HyperRAM right now only works in Vivado and explain why>
 still necessary? hardware bug still there? ref hyperram.asm "hw bug: 2 reads necessary!"
 reproduce on C65; notify Paul>
 
+<create a thorough HyperRAM test program and/or update the exiting ones in
+assembler and C>
+
 FINAL TOUCHES JUST BEFORE RELEASING:
 
 1. <restructure dist_kit and have .bit and .cor files ready and then update
