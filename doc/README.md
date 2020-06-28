@@ -23,7 +23,7 @@ Folder Structure
 
 | Folder name      | Description
 |------------------|----------------------------------------------------------
-| demos            | Screenshots for the web site and for the main README.md showing the demos. Additionally, this folder contains the all-time high-scores for Q-TRIS in `q-tris-highscore.txt`.
+| demos            | Screenshots for the web site and for the main README.md showing the demos. Additionally, this folder contains the all-time high-scores for Q-TRIS in [q-tris-highscore.txt](demos/q-tris-highscore.txt).
 | github           | Images used for the presentation of the project on GitHub
 | history          | Right now, this folder only contains an old paper (`nice_can.pdf`) about the predecessor of QNICE: The NICE architecture. QNICE albeit a 16-bit architecture was created later than the 32-bit NIEC architecture.
 | intro            | LaTeX source and [PDF version](intro/qnice_intro.pdf) of the QNICE introduction presentation
