@@ -65,6 +65,10 @@ HARDWARE:
   add ideas of how to do it from the e-mail conversations to an ideas file
   somewhere in the doc folder)
 
+DE10-Nano HARDWARE:
+
+* Port QNICE-FPGA to the DE10-Nano
+
 
 MEGA65 HARDWARE:
 

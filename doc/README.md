@@ -125,6 +125,23 @@ transfer it:
    need to switch STDIN back to serial for transferring data. On the host
    computer, run `tools/qtransfer` to send the data.
 
+Calibrating your VGA monitor
+----------------------------
+
+For making sure that the whole QNICE-FPGA screen is actually visible on your
+VGA monitor, make sure to calibrate your monitor following these steps:
+
+1. Run qbin/vga_calibration.out either directly from your SD Card or by using
+   the software transfer mechanisms described above.
+
+2. The program is drawing a frame that consists of "X" characters, as this is
+   the widest and highest char. The frame ranges from the lowest (x|y)
+   coordinates to the highest ones. If you cannot see the full frame, either
+   run your monitor's auto-calibration or calibrate manually.
+
+The source code of the tool is in
+[c/test_programs/vga_calibration.c](../c/test_programs/vga_calibration.c).
+
 Specifics of the Nexys 4 DDR and Nexys A7 hardware
 --------------------------------------------------
 

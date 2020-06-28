@@ -1,15 +1,6 @@
 Version 1.6     xxxxx, xx 2020
 ==============================
 
-<restructure dist_kit and have .bit and .cor files ready and then update
-all the links @TODO, for example in the hw/README.md and doc/README.md,
-others?>
-
-<make sure to update the Getting Started section to reflect all the news
-about ISE and Vivado and also about the platforms. Have also a MEGA65.bit
-and a MEGA65.cor in the dist_kit and mention it in the Getting Started 
-section>
-
 * MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
 
 * UART: Added a 32 Byte FIFO to the UART. This was necessary because the
@@ -21,6 +12,9 @@ section>
   but not with the versions in between). The background of this phenomenon is
   explained here: https://github.com/emscripten-core/emscripten/issues/10746
 
+* TOOLCHAIN: qtransfer: Convenient mechanism for transferring software
+  (.out files) from the host computer to QNICE-FPGA. Details: doc/README.md
+
 * TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
   Structured all hardware dependencies in the new folder 'hw' and added
   a documentation in 'hw/README.md'.
@@ -31,6 +25,15 @@ section>
 
 * DOCUMENTATION: Added doc/README.md, hw/README.md & vhdl/hw/MEGA65/README.md
 
+<restructure dist_kit and have .bit and .cor files ready and then update
+all the links @TODO, for example in the hw/README.md and doc/README.md,
+others?>
+
+<make sure to update the Getting Started section to reflect all the news
+about ISE and Vivado and also about the platforms. Have also a MEGA65.bit
+and a MEGA65.cor in the dist_kit and mention it in the Getting Started 
+section>
+
 <make ISE work again: 
 1. Merge HDMI
 2. did Paul finally fix the strange Hyperram smoking gun? If not, then I need
@@ -40,20 +43,7 @@ to write a note, that HyperRAM right now only works in Vivado and explain why>
 still necessary? hardware bug still there? ref hyperram.asm "hw bug: 2 reads necessary!"
 reproduce on C65; notify Paul>
 
-<enhance make-toolchain to also make qtransfer; cleverly check (maybe similar
-to to make-emu-...) if the dependency is there and for Mac and Linux suggest
-how the dependecy can be resolved. Also offer to skip making qtransfer
-as it is not mission critical.>
-
 <rename QNICE @ MEGA65 in boot message; have some general QNICE #ifdefs?>
-
-<add DE10-Nano?, if yes, then advertize it in DE10-Nano specific places, if
-not add it to TODO.txt>
-
-<Monitor calibration: hint in the doc, at least a small program in
-test_programs and in qbin (!); use "8" and other large chars and fill the
-screen with them; maybe allow multiple screens/chars to follow, so that one
-can see, if the calibration worked.>
 
 <Do real speed test on hardware with mandel_perf but also with Q-TRIS.
 Then adjust all the 12.9 MIPS claims (also in documentation, various

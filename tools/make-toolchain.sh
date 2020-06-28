@@ -22,5 +22,13 @@ source setenv.source
 ./make-vbcc.sh
 $COMPILER qnice/qniceconv.c -o qnice/qniceconv
 
+echo ""
+echo "==============================================================================="
+echo ""
 echo "QNICE: Toolchain successfully made, if you do not see any error messages above."
 echo "(Outputs like \"mkdir: config: File exists\" are OK.)"
+
+echo ""
+echo "If you also want to make qtransfer, make sure that you have installed libserialport."
+echo "To make it, enter: $COMPILER qtransfer.c -o qtransfer -O3 -lserialport"
+echo ""
