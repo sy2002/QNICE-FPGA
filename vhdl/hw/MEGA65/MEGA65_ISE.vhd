@@ -359,7 +359,6 @@ port (
    ins_en            : out std_logic;
    ins_we            : out std_logic;
    ins_reg           : out std_logic_vector(1 downto 0);
-   
    eae_en            : out std_logic;
    eae_we            : out std_logic;
    eae_reg           : out std_logic_vector(2 downto 0);

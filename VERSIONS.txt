@@ -35,7 +35,8 @@ HYPERRAM:
 <make ISA and Vivado for the Nexys board work again - MMIO bus uart Waitstates
 for CPU requires some changes;
 at least test both by synthesizing something; take care that PORE is
-correct; run something that works with files but also with UART>
+correct; run something that works with files but also with UART and
+with the instruction counter>
 
 <make ISE work again: 
 1. (Merge HDMI, done and) test HDMI and VGA

@@ -407,7 +407,8 @@ begin
          DATA => cpu_data,
          DATA_DIR => cpu_data_dir,
          DATA_VALID => cpu_data_valid,
-         HALT => cpu_halt
+         HALT => cpu_halt,
+         INS_CNT_STROBE => cpu_ins_cnt_strobe
       );
 
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
@@ -496,6 +497,7 @@ begin
          uart_en => uart_en,
          uart_we => uart_we,
          uart_reg => uart_reg,
+         uart_cpu_ws => uart_cpu_ws,         
          cpu_data => cpu_data         
       );
       
