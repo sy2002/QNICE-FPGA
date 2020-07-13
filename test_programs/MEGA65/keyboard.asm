@@ -9,8 +9,8 @@
 
                 .ORG 0x8000
 
-#include "../dist_kit/sysdef.asm"
-#include "../dist_kit/monitor.def"
+#include "../../dist_kit/sysdef.asm"
+#include "../../dist_kit/monitor.def"
 
                 SYSCALL(vga_cls, 1)
                 MOVE    STR_HEADER, R8      ; print header and make space in line 0

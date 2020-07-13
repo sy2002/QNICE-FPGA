@@ -7,10 +7,18 @@ Version 1.6     xxxxx, xx 2020
   MEGA65 serial over JTag does not support RTS/CTS and therefore we needed
   more stability. Now RTS/CTS should be unnecessary in most cases.
 
+* INSTRUCTION COUNTER: Added. Counts all instructions executed by the CPU.
+  Can be used for performance testing as shown in
+  test_programs/q-tris_perf_test.asm and test_programs/mandel_perf_test.asm.
+
 * EMULATOR: Made the WebAssembly target compatible with Emscripten 1.39.14
   (and newer and it still works with 1.39.10 and some of the older versions,
   but not with the versions in between). The background of this phenomenon is
   explained here: https://github.com/emscripten-core/emscripten/issues/10746
+
+WIP EMULATOR: Adjusted the standard emulation speed to 12.12 MIPS because this
+  is the average Q-TRIS performance. Peak performance observed so far is in
+  test_programs/mandel_perf_test.asm: 13.18 MIPS
 
 * TOOLCHAIN: qtransfer: Convenient mechanism for transferring software
   (.out files) from the host computer to QNICE-FPGA. Details: doc/README.md
@@ -25,18 +33,13 @@ Version 1.6     xxxxx, xx 2020
 
 * DOCUMENTATION: Added doc/README.md, hw/README.md & vhdl/hw/MEGA65/README.md
 
-<Do real speed test on hardware with mandel_perf but also with Q-TRIS.
-Then adjust all the 12.9 MIPS claims (also in documentation, various
-README.MDs, because it looks like we are way below 12.9 MIPS in reality:
-We need a hardware based instruction counter.)
+<After having done real speed tests: Adjust all the 12.9 MIPS claims
+to 12.12 MIPS (also in emulator, documentation, various README.MDs): the
+spectrum is between 12.12 MIPS in Q-TRIS and 13.18 MIPS in mandel_perf_test>
 
 HYPERRAM:
 
-<make ISA and Vivado for the Nexys board work again - MMIO bus uart Waitstates
-for CPU requires some changes;
-at least test both by synthesizing something; take care that PORE is
-correct; run something that works with files but also with UART and
-with the instruction counter>
+<Now that Vivado for the Nexys board works again: make ISE also working again>
 
 <make ISE work again: 
 1. (Merge HDMI, done and) test HDMI and VGA
@@ -149,7 +152,7 @@ Version 1.3    May, 6 2016
 * CPU: Fixed a bug that prevented things like CMP 0x00AA, 0x00FF or things
   like OR @R0++, @R0, i.e. situations, where both operands perform an
   indirect access, where the source and destination operands are identical
-  and where the  source operand is post-incremented.
+  and where the source operand is post-incremented.
 * ALU: Fixed CMP opcode behaviour: using the N flag it now treats the
   operands as unsigned and using the V flag it treats them as signed.
 * ALU: Fixed V flag CPU bug (AND, OR, XOR)

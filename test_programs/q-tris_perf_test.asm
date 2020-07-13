@@ -31,6 +31,10 @@
 ; Clock cycles: 0003 C771 F13E = 16.231.035.198 => 324,62 sec
 ; Instructions: 0000 EA6E 73D1 =  3.933.107.153 => 12,12 MIPS
 ;
+; Measurement #2 done on Nexys4 DDR by sy2002 on July, 14th 2020:
+; Clock cycles: 0001 0078 BDA3 =  4.302.880.163 => 86,06 sec
+; Instructions: 0000 3E2F CF3E =  1.043.320.638 => 12,12 MIPS
+;
 ; ****************************************************************************
 
 #undef QTRIS_STANDALONE
