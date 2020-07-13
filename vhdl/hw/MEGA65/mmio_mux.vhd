@@ -61,6 +61,11 @@ port (
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
+   
+   -- Instruction counter register range $FF2A..$FF2D
+   ins_en            : out std_logic;
+   ins_we            : out std_logic;
+   ins_reg           : out std_logic_vector(1 downto 0);
 
    -- Extended Arithmetic Element register range $FF1B..$FF1F
    eae_en            : out std_logic;
@@ -218,6 +223,32 @@ begin
       end if;
    end process;
    
+   -- Instruction counter starts at FF2A
+   ins_control : process(addr, data_dir, data_valid)
+   begin
+      ins_en <= '0';
+      ins_we <= '0';
+      ins_reg <= "00";
+      
+      if addr = x"FF2A" then
+         ins_en <= '1';
+         ins_we <= data_dir and data_valid;
+         ins_reg <= "00";
+      elsif addr = x"FF2B" then
+         ins_en <= '1';
+         ins_we <= data_dir and data_valid;
+         ins_reg <= "01";
+      elsif addr = x"FF2C" then
+         ins_en <= '1';
+         ins_we <= data_dir and data_valid;
+         ins_reg <= "10";
+      elsif addr = x"FF2D" then
+         ins_en <= '1';
+         ins_we <= data_dir and data_valid;
+         ins_reg <= "11";
+      end if;
+   end process;
+      
    eae_control : process(addr, data_dir, data_valid)
    begin
       eae_en <= '0';

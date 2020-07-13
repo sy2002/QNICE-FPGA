@@ -28,7 +28,8 @@ port (
    DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
    
    -- signals about the CPU state
-   HALT           : out std_logic                           -- 1=CPU halted due to the HALT command, 0=running
+   HALT           : out std_logic;                          -- 1=CPU halted due to the HALT command, 0=running
+   INS_CNT_STROBE : out std_logic                           -- goes high for one clock cycle for each new instruction    
 );
 end QNICE_CPU;
 
@@ -274,7 +275,9 @@ begin
                                 Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                
    variable varResult : std_logic_vector(15 downto 0);   
    begin
-      DATA <= (others => 'Z');   
+      DATA <= (others => 'Z');
+      INS_CNT_STROBE <= '0';
+         
       fsmDataToBus <= (others => '0');
       fsmSP <= SP;
       fsmSR <= SR(15 downto 1) & "1";
@@ -314,7 +317,8 @@ begin
                fsmNextCpuState <= cs_fetch;
                
             -- data from bus is available
-            else         
+            else
+               INS_CNT_STROBE <= '1';  -- count next instruction
                fsmInstruction <= DATA; -- valid at falling edge
                fsmPC <= PC + 1;
                fsm_reg_read_addr1 <= DATA(11 downto 8); -- read Src register number

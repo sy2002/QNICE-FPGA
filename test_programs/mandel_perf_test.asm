@@ -1,7 +1,24 @@
 ; CPU performance testbed based instrumenting vaxmans mandelbrot demo
 ; mandelbrot demo done by vaxman in 2015
 ; performance testbed done and used for CPU improvement by sy2002 in May 2016
+; added instruction counter by sy2002 in July 2020
 ;
+; Results on July, 13th 2020 (Vivado on MEGA65):
+;
+; speed and cycle count comparison using UART:
+;
+; 00FE 547F = 16.667.775 cycles = 0,3334 sec
+; 0042 C59C =  4.375.964 instructions => 3,8089 cycles / instruction
+;                                     => 13,13 MIPS
+;
+; speed and cycle count comparison using VGA:
+;
+; 0091 66D5 = 9.529.045 cycles = 0,1906 sec
+; 0026 51C0 = 2.511.296 instructions => 3,7945 cycles / instruction
+;                                    => 13,18 MIPS
+;
+; everything below this line has been done in 2016
+; ============================================================================
 ; speed comparison using UART:
 ;
 ;  CPU revision GIT #f6ccada needs 0106 BDF3 = 17.219.059 cycles = 0,3444 sec
@@ -38,7 +55,9 @@
                 .ORG    0xA000
 
                 MOVE    IO$CYC_STATE, R0    ; reset hw cycle counter
-                MOVE    1, @R0              
+                MOVE    1, @R0
+                MOVE    IO$INS_STATE, R0    ; reset hw instruction counter
+                MOVE    1, @R0
 
 #define         POINTER R12
 
@@ -161,8 +180,14 @@ INNER_LOOP_END  SYSCALL(crlf, 1)
 MANDEL_END      SYSCALL(crlf, 1)
 
                 ; output performance information
+
                 MOVE    IO$CYC_STATE, R0
                 MOVE    0, @R0              ; stop hw cycle counter
+                MOVE    IO$INS_STATE, R0
+                MOVE    0, @R0              ; stop hw instruction counter
+
+                ; output cycle counter
+
                 MOVE    PERF_STR, R8
                 SYSCALL(puts, 1)            ; output info string
                 MOVE    IO$CYC_HI, R1
@@ -178,6 +203,25 @@ MANDEL_END      SYSCALL(crlf, 1)
                 MOVE    IO$CYC_LO, R1
                 MOVE    @R1, R8 
                 SYSCALL(puthex, 1)          ; output lo word of 48bit counter
+                SYSCALL(crlf, 1)
+
+                ; output instruction counter
+
+                MOVE    INS_STR, R8
+                SYSCALL(puts, 1)            ; output info string
+                MOVE    IO$INS_HI, R1
+                MOVE    @R1, R8 
+                SYSCALL(puthex, 1)          ; output hi word of 48bit counter
+                MOVE    SPACE_STR, R8
+                SYSCALL(puts, 1)
+                MOVE    IO$INS_MID, R1
+                MOVE    @R1, R8                 
+                SYSCALL(puthex, 1)          ; output mid word of 48bit counter
+                MOVE    SPACE_STR, R8
+                SYSCALL(puts, 1)                
+                MOVE    IO$INS_LO, R1
+                MOVE    @R1, R8 
+                SYSCALL(puthex, 1)          ; output lo word of 48bit counter
 
                 SYSCALL(exit, 1)
 
@@ -188,4 +232,5 @@ Z1SQUARE_LOW    .BLOCK      1
 Z1SQUARE_HIGH   .BLOCK      1
 
 PERF_STR        .ASCII_W    "Overall clock cycles: "
+INS_STR         .ASCII_W    "Overall instructions: "
 SPACE_STR       .ASCII_W    " "

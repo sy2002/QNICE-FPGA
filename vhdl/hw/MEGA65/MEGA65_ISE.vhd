@@ -4,7 +4,7 @@
 -- Top Module for synthesizing the whole machine
 -- 
 -- done on-again-off-again in 2015, 2016 by sy2002
--- MEGA65 port done in April to June 2020 by sy2002
+-- MEGA65 port done in April to July 2020 by sy2002
 --
 -- Difference bettween the ISE version of the TOP file (MEGA65_ISE.vhd) to the
 -- Vivado version of the TOP file (MEGA65_Vivado.vhd) is: For some reason, ISE
@@ -44,6 +44,26 @@ port (
    vdac_sync_n    : out std_logic;
    vdac_blank_n   : out std_logic;
    
+   -- HDMI via ADV7511
+   hdmi_vsync     : out std_logic;
+   hdmi_hsync     : out std_logic;
+   hdmired        : out std_logic_vector(7 downto 0);
+   hdmigreen      : out std_logic_vector(7 downto 0);
+   hdmiblue       : out std_logic_vector(7 downto 0);
+   
+   hdmi_clk       : out std_logic;      
+   hdmi_de        : out std_logic;                 -- high when valid pixels being output
+   
+   hdmi_int       : in std_logic;                  -- interrupts by ADV7511
+   hdmi_spdif     : out std_logic := '0';          -- unused: GND
+   hdmi_scl       : inout std_logic;               -- I2C to/from ADV7511: serial clock
+   hdmi_sda       : inout std_logic;               -- I2C to/from ADV7511: serial data
+   
+   -- TPD12S016 companion chip for ADV7511
+   --hpd_a          : inout std_logic;
+   ct_hpd         : out std_logic := '1';          -- assert to connect ADV7511 to the actual port
+   ls_oe          : out std_logic := '1';          -- ditto
+
    -- MEGA65 smart keyboard controller
    kb_io0         : out std_logic;                 -- clock to keyboard
    kb_io1         : out std_logic;                 -- data output to keyboard
@@ -55,11 +75,13 @@ port (
    SD_MOSI        : out std_logic;
    SD_MISO        : in std_logic;
    
-   -- HyperRAM
+   -- Built-in HyperRAM
    hr_d           : inout unsigned(7 downto 0);    -- Data/Address
    hr_rwds        : inout std_logic;               -- RW Data strobe
    hr_reset       : out std_logic;                 -- Active low RESET line to HyperRAM
    hr_clk_p       : out std_logic;
+   
+   -- Optional additional HyperRAM in trap-door slot
    hr2_d          : inout unsigned(7 downto 0);    -- Data/Address
    hr2_rwds       : inout std_logic;               -- RW Data strobe
    hr2_reset      : out std_logic;                 -- Active low RESET line to HyperRAM
@@ -88,7 +110,8 @@ port (
    DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
    
    -- signals about the CPU state
-   HALT           : out std_logic                           -- 1=CPU halted due to the HALT command, 0=running   
+   HALT           : out std_logic;                          -- 1=CPU halted due to the HALT command, 0=running
+   INS_CNT_STROBE : out std_logic                           -- goes high for one clock cycle for each new instruction 
 );
 end component;
 
@@ -130,6 +153,7 @@ port (
    reset       : in  std_logic;    -- async reset
    clk25MHz    : in std_logic;
    clk50MHz    : in std_logic;
+
    -- VGA registers
    en          : in std_logic;     -- enable for reading from or writing to the bus
    we          : in std_logic;     -- write to VGA's registers via system's data bus
@@ -141,7 +165,25 @@ port (
    G           : out std_logic;
    B           : out std_logic;
    hsync       : out std_logic;
-   vsync       : out std_logic
+   vsync       : out std_logic;
+   
+   hdmi_de     : out std_logic   
+);
+end component;
+
+component hdmi_i2c
+generic (
+   clock_frequency : integer
+);
+port (
+   clock : in std_logic;
+
+   -- HDMI interrupt to trigger automatic reset
+   hdmi_int : in std_logic;
+    
+   -- I2C bus
+   sda : inout std_logic;
+   scl : inout std_logic
 );
 end component;
 
@@ -314,6 +356,10 @@ port (
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
+   ins_en            : out std_logic;
+   ins_we            : out std_logic;
+   ins_reg           : out std_logic_vector(1 downto 0);
+   
    eae_en            : out std_logic;
    eae_we            : out std_logic;
    eae_reg           : out std_logic_vector(2 downto 0);
@@ -336,6 +382,7 @@ signal cpu_data_dir           : std_logic;
 signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
 signal cpu_halt               : std_logic;
+signal cpu_ins_cnt_strobe     : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
@@ -360,6 +407,9 @@ signal uart_cpu_ws            : std_logic;
 signal cyc_en                 : std_logic;
 signal cyc_we                 : std_logic;
 signal cyc_reg                : std_logic_vector(1 downto 0);
+signal ins_en                 : std_logic;
+signal ins_we                 : std_logic;
+signal ins_reg                : std_logic_vector(1 downto 0);
 signal eae_en                 : std_logic;
 signal eae_we                 : std_logic;
 signal eae_reg                : std_logic_vector(2 downto 0);
@@ -377,6 +427,8 @@ signal reset_post_pore        : std_logic;
 signal vga_r                  : std_logic;
 signal vga_g                  : std_logic;
 signal vga_b                  : std_logic;
+signal vga_hsync              : std_logic;
+signal vga_vsync              : std_logic;
 
 -- Main clock: 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic;
@@ -435,7 +487,8 @@ begin
          DATA => cpu_data,
          DATA_DIR => cpu_data_dir,
          DATA_VALID => cpu_data_valid,
-         HALT => cpu_halt
+         HALT => cpu_halt,
+         INS_CNT_STROBE => cpu_ins_cnt_strobe
       );
 
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
@@ -489,12 +542,25 @@ begin
          R => vga_r,
          G => vga_g,
          B => vga_b,
-         hsync => VGA_HS,
-         vsync => VGA_VS,
+         hsync => vga_hsync,
+         vsync => vga_vsync,
+         hdmi_de => hdmi_de,
          en => vga_en,
          we => vga_we,
          reg => vga_reg,
          data => cpu_data
+      );
+
+   -- I2C communication with the HDMI transcoder ADV7511
+   hdmi_i2c2: hdmi_i2c
+      generic map (
+         clock_frequency => 50000000
+      )
+      port map (
+         clock => SLOW_CLOCK,
+         hdmi_int => '1',     
+         sda => hdmi_sda,
+         scl => hdmi_scl
       );
 
    -- special UART with FIFO that can be directly connected to the CPU bus
@@ -542,6 +608,17 @@ begin
          en => cyc_en,
          we => cyc_we,
          reg => cyc_reg,
+         data => cpu_data
+      );
+      
+   -- instruction counter
+   ins : cycle_counter
+      port map (
+         clk => cpu_ins_cnt_strobe,
+         reset => reset_ctl,
+         en => ins_en,
+         we => ins_we,
+         reg => ins_reg,
          data => cpu_data
       );
       
@@ -627,6 +704,9 @@ begin
          cyc_en => cyc_en,
          cyc_we => cyc_we,
          cyc_reg => cyc_reg,
+         ins_en => ins_en,
+         ins_we => ins_we,
+         ins_reg => ins_reg,         
          eae_en => eae_en,
          eae_we => eae_we,
          eae_reg => eae_reg,
@@ -658,14 +738,35 @@ begin
          SLOW_CLOCK <= not SLOW_CLOCK;
       end if;
    end process;   
-                       
-   -- wire the simplified color system of the VGA component to the VGA outputs
-   VGA_RED   <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
-   VGA_GREEN <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
-   VGA_BLUE  <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
+
+   video_signal_latches : process(clk25MHz)
+   begin
+      if rising_edge(clk25MHz) then
+         -- VGA: wire the simplified color system of the VGA component to the VGA outputs         
+         VGA_RED     <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
+         VGA_GREEN   <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
+         VGA_BLUE    <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
+         
+         -- VGA horizontal and vertical sync
+         VGA_HS      <= vga_hsync;
+         VGA_VS      <= vga_vsync;
+         
+         -- HDMI: color signal
+         hdmired     <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
+         hdmigreen   <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
+         hdmiblue    <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
+      end if;
+   end process;
+
+   -- make the VDAC output the image                                               
    vdac_sync_n <= '0';
    vdac_blank_n <= '1';
    vdac_clk <= clk25MHz;
+   
+   -- HDMI   
+   hdmi_hsync  <= vga_hsync;
+   hdmi_vsync  <= vga_vsync;            
+   hdmi_clk    <= clk25MHz;   
    
    -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
    -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)

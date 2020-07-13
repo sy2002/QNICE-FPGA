@@ -42,6 +42,11 @@
 #define CYC_RESET              	0x0001                  // Reset cycle counter
 #define CYC_RUN                	0x0002                  // Start/stop counter
 
+// ========== CYCLE COUNTER ==========
+
+#define INS_RESET              	0x0001                  // Reset instruction counter
+#define INS_RUN                	0x0002                  // Start/stop counter
+
 // ========== EAE ==========
 
 #define EAE_MULU               	0x0000                  // Unsigned 16 bit multiplication
@@ -382,6 +387,15 @@
 //                                      you need to reset the controller to go on
 //  Bit 15 of the CSR is the busy bit: 1, if current operation is still running
 //
+//  INSTRUCTION-COUNT-registers       
+//
+#define IO_INS_LO      	0xFF2A     // low word of 48-bit counter
+#define IO_INS_MID     	0xFF2B     // middle word of 48-bit counter
+#define IO_INS_HI      	0xFF2C     // high word of 48-bit counter
+#define IO_INS_STATE   	0xFF2D     // status register
+//    Bit  0 (write only):     Reset counter to zero and start counting, i.e.
+//                             bit 1 is automatically set to 1 when resetting
+//    Bit  1 (read/write):     Start/stop counter
 //
 //  Reserved for MEGA65 registers
 //

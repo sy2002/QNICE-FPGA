@@ -50,6 +50,11 @@ VGA$COLOR_WHITE         .EQU    0x0007
 CYC$RESET               .EQU    0x0001                  ; Reset cycle counter
 CYC$RUN                 .EQU    0x0002                  ; Start/stop counter
 
+; ========== CYCLE COUNTER ==========
+
+INS$RESET               .EQU    0x0001                  ; Reset instruction counter
+INS$RUN                 .EQU    0x0002                  ; Start/stop counter
+
 ; ========== EAE ==========
 
 EAE$MULU                .EQU    0x0000                  ; Unsigned 16 bit multiplication
@@ -390,6 +395,15 @@ IO$SD_CSR       .EQU 0xFF29 ; Command and Status Register (write to execute comm
 ;                                      you need to reset the controller to go on
 ;  Bit 15 of the CSR is the busy bit: 1, if current operation is still running
 ;
+;  INSTRUCTION-COUNT-registers       
+;
+IO$INS_LO       .EQU 0xFF2A     ; low word of 48-bit counter
+IO$INS_MID      .EQU 0xFF2B     ; middle word of 48-bit counter
+IO$INS_HI       .EQU 0xFF2C     ; high word of 48-bit counter
+IO$INS_STATE    .EQU 0xFF2D     ; status register
+;    Bit  0 (write only):     Reset counter to zero and start counting, i.e.
+;                             bit 1 is automatically set to 1 when resetting
+;    Bit  1 (read/write):     Start/stop counter
 ;
 ;  Reserved for MEGA65 registers
 ;

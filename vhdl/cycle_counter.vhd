@@ -1,7 +1,7 @@
 -- 48-bit clock cycle counter
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
 -- tristate outputs go high impedance when not enabled
--- done by sy2002 in May 2016
+-- done by sy2002 in May 2016 and refactored in July 2020
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -24,15 +24,12 @@ architecture beh of cycle_counter is
 
 signal counter                : unsigned(47 downto 0) := (others => '0');
 signal cycle_is_counting      : std_logic;
-signal cycle_reset            : std_logic;
-signal reset_cycle_reset      : std_logic;
-signal i_reset                : std_logic;
 
 begin
 
-   count : process(clk, i_reset, counter)
+   count : process(clk, reset, en, we, reg, data)
    begin
-      if i_reset = '1' then
+      if reset = '1' or (en = '1' and we='1' and reg="11" and data(0) = '1') then
          counter <= (others => '0');
       else
          if rising_edge(clk) then
@@ -43,36 +40,14 @@ begin
       end if;
    end process;
    
-   manage_cycle_reset : process(counter, cycle_reset)
+   write_register : process(clk, reset, en, we, reg, data)
    begin
-      if cycle_reset = '1' and counter = 0 then
-         reset_cycle_reset <= '1';
-      else
-         reset_cycle_reset <= '0';
-      end if;
-   end process;
-   
-   write_reset_bit : process(clk, reset, reset_cycle_reset)
-   begin
-      if reset = '1' or reset_cycle_reset = '1' then
-         cycle_reset <= '0';
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' and reg = "11" then
-               cycle_reset <= data(0);
-            end if;
-         end if;
-      end if;
-   end process;
-   
-   write_is_counting_bit : process(clk, i_reset)
-   begin
-      if i_reset = '1' then
+      if reset = '1' then
          cycle_is_counting <= '1';
       else
          if falling_edge(clk) then
             if en = '1' and we = '1' and reg = "11" then
-               cycle_is_counting <= data(1);
+               cycle_is_counting <= data(0) or data(1);
             end if;
          end if;
       end if;
@@ -92,6 +67,5 @@ begin
          data <= (others => 'Z');
       end if;
    end process;
-
-   i_reset <= cycle_reset or reset;
+   
 end beh;

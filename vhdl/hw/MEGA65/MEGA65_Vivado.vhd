@@ -4,7 +4,7 @@
 -- Top Module for synthesizing the whole machine
 -- 
 -- done on-again-off-again in 2015, 2016 by sy2002
--- MEGA65 port done in April 2020 by sy2002
+-- MEGA65 port done in April to July 2020 by sy2002
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -104,7 +104,8 @@ port (
    DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
    
    -- signals about the CPU state
-   HALT           : out std_logic                           -- 1=CPU halted due to the HALT command, 0=running   
+   HALT           : out std_logic;                          -- 1=CPU halted due to the HALT command, 0=running
+   INS_CNT_STROBE : out std_logic                           -- goes high for one clock cycle for each new instruction 
 );
 end component;
 
@@ -348,6 +349,10 @@ port (
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
+   ins_en            : out std_logic;
+   ins_we            : out std_logic;
+   ins_reg           : out std_logic_vector(1 downto 0);
+   
    eae_en            : out std_logic;
    eae_we            : out std_logic;
    eae_reg           : out std_logic_vector(2 downto 0);
@@ -370,6 +375,7 @@ signal cpu_data_dir           : std_logic;
 signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
 signal cpu_halt               : std_logic;
+signal cpu_ins_cnt_strobe     : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
@@ -394,6 +400,9 @@ signal uart_cpu_ws            : std_logic;
 signal cyc_en                 : std_logic;
 signal cyc_we                 : std_logic;
 signal cyc_reg                : std_logic_vector(1 downto 0);
+signal ins_en                 : std_logic;
+signal ins_we                 : std_logic;
+signal ins_reg                : std_logic_vector(1 downto 0);
 signal eae_en                 : std_logic;
 signal eae_we                 : std_logic;
 signal eae_reg                : std_logic_vector(2 downto 0);
@@ -471,7 +480,8 @@ begin
          DATA => cpu_data,
          DATA_DIR => cpu_data_dir,
          DATA_VALID => cpu_data_valid,
-         HALT => cpu_halt
+         HALT => cpu_halt,
+         INS_CNT_STROBE => cpu_ins_cnt_strobe
       );
 
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
@@ -594,6 +604,17 @@ begin
          data => cpu_data
       );
       
+   -- instruction counter
+   ins : cycle_counter
+      port map (
+         clk => cpu_ins_cnt_strobe,
+         reset => reset_ctl,
+         en => ins_en,
+         we => ins_we,
+         reg => ins_reg,
+         data => cpu_data
+      );
+      
    -- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
    eae_inst : eae
       port map (
@@ -676,6 +697,9 @@ begin
          cyc_en => cyc_en,
          cyc_we => cyc_we,
          cyc_reg => cyc_reg,
+         ins_en => ins_en,
+         ins_we => ins_we,
+         ins_reg => ins_reg,         
          eae_en => eae_en,
          eae_we => eae_we,
          eae_reg => eae_reg,
@@ -734,7 +758,7 @@ begin
    hdmi_vsync  <= vga_vsync;            
    hdmi_clk    <= clk25MHz;
 
--- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
+   -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
    -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
    -- bit #1: use UART AS STDOUT (0) / use VGA as STDOUT (1)
    SWITCHES(15 downto 2) <= "00000000000000";

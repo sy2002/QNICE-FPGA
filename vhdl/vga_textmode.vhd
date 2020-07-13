@@ -447,7 +447,8 @@ begin
    end process;
          
    read_vga_registers : process(en, we, reg, vga_ctl, vga_x, vga_y, vga_char, vga_busy, vga_clrscr, vga_read_data,
-                                vmem_offs_rw, vmem_offs_display, offs_display, offs_rw)
+                                vmem_offs_rw, vmem_offs_display, offs_display, offs_rw,
+                                reg_hctr_min, reg_hctr_max, reg_vctr_max)
    begin   
       if en = '1' and we = '0' then
          case reg is            

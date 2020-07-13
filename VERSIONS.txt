@@ -25,8 +25,6 @@ Version 1.6     xxxxx, xx 2020
 
 * DOCUMENTATION: Added doc/README.md, hw/README.md & vhdl/hw/MEGA65/README.md
 
-<rename QNICE @ MEGA65 in boot message; have some general QNICE #ifdefs?>
-
 <Do real speed test on hardware with mandel_perf but also with Q-TRIS.
 Then adjust all the 12.9 MIPS claims (also in documentation, various
 README.MDs, because it looks like we are way below 12.9 MIPS in reality:
@@ -34,10 +32,17 @@ We need a hardware based instruction counter.)
 
 HYPERRAM:
 
+<make ISA and Vivado for the Nexys board work again - MMIO bus uart Waitstates
+for CPU requires some changes;
+at least test both by synthesizing something; take care that PORE is
+correct; run something that works with files but also with UART>
+
 <make ISE work again: 
-1. Merge HDMI
-2. did Paul finally fix the strange Hyperram smoking gun? If not, then I need
-to write a note, that HyperRAM right now only works in Vivado and explain why>
+1. (Merge HDMI, done and) test HDMI and VGA
+2. (Merge Instruction count, done and) test instruction count
+3. did Paul finally fix the strange Hyperram smoking gun? If not, then I need
+to remove HyperRAM from the ISE version and write a note, that HyperRAM right
+now only works in Vivado and explain why>
 
 <is the double read of id0lo (or in general the first control register)
 still necessary? hardware bug still there? ref hyperram.asm "hw bug: 2 reads necessary!"
