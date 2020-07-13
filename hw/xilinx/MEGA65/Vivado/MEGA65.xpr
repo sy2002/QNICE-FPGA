@@ -78,7 +78,7 @@
           <Attr Name="UsedIn" Val="synthesis"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/env1_globals.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/mega65_globals.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>

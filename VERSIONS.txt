@@ -48,11 +48,14 @@ assembler and C>
 
 FINAL TOUCHES JUST BEFORE RELEASING:
 
-1. <restructure dist_kit and have .bit and .cor files ready and then update
+1. Make sure that the PORE texts are correct (for the MEGA65 version as well
+as for the standard version)
+
+2. <restructure dist_kit and have .bit and .cor files ready and then update
 all the links @TODO, for example in the hw/README.md and doc/README.md,
 others?>
 
-2. <make sure to update the Getting Started section to reflect all the news
+3. <make sure to update the Getting Started section to reflect all the news
 about ISE and Vivado and also about the platforms. Have also a MEGA65.bit
 and a MEGA65.cor in the dist_kit and mention it in the Getting Started 
 section>
