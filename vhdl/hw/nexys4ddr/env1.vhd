@@ -77,7 +77,8 @@ port (
    DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
    
    -- signals about the CPU state
-   HALT           : out std_logic                           -- 1=CPU halted due to the HALT command, 0=running   
+   HALT           : out std_logic;                          -- 1=CPU halted due to the HALT command, 0=running
+   INS_CNT_STROBE : out std_logic                           -- goes high for one clock cycle for each new instruction 
 );
 end component;
 
@@ -171,6 +172,7 @@ port (
    uart_en        : in std_logic;
    uart_we        : in std_logic;
    uart_reg       : in std_logic_vector(1 downto 0);
+   uart_cpu_ws    : out std_logic;   
    cpu_data       : inout std_logic_vector(15 downto 0)
 );
 end component;
@@ -283,9 +285,13 @@ port (
    uart_en           : out std_logic;
    uart_we           : out std_logic;
    uart_reg          : out std_logic_vector(1 downto 0);
+   uart_cpu_ws       : in std_logic;   
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
+   ins_en            : out std_logic;
+   ins_we            : out std_logic;
+   ins_reg           : out std_logic_vector(1 downto 0);
    eae_en            : out std_logic;
    eae_we            : out std_logic;
    eae_reg           : out std_logic_vector(2 downto 0);
@@ -304,6 +310,7 @@ signal cpu_data_dir           : std_logic;
 signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
 signal cpu_halt               : std_logic;
+signal cpu_ins_cnt_strobe     : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
@@ -324,9 +331,13 @@ signal vga_reg                : std_logic_vector(3 downto 0);
 signal uart_en                : std_logic;
 signal uart_we                : std_logic;
 signal uart_reg               : std_logic_vector(1 downto 0);
+signal uart_cpu_ws            : std_logic;
 signal cyc_en                 : std_logic;
 signal cyc_we                 : std_logic;
 signal cyc_reg                : std_logic_vector(1 downto 0);
+signal ins_en                 : std_logic;
+signal ins_we                 : std_logic;
+signal ins_reg                : std_logic_vector(1 downto 0);
 signal eae_en                 : std_logic;
 signal eae_we                 : std_logic;
 signal eae_reg                : std_logic_vector(2 downto 0);
@@ -515,6 +526,17 @@ begin
          data => cpu_data
       );
       
+   -- instruction counter
+   ins : cycle_counter
+      port map (
+         clk => cpu_ins_cnt_strobe,
+         reset => reset_ctl,
+         en => ins_en,
+         we => ins_we,
+         reg => ins_reg,
+         data => cpu_data
+      );
+      
    -- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
    eae_inst : eae
       port map (
@@ -569,9 +591,13 @@ begin
          uart_en => uart_en,
          uart_we => uart_we,
          uart_reg => uart_reg,
+         uart_cpu_ws => uart_cpu_ws,
          cyc_en => cyc_en,
          cyc_we => cyc_we,
          cyc_reg => cyc_reg,
+         ins_en => ins_en,
+         ins_we => ins_we,
+         ins_reg => ins_reg,         
          eae_en => eae_en,
          eae_we => eae_we,
          eae_reg => eae_reg,

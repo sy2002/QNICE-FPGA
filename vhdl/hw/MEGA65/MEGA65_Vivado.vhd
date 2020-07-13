@@ -147,6 +147,7 @@ port (
    reset       : in  std_logic;    -- async reset
    clk25MHz    : in std_logic;
    clk50MHz    : in std_logic;
+
    -- VGA registers
    en          : in std_logic;     -- enable for reading from or writing to the bus
    we          : in std_logic;     -- write to VGA's registers via system's data bus
@@ -352,7 +353,6 @@ port (
    ins_en            : out std_logic;
    ins_we            : out std_logic;
    ins_reg           : out std_logic_vector(1 downto 0);
-   
    eae_en            : out std_logic;
    eae_we            : out std_logic;
    eae_reg           : out std_logic_vector(2 downto 0);

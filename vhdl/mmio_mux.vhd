@@ -8,6 +8,7 @@
 -- also implements the global state and reset management
 -- 
 -- done in 2015, 2016 by sy2002
+-- enhanced in July 2020
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -66,6 +67,11 @@ port (
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
 
+   -- Instruction counter register range $FF2A..$FF2D
+   ins_en            : out std_logic;
+   ins_we            : out std_logic;
+   ins_reg           : out std_logic_vector(1 downto 0);
+
    -- Extended Arithmetic Element register range $FF1B..$FF1F
    eae_en            : out std_logic;
    eae_we            : out std_logic;
@@ -75,6 +81,7 @@ port (
    uart_en           : out std_logic;
    uart_we           : out std_logic;
    uart_reg          : out std_logic_vector(1 downto 0);
+   uart_cpu_ws       : in std_logic;
    
    -- SD Card register range $FF24..FF29
    sd_en             : out std_logic;
@@ -215,6 +222,32 @@ begin
       end if;
    end process;
    
+   -- Instruction counter starts at FF2A
+   ins_control : process(addr, data_dir, data_valid)
+   begin
+      ins_en <= '0';
+      ins_we <= '0';
+      ins_reg <= "00";
+      
+      if addr = x"FF2A" then
+         ins_en <= '1';
+         ins_we <= data_dir and data_valid;
+         ins_reg <= "00";
+      elsif addr = x"FF2B" then
+         ins_en <= '1';
+         ins_we <= data_dir and data_valid;
+         ins_reg <= "01";
+      elsif addr = x"FF2C" then
+         ins_en <= '1';
+         ins_we <= data_dir and data_valid;
+         ins_reg <= "10";
+      elsif addr = x"FF2D" then
+         ins_en <= '1';
+         ins_we <= data_dir and data_valid;
+         ins_reg <= "11";
+      end if;
+   end process;
+      
    eae_control : process(addr, data_dir, data_valid)
    begin
       eae_en <= '0';
@@ -317,13 +350,16 @@ begin
    -- CPU wait, this simple implementation is good enough
    -- otherwise, a "req_busy" bus could be built (replacing the ram_busy input)
    -- the block_ram's busy line is already a tri state, so it is ready for such a bus
-   cpu_wait_control : process (ram_enable_i, rom_enable_i, pore_rom_enable_i, ram_busy, rom_busy, pore_rom_busy)
+   cpu_wait_control : process (ram_enable_i, rom_enable_i, pore_rom_enable_i, ram_busy, rom_busy,
+                               pore_rom_busy, uart_cpu_ws)
    begin
       if ram_enable_i = '1' and ram_busy = '1' then
          cpu_wait_for_data <= '1';
       elsif rom_enable_i = '1' and rom_busy = '1' then
          cpu_wait_for_data <= '1';
       elsif pore_rom_enable_i = '1' and pore_rom_busy = '1' then
+         cpu_wait_for_data <= '1';
+      elsif uart_cpu_ws = '1' then
          cpu_wait_for_data <= '1';
       else
          cpu_wait_for_data <= '0';

@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------
 -- MEGA65 version of QNICE's MMIO controller
--- enhanced by sy2002 in April and May 2020
+-- enhanced by sy2002 in April to July 2020
 --
 -- Changes to the standard controller:
 -- * Added HyperRAM handling ($FF60 .. $FF62) including CPU wait states

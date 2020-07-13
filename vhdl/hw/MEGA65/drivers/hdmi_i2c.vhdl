@@ -77,13 +77,12 @@ entity hdmi_i2c is
     scl : inout std_logic;
 
     -- FastIO interface
-    cs : in std_logic;
-    fastio_read : in std_logic;
-    fastio_write : in std_logic;
-    fastio_rdata : out unsigned(7 downto 0);
-    fastio_wdata : in unsigned(7 downto 0);
-    fastio_addr : in unsigned(19 downto 0)    
-    
+    cs            : in std_logic := '0';
+    fastio_read   : in std_logic := '0';
+    fastio_write  : in std_logic := '0';
+    fastio_rdata  : out unsigned(7 downto 0);
+    fastio_wdata  : in unsigned(7 downto 0)  := (others => '0');
+    fastio_addr   : in unsigned(19 downto 0) := (others => '0')    
     );
 end hdmi_i2c;
 
