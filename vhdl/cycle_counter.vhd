@@ -10,6 +10,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity cycle_counter is
 port (
    clk      : in std_logic;         -- system clock
+   impulse  : in std_logic;         -- impulse that is counted
    reset    : in std_logic;         -- async reset
    
    -- cycle counter's registers
@@ -27,12 +28,12 @@ signal cycle_is_counting      : std_logic;
 
 begin
 
-   count : process(clk, reset, en, we, reg, data)
+   count : process(impulse, reset, en, we, reg, data)
    begin
       if reset = '1' or (en = '1' and we='1' and reg="11" and data(0) = '1') then
          counter <= (others => '0');
       else
-         if rising_edge(clk) then
+         if rising_edge(impulse) then
             if cycle_is_counting = '1' then
                counter <= counter + 1;
             end if;
@@ -40,7 +41,7 @@ begin
       end if;
    end process;
    
-   write_register : process(clk, reset, en, we, reg, data)
+   write_register : process(clk, reset)
    begin
       if reset = '1' then
          cycle_is_counting <= '1';

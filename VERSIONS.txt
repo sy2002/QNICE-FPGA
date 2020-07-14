@@ -33,13 +33,19 @@ WIP EMULATOR: Adjusted the standard emulation speed to 12.12 MIPS because this
 
 * DOCUMENTATION: Added doc/README.md, hw/README.md & vhdl/hw/MEGA65/README.md
 
-<After having done real speed tests: Adjust all the 12.9 MIPS claims
+<Repeat speed tests after having corrected the instruction counter. Do them
+at least on Nexys4DDR using a Vivado build and on the MEGA65. Note all values
+and create an average. It seems it is only 12.0 MIPS in Q-TRIS. Retest:
+After having done real speed tests: Adjust all the 12.9 MIPS claims
 to 12.12 MIPS (also in emulator, documentation, various README.MDs): the
 spectrum is between 12.12 MIPS in Q-TRIS and 13.18 MIPS in mandel_perf_test>
 
-HYPERRAM:
+<Now that Vivado for the Nexys board works again: make ISE also working again:
+Seems we need to add a list of caveats for ISE including a non working cycle
+and instruction counter; describe that in the hw/README.md - or is there
+anything else we can test?>
 
-<Now that Vivado for the Nexys board works again: make ISE also working again>
+HYPERRAM:
 
 <make ISE work again: 
 1. (Merge HDMI, done and) test HDMI and VGA
@@ -62,7 +68,8 @@ as for the standard version)
 
 2. <restructure dist_kit and have .bit and .cor files ready and then update
 all the links @TODO, for example in the hw/README.md and doc/README.md,
-others?>
+others? Make all the .bit files with Vivado as it seems to be more reliable
+than ISE>
 
 3. <make sure to update the Getting Started section to reflect all the news
 about ISE and Vivado and also about the platforms. Have also a MEGA65.bit

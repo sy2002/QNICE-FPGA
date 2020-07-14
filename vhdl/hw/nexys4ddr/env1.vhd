@@ -198,10 +198,11 @@ port (
 );
 end component;
 
--- clock cycle counter
+-- impulse (cycle) counter
 component cycle_counter is
 port (
    clk      : in std_logic;         -- system clock
+   impulse  : in std_logic;         -- impulse that is counted   
    reset    : in std_logic;         -- async reset
    
    -- cycle counter's registers
@@ -521,6 +522,7 @@ begin
    cyc : cycle_counter
       port map (
          clk => SLOW_CLOCK,
+         impulse => SLOW_CLOCK,
          reset => reset_ctl,
          en => cyc_en,
          we => cyc_we,
@@ -531,7 +533,8 @@ begin
    -- instruction counter
    ins : cycle_counter
       port map (
-         clk => cpu_ins_cnt_strobe,
+         clk => SLOW_CLOCK,
+         impulse => cpu_ins_cnt_strobe,
          reset => reset_ctl,
          en => ins_en,
          we => ins_we,

@@ -44,15 +44,15 @@ ARCHITECTURE logic OF ps2_keyboard IS
   SIGNAL error        : STD_LOGIC;                          --validate parity, start, and stop bits
   SIGNAL count_idle   : INTEGER RANGE 0 TO clk_freq/18000;  --@TODO counter to determine PS/2 is idle
   
---  --declare debounce component for debouncing PS2 input signals
---  COMPONENT debounce IS
---    GENERIC(
---      counter_size : INTEGER); --debounce period (in seconds) = 2^counter_size/(clk freq in Hz)
---    PORT(
---      clk    : IN  STD_LOGIC;  --input clock
---      button : IN  STD_LOGIC;  --input signal to be debounced
---      result : OUT STD_LOGIC); --debounced signal
---  END COMPONENT;
+  --declare debounce component for debouncing PS2 input signals
+  COMPONENT debounce IS
+    GENERIC(
+      counter_size : INTEGER); --debounce period (in seconds) = 2^counter_size/(clk freq in Hz)
+    PORT(
+      clk    : IN  STD_LOGIC;  --input clock
+      button : IN  STD_LOGIC;  --input signal to be debounced
+      result : OUT STD_LOGIC); --debounced signal
+  END COMPONENT;
 BEGIN
 
   --synchronizer flip-flops
@@ -64,19 +64,13 @@ BEGIN
     END IF;
   END PROCESS;
 
-
---  --debounce PS2 input signals
---  debounce_ps2_clk: debounce
---    GENERIC MAP(counter_size => debounce_counter_size)
---    PORT MAP(clk => clk, button => sync_ffs(0), result => ps2_clk_int);
---  debounce_ps2_data: debounce
---    GENERIC MAP(counter_size => debounce_counter_size)
---    PORT MAP(clk => clk, button => sync_ffs(1), result => ps2_data_int);
-
-   -- comment this out and comment in the above-mentioned "debounce PS2 input signals" section,
-   -- and the debounce component if you want to deactivate debouncing
-  ps2_clk_int <= sync_ffs(0);
-  ps2_data_int <= sync_ffs(1);
+  --debounce PS2 input signals
+  debounce_ps2_clk: debounce
+    GENERIC MAP(counter_size => debounce_counter_size)
+    PORT MAP(clk => clk, button => sync_ffs(0), result => ps2_clk_int);
+  debounce_ps2_data: debounce
+    GENERIC MAP(counter_size => debounce_counter_size)
+    PORT MAP(clk => clk, button => sync_ffs(1), result => ps2_data_int);
 
   --input PS2 data
   PROCESS(ps2_clk_int)
