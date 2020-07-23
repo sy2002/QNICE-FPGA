@@ -31,7 +31,7 @@ rm $romfile 2> /dev/null
 # inserts lines starting with a '#' which the assembler doest
 # not like, these are subsequently removed with sed.
 #
-gcc -E $1 | sed '/^#.*/d' > $temp_file
+gcc -E -x c $1 | sed '/^#.*/d' > $temp_file
 
 $assembler $temp_file $destination
 if [ $? -ne 0 ]
