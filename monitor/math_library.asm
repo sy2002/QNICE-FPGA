@@ -191,12 +191,12 @@ MTH$DIVU32      INCRB
                 ;
                 ; Q := 0               quotient and remainder = 0
                 ; R := 0                     
-                ; for i = n−1...0 do   where n is number of bits in N
+                ; for i = n-1...0 do   where n is number of bits in N
                 ;   R := R << 1        left-shift R by 1 bit
                 ;   R(0) := N(i)       set the least-significant bit
                 ;                      of R equal to bit i of the divisor    
                 ;   if R >= D then
-                ;     R := R − D
+                ;     R := R - D
                 ;     Q(i) := 1
                 ;   end
                 ; end                
@@ -253,7 +253,7 @@ _MTH$DIVU32_RNH AND     0xFFFB, SR              ; clear C
 
                 ; when reaching this code, R is >= D
                 ;   if R >= D then
-                ;     R := R − D
+                ;     R := R - D
                 ;     Q(i) := 1
                 ;   end
                 MOVE    R6, R3                  ; R = R6|R5 = (R := R - D)
@@ -272,7 +272,7 @@ _MTH$DIVU32_QL  AND     0xFFFD, SR              ; clear X
                 SHL     R4, R7                  ; move "1" to the right place
                 OR      R7, R0                  ; R0 := low Q(i) := 1
 
-                ; for i = n−1...0 do (i.e. also one loop for the case i=0)
+                ; for i = n-1...0 do (i.e. also one loop for the case i=0)
 _MTH$DIVU32_ITR SUB     1, R4
                 RBRA    _MTH$DIVU32_NBT, !N     ; !N includes a round for i=0
 
