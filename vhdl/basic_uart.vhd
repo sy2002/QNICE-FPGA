@@ -7,7 +7,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
-use IEEE.math_real.all;
+use work.qnice_tools.all;
 
 entity basic_uart is
 generic (
@@ -38,7 +38,7 @@ port (
 end basic_uart;
 
 architecture beh of basic_uart is
-  constant COUNTER_BITS : natural := integer(ceil(log2(real(DIVISOR))));
+  constant COUNTER_BITS : natural := f_log2(DIVISOR);
   type fsm_state_t is (idle, active);      -- common to both RX and TX FSM
   type rx_state_t is
   record

@@ -8,9 +8,8 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_ARITH.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
-use IEEE.MATH_REAL.all;
+use IEEE.NUMERIC_STD.ALL;
+use work.qnice_tools.all;
 
 entity drive_7digits is
 generic (
@@ -64,7 +63,7 @@ begin
    -- slow down the master clock signal
    clockdivider : SyTargetCounter
       generic map (
-         COUNTER_WIDTH => integer(ceil(log2(real(CLOCK_DIVIDER)))),
+         COUNTER_WIDTH => f_log2(CLOCK_DIVIDER),
          COUNTER_FINISH => CLOCK_DIVIDER
       )
       port map (
