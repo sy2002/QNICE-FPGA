@@ -29,7 +29,12 @@
 
 #define INSTRUCTION$NORMAL    0
 #define INSTRUCTION$BRANCH    1
-#define INSTRUCTION$DIRECTIVE 2
+#define INSTRUCTION$CONTROL   2
+#define INSTRUCTION$DIRECTIVE 3
+
+#define HALT 0
+#define RTI  1
+#define INT  2
 
 #define NO_OPCODE         -1 /* No opcode found (just a label), do not emit an output line */
 
@@ -46,6 +51,8 @@
 #define STATE$FINISHED         1
 #define STATE$LABELS_MISSING   2
 #define STATE$NOTHING_YET_DONE 3
+
+#define PRINT_ERROR printf("assemble: %s\n", entry->error_text);
 
 typedef struct _data_entry
 {
@@ -160,7 +167,8 @@ int translate_mnemonic(char *string, int *opcode, int *type)
 {
   int i;
   static char *normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
-                              "NOT", "AND", "OR", "XOR", "CMP", "__RESERVED__", "HALT", 0},
+                              "NOT", "AND", "OR", "XOR", "CMP", 0},
+    *control_mnemonics[] = {"HALT", "RTI", "INT", 0},
     *branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB", 0},
     *directives[] = {".ORG", ".ASCII_W", ".ASCII_P", ".EQU", ".BLOCK", ".DW", 0};
 
@@ -184,7 +192,15 @@ int translate_mnemonic(char *string, int *opcode, int *type)
       *opcode = i;
       return TRUE;
     }
-  
+
+  for (i = 0; control_mnemonics[i]; i++) 
+    if (!strcmp(string, control_mnemonics[i]))
+    {
+      *type = INSTRUCTION$CONTROL;
+      *opcode = i;
+      return TRUE;
+    }
+
   for (i = 0; directives[i]; i++)
     if (!strcmp(string, directives[i]))
     {
@@ -590,7 +606,7 @@ int assemble()
       if (find_label(label, &i) != -1) /* Do we already have a lable of that name? */
       {
         sprintf(entry->error_text, "Line %d: duplicate label >>%s<<.", line_counter, label);
-        printf("assemble: %s\n", entry->error_text);
+        PRINT_ERROR;
         error_counter++;
       }
 
@@ -603,7 +619,7 @@ int assemble()
         if (token)
         {
           sprintf(entry->error_text, "Line %d: Unknown token >>%s<<.", line_counter, token);
-          printf("assemble: %s\n", entry->error_text);
+          PRINT_ERROR;
           error_counter++;
         }
           
@@ -645,7 +661,7 @@ int assemble()
         if (!i)
         {
           sprintf(entry->error_text, "Line %d: WARNING - .DW without arguments!", line_counter);
-          printf("assembler: %s\n", entry->error_text);
+          PRINT_ERROR;
         }
 
         if (!(entry->data = (int *) malloc(i * sizeof(int))))
@@ -686,7 +702,7 @@ int assemble()
         if (*p++ != '"') /* No double quote found! */
         {
           sprintf(entry->error_text, "Line %d: Did not find opening double quote!", line_counter);
-          printf("assemble: %s\n", entry->error_text);
+          PRINT_ERROR;
           error_counter++;
           continue;
         }
@@ -728,7 +744,7 @@ int assemble()
         if (*(p + i) != '"')
         {
           sprintf(entry->error_text, "Line %d: WARNING - Did not find closing double quote!", line_counter);
-          printf("assembler: %s\n", entry->error_text);
+          PRINT_ERROR;
         }
 
         entry->number_of_words = i;
@@ -746,7 +762,7 @@ int assemble()
         if (!size)
         {
           sprintf(entry->error_text, "Line %d: WARNING - .BLOCK of size 0.", line_counter);
-          printf("assembler: %s\n", entry->error_text);
+          PRINT_ERROR;
         }
             
         if (!(entry->data = (int *) malloc(size * sizeof(int))))
@@ -768,7 +784,7 @@ int assemble()
         if (!token)
         {
           sprintf(entry->error_text, "Line %d: WARNING - .EQU without arguments!", line_counter);
-          printf("assembler: %s\n", entry->error_text);
+          PRINT_ERROR;
         }
 
         if ((retval = insert_into_equ_list(entry->label, str2int(token))))
@@ -780,7 +796,7 @@ int assemble()
           if (retval == 1)
             sprintf(entry->error_text, "Line %d: Duplicate equ-entry '%s'.", line_counter, entry->label);
 
-          printf("assemble: %s\n", entry->error_text);
+          PRINT_ERROR;
           error_counter++;
         }
 	    *(entry->label) = (char) 0;
@@ -790,7 +806,7 @@ int assemble()
       else
       {
         sprintf(entry->error_text, "Line %d: Unknown directive >>%s<<. Very strange!", line_counter, entry->mnemonic);
-        printf("assemble: %s\n", entry->error_text);
+        PRINT_ERROR;
         error_counter++;
         continue;
       }
@@ -805,7 +821,7 @@ int assemble()
         if (!(token = tokenize((char *) 0, delimiters)))
         {
           sprintf(entry->error_text, "Line %d: No first operand found! (%s)", line_counter, entry->source);
-          printf("assemble: %s\n", entry->error_text);
+          PRINT_ERROR;
           error_counter++;
           continue;
         }
@@ -815,7 +831,7 @@ int assemble()
         if ((entry->src_op_type = decode_operand(entry->src_op, &entry->src_op_code)) == OPERAND$ILLEGAL)
         {
           sprintf(entry->error_text, "Line %d: Illegal first operand! (%s)", line_counter, entry->source);
-          printf("assemble: %s\n", entry->error_text);
+          PRINT_ERROR;
           error_counter++;
           continue;
         }
@@ -831,7 +847,7 @@ int assemble()
           if (!(token = tokenize((char *) 0, delimiters)))
           {
             sprintf(entry->error_text, "Line %d: No second operand found! (%s)", line_counter, entry->source);
-            printf("assemble: %s\n", entry->error_text);
+            PRINT_ERROR;
             error_counter++;
             continue;
           }
@@ -841,7 +857,7 @@ int assemble()
           if ((entry->dest_op_type = decode_operand(entry->dest_op, &entry->dest_op_code)) == OPERAND$ILLEGAL)
           {
             sprintf(entry->error_text, "Line %d: Illegal second operand! (%s)", line_counter, entry->source);
-            printf("assemble: %s\n", entry->error_text);
+            PRINT_ERROR;
             error_counter++;
             continue;
           }
@@ -854,7 +870,7 @@ int assemble()
             {
                 sprintf(entry->error_text, "Line %d: A constant as destination operand ('%s') may not be what you wanted.", 
                     line_counter, entry->dest_op);
-                printf("assemble: %s\n", entry->error_text);
+                PRINT_ERROR;
                 /* This is just a warning, so no increment of error_counter is necessary! */
             }
           }
@@ -884,7 +900,7 @@ int assemble()
       if (!(token = tokenize((char *) 0, delimiters)))
       {
         sprintf(entry->error_text, "Line %d: No first branch operand found! (%s)", line_counter, entry->source);
-        printf("assemble: %s\n", entry->error_text);
+        PRINT_ERROR;
         error_counter++;
         continue;
       }
@@ -893,7 +909,7 @@ int assemble()
       if (!(token = tokenize((char *) 0, delimiters)))
       {
         sprintf(entry->error_text, "Line %d: No second branch operand found! (%s)", line_counter, entry->source);
-        printf("assemble: %s\n", entry->error_text);
+        PRINT_ERROR;
         error_counter++;
         continue;
       }
@@ -903,7 +919,7 @@ int assemble()
       if ((entry->src_op_type = decode_operand(entry->src_op, &entry->src_op_code)) == OPERAND$ILLEGAL)
       {
         sprintf(entry->error_text, "Line %d: Illegal first operand! (%s)", line_counter, entry->source);
-        printf("assemble: %s\n", entry->error_text);
+        PRINT_ERROR;
         error_counter++;
         continue;
       }
@@ -920,7 +936,7 @@ int assemble()
       if (flag > 7)
       {
         sprintf(entry->error_text, "Line %d: Illegal condition flag! (%s)", line_counter, entry->source);
-        printf("assemble: %s\n", entry->error_text);
+        PRINT_ERROR;
         error_counter++;
         continue;
       }
@@ -943,14 +959,37 @@ int assemble()
                         ((entry->src_op_code & 0x3f) << 6) | ((entry->opcode & 3) << 4) | ((negate & 1) << 3) | (flag & 0x7)) 
                          & 0xffff;
 
-      if (entry->src_op_type == OPERAND$CONSTANT) /* Labels are no constants in this context since they are not known in advance */
-/*        entry->data[1] = (str2int(entry->src_op) - address - 1) & 0xffff; This was the old behaviour */ 
+      if (entry->src_op_type == OPERAND$CONSTANT) /* Labels are no constants in this context since they are unknown in advance */
         entry->data[1] = str2int(entry->src_op) & 0xffff;
+    }
+    else if (entry->opcode_type == INSTRUCTION$CONTROL) /* A control instruction */
+    {
+      entry->number_of_words = 1; /* At least one word is required for the instruction, 2 maximum (for INT) */
+      *entry->src_op = *entry->dest_op = (char) 0;
+      token = tokenize((char* ) 0, delimiters);
+
+      entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6)); /* Basic structure of the instruction */
+
+      if ((entry->opcode == HALT || entry->opcode == RTI) && token) /* No additional operand expected! */
+      {
+        sprintf(entry->error_text, "Line %d: WARNING: No token expected, found >>%s<<", line_counter, token);
+        PRINT_ERROR;
+      }
+      else if (entry->opcode == INT && !token) /* RTI requires an additional argument! */
+      {
+        sprintf(entry->error_text, "Line %d: ERROR - no argument found!", line_counter);
+        PRINT_ERROR;
+        error_counter++;
+        continue;
+      }
+      //BLUB
+
+      printf("Token: >>%s<<, opcode: %d\n", token, entry->opcode);
     }
     else 
     {
       sprintf(entry->error_text, "Line %d: Unknown opcode type %d! Very strange error!", line_counter, entry->opcode_type);
-      printf("assemble: %s\n", entry->error_text);
+      PRINT_ERROR;
       error_counter++;
     }
     address++;
@@ -970,7 +1009,7 @@ int assemble()
         if (find_label(entry->src_op, &value))
         {
           sprintf(entry->error_text, "Line %d: Unresolved label or equ >>%s<<!", line_counter, entry->src_op);
-          printf("assemble: %s\n", entry->error_text);
+          PRINT_ERROR;
           error_counter++;
           continue;
         }
@@ -988,7 +1027,7 @@ int assemble()
         if (find_label(entry->dest_op, &value))
         {
           sprintf(entry->error_text, "Line %d: Unresolved label or equ >>%s<<!", line_counter, entry->dest_op);
-          printf("assemble: %s\n", entry->error_text);
+          PRINT_ERROR;
           error_counter++;
           continue;
         }
