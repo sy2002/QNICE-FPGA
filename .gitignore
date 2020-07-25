@@ -15,6 +15,7 @@ hw/xilinx/nexys4ddr/Vivado/*.hw
 hw/xilinx/nexys4ddr/Vivado/*.ip_user_files
 hw/xilinx/nexys4ddr/Vivado/*.runs
 hw/xilinx/nexys4ddr/Vivado/.Xil
+hw/xilinx/nexys4ddr/Vivado/qnice_nexys.sim
 hw/xilinx/MEGA65/ISE/work
 hw/xilinx/MEGA65/ISE/iseconfig
 hw/xilinx/MEGA65/ISE/webtalk_impact.xml

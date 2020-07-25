@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------------
--- FPGA implementation of the QNICE 16 bit CPU architecture version 1.2
+-- FPGA implementation of the QNICE 16 bit CPU architecture version 1.6
 -- 
--- done in 2015, 2016 by sy2002
+-- done in 2015, 2016, 2020 by sy2002
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -29,7 +29,11 @@ port (
    
    -- signals about the CPU state
    HALT           : out std_logic;                          -- 1=CPU halted due to the HALT command, 0=running
-   INS_CNT_STROBE : out std_logic                           -- goes high for one clock cycle for each new instruction    
+   INS_CNT_STROBE : out std_logic                           -- goes high for one clock cycle for each new instruction
+   
+   -- interrupt system                                      -- refer to doc/intro/qnice_intro.pdf to learn how this works
+--   INT_N          : in std_logic;
+--   GRANT_N        : out std_logic
 );
 end QNICE_CPU;
 
