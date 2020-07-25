@@ -1,6 +1,8 @@
 Version 1.6     xxxxx, xx 2020
 ==============================
 
+<CPU upgraded to ISA 1.6: Interrupts added>
+
 * MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
 
 * UART: Added a 32 Byte FIFO to the UART. This was necessary because the
