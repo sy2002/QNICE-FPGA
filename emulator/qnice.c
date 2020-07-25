@@ -8,6 +8,8 @@
 **
 ** sy2002, on-again-off-again 2017 and 2020: vga emulator and emscripten
 **
+** B. Ulmann, 25-JUL-2020   Disassembler can take care of control mnemonics
+**
 ** The following defines are available:
 **
 **   USE_IDE         (currently always undefined)
@@ -99,7 +101,10 @@
 #define DO_NOT_MODIFY_X        0x2
 #define DO_NOT_MODIFY_OVERFLOW 0x4
 
+#define GENERIC_CONTROL_OPCODE 0xe /* All control instructions share this common opcode */
 #define GENERIC_BRANCH_OPCODE  0xf /* All branches share this common opcode */
+
+#define INT_INSTRUCTION        0x2
 
 #ifdef USE_UART
 uart gbl$first_uart;
@@ -120,7 +125,8 @@ int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$
 unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
-                                "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "HALT"},
+                                "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "rsvd"},
+     *gbl$control_mnemonics[] = {"HALT", "RTI", "INT"}, 
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNVIM",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
@@ -594,7 +600,7 @@ void disassemble(unsigned int start, unsigned int stop)
     }
 
     *operands = (char) 0;
-    if (opcode < GENERIC_BRANCH_OPCODE) /* Normal instruction */
+    if (opcode < GENERIC_CONTROL_OPCODE) /* Normal instruction */
     {
       if (opcode == 0xd) /* This one is reserved for future use! */
       {
@@ -619,6 +625,16 @@ void disassemble(unsigned int start, unsigned int stop)
           strcat(operands, ", ");
           strcat(operands, scratch);
         }
+      }
+    }
+    else if (opcode == GENERIC_CONTROL_OPCODE) /* Control instruction (HALT, RTI, INT) */
+    {
+      strcpy(mnemonic, gbl$control_mnemonics[j = (instruction >> 6) & 0x3f]);
+      if (j == INT_INSTRUCTION) /* The INT instruction has one parameter */
+      {
+        if ((skip_addresses = decode_operand(instruction & 0x3f, scratch))) /* Constant as operand */
+          sprintf(scratch, "0x%04X", access_memory(i + 1, READ_MEMORY, 0));
+        strcpy(operands, scratch);
       }
     }
     else if (opcode == GENERIC_BRANCH_OPCODE) /* Branch or Subroutine call */
