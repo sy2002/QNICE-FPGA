@@ -1,24 +1,14 @@
-%
-% TODO:
-%  - Webseite zu QNICE erstellen!
-%
 \documentclass{beamer}
 \usepackage{beamerthemesplit, graphicx}
 \usetheme{VAXMAN}
 %
-\title{QNICE -- a nice 16 bit architecture}
+\title{QNICE -- a nice 16 bit architecture\\~\\ISA v. 1.6}
 \author{Bernd Ulmann}
 %\date{}
 \begin{document}
  \begin{frame}
   \titlepage
  \end{frame}
-%
-% \section[Outline]{}
-%  \begin{frame}
-%   \frametitle{Outline}
-%   \tableofcontents
-%  \end{frame}
 %
  \section{Introduction}
   \subsection{Goal}
@@ -154,8 +144,8 @@
     \frametitle{Instruction set basics}
     \begin{itemize}
      \item QNICE utilizes 18 basic instructions, all of which (apart
-      from {\tt HALT}, which takes no operands) are two operand 
-      instructions. 
+      from the {\tt CTRL} group, which takes one optional operand) are two 
+      operand instructions. 
      \item Instructions like {\tt ADD R0, R1} will actually perform an
       operation like {\tt R1 := R1 + R0} -- the only exceptions being
       \begin{itemize}
@@ -187,8 +177,19 @@
         \hline
        \end{tabular}
       \end{center}
+     \item The control instructions have the following general format:
+      \begin{center}
+       \begin{tabular}{|c||c|c||c|}
+        \hline
+         4 bit&4 bit&2 bit&6 bit\\
+         {\tt opcode}&{\tt src rxx}&{\tt src mode}&\texttt{command}\\
+        \hline
+       \end{tabular}
+      \end{center}
      \item The four jump and branch instructions use the following instruction
-      format:
+      format with mode bits \texttt{00}, \texttt{01}, \texttt{10},
+      \texttt{11} specifying \texttt{ABRA}, \texttt{ASUB}, \texttt{RBRA}, 
+      and \texttt{RSUB}:
       {\tiny
        \begin{center}
         \begin{tabular}{|c||c|c||c||c|c|}
@@ -201,9 +202,6 @@
         \end{tabular}
        \end{center}
       }
-     \item The four jumps and branches {\tt ABRA}, {\tt ASUB}, {\tt RBRA}
-      and {\tt RSUB} have the corresponding mode bits {\tt 00}, {\tt 01},
-      {\tt 10} and {\tt 11} respectively.
     \end{itemize}
    \end{frame}
 %
@@ -242,12 +240,27 @@
        {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
        {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\ 
        {\tt D}&reserved&\\
-       {\tt E}&{\tt HALT}&&Halt the processor\\
+       {\tt E}&{\tt CTRL}&&\texttt{HALT}, \texttt{INT}, \texttt{RTI}\\
        {\tt F}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
        {\tt F}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
        {\tt F}&{\tt RBRA}&{\tt dest, [!]cond}&Relative branch\\
        {\tt F}&{\tt RSUB}&{\tt dest, [!]cond}&Relative subroutine call\\
       \hline
+     \end{tabular}
+    \end{center}
+   \end{frame}
+%
+  \subsection{Control instructions}
+   \begin{frame}
+    \frametitle{Control instructions}
+    All control instructions share the opcode \texttt{D}. The command to be
+    executed is specified by bits \texttt{5..0} of the instruction:
+    \begin{center}
+     \begin{tabular}{l|l|l}
+      \texttt{000000}&\texttt{HALT}&Halt the processor\\
+      \texttt{000001}&\texttt{INT}&Issue a software interrupt with the\\
+       &&address supplied by the source operand\\
+      \texttt{000010}&\texttt{RTI}&Return from interrupt\\
      \end{tabular}
     \end{center}
    \end{frame}
@@ -436,7 +449,7 @@
 %
  \section{Code example}
   \begin{frame}[containsverbatim]
-   \frametitle{Code example: $\sum_{i=0}^{0x1000}i$}
+   \frametitle{Code example: {\scriptsize$\sum_{i=0}^{0x1000}i$}}
    \begin{verbatim}
 000001                            .ORG    0x0000
 000002  0000  B000                XOR     R0, R0
@@ -484,6 +497,65 @@
     }
    \end{frame}
 %
+ \section{Interrupts}
+  \begin{frame}
+   \frametitle{Interrupts}
+   QNICE supports a simple interrupt scheme:
+   \begin{itemize}
+    \item Interrupts cannot be nested. If an interrupt occures while another
+     interrupt is services, the CPU will not grant the new interrupt.
+    \item The processor has two sets of the registers \texttt{R14} (status
+     register) and \texttt{R15} (program counter). When an interrupt is 
+     issued, the current contents of these two registers are saved into two
+     invisible latches. An interrupt service routine (\emph{ISR}) can only
+     be left by the control instruction \texttt{CTRL RTI}. This effectively
+     restores the values of \texttt{R14} and \texttt{R15} and thus resumes 
+     operation at the correct location.
+    \item There is an extremely simple (optional) interrupt controller 
+     implemented as an external device which allows to mask interrupts
+     using a simple register and an \texttt{AND}-gate.
+   \end{itemize}
+  \end{frame}
+%
+  \begin{frame}
+   \frametitle{Interrupts}
+   \begin{itemize}
+    \item The CPU features two lines to deal with external interrupts:
+     \begin{description}
+      \item [\texttt{/INT}:] By setting this line to low, an 
+       external device requests an interrupt.
+      \item [\texttt{/IGRANT}:] As soon as the CPU is able to
+       service the interrupt, it will save \texttt{R14} and \texttt{R15} and
+       then signals the device by pulling \texttt{/IGRANT} low
+       that the device may now put the address of the desired ISR onto the 
+       data bus.
+      \item When the data is valid, the device pulls \texttt{/INT}
+       high again. The CPU now reads the data and pulls
+       \texttt{/IGRANT} high to notify the device that it must
+       release the data bus. The CPU then jumps to this address.
+     \end{description}
+    \item A software interrupt is triggered by \texttt{CTRL INT <source op>}.
+     The source operand contains the address of the ISR.
+    \item To return from an interrupt the instruction \texttt{CTRL RTI} is
+     used.
+   \end{itemize}
+  \end{frame}
+%
+  \begin{frame}
+   \frametitle{Interrupts}
+   \begin{center}
+    \includegraphics[width=.8\textwidth]{interrupt_timing.jpg}
+   \end{center}
+%https://wavedrom.com/editor.html:
+%{signal: [
+%  {name: '/INT', wave: '10..1..'},
+%  {name: '/IGRANT', wave: '1.0..1.'},
+%  
+%  {name: 'D0..15', wave: 'xxx=.xx', data: ['data']},
+%  
+%]}
+  \end{frame}
+%
  \section{Soft- and hardware}
   \begin{frame}
    \frametitle{Soft- and hardware}
@@ -495,6 +567,9 @@
      QNICE can be found at \texttt{https://github.com/sy2002/QNICE-FPGA}.
      This repository also contains a copy of the necessary QNICE 
      software development utilities.
+    \item Dr. \textsc{Chris Giles} currently (as of 2020) develops a
+     TTL-implementation of the QNICE-architecture (without the interrupt
+     feature which came later into being).
    \end{itemize}
   \end{frame}
 %
