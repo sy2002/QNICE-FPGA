@@ -144,7 +144,7 @@
     \frametitle{Instruction set basics}
     \begin{itemize}
      \item QNICE utilizes 18 basic instructions, all of which (apart
-      from the {\tt CTRL} group, which takes one optional operand) are two 
+      from the control group, which takes one optional operand) are two 
       operand instructions. 
      \item Instructions like {\tt ADD R0, R1} will actually perform an
       operation like {\tt R1 := R1 + R0} -- the only exceptions being
@@ -177,12 +177,13 @@
         \hline
        \end{tabular}
       \end{center}
-     \item The control instructions have the following general format:
+     \item The control instructions with opcode \texttt{D} have the 
+      following general format:
       \begin{center}
-       \begin{tabular}{|c||c|c||c|}
+       \begin{tabular}{|c||c||c|c|}
         \hline
-         4 bit&4 bit&2 bit&6 bit\\
-         {\tt opcode}&{\tt src rxx}&{\tt src mode}&\texttt{command}\\
+         4 bit&6 bit&4 bit&2 bit\\
+         {\tt opcode}&{\tt command}&{\tt dst rxx}&\texttt{dst mode}\\
         \hline
        \end{tabular}
       \end{center}
@@ -190,7 +191,7 @@
       format with mode bits \texttt{00}, \texttt{01}, \texttt{10},
       \texttt{11} specifying \texttt{ABRA}, \texttt{ASUB}, \texttt{RBRA}, 
       and \texttt{RSUB}:
-      {\tiny
+      {\scriptsize
        \begin{center}
         \begin{tabular}{|c||c|c||c||c|c|}
          \hline
@@ -240,11 +241,13 @@
        {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
        {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\ 
        {\tt D}&reserved&\\
-       {\tt E}&{\tt CTRL}&&\texttt{HALT}, \texttt{INT}, \texttt{RTI}\\
-       {\tt F}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
-       {\tt F}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
-       {\tt F}&{\tt RBRA}&{\tt dest, [!]cond}&Relative branch\\
-       {\tt F}&{\tt RSUB}&{\tt dest, [!]cond}&Relative subroutine call\\
+       {\tt E}&{\tt HALT}&&Halt the processor\\
+       {\tt E}&{\tt RTI}&&Return from interrupt\\
+       {\tt E}&{\tt INT}&\texttt{dst}&Issue software interrupt\\
+       {\tt F}&{\tt ABRA}&{\tt dst, [!]cond}&Absolute branch\\
+       {\tt F}&{\tt ASUB}&{\tt dst, [!]cond}&Absolut subroutine call\\
+       {\tt F}&{\tt RBRA}&{\tt dst, [!]cond}&Relative branch\\
+       {\tt F}&{\tt RSUB}&{\tt dst, [!]cond}&Relative subroutine call\\
       \hline
      \end{tabular}
     \end{center}
@@ -256,11 +259,16 @@
     All control instructions share the opcode \texttt{D}. The command to be
     executed is specified by bits \texttt{5..0} of the instruction:
     \begin{center}
-     \begin{tabular}{l|l|l}
-      \texttt{000000}&\texttt{HALT}&Halt the processor\\
-      \texttt{000001}&\texttt{INT}&Issue a software interrupt with the\\
-       &&address supplied by the source operand\\
-      \texttt{000010}&\texttt{RTI}&Return from interrupt\\
+     \begin{tabular}{|l|l|l|}
+      \hline
+       Cmd bits&Command&Description\\
+      \hline
+      \hline
+       \texttt{000000}&\texttt{HALT}&Halt the processor\\
+       \texttt{000001}&\texttt{RTI}&Return from interrupt\\
+       \texttt{000010}&\texttt{INT}&Issue a software interrupt with the\\
+        &&address supplied by the source operand\\
+      \hline
      \end{tabular}
     \end{center}
    \end{frame}
@@ -508,7 +516,7 @@
      register) and \texttt{R15} (program counter). When an interrupt is 
      issued, the current contents of these two registers are saved into two
      invisible latches. An interrupt service routine (\emph{ISR}) can only
-     be left by the control instruction \texttt{CTRL RTI}. This effectively
+     be left by the control instruction \texttt{RTI}. This effectively
      restores the values of \texttt{R14} and \texttt{R15} and thus resumes 
      operation at the correct location.
     \item There is an extremely simple (optional) interrupt controller 
@@ -534,9 +542,9 @@
        \texttt{/IGRANT} high to notify the device that it must
        release the data bus. The CPU then jumps to this address.
      \end{description}
-    \item A software interrupt is triggered by \texttt{CTRL INT <source op>}.
+    \item A software interrupt is triggered by \texttt{INT <dst op>}.
      The source operand contains the address of the ISR.
-    \item To return from an interrupt the instruction \texttt{CTRL RTI} is
+    \item To return from an interrupt the instruction \texttt{RTI} is
      used.
    \end{itemize}
   \end{frame}
