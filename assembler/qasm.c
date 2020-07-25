@@ -964,27 +964,67 @@ int assemble()
     }
     else if (entry->opcode_type == INSTRUCTION$CONTROL) /* A control instruction */
     {
-      entry->number_of_words = 1; /* At least one word is required for the instruction, 2 maximum (for INT) */
       *entry->src_op = *entry->dest_op = (char) 0;
       token = tokenize((char* ) 0, delimiters);
 
-      entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6)); /* Basic structure of the instruction */
-
-      if ((entry->opcode == HALT || entry->opcode == RTI) && token) /* No additional operand expected! */
+      if (entry->opcode == HALT || entry->opcode == RTI)
       {
-        sprintf(entry->error_text, "Line %d: WARNING: No token expected, found >>%s<<", line_counter, token);
-        PRINT_ERROR;
-      }
-      else if (entry->opcode == INT && !token) /* RTI requires an additional argument! */
-      {
-        sprintf(entry->error_text, "Line %d: ERROR - no argument found!", line_counter);
-        PRINT_ERROR;
-        error_counter++;
-        continue;
-      }
-      //BLUB
+        entry->number_of_words = 1; /* One word is required for HALT and RTI. */
+        if (token) { /* No token expected after HALT and RTI. */
+          sprintf(entry->error_text, "Line %d: WARNING: No token expected, found >>%s<<", line_counter, token);
+          PRINT_ERROR;
+        }
 
-      printf("Token: >>%s<<, opcode: %d\n", token, entry->opcode);
+        if (!(entry->data = (int *) malloc(entry->number_of_words * sizeof(int))))
+        {
+          printf("assemble: Out of memory, could not allocate %d words of memory!", (int) strlen(p));
+          return -1;
+        }
+
+        entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6)); /* Basic structure of the instruction */
+      }
+      else if (entry->opcode == INT)
+      {
+        entry->number_of_words = 1; /* At least one word is required for INT. */
+
+        if (!token) { /* INT requires an additional token */
+          sprintf(entry->error_text, "Line %d: ERROR - no argument found!", line_counter);
+          PRINT_ERROR;
+          error_counter++;
+          continue;
+        }
+
+        if ((p = tokenize((char *) 0, delimiters))) { /* ...but not more token! */
+          sprintf(entry->error_text, "Line: %d: WARNING - INT with more than one argument found! >>%s<<", line_counter, p);
+          PRINT_ERROR;
+        }
+
+        /* Where should the INT jump to? */
+        strcpy(entry->dest_op, token);
+        if ((entry->dest_op_type = decode_operand(entry->dest_op, &entry->dest_op_code)) == OPERAND$ILLEGAL)
+        {
+          sprintf(entry->error_text, "Line %d: Illegal destination operand! (%s)", line_counter, entry->source);
+          PRINT_ERROR;
+          error_counter++;
+          continue;
+        }
+
+        if (entry->dest_op_type == OPERAND$CONSTANT || entry->dest_op_type == OPERAND$LABEL_EQU)
+        {
+          entry->number_of_words++;
+          address++;
+        }
+
+        if (!(entry->data = (int *) malloc(entry->number_of_words * sizeof(int))))
+        {
+          printf("assemble: Out of memory, could not allocate %d words of memory!", (int) strlen(p));
+          return -1;
+        }
+
+        entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6) | ((entry->dest_op_code) & 0x3f)) & 0xffff; 
+        if (entry->dest_op_type == OPERAND$CONSTANT) /* Labels are no constants in this context since they are unknown in advance */
+          entry->data[1] = str2int(entry->dest_op) & 0xffff;
+      }
     }
     else 
     {
