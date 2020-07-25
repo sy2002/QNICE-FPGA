@@ -32,7 +32,11 @@ port (
    
    -- signals about the CPU state
    HALT           : out std_logic;                          -- 1=CPU halted due to the HALT command, 0=running
-   INS_CNT_STROBE : out std_logic                           -- goes high for one clock cycle for each new instruction 
+   INS_CNT_STROBE : out std_logic;                          -- goes high for one clock cycle for each new instruction
+   
+   -- interrupt system                                      -- refer to doc/intro/qnice_intro.pdf to learn how this works
+   INT_N          : in std_logic   := '1';
+   GRANT_N        : out std_logic    
 );
 end component;
 
