@@ -57,7 +57,11 @@ begin
    read_registers : process(en, we, reg, counter, cycle_is_counting)
    begin
       if en = '1' and we = '0' then
+--         data <= x"9ABC"; 
          case reg is
+--            when "00" => data <= x"9ABC"; --std_logic_vector(counter(15 downto 0));
+--            when "01" => data <= x"5678"; --std_logic_vector(counter(31 downto 16));
+--            when "10" => data <= x"1234"; --std_logic_vector(counter(47 downto 32));
             when "00" => data <= std_logic_vector(counter(15 downto 0));
             when "01" => data <= std_logic_vector(counter(31 downto 16));
             when "10" => data <= std_logic_vector(counter(47 downto 32));

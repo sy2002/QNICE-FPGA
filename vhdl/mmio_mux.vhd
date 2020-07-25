@@ -14,9 +14,9 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use IEEE.MATH_REAL.ALL;
 
 use work.env1_globals.all;
+use work.qnice_tools.all;
 
 entity mmio_mux is
 port (
@@ -126,7 +126,7 @@ type global_state_type is
 
 -- as we check for "= RESET_DURATION", we need one bit more,
 -- so RESET_COUNTER_BTS is not decremented by 1
-constant RESET_COUNTER_BTS    : natural := integer(ceil(log2(real(RESET_DURATION))));
+constant RESET_COUNTER_BTS    : natural := f_log2(RESET_DURATION);
 
 signal global_state           : global_state_type := gsPowerOn;
 
