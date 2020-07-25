@@ -15,6 +15,9 @@
 
 #define SYSCALL(x,y)    ASUB    x, y
 
+#define HALT    CTRL HALT
+#define RTI     CTRL RTI
+#define INT     CTRL INT
 ;
 ;  Some register short names:
 ;
