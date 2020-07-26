@@ -35,8 +35,24 @@ port (
    INS_CNT_STROBE : out std_logic;                          -- goes high for one clock cycle for each new instruction
    
    -- interrupt system                                      -- refer to doc/intro/qnice_intro.pdf to learn how this works
-   INT_N          : in std_logic   := '1';
-   GRANT_N        : out std_logic    
+   INT_N          : in std_logic;
+   IGRANT_N       : out std_logic    
+);
+end component;
+
+component dev_int_source is
+generic (
+   fire_1         : natural;
+   fire_2         : natural;
+   ISR_ADDR       : natural   
+);
+port (
+   CLK            : in std_logic;
+   RESET          : in std_logic;
+   DATA           : inout std_logic_vector(15 downto 0);   
+  
+   INT_N          : out std_logic;
+   IGRANT_N       : in std_logic   
 );
 end component;
 
@@ -98,6 +114,7 @@ port (
    data_dir          : in std_logic;
    data_valid        : in std_logic;
    cpu_halt          : in std_logic;
+   cpu_igrant_n      : in std_logic;
    
    -- let the CPU wait for data from the bus
    cpu_wait_for_data : out std_logic;
@@ -128,6 +145,8 @@ signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
 signal cpu_halt               : std_logic;
 signal cpu_ins_cnt_strobe     : std_logic;
+signal cpu_int_n              : std_logic;
+signal cpu_igrant_n           : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
@@ -162,7 +181,9 @@ begin
          DATA_DIR => cpu_data_dir,
          DATA_VALID => cpu_data_valid,
          HALT => cpu_halt,
-         INS_CNT_STROBE => cpu_ins_cnt_strobe
+         INS_CNT_STROBE => cpu_ins_cnt_strobe,
+         INT_N => cpu_int_n,
+         IGRANT_N => cpu_igrant_n         
       );
 
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
@@ -205,13 +226,14 @@ begin
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
       port map (
-         HW_RESET => gbl_reset,
-         CLK => CLK, 
+         CLK => CLK,
+         HW_RESET => gbl_reset,          
          addr => cpu_addr,
          data_dir => cpu_data_dir,
          data_valid => cpu_data_valid,
          cpu_wait_for_data => cpu_wait_for_data,
          cpu_halt => cpu_halt,
+         cpu_igrant_n => cpu_igrant_n,
          rom_enable => rom_enable,
          rom_busy => rom_busy,
          ram_enable => ram_enable,
@@ -221,7 +243,21 @@ begin
          eae_we => eae_we,
          eae_reg => eae_reg
       );
-      
+
+   interrupt_generator : dev_int_source
+      generic map (
+         fire_1 => 17,
+         fire_2 => 28,
+         ISR_ADDR => 16#000D#
+      )
+      port map (
+         CLK => CLK,
+         RESET => gbl_reset,
+         DATA => cpu_data,
+         INT_N => cpu_int_n,
+         IGRANT_N => cpu_igrant_n
+      );
+
    generate_clock: process
    begin
       CLK <= '0';

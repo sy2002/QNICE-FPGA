@@ -33,7 +33,7 @@ port (
    
    -- interrupt system                                      -- refer to doc/intro/qnice_intro.pdf to learn how this works
    INT_N          : in std_logic   := '1';
-   GRANT_N        : out std_logic
+   IGRANT_N       : out std_logic
 );
 end QNICE_CPU;
 
@@ -112,7 +112,13 @@ type tCPU_States is (cs_reset,
                      cs_exepost_prepfetch,
                      
                      cs_halt,
-                     cs_std_seq     -- continue with standard sequence, used by fsmNextCpuState
+                     
+                     -- interrupt handling
+                     cs_int_wait_isr,           -- wait for ISR address to be put on the data bus
+                     cs_int_jmp_isr,            -- read ISR address from data bus and prepare to "jump" into the ISR
+                     
+                     -- continue with standard sequence, used by fsmNextCpuState
+                     cs_std_seq     
                     );
 signal cpu_state           : tCPU_States := cs_reset;
 signal cpu_state_next      : tCPU_States;
@@ -132,11 +138,17 @@ signal reg_write_en        : std_logic := '0';
 
 -- registers R13 (SP), R14 (SR) and R15 (PC) are directly modeled within the CPU
 -- but also read-only accessible via the register file
-signal SP                  : std_logic_vector(15 downto 0) := x"0000"; -- stack pointer (R13)
+signal SP                  : std_logic_vector(15 downto 0) := x"0000"; -- stack pointer   (R13)
 signal SR                  : std_logic_vector(15 downto 0) := x"0001"; -- status register (R14)
 signal PC                  : std_logic_vector(15 downto 0) := x"0000"; -- program counter (R15)
 
--- intstruction related internal CPU registers
+-- interrupt handling
+signal SP_org              : std_logic_vector(15 downto 0);            -- saved stack pointer   (R13)
+signal SR_org              : std_logic_vector(15 downto 0);            -- saved status register (R14)
+signal PC_org              : std_logic_vector(15 downto 0);            -- saved program counter (R15)
+signal Int_Active          : std_logic := '0';                         -- interrupt / ISR currently active
+
+-- instruction related internal CPU registers
 signal Instruction         : std_logic_vector(15 downto 0) := (others => '0'); -- current instruction word
 signal Opcode              : std_logic_vector(3 downto 0);  -- current opcode, equals bits 15 .. 12
 signal Src_RegNo           : std_logic_vector(3 downto 0);  -- current source register, equals bits 11 .. 8
@@ -158,6 +170,12 @@ signal fsmSP               : std_logic_vector(15 downto 0);
 signal fsmSR               : std_logic_vector(15 downto 0);
 signal fsmPC               : std_logic_vector(15 downto 0);
 signal fsmNextCpuState     : tCPU_States;
+
+-- interrupt handling
+signal fsmSP_org           : std_logic_vector(15 downto 0);
+signal fsmSR_org           : std_logic_vector(15 downto 0);
+signal fsmPC_org           : std_logic_vector(15 downto 0);
+signal fsmInt_Active       : std_logic;
 
 signal fsmInstruction      : std_logic_vector(15 downto 0);
 signal fsm_reg_read_addr1  : std_logic_vector(3 downto 0);
@@ -231,6 +249,11 @@ begin
             SR <= x"0001";
             PC <= x"0000";
             
+            SP_org <= x"0000";
+            SR_org <= x"0001";
+            PC_org <= x"0000";
+            Int_Active <= '0';
+            
             Instruction <= (others => '0');            
             Src_Value <= (others => '0');
             Dst_Value <= (others => '0');
@@ -256,6 +279,11 @@ begin
             SR <= fsmSR(15 downto 1) & "1";
             PC <= fsmPC;
             
+            SP_org <= fsmSP_org;
+            SR_org <= fsmSR_org;
+            PC_org <= fsmPC_org;
+            Int_Active <= fsmInt_Active;
+            
             Instruction <= fsmInstruction;
             Src_Value <= fsmSrc_Value;
             Dst_Value <= fsmDst_Value;
@@ -269,8 +297,8 @@ begin
       end if;
    end process;
    
-   fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC,
-                                DATA, DATA_To_Bus, WAIT_FOR_DATA,
+   fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, SP_org, SR_org, PC_org,
+                                DATA, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
                                 Instruction, Opcode,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
@@ -281,11 +309,12 @@ begin
    begin
       DATA <= (others => 'Z');
       INS_CNT_STROBE <= '0';
+      IGRANT_N <= '1';
          
       fsmDataToBus <= (others => '0');
       fsmSP <= SP;
       fsmSR <= SR(15 downto 1) & "1";
-      fsmPC <= PC;
+      fsmPC <= PC;      
       fsmCpuAddr <= ADDR_Bus;
       fsmCpuDataDirCtrl <= '0';
       fsmCpuDataValid <= '0';
@@ -298,7 +327,18 @@ begin
       fsm_reg_write_addr <= reg_write_addr;
       fsm_reg_write_data <= reg_write_data;
       fsm_reg_write_en <= '0';
-   
+      
+      fsmInt_Active <= Int_Active;
+      if Int_Active = '0' then
+         fsmSP_org <= SP;
+         fsmSR_org <= SR(15 downto 1) & "1";
+         fsmPC_org <= PC;
+      else
+         fsmSP_org <= SP_org;
+         fsmSR_org <= SR_org;
+         fsmPC_org <= PC_org;
+      end if;
+               
       -- as fsm_advance_state is clocking the values on rising edges,
       -- the below-mentioned output decoding is to be read as:
       -- "what will be the output variables at the NEXT state (after the current state)"
@@ -321,12 +361,18 @@ begin
                fsmNextCpuState <= cs_fetch;
                
             -- data from bus is available
-            else
-               INS_CNT_STROBE <= '1';  -- count next instruction
-               fsmInstruction <= DATA; -- valid at falling edge
-               fsmPC <= PC + 1;
-               fsm_reg_read_addr1 <= DATA(11 downto 8); -- read Src register number
-               fsm_reg_read_addr2 <= DATA(5 downto 2);  -- rest Dst register number
+            else              
+               -- interrupt will only be handled, if not currently already handling another
+               if Int_Active = '0' and INT_N = '0' then
+                  fsmInt_Active <= '1';
+                  fsmNextCpuState <= cs_int_wait_isr;
+               else
+                  INS_CNT_STROBE <= '1';  -- count next instruction            
+                  fsmInstruction <= DATA; -- valid at falling edge
+                  fsmPC <= PC + 1;
+                  fsm_reg_read_addr1 <= DATA(11 downto 8); -- read Src register number
+                  fsm_reg_read_addr2 <= DATA(5 downto 2);  -- rest Dst register number
+               end if;
             end if;
                                     
          when cs_decode =>
@@ -622,7 +668,27 @@ begin
             fsmCpuAddr <= PC;
             
          when cs_halt =>
-            fsmCpuAddr <= ADDR_Bus;           
+            fsmCpuAddr <= ADDR_Bus;
+            
+         when cs_int_wait_isr =>
+            if Int_Active = '1' then
+               IGRANT_N <= '0';
+            
+               -- requester signals ISR address is on DATA
+               if INT_N = '1' then
+                  fsmNextCPUState <= cs_int_jmp_isr;
+                  fsmCpuAddr <= DATA; -- put ISR address in CPU's address register
+                  fsmPC <= DATA;
+               else
+                  fsmNextCPUState <= cs_int_wait_isr;
+               end if;
+            end if;
+
+         -- IGRANT_N goes back to high, new PC and CpuAddr is being clocked in            
+         when cs_int_jmp_isr =>
+            if Int_Active = '1' then
+               fsmNextCPUState <= cs_fetch;
+            end if;
         
          when others =>
             fsmPC <= (others => '0');
@@ -647,6 +713,8 @@ begin
          when cs_exepost_sub                 => cpu_state_next <= cs_fetch;
          when cs_exepost_prepfetch           => cpu_state_next <= cs_fetch;
          when cs_halt                        => cpu_state_next <= cs_halt;
+         when cs_int_wait_isr                => cpu_state_next <= cs_halt;  -- if unexpected situation: halt CPU
+         when cs_int_jmp_isr                 => cpu_state_next <= cs_halt;  -- if unexpected situation: halt CPU
          when others                         => cpu_state_next <= cpu_state;
       end case;
    end process;

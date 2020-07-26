@@ -29,6 +29,7 @@ port (
    data_dir          : in std_logic;
    data_valid        : in std_logic;
    cpu_halt          : in std_logic;
+   cpu_igrant_n      : in std_logic;
    
    -- let the CPU wait for data from the bus
    cpu_wait_for_data : out std_logic;
@@ -114,11 +115,12 @@ begin
    end process;
 
    -- ROM is enabled when the address is < $8000 and the CPU is reading
-   rom_enable_i <= not addr(15) and not data_dir;
+   rom_enable_i <= not addr(15) and not data_dir and cpu_igrant_n;
    
    -- RAM is enabled when the address is in ($8000..$FEFF)
    ram_enable_i <= addr(15)
-                   and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8));
+                   and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8))
+                   and cpu_igrant_n;
                
    -- generate external RAM/ROM/PORE enable signals
    ram_enable <= ram_enable_i;
