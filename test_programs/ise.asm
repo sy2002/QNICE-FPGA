@@ -2,7 +2,7 @@
 ; GitHub here: https://github.com/sy2002/QNICE-FPGA/issues/4
 ;
 ; What this program does: Reset the hardware cycle counter (which is increased
-; at each clock cycle - as the time of making 50 MHu) and the hardware
+; at each clock cycle - as the time of making 50 MHz) and the hardware
 ; instruction counter (which is increased at each new instruction fetch).
 ;
 ; Both counters can be used together to measure the MIPS throughput of
