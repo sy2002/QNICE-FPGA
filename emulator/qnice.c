@@ -9,6 +9,7 @@
 ** sy2002, on-again-off-again 2017 and 2020: vga emulator and emscripten
 **
 ** B. Ulmann, 25-JUL-2020   Disassembler can take care of control mnemonics
+**            26-JUL-2020   Started adding timers
 **
 ** The following defines are available:
 **
@@ -16,6 +17,7 @@
 **   USE_SD
 **   USE_UART
 **   USE_VGA
+**   USE_TIMER
 **
 ** The different make scripts "make.bash", "make-vga.bash" and "make-emscripten.bash"
 ** are defining these. The emscripten environment is automatically defining __EMSCRIPTEN__.
@@ -50,6 +52,10 @@
 #  include <unistd.h>
 #  include <pthread.h>
 # endif
+#endif
+
+#ifdef USE_TIMER
+# include "timer.h"
 #endif
 
 #ifdef __EMSCRIPTEN__

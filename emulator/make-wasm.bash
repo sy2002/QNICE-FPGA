@@ -43,7 +43,7 @@ if [[ ! -f qnice_disk.img ]]; then
 fi
 
 FILES="qnice.c fifo.c sd.c vga.c"
-DEF_SWITCHES="-DUSE_SD -DUSE_VGA"
+DEF_SWITCHES="-DUSE_SD -DUSE_VGA -DUSE_TIMER"
 UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART"
 PRELOAD_FILES="--preload-file monitor.out"
 
