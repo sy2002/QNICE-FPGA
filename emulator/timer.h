@@ -24,3 +24,4 @@
 
 unsigned int readTimerDeviceRegister(unsigned int);
 void writeTimerDeviceRegister(unsigned int, unsigned int);
+void attach_control_lines(unsigned int *, unsigned int *);

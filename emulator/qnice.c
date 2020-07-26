@@ -9,7 +9,7 @@
 ** sy2002, on-again-off-again 2017 and 2020: vga emulator and emscripten
 **
 ** B. Ulmann, 25-JUL-2020   Disassembler can take care of control mnemonics
-**            26-JUL-2020   Started adding timers
+**            26-JUL-2020   Control instructions added, started adding timers
 **
 ** The following defines are available:
 **
@@ -110,7 +110,13 @@
 #define GENERIC_CONTROL_OPCODE 0xe /* All control instructions share this common opcode */
 #define GENERIC_BRANCH_OPCODE  0xf /* All branches share this common opcode */
 
+#define HALT_INSTRUCTION       0x0
+#define RTI_INSTRUCTION        0x1
 #define INT_INSTRUCTION        0x2
+
+#define PC  15  // Program counter
+#define SR  14  // Status register
+#define SP  13  // Stack pointer
 
 #ifdef USE_UART
 uart gbl$first_uart;
@@ -136,6 +142,12 @@ char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SH
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNVIM",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
+
+unsigned int gbl$interrupt_address,             // Interrupt address as set by the interrupting "device"
+             gbl$interrupt_request = FALSE,     // This flag denotes an interrupt request.
+             gbl$interrupt_active = FALSE,      // true if an interrupt is currently being serviced.
+             gbl$interrupt_R14,                 // Shadow registers for R14 / R15.
+             gbl$interrupt_R15;
 
 statistic_data gbl$stat;
 
@@ -353,7 +365,7 @@ unsigned int read_register(unsigned int address)
   if (address & 0x8) /* Upper half -> always bank 0 */
     return gbl$registers[address] | (address == 0xe ? 1 : 0); /* The LSB of SR is always 1! */
 
-  return gbl$registers[address | ((read_register(14) >> 4) & 0xFF0)];
+  return gbl$registers[address | ((read_register(SR) >> 4) & 0xFF0)];
 }
 
 /*
@@ -370,7 +382,7 @@ void write_register(unsigned int address, unsigned int value)
   if (address & 0x8)
     gbl$registers[address] = value | (address == 14 ? 1 : 0); /* Ensure that LSB will always be set. */
   else /* Take bank switching into account! */
-    gbl$registers[address | ((read_register(14) >> 4) & 0xFF0)] = value;
+    gbl$registers[address | ((read_register(SR) >> 4) & 0xFF0)] = value;
 }
 
 /*
@@ -557,6 +569,9 @@ void reset_machine()
   gbl$memory[IO_SWITCH_REG] = 3;
 #endif
 
+  gbl$interrupt_request = FALSE;
+  gbl$interrupt_active = FALSE;
+
   if (gbl$debug || gbl$verbose)
     printf("\treset_machine: done\n");
 }
@@ -707,7 +722,7 @@ unsigned int read_source_operand(unsigned int mode, unsigned int regaddr, int su
     gbl$stat.addressing_modes[0][mode]++;
 
   if (gbl$debug)
-    printf("\tread_source_operand: value=%04X, r15=%04X\n\r", source, read_register(15));
+    printf("\tread_source_operand: value=%04X, r15=%04X\n\r", source, read_register(PC));
   return source & 0xffff;
 }
 
@@ -747,7 +762,7 @@ void write_destination(unsigned int mode, unsigned int regaddr, unsigned int val
     gbl$stat.addressing_modes[1][mode]++;
 
   if (gbl$debug)
-    printf("\twrite_destination: r15=%04X\n\r", read_register(15));
+    printf("\twrite_destination: r15=%04X\n\r", read_register(PC));
 }
 
 /*
@@ -773,7 +788,7 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
       ((source_0 & 0x8000) && (source_1 & 0x8000) && !(destination & 0x8000))) && !(control_bitmask & DO_NOT_MODIFY_OVERFLOW))
     sr_bits |= 0x20;
 
-  write_register(14, (read_register(14) & 0xffc0) | (sr_bits & 0x3f));
+  write_register(SR, (read_register(SR) & 0xffc0) | (sr_bits & 0x3f));
 }
 
 /*
@@ -782,7 +797,7 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
 int execute()
 {
   unsigned int instruction, address, opcode, source_mode, source_regaddr, destination_mode, destination_regaddr,
-    source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits;
+    source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits, command;
 
   int condition, cmp_0, cmp_1;
 
@@ -797,22 +812,40 @@ int execute()
   }
 #endif
 
+  // Take care of interrupts
+  if (gbl$interrupt_request && !gbl$interrupt_active)   // Interrupts cannot be nested!
+  {
+    gbl$interrupt_active = TRUE;                // Remember that we are currently servicing an interrupt
+    gbl$interrupt_R14 = read_register(SR);      // Save status register 
+    gbl$interrupt_R15 = read_register(PC);      // and program counter
+    write_register(PC, gbl$interrupt_address);  // Jump to interrupt service routine
+
+    if (gbl$debug)
+    {
+      printf("Interrupt");
+      if (gbl$verbose)
+        printf(": Address = %04X\n", gbl$interrupt_address);
+      else
+        printf("!\n");
+    }
+  }
+
   if (gbl$cycle_counter_state & 0x0002)
     gbl$cycle_counter++; /* Increment cycle counter which is an instruction counter in the emulator as opposed to the hardware. */
 
-  debug_address = address = read_register(15); /* Get current PC */
+  debug_address = address = read_register(PC); /* Get current PC */
   opcode = ((instruction = access_memory(address++, READ_MEMORY, 0)) >> 12 & 0Xf);
-  write_register(15, address); /* Update program counter */
+  write_register(PC, address); /* Update program counter */
 
   if (gbl$debug || gbl$verbose)
     printf("execute: %04X %04X %s\n\r", debug_address, instruction, 
            opcode == GENERIC_BRANCH_OPCODE ? gbl$branch_mnemonics[(instruction >> 4) & 0x3] 
                                            : gbl$normal_mnemonics[opcode]);
 
-  source_mode = (instruction >> 6) & 0x3;
+  source_mode    = (instruction >> 6) & 0x3;
   source_regaddr = (instruction >> 8) & 0xf;
 
-  destination_mode = instruction & 0x3;
+  destination_mode    = instruction & 0x3;
   destination_regaddr = (instruction >> 2) & 0xf;
 
   /* Update the statistics counters */
@@ -838,7 +871,7 @@ int execute()
     case 2: /* ADDC */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
-      destination = source_0 + source_1 + ((read_register(14) >> 2) & 1); /* Take carry into account */
+      destination = source_0 + source_1 + ((read_register(SR) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
@@ -852,7 +885,7 @@ int execute()
     case 4: /* SUBC */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
-      destination = source_0 - source_1 - ((read_register(14) >> 2) & 1); /* Take carry into account */
+      destination = source_0 - source_1 - ((read_register(SR) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
@@ -862,9 +895,9 @@ int execute()
       for (i = 0; i < source_0; i++)
       {
         temp_flag = (destination & 0x8000) >> 13;
-        destination = (destination << 1) | ((read_register(14) >> 1) & 1);          /* Fill with X bit */
+        destination = (destination << 1) | ((read_register(SR) >> 1) & 1);          /* Fill with X bit */
       }
-      write_register(14, (read_register(14) & 0xfffb) | temp_flag);                 /* Shift into C bit */
+      write_register(SR, (read_register(SR) & 0xfffb) | temp_flag);                 /* Shift into C bit */
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 6: /* SHR */
@@ -873,9 +906,9 @@ int execute()
       for (i = 0; i < source_0; i++)
       {
         temp_flag = (destination & 1) << 1;
-        destination = ((destination >> 1) & 0xffff) | ((read_register(14) & 4) << 13);  /* Fill with C bit */
+        destination = ((destination >> 1) & 0xffff) | ((read_register(SR) & 4) << 13);  /* Fill with C bit */
       }
-      write_register(14, (read_register(14) & 0xfffd) | temp_flag);                     /* Shift into X bit */
+      write_register(SR, (read_register(SR) & 0xfffd) | temp_flag);                     /* Shift into X bit */
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 7: /* SWAP */
@@ -929,20 +962,37 @@ int execute()
       if (source_1 & 0x8000) cmp_1 |= 0xffff0000;
       if (cmp_0 > cmp_1) sr_bits |= 0x0020;
 
-      write_register(14, (read_register(14) & 0xffc0) | (sr_bits & 0x3f));
+      write_register(SR, (read_register(SR) & 0xffc0) | (sr_bits & 0x3f));
       break;
     case 13: /* Reserved */
       printf("Attempt to execute the reserved instruction...\n");
       return 1;
-    case 14: /* HALT */
-      printf("HALT instruction executed at address %04X.\n\n", debug_address);
-      return TRUE;
+    case 14: /* Control group */
+      switch (command = (instruction >> 6) & 0x3f) 
+      {
+        case HALT_INSTRUCTION:
+          printf("HALT instruction executed at address %04X.\n\n", debug_address);
+          return TRUE;
+          break;    // Not really necessary but good style... :-)
+        case RTI_INSTRUCTION:
+          gbl$interrupt_active = FALSE;
+          write_register(SR, gbl$interrupt_R14);
+          write_register(PC, gbl$interrupt_R15);
+          break;
+        case INT_INSTRUCTION:
+          gbl$interrupt_address = read_source_operand(destination_mode, destination_regaddr, TRUE);
+          gbl$interrupt_request = TRUE;
+          break;
+        default:
+          fprintf(stderr, "Illegal control instruction found: %02X\n", command);
+      }
+      break;
     case 15: /* Branch or subroutine call */
       /* Determine destination address in case the branch/subroutine instruction will be performed */
       destination = read_source_operand(source_mode, source_regaddr, FALSE); /* Perform autoincrement since no write back occurs! */
 
       /* Determine which SR bit to use, etc. */
-      condition = (read_register(14) >> (instruction & 0x7)) & 1;
+      condition = (read_register(SR) >> (instruction & 0x7)) & 1;
       if (instruction & 0x0008) /* Invert bit to be checked? */
         condition = 1 - condition;
 
@@ -952,40 +1002,40 @@ int execute()
         switch((instruction >> 4) & 0x3)
         {
           case 0: /* ABRA */
-            write_register(15, destination);
+            write_register(PC, destination);
             break;
           case 1: /* ASUB */
-            write_register(13, read_register(13) - 1);
-            access_memory(read_register(13), WRITE_MEMORY, read_register(15));
-            write_register(15, destination);
+            write_register(SP, read_register(SP) - 1);
+            access_memory(read_register(SP), WRITE_MEMORY, read_register(PC));
+            write_register(PC, destination);
             break;
           case 2: /* RBRA */
-            write_register(15, (read_register(15) + destination) & 0xffff);
+            write_register(PC, (read_register(PC) + destination) & 0xffff);
             break;
           case 3: /* RSUB */
-            write_register(13, read_register(13) - 1);
-            access_memory(read_register(13), WRITE_MEMORY, read_register(15));
-            write_register(15, (read_register(15) + destination) & 0xffff);
+            write_register(SP, read_register(SP) - 1);
+            access_memory(read_register(SP), WRITE_MEMORY, read_register(PC));
+            write_register(PC, (read_register(PC) + destination) & 0xffff);
             break;
         }
       }
       /* We must increment the PC in case of a constant destination address even if the branch is not taken! */
 // NO, we must not since the PC has already been incremented during the fetch operation!
 //      else if (source_mode == 0x2 && source_regaddr == 0xf) /* This is mode @R15++ */
-//        write_register(15, read_register(15) + 1);
+//        write_register(PC, read_register(PC) + 1);
       break;
     default:
       printf("PANIK: Illegal instruction found: Opcode %0X at address %04X.\n", opcode, address);
       return TRUE;
   }
 
-  if (read_register(15) == gbl$breakpoint)
+  if (read_register(PC) == gbl$breakpoint)
   {
-    printf("Breakpoint reached: %04X\n", read_register(15));
+    printf("Breakpoint reached: %04X\n", read_register(PC));
     return TRUE;
   }
 
-/*  write_register(15, read_register(15) + 1); */ /* Update program counter */
+/*  write_register(PC, read_register(PC) + 1); */ /* Update program counter */
   return FALSE; /* No HALT instruction executed */
 }
 
@@ -1180,8 +1230,8 @@ void dump_registers()
 {
   unsigned int i, value;
 
-  printf("Register dump: BANK = %02x, SR = ", read_register(14) >> 8);
-  for (i = 7, value = read_register(14); i + 1; i--)
+  printf("Register dump: BANK = %02x, SR = ", read_register(SR) >> 8);
+  for (i = 7, value = read_register(SR); i + 1; i--)
     printf("%c", value & (1 << i) ? gbl$sr_bits[i] : '_');
 
   printf("\n");
@@ -1213,6 +1263,9 @@ int main_loop(char **argv)
 
   for (;;)
   {
+#ifdef TIMER
+    attach_control_lines(gbl$interrupt_request, gbl$interrupt_address);
+#endif
 #ifdef USE_VGA
     gbl$mips_inst_cnt = 0;
     gbl$mips = 0;
@@ -1347,7 +1400,7 @@ int main_loop(char **argv)
       {
         last_command_was_step = 1;
         if ((token = tokenize(NULL, delimiters)))
-          write_register(15, str2int(token));
+          write_register(PC, str2int(token));
         execute();
       }
       else if (!strcmp(token, "SWITCH"))
@@ -1402,7 +1455,7 @@ int main_loop(char **argv)
       else if (!strcmp(token, "RUN"))
       {
         if ((token = tokenize(NULL, delimiters)))
-          write_register(15, str2int(token));
+          write_register(PC, str2int(token));
 #if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
         if (!gbl$initial_run)
           vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL);
