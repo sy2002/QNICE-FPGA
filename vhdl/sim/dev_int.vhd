@@ -275,7 +275,7 @@ begin
       end if;
    end process;
   
-   -- HRAM needs *very* long to initialize ("busy=1" at the beginning)
+   -- emulate the reset of the real system and keep the reset line active for 32 cycles
    gbl_reset <= '1' when reset_counter < x"20" else '0';    
          
    -- handle the toggle switches
