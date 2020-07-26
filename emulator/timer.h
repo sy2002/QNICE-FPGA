@@ -5,3 +5,7 @@
 */
 
 #include <pthread.h>
+
+#define TIMER_BASE_ADDRESS  0xFF30
+
+unsigned int readTimerDeviceRegister(unsigned int);

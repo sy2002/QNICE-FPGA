@@ -437,6 +437,10 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
         value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
 #endif
+#ifdef USE_TIMER
+      else if (address >= TIMER_BASE_ADDRESS && address < TIMER_BASE_ADDRESS + 12) /* Timer register access */
+        value = readTimerDeviceRegister(address - TIMER_BASE_ADDRESS);
+#endif
     }
   }
   else if (operation == WRITE_MEMORY)
