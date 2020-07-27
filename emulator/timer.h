@@ -7,7 +7,12 @@
 #include <pthread.h>
 
 #define TIMER_BASE_ADDRESS  0xFF30
-#define TIMER_NUMBER_OF     4
+#define NUMBER_OF_TIMERS    4
+#define REG_PER_TIMER       3
+
+#define REG_PRE             0
+#define REG_CNT             1
+#define REG_INT             2
 
 #define TIMER_0_PRE         0
 #define TIMER_0_CNT         1
@@ -24,4 +29,5 @@
 
 unsigned int readTimerDeviceRegister(unsigned int);
 void writeTimerDeviceRegister(unsigned int, unsigned int);
-void attach_control_lines(unsigned int *, unsigned int *);
+void initializeTimerModule(unsigned int *, unsigned int *);
+void timer(unsigned int *);

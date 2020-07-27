@@ -450,7 +450,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
 #endif
 #ifdef USE_TIMER
-      else if (address >= TIMER_BASE_ADDRESS && address < TIMER_BASE_ADDRESS + TIMER_NUMBER_OF * 3) /* Timer register access */
+      else if (address >= TIMER_BASE_ADDRESS && address < TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
         value = readTimerDeviceRegister(address - TIMER_BASE_ADDRESS);
 #endif
     }
@@ -533,7 +533,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         sd_write_register(address - SD_BASE_ADDRESS, value);
 #endif
 #ifdef USE_TIMER
-      else if (address >= TIMER_BASE_ADDRESS && address < TIMER_BASE_ADDRESS + TIMER_NUMBER_OF * 3) /* Timer register access */
+      else if (address >= TIMER_BASE_ADDRESS && address < TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
         writeTimerDeviceRegister(address - TIMER_BASE_ADDRESS, value);
 #endif
     }
@@ -1264,9 +1264,6 @@ int main_loop(char **argv)
 
   for (;;)
   {
-#ifdef TIMER
-    attach_control_lines(&gbl$interrupt_request, &gbl$interrupt_address);
-#endif
 #ifdef USE_VGA
     gbl$mips_inst_cnt = 0;
     gbl$mips = 0;
@@ -1558,6 +1555,10 @@ int main(int argc, char **argv)
 
 #ifdef USE_IDE
   initializeIDEDevice();
+#endif
+
+#ifdef USE_TIMER
+  initializeTimerModule(&gbl$interrupt_request, &gbl$interrupt_address);
 #endif
 
   if (*++argv) /* At least one argument */
