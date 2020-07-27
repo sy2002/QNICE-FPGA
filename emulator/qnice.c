@@ -137,7 +137,7 @@ int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$
 unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
-                                "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "rsvd"},
+                                "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "ctrl"},
      *gbl$control_mnemonics[] = {"HALT", "RTI", "INT"}, 
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNVIM",
@@ -815,7 +815,8 @@ int execute()
   // Take care of interrupts
   if (gbl$interrupt_request && !gbl$interrupt_active)   // Interrupts cannot be nested!
   {
-    gbl$interrupt_active = TRUE;                // Remember that we are currently servicing an interrupt
+    gbl$interrupt_active  = TRUE;               // Remember that we are currently servicing an interrupt
+    gbl$interrupt_request = FALSE;
     gbl$interrupt_R14 = read_register(SR);      // Save status register 
     gbl$interrupt_R15 = read_register(PC);      // and program counter
     write_register(PC, gbl$interrupt_address);  // Jump to interrupt service routine
@@ -1264,7 +1265,7 @@ int main_loop(char **argv)
   for (;;)
   {
 #ifdef TIMER
-    attach_control_lines(gbl$interrupt_request, gbl$interrupt_address);
+    attach_control_lines(&gbl$interrupt_request, &gbl$interrupt_address);
 #endif
 #ifdef USE_VGA
     gbl$mips_inst_cnt = 0;
