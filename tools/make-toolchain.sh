@@ -8,6 +8,10 @@ cd ..
 $COMPILER assembler/qasm.c -o assembler/qasm
 $COMPILER assembler/qasm2rom.c -o assembler/qasm2rom -std=c99
 
+cd monitor
+./compile_and_distribute.sh 
+cd ..
+
 cd pore
 ./compile_pore.sh
 cd ..
