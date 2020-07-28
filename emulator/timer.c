@@ -88,6 +88,7 @@ void writeTimerDeviceRegister(unsigned int address, unsigned int value) {
                 printf("timer: Timer %d was on, will now be deactivated.\n", i);
 #endif
                 pthread_cancel(thread_list[i]);
+                thread_list[i] = 0;
             }
         }
     }
