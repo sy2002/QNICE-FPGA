@@ -16,7 +16,7 @@
         SYSCALL(puts, 1)
 
         MOVE    IO$TIMER_0_PRE, R0
-        MOVE    0xC350, @R0++   ; Prescaler = 50000 -> 1 ms
+        MOVE    0x0064, @R0++   ; Prescaler = 100 -> 1 ms (based on a 100 kHz prescaler input)
         MOVE    0x03E8, @R0++   ; One interrupt per 1000 ms
         MOVE    ISR_T0, @R0++   ; Set the ISR address
 

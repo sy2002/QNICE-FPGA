@@ -5,16 +5,12 @@
 **
 **  Basically, the hardware timer module works as follows:
 **
-**  - The system clock (50 MHz) is divided by a pre-scaler which is configured by writing into the TIMER_x_PRE register.
+**  - The 100 kHz timer clock is divided by a pre-scaler which is configured by writing into the TIMER_x_PRE register.
 **  - The subdivided clock signal is then fed to a counter. When this counter reaches the value stored in the
 **    register TIMER_x_CNT, an interrupt will be issued.
 **  - The register TIMER_x_INT contains the address of the interrupt service routine to be called.
 **
 **  In order to activate one of the (currently) four timers all of its three registers must be different from zero!
-**
-**  This timer module simulation ignores the pre-scaler and assumes a resolution of one millisecond, so only 
-** the registers TIMER_x_CNT and TIMER_x_INT are actually taken into account although TIMER_x_PRE must be != 0 
-** in order to activate the timer.
 */
 
 #undef DEBUG
@@ -96,7 +92,7 @@ void writeTimerDeviceRegister(unsigned int address, unsigned int value) {
 
 void timer(unsigned int *id) {  // This implements one of n timers.
     for (;;) {
-        usleep(timer_registers[*id + REG_CNT] * 1000);
+        usleep(timer_registers[*id + REG_CNT] * timer_registers[*id + REG_PRE] * 10);
 #ifdef DEBUG
         printf("\tTimer %d triggered!\n", *id);
 #endif
