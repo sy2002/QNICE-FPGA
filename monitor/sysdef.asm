@@ -408,14 +408,14 @@ IO$INS_STATE    .EQU 0xFF2D     ; status register
 ;  Interrupt timer: There are four timers capable of generating interrupts.
 ;                   Each timer is controlled by three 16 bit registers:
 ;
-;  IO$TIMER_x_PRE: The system clock is divided by the value stored in this device
-;                  register. A 50 MHz system clock divided by (eg.) 50000 (which
-;                  corresponds to 0xC350 in the prescaler register) yields a 
-;                  1 millisecond pulse which in turn is fed to the actual counter.
+;  IO$TIMER_x_PRE: The 100 kHz timer clock is divided by the value stored in
+;                  this device register. 100 (which corresponds to 0x0064 in
+;                  the prescaler register) yields a 1 millisecond pulse which
+;                  in turn is fed to the actual counter.
 ;  IO$TIMER_x_CNT: When the number of output pulses from the prescaler circuit 
 ;                  equals the number stored in this register, an interrupt will
-;                  be generated (if the interrupt address is 0x0000, the interrupt
-;                  will be suppressed).
+;                  be generated (if the interrupt address is 0x0000, the
+;                  interrupt will be suppressed).
 ;  IO$TIMER_x_INT: This register contains the address of the desired interrupt 
 ;                  service routine.
 ;
