@@ -1,3 +1,13 @@
+;
+;  Testing timers. 
+;
+;  Jumping to the entry point 0x8000 initializes timer 0 to generate an 
+; interrupt every 1000 milliseconds. The ISR just prints a message 
+; every second.
+;
+;  Jumping to the entry point at 0x8100 disables the timer by setting 
+; the INT-register of the timer to 0x0000.
+;
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 
