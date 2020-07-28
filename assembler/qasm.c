@@ -2,11 +2,16 @@
 **  QNICE assembler: This program reads QNICE assembler code from a file and generates, as expected from an assembler :-), 
 ** valid machine code based on this input.
 **
-** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016, JUN-2016
+** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016, JUN-2016, JUL-2020
 **
 ** Known bugs:
 **
 **   04-JUN-2008: Line numbers in error messages are sometimes a bit off reality (up to -5 has been observed)
+**
+** TODO:
+**
+**   28-JUL-2020: str2int can now return an error (TRUE or FALSE) which should be treated at every call of
+**                this function. As of now (28-JUL-2020) it is only checked for in the .DW code section.
 */
 
 #include <stdio.h>
@@ -462,17 +467,18 @@ int read_source(char *file_name)
 ** str2int converts a string in base 16 or base 10 notation to an unsigned integer value.
 ** Base 16 values require a prefix "0x" or "$" while base 10 value do not require any prefix.
 */
-unsigned int str2int(char *string)
+unsigned int str2int(char *string, int *error)
 {
   int value;
   
+  *error = FALSE;
+
   if (!string || !*string) /* An empty string is treated as a zero */
     return 0;
 
   if (!strncmp(string, "0X", 2) || !strncmp(string, "0x", 2))
     sscanf(string + 2, "%x", &value);
-  else if (!strncmp(string, "-0X", 3) || !strncmp(string, "-0x", 3))
-  {
+  else if (!strncmp(string, "-0X", 3) || !strncmp(string, "-0x", 3)) {
     sscanf(string + 3, "%x", &value);
     value = -value & 0xffff;
   }
@@ -484,8 +490,14 @@ unsigned int str2int(char *string)
     sscanf(string + 1, "%x", &value);
   else if (*string == '\'' && *(string + strlen(string) - 1) == '\'')
     value = ascii2value(string);
-  else
+  else {
+    for (unsigned int i = 0; i < strlen(string); i++) 
+      if (string[i] != '-' && string[i] != '+' && (string[i] < '0' || string[i] > '9')) { // Not a decimal number
+        *error = TRUE;
+        return -1;
+      }
     sscanf(string, "%d", &value);
+  }
 
   return value;
 }
@@ -496,7 +508,7 @@ unsigned int str2int(char *string)
 */
 int decode_operand(char *operand, int *op_code)
 {
-  int value, auto_increment, i, flag;
+  int value, auto_increment, i, flag, error;
   char *p;
   
   if ((char) toupper((int) *operand) == 'R') /* Maybe a simple register */
@@ -508,7 +520,7 @@ int decode_operand(char *operand, int *op_code)
 
     if (flag) /* OK - it looks like a register description */
     {
-      value = str2int(operand + 1);
+      value = str2int(operand + 1, &error);
       if (value < 0 || value > 15) /* Maybe it wasn't a register but a label? */
         return OPERAND$LABEL_EQU;
       
@@ -526,7 +538,7 @@ int decode_operand(char *operand, int *op_code)
     if ((auto_increment = (operand[strlen(operand) - 1] == '+' && operand[strlen(operand) - 2] == '+')))
       operand[strlen(operand) - 2] = (char) 0;
       
-    value = str2int(operand + 2);
+    value = str2int(operand + 2, &error);
     if (value < 0 || value > 15)
       return OPERAND$ILLEGAL;
     
@@ -543,7 +555,7 @@ int decode_operand(char *operand, int *op_code)
   }
   else if (!strncmp(operand, "@--R", 4)) /* Indirect addressing with predecrement */
   {
-    value = str2int(operand + 4);
+    value = str2int(operand + 4, &error);
     if (value < 0 || value > 15)
       return OPERAND$ILLEGAL;
       
@@ -568,7 +580,7 @@ int decode_operand(char *operand, int *op_code)
 int assemble()
 {
   int opcode, type, line_counter, address = 0, i, j, error_counter = 0, number_of_operands, negate, flag, value, size,
-    special_char, org_found = 0, retval;
+    special_char, org_found = 0, retval, error;
   char line[STRING_LENGTH], label[STRING_LENGTH], *p, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
   data_structure *entry;
 
@@ -644,7 +656,7 @@ int assemble()
         entry->state = STATE$FINISHED;
         token = tokenize((char *) 0, delimiters); /* Get new address */
         entry->address = -1;
-        address = str2int(token) - 1; /* - 1 since the address will be incremented later */
+        address = str2int(token, &error) - 1; /* - 1 since the address will be incremented later */
       }
       else if (!strcmp(entry->mnemonic, ".DW"))
       {
@@ -757,7 +769,7 @@ int assemble()
       {
         token = tokenize((char *) 0, delimiters); /* Get size of block */
         if (search_equ_list(token, &size)) /* Returns -1 if nothing is found */
-          size = str2int(token); 
+          size = str2int(token, &error); 
 
         if (!size)
         {
@@ -787,7 +799,7 @@ int assemble()
           PRINT_ERROR;
         }
 
-        if ((retval = insert_into_equ_list(entry->label, str2int(token))))
+        if ((retval = insert_into_equ_list(entry->label, str2int(token, &error))))
         {
           /*
           **  Design bug: Since an EQU does not get a corresponding code entry, the following
@@ -887,10 +899,10 @@ int assemble()
 
       i = 1;
       if (entry->src_op_type == OPERAND$CONSTANT) 
-        *(entry->data + i++) = str2int(entry->src_op) & 0xffff;
+        *(entry->data + i++) = str2int(entry->src_op, &error) & 0xffff;
         
       if (entry->dest_op_type == OPERAND$CONSTANT)
-        *(entry->data + i) = str2int(entry->dest_op) & 0xffff;
+        *(entry->data + i) = str2int(entry->dest_op, &error) & 0xffff;
     }
     else if (entry->opcode_type == INSTRUCTION$BRANCH) /* Ups, a branch! */
     {
@@ -960,7 +972,7 @@ int assemble()
                          & 0xffff;
 
       if (entry->src_op_type == OPERAND$CONSTANT) /* Labels are no constants in this context since they are unknown in advance */
-        entry->data[1] = str2int(entry->src_op) & 0xffff;
+        entry->data[1] = str2int(entry->src_op, &error) & 0xffff;
     }
     else if (entry->opcode_type == INSTRUCTION$CONTROL) /* A control instruction */
     {
@@ -1023,7 +1035,7 @@ int assemble()
 
         entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6) | ((entry->dest_op_code) & 0x3f)) & 0xffff; 
         if (entry->dest_op_type == OPERAND$CONSTANT) /* Labels are no constants in this context since they are unknown in advance */
-          entry->data[1] = str2int(entry->dest_op) & 0xffff;
+          entry->data[1] = str2int(entry->dest_op, &error) & 0xffff;
       }
     }
     else 
@@ -1082,8 +1094,15 @@ int assemble()
       while ((token = tokenize((char *) 0, delimiters))) /* Resolve every single parameter */
       {
         if (search_equ_list(token, &value)) /* Returns -1 if unsuccessful */
-          if (find_label(token, &value)) /* Also returns -1 if unsuccessful */
-            value = str2int(token); /* Neither a EQU nor a LABEL... */
+          if (find_label(token, &value)) { /* Also returns -1 if unsuccessful */
+            value = str2int(token, &error); /* Neither a EQU nor a LABEL... */
+            if (error) {
+              sprintf(entry->error_text, "Line %d: Illegal argument found in .DW directive: >>%s<<!", line_counter, token);
+              PRINT_ERROR;
+              error_counter++;
+              continue;
+            }
+          }
 
         *(entry->data + i++) = value;
       }
