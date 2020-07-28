@@ -347,7 +347,7 @@ QMON$MAYBE_H    CMP     'H', R8
                 MOVE    QMON$HELP, R8           ; H(elp) - print help text
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
-QMON$NOT_H      MOVE    QMON$ILLCMDGRP, R8A     ; Illegal command group
+QMON$NOT_H      MOVE    QMON$ILLCMDGRP, R8      ; Illegal command group
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
 
