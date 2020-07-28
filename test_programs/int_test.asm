@@ -1,3 +1,9 @@
+;
+;  This test program tests the basic INT and RTI instructions.
+; Entry point is 0x8000 and it prints three messages denoting
+; the actual program flow (prior to ISR, within ISR, and 
+; after ISR).
+;
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 
