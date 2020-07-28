@@ -171,9 +171,7 @@ EMULATOR:
 
 NATIVE TOOLCHAIN: ASSEMBLER:
 
-* Get rid of hardcoded gcc in the assembler/asm script for precompiling.
-  Use tools/detect.include. But this needs thorough testing, if for example
-  the precompiler invokation works the same in clang vs. gcc.
+* Evaluate error after calling str2int
 
 
 VBCC TOOLCHAIN: C COMPILER:

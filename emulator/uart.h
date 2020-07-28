@@ -9,7 +9,9 @@
 #include <stdbool.h>
 
 #define UART0_BASE_ADDRESS     0xff20
-#define UART_NUMBER_OF_REGISTERS    8
+
+//QNICE-FPGA is currently only emulating registers 1, 2 and 3
+#define UART_NUMBER_OF_REGISTERS    4
 
 /* This structure contains all register data of the emulated UART */
 typedef struct uart
