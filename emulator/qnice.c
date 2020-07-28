@@ -976,6 +976,10 @@ int execute()
           return TRUE;
           break;    // Not really necessary but good style... :-)
         case RTI_INSTRUCTION:
+          if (!gbl$interrupt_active) {
+            printf("Rogue RTI instruction, not servicing an interrupt at address %04X. HALT!\n", debug_address);
+            return TRUE;
+          }
           gbl$interrupt_active = FALSE;
           write_register(SR, gbl$interrupt_R14);
           write_register(PC, gbl$interrupt_R15);
