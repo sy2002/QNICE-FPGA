@@ -1,17 +1,17 @@
 ;
-;  Testing timers. 
+; Testing timers
 ;
-;  Jumping to the entry point 0x8000 initializes timer 0 to generate an 
+; Jumping to the entry point 0xE000 initializes timer 0 to generate an 
 ; interrupt every 1000 milliseconds. The ISR just prints a message 
 ; every second.
 ;
-;  Jumping to the entry point at 0x8100 disables the timer by setting 
+; Jumping to the entry point at 0xE100 disables the timer by setting 
 ; the INT-register of the timer to 0x0000.
 ;
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 
-        .ORG    0x8000
+        .ORG    0xE000
         MOVE    TT_1, R8
         SYSCALL(puts, 1)
 
@@ -30,7 +30,7 @@ ISR_T0  MOVE    ISR_T0T, R8
 TT_1    .ASCII_W    "Setup timer 0 to interrupt every 1000 milliseconds.\n"
 ISR_T0T .ASCII_W    "Timer 0 has issued an interrupt request!\n"
 
-        .ORG    0x8100
+        .ORG    0xE100
 ; Turn off timer interrupts - this must be called manually!
 TOFF    MOVE    IO$TIMER_0_INT, R0
         MOVE    0, @R0
