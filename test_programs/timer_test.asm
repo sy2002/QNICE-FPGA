@@ -23,8 +23,10 @@
         SYSCALL(exit, 1)
 
 ; This is the timer interrupt service routine:
-ISR_T0  MOVE    ISR_T0T, R8
+ISR_T0  MOVE    R8, @--SP
+        MOVE    ISR_T0T, R8
         SYSCALL(puts, 1)
+        MOVE    @SP++, R8
         RTI
 
 TT_1    .ASCII_W    "Setup timer 0 to interrupt every 1000 milliseconds.\n"
