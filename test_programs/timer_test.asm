@@ -22,10 +22,14 @@
 
         SYSCALL(exit, 1)
 
-; This is the timer interrupt service routine:
-ISR_T0  MOVE    ISR_T0T, R8
+; This is the timer interrupt service routine
+ISR_T0  MOVE    R8, @--SP       ; Do not modify registers in an ISR, so save R8
+
+        MOVE    ISR_T0T, R8     ; Print message in ISR_T0T
         SYSCALL(puts, 1)
-        RTI
+
+        MOVE    @SP++, R8       ; Restore R8 from stack
+        RTI                     ; Return from interrupt
 
 TT_1    .ASCII_W    "Setup timer 0 to interrupt every 1000 milliseconds.\n"
 ISR_T0T .ASCII_W    "Timer 0 has issued an interrupt request!\n"
