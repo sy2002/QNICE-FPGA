@@ -417,12 +417,12 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       else if (address == IO_EAE_CSR)
         value = gbl$eae_csr;
 #ifdef USE_SD
-      else if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + SD_NUMBER_OF_REGISTERS) /* SD-card ccess */
-        value = sd_read_register(address - SD_BASE_ADDRESS);
+      else if (address >= IO_SD_BASE_ADDRESS && address < IO_SD_BASE_ADDRESS + SD_NUMBER_OF_REGISTERS) /* SD-card ccess */
+        value = sd_read_register(address - IO_SD_BASE_ADDRESS);
 #endif
 #ifdef USE_UART
-      else if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + UART_NUMBER_OF_REGISTERS) /* Some UART0 operation */
-        value = uart_read_register(&gbl$first_uart, address - UART0_BASE_ADDRESS);
+      else if (address >= IO_UART_BASE_ADDRESS && address < IO_UART_BASE_ADDRESS + UART_NUMBER_OF_REGISTERS) /* Some UART0 operation */
+        value = uart_read_register(&gbl$first_uart, address - IO_UART_BASE_ADDRESS);
 #endif
 #ifdef USE_VGA
       else if (address >= VGA_STATE && address <= VGA_OFFS_RW) /* VGA register */
@@ -435,8 +435,8 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
 #endif
 #ifdef USE_TIMER
-      else if (address >= TIMER_BASE_ADDRESS && address < TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
-        value = readTimerDeviceRegister(address - TIMER_BASE_ADDRESS);
+      else if (address >= IO_TIMER_BASE_ADDRESS && address < IO_TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
+        value = readTimerDeviceRegister(address - IO_TIMER_BASE_ADDRESS);
 #endif
     }
   }
@@ -496,11 +496,11 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         gbl$eae_csr &= 0x7fff; /* Clear the busy bit just in case... */
       }
 #ifdef USE_UART
-      else if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + UART_NUMBER_OF_REGISTERS) /* Some UART0 operation */
+      else if (address >= IO_UART_BASE_ADDRESS && address < IO_UART_BASE_ADDRESS + UART_NUMBER_OF_REGISTERS) /* Some UART0 operation */
       {
         if ((gbl$debug))
           printf("\twrite uart register: %04X, %02X\n\t", address, value & 0xff);
-        uart_write_register(&gbl$first_uart, address - UART0_BASE_ADDRESS, value & 0xff);
+        uart_write_register(&gbl$first_uart, address - IO_UART_BASE_ADDRESS, value & 0xff);
       }
 #endif
 #ifdef USE_VGA
@@ -514,12 +514,12 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         writeIDEDeviceRegister(address - IDE_BASE_ADDRESS, value);
 #endif
 #ifdef USE_SD
-      else if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + SD_NUMBER_OF_REGISTERS) /* SD-card ccess */
-        sd_write_register(address - SD_BASE_ADDRESS, value);
+      else if (address >= IO_SD_BASE_ADDRESS && address < IO_SD_BASE_ADDRESS + SD_NUMBER_OF_REGISTERS) /* SD-card ccess */
+        sd_write_register(address - IO_SD_BASE_ADDRESS, value);
 #endif
 #ifdef USE_TIMER
-      else if (address >= TIMER_BASE_ADDRESS && address < TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
-        writeTimerDeviceRegister(address - TIMER_BASE_ADDRESS, value);
+      else if (address >= IO_TIMER_BASE_ADDRESS && address < IO_TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
+        writeTimerDeviceRegister(address - IO_TIMER_BASE_ADDRESS, value);
 #endif
     }
   }
