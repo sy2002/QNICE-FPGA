@@ -90,6 +90,7 @@ IO$INS_STATE    .EQU 0xFF0F     ; status register
 ;  QNICE-FPGA supports: IO$UART_SRA, IO$UART_RHRA and IO$UART_THRA 
 ;  The other registers are mentioned for completeness to map real hardware (16550)
 ;
+IO$UART_BASE_ADDRESS    .EQU    0xFF10
 IO$UART_MR1A    .EQU 0xFF10 ; n/a
 IO$UART_MR1B    .EQU 0xFF10 ; n/a
 IO$UART_SRA     .EQU 0xFF11 ; Status register (relative to base address)
@@ -120,6 +121,7 @@ IO$EAE_CSR          .EQU    0xFF1C ; Command and Status Register
 ;
 ;  SD CARD INTERFACE registers
 ;
+IO$SD_BASE_ADDRESS  .EQU    0xFF20
 IO$SD_ADDR_LO   .EQU 0xFF20 ; low word of 32bit linear SD card block address
 IO$SD_ADDR_HI   .EQU 0xFF21 ; high word of 32bit linear SD card block address
 IO$SD_DATA_POS  .EQU 0xFF22 ; "Cursor" to navigate the 512-byte data buffer
@@ -158,6 +160,7 @@ IO$SD_CSR       .EQU 0xFF25 ; Command and Status Register (write to execute comm
 ;  IO$TIMER_x_INT: This register contains the address of the desired interrupt 
 ;                  service routine.
 ;
+IO$TIMER_BASE_ADDRESS   .EQU    0xFF28
 IO$TIMER_0_PRE  .EQU 0xFF28
 IO$TIMER_0_CNT  .EQU 0xFF29
 IO$TIMER_0_INT  .EQU 0xFF2A
