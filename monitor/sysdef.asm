@@ -2,7 +2,7 @@
 ;;  sysdef.asm: This file contains definitions to simplify assembler programming
 ;;              and for accessing the various hardware registers via MMIO
 ;;
-
+;
 ;
 ;***************************************************************************************
 ;*  Assembler macros which make life much easier:
