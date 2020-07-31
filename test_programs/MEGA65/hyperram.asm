@@ -352,15 +352,3 @@ STR_OK          .ASCII_W "OK\n"
 ERR_RWADDR      .ASCII_W "Error: HyperRAM address register is not working: "
 ERR_READ        .ASCII_W "Read Errors: "
 ERR_16BIT       .ASCII_W "16-bit linear test: FAILED\n"
-
-;=============================================================================
-; Register and Constants for sysdef.asm
-;=============================================================================
-
-;
-;  HyperRAM
-;
-IO$M65HRAM_LO       .EQU 0xFF60 ; Low word of address  (15 downto 0)
-IO$M65HRAM_HI       .EQU 0xFF61 ; High word of address (26 downto 16)
-IO$M65HRAM_DATA8    .EQU 0xFF62 ; HyperRAM native 8-bit data in/out
-IO$M65HRAM_DATA16   .EQU 0xFF63 ; HyperRAM 16-bit data in/out
