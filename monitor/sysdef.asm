@@ -3,7 +3,6 @@
 ;;              and for accessing the various hardware registers via MMIO
 ;;
 ;
-;
 ;***************************************************************************************
 ;*  Assembler macros which make life much easier:
 ;***************************************************************************************
@@ -204,8 +203,12 @@ VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)
 ;  Block FFF0: MEGA65 (double block, 16 registers)
 ;---------------------------------------------------------------------------------------
 ;
-IO$RESERVED_M65     .EQU 0xFFF0 ; RESERVED SPACE FROM 0xFFF0 TO 0xFFFF
-
+;  HyperRAM
+;
+IO$M65HRAM_LO       .EQU 0xFFF0 ; Low word of address  (15 downto 0)
+IO$M65HRAM_HI       .EQU 0xFFF1 ; High word of address (26 downto 16)
+IO$M65HRAM_DATA8    .EQU 0xFFF2 ; HyperRAM native 8-bit data in/out
+IO$M65HRAM_DATA16   .EQU 0xFFF3 ; HyperRAM 16-bit data in/out
 
 ;
 ;***************************************************************************************

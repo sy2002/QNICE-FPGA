@@ -3,7 +3,7 @@
 -- enhanced by sy2002 in April to July 2020
 --
 -- Changes to the standard controller:
--- * Added HyperRAM handling ($FF60 .. $FF62) including CPU wait states
+-- * Added HyperRAM handling ($FFF0 .. $FFF3) including CPU wait states
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -346,10 +346,10 @@ begin
       end if;
    end process;
    
-   -- HyperRAM starts at FF60
+   -- HyperRAM starts at FFF0
    hram_control : process(addr, data_dir, data_valid)
    begin
-      if addr(15 downto 4) = x"FF6" then
+      if addr(15 downto 4) = x"FFF" then
          hram_en <= '1';
          hram_we <= data_dir and data_valid;
          hram_reg <= addr(3 downto 0);
