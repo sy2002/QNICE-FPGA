@@ -81,21 +81,6 @@
 #define MEMORY_SIZE            65536
 #define REGMEM_SIZE            4096
 
-/* The top most 245 words of memory are reserverd for memory mapped IO devices */
-#define IO_AREA_START          0xff00
-#define SWITCH_REG             0xff12
-
-#define CYC_LO                 0xff17 /* Cycle counter low, middle, high word and state register */
-#define CYC_MID                0xff18
-#define CYC_HI                 0xff19
-#define CYC_STATE              0xff1a
-
-#define EAE_OPERAND_0          0xff1b
-#define EAE_OPERAND_1          0xff1c
-#define EAE_RESULT_LO          0xff1d
-#define EAE_RESULT_HI          0xff1e
-#define EAE_CSR                0xff1f
-
 #define NO_OF_INSTRUCTIONS     19
 #define NO_OF_ADDRESSING_MODES 4
 #define READ_MEMORY            0 /* This and the following constants are used to control the access_xxx functions */
@@ -411,25 +396,25 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       if ((gbl$debug))
         printf("\tread_memory: IO-area read access at 0x%04X\n\r", address);
 
-      if (address == SWITCH_REG) /* Read the switch register */
-        value = gbl$memory[SWITCH_REG];
-      else if (address == CYC_LO) /* Read low word of the cycle (instruction) counter. */
+      if (address == IO_SWITCH_REG) /* Read the switch register */
+        value = gbl$memory[IO_SWITCH_REG];
+      else if (address == IO_CYC_LO) /* Read low word of the cycle (instruction) counter. */
         value = gbl$cycle_counter;
-      else if (address == CYC_MID)
+      else if (address == IO_CYC_MID)
         value = gbl$cycle_counter >> 16;
-      else if (address == CYC_HI)
+      else if (address == IO_CYC_HI)
         value = gbl$cycle_counter >> 24;
-      else if (address == CYC_STATE)
+      else if (address == IO_CYC_STATE)
         value = gbl$cycle_counter_state & 0x0003;
-      else if (address == EAE_OPERAND_0)
+      else if (address == IO_EAE_OPERAND_0)
         value = gbl$eae_operand_0;
-      else if (address == EAE_OPERAND_1)
+      else if (address == IO_EAE_OPERAND_1)
         value = gbl$eae_operand_1;
-      else if (address == EAE_RESULT_LO)
+      else if (address == IO_EAE_RESULT_LO)
         value = gbl$eae_result_lo;
-      else if (address == EAE_RESULT_HI)
+      else if (address == IO_EAE_RESULT_HI)
         value = gbl$eae_result_hi;
-      else if (address == EAE_CSR)
+      else if (address == IO_EAE_CSR)
         value = gbl$eae_csr;
 #ifdef USE_SD
       else if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + SD_NUMBER_OF_REGISTERS) /* SD-card ccess */
@@ -464,9 +449,9 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       if ((gbl$debug))
         printf("\twrite_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
 
-      if (address == SWITCH_REG) /* Read the switch register */
-        gbl$memory[SWITCH_REG] = value;
-      else if (address == CYC_STATE)
+      if (address == IO_SWITCH_REG) /* Read the switch register */
+        gbl$memory[IO_SWITCH_REG] = value;
+      else if (address == IO_CYC_STATE)
       {
         if (value & 0x0001) /* Reset and start counting. */
         {
@@ -474,11 +459,11 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
           gbl$cycle_counter_state = 0x0002;
         }
       }
-      else if (address == EAE_OPERAND_0)
+      else if (address == IO_EAE_OPERAND_0)
         gbl$eae_operand_0 = value;
-      else if (address == EAE_OPERAND_1)
+      else if (address == IO_EAE_OPERAND_1)
         gbl$eae_operand_1 = value;
-      else if (address == EAE_CSR)
+      else if (address == IO_EAE_CSR)
       {
         switch(gbl$eae_csr = value)
         {
@@ -1408,9 +1393,9 @@ int main_loop(char **argv)
       else if (!strcmp(token, "SWITCH"))
       {
         if ((token = tokenize(NULL, delimiters)))
-          access_memory(SWITCH_REG, WRITE_MEMORY, str2int(token));
+          access_memory(IO_SWITCH_REG, WRITE_MEMORY, str2int(token));
 
-        printf("Switch register contains: %04X\n", access_memory(SWITCH_REG, READ_MEMORY, 0));
+        printf("Switch register contains: %04X\n", access_memory(IO_SWITCH_REG, READ_MEMORY, 0));
       }
 #if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
       else if (!strcmp(token, "MIPS"))
