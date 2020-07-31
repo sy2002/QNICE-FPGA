@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "sysdef.h"
+
 //#include <hal.h>
 //#include <memory.h>
 //#include <dirent.h>
@@ -46,11 +48,6 @@ unsigned char fast_flags=0x30; // 0xb0;
 unsigned char slow_flags=0x00;
 unsigned char cache_bit=0x80; // =0x80;
 
-//QNICE @ MEGA65 HyperRAM MMIO
-#define IO_M65HRAM_LO       0xFF60 // Low word of address  (15 downto 0)
-#define IO_M65HRAM_HI       0xFF61 // High word of address (26 downto 16)
-#define IO_M65HRAM_DATA     0xFF62 // 8-bit data in/out
-
 #define QNICE_HRAM( __x ) *((unsigned int volatile *) __x )
 
 void qnice_set_hram_address(unsigned long addr)
@@ -63,13 +60,13 @@ void qnice_set_hram_address(unsigned long addr)
 void lpoke(unsigned long addr, char value)
 {
     qnice_set_hram_address(addr);
-    QNICE_HRAM(IO_M65HRAM_DATA) = (unsigned int) value;
+    QNICE_HRAM(IO_M65HRAM_DATA8) = (unsigned int) value;
 }
 
 char lpeek(unsigned long addr)
 {
     qnice_set_hram_address(addr);
-    return QNICE_HRAM(IO_M65HRAM_DATA);
+    return QNICE_HRAM(IO_M65HRAM_DATA8);
 }
 
 void lcopy(long source_address, long destination_address, unsigned int count)
