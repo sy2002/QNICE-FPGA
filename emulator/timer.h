@@ -6,7 +6,6 @@
 
 #include <pthread.h>
 
-#define TIMER_BASE_ADDRESS  0xFF30
 #define NUMBER_OF_TIMERS    2
 #define REG_PER_TIMER       3
 
