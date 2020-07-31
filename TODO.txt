@@ -99,8 +99,6 @@ ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
 
 EMULATOR:
 
-* Use defines from ../dist_kit/sysdef.h instead of redefining them in qnice.c
-
 * Test, if compilation and running works under Windows
 
 * WASM: Ability to upload .out files (directly fill them into RAM?) and
