@@ -56,8 +56,10 @@ ISR_IND MOVE        ITEST_2_2, R8
         SYSCALL(puts, 1)
         RTI
         HALT
-ISR_PRE MOVE        ITEST_2_3, R8
+ISR_PRE MOVE        R8, @--SP
+        MOVE        ITEST_2_3, R8
         SYSCALL(puts, 1)
+        MOVE        @SP++, R8        
         RTI
         HALT
 ISR_PST MOVE        ITEST_2_4, R8
