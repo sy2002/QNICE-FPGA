@@ -13,15 +13,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="850411fs"></ZoomStartTime>
-      <ZoomEndTime time="1160095fs"></ZoomEndTime>
-      <Cursor1Time time="1000000fs"></Cursor1Time>
+      <ZoomStartTime time="1595200fs"></ZoomStartTime>
+      <ZoomEndTime time="1731201fs"></ZoomEndTime>
+      <Cursor1Time time="1659000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="167"></NameColumnWidth>
+      <NameColumnWidth column_width="163"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="30" />
+   <WVObjectSize size="31" />
    <wvobject type="logic" fp_name="/dev_int/CLK">
       <obj_property name="ElementShortName">CLK</obj_property>
       <obj_property name="ObjectShortName">CLK</obj_property>
@@ -125,6 +125,10 @@
    <wvobject type="array" fp_name="/dev_int/cpu/Dst_Value">
       <obj_property name="ElementShortName">Dst_Value[15:0]</obj_property>
       <obj_property name="ObjectShortName">Dst_Value[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/cpu/Registers/read_data2">
+      <obj_property name="ElementShortName">read_data2[15:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data2[15:0]</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/dev_int/cpu/Ctrl_Cmd">
       <obj_property name="ElementShortName">Ctrl_Cmd[5:0]</obj_property>

@@ -248,7 +248,7 @@ begin
       generic map (
          fire_1 => 17,           -- interrupt in the mid of the execution of MOVE 3, @R12++
          fire_2 => 23,           -- try to interrupt the interrupt
-         ISR_ADDR => 16#000D#
+         ISR_ADDR => 16#0026#    -- refer to "dev_int.asm" to find out how to calculate 
       )
       port map (
          CLK => CLK,

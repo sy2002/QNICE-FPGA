@@ -10,7 +10,7 @@ package env1_globals is
 
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
 constant ROM_FILE             : string    := "sim/dev_int.rom";
-constant ROM_SIZE             : natural   := 28;
+constant ROM_SIZE             : natural   := 79;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.

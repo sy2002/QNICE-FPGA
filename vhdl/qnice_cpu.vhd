@@ -116,6 +116,7 @@ type tCPU_States is (cs_reset,
                      -- interrupt handling
                      cs_int_wait_isr,           -- wait for ISR address to be put on the data bus
                      cs_int_jmp_isr,            -- read ISR address from data bus and prepare to "jump" into the ISR
+                     cs_int_indirect_isr,       -- indirect ISR adress
                      
                      -- continue with standard sequence, used by fsmNextCpuState
                      cs_std_seq     
@@ -406,7 +407,64 @@ begin
                      
                   -- INT
                   when ctrlINT =>
-                     null;
+                     if Int_Active = '0' then
+                        fsmInt_Active <= '1';                        
+                        -- select INT's destination addressing mode
+                        case Dst_Mode is
+                           when amDirect =>
+                              fsmCPUAddr <= reg_read_data2;
+                              fsmPC <= reg_read_data2;
+                              fsmNextCpuState <= cs_fetch;
+                                                         
+                           when amIndirect =>
+                              fsmNextCpuState <= cs_int_indirect_isr;
+                              fsmCPUAddr <= reg_read_data2;
+                                                                                         
+                           when amIndirPreDec =>
+                              fsmNextCpuState <= cs_int_indirect_isr;                           
+                              fsmCPUAddr <= reg_read_data2 - 1;
+                              case Dst_RegNo is
+                                 when x"D" =>
+                                    fsmSP <= SP - 1;
+                                    fsmSP_org <= SP - 1;
+                                 when x"E" =>
+                                    fsmSR <= SR - 1;
+                                    fsmSR_org <= SR - 1;
+                                 when x"F" =>
+                                    fsmPC <= PC - 1;
+                                    fsmPC_org <= PC - 1;
+                                 when others =>
+                                    fsm_reg_write_addr <= Dst_RegNo;
+                                    fsm_reg_write_data <= reg_read_data2 - 1;
+                                    fsm_reg_write_en <= '1';                                    
+                              end case;
+                              
+                           when amIndirPostInc =>
+                              fsmNextCpuState <= cs_int_indirect_isr;
+                              fsmCPUAddr <= reg_read_data2;
+                              case Dst_RegNo is
+                                 when x"D" =>
+                                    fsmSP <= SP + 1;
+                                    fsmSP_org <= SP + 1;
+                                 when x"E" =>
+                                    fsmSR <= SR + 1;
+                                    fsmSR_org <= SR + 1;
+                                 when x"F" =>
+                                    fsmPC <= PC + 1;
+                                    fsmPC_org <= PC + 1;
+                                 when others =>
+                                    fsm_reg_write_addr <= Dst_RegNo;
+                                    fsm_reg_write_data <= reg_read_data2 + 1;
+                                    fsm_reg_write_en <= '1';
+                              end case;                           
+                              
+                           when others =>
+                              fsmNextCpuState <= cs_halt;
+                        end case;
+                     -- rogue INT: HALT
+                     else
+                        fsmNextCpuState <= cs_halt;
+                     end if;
                      
                   -- illegal command: HALT
                   when others =>
@@ -718,13 +776,16 @@ begin
             if Int_Active = '1' then
                fsmNextCPUState <= cs_fetch;
             end if;
+            
+         when cs_int_indirect_isr =>
+            if Int_Active = '1' then
+               fsmCpuAddr <= DATA;
+               fsmPC <= DATA;
+               fsmNextCpuState <= cs_fetch;
+            end if;
         
          when others =>
-            fsmPC <= (others => '0');
-            fsmCpuAddr <= (others => '0');
-            fsmCpuDataDirCtrl <= '0';
-            fsmCpuDataValid <= '0';
-            
+            null;            
       end case;
    end process;
    
@@ -743,8 +804,9 @@ begin
          when cs_exepost_prepfetch           => cpu_state_next <= cs_fetch;
          when cs_halt                        => cpu_state_next <= cs_halt;
          when cs_int_wait_isr                => cpu_state_next <= cs_halt;  -- if unexpected situation: halt CPU
-         when cs_int_jmp_isr                 => cpu_state_next <= cs_halt;  -- if unexpected situation: halt CPU
-         when others                         => cpu_state_next <= cpu_state;
+         when cs_int_jmp_isr                 => cpu_state_next <= cs_halt;  -- ditto
+         when cs_int_indirect_isr            => cpu_state_next <= cs_halt;  -- ditto
+         when others                         => cpu_state_next <= cs_halt;  -- ditto
       end case;
    end process;
                
