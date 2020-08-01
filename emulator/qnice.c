@@ -899,7 +899,12 @@ int execute() {
           write_register(PC, gbl$interrupt_R15);
           break;
         case INT_INSTRUCTION:
+          if (gbl$interrupt_active) {
+            printf("Rogue INT instruction with an ISR at address %04X. HALT!\n", debug_address);
+            return TRUE;
+          }
           gbl$interrupt_address = read_source_operand(destination_mode, destination_regaddr, TRUE);
+          write_destination(destination_mode, destination_regaddr, gbl$interrupt_address, TRUE);
           gbl$interrupt_request = TRUE;
           break;
         default:
