@@ -1,3 +1,4 @@
+;  Development testbed for the simulation environment "dev_int.vhd"
 ;
 ;  This is a simple test program for QNICE interrupts. The idea is as follows:
 ;
@@ -9,6 +10,12 @@
 ;      next move which will then continue writing the ascending series of 
 ;      integers to the DATA area.
 ;
+;  The way how dev_int.vhd wires the interrupt_generator (dev_int_source),
+;  the expected memory layout is:
+;  1, 2, 3, CCCC, CCCC, 4, 5
+;
+;  done by vaxman and sy2002 in July/August 2020
+
         .ORG    0x0000
         MOVE    DATA, R12
         MOVE    1, @R12++
@@ -23,5 +30,5 @@
         MOVE    0xCCCC, @R12++
         RTI
 
-        .ORG     0x8000
-DATA    .DW     0, 0, 0, 0, 0, 0, 0, 0
+        .ORG    0x8000
+DATA    .DW     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0

@@ -24,8 +24,8 @@ end dev_int_source;
 architecture beh of dev_int_source is
                      
 type tStates is (s_idle,
-                 s_f1_signal,
-                 s_f1_provide_isr
+                 s_signal,
+                 s_provide_isr
                 );
                 
 signal State : tStates := s_idle;
@@ -53,26 +53,28 @@ begin
       INT_N <= '1';
    
       case State is
-         when s_idle =>
-            if counter = fire_1 then
-               fsmNextState <= s_f1_signal;
+         when s_idle =>            
+            -- fire the interrupt
+            -- (it is not possible to fire while the old firing is still being processed)
+            if counter = fire_1 or counter = fire_2 then  
+               fsmNextState <= s_signal;
                INT_N <= '0';
             else
                fsmNextState <= s_idle;
             end if;
                                     
-         when s_f1_signal =>
+         when s_signal =>
             if IGRANT_N = '0' then
-               fsmNextState <= s_f1_provide_isr;
+               fsmNextState <= s_provide_isr;
                DATA <= std_logic_vector(to_unsigned(ISR_ADDR, 16));                      
             else
                INT_N <= '0';         
-               fsmNextState <= s_f1_signal;
+               fsmNextState <= s_signal;
             end if;
             
-         when s_f1_provide_isr =>
+         when s_provide_isr =>
             if IGRANT_N = '0' then            
-               fsmNextState <= s_f1_provide_isr;
+               fsmNextState <= s_provide_isr;
                DATA <= std_logic_vector(to_unsigned(ISR_ADDR, 16));
             else
                fsmNextState <= s_idle;
