@@ -78,7 +78,12 @@ port (
    
    -- signals about the CPU state
    HALT           : out std_logic;                          -- 1=CPU halted due to the HALT command, 0=running
-   INS_CNT_STROBE : out std_logic                           -- goes high for one clock cycle for each new instruction 
+   INS_CNT_STROBE : out std_logic;                          -- goes high for one clock cycle for each new instruction
+   
+   -- interrupt system                                      -- refer to doc/intro/qnice_intro.pdf to learn how this works
+   INT_N          : in std_logic   := '1';
+   IGRANT_N       : out std_logic
+    
 );
 end component;
 
@@ -198,6 +203,29 @@ port (
 );
 end component;
 
+component timer_module is
+generic (
+   CLK_FREQ       : natural;                             -- system clock in Hertz
+   IS_SIMULATION  : boolean := false                     -- is the module running in simulation?
+);
+port (
+   clk            : in std_logic;                        -- system clock
+   reset          : in std_logic;                        -- async reset
+   
+   -- Daisy Chaining
+   left_int_n     : out std_logic;                       -- left device's interrupt signal input
+   left_grant_n   : in std_logic;                        -- left device's grant signal output
+   right_int_n    : in std_logic;                        -- right device's interrupt signal output
+   right_grant_n  : out std_logic;                       -- right device's grant signal input
+   
+   -- Registers
+   en             : in std_logic;                        -- enable for reading from or writing to the bus
+   we             : in std_logic;                        -- write to the registers via system's data bus
+   reg            : in std_logic_vector(2 downto 0);     -- register selector
+   data           : inout std_logic_vector(15 downto 0)  -- system's data bus
+);
+end component;
+
 -- impulse (cycle) counter
 component cycle_counter is
 port (
@@ -279,7 +307,11 @@ port (
    switch_reg_enable : out std_logic;
    kbd_en            : out std_logic;
    kbd_we            : out std_logic;
-   kbd_reg           : out std_logic_vector(1 downto 0);   
+   kbd_reg           : out std_logic_vector(1 downto 0);
+   tin_en            : out std_logic;
+   tin_we            : out std_logic;
+   tin_reg           : out std_logic_vector(2 downto 0);
+      
    vga_en            : out std_logic;
    vga_we            : out std_logic;
    vga_reg           : out std_logic_vector(3 downto 0);
@@ -312,6 +344,8 @@ signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
 signal cpu_halt               : std_logic;
 signal cpu_ins_cnt_strobe     : std_logic;
+signal cpu_int_n              : std_logic;
+signal cpu_igrant_n           : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
@@ -326,6 +360,9 @@ signal switch_reg_enable      : std_logic;
 signal kbd_en                 : std_logic;
 signal kbd_we                 : std_logic;
 signal kbd_reg                : std_logic_vector(1 downto 0);
+signal tin_en                 : std_logic;
+signal tin_we                 : std_logic;
+signal tin_reg                : std_logic_vector(2 downto 0);
 signal vga_en                 : std_logic;
 signal vga_we                 : std_logic;
 signal vga_reg                : std_logic_vector(3 downto 0);
@@ -409,7 +446,9 @@ begin
          DATA_DIR => cpu_data_dir,
          DATA_VALID => cpu_data_valid,
          HALT => cpu_halt,
-         INS_CNT_STROBE => cpu_ins_cnt_strobe
+         INS_CNT_STROBE => cpu_ins_cnt_strobe,
+         INT_N => cpu_int_n,
+         IGRANT_N => cpu_igrant_n
       );
 
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
@@ -518,6 +557,23 @@ begin
          cpu_data => cpu_data
       );
       
+   timer_interrupt : timer_module   
+      generic map (
+         CLK_FREQ => 50000000
+      )
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         left_int_n => cpu_int_n,
+         left_grant_n => cpu_igrant_n,
+         right_int_n => '1',
+         right_grant_n => open,
+         en => tin_en,
+         we => tin_we,
+         reg => tin_reg,
+         data => cpu_data
+      );
+            
    -- cycle counter
    cyc : cycle_counter
       port map (
@@ -590,6 +646,9 @@ begin
          kbd_en => kbd_en,
          kbd_we => kbd_we,
          kbd_reg => kbd_reg,
+         tin_en => tin_en,
+         tin_we => tin_we,
+         tin_reg => tin_reg,         
          vga_en => vga_en,
          vga_we => vga_we,
          vga_reg => vga_reg,

@@ -88,6 +88,30 @@ port (
 );
 end component;
 
+component timer_module is
+generic (
+   CLK_FREQ       : natural;                             -- system clock in Hertz
+   IS_SIMULATION  : boolean := false                     -- is the module running in simulation?
+);
+port (
+   clk            : in std_logic;                        -- system clock
+   reset          : in std_logic;                        -- async reset
+   
+   -- Daisy Chaining
+   left_int_n     : out std_logic;                       -- left device's interrupt signal input
+   left_grant_n   : in std_logic;                        -- left device's grant signal output
+   right_int_n    : in std_logic;                        -- right device's interrupt signal output
+   right_grant_n  : out std_logic;                       -- right device's grant signal input
+   
+   -- Registers
+   en             : in std_logic;                        -- enable for reading from or writing to the bus
+   we             : in std_logic;                        -- write to the registers via system's data bus
+   reg            : in std_logic_vector(2 downto 0);     -- register selector
+   data           : inout std_logic_vector(15 downto 0)  -- system's data bus
+);
+end component;
+
+
 -- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
 component EAE is
 port (
@@ -130,6 +154,11 @@ port (
    -- SWITCHES is $FF12
    switch_reg_enable : out std_logic;
    
+   -- Timer Interrupt Generator range $FF30 .. $FF35
+   tin_en            : out std_logic;
+   tin_we            : out std_logic;
+   tin_reg           : out std_logic_vector(2 downto 0);
+      
    -- Extended Arithmetic Element register range $FF1B..$FF1F
    eae_en            : out std_logic;
    eae_we            : out std_logic;
@@ -157,6 +186,10 @@ signal switch_reg_enable      : std_logic;
 signal eae_en                 : std_logic;
 signal eae_we                 : std_logic;
 signal eae_reg                : std_logic_vector(2 downto 0);
+signal tin_en                 : std_logic;
+signal tin_we                 : std_logic;
+signal tin_reg                : std_logic_vector(2 downto 0);
+
 
 -- clock for simulation
 signal CLK                    : std_logic;
@@ -241,22 +274,43 @@ begin
          switch_reg_enable => switch_reg_enable,
          eae_en => eae_en,
          eae_we => eae_we,
-         eae_reg => eae_reg
+         eae_reg => eae_reg,
+         tin_en => tin_en,
+         tin_we => tin_we,
+         tin_reg => tin_reg         
       );
-
-   interrupt_generator : dev_int_source
+      
+   timer_interrupt : timer_module   
       generic map (
-         fire_1 => 17,           -- interrupt in the mid of the execution of MOVE 3, @R12++
-         fire_2 => 23,           -- try to interrupt the interrupt
-         ISR_ADDR => 16#0026#    -- refer to "dev_int.asm" to find out how to calculate 
+         CLK_FREQ => 50000000,
+         IS_SIMULATION => true
       )
       port map (
-         CLK => CLK,
-         RESET => gbl_reset,
-         DATA => cpu_data,
-         INT_N => cpu_int_n,
-         IGRANT_N => cpu_igrant_n
+         clk => CLK,
+         reset => gbl_reset,
+         left_int_n => cpu_int_n,
+         left_grant_n => cpu_igrant_n,
+         right_int_n => '1',
+         right_grant_n => open,
+         en => tin_en,
+         we => tin_we,
+         reg => tin_reg,
+         data => cpu_data
       );
+      
+--   hardcoded_interrupt_generator : dev_int_source
+--      generic map (
+--         fire_1 => 17,           -- interrupt in the mid of the execution of MOVE 3, @R12++
+--         fire_2 => 23,           -- try to interrupt the interrupt
+--         ISR_ADDR => 16#0026#    -- refer to "dev_int.asm" to find out how to calculate 
+--      )
+--      port map (
+--         CLK => CLK,
+--         RESET => gbl_reset,
+--         DATA => cpu_data,
+--         INT_N => cpu_int_n,
+--         IGRANT_N => cpu_igrant_n
+--      );
 
    generate_clock: process
    begin

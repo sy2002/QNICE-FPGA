@@ -62,7 +62,12 @@ port (
    kbd_we            : out std_logic;
    kbd_reg           : out std_logic_vector(1 downto 0);
    
-   -- Cycle counter regsiter range $FF17..$FF1A
+   -- Timer Interrupt Generator range $FF30 .. $FF35
+   tin_en            : out std_logic;
+   tin_we            : out std_logic;
+   tin_reg           : out std_logic_vector(2 downto 0);
+   
+   -- Cycle counter register range $FF17..$FF1A
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
@@ -342,6 +347,20 @@ begin
          vga_en <= '0';
          vga_we <= '0';
          vga_reg <= x"0";
+      end if;
+   end process;
+   
+   -- Timer starts at FF30
+   timer_control : process(addr, data_dir, data_valid)
+   begin
+      if addr(15 downto 4) = x"FF3" then
+         tin_en <= '1';
+         tin_we <= data_dir and data_valid;
+         tin_reg <= addr(2 downto 0);
+      else
+         tin_en <= '0';
+         tin_we <= '0';
+         tin_reg <= (others => '0');
       end if;
    end process;
       

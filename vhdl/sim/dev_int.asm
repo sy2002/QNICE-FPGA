@@ -16,7 +16,39 @@
 ;
 ;  done by vaxman and sy2002 in July/August 2020
 
+#include "../../dist_kit/sysdef.asm"
+
         .ORG    0x0000
+
+        ; register test of the timer interrupt device
+        MOVE    IO$TIMER_0_PRE, R0
+        MOVE    IO$TIMER_0_CNT, R1
+        MOVE    IO$TIMER_0_INT, R2
+        MOVE    IO$TIMER_1_PRE, R3
+        MOVE    IO$TIMER_1_CNT, R4
+        MOVE    IO$TIMER_1_INT, R5
+
+        MOVE    0xFFFF, @R0
+        MOVE    0xEEEE, @R1
+        MOVE    0xDDDD, @R2
+        MOVE    0xCCCC, @R3
+        MOVE    0xBBBB, @R4
+        MOVE    0xAAAA, @R5
+
+        CMP     0xDDDD, @R2
+        RBRA    A_HALT, !Z
+        MOVE    0x0000, @R2
+        CMP     0xAAAA, @R5
+        RBRA    A_HALT, !Z
+        MOVE    0x0000, @R5
+        CMP     0xFFFF, @R0
+        RBRA    A_HALT, !Z
+        CMP     0xEEEE, @R1
+        RBRA    A_HALT, !Z
+        CMP     0xCCCC, @R3
+        RBRA    A_HALT, !Z
+        CMP     0xBBBB, @R4
+        RBRA    A_HALT, !Z
 
         ; hardware interrupts
         MOVE    DATA, R12
@@ -52,7 +84,7 @@
 
         MOVE    6, @R12++
         MOVE    7, @R12++
-        HALT
+A_HALT  HALT
 
         ; HARDWARE INTERRUPT ISR
         ; Start of ISR: Look at the .lis file to find out where it is

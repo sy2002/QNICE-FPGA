@@ -45,6 +45,11 @@ port (
    -- SWITCHES is $FF12
    switch_reg_enable : out std_logic;
    
+   -- Timer Interrupt Generator range $FF30 .. $FF35
+   tin_en            : out std_logic;
+   tin_we            : out std_logic;
+   tin_reg           : out std_logic_vector(2 downto 0);
+      
    -- Extended Arithmetic Element register range $FF1B..$FF1F
    eae_en            : out std_logic;
    eae_we            : out std_logic;
@@ -68,7 +73,21 @@ begin
          switch_reg_enable <= '0';
       end if;
    end process;
-         
+   
+   -- Timer starts at FF30
+   timer_control : process(addr, data_dir, data_valid)
+   begin
+      if addr(15 downto 4) = x"FF3" then
+         tin_en <= '1';
+         tin_we <= data_dir and data_valid;
+         tin_reg <= addr(2 downto 0);
+      else
+         tin_en <= '0';
+         tin_we <= '0';
+         tin_reg <= (others => '0');
+      end if;
+   end process;
+            
    eae_control : process(addr, data_dir, data_valid)
    begin
       eae_en <= '0';
