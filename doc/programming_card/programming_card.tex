@@ -59,15 +59,48 @@
    The upper eight bits of \texttt{SR} hold the pointer to the register
    window. Changing the value stored here will yield a different set of 
    GPRs \texttt{R0}\dots\texttt{R7} which is especially useful for subroutine
-   calls.
+   calls (a stack of registers, so to speak).
    \vspace*{-5mm}
 %
  \section{Instruction Set}
-  QNICE features 14 basic instructions, four jump/branch instructions, and 
-  four adressing modes.
+  QNICE features 14 basic instructions, four jump/branch instructions, three
+  control instructions, and four adressing modes.
   \vspace*{-3mm}
+  {\scriptsize
+   \begin{center}
+    \begin{longtable}{|c|ll|l|}
+     \hline
+      Opc&Instr&Operands&Effect\\
+     \hline
+     \hline
+      {\tt 0}&{\tt MOVE}&{\tt src, dst}&{\tt dst := src}\\
+      {\tt 1}&{\tt ADD}&{\tt src, dst}&{\tt dst := dst + src}\\
+      {\tt 2}&{\tt ADDC}&{\tt src, dst}&{\tt dst := dst + src + C}\\
+      {\tt 3}&{\tt SUB}&{\tt src, dst}&{\tt dst := dst - src}\\
+      {\tt 4}&{\tt SUBC}&{\tt src, dst}&{\tt dst := dst - src - C}\\
+      {\tt 5}&{\tt SHL}&{\tt src, dst}&{\tt dst << src}, fill with X, shift to C\\
+      {\tt 6}&{\tt SHR}&{\tt src, dst}&{\tt dst >> src}, fill with C, shift to X\\
+      {\tt 7}&{\tt SWAP}&{\tt src, dst}&{\tt dst := ((src << 8) \& 0xFF00) |}\\
+             &          &              &~~~~~~~~~~{\tt ((src >> 8) \& 0xFF)}\\
+      {\tt 8}&{\tt NOT}&{\tt src, dst}&{\tt dst := !src}\\
+      {\tt 9}&{\tt AND}&{\tt src, dst}&{\tt dst := dst \& src}\\
+      {\tt A}&{\tt OR}&{\tt src, dst}&{\tt dst := dst | src}\\
+      {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
+      {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\
+      {\tt D}&reserved&&\\
+      {\tt E}&{\tt HALT}&&Halt the processor\\
+      {\tt E}&{\tt RTI}&&Return from interrupt\\
+      {\tt E}&{\tt INT}&dst&Issue software interrupt\\
+      {\tt F}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
+      {\tt F}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
+      {\tt F}&{\tt RBRA}&{\tt dest, [!]cond}&Relative branch\\
+      {\tt F}&{\tt RSUB}&{\tt dest, [!]cond}&Relative subroutine call\\
+     \hline
+    \end{longtable}
+   \end{center}
+  }
 %
-  \subsection{Basic Instructions}
+  \subsection{Basic Instructions (opcodes \texttt{0}..\texttt{C})}
    \begin{center}
     \begin{longtable}{|c||c|c||c|c|}
      \hline
@@ -77,39 +110,33 @@
      \hline
     \end{longtable}
    \end{center}
-   \vspace*{-17mm}
+  \vspace*{-14mm}
+%
+  \subsection{Control instructions}
+    \begin{center}
+     \begin{longtable}{|c||c||c|c|}
+      \hline
+      4 bit&6 bit&4 bit&2 bit\\
+      {\tt opcode=E}&command&\texttt{dst rxx}&\texttt{dst mode}\\
+      \hline
+     \end{longtable}
+    \end{center}
+   \vspace*{-13mm}
+%
+  \subsection{Jumps and Branches}
    {\scriptsize
     \begin{center}
-     \begin{longtable}{|c|ll|l|}
+     \begin{longtable}{|c||c|c||c||c|c|}
       \hline
-       Opc&Instr&Operands&Effect\\
-      \hline
-      \hline
-       {\tt 0}&{\tt MOVE}&{\tt src, dst}&{\tt dst := src}\\
-       {\tt 1}&{\tt ADD}&{\tt src, dst}&{\tt dst := dst + src}\\
-       {\tt 2}&{\tt ADDC}&{\tt src, dst}&{\tt dst := dst + src + C}\\
-       {\tt 3}&{\tt SUB}&{\tt src, dst}&{\tt dst := dst - src}\\
-       {\tt 4}&{\tt SUBC}&{\tt src, dst}&{\tt dst := dst - src - C}\\
-       {\tt 5}&{\tt SHL}&{\tt src, dst}&{\tt dst << src}, fill with X, shift to C\\
-       {\tt 6}&{\tt SHR}&{\tt src, dst}&{\tt dst >> src}, fill with C, shift to X\\
-       {\tt 7}&{\tt SWAP}&{\tt src, dst}&{\tt dst := ((src << 8) \& 0xFF00) |}\\
-              &          &              &{\tt ((src >> 8) \& 0xFF)}\\
-       {\tt 8}&{\tt NOT}&{\tt src, dst}&{\tt dst := !src}\\
-       {\tt 9}&{\tt AND}&{\tt src, dst}&{\tt dst := dst \& src}\\
-       {\tt A}&{\tt OR}&{\tt src, dst}&{\tt dst := dst | src}\\
-       {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
-       {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\
-       {\tt D}&reserved&&\\
-       {\tt E}&{\tt HALT}&&Halt the processor\\
-       {\tt F}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
-       {\tt F}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
-       {\tt F}&{\tt RBRA}&{\tt dest, [!]cond}&Relative branch\\
-       {\tt F}&{\tt RSUB}&{\tt dest, [!]cond}&Relative subroutine call\\
+      4 bit&4 bit&2 bit&2 bit&1 bit&3 bit\\
+      &     &     &     &{\tt negate}&{\tt select}\\
+      {\tt opcode=F}&{\tt src rxx}&{\tt src mode}&
+      {\tt mode}&{\tt condition}&{\tt condition}\\
       \hline
      \end{longtable}
     \end{center}
    }
-   \vspace*{-14mm}
+   \vspace*{-13mm}
 %
   \subsection{CMP}
    The CMP (compare) instruction can be used for signed as well as for unsigned
@@ -128,23 +155,8 @@
      \texttt{src}$>$\texttt{dst}&\texttt{0}&\texttt{1}&\texttt{0}&\texttt{1}\\
      \hline
     \end{longtable}
-    \vspace*{-14mm}
+    \vspace*{-8mm}
    \end{center}
-%
-  \subsection{Jumps and Branches}
-   {\scriptsize
-    \begin{center}
-     \begin{longtable}{|c||c|c||c||c|c|}
-      \hline
-      4 bit&4 bit&2 bit&2 bit&1 bit&3 bit\\
-      &     &     &     &{\tt negate}&{\tt select}\\
-      {\tt opcode}&{\tt src rxx}&{\tt src mode}&
-      {\tt mode}&{\tt condition}&{\tt condition}\\
-      \hline
-     \end{longtable}
-    \end{center}
-   }
-   \vspace*{-13mm}
 %
   \subsection{Addressing Modes}
    {\scriptsize
@@ -167,7 +179,7 @@
      \end{longtable}
     \end{center}
    }
-   \vspace*{-15mm}
+   \vspace*{-10mm}
 %
   \subsection{Shortcuts}
    The file \texttt{sysdef.asm} (part of the monitor) defines some shortcuts
@@ -193,10 +205,18 @@
    \end{center}
    \vspace*{-15mm}
 %
+ \section{Interrupts}
+  In case of a hardware interrupt, the processor expects the address of the 
+  interrupt service routine (ISR) on the data bus. In case of a software
+  interrupt (\texttt{INT}-instruction) the ISR address is specified by the 
+  \texttt{dst} part of the instruction. When an interrupt occurs, the CPU
+  saves the contents of \texttt{PC} and \texttt{SP} in two shadow-registers
+  which are not software accessible. An ISR must be left with the 
+  \texttt{RTI}-instruction. Interrupts can not be nested.
+%
  \section{Input/Output}
   I/O devices are memory mapped, their respective control and data registers 
-  occupy the topmost 1 kW memory page.
-  \vspace*{-3mm}
+  occupy the topmost 256 words of memory.
   {\scriptsize
    \begin{center}
     \begin{longtable}{|l|l|l|}
@@ -206,35 +226,55 @@
      \hline
      \texttt{IO\$BASE}&\texttt{0xFF00}&Start of I/O area\\
      \hline
-     \texttt{VGA\$STATE}&\texttt{0xFF00}&VGA status register\\
-     \texttt{VGA\$CR\_X}&\texttt{0xFF01}&Cursor X-position\\
-     \texttt{VGA\$CR\_Y}&\texttt{0xFF02}&Cursor y-position\\
-     \texttt{VGA\$CHAR}&\texttt{0xFF03}&Character code\\
-     \texttt{VGA\$OFFS\_DISPLAY}&\texttt{0xFF04}&Display RAM offset\\
-     \texttt{VGA\$OFFS\_RW}&\texttt{0xFF05}&R/W RAM offset\\
+     \texttt{IO\$SWITCH\_REG}&\texttt{0xFF00}&Switch register\\
+     \texttt{IO\$TIL\_DISPLAY}&\texttt{0xFF01}&TIL-display\\
+     \texttt{IO\$TIL\_MASK}&\texttt{0xFF02}&Mask register\\
+     \texttt{IO\$KBD\_STATE}&\texttt{0xFF03}&USB-keyboard state\\
+     \texttt{IO\$KBD\_DATA}&\texttt{0xFF04}&USB-keyboard data\\
      \hline
-     \texttt{IO\$TIL\_DISPLAY}&\texttt{0xFF10}&TIL-display\\
-     \texttt{IO\$TIL\_MASK}&\texttt{0xFF11}&Mask register\\
+     \texttt{IO\$CYC\_LO}&\texttt{0xFF08}&Cycle counter low\\
+     \texttt{IO\$CYC\_MID}&\texttt{0xFF09}&Cycle counter middle\\
+     \texttt{IO\$CYC\_HI}&\texttt{0xFF0A}&Cycle counter high\\
+     \texttt{IO\$CYC\_STATE}&\texttt{0xFF0B}&Cycle counter status\\
+     \texttt{IO\$INS\_LO}&\texttt{0xFF0C}&Cycle counter low\\
+     \texttt{IO\$INS\_MID}&\texttt{0xFF0D}&Cycle counter middle\\
+     \texttt{IO\$INS\_HI}&\texttt{0xFF0E}&Cycle counter high\\
+     \texttt{IO\$INS\_STATE}&\texttt{0xFF0F}&Cycle counter status\\
      \hline
-     \texttt{IO\$SWITCH\_REG}&\texttt{0xFF12}&Switch register\\
+     \texttt{IO\$UART\_MR1x}&\texttt{0xFF10}&UART status register\\
+     \texttt{IO\$UART\_SRA}&\texttt{0xFF11}&UART status register\\
+     \texttt{IO\$UART\_RHRA}&\texttt{0xFF12}&UART receive register\\
+     \texttt{IO\$UART\_THRA}&\texttt{0xFF13}&UART receive register\\
      \hline
-     \texttt{IO\$KBD\_STATE}&\texttt{0xFF13}&USB-keyboard state\\
-     \texttt{IO\$KBD\_DATA}&\texttt{0xFF14}&USB-keyboard data\\
+     \texttt{IO\$EAE\_OPERAND\_0}&\texttt{0xFF18}&EAE 1st operand\\
+     \texttt{IO\$EAE\_OPERAND\_1}&\texttt{0xFF19}&EAE 2nd operand\\
+     \texttt{IO\$EAE\_RESULT\_LO}&\texttt{0xFF1A}&EAE low result\\
+     \texttt{IO\$EAE\_RESULT\_HI}&\texttt{0xFF1B}&EAE high result\\
+     \texttt{IO\$EAE\_CSR}&\texttt{0xFF1C}&EAE command \& status reg.\\
      \hline
-     \texttt{IO\$CYC\_LO}&\texttt{0xFF17}&Cycle counter low\\
-     \texttt{IO\$CYC\_MID}&\texttt{0xFF18}&Cycle counter middle\\
-     \texttt{IO\$CYC\_HI}&\texttt{0xFF19}&Cycle counter high\\
-     \texttt{IO\$CYC\_STATE}&\texttt{0xFF1A}&Cycle counter status\\
+     \texttt{IO\$SD\_ADDR\_LO}&\texttt{0xFF20}&SD card low addr.\\
+     \texttt{IO\$SD\_ADDR\_HI}&\texttt{0xFF21}&SD card high addr.\\
+     \texttt{IO\$SD\_ADDR\_POS}&\texttt{0xFF22}&Ptr. to 512 byte bfr.\\
+     \texttt{IO\$SD\_DATA}&\texttt{0xFF23}&Byte in 512 byte bfr.\\
+     \texttt{IO\$SD\_ERROR}&\texttt{0xFF24}&Error code\\
+     \texttt{IO\$SD\_CSR}&\texttt{0xFF25}&Command and status reg.\\
      \hline
-     \texttt{IO\$EAE\_OPERAND\_0}&\texttt{0xFF1B}&EAE 1st operand\\
-     \texttt{IO\$EAE\_OPERAND\_1}&\texttt{0xFF1C}&EAE 2nd operand\\
-     \texttt{IO\$EAE\_RESULT\_LO}&\texttt{0xFF1D}&EAE low result\\
-     \texttt{IO\$EAE\_RESULT\_HI}&\texttt{0xFF1E}&EAE high result\\
-     \texttt{IO\$EAE\_CSR}&\texttt{0xFF1F}&EAE command \& status reg.\\
+     \texttt{IO\$TIMER\_0\_PRE}&\texttt{0xFF28}&Timer 0 prescaler\\
+     \texttt{IO\$TIMER\_0\_CNT}&\texttt{0xFF28}&Timer 0 counter\\
+     \texttt{IO\$TIMER\_0\_INT}&\texttt{0xFF28}&Timer 0 ISR addr.\\
+     \texttt{IO\$TIMER\_1\_PRE}&\texttt{0xFF28}&Timer 1 prescaler\\
+     \texttt{IO\$TIMER\_1\_CNT}&\texttt{0xFF28}&Timer 1 counter\\
+     \texttt{IO\$TIMER\_1\_INT}&\texttt{0xFF28}&Timer 1 ISR addr.\\
      \hline
-     \texttt{IO\$UART\_SRA}&\texttt{0xFF21}&UART status register\\
-     \texttt{IO\$UART\_RHRA}&\texttt{0xFF22}&UART receive register\\
-     \texttt{IO\$UART\_THRA}&\texttt{0xFF23}&UART receive register\\
+     \texttt{VGA\$STATE}&\texttt{0xFF30}&VGA status register\\
+     \texttt{VGA\$CR\_X}&\texttt{0xFF31}&Cursor X-position\\
+     \texttt{VGA\$CR\_Y}&\texttt{0xFF32}&Cursor y-position\\
+     \texttt{VGA\$CHAR}&\texttt{0xFF33}&Character code\\
+     \texttt{VGA\$OFFS\_DISPLAY}&\texttt{0xFF34}&Display RAM offset\\
+     \texttt{VGA\$OFFS\_RW}&\texttt{0xFF35}&R/W RAM offset\\
+     \texttt{VGA\$HDMI\_H\_MIN}&\texttt{0xFF36}&HDMI min. valid col.\\
+     \texttt{VGA\$HDMI\_H\_MAX}&\texttt{0xFF36}&HDMI max. valid col.\\
+     \texttt{VGA\$HDMI\_V\_MAX}&\texttt{0xFF36}&HDMI max. valid row\\
      \hline
     \end{longtable}
    \end{center}
@@ -243,6 +283,8 @@
 %\pagebreak%LAYOUT
   \subsection{VGA Controller}
    \subsubsection{\texttt{VGA\$STATE Bits}}
+~
+\vspace*{-4mm}
     \begin{center}
      \begin{longtable}{|l|l|}
       \hline
@@ -262,20 +304,24 @@
       \hline
      \end{longtable}
     \end{center}
+\vspace*{-15mm}
    \subsubsection{\texttt{VGA\$CR\_X}}
-    Set this register to the X coordinate for the next character to be 
-    displayed.
+    X coordinate of next char to be displayed.
+\vspace*{-8mm}
    \subsubsection{\texttt{VGA\$CR\_Y}}
-    Y coordinate for the next character to be displayed.
+    Y coordinate of next char to be displayed.
+\vspace*{-8mm}
    \subsubsection{\texttt{VGA\$CHAR}}
     Writing a byte to this register causes it to be displayed on the current
     X/Y coordinate on the screen. Reading from this register yields the 
     character at the current display coordinate.
+\vspace*{-5mm}
    \subsubsection{\texttt{VGA\$OFFS\_DISPLAY}}
     This register holds the offset in bytes that is to be used when displaying
     the video RAM. To scroll one line forward, simply add \texttt{0x0050} to 
     this register. For this to work, bit 10 in \texttt{VGA\$STATE} has to be
     set.
+\vspace*{-5mm}
    \subsubsection{\texttt{VGA\$OFFS\_RW}}
     Similar to \texttt{VGA\$OFFS\_DISPLAY} -- controls the offset for 
     read/write accesses to the display memory.
@@ -289,8 +335,7 @@
       \hline
       \hline
        0&Set if an unread character is available.\\
-       1&Function/cursor/\dots key pressed.\\
-        &The value is stored in bits \texttt{15\dots8}.\\
+       1&Key pressed (val in bits \texttt{15..8}\\
        2\dots 4&Keyboard layout:\\
         &\texttt{000}: US keyboard\\
         &\texttt{001}: German keyboard\\
@@ -301,7 +346,9 @@
     \end{center}
     \vspace*{-14mm}
    \subsection{Cycle Counter}
+~\vspace*{-10mm}
     \subsubsection{\texttt{CYC\$STATE}}
+~\vspace*{-3mm}
      \begin{center}
       \begin{longtable}{|l|l|}
        \hline
@@ -329,6 +376,7 @@
      \end{longtable}
     \end{center}
 %
+~\vspace*{-20mm}
   \subsection{UART}
    \subsubsection{\texttt{IO\$UART\_SRA}}
     \begin{center}
@@ -347,18 +395,16 @@
  \section{Code Examples}
   \subsection{Typical Subroutine Call}
    \begin{verbatim}
-        MOVE ..., R8     ; Setup subroutine 
-                         ; parameters
+        MOVE ..., R8     ; Setup parameters 
         ...
         RSUB SUBR, 1     ; Call subroutine
         ...
-SUBR:   ADD 0x0100, R14  ; Get free lower
-                         ; register set
+SUBR:   ADD 0x0100, R14  ; Get free reg. set
         ...
-        SUB 0x0100, R14  ; Restore lower
-                         ; register bank
+        SUB 0x0100, R14  ; Restore reg. set
         MOVE @R13++, R15 ; RET
    \end{verbatim}
+\vspace*{-5mm}
   \subsection{Compute $\sum_{i=0}^{16}{\texttt{0x0010}}$}
    \begin{verbatim}
         .ORG 0x8000
