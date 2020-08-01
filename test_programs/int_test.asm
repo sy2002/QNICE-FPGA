@@ -11,10 +11,14 @@
 ;ISR_REG
 ;ISR_IND
 ;ISR_PRE
+;ISR_PRE
+;ISR_POST
 ;End
 ;
 ;QMON> 
 ;
+; done by vaxman and sy2002 in July/August 2020
+
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 
@@ -32,6 +36,9 @@
 
         MOVE    PREDECIND_1, R8 ; Test indirect ISR address with predecrement
         INT     @--R8
+
+        INT     @R8++           ; test postincrement during INT
+        INT     @R8
 
         MOVE    ITEST_3, R8
         SYSCALL(puts, 1)
@@ -53,15 +60,20 @@ ISR_PRE MOVE        ITEST_2_3, R8
         SYSCALL(puts, 1)
         RTI
         HALT
+ISR_PST MOVE        ITEST_2_4, R8
+        SYSCALL(puts, 1)
+        RTI
+        HALT
 
 INDIRECT    .DW         ISR_IND
 PREDECIND   .DW         ISR_PRE
-PREDECIND_1 .DW         0x0000
+PREDECIND_1 .DW         ISR_PST
 
 ITEST_1     .ASCII_W    "Start\n"
 ITEST_2     .ASCII_W    "ISR_ABS\n"
 ITEST_2_1   .ASCII_W    "ISR_REG\n"
 ITEST_2_2   .ASCII_W    "ISR_IND\n"
 ITEST_2_3   .ASCII_W    "ISR_PRE\n"
+ITEST_2_4   .ASCII_W    "ISR_POST\n"
 ITEST_3     .ASCII_W    "End\n"
 
