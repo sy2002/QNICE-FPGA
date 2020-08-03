@@ -145,7 +145,7 @@ IO$SD_CSR       .EQU 0xFF25 ; Command and Status Register (write to execute comm
 ;  Block FF28: TIMER 0 and 1
 ;---------------------------------------------------------------------------------------
 ;
-;  Interrupt timer: There are four timers capable of generating interrupts.
+;  Interrupt timer: There are two timers capable of generating interrupts.
 ;                   Each timer is controlled by three 16 bit registers:
 ;
 ;  IO$TIMER_x_PRE: The 100 kHz timer clock is divided by the value stored in
