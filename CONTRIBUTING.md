@@ -52,13 +52,13 @@ Pull Requests
 
 * Please use GitHub's features to describe your PR thoroughly.
 
-* If you changed anything at the hardware (VHDL), make sure you run at least
-  the Smoke Test mentioned below. Also, it is recommended that for new
-  hardware features you write a test program in `test-programs`.
+* If you changed anything at the hardware level (VHDL), make sure you run
+  at least the Smoke Test mentioned below. Also, it is recommended that
+  for new hardware features you write a test program in `test_programs`.
 
-* If plan a larger contribution, it might make sense to discuss it with us
-  upfront by opening an issue: Describe  what you plan to do and @mention
-  one or more of the core developers.
+* If you plan a larger contribution, it might make sense to discuss it
+  with us upfront by opening an issue: Describe what you plan to do
+  and @mention one or more of the core developers.
 
 * Try to stick to the coding style of the actual file(s) that you are
   modifying.
@@ -123,11 +123,11 @@ order is recommended:
 
 2. [Getting Started](https://github.com/sy2002/QNICE-FPGA/blob/master/README.md#getting-started)
 
-3. [Hardware](https://github.com/sy2002/QNICE-FPGA/blob/develop/hw/README.mdhttps://github.com/sy2002/QNICE-FPGA/blob/develop/hw/README.md)
+3. [Hardware](https://github.com/sy2002/QNICE-FPGA/blob/develop/hw/README.md)
 
 4. [Overview](https://github.com/sy2002/QNICE-FPGA/blob/develop/doc/README.md)
 
-5. [Emulator](https://github.com/sy2002/QNICE-FPGA/blob/master/emulator/README.mdhttps://github.com/sy2002/QNICE-FPGA/blob/master/emulator/README.md)
+5. [Emulator](https://github.com/sy2002/QNICE-FPGA/blob/master/emulator/README.md)
 
 6. [Constraints](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/constraints.txt)
 
