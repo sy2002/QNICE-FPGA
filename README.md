@@ -210,6 +210,46 @@ app within the Monitor environment:
   Monitor's `M L` command sequence and start Q-TRIS using `C R` and the
   address `8000`.
 
+Memory map
+----------
+
+The QNICE CPU has a 16-bit address bus and a 16-bit data bus.  Each value of
+the memory address bus addresses an entire 16-bit word. There is no byte-level
+access. So the total memory area addressable by the QNICE CPU is 64 kWords =
+128 kBytes.
+
+In the QNICE system the following simple memory map is used:
+
+| Address     | Use                       |
+| -------     | -------                   |
+| 0000 - 7FFF | ROM (32 kW = 64 kB)       |
+| 8000 - FEFF | RAM (32 kW = 64 kB)       |
+| FF00 - FFFF | Memory Mapped I/O devices |
+
+I/O devices
+-----------
+
+The I/O memory area is divided into chunks of 8 words, leading to a total of 32
+possible I/O devices.
+
+| Address     | Use                                         |
+| -------     | -------                                     |
+| FF00 - FF07 | Fundamental I/O (switches, TIL, keyboard)   |
+| FF08 - FF0F | System Counters (cycles and instructions)   |
+| FF10 - FF17 | UART                                        |
+| FF18 - FF1F | EAE                                         |
+| FF20 - FF27 | SD CARD                                     |
+| FF28 - FF2F | Timers                                      |
+| FF30 - FF37 | VGA                                         |
+| FF38 - FF3F | VGA                                         |
+| FF40 - FFEF | Reserved                                    |
+| FFF0 - FFFF | HyperRAM (MEGA65)                           |
+
+
+The registers for the individual I/O devices are described in the assembler
+heeader file [monitor/sysdef.asm](monitor/sysdef.asm).
+
+
 Programming in Assembler
 ------------------------
 
