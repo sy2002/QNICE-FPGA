@@ -27,8 +27,8 @@ them all, here are some examples:
 
 We do not have a lot of rules, neither do we have a detailed written code of
 conduct or even written coding guidelines. As written above: This is meant to
-be a relaxed project :-) Nevertheless, here are some basics that you might
-want to follow when contributing.
+be a relaxed project :-) Nevertheless, here are some basics that we expect you
+to follow when contributing.
 
 Branches
 --------
@@ -113,22 +113,3 @@ of a bunch of separate tests on real hardware.
 
 * Make sure that everything works at least under macOS and Linux.
 
-Documentation
--------------
-
-If you are new to QNICE-FPGA, then reading the documentation in the following
-order is recommended:
-
-1. [Introduction](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/intro/qnice_intro.pdf)
-
-2. [Getting Started](https://github.com/sy2002/QNICE-FPGA/blob/master/README.md#getting-started)
-
-3. [Hardware](https://github.com/sy2002/QNICE-FPGA/blob/develop/hw/README.md)
-
-4. [Overview](https://github.com/sy2002/QNICE-FPGA/blob/develop/doc/README.md)
-
-5. [Emulator](https://github.com/sy2002/QNICE-FPGA/blob/master/emulator/README.md)
-
-6. [Constraints](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/constraints.txt)
-
-7. [Programming Card](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/programming_card/programming_card_screen.pdf)
