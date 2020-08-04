@@ -247,7 +247,7 @@ possible I/O devices.
 
 
 The registers for the individual I/O devices are described in the assembler
-heeader file [monitor/sysdef.asm](monitor/sysdef.asm).
+header file [monitor/sysdef.asm](monitor/sysdef.asm).
 
 
 Programming in Assembler
