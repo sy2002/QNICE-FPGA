@@ -43,7 +43,7 @@ IO$TIL_MASK     .EQU 0xFF02 ; Mask register of TIL display
 ;
 ;  USB-keyboard-registers:
 ;
-IO$KBD_STATE    .EQU 0xFF03 ; Status register of USB keyboard
+IO$KBD_STATE    .EQU 0xFF04 ; Status register of USB keyboard
 ;    Bit  0 (read only):      New ASCII character avaiable for reading
 ;                             (bits 7 downto 0 of Read register)
 ;    Bit  1 (read only):      New special key available for reading
@@ -53,7 +53,7 @@ IO$KBD_STATE    .EQU 0xFF03 ; Status register of USB keyboard
 ;    Bits 5..7 (read only):   Modifiers: 5 = shift, 6 = alt, 7 = ctrl
 ;                             Only valid, when bits 0 and/or 1 are '1'
 ;
-IO$KBD_DATA     .EQU 0xFF04 ; Data register of USB keyboard
+IO$KBD_DATA     .EQU 0xFF05 ; Data register of USB keyboard
 ;    Contains the ASCII character in bits 7 downto 0  or the special key code
 ;    in 15 downto 8. The "or" is meant exclusive, i.e. it cannot happen that
 ;    one transmission contains an ASCII character PLUS a special character.
@@ -145,7 +145,7 @@ IO$SD_CSR       .EQU 0xFF25 ; Command and Status Register (write to execute comm
 ;  Block FF28: TIMER 0 and 1
 ;---------------------------------------------------------------------------------------
 ;
-;  Interrupt timer: There are four timers capable of generating interrupts.
+;  Interrupt timer: There are two timers capable of generating interrupts.
 ;                   Each timer is controlled by three 16 bit registers:
 ;
 ;  IO$TIMER_x_PRE: The 100 kHz timer clock is divided by the value stored in
