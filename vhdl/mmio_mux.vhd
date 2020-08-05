@@ -138,110 +138,102 @@ signal reset_counter          : unsigned(RESET_COUNTER_BTS downto 0);
 signal fsm_next_global_state  : global_state_type;
 signal fsm_reset_counter      : unsigned(RESET_COUNTER_BTS downto 0);
 
-
 begin   
 
-   -- TIL register base is FF10
+   -- TIL register base is FF01
    -- writing to base equals register0 equals the actual value
-   -- writing to register1 (FF11) equals the mask
+   -- writing to register1 (FF02) equals the mask
    til_control : process(addr, data_dir, data_valid)
    begin
-      if addr(15 downto 4) = x"FF1" and data_dir = '1' and data_valid = '1' then
+      til_reg0_enable <= '0';
+      til_reg1_enable <= '0';
       
-         -- TIL register 0
-         if addr(3 downto 0) = x"0" then
-            til_reg0_enable <= '1';
-         else
-            til_reg0_enable <= '0';
-         end if;
-         
-         -- TIL register 1
-         if addr(3 downto 0) = x"1" then
-            til_reg1_enable <= '1';
-         else
-            til_reg1_enable <= '0';
-         end if;
-                  
-      else
-         til_reg0_enable <= '0';
-         til_reg1_enable <= '0';
+      -- TIL register 0
+      if addr = x"FF01" and data_dir = '1' and data_valid = '1' then
+         til_reg0_enable <= '1';
+      end if;
+
+      -- TIL register 1
+      if addr = x"FF02" and data_dir = '1' and data_valid = '1' then
+         til_reg1_enable <= '1';
       end if;
    end process;
    
-   -- SWITCH register is FF12
+
+   -- SWITCH register is FF00
    switch_control : process(addr, data_dir, data_valid)
    begin
-      if addr(15 downto 0) = x"FF12" and data_dir = '0' then
+      if addr(15 downto 0) = x"FF00" and data_dir = '0' then
          switch_reg_enable <= '1';
       else
          switch_reg_enable <= '0';
       end if;
    end process;
    
-   -- Keyboard status register is FF13 and data register is FF14
+   -- Keyboard status register is FF03 and data register is FF04
    keyboard_control : process(addr, data_dir, data_valid)
    begin
       kbd_en <= '0';
       kbd_we <= '0';
       kbd_reg <= "00";
       
-      if addr = x"FF13" then
+      if addr = x"FF03" then
          kbd_en <= '1';
          kbd_we <= data_dir and data_valid;
          kbd_reg <= "00";
-      elsif addr = x"FF14" then
+      elsif addr = x"FF04" then
          kbd_en <= '1';
          kbd_we <= data_dir and data_valid;
          kbd_reg <= "01";
       end if;      
    end process;
    
-   -- Cycle counter starts at FF17
+   -- Cycle counter starts at FF08
    cyc_control : process(addr, data_dir, data_valid)
    begin
       cyc_en <= '0';
       cyc_we <= '0';
       cyc_reg <= "00";
       
-      if addr = x"FF17" then
+      if addr = x"FF08" then
          cyc_en <= '1';
          cyc_we <= data_dir and data_valid;
          cyc_reg <= "00";
-      elsif addr = x"FF18" then
+      elsif addr = x"FF09" then
          cyc_en <= '1';
          cyc_we <= data_dir and data_valid;
          cyc_reg <= "01";
-      elsif addr = x"FF19" then
+      elsif addr = x"FF0A" then
          cyc_en <= '1';
          cyc_we <= data_dir and data_valid;
          cyc_reg <= "10";
-      elsif addr = x"FF1A" then
+      elsif addr = x"FF0B" then
          cyc_en <= '1';
          cyc_we <= data_dir and data_valid;
          cyc_reg <= "11";
       end if;
    end process;
    
-   -- Instruction counter starts at FF2A
+   -- Instruction counter starts at FF0C
    ins_control : process(addr, data_dir, data_valid)
    begin
       ins_en <= '0';
       ins_we <= '0';
       ins_reg <= "00";
       
-      if addr = x"FF2A" then
+      if addr = x"FF0C" then
          ins_en <= '1';
          ins_we <= data_dir and data_valid;
          ins_reg <= "00";
-      elsif addr = x"FF2B" then
+      elsif addr = x"FF0D" then
          ins_en <= '1';
          ins_we <= data_dir and data_valid;
          ins_reg <= "01";
-      elsif addr = x"FF2C" then
+      elsif addr = x"FF0E" then
          ins_en <= '1';
          ins_we <= data_dir and data_valid;
          ins_reg <= "10";
-      elsif addr = x"FF2D" then
+      elsif addr = x"FF0F" then
          ins_en <= '1';
          ins_we <= data_dir and data_valid;
          ins_reg <= "11";
@@ -254,23 +246,23 @@ begin
       eae_we <= '0';
       eae_reg <= "000";
       
-      if addr = x"FF1B" then
+      if addr = x"FF18" then
          eae_en <= '1';
          eae_we <= data_dir and data_valid;
          eae_reg <= "000";
-      elsif addr = x"FF1C" then
+      elsif addr = x"FF19" then
          eae_en <= '1';
          eae_we <= data_dir and data_valid;
          eae_reg <= "001";
-      elsif addr = x"FF1D" then
+      elsif addr = x"FF1A" then
          eae_en <= '1';
          eae_we <= data_dir and data_valid;
          eae_reg <= "010";
-      elsif addr = x"FF1E" then
+      elsif addr = x"FF1B" then
          eae_en <= '1';
          eae_we <= data_dir and data_valid;
          eae_reg <= "011";
-      elsif addr = x"FF1F" then
+      elsif addr = x"FF1C" then
          eae_en <= '1';
          eae_we <= data_dir and data_valid;
          eae_reg <= "100";
@@ -283,15 +275,15 @@ begin
       uart_we <= '0';
       uart_reg <= "00";
       
-      if addr = x"FF21" then
+      if addr = x"FF11" then
          uart_en <= '1';
          uart_we <= data_dir and data_valid;
          uart_reg <= "01";
-      elsif addr = x"FF22" then
+      elsif addr = x"FF12" then
          uart_en <= '1';
          uart_we <= data_dir and data_valid;
          uart_reg <= "10";
-      elsif addr = x"FF23" then
+      elsif addr = x"FF13" then
          uart_en <= '1';
          uart_we <= data_dir and data_valid;
          uart_reg <= "11";      
@@ -304,37 +296,37 @@ begin
       sd_we <= '0';
       sd_reg <= "000";
       
-      if addr = x"FF24" then
+      if addr = x"FF20" then
          sd_en <= '1';
          sd_we <= data_dir and data_valid;
          sd_reg <= "000";
-      elsif addr = x"FF25" then
+      elsif addr = x"FF21" then
          sd_en <= '1';
          sd_we <= data_dir and data_valid;
          sd_reg <= "001";
-      elsif addr = x"FF26" then
+      elsif addr = x"FF22" then
          sd_en <= '1';
          sd_we <= data_dir and data_valid;
          sd_reg <= "010";
-      elsif addr = x"FF27" then
+      elsif addr = x"FF23" then
          sd_en <= '1';
          sd_we <= data_dir and data_valid;
          sd_reg <= "011";
-      elsif addr = x"FF28" then
+      elsif addr = x"FF24" then
          sd_en <= '1';
          sd_we <= data_dir and data_valid;
          sd_reg <= "100";
-      elsif addr = x"FF29" then
+      elsif addr = x"FF25" then
          sd_en <= '1';
          sd_we <= data_dir and data_valid;
          sd_reg <= "101";
       end if;    
    end process;
    
-   -- VGA starts at FF00
+   -- VGA starts at FF30
    vga_control : process(addr, data_dir, data_valid)
    begin
-      if addr(15 downto 4) = x"FF0" then
+      if addr(15 downto 4) = x"FF3" then
          vga_en <= '1';
          vga_we <= data_dir and data_valid;
          vga_reg <= addr(3 downto 0);
