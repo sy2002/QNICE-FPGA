@@ -11,7 +11,7 @@
 --
 -- Registers:
 --
--- Register $FF13: State register
+-- Register $FF04: State register
 --    Bit  0 (read only):      New ASCII character avaiable for reading
 --                             (bits 7 downto 0 of Read register)
 --    Bit  1 (read only):      New special key available for reading
@@ -20,7 +20,7 @@
 --                             001 = German layout, others: reserved for more locales
 --    Bits 5..7 (read only):   Modifiers: 5 = shift, 6 = alt, 7 = ctrl
 --                             Only valid, when bits 0 and/or 1 are '1'
--- Register $FF14: Read register
+-- Register $FF05: Read register
 --    Contains the ASCII character in bits 7 downto 0  or the special key code
 --    in 15 downto 0. The "or" is meant exclusive, i.e. it cannot happen that
 --    one transmission contains an ASCII character PLUS a special character.
