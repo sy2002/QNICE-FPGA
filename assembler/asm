@@ -43,7 +43,7 @@ fi
 
 rm $temp_file
 
-if [ "$QNICE_ASM_NO_ROM" -ne "1" ]
+if [ "$QNICE_ASM_NO_ROM" != "1" ]
 then
     $makerom $destination $romfile
 fi
