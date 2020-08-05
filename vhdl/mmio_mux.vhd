@@ -45,49 +45,49 @@ port (
    pore_rom_enable   : out std_logic;
    pore_rom_busy     : in std_logic;
    
-   -- VGA register range $FF00..$FF0F
-   vga_en            : out std_logic;
-   vga_we            : out std_logic;
-   vga_reg           : out std_logic_vector(3 downto 0);
+   -- SWITCHES is $FF00
+   switch_reg_enable : out std_logic;
    
-   -- TIL register rage: $FF10..$FF11
+   -- TIL register range: $FF01..$FF02
    til_reg0_enable   : out std_logic;
    til_reg1_enable   : out std_logic;
    
-   -- SWITCHES is $FF12
-   switch_reg_enable : out std_logic;
-   
-   -- Keyboard register range $FF13..$FF16
+   -- Keyboard register range $FF03..$FF06
    kbd_en            : out std_logic;
    kbd_we            : out std_logic;
    kbd_reg           : out std_logic_vector(1 downto 0);
    
-   -- Cycle counter regsiter range $FF17..$FF1A
+   -- Cycle counter register range $FF08..$FF0B
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
 
-   -- Instruction counter register range $FF2A..$FF2D
+   -- Instruction counter register range $FF0C..$FF0F
    ins_en            : out std_logic;
    ins_we            : out std_logic;
    ins_reg           : out std_logic_vector(1 downto 0);
 
-   -- Extended Arithmetic Element register range $FF1B..$FF1F
-   eae_en            : out std_logic;
-   eae_we            : out std_logic;
-   eae_reg           : out std_logic_vector(2 downto 0);
-   
-   -- UART register range $FF20..$FF23
+   -- UART register range $FF10..$FF13
    uart_en           : out std_logic;
    uart_we           : out std_logic;
    uart_reg          : out std_logic_vector(1 downto 0);
    uart_cpu_ws       : in std_logic;
    
-   -- SD Card register range $FF24..FF29
+   -- Extended Arithmetic Element register range $FF18..$FF1F
+   eae_en            : out std_logic;
+   eae_we            : out std_logic;
+   eae_reg           : out std_logic_vector(2 downto 0);
+
+   -- SD Card register range $FF20..FF27
    sd_en             : out std_logic;
    sd_we             : out std_logic;
    sd_reg            : out std_logic_vector(2 downto 0);
    
+   -- VGA register range $FF30..$FF3F
+   vga_en            : out std_logic;
+   vga_we            : out std_logic;
+   vga_reg           : out std_logic_vector(3 downto 0);
+
    -- global state and reset management
    reset_pre_pore    : out std_logic;
    reset_post_pore   : out std_logic
@@ -140,6 +140,16 @@ signal fsm_reset_counter      : unsigned(RESET_COUNTER_BTS downto 0);
 
 begin   
 
+   -- SWITCH register is FF00
+   switch_control : process(addr, data_dir, data_valid)
+   begin
+      if addr(15 downto 0) = x"FF00" and data_dir = '0' then
+         switch_reg_enable <= '1';
+      else
+         switch_reg_enable <= '0';
+      end if;
+   end process;
+
    -- TIL register base is FF01
    -- writing to base equals register0 equals the actual value
    -- writing to register1 (FF02) equals the mask
@@ -156,17 +166,6 @@ begin
       -- TIL register 1
       if addr = x"FF02" and data_dir = '1' and data_valid = '1' then
          til_reg1_enable <= '1';
-      end if;
-   end process;
-   
-
-   -- SWITCH register is FF00
-   switch_control : process(addr, data_dir, data_valid)
-   begin
-      if addr(15 downto 0) = x"FF00" and data_dir = '0' then
-         switch_reg_enable <= '1';
-      else
-         switch_reg_enable <= '0';
       end if;
    end process;
    
