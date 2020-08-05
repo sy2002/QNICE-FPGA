@@ -78,9 +78,7 @@ signal spec_code           : std_logic_vector(7 downto 0);
 
 -- signals that together form the status register
 signal ff_ascii_new        : std_logic;
-signal reset_ff_ascii_new  : std_logic;
 signal ff_spec_new         : std_logic;
-signal reset_ff_spec_new   : std_logic;
 signal ff_locale           : std_logic_vector(2 downto 0);
 signal modifiers           : std_logic_vector(2 downto 0);
 
@@ -102,25 +100,26 @@ begin
          locale => ff_locale,
          modifiers => modifiers
       );
-      
-   ff_ascii_new_handler : process(ascii_new, reset, reset_ff_ascii_new)
+
+   ff_new_handler : process(clk, reset)
    begin
-      if reset = '1' or reset_ff_ascii_new = '1' then
+      if reset = '1' then
          ff_ascii_new <= '0';
-      else
-         if rising_edge(ascii_new) then
-            ff_ascii_new <= '1';
-         end if;
-      end if;
-   end process;
-   
-   ff_spec_new_handler : process(spec_new, reset, reset_ff_spec_new)
-   begin
-      if reset = '1' or reset_ff_spec_new = '1' then
          ff_spec_new <= '0';
       else
-         if rising_edge(spec_new) then
-            ff_spec_new <= '1';
+         if rising_edge(clk) then
+            if kbd_en = '1' and kbd_we = '0' and kbd_reg = "01" then
+               ff_ascii_new <= '0';
+               ff_spec_new <= '0';
+            end if;
+
+            if ascii_new = '1' then
+               ff_ascii_new <= '1';
+            end if;
+
+            if spec_new = '1' then
+               ff_spec_new <= '1';
+            end if;
          end if;
       end if;
    end process;
@@ -137,12 +136,10 @@ begin
          end if;
       end if;
    end process;
+
       
    read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new, ascii_code, spec_code, modifiers)
    begin
-      reset_ff_ascii_new <= '0';
-      reset_ff_spec_new <= '0';
-      
       if kbd_en = '1' and kbd_we = '0' then
          case kbd_reg is
          
@@ -157,8 +154,6 @@ begin
             -- read data register
             when "01" =>
                cpu_data <= spec_code & ascii_code;
-               reset_ff_ascii_new <= '1';
-               reset_ff_spec_new <= '1';
                
             when others =>
                cpu_data <= (others => '0');
@@ -170,4 +165,4 @@ begin
    end process;
 
 end beh;
- 
+
