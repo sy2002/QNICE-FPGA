@@ -5,18 +5,6 @@ HARDWARE:
 * SD Cards: Replace SPI access by native access and by doing so, achieve
   a 100% compatible and reliable system for SD, SDHC, SDCX.
 
-* Research, if the asynchronous RAM (flip flops) for the register banks can
-  be replaced by synchronous RAM (Block RAM) without increasing the amount
-  of CPU cycles per instruction.
-
-* Refactor MMIO for not having so many comperators: use only one register
-  output and link it to all devices; use a smart subtraction to find out
-  registers and drastically shorten the code.
-
-* Shrink the ROM, currently we could go from 0x0000 to 0x1FFF and still have
-  plenty of room left and let programs start at 0x2000, instead of as this
-  is the case today, from 0x8000 on.
-
 * Think about advantages/disadvantages of removing ROM and replacing it by
   prefilled RAM (could lead to very hard to debug effects, if some renegade
   program overwrites "operating system" areas). On the other hand, we could
@@ -50,21 +38,9 @@ HARDWARE:
 * VGA being able to report the vertical retrace for flicker-free graphics,
   e.g. for being able to enhance Q-TRIS to work double-buffered and to
   switch buffers during retrace. And/or for having a good general sync.
-  mechanism. To "report" via register and/or interrupt.
-
-* VGA: support a text mode with colors
-
-* VGA: support a graphics mode with colors
-
-* Debugging mechanisms (e.g. single-step mode in hardware), which do not
-  necessarily need a fully fledged interrupt system
-
-* Memory management unit (more than 64kWords of RAM/ROM, pages, etc.)
-
-* Interrupt system (how do we handle I/O, which is full of atomic operations?
-  add ideas of how to do it from the e-mail conversations to an ideas file
-  somewhere in the doc folder)
-
+  mechanism. To "report" via interrupt.
+  
+  
 DE10-Nano HARDWARE:
 
 * Port QNICE-FPGA to the DE10-Nano
@@ -91,17 +67,7 @@ MONITOR:
 
 * Add qtransfer as standard functionality to the Monitor
 
-* variables.asm: replace hardcoded blocksize for _SD$DEVICEHANDLE by using
-  FAT32$DEV_STRUCT_SIZE
-
 * Get rid of the hardcoded keyboard locale
-
-* BS/DEL when entering hex digits (and at other reasonable places)
-
-* Make IO$GETCHAR smarter, so that switching STDIN does not require "one last
-  keypress" on the old STDIN any more before reading from the new STDIN
-
-* Use HW debugging mechanisms to offer single step debugging
 
 
 ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
@@ -126,8 +92,6 @@ ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
 
 
 EMULATOR:
-
-* Use defines from ../dist_kit/sysdef.h instead of redefining them in qnice.c
 
 * Test, if compilation and running works under Windows
 
