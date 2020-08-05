@@ -42,6 +42,7 @@ emulator/qnice.html
 emulator/qnice.wasm
 emulator/qnice.data
 emulator/qnice_disk.img
+emulator/qnice_disk_v16.img
 *.bin
 *.lis
 *.out
