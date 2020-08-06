@@ -522,7 +522,7 @@ begin
    cyc : cycle_counter
       port map (
          clk => SLOW_CLOCK,
-         impulse => SLOW_CLOCK,
+         impulse => '1',
          reset => reset_ctl,
          en => cyc_en,
          we => cyc_we,

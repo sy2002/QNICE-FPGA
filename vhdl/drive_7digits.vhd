@@ -71,18 +71,16 @@ begin
          reset => '0',
          overflow => counter_overflow
       );
-   
+
    -- counter to iterate through all 8 digits 0..7
-   digit_iterator : SyTargetCounter
-      generic map (
-         COUNTER_WIDTH => 3,
-         COUNTER_FINISH => 7
-      )
-      port map (
-         clk => counter_overflow,
-         reset => '0',
-         cnt => digit
-      );
+   digit_iterator : process (CLK)
+   begin
+      if rising_edge(CLK) then
+         if counter_overflow = '1' then
+            digit <= std_logic_vector(unsigned(digit) + 1);
+         end if;
+      end if;
+   end process digit_iterator;
    
    -- cathode signal for current digit
    cathode_control : nibble_to_cathode

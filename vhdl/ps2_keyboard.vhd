@@ -39,6 +39,7 @@ END ps2_keyboard;
 ARCHITECTURE logic OF ps2_keyboard IS
   SIGNAL sync_ffs     : STD_LOGIC_VECTOR(1 DOWNTO 0);       --synchronizer flip-flops for PS/2 signals
   SIGNAL ps2_clk_int  : STD_LOGIC;                          --debounced clock signal from PS/2 keyboard
+  SIGNAL ps2_clk_int_d: STD_LOGIC;                          --delayed clock signal
   SIGNAL ps2_data_int : STD_LOGIC;                          --debounced data signal from PS/2 keyboard
   SIGNAL ps2_word     : STD_LOGIC_VECTOR(10 DOWNTO 0);      --stores the ps2 data word
   SIGNAL error        : STD_LOGIC;                          --validate parity, start, and stop bits
@@ -73,10 +74,13 @@ BEGIN
     PORT MAP(clk => clk, button => sync_ffs(1), result => ps2_data_int);
 
   --input PS2 data
-  PROCESS(ps2_clk_int)
+  PROCESS(clk)
   BEGIN
-    IF(ps2_clk_int'EVENT AND ps2_clk_int = '0') THEN    --falling edge of PS2 clock
-      ps2_word <= ps2_data_int & ps2_word(10 DOWNTO 1);   --shift in PS2 data bit
+    IF(clk'EVENT AND clk = '1') THEN           --rising edge of system clock
+      ps2_clk_int_d <= ps2_clk_int;  -- Delay signal in order to detect transitions.
+        IF ps2_clk_int_d='1' and ps2_clk_int='0' THEN    --falling edge of PS2 clock
+        ps2_word <= ps2_data_int & ps2_word(10 DOWNTO 1);   --shift in PS2 data bit
+      END IF;
     END IF;
   END PROCESS;
     

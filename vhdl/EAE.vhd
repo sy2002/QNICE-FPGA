@@ -78,20 +78,20 @@ begin
 
    write_eae_registers : process(clk, reset)
    begin
-      if reset = '1' then
-         op0 <= (others => '0');
-         op1 <= (others => '0');
-         csr <= (others => '0');
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' then
-               case reg is
-                  when regOP0 => op0 <= data;
-                  when regOP1 => op1 <= data;
-                  when regCSR => csr <= data(1 downto 0);
-                  when others => null;
-               end case;
-            end if;
+      if falling_edge(clk) then
+         if en = '1' and we = '1' then
+            case reg is
+               when regOP0 => op0 <= data;
+               when regOP1 => op1 <= data;
+               when regCSR => csr <= data(1 downto 0);
+               when others => null;
+            end case;
+         end if;
+
+         if reset = '1' then
+            op0 <= (others => '0');
+            op1 <= (others => '0');
+            csr <= (others => '0');
          end if;
       end if;
    end process;

@@ -28,13 +28,13 @@ signal cycle_is_counting      : std_logic;
 
 begin
 
-   count : process(impulse, reset, en, we, reg, data)
+   count : process(clk, reset, en, we, reg, data)
    begin
       if reset = '1' or (en = '1' and we='1' and reg="11" and data(0) = '1') then
          counter <= (others => '0');
       else
-         if rising_edge(impulse) then
-            if cycle_is_counting = '1' then
+         if rising_edge(clk) then
+            if impulse = '1' and cycle_is_counting = '1' then
                counter <= counter + 1;
             end if;
          end if;
