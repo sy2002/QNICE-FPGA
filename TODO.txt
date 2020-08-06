@@ -35,12 +35,12 @@ HARDWARE:
 
 * Refactor TIL and TIL Mask to support 8 digits / 32 bits
 
-* VGA being able to report the vertical retrace for flicker-free graphics,
-  e.g. for being able to enhance Q-TRIS to work double-buffered and to
-  switch buffers during retrace. And/or for having a good general sync.
-  mechanism. To "report" via interrupt.
-  
-  
+
+NEXYS4DDR HARDWARE:
+
+* Add support for Ethernet, e.g. LOAD/SAVE of files.
+
+
 DE10-Nano HARDWARE:
 
 * Port QNICE-FPGA to the DE10-Nano
