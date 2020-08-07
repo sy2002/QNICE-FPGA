@@ -710,7 +710,7 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
       ((source_0 & 0x8000) && (source_1 & 0x8000) && !(destination & 0x8000))) && !(control_bitmask & DO_NOT_MODIFY_OVERFLOW))
     sr_bits |= 0x20;
 
-  write_register(SR, (read_register(SR) & 0xffc0) | (sr_bits & 0x3f));
+  write_register(SR, (read_register(SR) & 0xffe4) | (sr_bits & 0x3f));
 }
 
 /*
