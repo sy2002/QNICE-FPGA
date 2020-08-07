@@ -62,10 +62,24 @@ _DBG$NO_NEGATE      MOVE    R1, R2              ; No side effects...
                     ADD     R2, R3
                     MOVE    @R3, R8
                     RSUB    IO$PUTCHAR, 1       ; Print condition code
+; Compute and display the destination address in case of RSUB/RBRA
+                    MOVE    R1, R2              ; Remember the instruction
+                    AND     0xFFA0, R2          ; Check if it is RBRA/RSUB
+                    CMP     0xFFA0, R2
+                    RBRA    _DBG$DISASM_EXIT, !Z
+                    MOVE    _DBG$REL_S, R8
+                    RSUB    IO$PUTS, 1          ; Print "   ("
+                    MOVE    R0, R8              ; Get current address
+                    MOVE    @--R8, R8           ; Get relative address 
+                    ADD     R0, R8              ; Add current address
+                    RSUB    IO$PUT_W_HEX, 1     ; Print address
+                    MOVE    ')', R8
+                    RSUB    IO$PUTCHAR, 1
 _DBG$DISASM_EXIT    RSUB    IO$PUT_CRLF, 1
                     MOVE    R0, R8              ; Restore address
                     DECRB
                     RET
+_DBG$REL_S          .ASCII_W    "   ("
 ;
 ;  The following routine prints out the source operand and expects R1 to contain
 ; the instruction and R0 to contain the address. If the operand is R15 indirect,
