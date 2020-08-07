@@ -3,7 +3,6 @@
 ;; The collection of debugging routines starts here
 ;;
 ;; 29-AUG-2015      Bernd Ulmann    Initial version
-;; 25-JUL-2020      Bernd Ulmann    Added support for HALT, RTI, and INT
 ;;=======================================================================================
 ;;
 ;
@@ -29,8 +28,6 @@ DBG$DISASM          INCRB
                     MOVE    R1, R2              ; R1 contains the instruction
                     SHR     0x0009, R2          ; Get opcode * 8
                     AND     0x0078, R2          ; Filter out the unnecessary LSBs
-                    CMP     0x0070, R2          ; Is it a control instruction?
-                    RBRA    _DBG$DISASM_CTRL, Z ; Yes. :-)
                     CMP     0x0078, R2          ; Is it a branch/subroutine call?
                     RBRA    _DBG$DISASM_BRSU, Z ; Yes!
 ; Treat non-branch/subroutine calls:
@@ -44,19 +41,6 @@ DBG$DISASM          INCRB
                     RSUB    _DBG$HANDLE_SOURCE, 1
                     RSUB    _DBG$HANDLE_DEST, 1
                     RBRA    _DBG$DISASM_EXIT, 1 ; Finished...
-; Treat control instructions:
-_DBG$DISASM_CTRL    MOVE    R1, R2              ; Determine the type of control instruction
-                    SHR     0x0003, R2          ; Shift only three to the right as
-                    AND     0x0018, R2          ; each mnemonic is 8 characters long
-                    MOVE    _DBG$CTRL_MNEMONICS, R8
-                    ADD     R2, R8
-                    RSUB    IO$PUTS, 1          ; Print mnemonic
-                    MOVE    ' ', R8             ; Print a delimiter
-                    RSUB    IO$PUTCHAR, 1
-                    CMP     0x0010, R2          ; Was the instruction INT?
-                    RBRA    _DBG$DISASM_EXIT, !Z; No, so we are finished here
-                    RSUB    _DBG$HANDLE_DEST, 1 ; Take care of the destination operand
-                    RBRA    _DBG$DISASM_EXIT, 1 ; Finished
 ; Treat branches and subroutine calls:
 _DBG$DISASM_BRSU    MOVE    R1, R2              ; Determine branch/call type
                     SHR     0x0001, R2
@@ -78,10 +62,24 @@ _DBG$NO_NEGATE      MOVE    R1, R2              ; No side effects...
                     ADD     R2, R3
                     MOVE    @R3, R8
                     RSUB    IO$PUTCHAR, 1       ; Print condition code
+; Compute and display the destination address in case of RSUB/RBRA
+                    MOVE    R1, R2              ; Remember the instruction
+                    AND     0xFFA0, R2          ; Check if it is RBRA/RSUB
+                    CMP     0xFFA0, R2
+                    RBRA    _DBG$DISASM_EXIT, !Z
+                    MOVE    _DBG$REL_S, R8
+                    RSUB    IO$PUTS, 1          ; Print "   ("
+                    MOVE    R0, R8              ; Get current address
+                    MOVE    @--R8, R8           ; Get relative address 
+                    ADD     R0, R8              ; Add current address
+                    RSUB    IO$PUT_W_HEX, 1     ; Print address
+                    MOVE    ')', R8
+                    RSUB    IO$PUTCHAR, 1
 _DBG$DISASM_EXIT    RSUB    IO$PUT_CRLF, 1
                     MOVE    R0, R8              ; Restore address
                     DECRB
                     RET
+_DBG$REL_S          .ASCII_W    "   ("
 ;
 ;  The following routine prints out the source operand and expects R1 to contain
 ; the instruction and R0 to contain the address. If the operand is R15 indirect,
@@ -146,11 +144,8 @@ _DBG$MNEMONICS      .ASCII_W    "MOVE   "
                     .ASCII_W    "XOR    "
                     .ASCII_W    "CMP    "
                     .ASCII_W    "rsrvd  "
-                    .ASCII_W    "CTRL   "       ; This is not really necessary
-_DBG$CTRL_MNEMONICS .ASCII_W    "HALT   "
-                    .ASCII_W    "RTI    "
-                    .ASCII_W    "INT    "
-                    .ASCII_W    "BRSU   "       ; This also is not really necessary
+                    .ASCII_W    "HALT   "
+                    .ASCII_W    "BRSU   "       ; This is not really necessary
 _DBG$BRSU_MNEMONICS .ASCII_W    "ABRA   "
                     .ASCII_W    "ASUB   "
                     .ASCII_W    "RBRA   "
