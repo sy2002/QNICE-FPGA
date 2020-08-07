@@ -419,12 +419,6 @@
 .equ IO$TIMER_1_PRE ,	0xFF33
 .equ IO$TIMER_1_CNT ,	0xFF34
 .equ IO$TIMER_1_INT ,	0xFF35
-.equ IO$TIMER_2_PRE ,	0xFF36
-.equ IO$TIMER_2_CNT ,	0xFF37
-.equ IO$TIMER_2_INT ,	0xFF38
-.equ IO$TIMER_3_PRE ,	0xFF39
-.equ IO$TIMER_3_CNT ,	0xFF3A
-.equ IO$TIMER_3_INT ,	0xFF3B
 ;
 ;  Reserved for MEGA65 registers
 ;

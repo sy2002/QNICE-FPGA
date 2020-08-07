@@ -419,12 +419,6 @@
 #define IO_TIMER_1_PRE 	0xFF33
 #define IO_TIMER_1_CNT 	0xFF34
 #define IO_TIMER_1_INT 	0xFF35
-#define IO_TIMER_2_PRE 	0xFF36
-#define IO_TIMER_2_CNT 	0xFF37
-#define IO_TIMER_2_INT 	0xFF38
-#define IO_TIMER_3_PRE 	0xFF39
-#define IO_TIMER_3_CNT 	0xFF3A
-#define IO_TIMER_3_INT 	0xFF3B
 //
 //  Reserved for MEGA65 registers
 //
