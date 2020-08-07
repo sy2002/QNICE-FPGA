@@ -330,3 +330,7 @@ Acknowledgements
 
 * [Volker Barthelmann](http://www.compilers.de): vbcc compiler system,
   QNICE specific vbcc backend incl. standard C library.
+
+* [MJoergen](http://www.github.com/MJoergen): Performance improvements and
+  bugfixes, CPU functional test suite.
+
