@@ -214,10 +214,10 @@ port (
    reset          : in std_logic;                        -- async reset
    
    -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
-   int_n_out     : out std_logic;                        -- left device's interrupt signal input
-   grant_n_in    : in std_logic;                         -- left device's grant signal output
-   int_n_in      : in std_logic;                         -- right device's interrupt signal output
-   grant_n_out   : out std_logic;                        -- right device's grant signal input
+   int_n_out      : out std_logic;                        -- left device's interrupt signal input
+   grant_n_in     : in std_logic;                         -- left device's grant signal output
+   int_n_in       : in std_logic;                         -- right device's interrupt signal output
+   grant_n_out    : out std_logic;                        -- right device's grant signal input
    
    -- Registers
    en             : in std_logic;                        -- enable for reading from or writing to the bus

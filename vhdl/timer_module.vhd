@@ -30,8 +30,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use IEEE.MATH_REAL.ALL;
-use work.qnice_tools.all;
 
 entity timer_module is
 generic (
@@ -59,16 +57,19 @@ end timer_module;
 architecture beh of timer_module is
 
 component timer is
+generic (
+   CLK_FREQ       : natural;                             -- system clock in Hertz
+   IS_SIMULATION  : boolean := false                     -- is the module running in simulation?
+);
 port (
    clk            : in std_logic;                        -- system clock
-   clk_100kHz     : in std_logic;                        -- 100 kHz timer clock
    reset          : in std_logic;                        -- async reset
    
    -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
-   int_n_out     : out std_logic;                        -- left device's interrupt signal input
-   grant_n_in    : in std_logic;                         -- left device's grant signal output
-   int_n_in      : in std_logic;                         -- right device's interrupt signal output
-   grant_n_out   : out std_logic;                        -- right device's grant signal input
+   int_n_out      : out std_logic;                        -- left device's interrupt signal input
+   grant_n_in     : in std_logic;                         -- left device's grant signal output
+   int_n_in       : in std_logic;                         -- right device's interrupt signal output
+   grant_n_out    : out std_logic;                        -- right device's grant signal input
    
    -- Registers
    en             : in std_logic;                        -- enable for reading from or writing to the bus
@@ -77,14 +78,6 @@ port (
    data           : inout std_logic_vector(15 downto 0)  -- system's data bus
 );
 end component;
-
--- timer internal clock
-constant freq_internal        : natural := 100000;       -- internal clock speed
-signal   freq_div_sys_target  : natural := natural(ceil(real(CLK_FREQ) / real(freq_internal) / real(2)));
---signal   CNT_WIDTH            : natural := f_log2(freq_div_sys_target); 
-signal   freq_div_cnt         : unsigned(15 downto 0);   -- CNT_WIDTH does not work with Vivado 2019.2
-signal   freq_div_clk         : std_logic;
-signal   timer_clk            : std_logic;
 
 signal   t0_en                : std_logic;
 signal   t0_we                : std_logic;
@@ -98,8 +91,6 @@ signal   t1_reg_tmp           : std_logic_vector(3 downto 0);
 
 begin
 
-   timer_clk <= clk when IS_SIMULATION else freq_div_clk;
-
    t0_en <= '1' when en = '1' and unsigned(reg) < x"3" else '0';
    t1_en <= '1' when en = '1' and t0_en = '0' else '0';
    
@@ -111,10 +102,14 @@ begin
    t1_reg <= t1_reg_tmp(1 downto 0);
 
    timer0 : timer
+   generic map
+   (
+      CLK_FREQ => CLK_FREQ,
+      IS_SIMULATION => IS_SIMULATION
+   )
    port map
    (
       clk => clk,
-      clk_100kHz => timer_clk,
       reset => reset,
       
       int_n_out => int_n_out,          -- connect with "left" device (e.g. CPU)
@@ -129,10 +124,14 @@ begin
    );
    
    timer1 : timer
+   generic map
+   (
+      CLK_FREQ => CLK_FREQ,
+      IS_SIMULATION => IS_SIMULATION
+   )   
    port map
    (
       clk => clk,
-      clk_100kHz => timer_clk,
       reset => reset,
 
       int_n_out => t1_int_n_out,       -- build Daisy Chain between timer0 and timer 1
@@ -146,21 +145,4 @@ begin
       data => data
    );
    
-   -- generate timer internal clock
-   generate_clk : process(clk, reset) 
-   begin
-      if reset = '1' then
-         freq_div_cnt <= (others => '0');
-         freq_div_clk <= '0';
-      else
-         if rising_edge(clk) then
-            if freq_div_cnt < freq_div_sys_target then
-               freq_div_cnt <= freq_div_cnt + 1;
-            else
-               freq_div_cnt <= (others => '0');
-               freq_div_clk <= not freq_div_clk;
-            end if;               
-         end if;
-      end if;
-   end process;      
 end beh;
