@@ -97,12 +97,12 @@ port (
    clk            : in std_logic;                        -- system clock
    reset          : in std_logic;                        -- async reset
    
-   -- Daisy Chaining
-   left_int_n     : out std_logic;                       -- left device's interrupt signal input
-   left_grant_n   : in std_logic;                        -- left device's grant signal output
-   right_int_n    : in std_logic;                        -- right device's interrupt signal output
-   right_grant_n  : out std_logic;                       -- right device's grant signal input
-   
+   -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
+   int_n_out     : out std_logic;                        -- left device's interrupt signal input
+   grant_n_in    : in std_logic;                         -- left device's grant signal output
+   int_n_in      : in std_logic;                         -- right device's interrupt signal output
+   grant_n_out   : out std_logic;                        -- right device's grant signal input
+      
    -- Registers
    en             : in std_logic;                        -- enable for reading from or writing to the bus
    we             : in std_logic;                        -- write to the registers via system's data bus
@@ -110,7 +110,6 @@ port (
    data           : inout std_logic_vector(15 downto 0)  -- system's data bus
 );
 end component;
-
 
 -- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
 component EAE is
@@ -288,10 +287,10 @@ begin
       port map (
          clk => CLK,
          reset => gbl_reset,
-         left_int_n => cpu_int_n,
-         left_grant_n => cpu_igrant_n,
-         right_int_n => '1',
-         right_grant_n => open,
+         int_n_out => cpu_int_n,
+         grant_n_in => cpu_igrant_n,
+         int_n_in => '1',              -- Daisy Chain: no more devices: 1=never request an interrupt
+         grant_n_out => open,          -- ditto: open=never grant any interrupt
          en => tin_en,
          we => tin_we,
          reg => tin_reg,
