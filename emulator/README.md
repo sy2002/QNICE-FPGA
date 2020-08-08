@@ -161,6 +161,16 @@ Getting Started
 * Go to the POSIX terminal window, press `CTRL+C` to leave the Monitor
   and to return back to the `Q>` prompt. Press `CTRL+D` or enter `exit` to
   end the emulator.
+  
+### How to mount FAT32 devices and files in the Emulator
+
+The Emulator is able to mount raw image files that are made from appropriate
+media and expose it to QNICE-FPGA via the SD Card interface, so that the
+Monitor "thinks" this is a FAT32/MBR formatted SD card. As devices behave like
+files on Unix-like systems, on these systems you can also directly mount a
+device.
+
+Read the file [doc/emumount.txt](../doc/emumount.txt) to learn more.
 
 WebAssembly/WebGL in a Web Browser: Emulation of the VGA Screen and the PS/2 Keyboard
 -------------------------------------------------------------------------------------
