@@ -32,11 +32,11 @@ port (
    clk_100kHz     : in std_logic;                        -- 100 kHz timer clock
    reset          : in std_logic;                        -- async reset
    
-   -- Daisy Chaining
-   left_int_n     : out std_logic;                       -- left device's interrupt signal input
-   left_grant_n   : in std_logic;                        -- left device's grant signal output
-   right_int_n    : in std_logic;                        -- right device's interrupt signal output
-   right_grant_n  : out std_logic;                       -- right device's grant signal input
+   -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
+   int_n_out     : out std_logic;                        -- left device's interrupt signal input
+   grant_n_in    : in std_logic;                         -- left device's grant signal output
+   int_n_in      : in std_logic;                         -- right device's interrupt signal output
+   grant_n_out   : out std_logic;                        -- right device's grant signal input
    
    -- Registers
    en             : in std_logic;                        -- enable for reading from or writing to the bus
@@ -90,10 +90,10 @@ begin
       end if;
    end process;
    
-   fsm_output_decode : process(State, is_counting, has_fired, left_grant_n, right_int_n, reg_int)
+   fsm_output_decode : process(State, is_counting, has_fired, grant_n_in, int_n_in, reg_int)
    begin
-      left_int_n <= right_int_n;
-      right_grant_n <= left_grant_n;
+      int_n_out <= int_n_in;
+      grant_n_out <= grant_n_in;
       fsmState_Next <= State;
       data <= (others => 'Z');
    
@@ -106,27 +106,27 @@ begin
          when s_count =>
             if has_fired then
                fsmState_Next <= s_signal;
-               left_int_n <= '0';    -- request interrupt
-               right_grant_n <= '1'; -- de-couple the right device
+               int_n_out <= '0';    -- request interrupt
+               grant_n_out <= '1'; -- de-couple the right device
             end if;
             
          when s_signal =>
-            right_grant_n <= '1'; -- de-couple the right device
+            grant_n_out <= '1'; -- de-couple the right device
 
             -- if interrupt is granted: put ISR address on the data bus          
-            if left_grant_n = '0' then
+            if grant_n_in = '0' then
                fsmState_Next <= s_provide_isr;
                data <= std_logic_vector(reg_int);
             -- if not yet granted, continue to request interrupt                      
             else
-               left_int_n <= '0';  
+               int_n_out <= '0';  
             end if;
             
          when s_provide_isr =>
-            right_grant_n <= '1'; -- de-couple the right device
+            grant_n_out <= '1'; -- de-couple the right device
          
             -- keep putting the ISR address on the data bus until the grant is revoked
-            if left_grant_n = '0' then            
+            if grant_n_in = '0' then            
                fsmState_Next <= s_provide_isr;
                data <= std_logic_vector(reg_int);
             else

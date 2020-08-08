@@ -203,6 +203,7 @@ port (
 );
 end component;
 
+-- Interrupt generator: Timer Module
 component timer_module is
 generic (
    CLK_FREQ       : natural;                             -- system clock in Hertz
@@ -212,11 +213,11 @@ port (
    clk            : in std_logic;                        -- system clock
    reset          : in std_logic;                        -- async reset
    
-   -- Daisy Chaining
-   left_int_n     : out std_logic;                       -- left device's interrupt signal input
-   left_grant_n   : in std_logic;                        -- left device's grant signal output
-   right_int_n    : in std_logic;                        -- right device's interrupt signal output
-   right_grant_n  : out std_logic;                       -- right device's grant signal input
+   -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
+   int_n_out     : out std_logic;                        -- left device's interrupt signal input
+   grant_n_in    : in std_logic;                         -- left device's grant signal output
+   int_n_in      : in std_logic;                         -- right device's interrupt signal output
+   grant_n_out   : out std_logic;                        -- right device's grant signal input
    
    -- Registers
    en             : in std_logic;                        -- enable for reading from or writing to the bus
@@ -564,10 +565,10 @@ begin
       port map (
          clk => SLOW_CLOCK,
          reset => reset_ctl,
-         left_int_n => cpu_int_n,
-         left_grant_n => cpu_igrant_n,
-         right_int_n => '1',
-         right_grant_n => open,
+         int_n_out => cpu_int_n,
+         grant_n_in => cpu_igrant_n,
+         int_n_in => '1',        -- no more devices to in Daisy Chain: 1=no interrupt
+         grant_n_out => open,    -- ditto: open=grant goes nowhere
          en => tin_en,
          we => tin_we,
          reg => tin_reg,

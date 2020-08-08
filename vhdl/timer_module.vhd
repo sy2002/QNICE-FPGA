@@ -42,11 +42,11 @@ port (
    clk            : in std_logic;                        -- system clock
    reset          : in std_logic;                        -- async reset
    
-   -- Daisy Chaining
-   left_int_n     : out std_logic;                       -- left device's interrupt signal input
-   left_grant_n   : in std_logic;                        -- left device's grant signal output
-   right_int_n    : in std_logic;                        -- right device's interrupt signal output
-   right_grant_n  : out std_logic;                       -- right device's grant signal input
+   -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
+   int_n_out     : out std_logic;                       -- left device's interrupt signal input
+   grant_n_in    : in std_logic;                        -- left device's grant signal output
+   int_n_in      : in std_logic;                        -- right device's interrupt signal output
+   grant_n_out   : out std_logic;                       -- right device's grant signal input
    
    -- Registers
    en             : in std_logic;                        -- enable for reading from or writing to the bus
@@ -64,11 +64,11 @@ port (
    clk_100kHz     : in std_logic;                        -- 100 kHz timer clock
    reset          : in std_logic;                        -- async reset
    
-   -- Daisy Chaining
-   left_int_n     : out std_logic;                       -- left device's interrupt signal input
-   left_grant_n   : in std_logic;                        -- left device's grant signal output
-   right_int_n    : in std_logic;                        -- right device's interrupt signal output
-   right_grant_n  : out std_logic;                       -- right device's grant signal input
+   -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
+   int_n_out     : out std_logic;                        -- left device's interrupt signal input
+   grant_n_in    : in std_logic;                         -- left device's grant signal output
+   int_n_in      : in std_logic;                         -- right device's interrupt signal output
+   grant_n_out   : out std_logic;                        -- right device's grant signal input
    
    -- Registers
    en             : in std_logic;                        -- enable for reading from or writing to the bus
@@ -89,8 +89,8 @@ signal   timer_clk            : std_logic;
 signal   t0_en                : std_logic;
 signal   t0_we                : std_logic;
 signal   t0_reg               : std_logic_vector(1 downto 0);
-signal   t1_left_int_n        : std_logic;
-signal   t1_left_grant_n      : std_logic;
+signal   t1_int_n_out         : std_logic;
+signal   t1_grant_n_in        : std_logic;
 signal   t1_en                : std_logic;
 signal   t1_we                : std_logic;
 signal   t1_reg               : std_logic_vector(1 downto 0);
@@ -117,11 +117,11 @@ begin
       clk_100kHz => timer_clk,
       reset => reset,
       
-      left_int_n => left_int_n,
-      left_grant_n => left_grant_n,
-      right_int_n => t1_left_int_n,
-      right_grant_n => t1_left_grant_n,
-   
+      int_n_out => int_n_out,          -- connect with "left" device (e.g. CPU)
+      grant_n_in => grant_n_in,        -- ditto
+      int_n_in => t1_int_n_out,        -- build Daisy Chain between timer0 and timer 1
+      grant_n_out => t1_grant_n_in,    -- ditto
+         
       en => t0_en,
       we => t0_we,
       reg => t0_reg,
@@ -134,12 +134,12 @@ begin
       clk => clk,
       clk_100kHz => timer_clk,
       reset => reset,
-      
-      left_int_n => t1_left_int_n,
-      left_grant_n => t1_left_grant_n,
-      right_int_n => right_int_n,
-      right_grant_n => right_grant_n,
-   
+
+      int_n_out => t1_int_n_out,       -- build Daisy Chain between timer0 and timer 1
+      grant_n_in => t1_grant_n_in,     -- ditto
+      int_n_in => int_n_in,            -- next device in chain
+      grant_n_out => grant_n_out,      -- ditto
+         
       en => t1_en,
       we => t1_we,
       reg => t1_reg,
