@@ -91,6 +91,16 @@ switch is Bit #0.
 The below-mentioned `RESTORE` key combinations of the MEGA65 are toggling
 the bits #0 and #1 of the Switch Register.
 
+### "Switch Register" Bit #2: CPU Debug Mode
+
+On the Nexys 4 DDR board, the third switch (counted from the right) aka `SW2`
+triggers bit #2 of the "Switch Register". There is no equivalent of this
+key on the MEGA65. If bit #2 is `1`, then the CPU Debug Mode is activated.
+
+As a result, the 7-segment display of the Nexys 4 DDR board will show the
+CPU address (program counter) when a `HALT` command was executed. This
+is very valuable when running a CPU test such as `test_programs/cpu_test.asm`.
+
 Transferring software to QNICE-FPGA
 -----------------------------------
 
