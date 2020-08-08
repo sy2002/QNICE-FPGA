@@ -192,10 +192,11 @@ begin
             freq_div_cnt <= to_unsigned(freq_div_sys_target, 16);
          
          -- count, but only, if it has not yet fired
-         elsif is_counting and not has_fired then
+         elsif is_counting and State = s_count and not has_fired then
          
             -- create 100 kHz clock from system clock
             if freq_div_cnt = x"0000" or IS_SIMULATION then
+               freq_div_cnt <= to_unsigned(freq_div_sys_target, 16);
                -- prescaler divides the 100 kHz clock by the value stored in the PRE register
                if counter_pre = x"0001" then
                   -- count until zero, then "has_fired" will be true

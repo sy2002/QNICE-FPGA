@@ -13,15 +13,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="19885666fs"></ZoomStartTime>
-      <ZoomEndTime time="20022867fs"></ZoomEndTime>
-      <Cursor1Time time="20000000fs"></Cursor1Time>
+      <ZoomStartTime time="4159000fs"></ZoomStartTime>
+      <ZoomEndTime time="4467479fs"></ZoomEndTime>
+      <Cursor1Time time="4260107fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="151"></NameColumnWidth>
+      <NameColumnWidth column_width="147"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="36" />
+   <WVObjectSize size="40" />
    <wvobject type="logic" fp_name="/dev_int/CLK">
       <obj_property name="ElementShortName">CLK</obj_property>
       <obj_property name="ObjectShortName">CLK</obj_property>
@@ -138,10 +138,6 @@
       <obj_property name="ElementShortName">data_i[15:0]</obj_property>
       <obj_property name="ObjectShortName">data_i[15:0]</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/dev_int/timer_interrupt/timer_clk">
-      <obj_property name="ElementShortName">timer_clk</obj_property>
-      <obj_property name="ObjectShortName">timer_clk</obj_property>
-   </wvobject>
    <wvobject type="logic" fp_name="/dev_int/timer_interrupt/t0_en">
       <obj_property name="ElementShortName">t0_en</obj_property>
       <obj_property name="ObjectShortName">t0_en</obj_property>
@@ -165,5 +161,25 @@
    <wvobject type="array" fp_name="/dev_int/timer_interrupt/timer0/reg">
       <obj_property name="ElementShortName">reg[1:0]</obj_property>
       <obj_property name="ObjectShortName">reg[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/dev_int/timer_interrupt/timer0/State">
+      <obj_property name="ElementShortName">State</obj_property>
+      <obj_property name="ObjectShortName">State</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/dev_int/timer_interrupt/timer0/is_counting">
+      <obj_property name="ElementShortName">is_counting</obj_property>
+      <obj_property name="ObjectShortName">is_counting</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/dev_int/timer_interrupt/timer0/has_fired">
+      <obj_property name="ElementShortName">has_fired</obj_property>
+      <obj_property name="ObjectShortName">has_fired</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/timer_interrupt/timer0/counter_pre">
+      <obj_property name="ElementShortName">counter_pre[15:0]</obj_property>
+      <obj_property name="ObjectShortName">counter_pre[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/timer_interrupt/timer0/counter_cnt">
+      <obj_property name="ElementShortName">counter_cnt[15:0]</obj_property>
+      <obj_property name="ObjectShortName">counter_cnt[15:0]</obj_property>
    </wvobject>
 </wave_config>

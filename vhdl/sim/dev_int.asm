@@ -10,9 +10,14 @@
 ;      next move which will then continue writing the ascending series of 
 ;      integers to the DATA area.
 ;
-;  The way how dev_int.vhd wires the interrupt_generator (dev_int_source),
-;  the expected memory layout is:
+;  The way how this source code configures the timer interrupt generator,
+;  the expected memory layout at DATA is:
+;
 ;  1, 2, 3, CCCC, CCCC, 4, 5, DD00, DD01, DD02, DD03, DD03, DD04, 6, 7
+;
+;  Important difference of the simulated timer interrupt generator to the
+;  hardware version: The simulated one ticks with the clock speed of the CPU
+;  and in contrast, the real one divides it down to be 100 kHz.
 ;
 ;  done by vaxman and sy2002 in July/August 2020
 
@@ -50,6 +55,15 @@
         CMP     0xBBBB, @R4
         RBRA    A_HALT, !Z
 
+        ; set the simulated timer interrupt such, that it interrupts in the
+        ; middle of the execution of the below-mentioned "MOVE 3, @R12++"
+        MOVE    IO$TIMER_0_PRE, R0
+        MOVE    1, @R0
+        MOVE    IO$TIMER_0_CNT, R10
+        MOVE    16, @R10
+        MOVE    IO$TIMER_0_INT, R11
+        MOVE    H_ISR, @R11 ; this actually starts the timer
+
         ; hardware interrupts
         MOVE    DATA, R12
         MOVE    1, @R12++
@@ -57,6 +71,9 @@
         MOVE    3, @R12++   ; expectation: hardware interrupt here and another
         MOVE    4, @R12++   ; hw int that interrupts the first hw int
         MOVE    5, @R12++
+
+        ; expectation: the ISR has deactivated the hardware interrupts here
+        ; we go on with software interrupts
 
         ; since we are running in a simulation, that uses this code in ROM,
         ; we need to fill the values in the 0x8000+ range, that we need to be
@@ -87,9 +104,16 @@
 A_HALT  HALT
 
         ; HARDWARE INTERRUPT ISR
-        ; Start of ISR: Look at the .lis file to find out where it is
-        ; Currently it should be: 0x0026 <=needs to be edited in "dev_int.vhd"
-        MOVE    0xCCCC, @R12++
+        ; First iteration: Set timer counter to 1 cycle to make sure that
+        ; also "MOVE    4, @R12++" is interrupted
+        ; Second iteration: Deactivate further hardware timer interrupts
+H_ISR   MOVE    0xCCCC, @R12++
+        MOVE    0, @R11      ; temporarily stop the timer
+        CMP     1, @R10
+        RBRA    H_I1, !Z    ; 1st iteration: set timer counter to 1 cycle                            
+        RTI                 ; 2nd iteration: keep hardware timer deactivated
+H_I1    MOVE    1, @R10
+        MOVE    H_ISR, @R11 ; reactivate the timer
         RTI
 
         ; SOFTWARE INTERRUPT ISRs
