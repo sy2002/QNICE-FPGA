@@ -878,7 +878,7 @@ int execute() {
       if (source_1 & 0x8000) cmp_1 |= 0xffff0000;
       if (cmp_0 > cmp_1) sr_bits |= 0x0020;
 
-      write_register(SR, (read_register(SR) & 0xffc0) | (sr_bits & 0x3f));
+      write_register(SR, (read_register(SR) & 0xffc7) | (sr_bits & 0x3f));
       break;
     case 13: /* Reserved */
       printf("Attempt to execute the reserved instruction...\n");
