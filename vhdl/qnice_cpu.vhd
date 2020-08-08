@@ -693,19 +693,26 @@ begin
                   
                -- store result: indirect
                else
-                  fsmNextCpuState <= cs_exepost_store_dst_indirect;
-                  fsmCpuAddr <= reg_read_data2;
-                  fsmDataToBus <= std_logic_vector(Alu_Result);
-                  fsmCpuDataDirCtrl <= '1';
-                  fsmCpuDataValid <='1';
+                  fsmNextCpuState <= cs_exepost_store_dst_indirect; -- also go there in the CMP case due to a possible post increment
+                  if Opcode /= opcCMP then
+                     fsmCpuAddr <= reg_read_data2;
+                     fsmDataToBus <= std_logic_vector(Alu_Result);
+                     fsmCpuDataDirCtrl <= '1';
+                     fsmCpuDataValid <='1';
+                  end if;
                end if;               
             end if;
                                
          when cs_exepost_store_dst_indirect =>
-            DATA <= DATA_To_Bus;
-            fsmDataToBus <= DATA_To_Bus;
-            fsmCpuDataDirCtrl <= '1';
-            fsmCpuDataValid <= '1';
+            -- Do the actual indirect storing, the target address is already there, thanks to the
+            -- fsmCpuAddr in the previous step. But in a CMP case: Do not store anything. Still,
+            -- we are executing this step to make sure any post increment works: CMP R1, @R2++
+            if Opcode /= opcCMP then
+               DATA <= DATA_To_Bus;         
+               fsmDataToBus <= DATA_To_Bus;
+               fsmCpuDataDirCtrl <= '1';
+               fsmCpuDataValid <= '1';
+            end if;
             
             -- add wait cycles if necessary
             if WAIT_FOR_DATA = '1' then
