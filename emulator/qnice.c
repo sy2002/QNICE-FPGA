@@ -719,9 +719,12 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
   n = destination & 0x8000 ? 1 : 0;
 
   // See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html for the logic behind this:
-  if (!(control_bitmask & DO_NOT_MODIFY_OVERFLOW) && (operation == ADD_INSTRUCTION || operation == SUB_INSTRUCTION)) 
-    v = ((source_0 & 0xffff) ^ (destination & 0xffff)) & ((source_1 & 0xffff) ^ (destination & 0xffff)) & 0x8000 ? 1 : 0;
-  else 
+  if (!(control_bitmask & DO_NOT_MODIFY_OVERFLOW) && (operation == ADD_INSTRUCTION || operation == SUB_INSTRUCTION)) {
+    if (operation == ADD_INSTRUCTION)
+      v = ((source_0 & 0xffff) ^ (destination & 0xffff)) & ((source_1 & 0xffff) ^ (destination & 0xffff)) & 0x8000 ? 1 : 0;
+    else if (operation == SUB_INSTRUCTION)
+      v = ((source_0 & 0xffff) ^ (destination & 0xffff)) & (((~source_1) & 0xffff) ^ (destination & 0xffff)) & 0x8000 ? 1 : 0;
+  } else 
     v = (sr_bits >> 5) & 1; // Retain old V-flag
 
   sr_bits &= 0xffc1;    // Keep the upper 10 bits and the LSB.
@@ -793,7 +796,8 @@ int execute() {
   switch (opcode) {
     case 0: /* MOVE */
       destination = read_source_operand(source_mode, source_regaddr, FALSE);
-      update_status_bits(destination, destination, destination, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
+      update_status_bits(destination, destination, destination, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, 
+                         NO_ADD_SUB_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 1: /* ADD */
