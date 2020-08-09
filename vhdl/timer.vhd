@@ -94,11 +94,8 @@ begin
    
    -- timer is only counting if no register is zero
    is_counting <= true when reg_int /= x"0000" and reg_pre /= x"0000" and reg_cnt /= x"0000" else false;
-   
-   -- timer has fired   
-   has_fired   <= true when counter_cnt = 0 else false;
-   
-   fsm_advance_state : process(clk, reset)
+      
+   fsm_advance_state : process(clk)
    begin
       if rising_edge(clk) then
          if reset = '1' or new_timer_vals then
@@ -136,21 +133,18 @@ begin
             
          when s_signal =>
             grant_n_out <= '1'; -- keep the right device de-coupled
+            int_n_out <= '0';   -- request interrupt
 
             -- if interrupt is granted: put ISR address on the data bus          
             if grant_n_in = '0' then
                fsmState_Next <= s_provide_isr;
                data <= std_logic_vector(reg_int);
-               int_n_out <= '1';  -- stop to request interrupt, but keep right device de-coupled
-            -- if not yet granted, continue to request interrupt                      
-            else
-               int_n_out <= '0';  -- continue to request interrupt
             end if;
             
          when s_provide_isr =>
-            grant_n_out <= '1'; -- de-couple the right device
-            int_n_out <= '1';   -- stop to request interrupt, but keep right device de-coupled
-         
+            grant_n_out <= '1'; -- keep the right device de-coupled
+            int_n_out <= '1';   -- stop to request interrupt
+                                       
             -- keep putting the ISR address on the data bus until the grant is revoked
             if grant_n_in = '0' then            
                fsmState_Next <= s_provide_isr;
@@ -166,18 +160,20 @@ begin
    end process;
 
    -- nested counting loop: "count PRE times to CNT" 
-   count : process(clk, reset, State, new_timer_vals, reg, data)
+   count : process(clk)
    begin
       -- DATA is often only valid at the falling edge of the system clock
       if falling_edge(clk) then     
          -- system reset: stop everything
          if reset = '1' then
+            has_fired <= false;
             counter_pre <= (others => '0');
             counter_cnt <= (others => '0');
             freq_div_cnt <= to_unsigned(freq_div_sys_target, 16);
          
          -- new values for the PRE and CNT registers are on the data bus
          elsif new_timer_vals then
+            has_fired <= false;
             if reg = REGNO_PRE then
                counter_pre <= unsigned(data);               
             elsif reg = REGNO_CNT then
@@ -187,6 +183,7 @@ begin
                
          -- timer elapsed and fired and handled the interrupt, now it is time to reset the values
          elsif State = s_reset then
+            has_fired <= false;
             counter_pre <= reg_pre;
             counter_cnt <= reg_cnt;
             freq_div_cnt <= to_unsigned(freq_div_sys_target, 16);
@@ -199,8 +196,11 @@ begin
                freq_div_cnt <= to_unsigned(freq_div_sys_target, 16);
                -- prescaler divides the 100 kHz clock by the value stored in the PRE register
                if counter_pre = x"0001" then
+                  counter_pre <= reg_pre;
                   -- count until zero, then "has_fired" will be true
-                  if counter_cnt /= x"0000" then
+                  if counter_cnt = x"0000" then
+                     has_fired <= true;
+                  else
                      counter_cnt <= counter_cnt - 1;
                   end if;
                else

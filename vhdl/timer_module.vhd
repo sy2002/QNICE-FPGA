@@ -114,8 +114,8 @@ begin
       
       int_n_out => int_n_out,          -- connect with "left" device (e.g. CPU)
       grant_n_in => grant_n_in,        -- ditto
-      int_n_in => t1_int_n_out,        -- build Daisy Chain between timer0 and timer 1
-      grant_n_out => t1_grant_n_in,    -- ditto
+      int_n_in => '1', --t1_int_n_out,        -- build Daisy Chain between timer0 and timer 1
+      grant_n_out => open, --t1_grant_n_in,    -- ditto
          
       en => t0_en,
       we => t0_we,

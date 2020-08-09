@@ -206,8 +206,7 @@ end component;
 -- Interrupt generator: Timer Module
 component timer_module is
 generic (
-   CLK_FREQ       : natural;                             -- system clock in Hertz
-   IS_SIMULATION  : boolean := false                     -- is the module running in simulation?
+   CLK_FREQ       : natural                              -- system clock in Hertz
 );
 port (
    clk            : in std_logic;                        -- system clock
@@ -289,8 +288,10 @@ port (
    addr              : in std_logic_vector(15 downto 0);
    data_dir          : in std_logic;
    data_valid        : in std_logic;
-   cpu_halt          : in std_logic;   
-   
+   cpu_halt          : in std_logic;
+   cpu_igrant_n      : in std_logic; -- if this goes to 0, then all devices need to leave the DATA bus alone,
+                                     -- because the interrupt device will put the ISR address on the bus
+      
    -- let the CPU wait for data from the bus
    cpu_wait_for_data : out std_logic;   
    
@@ -635,6 +636,7 @@ begin
          data_valid => cpu_data_valid,
          cpu_wait_for_data => cpu_wait_for_data,
          cpu_halt => cpu_halt,
+         cpu_igrant_n => cpu_igrant_n,         
          rom_enable => rom_enable,
          rom_busy => rom_busy,
          ram_enable => ram_enable,
