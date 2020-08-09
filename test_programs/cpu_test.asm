@@ -888,6 +888,46 @@ E_SUB_01        HALT
 L_SUB_02
 
 
+// ---------------------------------------------------------------------------
+// Test the SUBC instruction
+// Subtraction                  | V | N | Z | C | X | 1 |
+// 0x5678 - 0x4321 - 0 = 0x1357 | 0 | 0 | 0 | 0 | 0 | 1 |
+// 0x5678 - 0x5678 - 0 = 0x0000 | 0 | 0 | 1 | 0 | 0 | 1 |
+// 0x5678 - 0x5679 - 0 = 0xFFFF | 0 | 1 | 0 | 1 | 1 | 1 |
+// 0x5678 - 0x89AB - 0 = 0xCCCD | 1 | 1 | 0 | 1 | 0 | 1 |
+// 0x5678 - 0xFEDC - 0 = 0x579C | 0 | 0 | 0 | 1 | 0 | 1 |
+// 0x89AB - 0x4321 - 0 = 0x468A | 1 | 0 | 0 | 0 | 0 | 1 |
+// 0x5678 - 0x4321 - 1 = 0x1357 | 0 | 0 | 0 | 0 | 0 | 1 |
+// 0x5678 - 0x5678 - 1 = 0xFFFF | 0 | 1 | 0 | 1 | 1 | 1 |
+// 0x5678 - 0x5677 - 1 = 0x0000 | 0 | 0 | 1 | 0 | 0 | 1 |
+// 0x5678 - 0x89AB - 1 = 0xCCCD | 1 | 1 | 0 | 1 | 0 | 1 |
+// 0x5678 - 0xFEDC - 1 = 0x579C | 0 | 0 | 0 | 1 | 0 | 1 |
+// 0x89AB - 0x4321 - 1 = 0x468A | 1 | 0 | 0 | 0 | 0 | 1 |
+
+L_SUBC_00       MOVE    STIM_SUBC, R8
+L_SUBC_01       MOVE    @R8, R1                 // First operand
+                RBRA    L_SUBC_02, Z            // End of test
+                ADD     0x0001, R8
+                MOVE    @R8, R0                 // Second operand
+                ADD     0x0001, R8
+                MOVE    @R8, R2                 // Carry input
+                ADD     0x0001, R8
+                MOVE    @R8, R3                 // Expected result
+                ADD     0x0001, R8
+                MOVE    @R8, R4                 // Expected status
+                ADD     0x0001, R8
+
+                MOVE    R2, R14                 // Set carry input
+                SUBC    R0, R1
+                MOVE    R14, R9                 // Copy status
+                CMP     R1, R3                  // Verify expected result
+                RBRA    E_SUBC_01, !Z           // Jump if error
+                CMP     R9, R4                  // Verify expected status
+                RBRA    L_SUBC_01, Z
+E_SUBC_01       HALT
+L_SUBC_02
+
+
 
 // Everything worked as expected! We are done now.
 EXIT            MOVE    OK, R8
@@ -926,6 +966,22 @@ STIM_SUB        .DW     0x5678, 0x4321, 0x0000, 0x1357, 0x0001
                 .DW     0x5678, 0x89AB, 0x0005, 0xCCCD, 0x0035
                 .DW     0x5678, 0xFEDC, 0x0000, 0x579C, 0x0005
                 .DW     0x89AB, 0x4321, 0x0005, 0x468A, 0x0021
+
+                .DW     0x0000
+
+STIM_SUBC       .DW     0x5678, 0x4321, 0x0000, 0x1357, 0x0001
+                .DW     0x5678, 0x5678, 0x0000, 0x0000, 0x0009
+                .DW     0x5678, 0x5679, 0x0000, 0xFFFF, 0x0017
+                .DW     0x5678, 0x89AB, 0x0000, 0xCCCD, 0x0035
+                .DW     0x5678, 0xFEDC, 0x0000, 0x579C, 0x0005
+                .DW     0x89AB, 0x4321, 0x0000, 0x468A, 0x0021
+
+                .DW     0x5678, 0x4321, 0x0004, 0x1356, 0x0001
+                .DW     0x5678, 0x5678, 0x0004, 0xFFFF, 0x0017
+                .DW     0x5678, 0x5677, 0x0004, 0x0000, 0x0009
+                .DW     0x5678, 0x89AB, 0x0004, 0xCCCC, 0x0035
+                .DW     0x5678, 0xFEDC, 0x0004, 0x579B, 0x0005
+                .DW     0x89AB, 0x4321, 0x0004, 0x4689, 0x0021
 
                 .DW     0x0000
 
