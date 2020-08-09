@@ -74,12 +74,19 @@ ISR_T0  MOVE    R8, @--SP       ; Do not modify registers in an ISR, so save R8
 
         MOVE    ISR_T0T, R8     ; Print message in ISR_T0T
         SYSCALL(puts, 1)
+        MOVE    COUNTER, R8
+        ADD     1, @R8
+        MOVE    @R8, R8
+        SYSCALL(puthex, 1)
+        SYSCALL(crlf, 1)
 
         MOVE    @SP++, R8       ; Restore R8 from stack
         RTI                     ; Return from interrupt
 
 TT_1    .ASCII_W    "Setup timer 0 to interrupt every 1000 milliseconds.\n"
-ISR_T0T .ASCII_W    "Timer 0 has issued an interrupt request!\n"
+ISR_T0T .ASCII_W    "Timer 0 has issued interrupt request #"
+
+COUNTER .DW 0
 
         ; ----------------------------------------------------
         ; Uninstaller: Call 0xE100 to uninstall the ISR
