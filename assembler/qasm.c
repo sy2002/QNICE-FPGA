@@ -551,7 +551,7 @@ int assemble() {
     
     if (!strlen(line)) /* Skip empty lines */
       continue;
-      
+
     tokenize(line, (char *) 0); /* Initialize tokenizing */
     token = tokenize((char *) 0, delimiters);
     strcpy(label, token); /* Make a copy of the token in case it is a label to avoid implicit conversion to upper case */
@@ -871,13 +871,6 @@ int assemble() {
       for (flag = 0; sr_bits[flag]; flag++)
         if (sr_bits[flag] == *p)
           break;
-          
-      if (flag > 7) {
-        sprintf(entry->error_text, "Line %d: Illegal condition flag! (%s)", line_counter, entry->source);
-        PRINT_ERROR;
-        error_counter++;
-        continue;
-      }
       
       /* Now prepare for memory allocation and construction of the instruction itself. */
       if (entry->src_op_type == OPERAND$CONSTANT || entry->src_op_type == OPERAND$LABEL_EQU) {
@@ -888,6 +881,13 @@ int assemble() {
       if (!(entry->data = (int *) malloc(entry->number_of_words * sizeof(int)))) {
         printf("assemble: Out of memory, could not allocate %d words of memory!", (int) strlen(p));
         return -1;
+      }
+          
+      if (flag > 7) {
+        sprintf(entry->error_text, "Line %d: Illegal condition flag! (%s)", line_counter, entry->source);
+        PRINT_ERROR;
+        error_counter++;
+        continue;
       }
 
       /* Assemble the instruction itself */
