@@ -16,6 +16,26 @@
 // * All combinations of instructions and addressing modes.
 // * All combinations of addressing modes and status flags.
 
+// Status register (bits 7 - 0), R14:
+// - - V N Z C X 1
+
+// Instructions:
+// MOVE, ADD, ADDC, SUB, SUBC, SHL, SHR, SWAP
+// NOT, AND, OR, XOR, CMP, res, HALT, BRA/SUB
+
+// Instruction | Flags affected
+//             | V | N | Z | C | X |
+// MOVE        | . | * | * | . | * |
+// ADD/SUB     | * | * | * | * | * |
+// SHL         | . | . | . | * | . |
+// SHR         | . | . | . | . | * |
+// SWAP        | . | * | * | . | * |
+// NOT         | . | * | * | . | * |
+// AND/OR/XOR  | . | * | * | . | * |
+// CMP         | * | * | * | 0 | 0 |
+// BRA/SUB     | . | . | . | . | . |
+
+
 // We can't explicitly test the HALT instruction, so we must just assume that
 // it works as expected.
 
@@ -35,18 +55,6 @@
 // More tests to do:
 // Test that PC is the same as R15
 //
-
-// Instruction | Flags affected
-//             | V | N | Z | C | X |
-// MOVE        | . | * | * | . | * |
-// ADD/SUB     | * | * | * | * | * |
-// SHL         | . | . | . | * | . |
-// SHR         | . | . | . | . | * |
-// SWAP        | . | * | * | . | * |
-// NOT         | . | * | * | . | * |
-// AND/OR/XOR  | . | * | * | . | * |
-// CMP         | * | * | * | 0 | 0 |
-// BRA/SUB     | . | . | . | . | . |
 
 
 // ---------------------------------------------------------------------------
@@ -849,6 +857,7 @@ L_ADDC_01       MOVE    @R8, R0                 // First operand
                 RBRA    E_ADDC_01, !Z           // Jump if error
                 CMP     R9, R4                  // Verify expected status
                 RBRA    L_ADDC_01, Z
+                HALT
 E_ADDC_01       HALT
 L_ADDC_02
 
@@ -884,6 +893,7 @@ L_SUB_01        MOVE    @R8, R1                 // First operand
                 RBRA    E_SUB_01, !Z            // Jump if error
                 CMP     R9, R4                  // Verify expected status
                 RBRA    L_SUB_01, Z
+                HALT
 E_SUB_01        HALT
 L_SUB_02
 
@@ -924,9 +934,131 @@ L_SUBC_01       MOVE    @R8, R1                 // First operand
                 RBRA    E_SUBC_01, !Z           // Jump if error
                 CMP     R9, R4                  // Verify expected status
                 RBRA    L_SUBC_01, Z
+                HALT
 E_SUBC_01       HALT
 L_SUBC_02
 
+
+// ---------------------------------------------------------------------------
+// Test the SHL instruction
+// SHL (X=0)                 | V | N | Z | C | X | 1 |
+// 0x5678 << 0x0000 = 0x5678 | . | . | . | 0 | . | 1 |
+// 0x5678 << 0x0001 = 0xACF0 | . | . | . | 0 | . | 1 |
+// 0x5678 << 0x0002 = 0x59E0 | . | . | . | 1 | . | 1 |
+// 0x5678 << 0x0003 = 0xB3C0 | . | . | . | 0 | . | 1 |
+// 0x5678 << 0x0004 = 0x6780 | . | . | . | 1 | . | 1 |
+// 0x5678 << 0x0005 = 0xCF00 | . | . | . | 0 | . | 1 |
+// 0x0000 << 0x000F = 0x0000 | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0x000F = 0x8000 | . | . | . | 1 | . | 1 |
+// 0xFFFF << 0x0010 = 0x0000 | . | . | . | 1 | . | 1 |
+// 0xFFFF << 0x0011 = 0x0000 | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0x8000 = 0x0000 | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0xFFF0 = 0x0000 | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0xFFF8 = 0x0000 | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0xFFFC = 0x0000 | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0xFFFE = 0x0000 | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0xFFFF = 0x0000 | . | . | . | 0 | . | 1 |
+// SHL (X=1)                 | V | N | Z | C | X | 1 |
+// 0x5678 << 0x0000 = 0x5678 | . | . | . | 0 | . | 1 |
+// 0x5678 << 0x0001 = 0xACF1 | . | . | . | 0 | . | 1 |
+// 0x5678 << 0x0002 = 0x59E3 | . | . | . | 1 | . | 1 |
+// 0x5678 << 0x0003 = 0xB3C7 | . | . | . | 0 | . | 1 |
+// 0x5678 << 0x0004 = 0x678F | . | . | . | 1 | . | 1 |
+// 0x5678 << 0x0005 = 0xCF1F | . | . | . | 0 | . | 1 |
+// 0x0000 << 0x000F = 0x7FFF | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0x000F = 0xFFFF | . | . | . | 1 | . | 1 |
+// 0xFFFF << 0x0010 = 0xFFFF | . | . | . | 1 | . | 1 |
+// 0xFFFF << 0x0011 = 0xFFFF | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0x8000 = 0xFFFF | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0xFFF0 = 0xFFFF | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0xFFF8 = 0xFFFF | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0xFFFC = 0xFFFF | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0xFFFE = 0xFFFF | . | . | . | 0 | . | 1 |
+// 0xFFFF << 0xFFFF = 0xFFFF | . | . | . | 0 | . | 1 |
+
+L_SHL_00        MOVE    STIM_SHL, R8
+L_SHL_01        MOVE    @R8, R1                 // First operand
+                RBRA    L_SHL_02, Z             // End of test
+                ADD     0x0001, R8
+                MOVE    @R8, R0                 // Second operand
+                ADD     0x0001, R8
+                MOVE    @R8, R2                 // Carry input
+                ADD     0x0001, R8
+                MOVE    @R8, R3                 // Expected result
+                ADD     0x0001, R8
+                MOVE    @R8, R4                 // Expected status
+                ADD     0x0001, R8
+
+                MOVE    R2, R14                 // Set carry input
+                SHL     R0, R1
+                MOVE    R14, R9                 // Copy status
+                CMP     R1, R3                  // Verify expected result
+                RBRA    E_SHL_01, !Z            // Jump if error
+                CMP     R9, R4                  // Verify expected status
+                RBRA    L_SHL_01, Z
+                HALT
+E_SHL_01        HALT
+L_SHL_02
+
+
+// ---------------------------------------------------------------------------
+// Test the SHR instruction
+// SHR (C=0)                 | V | N | Z | C | X | 1 |
+// 0x8765 >> 0x0000 = 0x8765 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x0001 = 0x43B2 | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0x0002 = 0x21D9 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x0003 = 0x10EC | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0x0004 = 0x0876 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x0005 = 0x043B | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x000F = 0x0001 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x0010 = 0x0000 | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0x0011 = 0x0000 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x8000 = 0x0000 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0xFFF0 = 0x0000 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0xFFF8 = 0x0000 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0xFFFC = 0x0000 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0xFFFE = 0x0000 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0xFFFF = 0x0000 | . | . | . | . | 0 | 1 |
+// SHR (C=1)                 | V | N | Z | C | X | 1 |
+// 0x8765 >> 0x0000 = 0x8765 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x0001 = 0xC3B2 | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0x0002 = 0xE1D9 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x0003 = 0xF0EC | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0x0004 = 0xF876 | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x0005 = 0xFC3B | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x000F = 0xFFFF | . | . | . | . | 0 | 1 |
+// 0x8765 >> 0x0010 = 0xFFFF | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0x0011 = 0xFFFF | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0x8000 = 0xFFFF | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0xFFF0 = 0xFFFF | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0xFFF8 = 0xFFFF | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0xFFFC = 0xFFFF | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0xFFFE = 0xFFFF | . | . | . | . | 1 | 1 |
+// 0x8765 >> 0xFFFF = 0xFFFF | . | . | . | . | 1 | 1 |
+
+L_SHR_00        MOVE    STIM_SHR, R8
+L_SHR_01        MOVE    @R8, R1                 // First operand
+                RBRA    L_SHR_02, Z             // End of test
+                ADD     0x0001, R8
+                MOVE    @R8, R0                 // Second operand
+                ADD     0x0001, R8
+                MOVE    @R8, R2                 // Carry input
+                ADD     0x0001, R8
+                MOVE    @R8, R3                 // Expected result
+                ADD     0x0001, R8
+                MOVE    @R8, R4                 // Expected status
+                ADD     0x0001, R8
+
+                MOVE    R2, R14                 // Set carry input
+                SHR     R0, R1
+                MOVE    R14, R9                 // Copy status
+                CMP     R1, R3                  // Verify expected result
+                RBRA    E_SHR_01, !Z            // Jump if error
+                CMP     R9, R4                  // Verify expected status
+                RBRA    L_SHR_01, Z
+                HALT
+E_SHR_01        HALT
+L_SHR_02
 
 
 // Everything worked as expected! We are done now.
@@ -984,6 +1116,145 @@ STIM_SUBC       .DW     0x5678, 0x4321, 0x0000, 0x1357, 0x0001
                 .DW     0x89AB, 0x4321, 0x0004, 0x4689, 0x0021
 
                 .DW     0x0000
+
+STIM_SHL
+// X = 0, all other flags = 0
+                .DW     0x5678, 0x0000, 0x0000, 0x5678, 0x0001
+                .DW     0x5678, 0x0001, 0x0000, 0xACF0, 0x0001
+                .DW     0x5678, 0x0002, 0x0000, 0x59E0, 0x0005
+                .DW     0x5678, 0x0003, 0x0000, 0xB3C0, 0x0001
+                .DW     0x5678, 0x0004, 0x0000, 0x6780, 0x0005
+                .DW     0x5678, 0x0005, 0x0000, 0xCF00, 0x0001
+                .DW     0x0000, 0x000F, 0x0000, 0x0000, 0x0001
+                .DW     0xFFFF, 0x000F, 0x0000, 0x8000, 0x0005
+                .DW     0xFFFF, 0x0010, 0x0000, 0x0000, 0x0005
+                .DW     0xFFFF, 0x0011, 0x0000, 0x0000, 0x0001
+                .DW     0xFFFF, 0x8000, 0x0000, 0x0000, 0x0001
+                .DW     0xFFFF, 0xFFF0, 0x0000, 0x0000, 0x0001
+                .DW     0xFFFF, 0xFFF8, 0x0000, 0x0000, 0x0001
+                .DW     0xFFFF, 0xFFFC, 0x0000, 0x0000, 0x0001
+                .DW     0xFFFF, 0xFFFE, 0x0000, 0x0000, 0x0001
+                .DW     0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x0001
+
+// X = 0, all other flags = 1
+                .DW     0x5678, 0x0000, 0x00FC, 0x5678, 0x00F9
+                .DW     0x5678, 0x0001, 0x00FC, 0xACF0, 0x00F9
+                .DW     0x5678, 0x0002, 0x00FC, 0x59E0, 0x00FD
+                .DW     0x5678, 0x0003, 0x00FC, 0xB3C0, 0x00F9
+                .DW     0x5678, 0x0004, 0x00FC, 0x6780, 0x00FD
+                .DW     0x5678, 0x0005, 0x00FC, 0xCF00, 0x00F9
+                .DW     0x0000, 0x000F, 0x00FC, 0x0000, 0x00F9
+                .DW     0xFFFF, 0x000F, 0x00FC, 0x8000, 0x00FD
+                .DW     0xFFFF, 0x0010, 0x00FC, 0x0000, 0x00FD
+                .DW     0xFFFF, 0x0011, 0x00FC, 0x0000, 0x00F9
+                .DW     0xFFFF, 0x8000, 0x00FC, 0x0000, 0x00F9
+                .DW     0xFFFF, 0xFFF0, 0x00FC, 0x0000, 0x00F9
+                .DW     0xFFFF, 0xFFF8, 0x00FC, 0x0000, 0x00F9
+                .DW     0xFFFF, 0xFFFC, 0x00FC, 0x0000, 0x00F9
+                .DW     0xFFFF, 0xFFFE, 0x00FC, 0x0000, 0x00F9
+                .DW     0xFFFF, 0xFFFF, 0x00FC, 0x0000, 0x00F9
+
+// X = 1, all other flags = 0
+                .DW     0x5678, 0x0000, 0x0002, 0x5678, 0x0001
+                .DW     0x5678, 0x0001, 0x0002, 0xACF1, 0x0001
+                .DW     0x5678, 0x0002, 0x0002, 0x59E3, 0x0005
+                .DW     0x5678, 0x0003, 0x0002, 0xB3C7, 0x0001
+                .DW     0x5678, 0x0004, 0x0002, 0x678F, 0x0005
+                .DW     0x5678, 0x0005, 0x0002, 0xCF1F, 0x0001
+                .DW     0x0000, 0x000F, 0x0002, 0x7FFF, 0x0001
+                .DW     0xFFFF, 0x000F, 0x0002, 0xFFFF, 0x0005
+                .DW     0xFFFF, 0x0010, 0x0002, 0xFFFF, 0x0005
+                .DW     0xFFFF, 0x0011, 0x0002, 0xFFFF, 0x0001
+                .DW     0xFFFF, 0x8000, 0x0002, 0xFFFF, 0x0001
+                .DW     0xFFFF, 0xFFF0, 0x0002, 0xFFFF, 0x0001
+                .DW     0xFFFF, 0xFFF8, 0x0002, 0xFFFF, 0x0001
+                .DW     0xFFFF, 0xFFFC, 0x0002, 0xFFFF, 0x0001
+                .DW     0xFFFF, 0xFFFE, 0x0002, 0xFFFF, 0x0001
+                .DW     0xFFFF, 0xFFFF, 0x0002, 0xFFFF, 0x0001
+
+// X = 1, all other flags = 1
+                .DW     0x5678, 0x0000, 0x00FF, 0x5678, 0x00F9
+                .DW     0x5678, 0x0001, 0x00FF, 0xACF1, 0x00F9
+                .DW     0x5678, 0x0002, 0x00FF, 0x59E3, 0x00FD
+                .DW     0x5678, 0x0003, 0x00FF, 0xB3C7, 0x00F9
+                .DW     0x5678, 0x0004, 0x00FF, 0x678F, 0x00FD
+                .DW     0x5678, 0x0005, 0x00FF, 0xCF1F, 0x00F9
+                .DW     0x0000, 0x000F, 0x00FF, 0x7FFF, 0x00F9
+                .DW     0xFFFF, 0x000F, 0x00FF, 0xFFFF, 0x00FD
+                .DW     0xFFFF, 0x0010, 0x00FF, 0xFFFF, 0x00FD
+                .DW     0xFFFF, 0x0011, 0x00FF, 0xFFFF, 0x00F9
+                .DW     0xFFFF, 0x8000, 0x00FF, 0xFFFF, 0x00F9
+                .DW     0xFFFF, 0xFFF0, 0x00FF, 0xFFFF, 0x00F9
+                .DW     0xFFFF, 0xFFF8, 0x00FF, 0xFFFF, 0x00F9
+                .DW     0xFFFF, 0xFFFC, 0x00FF, 0xFFFF, 0x00F9
+                .DW     0xFFFF, 0xFFFE, 0x00FF, 0xFFFF, 0x00F9
+                .DW     0xFFFF, 0xFFFF, 0x00FF, 0xFFFF, 0x00F9
+
+STIM_SHR
+// C = 0, all other flags = 0
+                .DW     0x8765, 0x0000, 0x0000, 0x8765, 0x0001
+                .DW     0x8765, 0x0001, 0x0000, 0x43B2, 0x0003
+                .DW     0x8765, 0x0002, 0x0000, 0x21D9, 0x0001
+                .DW     0x8765, 0x0003, 0x0000, 0x10EC, 0x0003
+                .DW     0x8765, 0x0004, 0x0000, 0x0876, 0x0001
+                .DW     0x8765, 0x0005, 0x0000, 0x043B, 0x0001
+                .DW     0x8765, 0x000F, 0x0000, 0x0001, 0x0001
+                .DW     0x8765, 0x0010, 0x0000, 0x0000, 0x0003
+                .DW     0x8765, 0x0011, 0x0000, 0x0000, 0x0001
+                .DW     0x8765, 0x8000, 0x0000, 0x0000, 0x0001
+                .DW     0x8765, 0xFFF0, 0x0000, 0x0000, 0x0001
+                .DW     0x8765, 0xFFF8, 0x0000, 0x0000, 0x0001
+                .DW     0x8765, 0xFFFC, 0x0000, 0x0000, 0x0001
+                .DW     0x8765, 0xFFFE, 0x0000, 0x0000, 0x0001
+                .DW     0x8765, 0xFFFF, 0x0000, 0x0000, 0x0001
+// C = 0, all other flags = 1
+                .DW     0x8765, 0x0000, 0x00FB, 0x8765, 0x00F9
+                .DW     0x8765, 0x0001, 0x00FB, 0x43B2, 0x00FB
+                .DW     0x8765, 0x0002, 0x00FB, 0x21D9, 0x00F9
+                .DW     0x8765, 0x0003, 0x00FB, 0x10EC, 0x00FB
+                .DW     0x8765, 0x0004, 0x00FB, 0x0876, 0x00F9
+                .DW     0x8765, 0x0005, 0x00FB, 0x043B, 0x00F9
+                .DW     0x8765, 0x000F, 0x00FB, 0x0001, 0x00F9
+                .DW     0x8765, 0x0010, 0x00FB, 0x0000, 0x00FB
+                .DW     0x8765, 0x0011, 0x00FB, 0x0000, 0x00F9
+                .DW     0x8765, 0x8000, 0x00FB, 0x0000, 0x00F9
+                .DW     0x8765, 0xFFF0, 0x00FB, 0x0000, 0x00F9
+                .DW     0x8765, 0xFFF8, 0x00FB, 0x0000, 0x00F9
+                .DW     0x8765, 0xFFFC, 0x00FB, 0x0000, 0x00F9
+                .DW     0x8765, 0xFFFE, 0x00FB, 0x0000, 0x00F9
+                .DW     0x8765, 0xFFFF, 0x00FB, 0x0000, 0x00F9
+// C = 1, all other flags = 0
+                .DW     0x8765, 0x0000, 0x0004, 0x8765, 0x0005
+                .DW     0x8765, 0x0001, 0x0004, 0xC3B2, 0x0007
+                .DW     0x8765, 0x0002, 0x0004, 0xE1D9, 0x0005
+                .DW     0x8765, 0x0003, 0x0004, 0xF0EC, 0x0007
+                .DW     0x8765, 0x0004, 0x0004, 0xF876, 0x0005
+                .DW     0x8765, 0x0005, 0x0004, 0xFC3B, 0x0005
+                .DW     0x8765, 0x000F, 0x0004, 0xFFFF, 0x0005
+                .DW     0x8765, 0x0010, 0x0004, 0xFFFF, 0x0007
+                .DW     0x8765, 0x0011, 0x0004, 0xFFFF, 0x0007
+                .DW     0x8765, 0x8000, 0x0004, 0xFFFF, 0x0007
+                .DW     0x8765, 0xFFF0, 0x0004, 0xFFFF, 0x0007
+                .DW     0x8765, 0xFFF8, 0x0004, 0xFFFF, 0x0007
+                .DW     0x8765, 0xFFFC, 0x0004, 0xFFFF, 0x0007
+                .DW     0x8765, 0xFFFE, 0x0004, 0xFFFF, 0x0007
+                .DW     0x8765, 0xFFFF, 0x0004, 0xFFFF, 0x0007
+// C = 1, all other flags = 1
+                .DW     0x8765, 0x0000, 0x00FF, 0x8765, 0x00FD
+                .DW     0x8765, 0x0001, 0x00FF, 0xC3B2, 0x00FF
+                .DW     0x8765, 0x0002, 0x00FF, 0xE1D9, 0x00FD
+                .DW     0x8765, 0x0003, 0x00FF, 0xF0EC, 0x00FF
+                .DW     0x8765, 0x0004, 0x00FF, 0xF876, 0x00FD
+                .DW     0x8765, 0x0005, 0x00FF, 0xFC3B, 0x00FD
+                .DW     0x8765, 0x000F, 0x00FF, 0xFFFF, 0x00FD
+                .DW     0x8765, 0x0010, 0x00FF, 0xFFFF, 0x00FF
+                .DW     0x8765, 0x0011, 0x00FF, 0xFFFF, 0x00FF
+                .DW     0x8765, 0x8000, 0x00FF, 0xFFFF, 0x00FF
+                .DW     0x8765, 0xFFF0, 0x00FF, 0xFFFF, 0x00FF
+                .DW     0x8765, 0xFFF8, 0x00FF, 0xFFFF, 0x00FF
+                .DW     0x8765, 0xFFFC, 0x00FF, 0xFFFF, 0x00FF
+                .DW     0x8765, 0xFFFE, 0x00FF, 0xFFFF, 0x00FF
+                .DW     0x8765, 0xFFFF, 0x00FF, 0xFFFF, 0x00FF
 
 
 // The OLD version of cpu_test is here for now. TBD: Remove
