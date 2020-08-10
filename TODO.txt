@@ -183,6 +183,8 @@ DEMOS:
 
 * VGA Textmode games: BreakOut, Snake, Pac Man, 2048
 
+* VGA games: Q-Chess
+
 * HyperRAM: Finalize "The Matrix Demo" or create something similar
 
 
