@@ -1270,6 +1270,167 @@ STIM_NOT
 L_NOT_02
 
 
+// ---------------------------------------------------------------------------
+// Test the AND instruction
+
+L_AND_00        MOVE    STIM_AND, R8
+L_AND_01        MOVE    @R8, R1                 // First operand
+                CMP     0x1111, R1
+                RBRA    L_AND_02, Z             // End of test
+                ADD     0x0001, R8
+                MOVE    @R8, R0                 // Second operand
+                ADD     0x0001, R8
+                MOVE    @R8, R2                 // Carry input
+                ADD     0x0001, R8
+                MOVE    @R8, R3                 // Expected result
+                ADD     0x0001, R8
+                MOVE    @R8, R4                 // Expected status
+                ADD     0x0001, R8
+
+                MOVE    R2, R14                 // Set carry input
+                AND     R0, R1
+                MOVE    R14, R9                 // Copy status
+                CMP     R1, R3                  // Verify expected result
+                RBRA    E_AND_01, !Z            // Jump if error
+                CMP     R9, R4                  // Verify expected status
+                RBRA    L_AND_01, Z
+                HALT
+E_AND_01        HALT
+
+STIM_AND        .DW     0x5678, 0x4321, ST______, 0x4220, ST______
+                .DW     0xFFFF, 0x4321, ST______, 0x4321, ST______
+                .DW     0x4321, 0xFFFF, ST______, 0x4321, ST______
+                .DW     0x0000, 0x4321, ST______, 0x0000, ST___Z__
+                .DW     0x4321, 0x0000, ST______, 0x0000, ST___Z__
+                .DW     0xFFFF, 0xFFFF, ST______, 0xFFFF, ST__N__X
+                .DW     0xFFFF, 0xFFFF, ST______, 0xFFFF, ST__N__X
+                .DW     0x8000, 0xFFFF, ST______, 0x8000, ST__N___
+                .DW     0xFFFF, 0x8000, ST______, 0x8000, ST__N___
+
+                .DW     0x5678, 0x4321, ST_VNZCX, 0x4220, ST_V__C_
+                .DW     0xFFFF, 0x4321, ST_VNZCX, 0x4321, ST_V__C_
+                .DW     0x4321, 0xFFFF, ST_VNZCX, 0x4321, ST_V__C_
+                .DW     0x0000, 0x4321, ST_VNZCX, 0x0000, ST_V_ZC_
+                .DW     0x4321, 0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
+                .DW     0xFFFF, 0xFFFF, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0xFFFF, 0xFFFF, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x8000, 0xFFFF, ST_VNZCX, 0x8000, ST_VN_C_
+                .DW     0xFFFF, 0x8000, ST_VNZCX, 0x8000, ST_VN_C_
+
+                .DW     0x1111
+
+L_AND_02
+
+
+// ---------------------------------------------------------------------------
+// Test the OR instruction
+
+L_OR_00         MOVE    STIM_OR, R8
+L_OR_01         MOVE    @R8, R1                 // First operand
+                CMP     0x1111, R1
+                RBRA    L_OR_02, Z              // End of test
+                ADD     0x0001, R8
+                MOVE    @R8, R0                 // Second operand
+                ADD     0x0001, R8
+                MOVE    @R8, R2                 // Carry input
+                ADD     0x0001, R8
+                MOVE    @R8, R3                 // Expected result
+                ADD     0x0001, R8
+                MOVE    @R8, R4                 // Expected status
+                ADD     0x0001, R8
+
+                MOVE    R2, R14                 // Set carry input
+                OR      R0, R1
+                MOVE    R14, R9                 // Copy status
+                CMP     R1, R3                  // Verify expected result
+                RBRA    E_OR_01, !Z             // Jump if error
+                CMP     R9, R4                  // Verify expected status
+                RBRA    L_OR_01, Z
+                HALT
+E_OR_01         HALT
+
+STIM_OR         .DW     0x5678, 0x4321, ST______, 0x5779, ST______
+                .DW     0x0000, 0x4321, ST______, 0x4321, ST______
+                .DW     0x4321, 0x0000, ST______, 0x4321, ST______
+                .DW     0xFFFF, 0x4321, ST______, 0xFFFF, ST__N__X
+                .DW     0x4321, 0xFFFF, ST______, 0xFFFF, ST__N__X
+                .DW     0x0000, 0x0000, ST______, 0x0000, ST___Z__
+                .DW     0x0000, 0x0000, ST______, 0x0000, ST___Z__
+                .DW     0x8000, 0x0000, ST______, 0x8000, ST__N___
+                .DW     0x0000, 0x8000, ST______, 0x8000, ST__N___
+
+                .DW     0x5678, 0x4321, ST_VNZCX, 0x5779, ST_V__C_
+                .DW     0x0000, 0x4321, ST_VNZCX, 0x4321, ST_V__C_
+                .DW     0x4321, 0x0000, ST_VNZCX, 0x4321, ST_V__C_
+                .DW     0xFFFF, 0x4321, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x4321, 0xFFFF, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
+                .DW     0x8000, 0x0000, ST_VNZCX, 0x8000, ST_VN_C_
+                .DW     0x0000, 0x8000, ST_VNZCX, 0x8000, ST_VN_C_
+
+                .DW     0x1111
+
+L_OR_02
+
+
+// ---------------------------------------------------------------------------
+// Test the XOR instruction
+
+L_XOR_00        MOVE    STIM_XOR, R8
+L_XOR_01        MOVE    @R8, R1                 // First operand
+                CMP     0x1111, R1
+                RBRA    L_XOR_02, Z             // End of test
+                ADD     0x0001, R8
+                MOVE    @R8, R0                 // Second operand
+                ADD     0x0001, R8
+                MOVE    @R8, R2                 // Carry input
+                ADD     0x0001, R8
+                MOVE    @R8, R3                 // Expected result
+                ADD     0x0001, R8
+                MOVE    @R8, R4                 // Expected status
+                ADD     0x0001, R8
+
+                MOVE    R2, R14                 // Set carry input
+                XOR     R0, R1
+                MOVE    R14, R9                 // Copy status
+                CMP     R1, R3                  // Verify expected result
+                RBRA    E_XOR_01, !Z            // Jump if error
+                CMP     R9, R4                  // Verify expected status
+                RBRA    L_XOR_01, Z
+                HALT
+E_XOR_01        HALT
+
+STIM_XOR        .DW     0x5678, 0x4321, ST______, 0x1559, ST______
+                .DW     0x0000, 0x4321, ST______, 0x4321, ST______
+                .DW     0x4321, 0x0000, ST______, 0x4321, ST______
+                .DW     0xFFFF, 0x4321, ST______, 0xBCDE, ST__N___
+                .DW     0x4321, 0xFFFF, ST______, 0xBCDE, ST__N___
+                .DW     0x0000, 0x0000, ST______, 0x0000, ST___Z__
+                .DW     0x0000, 0x0000, ST______, 0x0000, ST___Z__
+                .DW     0x7777, 0x8888, ST______, 0xFFFF, ST__N__X
+                .DW     0x8888, 0x7777, ST______, 0xFFFF, ST__N__X
+                .DW     0x8000, 0x0000, ST______, 0x8000, ST__N___
+                .DW     0x0000, 0x8000, ST______, 0x8000, ST__N___
+
+                .DW     0x5678, 0x4321, ST_VNZCX, 0x1559, ST_V__C_
+                .DW     0x0000, 0x4321, ST_VNZCX, 0x4321, ST_V__C_
+                .DW     0x4321, 0x0000, ST_VNZCX, 0x4321, ST_V__C_
+                .DW     0xFFFF, 0x4321, ST_VNZCX, 0xBCDE, ST_VN_C_
+                .DW     0x4321, 0xFFFF, ST_VNZCX, 0xBCDE, ST_VN_C_
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
+                .DW     0x7777, 0x8888, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x8888, 0x7777, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x8000, 0x0000, ST_VNZCX, 0x8000, ST_VN_C_
+                .DW     0x0000, 0x8000, ST_VNZCX, 0x8000, ST_VN_C_
+
+                .DW     0x1111
+
+L_XOR_02
+
+
+
 // Everything worked as expected! We are done now.
 EXIT            MOVE    OK, R8
                 SYSCALL(puts, 1)
