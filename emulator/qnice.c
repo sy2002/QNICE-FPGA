@@ -833,24 +833,26 @@ int execute() {
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 5: /* SHL */
-      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
-      destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
-      for (i = 0; i < source_0; i++) {
-        temp_flag = (destination & 0x8000) >> 13;
-        destination = (destination << 1) | ((read_register(SR) >> 1) & 1);          /* Fill with X bit */
+      if ((source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
+        destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+        for (i = 0; i < source_0; i++) {
+          temp_flag = (destination & 0x8000) >> 13;
+          destination = (destination << 1) | ((read_register(SR) >> 1) & 1);          /* Fill with X bit */
+        }
+        write_register(SR, (read_register(SR) & 0xfffb) | temp_flag);                 /* Shift into C bit */
+        write_destination(destination_mode, destination_regaddr, destination, FALSE);
       }
-      write_register(SR, (read_register(SR) & 0xfffb) | temp_flag);                 /* Shift into C bit */
-      write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 6: /* SHR */
-      scratch = source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
-      destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
-      for (i = 0; i < source_0; i++) {
-        temp_flag = (destination & 1) << 1;
-        destination = ((destination >> 1) & 0xffff) | ((read_register(SR) & 4) << 13);  /* Fill with C bit */
+      if ((scratch = source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
+        destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+        for (i = 0; i < source_0; i++) {
+          temp_flag = (destination & 1) << 1;
+          destination = ((destination >> 1) & 0xffff) | ((read_register(SR) & 4) << 13);  /* Fill with C bit */
+        }
+        write_register(SR, (read_register(SR) & 0xfffd) | temp_flag);                     /* Shift into X bit */
+        write_destination(destination_mode, destination_regaddr, destination, FALSE);
       }
-      write_register(SR, (read_register(SR) & 0xfffd) | temp_flag);                     /* Shift into X bit */
-      write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 7: /* SWAP */
       source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
