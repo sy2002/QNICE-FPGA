@@ -328,11 +328,15 @@ void chomp(char *string) {
 ** necessary bank switching logic.
 */
 unsigned int read_register(unsigned int address) {
+  unsigned int value;
+
   address &= 0xf;
   if (address & 0x8) /* Upper half -> always bank 0 */
-    return gbl$registers[address] | (address == 0xe ? 1 : 0); /* The LSB of SR is always 1! */
+    value = gbl$registers[address] | (address == 0xe ? 1 : 0); /* The LSB of SR is always 1! */
+  else 
+    value = gbl$registers[address | ((read_register(SR) >> 4) & 0xFF0)];
 
-  return gbl$registers[address | ((read_register(SR) >> 4) & 0xFF0)];
+  return value & 0xffff;
 }
 
 /*
