@@ -128,7 +128,7 @@ char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SH
                                 "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "ctrl"},
      *gbl$control_mnemonics[] = {"HALT", "RTI", "INT"}, 
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
-     *gbl$sr_bits = "1XCZNVIM",
+     *gbl$sr_bits = "1XCZNV--",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
 
 unsigned int gbl$interrupt_address,             // Interrupt address as set by the interrupting "device"
