@@ -1229,6 +1229,47 @@ STIM_SWAP
 L_SWAP_02
 
 
+// ---------------------------------------------------------------------------
+// Test the NOT instruction
+
+L_NOT_00        MOVE    STIM_NOT, R8
+L_NOT_01        MOVE    @R8, R0                 // First operand
+                CMP     0x1111, R0
+                RBRA    L_NOT_02, Z             // End of test
+                ADD     0x0001, R8
+                MOVE    @R8, R2                 // Carry input
+                ADD     0x0001, R8
+                MOVE    @R8, R3                 // Expected result
+                ADD     0x0001, R8
+                MOVE    @R8, R4                 // Expected status
+                ADD     0x0001, R8
+
+                MOVE    R2, R14                 // Set carry input
+                NOT     R0, R1
+                MOVE    R14, R9                 // Copy status
+                CMP     R1, R3                  // Verify expected result
+                RBRA    E_NOT_01, !Z            // Jump if error
+                CMP     R9, R4                  // Verify expected status
+                RBRA    L_NOT_01, Z
+                HALT
+E_NOT_01        HALT
+
+STIM_NOT
+
+                .DW     0x8765, ST______, 0x789A, ST______
+                .DW     0x8765, ST_VNZCX, 0x789A, ST_V__C_
+                .DW     0x6587, ST______, 0x9A78, ST__N___
+                .DW     0x6587, ST_VNZCX, 0x9A78, ST_VN_C_
+                .DW     0x0000, ST______, 0xFFFF, ST__N__X
+                .DW     0x0000, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0xFFFF, ST______, 0x0000, ST___Z__
+                .DW     0xFFFF, ST_VNZCX, 0x0000, ST_V_ZC_
+
+                .DW     0x1111
+
+L_NOT_02
+
+
 // Everything worked as expected! We are done now.
 EXIT            MOVE    OK, R8
                 SYSCALL(puts, 1)
