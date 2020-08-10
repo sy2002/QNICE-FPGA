@@ -1188,6 +1188,47 @@ STIM_SHR
 L_SHR_02
 
 
+// ---------------------------------------------------------------------------
+// Test the SWAP instruction
+
+L_SWAP_00       MOVE    STIM_SWAP, R8
+L_SWAP_01       MOVE    @R8, R0                 // First operand
+                CMP     0x1111, R0
+                RBRA    L_SWAP_02, Z            // End of test
+                ADD     0x0001, R8
+                MOVE    @R8, R2                 // Carry input
+                ADD     0x0001, R8
+                MOVE    @R8, R3                 // Expected result
+                ADD     0x0001, R8
+                MOVE    @R8, R4                 // Expected status
+                ADD     0x0001, R8
+
+                MOVE    R2, R14                 // Set carry input
+                SWAP    R0, R1
+                MOVE    R14, R9                 // Copy status
+                CMP     R1, R3                  // Verify expected result
+                RBRA    E_SWAP_01, !Z           // Jump if error
+                CMP     R9, R4                  // Verify expected status
+                RBRA    L_SWAP_01, Z
+                HALT
+E_SWAP_01       HALT
+
+STIM_SWAP
+
+                .DW     0x8765, ST______, 0x6587, ST______
+                .DW     0x8765, ST_VNZCX, 0x6587, ST_V__C_
+                .DW     0x6587, ST______, 0x8765, ST__N___
+                .DW     0x6587, ST_VNZCX, 0x8765, ST_VN_C_
+                .DW     0x0000, ST______, 0x0000, ST___Z__
+                .DW     0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
+                .DW     0xFFFF, ST______, 0xFFFF, ST__N__X
+                .DW     0xFFFF, ST_VNZCX, 0xFFFF, ST_VN_CX
+
+                .DW     0x1111
+
+L_SWAP_02
+
+
 // Everything worked as expected! We are done now.
 EXIT            MOVE    OK, R8
                 SYSCALL(puts, 1)
