@@ -70,6 +70,12 @@
 // BRA/SUB     | . | . | . | . | . |
 
 
+// Addressing modes
+// R0
+// @R0
+// @R0++
+// @--R0
+
 // We can't explicitly test the HALT instruction, so we must just assume that
 // it works as expected.
 
@@ -1429,6 +1435,101 @@ STIM_XOR        .DW     0x5678, 0x4321, ST______, 0x1559, ST______
 
 L_XOR_02
 
+
+// ---------------------------------------------------------------------------
+// Test the MOVE instruction with all addressing modes
+
+L_MOVE_AM_00    MOVE    0x1234, R0
+                MOVE    AM_BSS, R2
+                MOVE    R0, @R2                 // Store R0 into @R2
+                CMP     R0, 0x1234              // Verify R0 unchanged
+                RBRA    E_MOVE_AM_01, !Z        // Jump if error
+                CMP     R2, AM_BSS              // Verify R2 unchanged
+                RBRA    E_MOVE_AM_02, !Z        // Jump if error
+
+                MOVE    0x0000, R0              // Clear R0
+                MOVE    @R2, R0                 // Read R0 from @R2
+                CMP     R0, 0x1234              // Verify correct value read
+                RBRA    E_MOVE_AM_03, !Z        // Jump if error
+                CMP     R2, AM_BSS              // Verify R2 unchanged
+                RBRA    E_MOVE_AM_04, !Z        // Jump if error
+
+                MOVE    0x0000, R0              // Clear R0
+                MOVE    @R2++, R0               // Read R0 from @R2 and increment R2
+                CMP     R0, 0x1234              // Verify correct value read
+                RBRA    E_MOVE_AM_05, !Z        // Jump if error
+                CMP     R2, AM_BSS1             // Verify R2 incremented
+                RBRA    E_MOVE_AM_06, !Z        // Jump if error
+
+                MOVE    0x0000, R0              // Clear R0
+                MOVE    @--R2, R0               // Decrement R2 and read R0 from @R2
+                CMP     R0, 0x1234              // Verify correct value read
+                RBRA    E_MOVE_AM_07, !Z        // Jump if error
+                CMP     R2, AM_BSS              // Verify R2 decremented
+                RBRA    E_MOVE_AM_08, !Z        // Jump if error
+
+                RBRA    L_MOVE_AM_01, 1
+E_MOVE_AM_01    HALT
+E_MOVE_AM_02    HALT
+E_MOVE_AM_03    HALT
+E_MOVE_AM_04    HALT
+E_MOVE_AM_05    HALT
+E_MOVE_AM_06    HALT
+E_MOVE_AM_07    HALT
+E_MOVE_AM_08    HALT
+AM_BSS          .DW     0x0000
+AM_BSS1         .DW     0x0000
+L_MOVE_AM_01
+
+L_MOVE_AM_10
+                MOVE    0x1234, R1
+                MOVE    AM_BSS, R3
+                MOVE    AM_BSS1, R4
+                MOVE    R1, @R3                 // Store dummy value into @R3
+                MOVE    R1, @R4                 // Store dummy value into @R4
+
+                MOVE    0x4321, R0
+                MOVE    AM_BSS, R2
+
+                MOVE    R0, @R2++               // Store R0 into @R2 and increment R2
+                CMP     R0, 0x4321              // Verify R0 unchanged
+                RBRA    E_MOVE_AM_11, !Z        // Jump if error
+                CMP     R2, AM_BSS1             // Verify R2 incremented
+                RBRA    E_MOVE_AM_12, !Z        // Jump if error
+
+                MOVE    @R3, R8                 // Read back value stored in @R3
+                CMP     R8, R0                  // Verify value was correctly written
+                RBRA    E_MOVE_AM_13, !Z        // Jump if error
+
+                MOVE    @R4, R8                 // Read back value stored in @R4
+                CMP     R8, R1                  // Verify value was unchanged
+                RBRA    E_MOVE_AM_14, !Z        // Jump if error
+
+                MOVE    0x5678, R0
+                MOVE    R0, @--R2               // Decrement R2 and store R0 into @R2
+                CMP     R0, 0x5678              // Verify R0 unchanged
+                RBRA    E_MOVE_AM_15, !Z        // Jump if error
+                CMP     R2, AM_BSS              // Verify R2 decremented
+                RBRA    E_MOVE_AM_16, !Z        // Jump if error
+
+                MOVE    @R3, R8                 // Read back value stored in @R3
+                CMP     R8, R0                  // Verify value was correctly written
+                RBRA    E_MOVE_AM_17, !Z        // Jump if error
+
+                MOVE    @R4, R8                 // Read back value stored in @R4
+                CMP     R8, R1                  // Verify value was unchanged
+                RBRA    E_MOVE_AM_18, !Z        // Jump if error
+
+                RBRA    L_MOVE_AM_11, 1
+E_MOVE_AM_11    HALT
+E_MOVE_AM_12    HALT
+E_MOVE_AM_13    HALT
+E_MOVE_AM_14    HALT
+E_MOVE_AM_15    HALT
+E_MOVE_AM_16    HALT
+E_MOVE_AM_17    HALT
+E_MOVE_AM_18    HALT
+L_MOVE_AM_11
 
 
 // Everything worked as expected! We are done now.
