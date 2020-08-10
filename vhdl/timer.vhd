@@ -64,22 +64,25 @@ type tTimerState is (   s_idle,
                         s_provide_isr,
                         s_reset
                      );
-signal   State          : tTimerState;
-signal   fsmState_Next  : tTimerState;
+signal   State             : tTimerState;
+signal   fsmState_Next     : tTimerState;
+
+-- For avoiding a Combinatorial Loop, we are latching the interrupt grant for the "right" device
+signal   grant_n_reg       : std_logic;
+signal   fsm_grant_n_reg   : std_logic;
 
 -- The Actual Counter
-signal   counter_pre    : unsigned(15 downto 0);
-signal   counter_cnt    : unsigned(15 downto 0); 
+signal   counter_pre       : unsigned(15 downto 0);
+signal   counter_cnt       : unsigned(15 downto 0); 
 
-signal   is_counting    : boolean;
-signal   has_fired      : boolean;
-signal   new_timer_vals : boolean;
+signal   is_counting       : boolean;
+signal   has_fired         : boolean;
+signal   new_timer_vals    : boolean;
 
 -- Registers
-signal   reg_pre        : unsigned(15 downto 0);
-signal   reg_cnt        : unsigned(15 downto 0);
-signal   reg_int        : unsigned(15 downto 0);
-
+signal   reg_pre           : unsigned(15 downto 0);
+signal   reg_cnt           : unsigned(15 downto 0);
+signal   reg_int           : unsigned(15 downto 0);
 
 -- Internal 100 kHz clock
 constant freq_internal        : natural := 100000;       -- internal clock speed
@@ -88,6 +91,8 @@ signal   freq_div_sys_target  : natural := natural(ceil(real(CLK_FREQ) / real(fr
 signal   freq_div_cnt         : unsigned(15 downto 0);   -- CNT_WIDTH does not work with Vivado 2019.2
 
 begin
+
+   grant_n_out <= grant_n_reg;
 
    -- writing anything to any register resets the timer and loads the new value
    new_timer_vals <= true when en = '1' and we = '1' else false;
@@ -100,8 +105,10 @@ begin
       if rising_edge(clk) then
          if reset = '1' or new_timer_vals then
             State <= s_idle;
+            grant_n_reg <= '1';
          else
             State <= fsmState_Next;
+            grant_n_reg <= fsm_grant_n_reg;
          end if;
       end if;
    end process;
@@ -109,7 +116,7 @@ begin
    fsm_output_decode : process(State, is_counting, has_fired, grant_n_in, int_n_in, reg_int)
    begin
       int_n_out <= int_n_in;
-      grant_n_out <= grant_n_in;
+      fsm_grant_n_reg <= grant_n_in; -- connect the outgoing "right" grant with the incoming "left" grant 
       fsmState_Next <= State;
       data <= (others => 'Z');
          
@@ -127,13 +134,13 @@ begin
             -- only if there is nothing going on (aka '1'), we can fire:           
             if has_fired and int_n_in = '1' and grant_n_in = '1' then
                fsmState_Next <= s_signal;
-               int_n_out <= '0';    -- request interrupt
-               grant_n_out <= '1';  -- de-couple the right device
+               int_n_out <= '0';          -- request interrupt
+               fsm_grant_n_reg  <= '1';   -- de-couple the right device
             end if;
             
          when s_signal =>
-            grant_n_out <= '1'; -- keep the right device de-coupled
-            int_n_out <= '0';   -- request interrupt
+            fsm_grant_n_reg <= '1'; -- keep the right device de-coupled
+            int_n_out <= '0';       -- request interrupt
 
             -- if interrupt is granted: put ISR address on the data bus          
             if grant_n_in = '0' then
@@ -142,8 +149,8 @@ begin
             end if;
             
          when s_provide_isr =>
-            grant_n_out <= '1'; -- keep the right device de-coupled
-            int_n_out <= '1';   -- stop to request interrupt
+            fsm_grant_n_reg <= '1'; -- keep the right device de-coupled
+            int_n_out <= '1';       -- stop to request interrupt
                                        
             -- keep putting the ISR address on the data bus until the grant is revoked
             if grant_n_in = '0' then            
