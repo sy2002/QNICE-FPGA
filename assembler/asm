@@ -43,7 +43,10 @@ fi
 
 rm $temp_file
 
-$makerom $destination $romfile
+if [ "$QNICE_ASM_NO_ROM" != "1" ]
+then
+    $makerom $destination $romfile
+fi
 
 if [ $OSTP = "LINUX" ]; then
     if hash xclip 2>/dev/null; then

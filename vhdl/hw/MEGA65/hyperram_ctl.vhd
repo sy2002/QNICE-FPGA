@@ -8,10 +8,10 @@
 --
 -- Registers:
 --
--- Register $FF60: Low word of address  (15 downto 0)
--- Register $FF61: High word of address (26 downto 16)
--- Register $FF62: 8-bit data in/out (native mode: HyperRAM is 8-bit)
--- Register $FF63: 16-bit data in/out (leads to address being multiplied by two)
+-- Register $FFF0: Low word of address  (15 downto 0)
+-- Register $FFF1: High word of address (26 downto 16)
+-- Register $FFF2: 8-bit data in/out (native mode: HyperRAM is 8-bit)
+-- Register $FFF3: 16-bit data in/out (leads to address being multiplied by two)
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;

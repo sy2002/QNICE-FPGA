@@ -38,7 +38,7 @@ if [[ $EMCC_VERSION = "1.39.11" ]] || [[ $EMCC_VERSION = "1.39.12" ]] || [[ $EMC
     exit 1
 fi
 
-if [[ ! -f qnice_disk.img ]]; then
+if [[ ! -f qnice_disk_v16.img ]]; then
     echo "Warning: qnice_disk.img not found. You can still compile the emulator."
 fi
 

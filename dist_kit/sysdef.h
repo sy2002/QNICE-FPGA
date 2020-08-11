@@ -2,7 +2,6 @@
 //;  sysdef.asm: This file contains definitions to simplify assembler programming
 //;              and for accessing the various hardware registers via MMIO
 //;
-
 //
 //***************************************************************************************
 //*  Assembler macros which make life much easier:
@@ -13,6 +12,198 @@
 //
 //  Some register short names:
 //
+
+//
+//***************************************************************************************
+//*  IO-page addresses: Default: 8 registers per block
+//***************************************************************************************
+//
+#define IO_AREA_START  	0xFF00
+//
+//---------------------------------------------------------------------------------------
+//  Block FF00: FUNDAMENTAL IO
+//---------------------------------------------------------------------------------------
+//
+//  Switch-register:
+//
+#define IO_SWITCH_REG  	0xFF00 // 16 binary keys
+//
+//  Registers for TIL-display:
+//
+#define IO_TIL_DISPLAY 	0xFF01 // Address of TIL-display
+#define IO_TIL_MASK    	0xFF02 // Mask register of TIL display
+//
+//  USB-keyboard-registers:
+//
+#define IO_KBD_STATE   	0xFF04 // Status register of USB keyboard
+//    Bit  0 (read only):      New ASCII character avaiable for reading
+//                             (bits 7 downto 0 of Read register)
+//    Bit  1 (read only):      New special key available for reading
+//                             (bits 15 downto 8 of Read register)
+//    Bits 2..4 (read/write):  Locales: 000 = US English keyboard layout,
+//                             001 = German layout, others: reserved for more locales
+//    Bits 5..7 (read only):   Modifiers: 5 = shift, 6 = alt, 7 = ctrl
+//                             Only valid, when bits 0 and/or 1 are '1'
+//
+#define IO_KBD_DATA    	0xFF05 // Data register of USB keyboard
+//    Contains the ASCII character in bits 7 downto 0  or the special key code
+//    in 15 downto 8. The "or" is meant exclusive, i.e. it cannot happen that
+//    one transmission contains an ASCII character PLUS a special character.
+//
+//---------------------------------------------------------------------------------------
+//  Block FF08: SYSTEM COUNTERS
+//---------------------------------------------------------------------------------------
+//
+//  CYCLE-COUNT-registers       
+//
+#define IO_CYC_LO      	0xFF08     // low word of 48-bit counter
+#define IO_CYC_MID     	0xFF09     // middle word of 48-bit counter
+#define IO_CYC_HI      	0xFF0A     // high word of 48-bit counter
+#define IO_CYC_STATE   	0xFF0B     // status register
+//    Bit  0 (write only):     Reset counter to zero and start counting, i.e.
+//                             bit 1 is automatically set to 1 when resetting
+//    Bit  1 (read/write):     Start/stop counter
+//
+//  INSTRUCTION-COUNT-registers       
+//
+#define IO_INS_LO      	0xFF0C     // low word of 48-bit counter
+#define IO_INS_MID     	0xFF0D     // middle word of 48-bit counter
+#define IO_INS_HI      	0xFF0E     // high word of 48-bit counter
+#define IO_INS_STATE   	0xFF0F     // status register
+//    Bit  0 (write only):     Reset counter to zero and start counting, i.e.
+//                             bit 1 is automatically set to 1 when resetting
+//    Bit  1 (read/write):     Start/stop counter
+//
+//---------------------------------------------------------------------------------------
+//  Block FF10: UART
+//---------------------------------------------------------------------------------------
+//
+//  QNICE-FPGA supports: IO_UART_SRA, IO_UART_RHRA and IO_UART_THRA 
+//  The other registers are mentioned for completeness to map real hardware (16550)
+//
+#define IO_UART_BASE_ADDRESS   	0xFF10
+#define IO_UART_MR1A   	0xFF10 // n/a
+#define IO_UART_MR1B   	0xFF10 // n/a
+#define IO_UART_SRA    	0xFF11 // Status register (relative to base address)
+#define IO_UART_RHRA   	0xFF12 // Receiving register (relative to base address)
+#define IO_UART_THRA   	0xFF13 // Transmitting register (relative to base address)
+//
+//---------------------------------------------------------------------------------------
+//  Block FF18: EAE
+//---------------------------------------------------------------------------------------
+//
+//  EAE (Extended Arithmetic Element) registers:
+//
+#define IO_EAE_OPERAND_0   	0xFF18
+#define IO_EAE_OPERAND_1   	0xFF19
+#define IO_EAE_RESULT_LO   	0xFF1A
+#define IO_EAE_RESULT_HI   	0xFF1B
+#define IO_EAE_CSR         	0xFF1C // Command and Status Register
+//
+//  EAE-Opcodes (CSR):   0x0000  MULU  32-bit result in LO HI
+//                       0x0001  MULS  32-bit result in LO HI
+//                       0x0002  DIVU  result in LO, modulo in HI
+//                       0x0003  DIVS  result in LO, modulo in HI
+//  Bit 15 of CSR is the busy bit. If it is set, the EAE is still busy crunching numbers.
+//
+//---------------------------------------------------------------------------------------
+//  Block FF20: SD CARD
+//---------------------------------------------------------------------------------------
+//
+//  SD CARD INTERFACE registers
+//
+#define IO_SD_BASE_ADDRESS 	0xFF20
+#define IO_SD_ADDR_LO  	0xFF20 // low word of 32bit linear SD card block address
+#define IO_SD_ADDR_HI  	0xFF21 // high word of 32bit linear SD card block address
+#define IO_SD_DATA_POS 	0xFF22 // "Cursor" to navigate the 512-byte data buffer
+#define IO_SD_DATA     	0xFF23 // read/write 1 byte from/to the 512-byte data buffer
+#define IO_SD_ERROR    	0xFF24 // error code of last operation (read only)
+#define IO_SD_CSR      	0xFF25 // Command and Status Register (write to execute command)
+//
+//  SD-Opcodes (CSR):    0x0000  Reset SD card
+//                       0x0001  Read 512 bytes from the linear block address
+//                       0x0002  Write 512 bytes to the linear block address
+//  Bits 0 .. 2 are write-only (reading always returns 0)
+//  Bits 13 .. 12 return the card type: 00 = no card / unknown card
+//                                      01 = SD V1
+//                                      10 = SD V2
+//                                      11 = SDHC                       
+//  Bit 14 of the CSR is the error bit: 1, if the last operation failed. In such
+//                                      a case, the error code is in IO_SD_ERROR and
+//                                      you need to reset the controller to go on
+//  Bit 15 of the CSR is the busy bit: 1, if current operation is still running
+//
+//---------------------------------------------------------------------------------------
+//  Block FF28: TIMER 0 and 1
+//---------------------------------------------------------------------------------------
+//
+//  Interrupt timer: There are two timers capable of generating interrupts.
+//                   Each timer is controlled by three 16 bit registers:
+//
+//  IO_TIMER_x_PRE: The 100 kHz timer clock is divided by the value stored in
+//                  this device register. 100 (which corresponds to 0x0064 in
+//                  the prescaler register) yields a 1 millisecond pulse which
+//                  in turn is fed to the actual counter.
+//  IO_TIMER_x_CNT: When the number of output pulses from the prescaler circuit 
+//                  equals the number stored in this register, an interrupt will
+//                  be generated (if the interrupt address is 0x0000, the
+//                  interrupt will be suppressed).
+//  IO_TIMER_x_INT: This register contains the address of the desired interrupt 
+//                  service routine.
+//
+#define IO_TIMER_BASE_ADDRESS  	0xFF28
+#define IO_TIMER_0_PRE 	0xFF28
+#define IO_TIMER_0_CNT 	0xFF29
+#define IO_TIMER_0_INT 	0xFF2A
+#define IO_TIMER_1_PRE 	0xFF2B
+#define IO_TIMER_1_CNT 	0xFF2C
+#define IO_TIMER_1_INT 	0xFF2D
+//
+//---------------------------------------------------------------------------------------
+//  Block FF30: VGA (double block, 16 registers)
+//---------------------------------------------------------------------------------------
+//
+#define VGA_STATE          	0xFF30 // VGA status register
+    // Bits 11-10: Hardware scrolling / offset enable: Bit #10 enables the use
+    //             of the offset register #4 (display offset) and bit #11
+    //             enables the use of register #5 (read/write offset).
+    // Bit      9: Busy: VGA is currently busy, e.g. clearing the screen,
+    //             printing, etc. While busy, commands will be ignored, but
+    //             they can still be written into the registers, though
+    // Bit      8: Set bit to clear screen. Read bit to find out, if clear
+    //             screen is still active
+    // Bit      7: VGA enable (1 = on; 0: no VGA signal is generated)
+    // Bit      6: Hardware cursor enable
+    // Bit      5: Hardware cursor blink enable
+    // Bit      4: Hardware cursor mode: 1 - small
+    //                              0 - large
+    // Bits   2-0: Output color for the whole screen, bits (2, 1, 0) = RGB
+#define VGA_CR_X           	0xFF31 // VGA cursor X position
+#define VGA_CR_Y           	0xFF32 // VGA cursor Y position
+#define VGA_CHAR           	0xFF33 // write: VGA character to be displayed
+                                // read: character "under" the cursor
+#define VGA_OFFS_DISPLAY   	0xFF34 // Offset in bytes that is used when displaying
+                                // the video RAM. Scrolling forward one line
+                                // means adding 0x50 to this register.
+                                // Only works, if bit #10 in VGA_STATE is set.
+#define VGA_OFFS_RW        	0xFF35 // Offset in bytes that is used, when you read
+                                // or write to the video RAM using VGA_CHAR.
+                                // Works independently from VGA_OFFS_DISPLAY.
+                                // Active, when bit #11 in VGA_STATE is set.
+#define VGA_HDMI_H_MIN     	0xFF36 // HDMI Data Enable: X: minimum valid column
+#define VGA_HDMI_H_MAX     	0xFF37 // HDMI Data Enable: X: maximum valid column
+#define VGA_HDMI_V_MAX     	0xFF38 // HDMI Data Enable: Y: maximum row (line)                                
+//
+//---------------------------------------------------------------------------------------
+//  Block FFF0: MEGA65 (double block, 16 registers)
+//---------------------------------------------------------------------------------------
+//
+//  HyperRAM
+//
+#define IO_M65HRAM_LO      	0xFFF0 // Low word of address  (15 downto 0)
+#define IO_M65HRAM_HI      	0xFFF1 // High word of address (26 downto 16)
+#define IO_M65HRAM_DATA8   	0xFFF2 // HyperRAM native 8-bit data in/out
+#define IO_M65HRAM_DATA16  	0xFFF3 // HyperRAM 16-bit data in/out
 
 //
 //***************************************************************************************
@@ -268,158 +459,3 @@
 #define CHR_SPACE      	0x0020 // ASCII-Space
 #define CHR_CR         	0x000d // Carriage return
 #define CHR_LF         	0x000a // Line feed
-
-//
-//***************************************************************************************
-//*  IO-page addresses:
-//***************************************************************************************
-
-#define IO_AREA_START      	0xFF00
-//
-//
-//  VGA-registers:
-//
-#define VGA_STATE          	0xFF00 // VGA status register
-    // Bits 11-10: Hardware scrolling / offset enable: Bit #10 enables the use
-    //             of the offset register #4 (display offset) and bit #11
-    //             enables the use of register #5 (read/write offset).
-    // Bit      9: Busy: VGA is currently busy, e.g. clearing the screen,
-    //             printing, etc. While busy, commands will be ignored, but
-    //             they can still be written into the registers, though
-    // Bit      8: Set bit to clear screen. Read bit to find out, if clear
-    //             screen is still active
-    // Bit      7: VGA enable (1 = on; 0: no VGA signal is generated)
-    // Bit      6: Hardware cursor enable
-    // Bit      5: Hardware cursor blink enable
-    // Bit      4: Hardware cursor mode: 1 - small
-    //                              0 - large
-    // Bits   2-0: Output color for the whole screen, bits (2, 1, 0) = RGB
-#define VGA_CR_X           	0xFF01 // VGA cursor X position
-#define VGA_CR_Y           	0xFF02 // VGA cursor Y position
-#define VGA_CHAR           	0xFF03 // write: VGA character to be displayed
-                                // read: character "under" the cursor
-#define VGA_OFFS_DISPLAY   	0xFF04 // Offset in bytes that is used when displaying
-                                // the video RAM. Scrolling forward one line
-                                // means adding 0x50 to this register.
-                                // Only works, if bit #10 in VGA_STATE is set.
-#define VGA_OFFS_RW        	0xFF05 // Offset in bytes that is used, when you read
-                                // or write to the video RAM using VGA_CHAR.
-                                // Works independently from VGA_OFFS_DISPLAY.
-                                // Active, when bit #11 in VGA_STATE is set.
-#define VGA_HDMI_H_MIN     	0xFF06 // HDMI Data Enable: X: minimum valid column
-#define VGA_HDMI_H_MAX     	0xFF07 // HDMI Data Enable: X: maximum valid column
-#define VGA_HDMI_V_MAX     	0xFF08 // HDMI Data Enable: Y: maximum row (line)                                
-//
-//  Registers for TIL-display:
-//
-#define IO_TIL_DISPLAY 	0xFF10 // Address of TIL-display
-#define IO_TIL_MASK    	0xFF11 // Mask register of TIL display
-//
-//  Switch-register:
-//
-#define IO_SWITCH_REG  	0xFF12 // 16 binary keys
-//
-//  USB-keyboard-registers:
-//
-#define IO_KBD_STATE   	0xFF13 // Status register of USB keyboard
-//    Bit  0 (read only):      New ASCII character avaiable for reading
-//                             (bits 7 downto 0 of Read register)
-//    Bit  1 (read only):      New special key available for reading
-//                             (bits 15 downto 8 of Read register)
-//    Bits 2..4 (read/write):  Locales: 000 = US English keyboard layout,
-//                             001 = German layout, others: reserved for more locales
-//    Bits 5..7 (read only):   Modifiers: 5 = shift, 6 = alt, 7 = ctrl
-//                             Only valid, when bits 0 and/or 1 are '1'
-//
-#define IO_KBD_DATA    	0xFF14 // Data register of USB keyboard
-//    Contains the ASCII character in bits 7 downto 0  or the special key code
-//    in 15 downto 8. The "or" is meant exclusive, i.e. it cannot happen that
-//    one transmission contains an ASCII character PLUS a special character.
-//
-//  CYCLE-COUNT-registers       
-//
-#define IO_CYC_LO      	0xFF17     // low word of 48-bit counter
-#define IO_CYC_MID     	0xFF18     // middle word of 48-bit counter
-#define IO_CYC_HI      	0xFF19     // high word of 48-bit counter
-#define IO_CYC_STATE   	0xFF1A     // status register
-//    Bit  0 (write only):     Reset counter to zero and start counting, i.e.
-//                             bit 1 is automatically set to 1 when resetting
-//    Bit  1 (read/write):     Start/stop counter
-//
-//  EAE (Extended Arithmetic Element) registers:
-//
-#define IO_EAE_OPERAND_0   	0xFF1B
-#define IO_EAE_OPERAND_1   	0xFF1C
-#define IO_EAE_RESULT_LO   	0xFF1D
-#define IO_EAE_RESULT_HI   	0xFF1E
-#define IO_EAE_CSR         	0xFF1F // Command and Status Register
-//
-//  EAE-Opcodes (CSR):   0x0000  MULU  32-bit result in LO HI
-//                       0x0001  MULS  32-bit result in LO HI
-//                       0x0002  DIVU  result in LO, modulo in HI
-//                       0x0003  DIVS  result in LO, modulo in HI
-//  Bit 15 of CSR is the busy bit. If it is set, the EAE is still busy crunching numbers.
-//
-//
-//  UART-registers:
-//
-#define IO_UART_SRA    	0xFF21 // Status register (relative to base address)
-#define IO_UART_RHRA   	0xFF22 // Receiving register (relative to base address)
-#define IO_UART_THRA   	0xFF23 // Transmitting register (relative to base address)
-//
-//  SD CARD INTERFACE registers
-//
-#define IO_SD_ADDR_LO  	0xFF24 // low word of 32bit linear SD card block address
-#define IO_SD_ADDR_HI  	0xFF25 // high word of 32bit linear SD card block address
-#define IO_SD_DATA_POS 	0xFF26 // "Cursor" to navigate the 512-byte data buffer
-#define IO_SD_DATA     	0xFF27 // read/write 1 byte from/to the 512-byte data buffer
-#define IO_SD_ERROR    	0xFF28 // error code of last operation (read only)
-#define IO_SD_CSR      	0xFF29 // Command and Status Register (write to execute command)
-//
-//  SD-Opcodes (CSR):    0x0000  Reset SD card
-//                       0x0001  Read 512 bytes from the linear block address
-//                       0x0002  Write 512 bytes to the linear block address
-//  Bits 0 .. 2 are write-only (reading always returns 0)
-//  Bits 13 .. 12 return the card type: 00 = no card / unknown card
-//                                      01 = SD V1
-//                                      10 = SD V2
-//                                      11 = SDHC                       
-//  Bit 14 of the CSR is the error bit: 1, if the last operation failed. In such
-//                                      a case, the error code is in IO_SD_ERROR and
-//                                      you need to reset the controller to go on
-//  Bit 15 of the CSR is the busy bit: 1, if current operation is still running
-//
-//  INSTRUCTION-COUNT-registers       
-//
-#define IO_INS_LO      	0xFF2A     // low word of 48-bit counter
-#define IO_INS_MID     	0xFF2B     // middle word of 48-bit counter
-#define IO_INS_HI      	0xFF2C     // high word of 48-bit counter
-#define IO_INS_STATE   	0xFF2D     // status register
-//    Bit  0 (write only):     Reset counter to zero and start counting, i.e.
-//                             bit 1 is automatically set to 1 when resetting
-//    Bit  1 (read/write):     Start/stop counter
-//
-//  Interrupt timer: There are four timers capable of generating interrupts.
-//                   Each timer is controlled by three 16 bit registers:
-//
-//  IO_TIMER_x_PRE: The 100 kHz timer clock is divided by the value stored in
-//                  this device register. 100 (which corresponds to 0x0064 in
-//                  the prescaler register) yields a 1 millisecond pulse which
-//                  in turn is fed to the actual counter.
-//  IO_TIMER_x_CNT: When the number of output pulses from the prescaler circuit 
-//                  equals the number stored in this register, an interrupt will
-//                  be generated (if the interrupt address is 0x0000, the
-//                  interrupt will be suppressed).
-//  IO_TIMER_x_INT: This register contains the address of the desired interrupt 
-//                  service routine.
-//
-#define IO_TIMER_0_PRE 	0xFF30
-#define IO_TIMER_0_CNT 	0xFF31
-#define IO_TIMER_0_INT 	0xFF32
-#define IO_TIMER_1_PRE 	0xFF33
-#define IO_TIMER_1_CNT 	0xFF34
-#define IO_TIMER_1_INT 	0xFF35
-//
-//  Reserved for MEGA65 registers
-//
-#define IO_RESERVED_M65	0xFF60 // RESERVED SPACE FROM 0xFF60 TO 0xFF6F

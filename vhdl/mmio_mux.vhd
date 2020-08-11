@@ -47,23 +47,20 @@ port (
    pore_rom_enable   : out std_logic;
    pore_rom_busy     : in std_logic;
    
-   -- VGA register range $FF00..$FF0F
-   vga_en            : out std_logic;
-   vga_we            : out std_logic;
-   vga_reg           : out std_logic_vector(3 downto 0);
+   -- SWITCHES is $FF00
+   switch_reg_enable : out std_logic;
    
-   -- TIL register rage: $FF10..$FF11
+   -- TIL register range: $FF01..$FF02
    til_reg0_enable   : out std_logic;
    til_reg1_enable   : out std_logic;
    
-   -- SWITCHES is $FF12
-   switch_reg_enable : out std_logic;
-   
-   -- Keyboard register range $FF13..$FF16
-   kbd_en            : out std_logic;
+   -- Keyboard register range $FF04..$FF07
+   kbd_en            : buffer std_logic;
    kbd_we            : out std_logic;
    kbd_reg           : out std_logic_vector(1 downto 0);
    
+   -- Cycle counter register range $FF08..$FF0B
+   cyc_en            : buffer std_logic;
    -- Timer Interrupt Generator range $FF30 .. $FF35
    tin_en            : out std_logic;
    tin_we            : out std_logic;
@@ -74,27 +71,32 @@ port (
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
 
-   -- Instruction counter register range $FF2A..$FF2D
-   ins_en            : out std_logic;
+   -- Instruction counter register range $FF0C..$FF0F
+   ins_en            : buffer std_logic;
    ins_we            : out std_logic;
    ins_reg           : out std_logic_vector(1 downto 0);
 
-   -- Extended Arithmetic Element register range $FF1B..$FF1F
-   eae_en            : out std_logic;
-   eae_we            : out std_logic;
-   eae_reg           : out std_logic_vector(2 downto 0);
-   
-   -- UART register range $FF20..$FF23
-   uart_en           : out std_logic;
+   -- UART register range $FF10..$FF13
+   uart_en           : buffer std_logic;
    uart_we           : out std_logic;
    uart_reg          : out std_logic_vector(1 downto 0);
    uart_cpu_ws       : in std_logic;
    
-   -- SD Card register range $FF24..FF29
-   sd_en             : out std_logic;
+   -- Extended Arithmetic Element register range $FF18..$FF1F
+   eae_en            : buffer std_logic;
+   eae_we            : out std_logic;
+   eae_reg           : out std_logic_vector(2 downto 0);
+
+   -- SD Card register range $FF20..FF27
+   sd_en             : buffer std_logic;
    sd_we             : out std_logic;
    sd_reg            : out std_logic_vector(2 downto 0);
    
+   -- VGA register range $FF30..$FF3F
+   vga_en            : buffer std_logic;
+   vga_we            : out std_logic;
+   vga_reg           : out std_logic_vector(3 downto 0);
+
    -- global state and reset management
    reset_pre_pore    : out std_logic;
    reset_post_pore   : out std_logic
@@ -152,236 +154,44 @@ begin
    no_igrant_active <= true when cpu_igrant_n = '1' else false;
    
 
-   -- TIL register base is FF10
-   -- writing to base equals register0 equals the actual value
-   -- writing to register1 (FF11) equals the mask
-   -- no_igrant_active: ignore; this is a write only register
-   til_control : process(addr, data_dir, data_valid)
-   begin
-      if addr(15 downto 4) = x"FF1" and data_dir = '1' and data_valid = '1' then
-      
-         -- TIL register 0
-         if addr(3 downto 0) = x"0" then
-            til_reg0_enable <= '1';
-         else
-            til_reg0_enable <= '0';
-         end if;
-         
-         -- TIL register 1
-         if addr(3 downto 0) = x"1" then
-            til_reg1_enable <= '1';
-         else
-            til_reg1_enable <= '0';
-         end if;
-                  
-      else
-         til_reg0_enable <= '0';
-         til_reg1_enable <= '0';
-      end if;
-   end process;
-   
-   -- SWITCH register is FF12
-   switch_control : process(addr, data_dir, data_valid)
-   begin
-      if addr(15 downto 0) = x"FF12" and data_dir = '0' and no_igrant_active then
-         switch_reg_enable <= '1';
-      else
-         switch_reg_enable <= '0';
-      end if;
-   end process;
-   
-   -- Keyboard status register is FF13 and data register is FF14
-   keyboard_control : process(addr, data_dir, data_valid)
-   begin
-      kbd_en <= '0';
-      kbd_we <= '0';
-      kbd_reg <= "00";
-      
-      if no_igrant_active then
-         if addr = x"FF13" then
-            kbd_en <= '1';
-            kbd_we <= data_dir and data_valid;
-            kbd_reg <= "00";
-         elsif addr = x"FF14" then
-            kbd_en <= '1';
-            kbd_we <= data_dir and data_valid;
-            kbd_reg <= "01";
-         end if;  
-      end if;    
-   end process;
-   
-   -- Cycle counter starts at FF17
-   cyc_control : process(addr, data_dir, data_valid)
-   begin
-      cyc_en <= '0';
-      cyc_we <= '0';
-      cyc_reg <= "00";
-      
-      if no_igrant_active then
-         if addr = x"FF17" then
-            cyc_en <= '1';
-            cyc_we <= data_dir and data_valid;
-            cyc_reg <= "00";
-         elsif addr = x"FF18" then
-            cyc_en <= '1';
-            cyc_we <= data_dir and data_valid;
-            cyc_reg <= "01";
-         elsif addr = x"FF19" then
-            cyc_en <= '1';
-            cyc_we <= data_dir and data_valid;
-            cyc_reg <= "10";
-         elsif addr = x"FF1A" then
-            cyc_en <= '1';
-            cyc_we <= data_dir and data_valid;
-            cyc_reg <= "11";
-         end if;
-      end if;
-   end process;
-   
-   -- Instruction counter starts at FF2A
-   ins_control : process(addr, data_dir, data_valid)
-   begin
-      ins_en <= '0';
-      ins_we <= '0';
-      ins_reg <= "00";
-      
-      if no_igrant_active then
-         if addr = x"FF2A" then
-            ins_en <= '1';
-            ins_we <= data_dir and data_valid;
-            ins_reg <= "00";
-         elsif addr = x"FF2B" then
-            ins_en <= '1';
-            ins_we <= data_dir and data_valid;
-            ins_reg <= "01";
-         elsif addr = x"FF2C" then
-            ins_en <= '1';
-            ins_we <= data_dir and data_valid;
-            ins_reg <= "10";
-         elsif addr = x"FF2D" then
-            ins_en <= '1';
-            ins_we <= data_dir and data_valid;
-            ins_reg <= "11";
-         end if;
-      end if;
-   end process;
-      
-   eae_control : process(addr, data_dir, data_valid)
-   begin
-      eae_en <= '0';
-      eae_we <= '0';
-      eae_reg <= "000";
-      
-      if no_igrant_active then
-         if addr = x"FF1B" then
-            eae_en <= '1';
-            eae_we <= data_dir and data_valid;
-            eae_reg <= "000";
-         elsif addr = x"FF1C" then
-            eae_en <= '1';
-            eae_we <= data_dir and data_valid;
-            eae_reg <= "001";
-         elsif addr = x"FF1D" then
-            eae_en <= '1';
-            eae_we <= data_dir and data_valid;
-            eae_reg <= "010";
-         elsif addr = x"FF1E" then
-            eae_en <= '1';
-            eae_we <= data_dir and data_valid;
-            eae_reg <= "011";
-         elsif addr = x"FF1F" then
-            eae_en <= '1';
-            eae_we <= data_dir and data_valid;
-            eae_reg <= "100";
-         end if;
-      end if;      
-   end process;
+   -- Block FF00: FUNDAMENTAL IO
+   switch_reg_enable <= not data_dir            when addr = x"FF00" else '0';    -- Read only
+   til_reg0_enable   <= data_dir and data_valid when addr = x"FF01" else '0';    -- Write only
+   til_reg1_enable   <= data_dir and data_valid when addr = x"FF02" else '0';    -- Write only
 
-   uart_control : process(addr, data_dir, data_valid)
-   begin
-      uart_en <= '0';
-      uart_we <= '0';
-      uart_reg <= "00";
-      
-      if no_igrant_active then
-         if addr = x"FF21" then
-            uart_en <= '1';
-            uart_we <= data_dir and data_valid;
-            uart_reg <= "01";
-         elsif addr = x"FF22" then
-            uart_en <= '1';
-            uart_we <= data_dir and data_valid;
-            uart_reg <= "10";
-         elsif addr = x"FF23" then
-            uart_en <= '1';
-            uart_we <= data_dir and data_valid;
-            uart_reg <= "11";      
-         end if;
-      end if;
-   end process;
-   
-   sd_control : process(addr, data_dir, data_valid)
-   begin
-      sd_en <= '0';
-      sd_we <= '0';
-      sd_reg <= "000";
-      
-      if no_igrant_active then      
-         if addr = x"FF24" then
-            sd_en <= '1';
-            sd_we <= data_dir and data_valid;
-            sd_reg <= "000";
-         elsif addr = x"FF25" then
-            sd_en <= '1';
-            sd_we <= data_dir and data_valid;
-            sd_reg <= "001";
-         elsif addr = x"FF26" then
-            sd_en <= '1';
-            sd_we <= data_dir and data_valid;
-            sd_reg <= "010";
-         elsif addr = x"FF27" then
-            sd_en <= '1';
-            sd_we <= data_dir and data_valid;
-            sd_reg <= "011";
-         elsif addr = x"FF28" then
-            sd_en <= '1';
-            sd_we <= data_dir and data_valid;
-            sd_reg <= "100";
-         elsif addr = x"FF29" then
-            sd_en <= '1';
-            sd_we <= data_dir and data_valid;
-            sd_reg <= "101";
-         end if; 
-      end if;   
-   end process;
-   
-   -- VGA starts at FF00
-   vga_control : process(addr, data_dir, data_valid)
-   begin
-      if addr(15 downto 4) = x"FF0" and no_igrant_active then
-         vga_en <= '1';
-         vga_we <= data_dir and data_valid;
-         vga_reg <= addr(3 downto 0);
-      else
-         vga_en <= '0';
-         vga_we <= '0';
-         vga_reg <= x"0";
-      end if;
-   end process;
-   
-   -- Timer starts at FF30
-   timer_control : process(addr, data_dir, data_valid)
-   begin
-      if addr(15 downto 4) = x"FF3" and no_igrant_active then
-         tin_en <= '1';
-         tin_we <= data_dir and data_valid;
-         tin_reg <= addr(2 downto 0);
-      else
-         tin_en <= '0';
-         tin_we <= '0';
-         tin_reg <= (others => '0');
-      end if;
-   end process;
+   kbd_en            <= '1' when addr(15 downto 2) = x"FF0" & "01" else '0';     -- FF04
+   kbd_we            <= kbd_en and data_dir and data_valid;
+   kbd_reg           <= addr(1 downto 0);
+
+   -- Block FF08: SYSTEM COUNTERS
+   cyc_en            <= '1' when addr(15 downto 2) = x"FF0" & "10" else '0';     -- FF08
+   cyc_we            <= cyc_en and data_dir and data_valid;
+   cyc_reg           <= addr(1 downto 0);
+
+   ins_en            <= '1' when addr(15 downto 2) = x"FF0" & "11" else '0';     -- FF0C
+   ins_we            <= ins_en and data_dir and data_valid;
+   ins_reg           <= addr(1 downto 0);
+
+   -- Block FF10: UART
+   uart_en           <= '1' when addr(15 downto 3) = x"FF1" & "0" else '0';      -- FF10
+   uart_we           <= uart_en and data_dir and data_valid;
+   uart_reg          <= addr(1 downto 0);
+
+   -- Block FF18: EAE
+   eae_en            <= '1' when addr(15 downto 3) = x"FF1" & "1" else '0';      -- FF18
+   eae_we            <= eae_en and data_dir and data_valid;
+   eae_reg           <= addr(2 downto 0);
+
+   -- Block FF20: SD CARD
+   sd_en             <= '1' when addr(15 downto 3) = x"FF2" & "0" else '0';      -- FF20
+   sd_we             <= sd_en and data_dir and data_valid;
+   sd_reg            <= addr(2 downto 0);
+
+   -- Block FF30: VGA (double block, 16 registers)
+   vga_en            <= '1' when addr(15 downto 4) = x"FF3" else '0';            -- FF30
+   vga_we            <= vga_en and data_dir and data_valid;
+   vga_reg           <= addr(3 downto 0);
+
       
    -- generate CPU wait signal   
    -- as long as the RAM is the only device on the bus that can make the

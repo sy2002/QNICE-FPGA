@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DISK_IMAGE=http://sy2002x.de/hwdp/qnice_disk.img
+DISK_IMAGE=http://sy2002x.de/hwdp/qnice_disk_v16.img
 
 if [ ! -f ../assembler/qasm ] || [ ! -f ../assembler/qasm2rom ]; then
     source ../tools/detect.include
@@ -20,16 +20,16 @@ if [ ! -f qnice-vga ]; then
     ./make-vga.bash
 fi
 
-if [ ! -f qnice_disk.img ]; then
+if [ ! -f qnice_disk_v16.img ]; then
     wget $DISK_IMAGE || curl -O $DISK_IMAGE
 fi
 
 
-if [ ! ./qnice-vga ] || [ ! ../monitor/monitor.out ] || [ ! -f qnice_disk.img ]; then
+if [ ! ./qnice-vga ] || [ ! ../monitor/monitor.out ] || [ ! -f qnice_disk_v16.img ]; then
     echo ""
     echo "ERROR: Something went wrong."
     echo ""
     exit 1
 fi
 
-./qnice-vga -a qnice_disk.img ../monitor/monitor.out
+./qnice-vga -a qnice_disk_v16.img ../monitor/monitor.out

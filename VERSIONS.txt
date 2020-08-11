@@ -8,6 +8,8 @@ a second indirect operand such as CMP 1, @R0 and if the device was sensitive
 to this register being re-written. Details:
 https://github.com/sy2002/QNICE-FPGA/issues/9#issuecomment-670980704>
 
+<new MMIO map, new sysdef.asm, breaking change>
+
 * MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
 
 * UART: Added a 32 Byte FIFO to the UART. This was necessary because the
