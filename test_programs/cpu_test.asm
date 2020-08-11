@@ -9,10 +9,62 @@
 // The QNICE processor has 18 different instructions, 4 different addressing
 // modes, and 5 different status flags.
 // Making an exhaustive test of all possible combinations of the three
-// different paramterss is too big.
+// different parameters is too big.
 // Instead, this program tests:
-// * All combinations of instructions and status flags.
-// * All combinations of instructions and addressing modes.
+// 1. All combinations of flags and branching.
+// 2. All combinations of instructions and status flags.
+// 3. All combinations of instructions and addressing modes.
+
+// Tests in this file:
+// Group 1. All combinations of flags and branching.
+// UNC      : Test unconditional absolute and relative branches
+// R14_ST   : Test that moving data into R14 sets the correct status bits
+// MOVE_IMM : Test the MOVE immediate instruction, and the X, Z, and N-conditional branches
+// MOVE_REG : Test the MOVE register instruction, and the X, Z, and N-conditional branches
+// CMP_IMM  : Test compare with immediate value and Z-conditional absolute branch
+// CMP_REG  : Test compare between two registers and Z-conditional relative branch
+// REG_13   : Test all 13 registers can contain different values
+// ADD      : Test the ADD instruction, and the status register
+// MOVE_CV  : Test the MOVE instruction doesn't change C and V flags
+// MOVE_MEM : Test the MOVE instruction to/from a memory address
+
+// TODO:
+// Test that PC is the same as R15
+
+// Group 2. All combinations of instructions and status flags.
+// ADDC     : Test the ADDC instruction with all flags
+// SUB      : Test the SUB instruction with all flags
+// SUBC     : Test the SUBC instruction with all flags
+// SHL      : Test the SHL instruction with all flags
+// SHR      : Test the SHR instruction with all flags
+// SWAP     : Test the SWAP instruction with all flags
+// NOT      : Test the NOT instruction with all flags
+// AND      : Test the AND instruction with all flags
+// OR       : Test the OR instruction with all flags
+// XOR      : Test the XOR instruction with all flags
+// CMP      : Test the CMP instruction with all flags
+
+// Group 3. All combinations of instructions and addressing modes.
+// MOVE_AM  : Test the MOVE instruction with all addressing modes (different registers)
+// MOVE_AM2 : Test the MOVE instruction with all addressing modes (same registers)
+// SUB_AM   : Test the SUB instruction with all addressing modes (different registers)
+// SUB_AM2  : Test the SUB instruction with all addressing modes (same registers)
+
+// TODO:
+// Test the NOT instruction with all addressing modes
+
+// Instructions:
+// MOVE, ADD, ADDC, SUB, SUBC, SHL, SHR, SWAP
+// NOT, AND, OR, XOR, CMP, res, HALT, BRA/SUB
+
+// We can't explicitly test the HALT instruction, so we must just assume that
+// it works as expected.
+
+// Addressing modes
+// R0
+// @R0
+// @R0++
+// @--R0
 
 // Status register (bits 7 - 0) of R14:
 // - - V N Z C X 1
@@ -50,11 +102,6 @@
 #define ST_VNZC_ 0x003D
 #define ST_VNZCX 0x003F
 
-
-// Instructions:
-// MOVE, ADD, ADDC, SUB, SUBC, SHL, SHR, SWAP
-// NOT, AND, OR, XOR, CMP, res, HALT, BRA/SUB
-
 // Instruction | Flags affected
 //             | V | N | Z | C | X |
 // MOVE        | . | * | * | . | * |
@@ -64,45 +111,8 @@
 // SWAP        | . | * | * | . | * |
 // NOT         | . | * | * | . | * |
 // AND/OR/XOR  | . | * | * | . | * |
-// CMP         | * | * | * | . | . |
+// CMP         | * | * | * | * | * |
 // BRA/SUB     | . | . | . | . | . |
-
-
-// Addressing modes
-// R0
-// @R0
-// @R0++
-// @--R0
-
-// We can't explicitly test the HALT instruction, so we must just assume that
-// it works as expected.
-
-// Tests in this file:
-// UNC      : Test unconditional absolute and relative branches
-// R14_ST   : Test that moving data into R14 sets the correct status bits
-// MOVE_IMM : Test the MOVE immediate instruction, and the X, Z, and N-conditional branches
-// MOVE_REG : Test the MOVE register instruction, and the X, Z, and N-conditional branches
-// CMP_IMM  : Test compare with immediate value and Z-conditional absolute branch
-// CMP_REG  : Test compare between two registers and Z-conditional relative branch
-// REG_13   : Test all 13 registers can contain different values
-// ADD      : Test the ADD instruction, and the status register
-// MOVE_CV  : Test the MOVE instruction doesn't change C and V flags
-// MOVE_MEM : Test the MOVE instruction to/from a memory address
-// ADDC     : Test the ADDC instruction with and without carry
-// SUB      : Test the SUB instruction
-// SUBC     : Test the SUBC instruction with and without carry
-// SHL      : Test the SHL instruction
-// SHR      : Test the SHR instruction
-// SWAP     : Test the SWAP instruction
-// NOT      : Test the NOT instruction
-// AND      : Test the AND instruction
-// OR       : Test the OR instruction
-// XOR      : Test the XOR instruction
-// CMP      : Test the CMP instruction
-
-// More tests to do:
-// Test that PC is the same as R15
-//
 
 
 // ---------------------------------------------------------------------------
@@ -3112,6 +3122,502 @@ E_SUB_AM_148    HALT
 L_SUB_AM_141
 
 
+// ---------------------------------------------------------------------------
+// Test the SUB instruction with all pairs of addressing modes, where source
+// and destination registers are the same
+
+// SUB R1, @R1
+L_SUB_AM2_000   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     R1, @R1
+                CMP     R1, AM2_SRC1            // Verify R1 unchanged
+                RBRA    E_SUB_AM2_001, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM2_SRC0 unchanged
+                RBRA    E_SUB_AM2_002, !Z       // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x4567, R9
+                SUB     AM2_SRC1, R9
+                CMP     R9, R8                  // Verify AM2_SRC1 new value
+                RBRA    E_SUB_AM2_003, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_004, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_001, 1
+
+AM2_SRC0        .DW     0x0000
+AM2_SRC1        .DW     0x0000
+AM2_SRC2        .DW     0x0000
+
+E_SUB_AM2_001   HALT
+E_SUB_AM2_002   HALT
+E_SUB_AM2_003   HALT
+E_SUB_AM2_004   HALT
+L_SUB_AM2_001
+
+// SUB R1, @R1++
+L_SUB_AM2_010   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     R1, @R1++
+                CMP     R1, AM2_SRC2            // Verify R1 incremented
+                RBRA    E_SUB_AM2_011, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM2_SRC0 unchanged
+                RBRA    E_SUB_AM2_012, !Z       // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x4567, R9
+                SUB     AM2_SRC1, R9
+                CMP     R9, R8                  // Verify AM2_SRC1 new value
+                RBRA    E_SUB_AM2_013, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_014, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_011, 1
+
+E_SUB_AM2_011   HALT
+E_SUB_AM2_012   HALT
+E_SUB_AM2_013   HALT
+E_SUB_AM2_014   HALT
+L_SUB_AM2_011
+
+// SUB R1, @--R1
+L_SUB_AM2_020   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     R1, @--R1
+                CMP     R1, AM2_SRC0            // Verify R1 decremented
+                RBRA    E_SUB_AM2_021, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                MOVE    0x0123, R9
+                SUB     AM2_SRC1, R9
+                CMP     R9, R8                  // Verify AM2_SRC0 new value
+                RBRA    E_SUB_AM2_022, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM2_SRC1 unchanged
+                RBRA    E_SUB_AM2_023, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_024, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_021, 1
+
+E_SUB_AM2_021   HALT
+E_SUB_AM2_022   HALT
+E_SUB_AM2_023   HALT
+E_SUB_AM2_024   HALT
+L_SUB_AM2_021
+
+// SUB @R1, R1
+L_SUB_AM2_030   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     @R1, R1
+                MOVE    AM2_SRC1, R9
+                SUB     0x4567, R9
+                CMP     R9, R1                  // Verify R1 new value
+                RBRA    E_SUB_AM2_031, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM2_SRC0 unchanged
+                RBRA    E_SUB_AM2_032, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM2_SRC1 unchanged
+                RBRA    E_SUB_AM2_033, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_034, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_031, 1
+
+E_SUB_AM2_031   HALT
+E_SUB_AM2_032   HALT
+E_SUB_AM2_033   HALT
+E_SUB_AM2_034   HALT
+L_SUB_AM2_031
+
+// SUB @R1, @R1
+L_SUB_AM2_040   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     @R1, @R1
+                CMP     AM2_SRC1, R1            // Verify R1 unchanged
+                RBRA    E_SUB_AM2_041, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM2_SRC0 unchanged
+                RBRA    E_SUB_AM2_042, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x0000, R8              // Verify AM2_SRC1 new value
+                RBRA    E_SUB_AM2_043, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_044, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_041, 1
+
+E_SUB_AM2_041   HALT
+E_SUB_AM2_042   HALT
+E_SUB_AM2_043   HALT
+E_SUB_AM2_044   HALT
+L_SUB_AM2_041
+
+// SUB @R1, @R1++
+L_SUB_AM2_050   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     @R1, @R1++
+                CMP     AM2_SRC2, R1            // Verify R1 incremented
+                RBRA    E_SUB_AM2_051, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM2_SRC0 unchanged
+                RBRA    E_SUB_AM2_052, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x0000, R8              // Verify AM2_SRC1 new value
+                RBRA    E_SUB_AM2_053, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_054, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_051, 1
+
+E_SUB_AM2_051   HALT
+E_SUB_AM2_052   HALT
+E_SUB_AM2_053   HALT
+E_SUB_AM2_054   HALT
+L_SUB_AM2_051
+
+// SUB @R1, @--R1
+L_SUB_AM2_060   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     @R1, @--R1
+                CMP     AM2_SRC0, R1            // Verify R1 decremented
+                RBRA    E_SUB_AM2_061, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                MOVE    0x0123, R9
+                SUB     0x4567, R9
+                CMP     R9, R8                  // Verify AM2_SRC0 new value
+                RBRA    E_SUB_AM2_062, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM2_SRC1 unchanged
+                RBRA    E_SUB_AM2_063, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_064, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_061, 1
+
+E_SUB_AM2_061   HALT
+E_SUB_AM2_062   HALT
+E_SUB_AM2_063   HALT
+E_SUB_AM2_064   HALT
+L_SUB_AM2_061
+
+// SUB @R1++, R1
+L_SUB_AM2_070   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     @R1++, R1
+                MOVE    AM2_SRC2, R9
+                SUB     0x4567, R9
+                CMP     R9, R1                  // Verify R1 new value
+                RBRA    E_SUB_AM2_071, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM2_SRC0 unchanged
+                RBRA    E_SUB_AM2_072, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM2_SRC1 unchanged
+                RBRA    E_SUB_AM2_073, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_074, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_071, 1
+
+E_SUB_AM2_071   HALT
+E_SUB_AM2_072   HALT
+E_SUB_AM2_073   HALT
+E_SUB_AM2_074   HALT
+L_SUB_AM2_071
+
+// SUB @R1++, @R1
+L_SUB_AM2_080   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     @R1++, @R1
+                CMP     AM2_SRC2, R1            // Verify R1 incremented
+                RBRA    E_SUB_AM2_081, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM2_SRC0 unchanged
+                RBRA    E_SUB_AM2_082, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM2_SRC1 unchanged
+                RBRA    E_SUB_AM2_083, !Z       // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x89AB, R9
+                SUB     0x4567, R9
+                CMP     R9, R8                  // Verify AM2_SRC2 new value
+                RBRA    E_SUB_AM2_084, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_081, 1
+
+E_SUB_AM2_081   HALT
+E_SUB_AM2_082   HALT
+E_SUB_AM2_083   HALT
+E_SUB_AM2_084   HALT
+L_SUB_AM2_081
+
+// SUB @R1++, @R1++
+L_SUB_AM2_090   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC0, R1
+
+                SUB     @R1++, @R1++
+                CMP     AM2_SRC2, R1            // Verify R1 incremented twice
+                RBRA    E_SUB_AM2_091, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM2_SRC0 unchanged
+                RBRA    E_SUB_AM2_092, !Z       // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x4567, R9
+                SUB     0x0123, R9
+                CMP     R9, R8                  // Verify AM2_SRC1 new value
+                RBRA    E_SUB_AM2_093, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_094, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_091, 1
+
+E_SUB_AM2_091   HALT
+E_SUB_AM2_092   HALT
+E_SUB_AM2_093   HALT
+E_SUB_AM2_094   HALT
+L_SUB_AM2_091
+
+// SUB @R1++, @--R1
+L_SUB_AM2_100   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     @R1++, @--R1
+                CMP     AM2_SRC1, R1            // Verify R1 unchanged
+                RBRA    E_SUB_AM2_101, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM2_SRC0 unchanged
+                RBRA    E_SUB_AM2_102, !Z       // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x4567, R9
+                SUB     0x4567, R9
+                CMP     R9, R8                  // Verify AM2_SRC1 new value
+                RBRA    E_SUB_AM2_103, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_104, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_101, 1
+
+E_SUB_AM2_101   HALT
+E_SUB_AM2_102   HALT
+E_SUB_AM2_103   HALT
+E_SUB_AM2_104   HALT
+L_SUB_AM2_101
+
+// SUB @--R1, R1
+L_SUB_AM2_110   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     @--R1, R1
+                MOVE    AM2_SRC0, R9
+                SUB     0x0123, R9
+                CMP     R9, R1                  // Verify R1 new value
+                RBRA    E_SUB_AM2_111, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM2_SRC0 unchanged
+                RBRA    E_SUB_AM2_112, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM2_SRC1 unchanged
+                RBRA    E_SUB_AM2_113, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_114, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_111, 1
+
+E_SUB_AM2_111   HALT
+E_SUB_AM2_112   HALT
+E_SUB_AM2_113   HALT
+E_SUB_AM2_114   HALT
+L_SUB_AM2_111
+
+// SUB @--R1, @R1
+L_SUB_AM2_120   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     @--R1, @R1
+                CMP     AM2_SRC0, R1            // Verify R1 decremented
+                RBRA    E_SUB_AM2_121, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0000, R8              // Verify AM2_SRC0 new value
+                RBRA    E_SUB_AM2_122, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM2_SRC1 unchanged
+                RBRA    E_SUB_AM2_123, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_124, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_121, 1
+
+E_SUB_AM2_121   HALT
+E_SUB_AM2_122   HALT
+E_SUB_AM2_123   HALT
+E_SUB_AM2_124   HALT
+L_SUB_AM2_121
+
+// SUB @--R1, @R1++
+L_SUB_AM2_130   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC1, R1
+
+                SUB     @--R1, @R1++
+                CMP     AM2_SRC1, R1            // Verify R1 unchanged
+                RBRA    E_SUB_AM2_131, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0000, R8              // Verify AM2_SRC0 new value
+                RBRA    E_SUB_AM2_132, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM2_SRC1 unchanged
+                RBRA    E_SUB_AM2_133, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_134, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_131, 1
+
+E_SUB_AM2_131   HALT
+E_SUB_AM2_132   HALT
+E_SUB_AM2_133   HALT
+E_SUB_AM2_134   HALT
+L_SUB_AM2_131
+
+// SUB @--R1, @--R1
+L_SUB_AM2_140   // Prepare test case
+                MOVE    AM2_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    AM2_SRC2, R1
+
+                SUB     @--R1, @--R1
+                CMP     AM2_SRC0, R1            // Verify R1 decremented twice
+                RBRA    E_SUB_AM2_141, !Z       // Jump if error
+                MOVE    AM2_SRC0, R0
+                MOVE    @R0++, R8
+                MOVE    0x0123, R9
+                SUB     0x4567, R9
+                CMP     R9, R8                  // Verify AM2_SRC0 new value
+                RBRA    E_SUB_AM2_142, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM2_SRC1 unchanged
+                RBRA    E_SUB_AM2_143, !Z       // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM2_SRC2 unchanged
+                RBRA    E_SUB_AM2_144, !Z       // Jump if error
+                MOVE    @R0++, R8
+
+                RBRA    L_SUB_AM2_141, 1
+
+E_SUB_AM2_141   HALT
+E_SUB_AM2_142   HALT
+E_SUB_AM2_143   HALT
+E_SUB_AM2_144   HALT
+L_SUB_AM2_141
+
+
 // Everything worked as expected! We are done now.
 EXIT            MOVE    OK, R8
                 SYSCALL(puts, 1)
@@ -3119,99 +3625,3 @@ EXIT            MOVE    OK, R8
 
 OK              .ASCII_W    "OK\n"
 
-
-
-// The OLD version of cpu_test is here for now. TBD: Remove
-
-
-                ;
-                ; MOVE and CMP
-                ;
-                MOVE    0x1234, R0
-                CMP     0x1234, R0
-                RBRA    M1, Z
-                ; Moving a constant to a register or comparing that with a constant failed.
-                HALT
-M1              CMP     R0, 0x1234
-                RBRA    M1_1, Z
-                ; CMP with constant as second parameter failed.
-                HALT
-M1_1            MOVE    R0, R1
-                CMP     R1, 0x1234
-                RBRA    M2, Z
-                ; Moving the contents of a register to another register failed.
-                HALT
-M2              MOVE    M2_SCRATCH, R1
-                MOVE    R0, @R1
-                CMP     0x1234, @R1
-                RBRA    M3, Z
-                ; Either writing indirect to memory or reading this in a compare failed.
-                HALT
-M2_SCRATCH      .BLOCK  2               ; Two scratch memory cells.
-M3              MOVE    @R1++, @R1++
-                MOVE    M2_SCRATCH, R2
-                ADD     0x0002, R2
-                CMP     R2, R1
-                RBRA    M3_1, Z         ; R1 points to the correct address.
-                HALT
-M3_1            SUB     0x0001, R1
-                MOVE    @R1, R2
-                CMP     R0, R2
-                RBRA    M4, Z
-                ;  If we end up here, the second memory cell in M2_SCRATCH did either not contain
-                ; 0x1234 or the value could not be retrieved.
-                HALT
-                ;  Now we test OR @R0++, @R0:
-M4              MOVE    M2_SCRATCH, R0
-                MOVE    0x5555, @R0++
-                MOVE    0xAAAA, @R0
-                SUB     0x0001, R0
-                OR      @R0++, @R0
-                CMP     0xFFFF, @R0
-                RBRA    M5, Z
-                HALT
-                ; test ADD R4, @--R4
-M5_VAR          .DW     0x0004, 0xFFFF, 0x4444, 0x9876, 0x5432, 0x2309
-M5              MOVE    M5_VAR, R4
-                ADD     1, R4
-                ADD     R4, @--R4
-                MOVE    @R4, R4
-                CMP     @R4, 0x2309
-                RBRA    M6, Z
-                HALT
-                ; test ADD @--R4, R4
-                ; for more details, see test_programs/predec.asm
-M6_VAR          .DW 0x0003, 0xAAAA, 0xFFFF, 0xCCCC, 0xBBBB, 0xEEEE
-M6              MOVE    M6_VAR, R4              ; now points to 0x0003 
-                ADD     1, R4                   ; now points to 0xAAAA
-                ADD     @--R4, R4               ; now should point to 0xCCCC
-                CMP     0xCCCC, @R4
-                RBRA    M7, Z
-                HALT
-                ; test ADD @--R4, @R4
-M7_VAR         .DW     0xAAAA, 0x1234, 0xBBBB
-M7              MOVE    M7_VAR, R4
-                ADD     2, R4
-                ADD     @--R4, @R4
-                CMP     @R4, 0x2468
-                RBRA    M8, Z
-                HALT
-                ; test ADD @--R4, @--R4
-M8_VAR          .DW     0x5555, 0x0076, 0x1900, 0xDDDD, 0x9999, 0x8888
-M8              MOVE    M8_VAR, R4
-                ADD     3, R4
-                ADD     @--R4, @--R4
-                CMP     @R4, 0x1976
-                RBRA    M9, Z
-                HALT
-                ; ADD @R4, @--R4
-M9_VAR          .DW     0x1100, 0x4455
-M9              MOVE    M9_VAR, R4
-                ADD     1, R4
-                ADD     @R4, @--R4
-                CMP     @R4, 0x5555
-                RBRA    CPU_OK, Z
-                HALT
-
-                ; If we end up here we can be pretty sure that the CPU is working.
-CPU_OK          SYSCALL(exit, 1)
