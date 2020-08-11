@@ -2031,24 +2031,309 @@ L_MOVE_AM_61
 
 
 // ---------------------------------------------------------------------------
-// Test the MOVE instruction with all addressing modes
+// Test the MOVE instruction with all addressing modes, where source and
+// destination registers are the same
 
-// MOVE R0, R0
-// MOVE R0, @R0
-// MOVE R0, @R0++
-// MOVE R0, @--R0
-// MOVE @R0, R0
-// MOVE @R0, @R0
-// MOVE @R0, @R0++
-// MOVE @R0, @--R0
-// MOVE @R0++, R0
-// MOVE @R0++, @R0
-// MOVE @R0++, @R0++
-// MOVE @R0++, @--R0
-// MOVE @--R0, R0
-// MOVE @--R0, @R0
-// MOVE @--R0, @R0++
-// MOVE @--R0, @--R0
+// MOVE @R1, R1
+// MOVE R1, @R1
+
+L_MOVE_AM2_00
+                MOVE    AM_BSS, R4
+                MOVE    0x3456, R0
+                MOVE    R0, @R4                 // Store dummy value into AM_BSS
+
+                MOVE    AM_BSS, R1
+                MOVE    @R1, R1                 // Copy @R1 to R1
+
+                CMP     R1, 0x3456              // Verify correct value read
+                RBRA    E_MOVE_AM2_01, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, 0x3456              // Verify correct value
+                RBRA    E_MOVE_AM2_02, !Z       // Jump if error
+
+                MOVE    AM_BSS, R1
+                MOVE    R1, @R1                 // Copy R1 to @R1
+
+                CMP     R1, AM_BSS              // Verify R1 unchanged
+                RBRA    E_MOVE_AM2_03, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, AM_BSS              // Verify correct value
+                RBRA    E_MOVE_AM2_04, !Z       // Jump if error
+
+                RBRA    L_MOVE_AM2_01, 1
+E_MOVE_AM2_01   HALT
+E_MOVE_AM2_02   HALT
+E_MOVE_AM2_03   HALT
+E_MOVE_AM2_04   HALT
+L_MOVE_AM2_01
+
+// MOVE @--R1, R1
+// MOVE R1, @R1++
+
+L_MOVE_AM2_10
+                MOVE    AM_BSS, R4
+                MOVE    AM_BSS1, R5
+                MOVE    0x3456, R0
+                MOVE    R0, @R4                 // Store dummy value into AM_BSS
+                MOVE    0x6543, R0
+                MOVE    R0, @R5                 // Store dummy value into AM_BSS1
+
+                MOVE    AM_BSS1, R1
+                MOVE    @--R1, R1               // Decrement R1, and copy @R1 to R1
+
+                CMP     R1, 0x3456              // Verify correct value
+                RBRA    E_MOVE_AM2_11, !Z       // Jump if error
+
+                MOVE    AM_BSS, R1
+                MOVE    R1, @R1++               // Copy R1 to @R1 and increment R1
+
+                CMP     R1, AM_BSS1             // Verify R1 incremented
+                RBRA    E_MOVE_AM2_12, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, AM_BSS              // Verify correct value
+                RBRA    E_MOVE_AM2_13, !Z       // Jump if error
+
+                RBRA    L_MOVE_AM2_11, 1
+E_MOVE_AM2_11   HALT
+E_MOVE_AM2_12   HALT
+E_MOVE_AM2_13   HALT
+L_MOVE_AM2_11
+
+// MOVE @R1++, R1
+// MOVE R1, @--R1
+
+L_MOVE_AM2_20
+                MOVE    AM_BSS, R4
+                MOVE    AM_BSS1, R5
+                MOVE    0x4567, R0
+                MOVE    R0, @R4                 // Store dummy value into AM_BSS
+                MOVE    0x7654, R0
+                MOVE    R0, @R5                 // Store dummy value into AM_BSS1
+
+                MOVE    AM_BSS, R1
+                MOVE    @R1++, R1               // Copy @R1 to R1
+
+                CMP     R1, 0x4567              // Verify correct value
+                RBRA    E_MOVE_AM2_21, !Z       // Jump if error
+
+                MOVE    AM_BSS1, R1
+                MOVE    R1, @--R1               // Copy R1 to @(R1-1) and decrement R1
+
+                CMP     R1, AM_BSS              // Verify R1 decremented
+                RBRA    E_MOVE_AM2_22, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, AM_BSS1             // Verify correct value
+                RBRA    E_MOVE_AM2_23, !Z       // Jump if error
+
+                RBRA    L_MOVE_AM2_21, 1
+E_MOVE_AM2_21   HALT
+E_MOVE_AM2_22   HALT
+E_MOVE_AM2_23   HALT
+L_MOVE_AM2_21
+
+// MOVE @R1, @R1++
+// MOVE @--R1, @R1
+
+L_MOVE_AM2_30
+                MOVE    AM_BSS, R4
+                MOVE    AM_BSS1, R5
+                MOVE    0x5678, R0
+                MOVE    R0, @R4                 // Store dummy value into AM_BSS
+                MOVE    0x8765, R0
+                MOVE    R0, @R5                 // Store dummy value into AM_BSS1
+
+                MOVE    AM_BSS, R1
+                MOVE    @R1, @R1++              // Copy @R1 to @R1++
+
+                CMP     R1, AM_BSS1             // Verify R1 incremented
+                RBRA    E_MOVE_AM2_31, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, 0x5678              // Verify value unchanged
+                RBRA    E_MOVE_AM2_33, !Z       // Jump if error
+                MOVE    @R5, R0                 // Read from AM_BSS1
+                CMP     R0, 0x8765              // Verify value unchanged
+                RBRA    E_MOVE_AM2_33, !Z       // Jump if error
+
+                MOVE    AM_BSS1, R1
+                MOVE    @--R1, @R1              // Copy @--R1 to @R1
+
+                CMP     R1, AM_BSS              // Verify R1 decremented
+                RBRA    E_MOVE_AM2_34, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, 0x5678              // Verify value unchanged
+                RBRA    E_MOVE_AM2_33, !Z       // Jump if error
+                MOVE    @R5, R0                 // Read from AM_BSS1
+                CMP     R0, 0x8765              // Verify value unchanged
+                RBRA    E_MOVE_AM2_36, !Z       // Jump if error
+
+                RBRA    L_MOVE_AM2_31, 1
+E_MOVE_AM2_31   HALT
+E_MOVE_AM2_32   HALT
+E_MOVE_AM2_33   HALT
+E_MOVE_AM2_34   HALT
+E_MOVE_AM2_35   HALT
+E_MOVE_AM2_36   HALT
+L_MOVE_AM2_31
+
+// MOVE @R1, @--R1
+// MOVE @R1++, @R1
+
+L_MOVE_AM2_40
+                MOVE    AM_BSS, R4
+                MOVE    AM_BSS1, R5
+                MOVE    0x6789, R0
+                MOVE    R0, @R4                 // Store dummy value into AM_BSS
+                MOVE    0x9876, R0
+                MOVE    R0, @R5                 // Store dummy value into AM_BSS1
+
+                MOVE    AM_BSS1, R1
+                MOVE    @R1, @--R1              // Copy @R1 to @--R1
+
+                CMP     R1, AM_BSS              // Verify R1 decremented
+                RBRA    E_MOVE_AM2_41, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, 0x9876              // Verify value unchanged
+                RBRA    E_MOVE_AM2_43, !Z       // Jump if error
+                MOVE    @R5, R0                 // Read from AM_BSS1
+                CMP     R0, 0x9876              // Verify value unchanged
+                RBRA    E_MOVE_AM2_43, !Z       // Jump if error
+
+                MOVE    0x6789, R0
+                MOVE    R0, @R4                 // Store dummy value into AM_BSS
+                MOVE    AM_BSS, R1
+                MOVE    @R1++, @R1              // Copy @R1++ to @R1
+
+                CMP     R1, AM_BSS1             // Verify R1 incremented
+                RBRA    E_MOVE_AM2_44, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, 0x6789              // Verify value unchanged
+                RBRA    E_MOVE_AM2_43, !Z       // Jump if error
+                MOVE    @R5, R0                 // Read from AM_BSS1
+                CMP     R0, 0x6789              // Verify value unchanged
+                RBRA    E_MOVE_AM2_46, !Z       // Jump if error
+
+                RBRA    L_MOVE_AM2_41, 1
+E_MOVE_AM2_41   HALT
+E_MOVE_AM2_42   HALT
+E_MOVE_AM2_43   HALT
+E_MOVE_AM2_44   HALT
+E_MOVE_AM2_45   HALT
+E_MOVE_AM2_46   HALT
+L_MOVE_AM2_41
+
+// MOVE @R1++, @R1++
+// MOVE @--R1, @--R1
+
+L_MOVE_AM2_50
+                MOVE    AM_BSS, R4
+                MOVE    AM_BSS1, R5
+                MOVE    AM_BSS2, R6
+                MOVE    0x1234, R0
+                MOVE    R0, @R4                 // Store dummy value into AM_BSS
+                MOVE    0x4321, R0
+                MOVE    R0, @R5                 // Store dummy value into AM_BSS1
+                MOVE    0x5678, R0
+                MOVE    R0, @R6                 // Store dummy value into AM_BSS2
+
+                MOVE    AM_BSS, R1
+                MOVE    @R1++, @R1++            // Copy @R1++ to @R1++
+
+                CMP     R1, AM_BSS2             // Verify R1 incremented twice
+                RBRA    E_MOVE_AM2_51, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, 0x1234              // Verify value unchanged
+                RBRA    E_MOVE_AM2_53, !Z       // Jump if error
+                MOVE    @R5, R0                 // Read from AM_BSS1
+                CMP     R0, 0x1234              // Verify value correctly updated
+                RBRA    E_MOVE_AM2_53, !Z       // Jump if error
+                MOVE    @R6, R0                 // Read from AM_BSS2
+                CMP     R0, 0x5678              // Verify value unchanged
+                RBRA    E_MOVE_AM2_54, !Z       // Jump if error
+
+                MOVE    0x4321, R0
+                MOVE    R0, @R5                 // Store dummy value into AM_BSS1
+                MOVE    AM_BSS2, R1
+                MOVE    @--R1, @--R1            // Copy @--R1 to @--R1
+
+                CMP     R1, AM_BSS              // Verify R1 decremented twice
+                RBRA    E_MOVE_AM2_55, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, 0x4321              // Verify value unchanged
+                RBRA    E_MOVE_AM2_56, !Z       // Jump if error
+                MOVE    @R5, R0                 // Read from AM_BSS1
+                CMP     R0, 0x4321              // Verify value unchanged
+                RBRA    E_MOVE_AM2_57, !Z       // Jump if error
+                MOVE    @R6, R0                 // Read from AM_BSS2
+                CMP     R0, 0x5678              // Verify value unchanged
+                RBRA    E_MOVE_AM2_58, !Z       // Jump if error
+
+                RBRA    L_MOVE_AM2_51, 1
+E_MOVE_AM2_51   HALT
+E_MOVE_AM2_52   HALT
+E_MOVE_AM2_53   HALT
+E_MOVE_AM2_54   HALT
+E_MOVE_AM2_55   HALT
+E_MOVE_AM2_56   HALT
+E_MOVE_AM2_57   HALT
+E_MOVE_AM2_58   HALT
+L_MOVE_AM2_51
+
+// MOVE @R1++, @--R1
+// MOVE @--R1, @R1++
+
+L_MOVE_AM2_60
+                MOVE    AM_BSS, R4
+                MOVE    AM_BSS1, R5
+                MOVE    AM_BSS2, R6
+                MOVE    0x1234, R0
+                MOVE    R0, @R4                 // Store dummy value into AM_BSS
+                MOVE    0x4321, R0
+                MOVE    R0, @R5                 // Store dummy value into AM_BSS1
+                MOVE    0x5678, R0
+                MOVE    R0, @R6                 // Store dummy value into AM_BSS2
+
+                MOVE    AM_BSS1, R1
+                MOVE    @R1++, @--R1            // Copy @R1++ to @--R1
+
+                CMP     R1, AM_BSS1             // Verify R1 unchanged
+                RBRA    E_MOVE_AM2_61, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, 0x1234              // Verify value unchanged
+                RBRA    E_MOVE_AM2_62, !Z       // Jump if error
+                MOVE    @R5, R0                 // Read from AM_BSS1
+                CMP     R0, 0x4321              // Verify value unchanged
+                RBRA    E_MOVE_AM2_63, !Z       // Jump if error
+                MOVE    @R6, R0                 // Read from AM_BSS2
+                CMP     R0, 0x5678              // Verify value unchanged
+                RBRA    E_MOVE_AM2_64, !Z       // Jump if error
+
+                MOVE    AM_BSS1, R1
+                MOVE    @--R1, @R1++            // Copy @--R1 to @R1++
+
+                CMP     R1, AM_BSS1             // Verify R1 unchanged
+                RBRA    E_MOVE_AM2_65, !Z       // Jump if error
+                MOVE    @R4, R0                 // Read from AM_BSS
+                CMP     R0, 0x1234              // Verify value unchanged
+                RBRA    E_MOVE_AM2_66, !Z       // Jump if error
+                MOVE    @R5, R0                 // Read from AM_BSS1
+                CMP     R0, 0x4321              // Verify value unchanged
+                RBRA    E_MOVE_AM2_67, !Z       // Jump if error
+                MOVE    @R6, R0                 // Read from AM_BSS2
+                CMP     R0, 0x5678              // Verify value unchanged
+                RBRA    E_MOVE_AM2_68, !Z       // Jump if error
+
+                RBRA    L_MOVE_AM2_61, 1
+E_MOVE_AM2_61   HALT
+E_MOVE_AM2_62   HALT
+E_MOVE_AM2_63   HALT
+E_MOVE_AM2_64   HALT
+E_MOVE_AM2_65   HALT
+E_MOVE_AM2_66   HALT
+E_MOVE_AM2_67   HALT
+E_MOVE_AM2_68   HALT
+L_MOVE_AM2_61
+
+
 
 // Everything worked as expected! We are done now.
 EXIT            MOVE    OK, R8
