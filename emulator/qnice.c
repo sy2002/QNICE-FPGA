@@ -890,31 +890,8 @@ int execute() {
     case 12: /* CMP */
       source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_1 = read_source_operand(destination_mode, destination_regaddr, FALSE);
-
-      sr_bits = read_register(SR); // CMP does NOT use the standard logic for setting the SR bits - this is done explicitly here.
-
-      if ((source_0 & 0xffff) == (source_1 & 0xffff))
-        sr_bits |= 0x0008;  // Set Z-bit
-      else
-        sr_bits &= 0xfff7;  // Clear Z-bit
-
-      if (source_0 > source_1) 
-        sr_bits |= 0x0010;  // Set N-bit
-      else
-        sr_bits &= 0xffef;  // Clear N-bit
-
-      /* Ugly but it works: Convert the unsigned int source_0/1 to signed ints with possible sign extension: */
-      cmp_0 = source_0;
-      cmp_1 = source_1;
-
-      if (source_0 & 0x8000) cmp_0 |= 0xffff0000;
-      if (source_1 & 0x8000) cmp_1 |= 0xffff0000;
-      if (cmp_0 > cmp_1) 
-        sr_bits |= 0x0020;  // Set C-bit
-      else
-        sr_bits &= 0xfffb;  // Clear C-bit
-
-      write_register(SR, sr_bits);
+      destination = source_0 - source_1;
+      update_status_bits(destination, source_0, source_1, MODIFY_ALL, SUB_INSTRUCTION);
       break;
     case 13: /* Reserved */
       printf("Attempt to execute the reserved instruction...\n");
