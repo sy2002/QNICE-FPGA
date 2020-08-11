@@ -8,7 +8,7 @@
 -- also implements the global state and reset management
 -- 
 -- done in 2015, 2016 by sy2002
--- enhanced in July 2020
+-- enhanced in July/August 2020 by Michael Jørgensen and sy2002 
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -58,16 +58,9 @@ port (
    kbd_en            : buffer std_logic;
    kbd_we            : out std_logic;
    kbd_reg           : out std_logic_vector(1 downto 0);
-   
+      
    -- Cycle counter register range $FF08..$FF0B
    cyc_en            : buffer std_logic;
-   -- Timer Interrupt Generator range $FF30 .. $FF35
-   tin_en            : out std_logic;
-   tin_we            : out std_logic;
-   tin_reg           : out std_logic_vector(2 downto 0);
-   
-   -- Cycle counter register range $FF17..$FF1A
-   cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
 
@@ -91,6 +84,11 @@ port (
    sd_en             : buffer std_logic;
    sd_we             : out std_logic;
    sd_reg            : out std_logic_vector(2 downto 0);
+
+   -- Timer Interrupt Generator range $FF28 .. $FF2F
+   tin_en            : buffer std_logic;
+   tin_we            : out std_logic;
+   tin_reg           : out std_logic_vector(2 downto 0);
    
    -- VGA register range $FF30..$FF3F
    vga_en            : buffer std_logic;
@@ -151,47 +149,53 @@ signal no_igrant_active : boolean;
 
 begin
 
+   -- we need to decouple all devices from the data bus during an IGRANT_N, because
+   -- the requesting device is putting the address of the ISR on the data bus durnig that time
+   -- (see also doc/intro/qnice_intro.pdf, section 5 "Interrupts")
    no_igrant_active <= true when cpu_igrant_n = '1' else false;
    
-
    -- Block FF00: FUNDAMENTAL IO
-   switch_reg_enable <= not data_dir            when addr = x"FF00" else '0';    -- Read only
-   til_reg0_enable   <= data_dir and data_valid when addr = x"FF01" else '0';    -- Write only
-   til_reg1_enable   <= data_dir and data_valid when addr = x"FF02" else '0';    -- Write only
+   switch_reg_enable <= not data_dir            when addr = x"FF00" and no_igrant_active else '0';    -- Read only
+   til_reg0_enable   <= data_dir and data_valid when addr = x"FF01" and no_igrant_active else '0';    -- Write only
+   til_reg1_enable   <= data_dir and data_valid when addr = x"FF02" and no_igrant_active else '0';    -- Write only
 
-   kbd_en            <= '1' when addr(15 downto 2) = x"FF0" & "01" else '0';     -- FF04
+   kbd_en            <= '1' when addr(15 downto 2) = x"FF0" & "01" and no_igrant_active else '0';     -- FF04
    kbd_we            <= kbd_en and data_dir and data_valid;
    kbd_reg           <= addr(1 downto 0);
 
    -- Block FF08: SYSTEM COUNTERS
-   cyc_en            <= '1' when addr(15 downto 2) = x"FF0" & "10" else '0';     -- FF08
+   cyc_en            <= '1' when addr(15 downto 2) = x"FF0" & "10" and no_igrant_active else '0';     -- FF08
    cyc_we            <= cyc_en and data_dir and data_valid;
    cyc_reg           <= addr(1 downto 0);
 
-   ins_en            <= '1' when addr(15 downto 2) = x"FF0" & "11" else '0';     -- FF0C
+   ins_en            <= '1' when addr(15 downto 2) = x"FF0" & "11" and no_igrant_active else '0';     -- FF0C
    ins_we            <= ins_en and data_dir and data_valid;
    ins_reg           <= addr(1 downto 0);
 
    -- Block FF10: UART
-   uart_en           <= '1' when addr(15 downto 3) = x"FF1" & "0" else '0';      -- FF10
+   uart_en           <= '1' when addr(15 downto 3) = x"FF1" & "0" and no_igrant_active else '0';      -- FF10
    uart_we           <= uart_en and data_dir and data_valid;
    uart_reg          <= addr(1 downto 0);
 
    -- Block FF18: EAE
-   eae_en            <= '1' when addr(15 downto 3) = x"FF1" & "1" else '0';      -- FF18
+   eae_en            <= '1' when addr(15 downto 3) = x"FF1" & "1" and no_igrant_active else '0';      -- FF18
    eae_we            <= eae_en and data_dir and data_valid;
    eae_reg           <= addr(2 downto 0);
 
    -- Block FF20: SD CARD
-   sd_en             <= '1' when addr(15 downto 3) = x"FF2" & "0" else '0';      -- FF20
+   sd_en             <= '1' when addr(15 downto 3) = x"FF2" & "0" and no_igrant_active else '0';      -- FF20
    sd_we             <= sd_en and data_dir and data_valid;
    sd_reg            <= addr(2 downto 0);
+   
+   -- Timer Interrupt Generator range $FF28 .. $FF2F
+   tin_en            <= '1' when addr(15 downto 3) = x"FF2" & "1" and no_igrant_active else '0';      -- FF28   
+   tin_we            <= tin_en and data_dir and data_valid;
+   tin_reg           <= addr(2 downto 0);   
 
    -- Block FF30: VGA (double block, 16 registers)
-   vga_en            <= '1' when addr(15 downto 4) = x"FF3" else '0';            -- FF30
+   vga_en            <= '1' when addr(15 downto 4) = x"FF3" and no_igrant_active else '0';            -- FF30
    vga_we            <= vga_en and data_dir and data_valid;
    vga_reg           <= addr(3 downto 0);
-
       
    -- generate CPU wait signal   
    -- as long as the RAM is the only device on the bus that can make the
