@@ -2334,6 +2334,783 @@ E_MOVE_AM2_68   HALT
 L_MOVE_AM2_61
 
 
+// ---------------------------------------------------------------------------
+// Test the SUB instruction with all pairs of addressing modes, where source
+// and destination registers are different
+
+// SUB R1, @R2
+L_SUB_AM_000    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     R1, @R2
+                CMP     R1, AM_SRC1             // Verify R1 unchanged
+                RBRA    E_SUB_AM_001, !Z        // Jump if error
+                CMP     R2, AM_DST1             // Verify R2 unchanged
+                RBRA    E_SUB_AM_002, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_003, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_004, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_005, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_006, !Z        // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x7654, R9
+                SUB     AM_SRC1, R9
+                CMP     R9, R8                  // Verify AM_DST1 new value
+                RBRA    E_SUB_AM_007, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_008, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_001, 1
+
+AM_SRC0         .DW     0x0000
+AM_SRC1         .DW     0x0000
+AM_SRC2         .DW     0x0000
+AM_DST0         .DW     0x0000
+AM_DST1         .DW     0x0000
+AM_DST2         .DW     0x0000
+
+E_SUB_AM_001    HALT
+E_SUB_AM_002    HALT
+E_SUB_AM_003    HALT
+E_SUB_AM_004    HALT
+E_SUB_AM_005    HALT
+E_SUB_AM_006    HALT
+E_SUB_AM_007    HALT
+E_SUB_AM_008    HALT
+L_SUB_AM_001
+
+// SUB R1, @R2++
+L_SUB_AM_010    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     R1, @R2++
+                CMP     R1, AM_SRC1             // Verify R1 unchanged
+                RBRA    E_SUB_AM_011, !Z        // Jump if error
+                CMP     R2, AM_DST2             // Verify R2 incremented
+                RBRA    E_SUB_AM_012, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_013, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_014, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_015, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_016, !Z        // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x7654, R9
+                SUB     AM_SRC1, R9
+                CMP     R9, R8                  // Verify AM_DST1 new value
+                RBRA    E_SUB_AM_017, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_018, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_011, 1
+
+E_SUB_AM_011    HALT
+E_SUB_AM_012    HALT
+E_SUB_AM_013    HALT
+E_SUB_AM_014    HALT
+E_SUB_AM_015    HALT
+E_SUB_AM_016    HALT
+E_SUB_AM_017    HALT
+E_SUB_AM_018    HALT
+L_SUB_AM_011
+
+// SUB R1, @--R2
+L_SUB_AM_020    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     R1, @--R2
+                CMP     R1, AM_SRC1             // Verify R1 unchanged
+                RBRA    E_SUB_AM_021, !Z        // Jump if error
+                CMP     R2, AM_DST0             // Verify R2 decremented
+                RBRA    E_SUB_AM_022, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_023, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_024, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_025, !Z        // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x3210, R9
+                SUB     AM_SRC1, R9
+                CMP     R9, R8                  // Verify AM_DST0 new value
+                RBRA    E_SUB_AM_026, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x7654, R8              // Verify AM_DST1 unchanged
+                RBRA    E_SUB_AM_027, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_028, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_021, 1
+
+E_SUB_AM_021    HALT
+E_SUB_AM_022    HALT
+E_SUB_AM_023    HALT
+E_SUB_AM_024    HALT
+E_SUB_AM_025    HALT
+E_SUB_AM_026    HALT
+E_SUB_AM_027    HALT
+E_SUB_AM_028    HALT
+L_SUB_AM_021
+
+// SUB @R1, R2
+L_SUB_AM_030    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @R1, R2
+                CMP     R1, AM_SRC1             // Verify R1 unchanged
+                RBRA    E_SUB_AM_031, !Z        // Jump if error
+                MOVE    AM_DST1, R9
+                SUB     0x4567, R9
+                CMP     R9, R2                  // Verify R2 new value
+                RBRA    E_SUB_AM_032, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_033, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_034, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_035, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_036, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x7654, R8              // Verify AM_DST1 unchanged
+                RBRA    E_SUB_AM_037, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_038, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_031, 1
+
+E_SUB_AM_031    HALT
+E_SUB_AM_032    HALT
+E_SUB_AM_033    HALT
+E_SUB_AM_034    HALT
+E_SUB_AM_035    HALT
+E_SUB_AM_036    HALT
+E_SUB_AM_037    HALT
+E_SUB_AM_038    HALT
+L_SUB_AM_031
+
+// SUB @R1, @R2
+L_SUB_AM_040    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @R1, @R2
+                CMP     R1, AM_SRC1             // Verify R1 unchanged
+                RBRA    E_SUB_AM_041, !Z        // Jump if error
+                CMP     R2, AM_DST1             // Verify R2 unchanged
+                RBRA    E_SUB_AM_042, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_043, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_044, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_045, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_046, !Z        // Jump if error
+                MOVE    0x7654, R9
+                SUB     0x4567, R9
+                MOVE    @R0++, R8
+                CMP     R9, R8                  // Verify AM_DST1 new value
+                RBRA    E_SUB_AM_047, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_048, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_041, 1
+
+E_SUB_AM_041    HALT
+E_SUB_AM_042    HALT
+E_SUB_AM_043    HALT
+E_SUB_AM_044    HALT
+E_SUB_AM_045    HALT
+E_SUB_AM_046    HALT
+E_SUB_AM_047    HALT
+E_SUB_AM_048    HALT
+L_SUB_AM_041
+
+// SUB @R1, @R2++
+L_SUB_AM_050    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @R1, @R2++
+                CMP     R1, AM_SRC1             // Verify R1 unchanged
+                RBRA    E_SUB_AM_051, !Z        // Jump if error
+                CMP     R2, AM_DST2             // Verify R2 incremented
+                RBRA    E_SUB_AM_052, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_053, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_054, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_055, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_056, !Z        // Jump if error
+                MOVE    0x7654, R9
+                SUB     0x4567, R9
+                MOVE    @R0++, R8
+                CMP     R9, R8                  // Verify AM_DST1 new value
+                RBRA    E_SUB_AM_057, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_058, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_051, 1
+
+E_SUB_AM_051    HALT
+E_SUB_AM_052    HALT
+E_SUB_AM_053    HALT
+E_SUB_AM_054    HALT
+E_SUB_AM_055    HALT
+E_SUB_AM_056    HALT
+E_SUB_AM_057    HALT
+E_SUB_AM_058    HALT
+L_SUB_AM_051
+
+// SUB @R1, @--R2
+L_SUB_AM_060    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @R1, @--R2
+                CMP     R1, AM_SRC1             // Verify R1 unchanged
+                RBRA    E_SUB_AM_061, !Z        // Jump if error
+                CMP     R2, AM_DST0             // Verify R2 decremented
+                RBRA    E_SUB_AM_062, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_063, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_064, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_065, !Z        // Jump if error
+                MOVE    0x3210, R9
+                SUB     0x4567, R9
+                MOVE    @R0++, R8
+                CMP     R9, R8                  // Verify AM_DST0 new value
+                RBRA    E_SUB_AM_066, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x7654, R8              // Verify AM_DST1 unchanged
+                RBRA    E_SUB_AM_067, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_068, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_061, 1
+
+E_SUB_AM_061    HALT
+E_SUB_AM_062    HALT
+E_SUB_AM_063    HALT
+E_SUB_AM_064    HALT
+E_SUB_AM_065    HALT
+E_SUB_AM_066    HALT
+E_SUB_AM_067    HALT
+E_SUB_AM_068    HALT
+L_SUB_AM_061
+
+
+// SUB @R1++, R2
+L_SUB_AM_070    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @R1++, R2
+                CMP     AM_SRC2, R1             // Verify R1 incremented
+                RBRA    E_SUB_AM_071, !Z        // Jump if error
+                MOVE    AM_DST1, R9
+                SUB     0x4567, R9
+                CMP     R9, R2                  // Verify R2 new value
+                RBRA    E_SUB_AM_072, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_073, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_074, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_075, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_075, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x7654, R8              // Verify AM_DST1 unchanged
+                RBRA    E_SUB_AM_077, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_078, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_071, 1
+
+E_SUB_AM_071    HALT
+E_SUB_AM_072    HALT
+E_SUB_AM_073    HALT
+E_SUB_AM_074    HALT
+E_SUB_AM_075    HALT
+E_SUB_AM_076    HALT
+E_SUB_AM_077    HALT
+E_SUB_AM_078    HALT
+L_SUB_AM_071
+
+// SUB @R1++, @R2
+L_SUB_AM_080    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @R1++, @R2
+                CMP     AM_SRC2, R1             // Verify R1 incremented
+                RBRA    E_SUB_AM_081, !Z        // Jump if error
+                CMP     AM_DST1, R2             // Verify R2 unchanged
+                RBRA    E_SUB_AM_082, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_083, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_084, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_085, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_085, !Z        // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x7654, R9
+                SUB     0x4567, R9
+                CMP     R9, R8                  // Verify AM_DST1 new value
+                RBRA    E_SUB_AM_087, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_088, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_081, 1
+
+E_SUB_AM_081    HALT
+E_SUB_AM_082    HALT
+E_SUB_AM_083    HALT
+E_SUB_AM_084    HALT
+E_SUB_AM_085    HALT
+E_SUB_AM_086    HALT
+E_SUB_AM_087    HALT
+E_SUB_AM_088    HALT
+L_SUB_AM_081
+
+// SUB @R1++, @R2++
+L_SUB_AM_090    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @R1++, @R2++
+                CMP     AM_SRC2, R1             // Verify R1 incremented
+                RBRA    E_SUB_AM_091, !Z        // Jump if error
+                CMP     AM_DST2, R2             // Verify R2 incremented
+                RBRA    E_SUB_AM_092, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_093, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_094, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_095, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_095, !Z        // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x7654, R9
+                SUB     0x4567, R9
+                CMP     R9, R8                  // Verify AM_DST1 new value
+                RBRA    E_SUB_AM_097, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_098, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_091, 1
+
+E_SUB_AM_091    HALT
+E_SUB_AM_092    HALT
+E_SUB_AM_093    HALT
+E_SUB_AM_094    HALT
+E_SUB_AM_095    HALT
+E_SUB_AM_096    HALT
+E_SUB_AM_097    HALT
+E_SUB_AM_098    HALT
+L_SUB_AM_091
+
+// SUB @R1++, @--R2
+L_SUB_AM_100    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @R1++, @--R2
+                CMP     AM_SRC2, R1             // Verify R1 incremented
+                RBRA    E_SUB_AM_101, !Z        // Jump if error
+                CMP     AM_DST0, R2             // Verify R2 decremented
+                RBRA    E_SUB_AM_102, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_103, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_104, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_105, !Z        // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x3210, R9
+                SUB     0x4567, R9
+                CMP     R9, R8                  // Verify AM_DST0 new value
+                RBRA    E_SUB_AM_106, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x7654, R8              // Verify AM_DST1 unchanged
+                RBRA    E_SUB_AM_107, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_108, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_101, 1
+
+E_SUB_AM_101    HALT
+E_SUB_AM_102    HALT
+E_SUB_AM_103    HALT
+E_SUB_AM_104    HALT
+E_SUB_AM_105    HALT
+E_SUB_AM_106    HALT
+E_SUB_AM_107    HALT
+E_SUB_AM_108    HALT
+L_SUB_AM_101
+
+// SUB @--R1, R2
+L_SUB_AM_110    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @--R1, R2
+                CMP     AM_SRC0, R1             // Verify R1 decremented
+                RBRA    E_SUB_AM_111, !Z        // Jump if error
+                MOVE    AM_DST1, R9
+                SUB     0x0123, R9
+                CMP     R9, R2                  // Verify R2 new value
+                RBRA    E_SUB_AM_112, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_113, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_114, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_115, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_116, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x7654, R8              // Verify AM_DST1 unchanged
+                RBRA    E_SUB_AM_117, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_118, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_111, 1
+
+E_SUB_AM_111    HALT
+E_SUB_AM_112    HALT
+E_SUB_AM_113    HALT
+E_SUB_AM_114    HALT
+E_SUB_AM_115    HALT
+E_SUB_AM_116    HALT
+E_SUB_AM_117    HALT
+E_SUB_AM_118    HALT
+L_SUB_AM_111
+
+// SUB @--R1, @R2
+L_SUB_AM_120    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @--R1, @R2
+                CMP     AM_SRC0, R1             // Verify R1 decremented
+                RBRA    E_SUB_AM_121, !Z        // Jump if error
+                CMP     AM_DST1, R2             // Verify R2 unchanged
+                RBRA    E_SUB_AM_122, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_123, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_124, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_125, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_126, !Z        // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x7654, R9
+                SUB     0x0123, R9
+                CMP     R9, R8                  // Verify AM_DST1 new value
+                RBRA    E_SUB_AM_127, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_128, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_121, 1
+
+E_SUB_AM_121    HALT
+E_SUB_AM_122    HALT
+E_SUB_AM_123    HALT
+E_SUB_AM_124    HALT
+E_SUB_AM_125    HALT
+E_SUB_AM_126    HALT
+E_SUB_AM_127    HALT
+E_SUB_AM_128    HALT
+L_SUB_AM_121
+
+// SUB @--R1, @R2++
+L_SUB_AM_130    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @--R1, @R2++
+                CMP     AM_SRC0, R1             // Verify R1 decremented
+                RBRA    E_SUB_AM_131, !Z        // Jump if error
+                CMP     AM_DST2, R2             // Verify R2 incremented
+                RBRA    E_SUB_AM_132, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_133, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_134, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_135, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x3210, R8              // Verify AM_DST0 unchanged
+                RBRA    E_SUB_AM_136, !Z        // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x7654, R9
+                SUB     0x0123, R9
+                CMP     R9, R8                  // Verify AM_DST1 new value
+                RBRA    E_SUB_AM_137, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_138, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_131, 1
+
+E_SUB_AM_131    HALT
+E_SUB_AM_132    HALT
+E_SUB_AM_133    HALT
+E_SUB_AM_134    HALT
+E_SUB_AM_135    HALT
+E_SUB_AM_136    HALT
+E_SUB_AM_137    HALT
+E_SUB_AM_138    HALT
+L_SUB_AM_131
+
+// SUB @--R1, @--R2
+L_SUB_AM_140    // Prepare test case
+                MOVE    AM_SRC0, R0
+                MOVE    0x0123, @R0++
+                MOVE    0x4567, @R0++
+                MOVE    0x89AB, @R0++
+                MOVE    0x3210, @R0++
+                MOVE    0x7654, @R0++
+                MOVE    0xBA98, @R0++
+                MOVE    AM_SRC1, R1
+                MOVE    AM_DST1, R2
+
+                SUB     @--R1, @--R2
+                CMP     AM_SRC0, R1             // Verify R1 decremented
+                RBRA    E_SUB_AM_141, !Z        // Jump if error
+                CMP     AM_DST0, R2             // Verify R2 decremented
+                RBRA    E_SUB_AM_142, !Z        // Jump if error
+                MOVE    AM_SRC0, R0
+                MOVE    @R0++, R8
+                CMP     0x0123, R8              // Verify AM_SRC0 unchanged
+                RBRA    E_SUB_AM_143, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x4567, R8              // Verify AM_SRC1 unchanged
+                RBRA    E_SUB_AM_144, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x89AB, R8              // Verify AM_SRC2 unchanged
+                RBRA    E_SUB_AM_145, !Z        // Jump if error
+                MOVE    @R0++, R8
+                MOVE    0x3210, R9
+                SUB     0x0123, R9
+                CMP     R9, R8                  // Verify AM_DST0 new value
+                RBRA    E_SUB_AM_146, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0x7654, R8              // Verify AM_DST1 unchanged
+                RBRA    E_SUB_AM_147, !Z        // Jump if error
+                MOVE    @R0++, R8
+                CMP     0xBA98, R8              // Verify AM_DST2 unchanged
+                RBRA    E_SUB_AM_148, !Z        // Jump if error
+
+                RBRA    L_SUB_AM_141, 1
+
+E_SUB_AM_141    HALT
+E_SUB_AM_142    HALT
+E_SUB_AM_143    HALT
+E_SUB_AM_144    HALT
+E_SUB_AM_145    HALT
+E_SUB_AM_146    HALT
+E_SUB_AM_147    HALT
+E_SUB_AM_148    HALT
+L_SUB_AM_141
+
 
 // Everything worked as expected! We are done now.
 EXIT            MOVE    OK, R8
