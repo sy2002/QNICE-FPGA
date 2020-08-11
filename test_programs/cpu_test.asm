@@ -10,13 +10,11 @@
 // modes, and 5 different status flags.
 // Making an exhaustive test of all possible combinations of the three
 // different paramterss is too big.
-// Instead, this program tests all combinations of all pairs of parameters.
-// In other words, it tests:
+// Instead, this program tests:
 // * All combinations of instructions and status flags.
 // * All combinations of instructions and addressing modes.
-// * All combinations of addressing modes and status flags.
 
-// Status register (bits 7 - 0), R14:
+// Status register (bits 7 - 0) of R14:
 // - - V N Z C X 1
 
 #define ST______ 0x0001
@@ -66,7 +64,7 @@
 // SWAP        | . | * | * | . | * |
 // NOT         | . | * | * | . | * |
 // AND/OR/XOR  | . | * | * | . | * |
-// CMP         | * | * | * | 0 | 0 |
+// CMP         | * | * | * | . | . |
 // BRA/SUB     | . | . | . | . | . |
 
 
@@ -91,6 +89,16 @@
 // MOVE_CV  : Test the MOVE instruction doesn't change C and V flags
 // MOVE_MEM : Test the MOVE instruction to/from a memory address
 // ADDC     : Test the ADDC instruction with and without carry
+// SUB      : Test the SUB instruction
+// SUBC     : Test the SUBC instruction with and without carry
+// SHL      : Test the SHL instruction
+// SHR      : Test the SHR instruction
+// SWAP     : Test the SWAP instruction
+// NOT      : Test the NOT instruction
+// AND      : Test the AND instruction
+// OR       : Test the OR instruction
+// XOR      : Test the XOR instruction
+// CMP      : Test the CMP instruction
 
 // More tests to do:
 // Test that PC is the same as R15
@@ -1556,6 +1564,52 @@ STIM_XOR        .DW     0x5678, 0x4321, ST______, 0x1559, ST______
                 .DW     0x1111
 
 L_XOR_02
+
+
+// ---------------------------------------------------------------------------
+// Test the CMP instruction
+
+L_CMP_00        MOVE    STIM_CMP, R8
+L_CMP_01        MOVE    @R8, R1                 // First operand
+                CMP     0x1111, R1
+                RBRA    L_CMP_02, Z             // End of test
+                ADD     0x0001, R8
+                MOVE    @R8, R0                 // Second operand
+                ADD     0x0001, R8
+                MOVE    @R8, R2                 // Carry input
+                ADD     0x0001, R8
+                MOVE    @R8, R3                 // Expected result
+                ADD     0x0001, R8
+                MOVE    @R8, R4                 // Expected status
+                ADD     0x0001, R8
+
+                MOVE    R2, R14                 // Set carry input
+                CMP     R0, R1
+                MOVE    R14, R9                 // Copy status
+                CMP     R1, R3                  // Verify expected result
+                RBRA    E_CMP_01, !Z            // Jump if error
+                CMP     R9, R4                  // Verify expected status
+                RBRA    L_CMP_01, Z
+                HALT
+E_CMP_01        HALT
+
+STIM_CMP        .DW     0x5678, 0x4321, ST______, 0x5678, ST______
+                .DW     0x4321, 0x5678, ST______, 0x4321, ST_VN___
+                .DW     0x4321, 0xF678, ST______, 0x4321, ST__N___
+                .DW     0xF678, 0x4321, ST______, 0xF678, ST_V____
+                .DW     0x7777, 0x7777, ST______, 0x7777, ST___Z__
+                .DW     0x8888, 0x8888, ST______, 0x8888, ST___Z__
+
+                .DW     0x5678, 0x4321, ST_VNZCX, 0x5678, ST____CX
+                .DW     0x4321, 0x5678, ST_VNZCX, 0x4321, ST_VN_CX
+                .DW     0x4321, 0xF678, ST_VNZCX, 0x4321, ST__N_CX
+                .DW     0xF678, 0x4321, ST_VNZCX, 0xF678, ST_V__CX
+                .DW     0x7777, 0x7777, ST_VNZCX, 0x7777, ST___ZCX
+                .DW     0x8888, 0x8888, ST_VNZCX, 0x8888, ST___ZCX
+
+                .DW     0x1111
+
+L_CMP_02
 
 
 // ---------------------------------------------------------------------------
