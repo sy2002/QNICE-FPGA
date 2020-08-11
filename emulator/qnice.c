@@ -888,8 +888,8 @@ int execute() {
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 12: /* CMP */
-      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_1 = read_source_operand(destination_mode, destination_regaddr, FALSE);
+      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, FALSE);
       destination = source_0 - source_1;
       update_status_bits(destination, source_0, source_1, MODIFY_ALL, SUB_INSTRUCTION);
       break;
