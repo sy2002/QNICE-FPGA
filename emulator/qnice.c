@@ -99,10 +99,6 @@
 #define RTI_INSTRUCTION        0x1
 #define INT_INSTRUCTION        0x2
 
-#define NO_ADD_SUB_INSTRUCTION 0x0
-#define ADD_INSTRUCTION        0x1
-#define SUB_INSTRUCTION        0x2
-
 #define PC  15  // Program counter
 #define SR  14  // Status register
 #define SP  13  // Stack pointer
@@ -128,7 +124,7 @@ char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SH
                                 "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "ctrl"},
      *gbl$control_mnemonics[] = {"HALT", "RTI", "INT"}, 
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
-     *gbl$sr_bits = "1XCZNV--",
+     *gbl$sr_bits = "1XCZNVIM",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
 
 unsigned int gbl$interrupt_address,             // Interrupt address as set by the interrupting "device"
@@ -328,15 +324,11 @@ void chomp(char *string) {
 ** necessary bank switching logic.
 */
 unsigned int read_register(unsigned int address) {
-  unsigned int value;
-
   address &= 0xf;
   if (address & 0x8) /* Upper half -> always bank 0 */
-    value = gbl$registers[address] | (address == 0xe ? 1 : 0); /* The LSB of SR is always 1! */
-  else 
-    value = gbl$registers[address | ((read_register(SR) >> 4) & 0xFF0)];
+    return gbl$registers[address] | (address == 0xe ? 1 : 0); /* The LSB of SR is always 1! */
 
-  return value & 0xffff;
+  return gbl$registers[address | ((read_register(SR) >> 4) & 0xFF0)];
 }
 
 /*
@@ -702,39 +694,23 @@ void write_destination(unsigned int mode, unsigned int regaddr, unsigned int val
 ** parameter may occupy 17 bits (including the carry)! Do not truncate this parameter prior
 ** to calling this routine!
 */
-void update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, 
-                        unsigned int control_bitmask, unsigned int operation) {
-  unsigned int x, c, z, n, v, sr_bits;
+void update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, unsigned int control_bitmask) {
+  unsigned int sr_bits;
 
-  sr_bits = read_register(SR);
+  sr_bits = 1; /* LSB is always set (for unconditional branches and subroutine calls) */
+  if (((destination & 0xffff) == 0xffff) & !(control_bitmask & DO_NOT_MODIFY_X)) /* X */
+    sr_bits |= 0x2;
+  if ((destination & 0x10000) && !(control_bitmask & DO_NOT_MODIFY_CARRY)) /* C */
+    sr_bits |= 0x4;
+  if (!(destination & 0xffff)) /* Z */
+    sr_bits |= 0x8;
+  if (destination & 0x8000) /* N */
+    sr_bits |= 0x10;
+  if (((!(source_0 & 0x8000) && !(source_1 & 0x8000) && (destination & 0x8000)) ||
+      ((source_0 & 0x8000) && (source_1 & 0x8000) && !(destination & 0x8000))) && !(control_bitmask & DO_NOT_MODIFY_OVERFLOW))
+    sr_bits |= 0x20;
 
-  if (!(control_bitmask & DO_NOT_MODIFY_X)) 
-    x = (destination & 0xffff) == 0xffff ? 1 : 0;
-  else 
-    x = (sr_bits >> 1) & 1; // Retain old X-flag
-
-  if (!(control_bitmask & DO_NOT_MODIFY_CARRY)) 
-    c = destination & 0x10000 ? 1 : 0;
-  else 
-    c = (sr_bits >> 2) & 1; // Retain old C-flag
-
-  z = !(destination & 0xffff) ? 1 : 0;
-
-  n = destination & 0x8000 ? 1 : 0;
-
-  // See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html for the logic behind this:
-  if (!(control_bitmask & DO_NOT_MODIFY_OVERFLOW) && (operation == ADD_INSTRUCTION || operation == SUB_INSTRUCTION)) {
-    if (operation == ADD_INSTRUCTION)
-      v = ((source_0 & 0xffff) ^ (destination & 0xffff)) & ((source_1 & 0xffff) ^ (destination & 0xffff)) & 0x8000 ? 1 : 0;
-    else if (operation == SUB_INSTRUCTION)
-      v = ((source_0 & 0xffff) ^ (destination & 0xffff)) & (((~source_1) & 0xffff) ^ (destination & 0xffff)) & 0x8000 ? 1 : 0;
-  } else 
-    v = (sr_bits >> 5) & 1; // Retain old V-flag
-
-  sr_bits &= 0xffc1;    // Keep the upper 10 bits and the LSB.
-  sr_bits |= (x << 1) | (c << 2) | (z << 3) | (n << 4) | (v << 5);  // Set/clear all required flags
-
-  write_register(SR, sr_bits);
+  write_register(SR, (read_register(SR) & 0xffc0) | (sr_bits & 0x3f));
 }
 
 /*
@@ -800,98 +776,109 @@ int execute() {
   switch (opcode) {
     case 0: /* MOVE */
       destination = read_source_operand(source_mode, source_regaddr, FALSE);
-      update_status_bits(destination, destination, destination, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, 
-                         NO_ADD_SUB_INSTRUCTION);
+      update_status_bits(destination, destination, destination, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 1: /* ADD */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 + source_1;
-      update_status_bits(destination, source_0, source_1, MODIFY_ALL, ADD_INSTRUCTION); 
+      update_status_bits(destination, source_0, source_1, MODIFY_ALL); 
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 2: /* ADDC */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 + source_1 + ((read_register(SR) >> 2) & 1); /* Take carry into account */
-      update_status_bits(destination, source_0, source_1, MODIFY_ALL, ADD_INSTRUCTION);
+      update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 3: /* SUB */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 - source_1;
-      update_status_bits(destination, source_0, source_1, MODIFY_ALL, SUB_INSTRUCTION);
+      update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 4: /* SUBC */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 - source_1 - ((read_register(SR) >> 2) & 1); /* Take carry into account */
-      update_status_bits(destination, source_0, source_1, MODIFY_ALL, SUB_INSTRUCTION);
+      update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 5: /* SHL */
-      if ((source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
-        destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
-        for (i = 0; i < source_0; i++) {
-          temp_flag = (destination & 0x8000) >> 13;
-          destination = (destination << 1) | ((read_register(SR) >> 1) & 1);          /* Fill with X bit */
-        }
-        write_register(SR, (read_register(SR) & 0xfffb) | temp_flag);                 /* Shift into C bit */
-        write_destination(destination_mode, destination_regaddr, destination, FALSE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      for (i = 0; i < source_0; i++) {
+        temp_flag = (destination & 0x8000) >> 13;
+        destination = (destination << 1) | ((read_register(SR) >> 1) & 1);          /* Fill with X bit */
       }
+      write_register(SR, (read_register(SR) & 0xfffb) | temp_flag);                 /* Shift into C bit */
+      write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 6: /* SHR */
-      if ((scratch = source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
-        destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
-        for (i = 0; i < source_0; i++) {
-          temp_flag = (destination & 1) << 1;
-          destination = ((destination >> 1) & 0xffff) | ((read_register(SR) & 4) << 13);  /* Fill with C bit */
-        }
-        write_register(SR, (read_register(SR) & 0xfffd) | temp_flag);                     /* Shift into X bit */
-        write_destination(destination_mode, destination_regaddr, destination, FALSE);
+      scratch = source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      for (i = 0; i < source_0; i++) {
+        temp_flag = (destination & 1) << 1;
+        destination = ((destination >> 1) & 0xffff) | ((read_register(SR) & 4) << 13);  /* Fill with C bit */
       }
+      write_register(SR, (read_register(SR) & 0xfffd) | temp_flag);                     /* Shift into X bit */
+      write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 7: /* SWAP */
       source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
       destination = (source_0 >> 8) | ((source_0 << 8) & 0xff00);
-      update_status_bits(destination, source_0, source_0, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
+      update_status_bits(destination, source_0, source_0, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 8: /* NOT */
       source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
       destination = ~source_0 & 0xffff;
-      update_status_bits(destination, source_0, source_0, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
+      update_status_bits(destination, source_0, source_0, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 9: /* AND */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 & source_1;
-      update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
+      update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 10: /* OR */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 | source_1;
-      update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
+      update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 11: /* XOR */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
       destination = source_0 ^ source_1;
-      update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
+      update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 12: /* CMP */
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_0 = read_source_operand(destination_mode, destination_regaddr, FALSE);
-      destination = source_0 - source_1;
-      update_status_bits(destination, source_0, source_1, MODIFY_ALL, SUB_INSTRUCTION);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_1 = read_source_operand(destination_mode, destination_regaddr, FALSE);
+
+      /* CMP does NOT use the standard logic for setting the SR bits - this is done explicitly in the following: */
+      sr_bits = 1; /* Take care of the LSB of SR which must be 1. */
+
+      if (source_0 == source_1) sr_bits |= 0x0008;
+      if (source_0 > source_1) sr_bits |= 0x0010;
+
+      /* Ugly but it works: Convert the unsigned int source_0/1 to signed ints with possible sign extension: */
+      cmp_0 = source_0;
+      cmp_1 = source_1;
+
+      if (source_0 & 0x8000) cmp_0 |= 0xffff0000;
+      if (source_1 & 0x8000) cmp_1 |= 0xffff0000;
+      if (cmp_0 > cmp_1) sr_bits |= 0x0020;
+
+      write_register(SR, (read_register(SR) & 0xffc0) | (sr_bits & 0x3f));
       break;
     case 13: /* Reserved */
       printf("Attempt to execute the reserved instruction...\n");
@@ -1505,7 +1492,7 @@ int main(int argc, char **argv) {
       usleep(10000);
     vga_shutdown();
 #  ifdef USE_UART
-    if (uart_status == uart_init) {
+    if (uart_status == uart_init)    {
       uart_run_down();
       uart_fifo_free();
     }    
