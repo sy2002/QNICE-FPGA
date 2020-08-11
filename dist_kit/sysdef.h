@@ -273,6 +273,8 @@
 //***************************************************************************************
 //*  IO-page addresses:
 //***************************************************************************************
+
+#define IO_AREA_START      	0xFF00
 //
 //
 //  VGA-registers:
@@ -396,6 +398,27 @@
 //    Bit  0 (write only):     Reset counter to zero and start counting, i.e.
 //                             bit 1 is automatically set to 1 when resetting
 //    Bit  1 (read/write):     Start/stop counter
+//
+//  Interrupt timer: There are four timers capable of generating interrupts.
+//                   Each timer is controlled by three 16 bit registers:
+//
+//  IO_TIMER_x_PRE: The 100 kHz timer clock is divided by the value stored in
+//                  this device register. 100 (which corresponds to 0x0064 in
+//                  the prescaler register) yields a 1 millisecond pulse which
+//                  in turn is fed to the actual counter.
+//  IO_TIMER_x_CNT: When the number of output pulses from the prescaler circuit 
+//                  equals the number stored in this register, an interrupt will
+//                  be generated (if the interrupt address is 0x0000, the
+//                  interrupt will be suppressed).
+//  IO_TIMER_x_INT: This register contains the address of the desired interrupt 
+//                  service routine.
+//
+#define IO_TIMER_0_PRE 	0xFF30
+#define IO_TIMER_0_CNT 	0xFF31
+#define IO_TIMER_0_INT 	0xFF32
+#define IO_TIMER_1_PRE 	0xFF33
+#define IO_TIMER_1_CNT 	0xFF34
+#define IO_TIMER_1_INT 	0xFF35
 //
 //  Reserved for MEGA65 registers
 //

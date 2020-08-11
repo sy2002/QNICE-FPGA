@@ -8,12 +8,16 @@
 **
 ** sy2002, on-again-off-again 2017 and 2020: vga emulator and emscripten
 **
+** B. Ulmann, 25-JUL-2020   Disassembler can take care of control mnemonics
+**            26-JUL-2020   Control instructions added, started adding timers
+**
 ** The following defines are available:
 **
 **   USE_IDE         (currently always undefined)
 **   USE_SD
 **   USE_UART
 **   USE_VGA
+**   USE_TIMER
 **
 ** The different make scripts "make.bash", "make-vga.bash" and "make-emscripten.bash"
 ** are defining these. The emscripten environment is automatically defining __EMSCRIPTEN__.
@@ -50,6 +54,10 @@
 # endif
 #endif
 
+#ifdef USE_TIMER
+# include "timer.h"
+#endif
+
 #ifdef __EMSCRIPTEN__
 # include "emscripten.h"
 #else
@@ -73,21 +81,6 @@
 #define MEMORY_SIZE            65536
 #define REGMEM_SIZE            4096
 
-/* The top most 245 words of memory are reserverd for memory mapped IO devices */
-#define IO_AREA_START          0xff00
-#define SWITCH_REG             0xff12
-
-#define CYC_LO                 0xff17 /* Cycle counter low, middle, high word and state register */
-#define CYC_MID                0xff18
-#define CYC_HI                 0xff19
-#define CYC_STATE              0xff1a
-
-#define EAE_OPERAND_0          0xff1b
-#define EAE_OPERAND_1          0xff1c
-#define EAE_RESULT_LO          0xff1d
-#define EAE_RESULT_HI          0xff1e
-#define EAE_CSR                0xff1f
-
 #define NO_OF_INSTRUCTIONS     19
 #define NO_OF_ADDRESSING_MODES 4
 #define READ_MEMORY            0 /* This and the following constants are used to control the access_xxx functions */
@@ -99,7 +92,16 @@
 #define DO_NOT_MODIFY_X        0x2
 #define DO_NOT_MODIFY_OVERFLOW 0x4
 
+#define GENERIC_CONTROL_OPCODE 0xe /* All control instructions share this common opcode */
 #define GENERIC_BRANCH_OPCODE  0xf /* All branches share this common opcode */
+
+#define HALT_INSTRUCTION       0x0
+#define RTI_INSTRUCTION        0x1
+#define INT_INSTRUCTION        0x2
+
+#define PC  15  // Program counter
+#define SR  14  // Status register
+#define SP  13  // Stack pointer
 
 #ifdef USE_UART
 uart gbl$first_uart;
@@ -120,10 +122,17 @@ int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$
 unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
-                                "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "HALT"},
+                                "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "ctrl"},
+     *gbl$control_mnemonics[] = {"HALT", "RTI", "INT"}, 
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNVIM",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
+
+unsigned int gbl$interrupt_address,             // Interrupt address as set by the interrupting "device"
+             gbl$interrupt_request = FALSE,     // This flag denotes an interrupt request.
+             gbl$interrupt_active = FALSE,      // true if an interrupt is currently being serviced.
+             gbl$interrupt_R14,                 // Shadow registers for R14 / R15.
+             gbl$interrupt_R15;
 
 statistic_data gbl$stat;
 
@@ -341,7 +350,7 @@ unsigned int read_register(unsigned int address)
   if (address & 0x8) /* Upper half -> always bank 0 */
     return gbl$registers[address] | (address == 0xe ? 1 : 0); /* The LSB of SR is always 1! */
 
-  return gbl$registers[address | ((read_register(14) >> 4) & 0xFF0)];
+  return gbl$registers[address | ((read_register(SR) >> 4) & 0xFF0)];
 }
 
 /*
@@ -358,7 +367,7 @@ void write_register(unsigned int address, unsigned int value)
   if (address & 0x8)
     gbl$registers[address] = value | (address == 14 ? 1 : 0); /* Ensure that LSB will always be set. */
   else /* Take bank switching into account! */
-    gbl$registers[address | ((read_register(14) >> 4) & 0xFF0)] = value;
+    gbl$registers[address | ((read_register(SR) >> 4) & 0xFF0)] = value;
 }
 
 /*
@@ -387,32 +396,32 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       if ((gbl$debug))
         printf("\tread_memory: IO-area read access at 0x%04X\n\r", address);
 
-      if (address == SWITCH_REG) /* Read the switch register */
-        value = gbl$memory[SWITCH_REG];
-      else if (address == CYC_LO) /* Read low word of the cycle (instruction) counter. */
+      if (address == IO_SWITCH_REG) /* Read the switch register */
+        value = gbl$memory[IO_SWITCH_REG];
+      else if (address == IO_CYC_LO) /* Read low word of the cycle (instruction) counter. */
         value = gbl$cycle_counter;
-      else if (address == CYC_MID)
+      else if (address == IO_CYC_MID)
         value = gbl$cycle_counter >> 16;
-      else if (address == CYC_HI)
+      else if (address == IO_CYC_HI)
         value = gbl$cycle_counter >> 24;
-      else if (address == CYC_STATE)
+      else if (address == IO_CYC_STATE)
         value = gbl$cycle_counter_state & 0x0003;
-      else if (address == EAE_OPERAND_0)
+      else if (address == IO_EAE_OPERAND_0)
         value = gbl$eae_operand_0;
-      else if (address == EAE_OPERAND_1)
+      else if (address == IO_EAE_OPERAND_1)
         value = gbl$eae_operand_1;
-      else if (address == EAE_RESULT_LO)
+      else if (address == IO_EAE_RESULT_LO)
         value = gbl$eae_result_lo;
-      else if (address == EAE_RESULT_HI)
+      else if (address == IO_EAE_RESULT_HI)
         value = gbl$eae_result_hi;
-      else if (address == EAE_CSR)
+      else if (address == IO_EAE_CSR)
         value = gbl$eae_csr;
 #ifdef USE_SD
-      else if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
+      else if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + SD_NUMBER_OF_REGISTERS) /* SD-card ccess */
         value = sd_read_register(address - SD_BASE_ADDRESS);
 #endif
 #ifdef USE_UART
-      else if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
+      else if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + UART_NUMBER_OF_REGISTERS) /* Some UART0 operation */
         value = uart_read_register(&gbl$first_uart, address - UART0_BASE_ADDRESS);
 #endif
 #ifdef USE_VGA
@@ -422,8 +431,12 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         value = kbd_read_register(address);
 #endif
 #ifdef USE_IDE
-      else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
+      else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + IDE_NUMBER_OF_REGISTERS) /* Some IDE operation */
         value = readIDEDeviceRegister(address - IDE_BASE_ADDRESS);
+#endif
+#ifdef USE_TIMER
+      else if (address >= TIMER_BASE_ADDRESS && address < TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
+        value = readTimerDeviceRegister(address - TIMER_BASE_ADDRESS);
 #endif
     }
   }
@@ -436,9 +449,9 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       if ((gbl$debug))
         printf("\twrite_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
 
-      if (address == SWITCH_REG) /* Read the switch register */
-        gbl$memory[SWITCH_REG] = value;
-      else if (address == CYC_STATE)
+      if (address == IO_SWITCH_REG) /* Read the switch register */
+        gbl$memory[IO_SWITCH_REG] = value;
+      else if (address == IO_CYC_STATE)
       {
         if (value & 0x0001) /* Reset and start counting. */
         {
@@ -446,11 +459,11 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
           gbl$cycle_counter_state = 0x0002;
         }
       }
-      else if (address == EAE_OPERAND_0)
+      else if (address == IO_EAE_OPERAND_0)
         gbl$eae_operand_0 = value;
-      else if (address == EAE_OPERAND_1)
+      else if (address == IO_EAE_OPERAND_1)
         gbl$eae_operand_1 = value;
-      else if (address == EAE_CSR)
+      else if (address == IO_EAE_CSR)
       {
         switch(gbl$eae_csr = value)
         {
@@ -483,7 +496,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         gbl$eae_csr &= 0x7fff; /* Clear the busy bit just in case... */
       }
 #ifdef USE_UART
-      if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + 8) /* Some UART0 operation */
+      else if (address >= UART0_BASE_ADDRESS && address < UART0_BASE_ADDRESS + UART_NUMBER_OF_REGISTERS) /* Some UART0 operation */
       {
         if ((gbl$debug))
           printf("\twrite uart register: %04X, %02X\n\t", address, value & 0xff);
@@ -491,18 +504,22 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       }
 #endif
 #ifdef USE_VGA
-      if (address >= VGA_STATE && address <= VGA_OFFS_RW) /* VGA register */
+      else if (address >= VGA_STATE && address <= VGA_OFFS_RW) /* VGA register */
         vga_write_register(address, value);
-      if (address >= IO_KBD_STATE && address <= IO_KBD_DATA)
+      else if (address >= IO_KBD_STATE && address <= IO_KBD_DATA)
         kbd_write_register(address, value);
 #endif      
 #ifdef USE_IDE
-      if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + 16) /* Some IDE operation */
+      else if (address >= IDE_BASE_ADDRESS && address < IDE_BASE_ADDRESS + IDE_NUMBER_OF_REGISTERS) /* Some IDE operation */
         writeIDEDeviceRegister(address - IDE_BASE_ADDRESS, value);
 #endif
 #ifdef USE_SD
-      if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + 6) /* SD-card ccess */
+      else if (address >= SD_BASE_ADDRESS && address < SD_BASE_ADDRESS + SD_NUMBER_OF_REGISTERS) /* SD-card ccess */
         sd_write_register(address - SD_BASE_ADDRESS, value);
+#endif
+#ifdef USE_TIMER
+      else if (address >= TIMER_BASE_ADDRESS && address < TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
+        writeTimerDeviceRegister(address - TIMER_BASE_ADDRESS, value);
 #endif
     }
   }
@@ -536,6 +553,9 @@ void reset_machine()
 #if defined(__EMSCRIPTEN__) || (defined(USE_VGA) && !defined(USE_UART))
   gbl$memory[IO_SWITCH_REG] = 3;
 #endif
+
+  gbl$interrupt_request = FALSE;
+  gbl$interrupt_active = FALSE;
 
   if (gbl$debug || gbl$verbose)
     printf("\treset_machine: done\n");
@@ -594,7 +614,7 @@ void disassemble(unsigned int start, unsigned int stop)
     }
 
     *operands = (char) 0;
-    if (opcode < GENERIC_BRANCH_OPCODE) /* Normal instruction */
+    if (opcode < GENERIC_CONTROL_OPCODE) /* Normal instruction */
     {
       if (opcode == 0xd) /* This one is reserved for future use! */
       {
@@ -619,6 +639,16 @@ void disassemble(unsigned int start, unsigned int stop)
           strcat(operands, ", ");
           strcat(operands, scratch);
         }
+      }
+    }
+    else if (opcode == GENERIC_CONTROL_OPCODE) /* Control instruction (HALT, RTI, INT) */
+    {
+      strcpy(mnemonic, gbl$control_mnemonics[j = (instruction >> 6) & 0x3f]);
+      if (j == INT_INSTRUCTION) /* The INT instruction has one parameter */
+      {
+        if ((skip_addresses = decode_operand(instruction & 0x3f, scratch))) /* Constant as operand */
+          sprintf(scratch, "0x%04X", access_memory(i + 1, READ_MEMORY, 0));
+        strcpy(operands, scratch);
       }
     }
     else if (opcode == GENERIC_BRANCH_OPCODE) /* Branch or Subroutine call */
@@ -677,7 +707,7 @@ unsigned int read_source_operand(unsigned int mode, unsigned int regaddr, int su
     gbl$stat.addressing_modes[0][mode]++;
 
   if (gbl$debug)
-    printf("\tread_source_operand: value=%04X, r15=%04X\n\r", source, read_register(15));
+    printf("\tread_source_operand: value=%04X, r15=%04X\n\r", source, read_register(PC));
   return source & 0xffff;
 }
 
@@ -717,7 +747,7 @@ void write_destination(unsigned int mode, unsigned int regaddr, unsigned int val
     gbl$stat.addressing_modes[1][mode]++;
 
   if (gbl$debug)
-    printf("\twrite_destination: r15=%04X\n\r", read_register(15));
+    printf("\twrite_destination: r15=%04X\n\r", read_register(PC));
 }
 
 /*
@@ -743,7 +773,7 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
       ((source_0 & 0x8000) && (source_1 & 0x8000) && !(destination & 0x8000))) && !(control_bitmask & DO_NOT_MODIFY_OVERFLOW))
     sr_bits |= 0x20;
 
-  write_register(14, (read_register(14) & 0xffc0) | (sr_bits & 0x3f));
+  write_register(SR, (read_register(SR) & 0xffc0) | (sr_bits & 0x3f));
 }
 
 /*
@@ -752,7 +782,7 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
 int execute()
 {
   unsigned int instruction, address, opcode, source_mode, source_regaddr, destination_mode, destination_regaddr,
-    source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits;
+    source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits, command;
 
   int condition, cmp_0, cmp_1;
 
@@ -767,22 +797,41 @@ int execute()
   }
 #endif
 
+  // Take care of interrupts
+  if (gbl$interrupt_request && !gbl$interrupt_active)   // Interrupts cannot be nested!
+  {
+    gbl$interrupt_active  = TRUE;               // Remember that we are currently servicing an interrupt
+    gbl$interrupt_request = FALSE;
+    gbl$interrupt_R14 = read_register(SR);      // Save status register 
+    gbl$interrupt_R15 = read_register(PC);      // and program counter
+    write_register(PC, gbl$interrupt_address);  // Jump to interrupt service routine
+
+    if (gbl$debug)
+    {
+      printf("Interrupt");
+      if (gbl$verbose)
+        printf(": Address = %04X\n", gbl$interrupt_address);
+      else
+        printf("!\n");
+    }
+  }
+
   if (gbl$cycle_counter_state & 0x0002)
     gbl$cycle_counter++; /* Increment cycle counter which is an instruction counter in the emulator as opposed to the hardware. */
 
-  debug_address = address = read_register(15); /* Get current PC */
+  debug_address = address = read_register(PC); /* Get current PC */
   opcode = ((instruction = access_memory(address++, READ_MEMORY, 0)) >> 12 & 0Xf);
-  write_register(15, address); /* Update program counter */
+  write_register(PC, address); /* Update program counter */
 
   if (gbl$debug || gbl$verbose)
     printf("execute: %04X %04X %s\n\r", debug_address, instruction, 
            opcode == GENERIC_BRANCH_OPCODE ? gbl$branch_mnemonics[(instruction >> 4) & 0x3] 
                                            : gbl$normal_mnemonics[opcode]);
 
-  source_mode = (instruction >> 6) & 0x3;
+  source_mode    = (instruction >> 6) & 0x3;
   source_regaddr = (instruction >> 8) & 0xf;
 
-  destination_mode = instruction & 0x3;
+  destination_mode    = instruction & 0x3;
   destination_regaddr = (instruction >> 2) & 0xf;
 
   /* Update the statistics counters */
@@ -808,7 +857,7 @@ int execute()
     case 2: /* ADDC */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
-      destination = source_0 + source_1 + ((read_register(14) >> 2) & 1); /* Take carry into account */
+      destination = source_0 + source_1 + ((read_register(SR) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
@@ -822,7 +871,7 @@ int execute()
     case 4: /* SUBC */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
       source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
-      destination = source_0 - source_1 - ((read_register(14) >> 2) & 1); /* Take carry into account */
+      destination = source_0 - source_1 - ((read_register(SR) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
@@ -832,9 +881,9 @@ int execute()
       for (i = 0; i < source_0; i++)
       {
         temp_flag = (destination & 0x8000) >> 13;
-        destination = (destination << 1) | ((read_register(14) >> 1) & 1);          /* Fill with X bit */
+        destination = (destination << 1) | ((read_register(SR) >> 1) & 1);          /* Fill with X bit */
       }
-      write_register(14, (read_register(14) & 0xfffb) | temp_flag);                 /* Shift into C bit */
+      write_register(SR, (read_register(SR) & 0xfffb) | temp_flag);                 /* Shift into C bit */
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 6: /* SHR */
@@ -843,9 +892,9 @@ int execute()
       for (i = 0; i < source_0; i++)
       {
         temp_flag = (destination & 1) << 1;
-        destination = ((destination >> 1) & 0xffff) | ((read_register(14) & 4) << 13);  /* Fill with C bit */
+        destination = ((destination >> 1) & 0xffff) | ((read_register(SR) & 4) << 13);  /* Fill with C bit */
       }
-      write_register(14, (read_register(14) & 0xfffd) | temp_flag);                     /* Shift into X bit */
+      write_register(SR, (read_register(SR) & 0xfffd) | temp_flag);                     /* Shift into X bit */
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 7: /* SWAP */
@@ -899,20 +948,46 @@ int execute()
       if (source_1 & 0x8000) cmp_1 |= 0xffff0000;
       if (cmp_0 > cmp_1) sr_bits |= 0x0020;
 
-      write_register(14, (read_register(14) & 0xffc0) | (sr_bits & 0x3f));
+      write_register(SR, (read_register(SR) & 0xffc0) | (sr_bits & 0x3f));
       break;
     case 13: /* Reserved */
       printf("Attempt to execute the reserved instruction...\n");
       return 1;
-    case 14: /* HALT */
-      printf("HALT instruction executed at address %04X.\n\n", debug_address);
-      return TRUE;
+    case 14: /* Control group */
+      switch (command = (instruction >> 6) & 0x3f) 
+      {
+        case HALT_INSTRUCTION:
+          printf("HALT instruction executed at address %04X.\n\n", debug_address);
+          return TRUE;
+          break;    // Not really necessary but good style... :-)
+        case RTI_INSTRUCTION:
+          if (!gbl$interrupt_active) {
+            printf("Rogue RTI instruction, not servicing an interrupt at address %04X. HALT!\n", debug_address);
+            return TRUE;
+          }
+          gbl$interrupt_active = FALSE;
+          write_register(SR, gbl$interrupt_R14);
+          write_register(PC, gbl$interrupt_R15);
+          break;
+        case INT_INSTRUCTION:
+          if (gbl$interrupt_active) {
+            printf("Rogue INT instruction with an ISR at address %04X. HALT!\n", debug_address);
+            return TRUE;
+          }
+          gbl$interrupt_address = read_source_operand(destination_mode, destination_regaddr, TRUE);
+          write_destination(destination_mode, destination_regaddr, gbl$interrupt_address, TRUE);
+          gbl$interrupt_request = TRUE;
+          break;
+        default:
+          fprintf(stderr, "Illegal control instruction found: %02X\n", command);
+      }
+      break;
     case 15: /* Branch or subroutine call */
       /* Determine destination address in case the branch/subroutine instruction will be performed */
       destination = read_source_operand(source_mode, source_regaddr, FALSE); /* Perform autoincrement since no write back occurs! */
 
       /* Determine which SR bit to use, etc. */
-      condition = (read_register(14) >> (instruction & 0x7)) & 1;
+      condition = (read_register(SR) >> (instruction & 0x7)) & 1;
       if (instruction & 0x0008) /* Invert bit to be checked? */
         condition = 1 - condition;
 
@@ -922,40 +997,40 @@ int execute()
         switch((instruction >> 4) & 0x3)
         {
           case 0: /* ABRA */
-            write_register(15, destination);
+            write_register(PC, destination);
             break;
           case 1: /* ASUB */
-            write_register(13, read_register(13) - 1);
-            access_memory(read_register(13), WRITE_MEMORY, read_register(15));
-            write_register(15, destination);
+            write_register(SP, read_register(SP) - 1);
+            access_memory(read_register(SP), WRITE_MEMORY, read_register(PC));
+            write_register(PC, destination);
             break;
           case 2: /* RBRA */
-            write_register(15, (read_register(15) + destination) & 0xffff);
+            write_register(PC, (read_register(PC) + destination) & 0xffff);
             break;
           case 3: /* RSUB */
-            write_register(13, read_register(13) - 1);
-            access_memory(read_register(13), WRITE_MEMORY, read_register(15));
-            write_register(15, (read_register(15) + destination) & 0xffff);
+            write_register(SP, read_register(SP) - 1);
+            access_memory(read_register(SP), WRITE_MEMORY, read_register(PC));
+            write_register(PC, (read_register(PC) + destination) & 0xffff);
             break;
         }
       }
       /* We must increment the PC in case of a constant destination address even if the branch is not taken! */
 // NO, we must not since the PC has already been incremented during the fetch operation!
 //      else if (source_mode == 0x2 && source_regaddr == 0xf) /* This is mode @R15++ */
-//        write_register(15, read_register(15) + 1);
+//        write_register(PC, read_register(PC) + 1);
       break;
     default:
       printf("PANIK: Illegal instruction found: Opcode %0X at address %04X.\n", opcode, address);
       return TRUE;
   }
 
-  if (read_register(15) == gbl$breakpoint)
+  if (read_register(PC) == gbl$breakpoint)
   {
-    printf("Breakpoint reached: %04X\n", read_register(15));
+    printf("Breakpoint reached: %04X\n", read_register(PC));
     return TRUE;
   }
 
-/*  write_register(15, read_register(15) + 1); */ /* Update program counter */
+/*  write_register(PC, read_register(PC) + 1); */ /* Update program counter */
   return FALSE; /* No HALT instruction executed */
 }
 
@@ -1150,8 +1225,8 @@ void dump_registers()
 {
   unsigned int i, value;
 
-  printf("Register dump: BANK = %02x, SR = ", read_register(14) >> 8);
-  for (i = 7, value = read_register(14); i + 1; i--)
+  printf("Register dump: BANK = %02x, SR = ", read_register(SR) >> 8);
+  for (i = 7, value = read_register(SR); i + 1; i--)
     printf("%c", value & (1 << i) ? gbl$sr_bits[i] : '_');
 
   printf("\n");
@@ -1317,15 +1392,15 @@ int main_loop(char **argv)
       {
         last_command_was_step = 1;
         if ((token = tokenize(NULL, delimiters)))
-          write_register(15, str2int(token));
+          write_register(PC, str2int(token));
         execute();
       }
       else if (!strcmp(token, "SWITCH"))
       {
         if ((token = tokenize(NULL, delimiters)))
-          access_memory(SWITCH_REG, WRITE_MEMORY, str2int(token));
+          access_memory(IO_SWITCH_REG, WRITE_MEMORY, str2int(token));
 
-        printf("Switch register contains: %04X\n", access_memory(SWITCH_REG, READ_MEMORY, 0));
+        printf("Switch register contains: %04X\n", access_memory(IO_SWITCH_REG, READ_MEMORY, 0));
       }
 #if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
       else if (!strcmp(token, "MIPS"))
@@ -1372,7 +1447,7 @@ int main_loop(char **argv)
       else if (!strcmp(token, "RUN"))
       {
         if ((token = tokenize(NULL, delimiters)))
-          write_register(15, str2int(token));
+          write_register(PC, str2int(token));
 #if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
         if (!gbl$initial_run)
           vga_create_thread(uart_getchar_thread, "thread: uart_getchar", NULL);
@@ -1474,6 +1549,10 @@ int main(int argc, char **argv)
 
 #ifdef USE_IDE
   initializeIDEDevice();
+#endif
+
+#ifdef USE_TIMER
+  initializeTimerModule(&gbl$interrupt_request, &gbl$interrupt_address);
 #endif
 
   if (*++argv) /* At least one argument */

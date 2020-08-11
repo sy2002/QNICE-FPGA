@@ -7,7 +7,7 @@
 ; end it became clear, that the FAT32 implementation relied on a CPU bug to
 ; work correctly :-)
 ;
-; The original sdcard.asm (and therefore the Monitor's FAT32 implementation)
+; The original sdcard.asm (and therefore the Monitor-FAT32 implementation)
 ; contained a statement like this:
 ;
 ; ============================================================================

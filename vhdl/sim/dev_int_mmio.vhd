@@ -29,6 +29,7 @@ port (
    data_dir          : in std_logic;
    data_valid        : in std_logic;
    cpu_halt          : in std_logic;
+   cpu_igrant_n      : in std_logic;
    
    -- let the CPU wait for data from the bus
    cpu_wait_for_data : out std_logic;
@@ -44,6 +45,11 @@ port (
    -- SWITCHES is $FF12
    switch_reg_enable : out std_logic;
    
+   -- Timer Interrupt Generator range $FF30 .. $FF35
+   tin_en            : out std_logic;
+   tin_we            : out std_logic;
+   tin_reg           : out std_logic_vector(2 downto 0);
+      
    -- Extended Arithmetic Element register range $FF1B..$FF1F
    eae_en            : out std_logic;
    eae_we            : out std_logic;
@@ -67,7 +73,21 @@ begin
          switch_reg_enable <= '0';
       end if;
    end process;
-         
+   
+   -- Timer starts at FF30
+   timer_control : process(addr, data_dir, data_valid)
+   begin
+      if addr(15 downto 4) = x"FF3" then
+         tin_en <= '1';
+         tin_we <= data_dir and data_valid;
+         tin_reg <= addr(2 downto 0);
+      else
+         tin_en <= '0';
+         tin_we <= '0';
+         tin_reg <= (others => '0');
+      end if;
+   end process;
+            
    eae_control : process(addr, data_dir, data_valid)
    begin
       eae_en <= '0';
@@ -114,11 +134,12 @@ begin
    end process;
 
    -- ROM is enabled when the address is < $8000 and the CPU is reading
-   rom_enable_i <= not addr(15) and not data_dir;
+   rom_enable_i <= not addr(15) and not data_dir and cpu_igrant_n;
    
    -- RAM is enabled when the address is in ($8000..$FEFF)
    ram_enable_i <= addr(15)
-                   and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8));
+                   and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8))
+                   and cpu_igrant_n;
                
    -- generate external RAM/ROM/PORE enable signals
    ram_enable <= ram_enable_i;

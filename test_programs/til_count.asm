@@ -1,11 +1,10 @@
 ;; This is the very first "real" QNICE-FPGA test program which is and was used during the
 ;; initial development of QNICE-FPGA by sy2002 in July 2015.
 ;;
-;; It is inspired by vaxman's original test program "til_count.asm" that displays
+;; It is inspired by the original test program by vaxman, "til_count.asm", that displays
 ;; a count on the TIL-311 display on the original QNICE/A evaluation board.
 
-IO$TIL_BASE     .EQU    0xFF10                  ; Address of TIL-display
-IO$TIL_MASK     .EQU    0xFF11                  ; Mask register of TIL display
+#include "../dist_kit/sysdef.asm"
 
 FLAG_C_SET      .EQU    0x0004                  ; bit pattern for setting the carry flag with OR
 FLAG_C_CLEAR    .EQU    0xFFFB                  ; bit pattern for clearing the carry flag with AND
@@ -19,7 +18,7 @@ WAIT_CYCLES2    .EQU    0x07D0
 
                 .ORG    0x8000                  ; Start address
                 MOVE    0x0000, R0              ; Clear R0
-                MOVE    IO$TIL_BASE, R1         ; Base address of TIL-display for output
+                MOVE    IO$TIL_DISPLAY, R1      ; Base address of TIL-display for output
                 MOVE    IO$TIL_MASK, R9         ; Mask register of TIL-display for selecting which TIL is lit
 
                 ; Write contents of R0 to the TIL-display

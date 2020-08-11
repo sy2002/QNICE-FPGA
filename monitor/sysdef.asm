@@ -281,6 +281,8 @@ CHR$LF          .EQU 0x000a ; Line feed
 ;***************************************************************************************
 ;*  IO-page addresses:
 ;***************************************************************************************
+
+IO$AREA_START       .EQU 0xFF00
 ;
 ;
 ;  VGA-registers:
@@ -404,6 +406,27 @@ IO$INS_STATE    .EQU 0xFF2D     ; status register
 ;    Bit  0 (write only):     Reset counter to zero and start counting, i.e.
 ;                             bit 1 is automatically set to 1 when resetting
 ;    Bit  1 (read/write):     Start/stop counter
+;
+;  Interrupt timer: There are four timers capable of generating interrupts.
+;                   Each timer is controlled by three 16 bit registers:
+;
+;  IO$TIMER_x_PRE: The 100 kHz timer clock is divided by the value stored in
+;                  this device register. 100 (which corresponds to 0x0064 in
+;                  the prescaler register) yields a 1 millisecond pulse which
+;                  in turn is fed to the actual counter.
+;  IO$TIMER_x_CNT: When the number of output pulses from the prescaler circuit 
+;                  equals the number stored in this register, an interrupt will
+;                  be generated (if the interrupt address is 0x0000, the
+;                  interrupt will be suppressed).
+;  IO$TIMER_x_INT: This register contains the address of the desired interrupt 
+;                  service routine.
+;
+IO$TIMER_0_PRE  .EQU 0xFF30
+IO$TIMER_0_CNT  .EQU 0xFF31
+IO$TIMER_0_INT  .EQU 0xFF32
+IO$TIMER_1_PRE  .EQU 0xFF33
+IO$TIMER_1_CNT  .EQU 0xFF34
+IO$TIMER_1_INT  .EQU 0xFF35
 ;
 ;  Reserved for MEGA65 registers
 ;

@@ -33,7 +33,7 @@ port (
    
    -- interrupt system                                      -- refer to doc/intro/qnice_intro.pdf to learn how this works
    INT_N          : in std_logic   := '1';
-   GRANT_N        : out std_logic
+   IGRANT_N       : out std_logic
 );
 end QNICE_CPU;
 
@@ -112,7 +112,14 @@ type tCPU_States is (cs_reset,
                      cs_exepost_prepfetch,
                      
                      cs_halt,
-                     cs_std_seq     -- continue with standard sequence, used by fsmNextCpuState
+                     
+                     -- interrupt handling
+                     cs_int_wait_isr,           -- wait for ISR address to be put on the data bus
+                     cs_int_jmp_isr,            -- read ISR address from data bus and prepare to "jump" into the ISR
+                     cs_int_indirect_isr,       -- indirect ISR adress
+                     
+                     -- continue with standard sequence, used by fsmNextCpuState
+                     cs_std_seq     
                     );
 signal cpu_state           : tCPU_States := cs_reset;
 signal cpu_state_next      : tCPU_States;
@@ -132,11 +139,17 @@ signal reg_write_en        : std_logic := '0';
 
 -- registers R13 (SP), R14 (SR) and R15 (PC) are directly modeled within the CPU
 -- but also read-only accessible via the register file
-signal SP                  : std_logic_vector(15 downto 0) := x"0000"; -- stack pointer (R13)
+signal SP                  : std_logic_vector(15 downto 0) := x"0000"; -- stack pointer   (R13)
 signal SR                  : std_logic_vector(15 downto 0) := x"0001"; -- status register (R14)
 signal PC                  : std_logic_vector(15 downto 0) := x"0000"; -- program counter (R15)
 
--- intstruction related internal CPU registers
+-- interrupt handling
+signal SP_org              : std_logic_vector(15 downto 0);            -- saved stack pointer   (R13)
+signal SR_org              : std_logic_vector(15 downto 0);            -- saved status register (R14)
+signal PC_org              : std_logic_vector(15 downto 0);            -- saved program counter (R15)
+signal Int_Active          : std_logic := '0';                         -- interrupt / ISR currently active
+
+-- instruction related internal CPU registers
 signal Instruction         : std_logic_vector(15 downto 0) := (others => '0'); -- current instruction word
 signal Opcode              : std_logic_vector(3 downto 0);  -- current opcode, equals bits 15 .. 12
 signal Src_RegNo           : std_logic_vector(3 downto 0);  -- current source register, equals bits 11 .. 8
@@ -148,6 +161,7 @@ signal Dst_Value           : std_logic_vector(15 downto 0) := (others => '0'); -
 signal Bra_Mode            : std_logic_vector(1 downto 0);  -- branch mode (branch type)
 signal Bra_Neg             : std_logic;                     -- branch condition negated
 signal Bra_Condition       : std_logic_vector(2 downto 0);  -- flag number within lower 8 bits of SR
+signal Ctrl_Cmd            : std_logic_vector(5 downto 0);  -- Control Command when Opcode = E 
 
 -- state machine output buffers
 signal fsmDataToBus        : std_logic_vector(15 downto 0);
@@ -158,6 +172,12 @@ signal fsmSP               : std_logic_vector(15 downto 0);
 signal fsmSR               : std_logic_vector(15 downto 0);
 signal fsmPC               : std_logic_vector(15 downto 0);
 signal fsmNextCpuState     : tCPU_States;
+
+-- interrupt handling
+signal fsmSP_org           : std_logic_vector(15 downto 0);
+signal fsmSR_org           : std_logic_vector(15 downto 0);
+signal fsmPC_org           : std_logic_vector(15 downto 0);
+signal fsmInt_Active       : std_logic;
 
 signal fsmInstruction      : std_logic_vector(15 downto 0);
 signal fsm_reg_read_addr1  : std_logic_vector(3 downto 0);
@@ -231,6 +251,11 @@ begin
             SR <= x"0001";
             PC <= x"0000";
             
+            SP_org <= x"0000";
+            SR_org <= x"0001";
+            PC_org <= x"0000";
+            Int_Active <= '0';
+            
             Instruction <= (others => '0');            
             Src_Value <= (others => '0');
             Dst_Value <= (others => '0');
@@ -256,6 +281,11 @@ begin
             SR <= fsmSR(15 downto 1) & "1";
             PC <= fsmPC;
             
+            SP_org <= fsmSP_org;
+            SR_org <= fsmSR_org;
+            PC_org <= fsmPC_org;
+            Int_Active <= fsmInt_Active;
+            
             Instruction <= fsmInstruction;
             Src_Value <= fsmSrc_Value;
             Dst_Value <= fsmDst_Value;
@@ -269,8 +299,8 @@ begin
       end if;
    end process;
    
-   fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC,
-                                DATA, DATA_To_Bus, WAIT_FOR_DATA,
+   fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, SP_org, SR_org, PC_org,
+                                DATA, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
                                 Instruction, Opcode,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
@@ -281,11 +311,12 @@ begin
    begin
       DATA <= (others => 'Z');
       INS_CNT_STROBE <= '0';
+      IGRANT_N <= '1';
          
       fsmDataToBus <= (others => '0');
       fsmSP <= SP;
       fsmSR <= SR(15 downto 1) & "1";
-      fsmPC <= PC;
+      fsmPC <= PC;      
       fsmCpuAddr <= ADDR_Bus;
       fsmCpuDataDirCtrl <= '0';
       fsmCpuDataValid <= '0';
@@ -298,7 +329,18 @@ begin
       fsm_reg_write_addr <= reg_write_addr;
       fsm_reg_write_data <= reg_write_data;
       fsm_reg_write_en <= '0';
-   
+      
+      fsmInt_Active <= Int_Active;
+      if Int_Active = '0' then
+         fsmSP_org <= SP;
+         fsmSR_org <= SR(15 downto 1) & "1";
+         fsmPC_org <= PC;
+      else
+         fsmSP_org <= SP_org;
+         fsmSR_org <= SR_org;
+         fsmPC_org <= PC_org;
+      end if;
+               
       -- as fsm_advance_state is clocking the values on rising edges,
       -- the below-mentioned output decoding is to be read as:
       -- "what will be the output variables at the NEXT state (after the current state)"
@@ -321,12 +363,18 @@ begin
                fsmNextCpuState <= cs_fetch;
                
             -- data from bus is available
-            else
-               INS_CNT_STROBE <= '1';  -- count next instruction
-               fsmInstruction <= DATA; -- valid at falling edge
-               fsmPC <= PC + 1;
-               fsm_reg_read_addr1 <= DATA(11 downto 8); -- read Src register number
-               fsm_reg_read_addr2 <= DATA(5 downto 2);  -- rest Dst register number
+            else              
+               -- interrupt will only be handled, if not currently already handling another
+               if Int_Active = '0' and INT_N = '0' then
+                  fsmInt_Active <= '1';
+                  fsmNextCpuState <= cs_int_wait_isr;
+               else
+                  INS_CNT_STROBE <= '1';  -- count next instruction            
+                  fsmInstruction <= DATA; -- valid at falling edge
+                  fsmPC <= PC + 1;
+                  fsm_reg_read_addr1 <= DATA(11 downto 8); -- read Src register number
+                  fsm_reg_read_addr2 <= DATA(5 downto 2);  -- rest Dst register number
+               end if;
             end if;
                                     
          when cs_decode =>
@@ -336,70 +384,155 @@ begin
             fsmSrc_Value <= reg_read_data1;
             fsmDst_Value <= reg_read_data2;
             
-            -- decode addressing modes for source and destination
-            -- if source is alrady indirect, then ignore destination for now
-            -- (will be decoded within cs_exeprep_get_src_indirect)
-            if Src_Mode /= amDirect then
-               fsmNextCpuState <= cs_exeprep_get_src_indirect;
+            -- Control Opcode (HALT, RTI, INT)
+            if Opcode = opcCTRL then
+               case Ctrl_Cmd is
+                  -- HALT
+                  when ctrlHALT =>
+                     fsmNextCpuState <= cs_halt;
+                     
+                  -- RTI
+                  when ctrlRTI =>                     
+                     if Int_Active = '1' then
+                        fsmInt_Active <= '0';
+                        fsmSP <= fsmSP_org;
+                        fsmSR <= fsmSR_org;
+                        fsmPC <= fsmPC_org;
+                        fsmCPUAddr <= fsmPC_org;
+                        fsmNextCpuState <= cs_fetch;
+                     -- rogue RTI: HALT
+                     else
+                        fsmNextCpuState <= cs_halt;
+                     end if;
+                     
+                  -- INT
+                  when ctrlINT =>
+                     if Int_Active = '0' then
+                        fsmInt_Active <= '1';                        
+                        -- select INT's destination addressing mode
+                        case Dst_Mode is
+                           when amDirect =>
+                              fsmCPUAddr <= reg_read_data2;
+                              fsmPC <= reg_read_data2;
+                              fsmNextCpuState <= cs_fetch;
+                                                         
+                           when amIndirect =>
+                              fsmNextCpuState <= cs_int_indirect_isr;
+                              fsmCPUAddr <= reg_read_data2;
+                                                                                         
+                           when amIndirPreDec =>
+                              fsmNextCpuState <= cs_int_indirect_isr;                           
+                              fsmCPUAddr <= reg_read_data2 - 1;
+                              case Dst_RegNo is
+                                 when x"D" =>
+                                    fsmSP <= SP - 1;
+                                    fsmSP_org <= SP - 1;
+                                 when x"E" =>
+                                    fsmSR <= SR - 1;
+                                    fsmSR_org <= SR - 1;
+                                 when x"F" =>
+                                    fsmPC <= PC - 1;
+                                    fsmPC_org <= PC - 1;
+                                 when others =>
+                                    fsm_reg_write_addr <= Dst_RegNo;
+                                    fsm_reg_write_data <= reg_read_data2 - 1;
+                                    fsm_reg_write_en <= '1';                                    
+                              end case;
+                              
+                           when amIndirPostInc =>
+                              fsmNextCpuState <= cs_int_indirect_isr;
+                              fsmCPUAddr <= reg_read_data2;
+                              case Dst_RegNo is
+                                 when x"D" =>
+                                    fsmSP <= SP + 1;
+                                    fsmSP_org <= SP + 1;
+                                 when x"E" =>
+                                    fsmSR <= SR + 1;
+                                    fsmSR_org <= SR + 1;
+                                 when x"F" =>
+                                    fsmPC <= PC + 1;
+                                    fsmPC_org <= PC + 1;
+                                 when others =>
+                                    fsm_reg_write_addr <= Dst_RegNo;
+                                    fsm_reg_write_data <= reg_read_data2 + 1;
+                                    fsm_reg_write_en <= '1';
+                              end case;                           
+                              
+                           when others =>
+                              fsmNextCpuState <= cs_halt;
+                        end case;
+                     -- rogue INT: HALT
+                     else
+                        fsmNextCpuState <= cs_halt;
+                     end if;
+                     
+                  -- illegal command: HALT
+                  when others =>
+                     fsmNextCpuState <= cs_halt;
+               end case;
                
-               -- perform pre decrement, if necessary and then put
-               -- the address on the data bus for reading
-               if Src_Mode = amIndirPreDec then
-               
-                  -- put pre decremented address on the data bus for reading
-                  fsmCpuAddr <= reg_read_data1 - 1;
+            -- Any other Opcode
+            else                       
+               -- decode addressing modes for source and destination
+               -- if source is alrady indirect, then ignore destination for now
+               -- (will be decoded within cs_exeprep_get_src_indirect)
+               if Src_Mode /= amDirect then
+                  fsmNextCpuState <= cs_exeprep_get_src_indirect;
                   
-                  -- in case the destination register is equal to the source register,
-                  -- make sure, that the buffer flip/flop Dst_Value is updated
-                  if Dst_RegNo = Src_RegNo then
-                     fsmDst_Value <= reg_read_data1 - 1;
+                  -- perform pre decrement, if necessary and then put
+                  -- the address on the data bus for reading
+                  if Src_Mode = amIndirPreDec then
+                  
+                     -- put pre decremented address on the data bus for reading
+                     fsmCpuAddr <= reg_read_data1 - 1;
+                     
+                     -- in case the destination register is equal to the source register,
+                     -- make sure, that the buffer flip/flop Dst_Value is updated
+                     if Dst_RegNo = Src_RegNo then
+                        fsmDst_Value <= reg_read_data1 - 1;
+                     end if;
+                     
+                     -- write back the decremented values
+                     -- special handling of SR and PC as they are not stored in the register file
+                     case Src_RegNo is
+                        when x"D" => fsmSP <= SP - 1;
+                        when x"E" => fsmSR <= SR - 1;
+                        when x"F" => fsmPC <= PC - 1;
+                        when others =>
+                           fsm_reg_write_addr <= Src_RegNo;
+                           fsm_reg_write_data <= reg_read_data1 - 1;
+                           fsm_reg_write_en <= '1';               
+                     end case;                  
+                  else
+                     fsmCpuAddr <= reg_read_data1; -- normal (non decremented) address on the bus for reading
                   end if;
+              
+               -- in case of a branch, Dst_Mode would contain garbage, therefore perform an explicit check
+               -- optimization: in case of MOVE the destination value is ignored anyway, so we can skip
+               -- the whole indirect parameter fetch in this case
+               elsif Opcode /= opcBRA and Dst_Mode /= amDirect and (Opcode /= opcMOVE or Dst_Mode = amIndirPreDec) then
+                  fsmNextCpuState <= cs_exeprep_get_dst_indirect;
                   
-                  -- write back the decremented values
-                  -- special handling of SR and PC as they are not stored in the register file
-                  case Src_RegNo is
-                     when x"D" => fsmSP <= SP - 1;
-                     when x"E" => fsmSR <= SR - 1;
-                     when x"F" => fsmPC <= PC - 1;
-                     when others =>
-                        fsm_reg_write_addr <= Src_RegNo;
-                        fsm_reg_write_data <= reg_read_data1 - 1;
-                        fsm_reg_write_en <= '1';               
-                  end case;                  
-               else
-                  fsmCpuAddr <= reg_read_data1; -- normal (non decremented) address on the bus for reading
-               end if;
-           
-            -- in case of a branch, Dst_Mode would contain garbage, therefore perform an explicit check
-            -- optimization: in case of MOVE the destination value is ignored anyway, so we can skip
-            -- the whole indirect parameter fetch in this case
-            elsif Opcode /= opcBRA and Dst_Mode /= amDirect and (Opcode /= opcMOVE or Dst_Mode = amIndirPreDec) then
-               fsmNextCpuState <= cs_exeprep_get_dst_indirect;
-               
-               -- pre decrement for destination register
-               if Dst_Mode = amIndirPreDec then
-                  fsmCpuAddr <= reg_read_data2 - 1;
-                  case Dst_RegNo is
-                     when x"D" => fsmSP <= SP - 1;
-                     when x"E" => fsmSR <= SR - 1;
-                     when x"F" => fsmPC <= PC - 1;
-                     when others =>
-                        fsm_reg_write_addr <= Dst_RegNo;
-                        fsm_reg_write_data <= reg_read_data2 - 1;
-                        fsm_reg_write_en <= '1';
-                  end case;
-               
-               -- normal (non decremented) address on the bus for reading
-               else
-                  fsmCpuAddr <= reg_read_data2;
+                  -- pre decrement for destination register
+                  if Dst_Mode = amIndirPreDec then
+                     fsmCpuAddr <= reg_read_data2 - 1;
+                     case Dst_RegNo is
+                        when x"D" => fsmSP <= SP - 1;
+                        when x"E" => fsmSR <= SR - 1;
+                        when x"F" => fsmPC <= PC - 1;
+                        when others =>
+                           fsm_reg_write_addr <= Dst_RegNo;
+                           fsm_reg_write_data <= reg_read_data2 - 1;
+                           fsm_reg_write_en <= '1';
+                     end case;
+                  
+                  -- normal (non decremented) address on the bus for reading
+                  else
+                     fsmCpuAddr <= reg_read_data2;
+                  end if;
                end if;
             end if;
-
-            -- halt the CPU
-            if Opcode = opcHalt then
-               fsmNextCpuState <= cs_halt;
-            end if;
-
+            
          when cs_exeprep_get_src_indirect =>
             -- add wait cycles, if necessary (e.g. due to slow RAM)
             if WAIT_FOR_DATA = '1' then
@@ -560,19 +693,26 @@ begin
                   
                -- store result: indirect
                else
-                  fsmNextCpuState <= cs_exepost_store_dst_indirect;
-                  fsmCpuAddr <= reg_read_data2;
-                  fsmDataToBus <= std_logic_vector(Alu_Result);
-                  fsmCpuDataDirCtrl <= '1';
-                  fsmCpuDataValid <='1';
+                  fsmNextCpuState <= cs_exepost_store_dst_indirect; -- also go there in the CMP case due to a possible post increment
+                  if Opcode /= opcCMP then
+                     fsmCpuAddr <= reg_read_data2;
+                     fsmDataToBus <= std_logic_vector(Alu_Result);
+                     fsmCpuDataDirCtrl <= '1';
+                     fsmCpuDataValid <='1';
+                  end if;
                end if;               
             end if;
                                
          when cs_exepost_store_dst_indirect =>
-            DATA <= DATA_To_Bus;
-            fsmDataToBus <= DATA_To_Bus;
-            fsmCpuDataDirCtrl <= '1';
-            fsmCpuDataValid <= '1';
+            -- Do the actual indirect storing, the target address is already there, thanks to the
+            -- fsmCpuAddr in the previous step. But in a CMP case: Do not store anything. Still,
+            -- we are executing this step to make sure any post increment works: CMP R1, @R2++
+            if Opcode /= opcCMP then
+               DATA <= DATA_To_Bus;         
+               fsmDataToBus <= DATA_To_Bus;
+               fsmCpuDataDirCtrl <= '1';
+               fsmCpuDataValid <= '1';
+            end if;
             
             -- add wait cycles if necessary
             if WAIT_FOR_DATA = '1' then
@@ -622,14 +762,37 @@ begin
             fsmCpuAddr <= PC;
             
          when cs_halt =>
-            fsmCpuAddr <= ADDR_Bus;           
+            fsmCpuAddr <= ADDR_Bus;
+            
+         when cs_int_wait_isr =>
+            if Int_Active = '1' then
+               IGRANT_N <= '0';
+            
+               -- requester signals ISR address is on DATA
+               if INT_N = '1' then
+                  fsmNextCPUState <= cs_int_jmp_isr;
+                  fsmCpuAddr <= DATA; -- put ISR address in CPU's address register
+                  fsmPC <= DATA;
+               else
+                  fsmNextCPUState <= cs_int_wait_isr;
+               end if;
+            end if;
+
+         -- IGRANT_N goes back to high, new PC and CpuAddr is being clocked in            
+         when cs_int_jmp_isr =>
+            if Int_Active = '1' then
+               fsmNextCPUState <= cs_fetch;
+            end if;
+            
+         when cs_int_indirect_isr =>
+            if Int_Active = '1' then
+               fsmCpuAddr <= DATA;
+               fsmPC <= DATA;
+               fsmNextCpuState <= cs_fetch;
+            end if;
         
          when others =>
-            fsmPC <= (others => '0');
-            fsmCpuAddr <= (others => '0');
-            fsmCpuDataDirCtrl <= '0';
-            fsmCpuDataValid <= '0';
-            
+            null;            
       end case;
    end process;
    
@@ -647,7 +810,10 @@ begin
          when cs_exepost_sub                 => cpu_state_next <= cs_fetch;
          when cs_exepost_prepfetch           => cpu_state_next <= cs_fetch;
          when cs_halt                        => cpu_state_next <= cs_halt;
-         when others                         => cpu_state_next <= cpu_state;
+         when cs_int_wait_isr                => cpu_state_next <= cs_halt;  -- if unexpected situation: halt CPU
+         when cs_int_jmp_isr                 => cpu_state_next <= cs_halt;  -- ditto
+         when cs_int_indirect_isr            => cpu_state_next <= cs_halt;  -- ditto
+         when others                         => cpu_state_next <= cs_halt;  -- ditto
       end case;
    end process;
                
@@ -660,6 +826,7 @@ begin
    Bra_Mode       <= Instruction(5 downto 4);
    Bra_Neg        <= Instruction(3);
    Bra_Condition  <= Instruction(2 downto 0);
+   Ctrl_Cmd       <= Instruction(11 downto 6);
    
    -- external signals
    ADDR           <= ADDR_Bus;

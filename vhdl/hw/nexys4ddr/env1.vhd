@@ -78,7 +78,12 @@ port (
    
    -- signals about the CPU state
    HALT           : out std_logic;                          -- 1=CPU halted due to the HALT command, 0=running
-   INS_CNT_STROBE : out std_logic                           -- goes high for one clock cycle for each new instruction 
+   INS_CNT_STROBE : out std_logic;                          -- goes high for one clock cycle for each new instruction
+   
+   -- interrupt system                                      -- refer to doc/intro/qnice_intro.pdf to learn how this works
+   INT_N          : in std_logic   := '1';
+   IGRANT_N       : out std_logic
+    
 );
 end component;
 
@@ -198,6 +203,29 @@ port (
 );
 end component;
 
+-- Interrupt generator: Timer Module
+component timer_module is
+generic (
+   CLK_FREQ       : natural                              -- system clock in Hertz
+);
+port (
+   clk            : in std_logic;                        -- system clock
+   reset          : in std_logic;                        -- async reset
+   
+   -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
+   int_n_out      : out std_logic;                        -- left device's interrupt signal input
+   grant_n_in     : in std_logic;                         -- left device's grant signal output
+   int_n_in       : in std_logic;                         -- right device's interrupt signal output
+   grant_n_out    : out std_logic;                        -- right device's grant signal input
+   
+   -- Registers
+   en             : in std_logic;                        -- enable for reading from or writing to the bus
+   we             : in std_logic;                        -- write to the registers via system's data bus
+   reg            : in std_logic_vector(2 downto 0);     -- register selector
+   data           : inout std_logic_vector(15 downto 0)  -- system's data bus
+);
+end component;
+
 -- impulse (cycle) counter
 component cycle_counter is
 port (
@@ -260,8 +288,10 @@ port (
    addr              : in std_logic_vector(15 downto 0);
    data_dir          : in std_logic;
    data_valid        : in std_logic;
-   cpu_halt          : in std_logic;   
-   
+   cpu_halt          : in std_logic;
+   cpu_igrant_n      : in std_logic; -- if this goes to 0, then all devices need to leave the DATA bus alone,
+                                     -- because the interrupt device will put the ISR address on the bus
+      
    -- let the CPU wait for data from the bus
    cpu_wait_for_data : out std_logic;   
    
@@ -279,7 +309,11 @@ port (
    switch_reg_enable : out std_logic;
    kbd_en            : out std_logic;
    kbd_we            : out std_logic;
-   kbd_reg           : out std_logic_vector(1 downto 0);   
+   kbd_reg           : out std_logic_vector(1 downto 0);
+   tin_en            : out std_logic;
+   tin_we            : out std_logic;
+   tin_reg           : out std_logic_vector(2 downto 0);
+      
    vga_en            : out std_logic;
    vga_we            : out std_logic;
    vga_reg           : out std_logic_vector(3 downto 0);
@@ -312,6 +346,8 @@ signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
 signal cpu_halt               : std_logic;
 signal cpu_ins_cnt_strobe     : std_logic;
+signal cpu_int_n              : std_logic;
+signal cpu_igrant_n           : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
@@ -326,6 +362,9 @@ signal switch_reg_enable      : std_logic;
 signal kbd_en                 : std_logic;
 signal kbd_we                 : std_logic;
 signal kbd_reg                : std_logic_vector(1 downto 0);
+signal tin_en                 : std_logic;
+signal tin_we                 : std_logic;
+signal tin_reg                : std_logic_vector(2 downto 0);
 signal vga_en                 : std_logic;
 signal vga_we                 : std_logic;
 signal vga_reg                : std_logic_vector(3 downto 0);
@@ -397,6 +436,303 @@ begin
     clkout0  => clk25MHz,           --  pixelclock
     locked   => pll_locked_main
   );
+
+   -- QNICE CPU
+   cpu : QNICE_CPU
+      port map (
+         CLK => SLOW_CLOCK,
+         RESET => reset_ctl,
+         WAIT_FOR_DATA => cpu_wait_for_data,
+         ADDR => cpu_addr,
+         DATA => cpu_data,
+         DATA_DIR => cpu_data_dir,
+         DATA_VALID => cpu_data_valid,
+         HALT => cpu_halt,
+         INS_CNT_STROBE => cpu_ins_cnt_strobe,
+         INT_N => cpu_int_n,
+         IGRANT_N => cpu_igrant_n
+      );
+
+   -- ROM: up to 64kB consisting of up to 32.000 16 bit words
+   rom : BROM
+      generic map (
+         FILE_NAME   => ROM_FILE,
+         ROM_LINES   => ROM_SIZE
+      )
+      port map (
+         clk         => SLOW_CLOCK,
+         ce          => rom_enable,
+         address     => cpu_addr(14 downto 0),
+         data        => cpu_data,
+         busy        => rom_busy
+      );
+     
+   -- RAM: up to 64kB consisting of up to 32.000 16 bit words
+   ram : BRAM
+      port map (
+         clk         => SLOW_CLOCK,
+         ce          => ram_enable,
+         address     => cpu_addr(14 downto 0),
+         we          => cpu_data_dir,         
+         data_i      => cpu_data,
+         data_o      => cpu_data,
+         busy        => ram_busy         
+      );
+      
+   -- PORE ROM: Power On & Reset Execution ROM
+   -- contains code that is executed during power on and/or during reset
+   -- MMIO is managing the PORE process
+   pore_rom : BROM
+      generic map (
+         FILE_NAME   => PORE_ROM_FILE,
+         ROM_LINES   => PORE_ROM_SIZE
+      )
+      port map (
+         clk         => SLOW_CLOCK,
+         ce          => pore_rom_enable,
+         address     => cpu_addr(14 downto 0),
+         data        => cpu_data,
+         busy        => pore_rom_busy
+      );
+                 
+   -- VGA: 80x40 textmode VGA adaptor   
+   vga_screen : vga_textmode
+      port map (
+         reset => reset_ctl,
+         clk25MHz => clk25MHz,
+         clk50MHz => SLOW_CLOCK,
+         R => vga_r,
+         G => vga_g,
+         B => vga_b,
+         hsync => VGA_HS,
+         vsync => VGA_VS,
+         en => vga_en,
+         we => vga_we,
+         reg => vga_reg,
+         data => cpu_data
+      );
+
+   -- TIL display emulation (4 digits)
+   til_leds : til_display
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         til_reg0_enable => i_til_reg0_enable,
+         til_reg1_enable => til_reg1_enable,
+         data_in => i_til_data_in,
+         SSEG_AN => SSEG_AN,
+         SSEG_CA => SSEG_CA
+      );
+
+   -- special UART with FIFO that can be directly connected to the CPU bus
+   uart : bus_uart
+      generic map (
+         DIVISOR => UART_DIVISOR
+      )
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         rx => UART_RXD,
+         tx => UART_TXD,
+         rts => UART_RTS,
+         cts => UART_CTS,
+         uart_en => uart_en,
+         uart_we => uart_we,
+         uart_reg => uart_reg,
+         uart_cpu_ws => uart_cpu_ws,         
+         cpu_data => cpu_data         
+      );
+      
+   -- PS/2 keyboard
+   kbd : keyboard
+      generic map (
+         clk_freq => 50000000                -- see @TODO in keyboard.vhd and TODO.txt
+      )
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         ps2_clk => PS2_CLK,
+         ps2_data => PS2_DAT,
+         kbd_en => kbd_en,
+         kbd_we => kbd_we,
+         kbd_reg => kbd_reg,
+         cpu_data => cpu_data
+      );
+      
+   timer_interrupt : timer_module   
+      generic map (
+         CLK_FREQ => 50000000
+      )
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         int_n_out => cpu_int_n,
+         grant_n_in => cpu_igrant_n,
+         int_n_in => '1',        -- no more devices to in Daisy Chain: 1=no interrupt
+         grant_n_out => open,    -- ditto: open=grant goes nowhere
+         en => tin_en,
+         we => tin_we,
+         reg => tin_reg,
+         data => cpu_data
+      );
+            
+   -- cycle counter
+   cyc : cycle_counter
+      port map (
+         clk => SLOW_CLOCK,
+         impulse => '1',
+         reset => reset_ctl,
+         en => cyc_en,
+         we => cyc_we,
+         reg => cyc_reg,
+         data => cpu_data
+      );
+      
+   -- instruction counter
+   ins : cycle_counter
+      port map (
+         clk => SLOW_CLOCK,
+         impulse => cpu_ins_cnt_strobe,
+         reset => reset_ctl,
+         en => ins_en,
+         we => ins_we,
+         reg => ins_reg,
+         data => cpu_data
+      );
+      
+   -- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
+   eae_inst : eae
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         en => eae_en,
+         we => eae_we,
+         reg => eae_reg,
+         data => cpu_data         
+      );
+
+   -- SD Card
+   sd_card : sdcard
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         en => sd_en,
+         we => sd_we,
+         reg => sd_reg,
+         data => cpu_data,
+         sd_reset => SD_RESET,
+         sd_clk => SD_CLK,
+         sd_mosi => SD_MOSI,
+         sd_miso => SD_MISO
+      );
+                        
+   -- memory mapped i/o controller
+   mmio_controller : mmio_mux
+      port map (
+         HW_RESET => not RESET_N,
+         CLK => SLOW_CLOCK,                  -- @TODO change debouncer bitsize when going to 100 MHz
+         addr => cpu_addr,
+         data_dir => cpu_data_dir,
+         data_valid => cpu_data_valid,
+         cpu_wait_for_data => cpu_wait_for_data,
+         cpu_halt => cpu_halt,
+         cpu_igrant_n => cpu_igrant_n,         
+         rom_enable => rom_enable,
+         rom_busy => rom_busy,
+         ram_enable => ram_enable,
+         ram_busy => ram_busy,
+         pore_rom_enable => pore_rom_enable,
+         pore_rom_busy => pore_rom_busy,       
+         til_reg0_enable => til_reg0_enable,
+         til_reg1_enable => til_reg1_enable,
+         switch_reg_enable => switch_reg_enable,
+         kbd_en => kbd_en,
+         kbd_we => kbd_we,
+         kbd_reg => kbd_reg,
+         tin_en => tin_en,
+         tin_we => tin_we,
+         tin_reg => tin_reg,         
+         vga_en => vga_en,
+         vga_we => vga_we,
+         vga_reg => vga_reg,
+         uart_en => uart_en,
+         uart_we => uart_we,
+         uart_reg => uart_reg,
+         uart_cpu_ws => uart_cpu_ws,
+         cyc_en => cyc_en,
+         cyc_we => cyc_we,
+         cyc_reg => cyc_reg,
+         ins_en => ins_en,
+         ins_we => ins_we,
+         ins_reg => ins_reg,         
+         eae_en => eae_en,
+         eae_we => eae_we,
+         eae_reg => eae_reg,
+         sd_en => sd_en,
+         sd_we => sd_we,
+         sd_reg => sd_reg,
+         reset_pre_pore => reset_pre_pore,
+         reset_post_pore => reset_post_pore
+      );
+   
+   -- handle the toggle switches
+   switch_driver : process(switch_reg_enable, SWITCHES)
+   begin
+      if switch_reg_enable = '1' then
+         cpu_data <= SWITCHES;
+      else
+         cpu_data <= (others => 'Z');
+      end if;
+   end process;
+   
+   -- clock divider: create a 50 MHz clock from the 100 MHz input
+   generate_slow_clock : process(CLK)
+   begin
+      if rising_edge(CLK) then
+         SLOW_CLOCK <= not SLOW_CLOCK;
+      end if;      
+   end process;
+   
+   -- clock divider of the clock divider: create a 25 MHz clock from the 50 MHz clock
+--   generate_clk25MHz : process(SLOW_CLOCK)
+--   begin
+--      if rising_edge(SLOW_CLOCK) then
+--         clk25MHz <= not clk25MHz;
+--      end if;
+--   end process;
+       
+   -- debug mode handling: if switch 2 is on then:
+   --   show the current cpu address in realtime on the LEDs
+   --   on halt show the PC of the HALT command (aka address bus value) on TIL
+   debug_mode_handler : process(SWITCHES, cpu_addr, cpu_data, cpu_halt, til_reg0_enable)
+   begin
+      i_til_reg0_enable <= til_reg0_enable;
+      i_til_data_in <= cpu_data;
+      LEDs <= cpu_halt & "000000000000000";
+   
+      -- debug mode
+      if SWITCHES(2) = '1' then
+         LEDs <= cpu_addr;
+      
+         if cpu_halt = '1' then
+            i_til_reg0_enable <= '1';
+            i_til_data_in <= cpu_addr;            
+         end if;
+      end if;
+   end process;
+       
+   -- wire the simplified color system of the VGA component to the VGA outputs
+   VGA_RED   <= vga_r & vga_r & vga_r & vga_r;
+   VGA_GREEN <= vga_g & vga_g & vga_g & vga_g;
+   VGA_BLUE  <= vga_b & vga_b & vga_b & vga_b;
+   
+   -- generate the general reset signal
+   reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';
+   
+   -- pull DAT1, DAT2 and DAT3 to GND (Nexys' pull-ups by default pull to VDD)
+   SD_DAT <= "000";
+end beh;
+
 
    -- QNICE CPU
    cpu : QNICE_CPU

@@ -31,7 +31,7 @@
     <Option Name="IPUserFilesDir" Val="$PIPUSERFILESDIR"/>
     <Option Name="IPStaticSourceDir" Val="$PIPUSERFILESDIR/ipstatic"/>
     <Option Name="EnableBDX" Val="FALSE"/>
-    <Option Name="WTXSimLaunchSim" Val="6"/>
+    <Option Name="WTXSimLaunchSim" Val="130"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
@@ -292,6 +292,18 @@
           <Attr Name="UsedIn" Val="synthesis"/>
         </FileInfo>
       </File>
+      <File Path="$PPRDIR/../../../../vhdl/timer_module.vhd">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/timer.vhd">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
         <Option Name="TopModule" Val="env1"/>
@@ -318,6 +330,7 @@
       </Config>
     </FileSet>
     <FileSet Name="dev_int" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/dev_int">
+      <Filter Type="Srcs"/>
       <File Path="$PPRDIR/../../../../vhdl/sim/dev_int_mmio.vhd">
         <FileInfo>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -329,6 +342,11 @@
         </FileInfo>
       </File>
       <File Path="$PPRDIR/dev_int.wcfg">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/sim/dev_int_source.vhd">
         <FileInfo>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>

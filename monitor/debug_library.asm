@@ -3,6 +3,8 @@
 ;; The collection of debugging routines starts here
 ;;
 ;; 29-AUG-2015      Bernd Ulmann    Initial version
+;; 25-JUL-2020      Bernd Ulmann    Added support for HALT, RTI, and INT
+;; 07-AUG-2020      Bernd Ulmann    RBRA/RSUB now displays the absolut destination addr.
 ;;=======================================================================================
 ;;
 ;
@@ -28,6 +30,8 @@ DBG$DISASM          INCRB
                     MOVE    R1, R2              ; R1 contains the instruction
                     SHR     0x0009, R2          ; Get opcode * 8
                     AND     0x0078, R2          ; Filter out the unnecessary LSBs
+                    CMP     0x0070, R2          ; Is it a control instruction?
+                    RBRA    _DBG$DISASM_CTRL, Z ; Yes. :-)
                     CMP     0x0078, R2          ; Is it a branch/subroutine call?
                     RBRA    _DBG$DISASM_BRSU, Z ; Yes!
 ; Treat non-branch/subroutine calls:
@@ -41,6 +45,19 @@ DBG$DISASM          INCRB
                     RSUB    _DBG$HANDLE_SOURCE, 1
                     RSUB    _DBG$HANDLE_DEST, 1
                     RBRA    _DBG$DISASM_EXIT, 1 ; Finished...
+; Treat control instructions:
+_DBG$DISASM_CTRL    MOVE    R1, R2              ; Determine the type of control instruction
+                    SHR     0x0003, R2          ; Shift only three to the right as
+                    AND     0x0018, R2          ; each mnemonic is 8 characters long
+                    MOVE    _DBG$CTRL_MNEMONICS, R8
+                    ADD     R2, R8
+                    RSUB    IO$PUTS, 1          ; Print mnemonic
+                    MOVE    ' ', R8             ; Print a delimiter
+                    RSUB    IO$PUTCHAR, 1
+                    CMP     0x0010, R2          ; Was the instruction INT?
+                    RBRA    _DBG$DISASM_EXIT, !Z; No, so we are finished here
+                    RSUB    _DBG$HANDLE_DEST, 1 ; Take care of the destination operand
+                    RBRA    _DBG$DISASM_EXIT, 1 ; Finished
 ; Treat branches and subroutine calls:
 _DBG$DISASM_BRSU    MOVE    R1, R2              ; Determine branch/call type
                     SHR     0x0001, R2
@@ -75,6 +92,7 @@ _DBG$NO_NEGATE      MOVE    R1, R2              ; No side effects...
                     RSUB    IO$PUT_W_HEX, 1     ; Print address
                     MOVE    ')', R8
                     RSUB    IO$PUTCHAR, 1
+
 _DBG$DISASM_EXIT    RSUB    IO$PUT_CRLF, 1
                     MOVE    R0, R8              ; Restore address
                     DECRB
@@ -144,8 +162,11 @@ _DBG$MNEMONICS      .ASCII_W    "MOVE   "
                     .ASCII_W    "XOR    "
                     .ASCII_W    "CMP    "
                     .ASCII_W    "rsrvd  "
-                    .ASCII_W    "HALT   "
-                    .ASCII_W    "BRSU   "       ; This is not really necessary
+                    .ASCII_W    "CTRL   "       ; This is not really necessary
+_DBG$CTRL_MNEMONICS .ASCII_W    "HALT   "
+                    .ASCII_W    "RTI    "
+                    .ASCII_W    "INT    "
+                    .ASCII_W    "BRSU   "       ; This also is not really necessary
 _DBG$BRSU_MNEMONICS .ASCII_W    "ABRA   "
                     .ASCII_W    "ASUB   "
                     .ASCII_W    "RBRA   "

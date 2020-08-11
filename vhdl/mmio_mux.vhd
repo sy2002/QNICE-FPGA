@@ -29,6 +29,8 @@ port (
    data_dir          : in std_logic;
    data_valid        : in std_logic;
    cpu_halt          : in std_logic;
+   cpu_igrant_n      : in std_logic; -- if this goes to 0, then all devices need to leave the DATA bus alone,
+                                     -- because the interrupt device will put the ISR address on the bus
    
    -- let the CPU wait for data from the bus
    cpu_wait_for_data : out std_logic;
@@ -62,7 +64,12 @@ port (
    kbd_we            : out std_logic;
    kbd_reg           : out std_logic_vector(1 downto 0);
    
-   -- Cycle counter regsiter range $FF17..$FF1A
+   -- Timer Interrupt Generator range $FF30 .. $FF35
+   tin_en            : out std_logic;
+   tin_we            : out std_logic;
+   tin_reg           : out std_logic_vector(2 downto 0);
+   
+   -- Cycle counter register range $FF17..$FF1A
    cyc_en            : out std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
@@ -138,12 +145,17 @@ signal reset_counter          : unsigned(RESET_COUNTER_BTS downto 0);
 signal fsm_next_global_state  : global_state_type;
 signal fsm_reset_counter      : unsigned(RESET_COUNTER_BTS downto 0);
 
+signal no_igrant_active : boolean;
 
-begin   
+begin
+
+   no_igrant_active <= true when cpu_igrant_n = '1' else false;
+   
 
    -- TIL register base is FF10
    -- writing to base equals register0 equals the actual value
    -- writing to register1 (FF11) equals the mask
+   -- no_igrant_active: ignore; this is a write only register
    til_control : process(addr, data_dir, data_valid)
    begin
       if addr(15 downto 4) = x"FF1" and data_dir = '1' and data_valid = '1' then
@@ -171,7 +183,7 @@ begin
    -- SWITCH register is FF12
    switch_control : process(addr, data_dir, data_valid)
    begin
-      if addr(15 downto 0) = x"FF12" and data_dir = '0' then
+      if addr(15 downto 0) = x"FF12" and data_dir = '0' and no_igrant_active then
          switch_reg_enable <= '1';
       else
          switch_reg_enable <= '0';
@@ -185,15 +197,17 @@ begin
       kbd_we <= '0';
       kbd_reg <= "00";
       
-      if addr = x"FF13" then
-         kbd_en <= '1';
-         kbd_we <= data_dir and data_valid;
-         kbd_reg <= "00";
-      elsif addr = x"FF14" then
-         kbd_en <= '1';
-         kbd_we <= data_dir and data_valid;
-         kbd_reg <= "01";
-      end if;      
+      if no_igrant_active then
+         if addr = x"FF13" then
+            kbd_en <= '1';
+            kbd_we <= data_dir and data_valid;
+            kbd_reg <= "00";
+         elsif addr = x"FF14" then
+            kbd_en <= '1';
+            kbd_we <= data_dir and data_valid;
+            kbd_reg <= "01";
+         end if;  
+      end if;    
    end process;
    
    -- Cycle counter starts at FF17
@@ -203,22 +217,24 @@ begin
       cyc_we <= '0';
       cyc_reg <= "00";
       
-      if addr = x"FF17" then
-         cyc_en <= '1';
-         cyc_we <= data_dir and data_valid;
-         cyc_reg <= "00";
-      elsif addr = x"FF18" then
-         cyc_en <= '1';
-         cyc_we <= data_dir and data_valid;
-         cyc_reg <= "01";
-      elsif addr = x"FF19" then
-         cyc_en <= '1';
-         cyc_we <= data_dir and data_valid;
-         cyc_reg <= "10";
-      elsif addr = x"FF1A" then
-         cyc_en <= '1';
-         cyc_we <= data_dir and data_valid;
-         cyc_reg <= "11";
+      if no_igrant_active then
+         if addr = x"FF17" then
+            cyc_en <= '1';
+            cyc_we <= data_dir and data_valid;
+            cyc_reg <= "00";
+         elsif addr = x"FF18" then
+            cyc_en <= '1';
+            cyc_we <= data_dir and data_valid;
+            cyc_reg <= "01";
+         elsif addr = x"FF19" then
+            cyc_en <= '1';
+            cyc_we <= data_dir and data_valid;
+            cyc_reg <= "10";
+         elsif addr = x"FF1A" then
+            cyc_en <= '1';
+            cyc_we <= data_dir and data_valid;
+            cyc_reg <= "11";
+         end if;
       end if;
    end process;
    
@@ -229,22 +245,24 @@ begin
       ins_we <= '0';
       ins_reg <= "00";
       
-      if addr = x"FF2A" then
-         ins_en <= '1';
-         ins_we <= data_dir and data_valid;
-         ins_reg <= "00";
-      elsif addr = x"FF2B" then
-         ins_en <= '1';
-         ins_we <= data_dir and data_valid;
-         ins_reg <= "01";
-      elsif addr = x"FF2C" then
-         ins_en <= '1';
-         ins_we <= data_dir and data_valid;
-         ins_reg <= "10";
-      elsif addr = x"FF2D" then
-         ins_en <= '1';
-         ins_we <= data_dir and data_valid;
-         ins_reg <= "11";
+      if no_igrant_active then
+         if addr = x"FF2A" then
+            ins_en <= '1';
+            ins_we <= data_dir and data_valid;
+            ins_reg <= "00";
+         elsif addr = x"FF2B" then
+            ins_en <= '1';
+            ins_we <= data_dir and data_valid;
+            ins_reg <= "01";
+         elsif addr = x"FF2C" then
+            ins_en <= '1';
+            ins_we <= data_dir and data_valid;
+            ins_reg <= "10";
+         elsif addr = x"FF2D" then
+            ins_en <= '1';
+            ins_we <= data_dir and data_valid;
+            ins_reg <= "11";
+         end if;
       end if;
    end process;
       
@@ -254,26 +272,28 @@ begin
       eae_we <= '0';
       eae_reg <= "000";
       
-      if addr = x"FF1B" then
-         eae_en <= '1';
-         eae_we <= data_dir and data_valid;
-         eae_reg <= "000";
-      elsif addr = x"FF1C" then
-         eae_en <= '1';
-         eae_we <= data_dir and data_valid;
-         eae_reg <= "001";
-      elsif addr = x"FF1D" then
-         eae_en <= '1';
-         eae_we <= data_dir and data_valid;
-         eae_reg <= "010";
-      elsif addr = x"FF1E" then
-         eae_en <= '1';
-         eae_we <= data_dir and data_valid;
-         eae_reg <= "011";
-      elsif addr = x"FF1F" then
-         eae_en <= '1';
-         eae_we <= data_dir and data_valid;
-         eae_reg <= "100";
+      if no_igrant_active then
+         if addr = x"FF1B" then
+            eae_en <= '1';
+            eae_we <= data_dir and data_valid;
+            eae_reg <= "000";
+         elsif addr = x"FF1C" then
+            eae_en <= '1';
+            eae_we <= data_dir and data_valid;
+            eae_reg <= "001";
+         elsif addr = x"FF1D" then
+            eae_en <= '1';
+            eae_we <= data_dir and data_valid;
+            eae_reg <= "010";
+         elsif addr = x"FF1E" then
+            eae_en <= '1';
+            eae_we <= data_dir and data_valid;
+            eae_reg <= "011";
+         elsif addr = x"FF1F" then
+            eae_en <= '1';
+            eae_we <= data_dir and data_valid;
+            eae_reg <= "100";
+         end if;
       end if;      
    end process;
 
@@ -283,18 +303,20 @@ begin
       uart_we <= '0';
       uart_reg <= "00";
       
-      if addr = x"FF21" then
-         uart_en <= '1';
-         uart_we <= data_dir and data_valid;
-         uart_reg <= "01";
-      elsif addr = x"FF22" then
-         uart_en <= '1';
-         uart_we <= data_dir and data_valid;
-         uart_reg <= "10";
-      elsif addr = x"FF23" then
-         uart_en <= '1';
-         uart_we <= data_dir and data_valid;
-         uart_reg <= "11";      
+      if no_igrant_active then
+         if addr = x"FF21" then
+            uart_en <= '1';
+            uart_we <= data_dir and data_valid;
+            uart_reg <= "01";
+         elsif addr = x"FF22" then
+            uart_en <= '1';
+            uart_we <= data_dir and data_valid;
+            uart_reg <= "10";
+         elsif addr = x"FF23" then
+            uart_en <= '1';
+            uart_we <= data_dir and data_valid;
+            uart_reg <= "11";      
+         end if;
       end if;
    end process;
    
@@ -304,37 +326,39 @@ begin
       sd_we <= '0';
       sd_reg <= "000";
       
-      if addr = x"FF24" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "000";
-      elsif addr = x"FF25" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "001";
-      elsif addr = x"FF26" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "010";
-      elsif addr = x"FF27" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "011";
-      elsif addr = x"FF28" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "100";
-      elsif addr = x"FF29" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "101";
-      end if;    
+      if no_igrant_active then      
+         if addr = x"FF24" then
+            sd_en <= '1';
+            sd_we <= data_dir and data_valid;
+            sd_reg <= "000";
+         elsif addr = x"FF25" then
+            sd_en <= '1';
+            sd_we <= data_dir and data_valid;
+            sd_reg <= "001";
+         elsif addr = x"FF26" then
+            sd_en <= '1';
+            sd_we <= data_dir and data_valid;
+            sd_reg <= "010";
+         elsif addr = x"FF27" then
+            sd_en <= '1';
+            sd_we <= data_dir and data_valid;
+            sd_reg <= "011";
+         elsif addr = x"FF28" then
+            sd_en <= '1';
+            sd_we <= data_dir and data_valid;
+            sd_reg <= "100";
+         elsif addr = x"FF29" then
+            sd_en <= '1';
+            sd_we <= data_dir and data_valid;
+            sd_reg <= "101";
+         end if; 
+      end if;   
    end process;
    
    -- VGA starts at FF00
    vga_control : process(addr, data_dir, data_valid)
    begin
-      if addr(15 downto 4) = x"FF0" then
+      if addr(15 downto 4) = x"FF0" and no_igrant_active then
          vga_en <= '1';
          vga_we <= data_dir and data_valid;
          vga_reg <= addr(3 downto 0);
@@ -342,6 +366,20 @@ begin
          vga_en <= '0';
          vga_we <= '0';
          vga_reg <= x"0";
+      end if;
+   end process;
+   
+   -- Timer starts at FF30
+   timer_control : process(addr, data_dir, data_valid)
+   begin
+      if addr(15 downto 4) = x"FF3" and no_igrant_active then
+         tin_en <= '1';
+         tin_we <= data_dir and data_valid;
+         tin_reg <= addr(2 downto 0);
+      else
+         tin_en <= '0';
+         tin_we <= '0';
+         tin_reg <= (others => '0');
       end if;
    end process;
       
@@ -353,16 +391,18 @@ begin
    cpu_wait_control : process (ram_enable_i, rom_enable_i, pore_rom_enable_i, ram_busy, rom_busy,
                                pore_rom_busy, uart_cpu_ws)
    begin
-      if ram_enable_i = '1' and ram_busy = '1' then
-         cpu_wait_for_data <= '1';
-      elsif rom_enable_i = '1' and rom_busy = '1' then
-         cpu_wait_for_data <= '1';
-      elsif pore_rom_enable_i = '1' and pore_rom_busy = '1' then
-         cpu_wait_for_data <= '1';
-      elsif uart_cpu_ws = '1' then
-         cpu_wait_for_data <= '1';
-      else
-         cpu_wait_for_data <= '0';
+      cpu_wait_for_data <= '0';
+      
+      if no_igrant_active then
+         if ram_enable_i = '1' and ram_busy = '1' then
+            cpu_wait_for_data <= '1';
+         elsif rom_enable_i = '1' and rom_busy = '1' then
+            cpu_wait_for_data <= '1';
+         elsif pore_rom_enable_i = '1' and pore_rom_busy = '1' then
+            cpu_wait_for_data <= '1';
+         elsif uart_cpu_ws = '1' then
+            cpu_wait_for_data <= '1';
+         end if;
       end if;
    end process;
 
@@ -437,18 +477,20 @@ begin
    end process;
 
    -- PORE ROM is used in all global states other than gsRun
-   use_pore_rom_i <= '0' when (global_state = gsPostPoreReset or
+   use_pore_rom_i <= '0' when cpu_igrant_n = '0' or 
+                              (global_state = gsPostPoreReset or
                                global_state = gsPostPoreReset_execute or
                                global_state = gsRun)
                          else '1';
-   pore_rom_enable_i <= not addr(15) and not data_dir and use_pore_rom_i;
+   pore_rom_enable_i <= not addr(15) and not data_dir and use_pore_rom_i and cpu_igrant_n;
 
    -- ROM is enabled when the address is < $8000 and the CPU is reading
-   rom_enable_i <= not addr(15) and not data_dir and not use_pore_rom_i;
+   rom_enable_i <= not addr(15) and not data_dir and not use_pore_rom_i and cpu_igrant_n;
    
    -- RAM is enabled when the address is in ($8000..$FEFF)
    ram_enable_i <= addr(15)
-                   and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8));
+                   and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8))
+                   and cpu_igrant_n;
                
    -- generate external RAM/ROM/PORE enable signals
    ram_enable <= ram_enable_i;

@@ -2,6 +2,11 @@ Version 1.6     xxxxx, xx 2020
 ==============================
 
 <CPU upgraded to ISA 1.6: Interrupts added>
+<CPU bugfix: The CPU wrote back the second operand when comparing. This had
+no visible effects but this one: When using the register of a MMIO device as
+a second indirect operand such as CMP 1, @R0 and if the device was sensitive
+to this register being re-written. Details:
+https://github.com/sy2002/QNICE-FPGA/issues/9#issuecomment-670980704>
 
 * MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
 

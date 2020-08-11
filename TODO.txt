@@ -65,8 +65,6 @@ MEGA65 HARDWARE:
 
 MONITOR:
 
-* Add qtransfer as standard functionality to the Monitor
-
 * Get rid of the hardcoded keyboard locale
 
 

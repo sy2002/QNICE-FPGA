@@ -13,15 +13,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="601400fs"></ZoomStartTime>
-      <ZoomEndTime time="907773fs"></ZoomEndTime>
-      <Cursor1Time time="672423fs"></Cursor1Time>
+      <ZoomStartTime time="4159000fs"></ZoomStartTime>
+      <ZoomEndTime time="4467479fs"></ZoomEndTime>
+      <Cursor1Time time="4260107fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="196"></NameColumnWidth>
-      <ValueColumnWidth column_width="73"></ValueColumnWidth>
+      <NameColumnWidth column_width="147"></NameColumnWidth>
+      <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="17" />
+   <WVObjectSize size="40" />
    <wvobject type="logic" fp_name="/dev_int/CLK">
       <obj_property name="ElementShortName">CLK</obj_property>
       <obj_property name="ObjectShortName">CLK</obj_property>
@@ -38,13 +38,29 @@
       <obj_property name="ElementShortName">PC[15:0]</obj_property>
       <obj_property name="ObjectShortName">PC[15:0]</obj_property>
    </wvobject>
+   <wvobject type="array" fp_name="/dev_int/cpu/PC_org">
+      <obj_property name="ElementShortName">PC_org[15:0]</obj_property>
+      <obj_property name="ObjectShortName">PC_org[15:0]</obj_property>
+   </wvobject>
    <wvobject type="array" fp_name="/dev_int/cpu/SP">
       <obj_property name="ElementShortName">SP[15:0]</obj_property>
       <obj_property name="ObjectShortName">SP[15:0]</obj_property>
    </wvobject>
+   <wvobject type="array" fp_name="/dev_int/cpu/SP_org">
+      <obj_property name="ElementShortName">SP_org[15:0]</obj_property>
+      <obj_property name="ObjectShortName">SP_org[15:0]</obj_property>
+   </wvobject>
    <wvobject type="array" fp_name="/dev_int/cpu/SR">
       <obj_property name="ElementShortName">SR[15:0]</obj_property>
       <obj_property name="ObjectShortName">SR[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/cpu/SR_org">
+      <obj_property name="ElementShortName">SR_org[15:0]</obj_property>
+      <obj_property name="ObjectShortName">SR_org[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/dev_int/cpu/Int_Active">
+      <obj_property name="ElementShortName">Int_Active</obj_property>
+      <obj_property name="ObjectShortName">Int_Active</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/dev_int/cpu/ADDR">
       <obj_property name="ElementShortName">ADDR[15:0]</obj_property>
@@ -54,6 +70,10 @@
       <obj_property name="ElementShortName">DATA[15:0]</obj_property>
       <obj_property name="ObjectShortName">DATA[15:0]</obj_property>
    </wvobject>
+   <wvobject type="logic" fp_name="/dev_int/cpu/WAIT_FOR_DATA">
+      <obj_property name="ElementShortName">WAIT_FOR_DATA</obj_property>
+      <obj_property name="ObjectShortName">WAIT_FOR_DATA</obj_property>
+   </wvobject>
    <wvobject type="logic" fp_name="/dev_int/cpu/DATA_DIR">
       <obj_property name="ElementShortName">DATA_DIR</obj_property>
       <obj_property name="ObjectShortName">DATA_DIR</obj_property>
@@ -61,6 +81,14 @@
    <wvobject type="logic" fp_name="/dev_int/cpu/DATA_VALID">
       <obj_property name="ElementShortName">DATA_VALID</obj_property>
       <obj_property name="ObjectShortName">DATA_VALID</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/dev_int/cpu/INT_N">
+      <obj_property name="ElementShortName">INT_N</obj_property>
+      <obj_property name="ObjectShortName">INT_N</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/dev_int/cpu/IGRANT_N">
+      <obj_property name="ElementShortName">IGRANT_N</obj_property>
+      <obj_property name="ObjectShortName">IGRANT_N</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/dev_int/cpu/Opcode">
       <obj_property name="ElementShortName">Opcode[3:0]</obj_property>
@@ -89,5 +117,69 @@
    <wvobject type="array" fp_name="/dev_int/cpu/Dst_Value">
       <obj_property name="ElementShortName">Dst_Value[15:0]</obj_property>
       <obj_property name="ObjectShortName">Dst_Value[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/cpu/Registers/read_data2">
+      <obj_property name="ElementShortName">read_data2[15:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data2[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/cpu/Ctrl_Cmd">
+      <obj_property name="ElementShortName">Ctrl_Cmd[5:0]</obj_property>
+      <obj_property name="ObjectShortName">Ctrl_Cmd[5:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/dev_int/ram/we">
+      <obj_property name="ElementShortName">we</obj_property>
+      <obj_property name="ObjectShortName">we</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/ram/address">
+      <obj_property name="ElementShortName">address[14:0]</obj_property>
+      <obj_property name="ObjectShortName">address[14:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/ram/data_i">
+      <obj_property name="ElementShortName">data_i[15:0]</obj_property>
+      <obj_property name="ObjectShortName">data_i[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/dev_int/timer_interrupt/t0_en">
+      <obj_property name="ElementShortName">t0_en</obj_property>
+      <obj_property name="ObjectShortName">t0_en</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/dev_int/timer_interrupt/t1_en">
+      <obj_property name="ElementShortName">t1_en</obj_property>
+      <obj_property name="ObjectShortName">t1_en</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/timer_interrupt/timer0/reg_pre">
+      <obj_property name="ElementShortName">reg_pre[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_pre[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/timer_interrupt/timer0/reg_cnt">
+      <obj_property name="ElementShortName">reg_cnt[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_cnt[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/timer_interrupt/timer0/reg_int">
+      <obj_property name="ElementShortName">reg_int[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_int[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/timer_interrupt/timer0/reg">
+      <obj_property name="ElementShortName">reg[1:0]</obj_property>
+      <obj_property name="ObjectShortName">reg[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/dev_int/timer_interrupt/timer0/State">
+      <obj_property name="ElementShortName">State</obj_property>
+      <obj_property name="ObjectShortName">State</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/dev_int/timer_interrupt/timer0/is_counting">
+      <obj_property name="ElementShortName">is_counting</obj_property>
+      <obj_property name="ObjectShortName">is_counting</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/dev_int/timer_interrupt/timer0/has_fired">
+      <obj_property name="ElementShortName">has_fired</obj_property>
+      <obj_property name="ObjectShortName">has_fired</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/timer_interrupt/timer0/counter_pre">
+      <obj_property name="ElementShortName">counter_pre[15:0]</obj_property>
+      <obj_property name="ObjectShortName">counter_pre[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/timer_interrupt/timer0/counter_cnt">
+      <obj_property name="ElementShortName">counter_cnt[15:0]</obj_property>
+      <obj_property name="ObjectShortName">counter_cnt[15:0]</obj_property>
    </wvobject>
 </wave_config>
