@@ -1594,18 +1594,18 @@ L_CMP_01        MOVE    @R8, R1                 // First operand
 E_CMP_01        HALT
 
 STIM_CMP        .DW     0x5678, 0x4321, ST______, 0x5678, ST______
-                .DW     0x4321, 0x5678, ST______, 0x4321, ST_VN___
-                .DW     0x4321, 0xF678, ST______, 0x4321, ST__N___
-                .DW     0xF678, 0x4321, ST______, 0xF678, ST_V____
-                .DW     0x7777, 0x7777, ST______, 0x7777, ST___Z__
-                .DW     0x8888, 0x8888, ST______, 0x8888, ST___Z__
+                .DW     0x5678, 0x5678, ST______, 0x5678, ST___Z__
+                .DW     0x5678, 0x5679, ST______, 0x5678, ST__N_CX
+                .DW     0x5678, 0x89AB, ST______, 0x5678, ST_VN_C_
+                .DW     0x5678, 0xFEDC, ST______, 0x5678, ST____C_
+                .DW     0x89AB, 0x4321, ST______, 0x89AB, ST_V____
 
-                .DW     0x5678, 0x4321, ST_VNZCX, 0x5678, ST____CX
-                .DW     0x4321, 0x5678, ST_VNZCX, 0x4321, ST_VN_CX
-                .DW     0x4321, 0xF678, ST_VNZCX, 0x4321, ST__N_CX
-                .DW     0xF678, 0x4321, ST_VNZCX, 0xF678, ST_V__CX
-                .DW     0x7777, 0x7777, ST_VNZCX, 0x7777, ST___ZCX
-                .DW     0x8888, 0x8888, ST_VNZCX, 0x8888, ST___ZCX
+                .DW     0x5678, 0x4321, ST_VNZCX, 0x5678, ST______
+                .DW     0x5678, 0x5678, ST_VNZCX, 0x5678, ST___Z__
+                .DW     0x5678, 0x5679, ST_VNZCX, 0x5678, ST__N_CX
+                .DW     0x5678, 0x89AB, ST_VNZCX, 0x5678, ST_VN_C_
+                .DW     0x5678, 0xFEDC, ST_VNZCX, 0x5678, ST____C_
+                .DW     0x89AB, 0x4321, ST_VNZCX, 0x89AB, ST_V____
 
                 .DW     0x1111
 
