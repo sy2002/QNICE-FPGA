@@ -11,7 +11,7 @@ package env1_globals is
 
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
 constant ROM_FILE             : string    := "../monitor/monitor.rom";
-constant ROM_SIZE             : natural   := 6548;
+constant ROM_SIZE             : natural   := 6550;
 --constant ROM_FILE             : string    := "../demos/q-tris.rom";
 --constant ROM_SIZE             : natural   := 4544;
 
