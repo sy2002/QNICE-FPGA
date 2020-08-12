@@ -837,6 +837,7 @@ int execute() {
       break;
     case 5: /* SHL */
       //if ((source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
         destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
         for (i = 0; i < source_0; i++) {
           temp_flag = (destination & 0x8000) >> 13;
