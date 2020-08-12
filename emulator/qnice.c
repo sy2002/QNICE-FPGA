@@ -836,7 +836,7 @@ int execute() {
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 5: /* SHL */
-      if ((source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
+      //if ((source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
         destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
         for (i = 0; i < source_0; i++) {
           temp_flag = (destination & 0x8000) >> 13;
@@ -844,7 +844,7 @@ int execute() {
         }
         write_register(SR, (read_register(SR) & 0xfffb) | temp_flag);                 /* Shift into C bit */
         write_destination(destination_mode, destination_regaddr, destination, FALSE);
-      }
+      //}
       break;
     case 6: /* SHR */
       if ((scratch = source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
@@ -910,12 +910,12 @@ int execute() {
       cmp_0 = source_0;
       cmp_1 = source_1;
 
-      if (source_0 & 0x8000) cmp_0 |= 0xffff0000;
-      if (source_1 & 0x8000) cmp_1 |= 0xffff0000;
+      if (source_0 & 0x8000) cmp_0 |= 0xffffffffffff0000;
+      if (source_1 & 0x8000) cmp_1 |= 0xffffffffffff0000;
       if (cmp_0 > cmp_1)
-        sr_bits |= 0x0004;  // Set C-bit - was 0x0020
+        sr_bits |= 0x0020;  // Set V-bit
       else
-        sr_bits &= 0xfffb;  // Clear C-bit - was 0xffdf
+        sr_bits &= 0xffdf;  // Clear V-bit
 
       write_register(SR, sr_bits | 1);
       break;
