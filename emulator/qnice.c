@@ -702,7 +702,28 @@ void write_destination(unsigned int mode, unsigned int regaddr, unsigned int val
 ** parameter may occupy 17 bits (including the carry)! Do not truncate this parameter prior
 ** to calling this routine!
 */
-void update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, 
+void update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, unsigned int control_bitmask,
+                        unsigned int operation) // The operation is required for future.
+{
+  unsigned int sr_bits;
+
+  sr_bits = 1; /* LSB is always set (for unconditional branches and subroutine calls) */
+  if (((destination & 0xffff) == 0xffff) & !(control_bitmask & DO_NOT_MODIFY_X)) /* X */
+    sr_bits |= 0x2;
+  if ((destination & 0x10000) && !(control_bitmask & DO_NOT_MODIFY_CARRY)) /* C */
+    sr_bits |= 0x4;
+  if (!(destination & 0xffff)) /* Z */
+    sr_bits |= 0x8;
+  if (destination & 0x8000) /* N */
+    sr_bits |= 0x10;
+  if (((!(source_0 & 0x8000) && !(source_1 & 0x8000) && (destination & 0x8000)) ||
+      ((source_0 & 0x8000) && (source_1 & 0x8000) && !(destination & 0x8000))) && !(control_bitmask & DO_NOT_MODIFY_OVERFLOW))
+    sr_bits |= 0x20;
+
+  write_register(14, (read_register(14) & 0xffc0) | (sr_bits & 0x3f));
+}
+
+void _update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, 
                         unsigned int control_bitmask, unsigned int operation) {
   unsigned int x, c, z, n, v, sr_bits;
 
