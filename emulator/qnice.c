@@ -914,7 +914,7 @@ int execute() {
       else
         sr_bits &= 0xfffb;  // Clear C-bit
 
-      write_register(SR, sr_bits);
+      write_register(SR, sr_bits | 1);
       break;
 
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
