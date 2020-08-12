@@ -920,9 +920,9 @@ int execute() {
         sr_bits &= 0xfff7;  // Clear Z-bit
 
       if (source_0 > source_1) 
-        sr_bits |= 0x0020;  // Set N-bit
+        sr_bits |= 0x0010;  // Set N-bit
       else
-        sr_bits &= 0xffdf;  // Clear N-bit
+        sr_bits &= 0xffef;  // Clear N-bit
 
       /* Ugly but it works: Convert the unsigned int source_0/1 to signed ints with possible sign extension: */
       cmp_0 = source_0;
@@ -933,7 +933,7 @@ int execute() {
       if (cmp_0 > cmp_1) 
         sr_bits |= 0x0020;  // Set C-bit
       else
-        sr_bits &= 0xfffb;  // Clear C-bit
+        sr_bits &= 0xffdf;  // Clear C-bit
 
       write_register(SR, sr_bits);
       break;
