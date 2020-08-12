@@ -107,8 +107,6 @@
 #define SR  14  // Status register
 #define SP  13  // Stack pointer
 
-#define MAX_LAST_ADDRESSES     16
-
 #ifdef USE_UART
 uart gbl$first_uart;
 #endif
@@ -122,8 +120,7 @@ typedef struct statistic_data {
 int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$verbose = FALSE,
     gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
     gbl$ctrl_c = FALSE, gbl$breakpoint = -1, gbl$cycle_counter_state = 0, gbl$eae_operand_0 = 0,
-    gbl$eae_operand_1 = 0, gbl$eae_result_lo = 0, gbl$eae_result_hi = 0, gbl$eae_csr = 0,
-    gbl$last_addresses[MAX_LAST_ADDRESSES], gbl$last_addresses_pointer = 0;
+    gbl$eae_operand_1 = 0, gbl$eae_result_lo = 0, gbl$eae_result_hi = 0, gbl$eae_csr = 0;
 
 unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
@@ -705,28 +702,7 @@ void write_destination(unsigned int mode, unsigned int regaddr, unsigned int val
 ** parameter may occupy 17 bits (including the carry)! Do not truncate this parameter prior
 ** to calling this routine!
 */
-void update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, unsigned int control_bitmask,
-                        unsigned int operation)
-{
-  unsigned int sr_bits;
-
-  sr_bits = 1; /* LSB is always set (for unconditional branches and subroutine calls) */
-  if (((destination & 0xffff) == 0xffff) & !(control_bitmask & DO_NOT_MODIFY_X)) /* X */
-    sr_bits |= 0x2;
-  if ((destination & 0x10000) && !(control_bitmask & DO_NOT_MODIFY_CARRY)) /* C */
-    sr_bits |= 0x4;
-  if (!(destination & 0xffff)) /* Z */
-    sr_bits |= 0x8;
-  if (destination & 0x8000) /* N */
-    sr_bits |= 0x10;
-  if (((!(source_0 & 0x8000) && !(source_1 & 0x8000) && (destination & 0x8000)) ||
-      ((source_0 & 0x8000) && (source_1 & 0x8000) && !(destination & 0x8000))) && !(control_bitmask & DO_NOT_MODIFY_OVERFLOW))
-    sr_bits |= 0x20;
-
-  write_register(14, (read_register(14) & 0xffc0) | (sr_bits & 0x3f));
-}
-
-void _update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, 
+void update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, 
                         unsigned int control_bitmask, unsigned int operation) {
   unsigned int x, c, z, n, v, sr_bits;
 
@@ -800,7 +776,7 @@ int execute() {
   if (gbl$cycle_counter_state & 0x0002)
     gbl$cycle_counter++; /* Increment cycle counter which is an instruction counter in the emulator as opposed to the hardware. */
 
-  gbl$last_addresses[gbl$last_addresses_pointer++ % MAX_LAST_ADDRESSES] = debug_address = address = read_register(PC); /* Get PC */
+  debug_address = address = read_register(PC); /* Get current PC */
   opcode = ((instruction = access_memory(address++, READ_MEMORY, 0)) >> 12 & 0Xf);
   write_register(PC, address); /* Update program counter */
 
@@ -922,7 +898,7 @@ int execute() {
       else
         sr_bits &= 0xfff7;  // Clear Z-bit
 
-      if (source_0 > source_1)
+      if (source_0 > source_1) 
         sr_bits |= 0x0010;  // Set N-bit
       else
         sr_bits &= 0xffef;  // Clear N-bit
@@ -931,24 +907,17 @@ int execute() {
       cmp_0 = source_0;
       cmp_1 = source_1;
 
-      if (source_0 & 0x8000) cmp_0 |= 0xffffffffffff0000;
-      if (source_1 & 0x8000) cmp_1 |= 0xffffffffffff0000;
-      if (cmp_0 > cmp_1)
-        sr_bits |= 0x0020;  // Set V-bit
+      if (source_0 & 0x8000) cmp_0 |= 0xffff0000;
+      if (source_1 & 0x8000) cmp_1 |= 0xffff0000;
+      if (cmp_0 > cmp_1) 
+        sr_bits |= 0x0020;  // Set C-bit
       else
-        sr_bits &= 0xffdf;  // Clear V-bit
+        sr_bits &= 0xfffb;  // Clear C-bit
 
-      write_register(SR, sr_bits | 1);
-      break;
-
-//This should work, too, but doesn't... :-?
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_0 = read_source_operand(destination_mode, destination_regaddr, FALSE);
-      destination = source_0 - source_1;
-      update_status_bits(destination, source_0, source_1, MODIFY_ALL, SUB_INSTRUCTION);
+      write_register(SR, sr_bits);
       break;
     case 13: /* Reserved */
-      printf("Attempt to execute a reserved instruction at %04X\n", address - 1);
+      printf("Attempt to execute the reserved instruction...\n");
       return 1;
     case 14: /* Control group */
       switch (command = (instruction >> 6) & 0x3f) {
@@ -1070,8 +1039,6 @@ int mips_adjustment_thread(void* param) {
 #endif
 
 void run() {
-  for (unsigned int i = gbl$last_addresses_pointer = 0; i < MAX_LAST_ADDRESSES; gbl$last_addresses[i++] = 0);
-
   if (gbl$initial_run)
     gbl$initial_run = false;
   gbl$ctrl_c = FALSE;
@@ -1156,15 +1123,6 @@ MODE   ABSOLUTE         RELATIVE        MODE   ABSOLUTE         RELATIVE\n\
     }
     printf("\n");
   }
-
-  printf("Last addresses executed (last address first, then previous etc.):\n");
-  value = 0;
-  for (i = 0; i < MAX_LAST_ADDRESSES; i++) {
-    printf("%04X\t", gbl$last_addresses[(gbl$last_addresses_pointer - 1 - i) % MAX_LAST_ADDRESSES]);
-    if (!(++value % 8))
-      printf("\n");
-  }
-  printf("\n");
 }
 
 int load_binary_file(char *file_name) {
