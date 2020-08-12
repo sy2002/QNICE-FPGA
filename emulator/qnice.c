@@ -910,7 +910,7 @@ int execute() {
       if (source_0 & 0x8000) cmp_0 |= 0xffff0000;
       if (source_1 & 0x8000) cmp_1 |= 0xffff0000;
       if (cmp_0 > cmp_1)
-        sr_bits |= 0x0020;  // Set C-bit
+        sr_bits |= 0x0004;  // Set C-bit
       else
         sr_bits &= 0xfffb;  // Clear C-bit
 
