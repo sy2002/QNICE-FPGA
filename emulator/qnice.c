@@ -912,7 +912,7 @@ int execute() {
       if (cmp_0 > cmp_1)
         sr_bits |= 0x0020;  // Set C-bit
       else
-        sr_bits &= 0xfffb;  // Clear C-bit
+        sr_bits &= 0xffdf;  // Clear C-bit
 
       write_register(SR, sr_bits | 1);
       break;
