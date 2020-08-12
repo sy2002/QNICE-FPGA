@@ -912,7 +912,7 @@ int execute() {
       if (cmp_0 > cmp_1)
         sr_bits |= 0x0020;  // Set C-bit
       else
-        sr_bits &= 0xffdf;  // Clear C-bit
+        sr_bits &= 0xfffb;  // Clear C-bit
 
       write_register(SR, sr_bits | 1);
       break;
@@ -923,7 +923,7 @@ int execute() {
       update_status_bits(destination, source_0, source_1, MODIFY_ALL, SUB_INSTRUCTION);
       break;
     case 13: /* Reserved */
-      printf("Attempt to execute the reserved instruction...\n");
+      printf("Attempt to execute a reserved instruction at %04X\n", address);
       return 1;
     case 14: /* Control group */
       switch (command = (instruction >> 6) & 0x3f) {
