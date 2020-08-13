@@ -40,7 +40,6 @@ if [ $OSTP = "OSX" ]; then
 else
     SDL2_LIBS=`sdl2-config --static-libs`
 fi
-echo $SDL2_LIBS
 
 FILES="qnice.c fifo.c sd.c uart.c vga.c timer.c"
 DEF_SWITCHES="-DUSE_SD -DUSE_UART -DUSE_VGA -DUSE_TIMER"
