@@ -24,6 +24,7 @@
 */
 
 #undef USE_IDE
+#define OLD_V_LOGIC
 
 #include <ctype.h>
 #include <stdio.h>
@@ -700,39 +701,20 @@ void write_destination(unsigned int mode, unsigned int regaddr, unsigned int val
 }
 
 /*
-** The following function updates the lower six bits of the status register R14 according to 
+**  The following function updates the lower six bits of the status register R14 according to 
 ** the result of some machine instruction. Please keep in mind that the destination (result)
 ** parameter may occupy 17 bits (including the carry)! Do not truncate this parameter prior
 ** to calling this routine!
+**
+**  Caveat: There are actually two implementations of the overflow logic: The old behaviour,
+**          which is not "by the book" and the new behaviour which works as described in 
+**          http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html.
+**
+**          As of 13-AUG-2020 the old logic should be active as the new (more correct :-} )
+**          breaks our existing code! To switch between these two implementation variants,
+**          OLD_V_LOGIC must be defined or undefined.
 */
-void update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, unsigned int control_bitmask,
-                        unsigned int operation) // The operation is required for future.
-{
-  unsigned int sr_bits;
-
-  sr_bits = 1; /* LSB is always set (for unconditional branches and subroutine calls) */
-  if (((destination & 0xffff) == 0xffff) & !(control_bitmask & DO_NOT_MODIFY_X)) /* X */
-    sr_bits |= 0x2;
-  if ((destination & 0x10000) && !(control_bitmask & DO_NOT_MODIFY_CARRY)) /* C */
-    sr_bits |= 0x4;
-  if (!(destination & 0xffff)) /* Z */
-    sr_bits |= 0x8;
-  if (destination & 0x8000) /* N */
-    sr_bits |= 0x10;
-  if (((!(source_0 & 0x8000) && !(source_1 & 0x8000) && (destination & 0x8000)) ||
-      ((source_0 & 0x8000) && (source_1 & 0x8000) && !(destination & 0x8000))) && !(control_bitmask & DO_NOT_MODIFY_OVERFLOW))
-    sr_bits |= 0x20;
-
-  write_register(14, (read_register(14) & 0xffc0) | (sr_bits & 0x3f));
-}
-
-//  This is the update_status_bits(...) routine as it should be. Unfortunately, it does not work.
-// The difference between this routine and the one above is that the routine above clears
-// SR bits even if they should not be MODIFIED. 
-//  I think (as of 2020-AUG-12) that an instruction like MOVE should leave C and V unchanged and
-// should only change X, N, Z according to the values being moved. At least this would be 
-// consistent with classic CPUs.
-void _update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, 
+void update_status_bits(unsigned int destination, unsigned int source_0, unsigned int source_1, 
                         unsigned int control_bitmask, unsigned int operation) {
   unsigned int x, c, z, n, v, sr_bits;
 
@@ -752,12 +734,18 @@ void _update_status_bits(unsigned int destination, unsigned int source_0, unsign
 
   n = destination & 0x8000 ? 1 : 0;
 
-  // See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html for the logic behind this:
   if (!(control_bitmask & DO_NOT_MODIFY_OVERFLOW) && (operation == ADD_INSTRUCTION || operation == SUB_INSTRUCTION)) {
+#ifdef OLD_V_LOGIC
+    v = (((!(source_0 & 0x8000) && !(source_1 & 0x8000) && (destination & 0x8000)) ||
+         ((source_0 & 0x8000) && (source_1 & 0x8000) && !(destination & 0x8000))) && !(control_bitmask & DO_NOT_MODIFY_OVERFLOW))
+        ? 1 :0;
+#else
+  // See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html for the logic behind this:
     if (operation == ADD_INSTRUCTION)
       v = ((source_0 & 0xffff) ^ (destination & 0xffff)) & ((source_1 & 0xffff) ^ (destination & 0xffff)) & 0x8000 ? 1 : 0;
     else if (operation == SUB_INSTRUCTION)
       v = ((source_0 & 0xffff) ^ (destination & 0xffff)) & (((~source_1) & 0xffff) ^ (destination & 0xffff)) & 0x8000 ? 1 : 0;
+#endif
   } else 
     v = (sr_bits >> 5) & 1; // Retain old V-flag
 
