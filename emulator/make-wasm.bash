@@ -39,12 +39,12 @@ if [[ $EMCC_VERSION = "1.39.11" ]] || [[ $EMCC_VERSION = "1.39.12" ]] || [[ $EMC
 fi
 
 if [[ ! -f qnice_disk_v16.img ]]; then
-    echo "Warning: qnice_disk.img not found. You can still compile the emulator."
+    echo "Warning: qnice_disk_v16.img not found. You can still compile the emulator."
 fi
 
-FILES="qnice.c fifo.c sd.c vga.c timer.c"
-DEF_SWITCHES="-DUSE_SD -DUSE_VGA -DUSE_TIMER"
-UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART"
+FILES="qnice.c fifo.c sd.c vga.c"
+DEF_SWITCHES="-DUSE_SD -DUSE_VGA"
+UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART -UUSE_TIMER"
 PRELOAD_FILES="--preload-file monitor.out"
 
 if [ "$1" == "DEVELOP-RELEASE" ]; then
