@@ -1114,6 +1114,23 @@ void run() {
 #endif
 }
 
+void dump_registers() {
+  unsigned int i, value;
+
+  printf("Register dump: BANK = %02x, SR = ", read_register(SR) >> 8);
+  for (i = 7, value = read_register(SR); i + 1; i--)
+    printf("%c", value & (1 << i) ? gbl$sr_bits[i] : '_');
+
+  printf("\n");
+  for (i = 0; i < 0x10; i++) {
+    if (!(i % 4)) /* New row */
+      printf("\n\tR%02d-R%02d: ", i, i + 3);
+
+    printf("%04x ", read_register(i));
+  }
+  printf("\n\n");
+}
+
 void print_statistics() {
   unsigned long long i, value;
 
@@ -1159,6 +1176,8 @@ MODE   ABSOLUTE         RELATIVE        MODE   ABSOLUTE         RELATIVE\n\
       printf("\n");
   }
   printf("\n");
+
+  dump_registers();
 }
 
 int load_binary_file(char *file_name) {
@@ -1197,23 +1216,6 @@ int load_binary_file(char *file_name) {
   }
 
   return 0;
-}
-
-void dump_registers() {
-  unsigned int i, value;
-
-  printf("Register dump: BANK = %02x, SR = ", read_register(SR) >> 8);
-  for (i = 7, value = read_register(SR); i + 1; i--)
-    printf("%c", value & (1 << i) ? gbl$sr_bits[i] : '_');
-
-  printf("\n");
-  for (i = 0; i < 0x10; i++) {
-    if (!(i % 4)) /* New row */
-      printf("\n\tR%02d-R%02d: ", i, i + 3);
-
-    printf("%04x ", read_register(i));
-  }
-  printf("\n\n");
 }
 
 int main_loop(char **argv) {
