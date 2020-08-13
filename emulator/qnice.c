@@ -934,13 +934,6 @@ int execute() {
 
       write_register(SR, sr_bits | 1);
       break;
-
-//This should work, too, but doesn't... :-?
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_0 = read_source_operand(destination_mode, destination_regaddr, FALSE);
-      destination = source_0 - source_1;
-      update_status_bits(destination, source_0, source_1, MODIFY_ALL, SUB_INSTRUCTION);
-      break;
     case 13: /* Reserved */
       printf("Attempt to execute a reserved instruction at %04X\n", address - 1);
       return 1;
