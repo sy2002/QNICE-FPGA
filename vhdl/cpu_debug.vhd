@@ -45,8 +45,7 @@ end component;
 -- ROM
 component BROM is
 generic (
-   FILE_NAME   : string;
-   ROM_LINES   : integer
+   FILE_NAME   : string
 );
 port (
    clk         : in std_logic;                        -- read and write on rising clock edge
@@ -231,8 +230,7 @@ begin
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
    rom : BROM
       generic map (
-         FILE_NAME   => ROM_FILE,
-         ROM_LINES   => ROM_SIZE
+         FILE_NAME   => ROM_FILE
       )
       port map (
          clk         => CLK,
@@ -259,8 +257,7 @@ begin
    -- MMIO is managing the PORE process
    pore_rom : BROM
       generic map (
-         FILE_NAME   => PORE_ROM_FILE,
-         ROM_LINES   => PORE_ROM_SIZE
+         FILE_NAME   => PORE_ROM_FILE
       )
       port map (
          clk         => CLK,

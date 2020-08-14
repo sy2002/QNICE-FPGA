@@ -10,7 +10,6 @@ use STD.TEXTIO.ALL;
 entity BROM is
 generic (
    FILE_NAME   : string;
-   ROM_LINES   : integer;
    ROM_WIDTH   : integer := 16
 );
 port (
@@ -34,7 +33,7 @@ signal counter : std_logic := '1'; -- important to be initialized to one
 signal address_old : std_logic_vector(14 downto 0) := (others => 'U');
 signal async_reset : std_logic;
 
-type brom_t is array (0 to ROM_LINES - 1) of bit_vector(ROM_WIDTH - 1 downto 0);
+type brom_t is array (0 to 2**address'length - 1) of bit_vector(ROM_WIDTH - 1 downto 0);
 
 impure function read_romfile(rom_file_name : in string) return brom_t is
    file     rom_file  : text is in rom_file_name;                       
@@ -42,8 +41,10 @@ impure function read_romfile(rom_file_name : in string) return brom_t is
    variable rom_v     : brom_t;
 begin                                                        
    for i in brom_t'range loop  
-      readline(rom_file, line_v);                             
-      read(line_v, rom_v(i));                                  
+      if not endfile(rom_file) then
+         readline(rom_file, line_v);
+         read(line_v, rom_v(i));
+      end if;
    end loop;                                                    
    return rom_v;                                                  
 end function;

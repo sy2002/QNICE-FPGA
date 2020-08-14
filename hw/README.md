@@ -169,8 +169,8 @@ General advise for porting
   used as an inspiration.
 
 * `env1_globals.vhd` contains several important global constants. You can for
-  example define the content of the ROM there by changing `ROM_FILE` and
-  `ROM_SIZE`. One application for this is to transform QNICE-FPGA into a
+  example define the content of the ROM there by changing `ROM_FILE`.
+  One application for this is to transform QNICE-FPGA into a
   "Q-TRIS Arcade Machine" by using `demos/q-tris.rom` compiled with the define
   `QTRIS_STANDALONE`. Another one might be to replace the "operating system"
   that we call "Monitor" (`monitor/monitor.rom`) by something else.

@@ -133,7 +133,6 @@ end component;
 component BROM is
 generic (
    FILE_NAME   : string;
-   ROM_LINES   : integer;
    ROM_WIDTH   : integer   
 );
 port (
@@ -252,7 +251,6 @@ begin
    font_rom : BROM
       generic map (
          FILE_NAME => "vga/lat9w-12_sy2002.rom",
-         ROM_LINES => 3072,
          ROM_WIDTH => 8
       )
       port map (
