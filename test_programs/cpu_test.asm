@@ -27,9 +27,9 @@
 // ADD      : Test the ADD instruction, and the status register
 // MOVE_CV  : Test the MOVE instruction doesn't change C and V flags
 // MOVE_MEM : Test the MOVE instruction to/from a memory address
-
-// TODO:
-// Test that PC is the same as R15
+// PC_R15   : Test that PC is the same as R15
+// SUB      : Test the instructions RSUB and ASUB, and the use of the Stack Pointer and R13.
+// BANK     : Test register banking
 
 // Group 2. All combinations of instructions and status flags.
 // ADDC     : Test the ADDC instruction with all flags
@@ -49,9 +49,6 @@
 // MOVE_AM2 : Test the MOVE instruction with all addressing modes (same registers)
 // SUB_AM   : Test the SUB instruction with all addressing modes (different registers)
 // SUB_AM2  : Test the SUB instruction with all addressing modes (same registers)
-
-// TODO:
-// Test the NOT instruction with all addressing modes
 
 // Instructions:
 // MOVE, ADD, ADDC, SUB, SUBC, SHL, SHR, SWAP
@@ -1001,6 +998,167 @@ BSS0            .DW     0x0000
 BSS1            .DW     0x0000
 
 L_MOVE_MEM_06
+
+
+// ---------------------------------------------------------------------------
+// Test that PC is the same as R15
+L_PC_R15_00     MOVE    R15, R0                 // Copy PC to R0
+L_PC_R15_01     MOVE    R1, R1                  // Perform a NOP
+                CMP     L_PC_R15_01, R0
+                RBRA    E_PC_R15_01, !Z
+
+                MOVE    0, R0                   // Setup registers
+                MOVE    1, R1
+                MOVE    L_PC_R15_02, R15        // Jump!
+                HALT
+L_PC_R15_02     MOVE    R0, R1                  // Single-word instruction
+                CMP     R0, R1                  // Did previous instruction execute?
+                RBRA    E_PC_R15_02, !Z
+                RBRA    L_PC_R15_10, 1
+
+E_PC_R15_01     HALT
+E_PC_R15_02     HALT
+L_PC_R15_10
+
+
+// ---------------------------------------------------------------------------
+// Test the instructions RSUB and ASUB, and the use of the Stack Pointer and R13.
+L_RSUB_00       MOVE    L_STACK_TOP, R13
+                RSUB    L_RSUB_01, 1            // Test RSUB
+L_RSUB_RET_01   HALT                            // We will never return here!
+
+L_RSUB_01       MOVE    L_STACK_TOP, R9
+                CMP     0x5678, @R9             // Verify value on stack unchanged
+                RBRA    E_RSUB_01, !Z           // Jump if error
+
+                SUB     1, R9
+                CMP     R9, R13                 // Verify R13 decremented
+                RBRA    E_RSUB_02, !Z           // Jump if error
+
+                CMP     L_RSUB_RET_01, @R9      // Verify return address
+                RBRA    E_RSUB_03, !Z           // Jump if error
+
+                SUB     1, R9
+                CMP     0x3456, @R9             // Verify value on stack unchanged
+                RBRA    E_RSUB_04, !Z           // Jump if error
+
+                RBRA    L_RSUB_10, 1
+
+E_RSUB_01       HALT
+E_RSUB_02       HALT
+E_RSUB_03       HALT
+E_RSUB_04       HALT
+
+L_STACK_BOT     .DW     0x0123, 0x1234, 0x2345, 0x3456, 0x4567
+L_STACK_TOP     .DW     0x5678
+
+L_RSUB_10
+
+
+// ---------------------------------------------------------------------------
+// Test register banking
+
+// First do a quick-and-dirty test to verify
+// that R0-R7 are banked and R8-R15 are not.
+L_BANK_00       MOVE    0, R14                  // Reset register bank
+                MOVE    L_STACK_TOP, R13        // Reset stack pointer
+
+                MOVE    0x0123, R0              // Stores values in R0 and R8
+                MOVE    0x4567, R8
+
+                ADD     0x0100, R14             // Change register bank
+
+                MOVE    0x89AB, R0              // Store new value in (banked) R0
+                CMP     0x4567, R8              // Verify R8 is unchanged
+                RBRA    E_BANK_01, !Z           // Jump if error
+                CMP     0x89AB, R0              // Verify R0 new value
+                RBRA    E_BANK_02, !Z           // Jump if error
+
+                SUB     0x0100, R14             // Revert register bank
+
+                CMP     0x4567, R8              // Verify R8 is unchanged
+                RBRA    E_BANK_03, !Z           // Jump if error
+                CMP     0x0123, R0              // Verify unbanked R0 is unchanged
+                RBRA    E_BANK_04, !Z           // Jump if error
+
+// Fill all register banks
+                MOVE    0, R9                   // Current value to write
+                MOVE    0, R14                  // Reset register bank
+
+L_BANK_01       RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                MOVE    R9, R0
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                MOVE    R9, R1
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                MOVE    R9, R2
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                MOVE    R9, R3
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                MOVE    R9, R4
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                MOVE    R9, R5
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                MOVE    R9, R6
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                MOVE    R9, R7
+
+                ADD     0x0100, R14
+                MOVE    R14, R10
+                AND     0xFF00, R10
+                RBRA    L_BANK_01, !Z
+
+// Verify all register banks
+                MOVE    0, R9                   // Current value to write
+                MOVE    0, R14                  // Reset register bank
+
+L_BANK_02       RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                CMP     R9, R0
+                RBRA    E_BANK_05, !Z           // Jump if error
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                CMP     R9, R1
+                RBRA    E_BANK_05, !Z           // Jump if error
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                CMP     R9, R2
+                RBRA    E_BANK_05, !Z           // Jump if error
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                CMP     R9, R3
+                RBRA    E_BANK_05, !Z           // Jump if error
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                CMP     R9, R4
+                RBRA    E_BANK_05, !Z           // Jump if error
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                CMP     R9, R5
+                RBRA    E_BANK_05, !Z           // Jump if error
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                CMP     R9, R6
+                RBRA    E_BANK_05, !Z           // Jump if error
+                RSUB    L_BANK_PRNG, 1          // Get new value of R9
+                CMP     R9, R7
+                RBRA    E_BANK_05, !Z           // Jump if error
+
+                ADD     0x0100, R14
+                MOVE    R14, R10
+                AND     0xFF00, R10
+                RBRA    L_BANK_02, !Z
+
+                RBRA    L_BANK_10, 1
+
+E_BANK_01       HALT
+E_BANK_02       HALT
+E_BANK_03       HALT
+E_BANK_04       HALT
+E_BANK_05       HALT
+
+
+// Generate PRNG by calculating R9 := (3*R9+1) mod 65536
+// This generates more than 2100 different values
+L_BANK_PRNG     MOVE    R9, R10
+                ADD     R9, R10
+                ADD     R10, R9
+                ADD     1, R9
+                RET
+
+L_BANK_10
 
 
 // ---------------------------------------------------------------------------
