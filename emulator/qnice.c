@@ -359,6 +359,43 @@ void write_register(unsigned int address, unsigned int value) {
     gbl$registers[address | ((read_register(SR) >> 4) & 0xFF0)] = value;
 }
 
+#ifdef USE_CPU_BUS_TEST
+unsigned int gbl$cbt_scratch_0;
+unsigned int gbl$cbt_scratch_1;
+unsigned int gbl$cbt_count_reads_0;
+unsigned int gbl$cbt_count_reads_1;
+unsigned int gbl$cbt_count_writes_0;
+unsigned int gbl$cbt_count_writes_1;
+
+unsigned int readCpuBusTest(unsigned int address) {
+   unsigned int res = 0;
+   switch (address) {
+      case 0 : gbl$cbt_count_reads_0++; res = gbl$cbt_scratch_0; break;
+      case 1 : gbl$cbt_count_reads_1++; res = gbl$cbt_scratch_1; break;
+      case 2 : break;
+      case 3 : break;
+      case 4 : res = gbl$cbt_count_reads_0; break;
+      case 5 : res = gbl$cbt_count_reads_1; break;
+      case 6 : res = gbl$cbt_count_writes_0; break;
+      case 7 : res = gbl$cbt_count_writes_1; break;
+   }
+   return res;
+}
+
+void writeCpuBusTest(unsigned int address, unsigned int value) {
+   switch (address) {
+      case 0 : gbl$cbt_scratch_0 = value; gbl$cbt_count_writes_0++; break;
+      case 1 : gbl$cbt_scratch_1 = value; gbl$cbt_count_writes_1++; break;
+      case 2 : break;
+      case 3 : break;
+      case 4 : gbl$cbt_count_reads_0 = value; break;
+      case 5 : gbl$cbt_count_reads_1 = value; break;
+      case 6 : gbl$cbt_count_writes_0 = value; break;
+      case 7 : gbl$cbt_count_writes_1 = value; break;
+   }
+}
+#endif
+
 /*
 **  The following function performs all memory access operations necessary for executing code in the 
 ** emulator. Support routines like dump, etc. may access memory directly, but in this case be aware
@@ -423,6 +460,10 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
 #ifdef USE_TIMER
       else if (address >= IO_TIMER_BASE_ADDRESS && address < IO_TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
         value = readTimerDeviceRegister(address - IO_TIMER_BASE_ADDRESS);
+#endif
+#ifdef USE_CPU_BUS_TEST
+      else if (address >= CBT_SCRATCH_0 && address < CBT_SCRATCH_0 + 8)
+        value = readCpuBusTest(address - CBT_SCRATCH_0);
 #endif
     }
   } else if (operation == WRITE_MEMORY) {
@@ -509,6 +550,10 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
 #ifdef USE_TIMER
       else if (address >= IO_TIMER_BASE_ADDRESS && address < IO_TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
         writeTimerDeviceRegister(address - IO_TIMER_BASE_ADDRESS, value);
+#endif
+#ifdef USE_CPU_BUS_TEST
+      else if (address >= CBT_SCRATCH_0 && address < CBT_SCRATCH_0 + 8)
+        writeCpuBusTest(address - CBT_SCRATCH_0, value);
 #endif
     }
   } else {

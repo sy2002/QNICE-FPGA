@@ -95,6 +95,11 @@ port (
    vga_we            : out std_logic;
    vga_reg           : out std_logic_vector(3 downto 0);
 
+   -- Cpu Bus Test register range $FF80..$FF8F
+   cbt_en            : buffer std_logic;
+   cbt_we            : out std_logic;
+   cbt_reg           : out std_logic_vector(2 downto 0);
+
    -- global state and reset management
    reset_pre_pore    : out std_logic;
    reset_post_pore   : out std_logic
@@ -197,6 +202,11 @@ begin
    vga_we            <= vga_en and data_dir and data_valid;
    vga_reg           <= addr(3 downto 0);
       
+   -- Block FF80: CPU Bus Test
+   cbt_en            <= '1' when addr(15 downto 3) = x"FF8" & "0" and no_igrant_active else '0';            -- FF80
+   cbt_we            <= cbt_en and data_dir and data_valid;
+   cbt_reg           <= addr(2 downto 0);
+
    -- generate CPU wait signal   
    -- as long as the RAM is the only device on the bus that can make the
    -- CPU wait, this simple implementation is good enough

@@ -3,7 +3,7 @@
 <!--                                                         -->
 <!-- Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.   -->
 
-<Project Version="7" Minor="44" Path="/media/psf/Home/Documents/Privat/GNR/dev/QNICE-FPGA/hw/xilinx/nexys4ddr/Vivado/qnice_nexys.xpr">
+<Project Version="7" Minor="44" Path="/home/mike/git/sy2002/QNICE-FPGA/hw/xilinx/nexys4ddr/Vivado/qnice_nexys.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="2a06fba85134468885377cde9a4c70aa"/>
@@ -266,6 +266,13 @@
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../../../vhdl/cycle_counter.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/cpu_bus_test.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>

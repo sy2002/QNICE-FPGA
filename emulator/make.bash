@@ -1,7 +1,7 @@
 #!/bin/bash
 source ../tools/detect.include
 FILES="qnice.c uart.c sd.c timer.c"
-DEF_SWITCHES="-DUSE_SD -DUSE_UART -DUSE_TIMER"
+DEF_SWITCHES="-DUSE_SD -DUSE_UART -DUSE_TIMER -DUSE_CPU_BUS_TEST"
 UNDEF_SWITCHES="-UUSE_VGA -UUSE_IDE -U__EMSCRIPTEN__"
 if [ $OSTP = "LINUX" ]; then
     MORE_SWITCHES="-lpthread"

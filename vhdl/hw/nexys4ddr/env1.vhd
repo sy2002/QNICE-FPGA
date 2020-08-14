@@ -275,6 +275,21 @@ port (
 end component;
 
 
+-- CPU Bus Test
+component cpu_bus_test is
+port (
+   clk      : in std_logic;         -- system clock
+   reset    : in std_logic;         -- async reset
+
+   -- registers
+   en       : in std_logic;         -- enable for reading from or writing to the bus
+   we       : in std_logic;         -- write to the registers via system's data bus
+   reg      : in std_logic_vector(2 downto 0);      -- register selector
+   data     : inout std_logic_vector(15 downto 0)   -- system's data bus
+);
+end component;
+
+
 -- multiplexer to control the data bus (enable/disable the different parties)
 component mmio_mux is
 port (
@@ -332,6 +347,9 @@ port (
    sd_en             : out std_logic;
    sd_we             : out std_logic;
    sd_reg            : out std_logic_vector(2 downto 0);   
+   cbt_en            : out std_logic;
+   cbt_we            : out std_logic;
+   cbt_reg           : out std_logic_vector(2 downto 0);
    reset_pre_pore    : out std_logic;
    reset_post_pore   : out std_logic   
 );
@@ -383,6 +401,9 @@ signal eae_reg                : std_logic_vector(2 downto 0);
 signal sd_en                  : std_logic;
 signal sd_we                  : std_logic;
 signal sd_reg                 : std_logic_vector(2 downto 0); 
+signal cbt_en                 : std_logic;
+signal cbt_we                 : std_logic;
+signal cbt_reg                : std_logic_vector(2 downto 0);
 
 signal reset_pre_pore         : std_logic;
 signal reset_post_pore        : std_logic;
@@ -623,6 +644,17 @@ begin
          sd_miso => SD_MISO
       );
                         
+   -- CPU Bus Test
+   cbt_inst : cpu_bus_test
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         en => cbt_en,
+         we => cbt_we,
+         reg => cbt_reg,
+         data => cpu_data
+      );
+
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
       port map (
@@ -668,6 +700,9 @@ begin
          sd_en => sd_en,
          sd_we => sd_we,
          sd_reg => sd_reg,
+         cbt_en => cbt_en,
+         cbt_we => cbt_we,
+         cbt_reg => cbt_reg,
          reset_pre_pore => reset_pre_pore,
          reset_post_pore => reset_post_pore
       );

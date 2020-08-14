@@ -203,6 +203,19 @@ VGA$HDMI_H_MAX      .EQU 0xFF37 ; HDMI Data Enable: X: maximum valid column
 VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)                                
 ;
 ;---------------------------------------------------------------------------------------
+;  Block FF80: CPU Bus Test
+;---------------------------------------------------------------------------------------
+CBT$SCRATCH_0       .EQU 0xFF80 ; Scratch register 0
+CBT$SCRATCH_1       .EQU 0xFF81 ; Scratch register 1
+CBT$RESERVED_0      .EQU 0xFF82 ; Reserved
+CBT$RESERVED_1      .EQU 0xFF83 ; Reserved
+CBT$CNT_READS_0     .EQU 0xFF84 ; Count reads to register 0
+CBT$CNT_READS_1     .EQU 0xFF85 ; Count reads to register 1
+CBT$CNT_WRITES_0    .EQU 0xFF86 ; Count reads to register 0
+CBT$CNT_WRITES_1    .EQU 0xFF87 ; Count reads to register 1
+;
+;
+;---------------------------------------------------------------------------------------
 ;  Block FFF0: MEGA65 (double block, 16 registers)
 ;---------------------------------------------------------------------------------------
 ;
