@@ -124,7 +124,7 @@ int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$
     gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
     gbl$ctrl_c = FALSE, gbl$breakpoint = -1, gbl$cycle_counter_state = 0, gbl$eae_operand_0 = 0,
     gbl$eae_operand_1 = 0, gbl$eae_result_lo = 0, gbl$eae_result_hi = 0, gbl$eae_csr = 0,
-    gbl$last_addresses[MAX_LAST_ADDRESSES], gbl$last_addresses_pointer = 0;
+    gbl$last_addresses[MAX_LAST_ADDRESSES], gbl$last_addresses_pointer = 0, gbl$error = FALSE;;
 
 unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
@@ -458,17 +458,29 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
             gbl$eae_result_hi = (eae$temp >> 16) & 0xffff;
             break;
           case 2: /* Unsigned division */
-            gbl$eae_result_lo = gbl$eae_operand_0 / gbl$eae_operand_1;
-            gbl$eae_result_hi = gbl$eae_operand_0 % gbl$eae_operand_1;
+            if (!gbl$eae_operand_1) { // Division by zero!
+              printf("Attempt to divide by zero in EAE!\n");
+              gbl$error = TRUE;
+            } else {
+              gbl$eae_result_lo = gbl$eae_operand_0 / gbl$eae_operand_1;
+              gbl$eae_result_hi = gbl$eae_operand_0 % gbl$eae_operand_1;
+            }
             break;
           case 3: /* Signed division */
-            gbl$eae_result_hi = gbl$eae_operand_0 % gbl$eae_operand_1;
-            if (gbl$eae_operand_0 & 0x8000) gbl$eae_operand_0 |= 0xffffffffffff8000; /* Perform a sign extension */
-            if (gbl$eae_operand_1 & 0x8000) gbl$eae_operand_1 |= 0xffffffffffff8000;
-            gbl$eae_result_lo = gbl$eae_operand_0 / gbl$eae_operand_1;
+            if (!gbl$eae_operand_1) { // Division by zero!
+              printf("Attempt to divide by zero in EAE!\n");
+              gbl$error = TRUE;
+            } else {
+              gbl$eae_result_hi = gbl$eae_operand_0 % gbl$eae_operand_1;
+              if (gbl$eae_operand_0 & 0x8000) gbl$eae_operand_0 |= 0xffffffffffff8000; /* Perform a sign extension */
+              if (gbl$eae_operand_1 & 0x8000) gbl$eae_operand_1 |= 0xffffffffffff8000;
+              gbl$eae_result_lo = gbl$eae_operand_0 / gbl$eae_operand_1;
+            }
             break;
           default:
-            printf("Illegal opcode for the EAE detected - continuing anyway...\n");
+            printf("Illegal opcode for the EAE detected: CSR = %04X\n", gbl$eae_csr);
+            gbl$error = TRUE;
+            break;
         }
 
         gbl$eae_csr &= 0x7fff; /* Clear the busy bit just in case... */
@@ -764,6 +776,8 @@ int execute() {
 
   int condition, cmp_0, cmp_1;
 
+  gbl$error = FALSE;
+
 #ifdef USE_VGA
   /* global instruction counter for MIPS calcluation; slightly different semantics than gbl$cycle_counter++ */
   gbl$mips_inst_cnt++;
@@ -935,7 +949,7 @@ int execute() {
       write_register(SR, sr_bits | 1);
       break;
     case 13: /* Reserved */
-      printf("Attempt to execute a reserved instruction at %04X\n", address - 1);
+      printf("Attempt to execute a reserved instruction at %04X\n", debug_address);
       return 1;
     case 14: /* Control group */
       switch (command = (instruction >> 6) & 0x3f) {
@@ -1009,6 +1023,9 @@ int execute() {
     printf("Breakpoint reached: %04X\n", read_register(PC));
     return TRUE;
   }
+
+  if (gbl$error) // We encountered some error (division attempt by zero in EAE)
+    return TRUE;
 
 /*  write_register(PC, read_register(PC) + 1); */ /* Update program counter */
   return FALSE; /* No HALT instruction executed */
