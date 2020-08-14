@@ -1076,12 +1076,20 @@ L_SUB_01        MOVE    @R8, R1                 // First operand
                 HALT
 E_SUB_01        HALT
 
+// See Issue #57
+//STIM_SUB        .DW     0x5678, 0x4321, ST______, 0x1357, ST______
+//                .DW     0x5678, 0x5678, ST____C_, 0x0000, ST___Z__
+//                .DW     0x5678, 0x5679, ST______, 0xFFFF, ST__N_CX
+//                .DW     0x5678, 0x89AB, ST____C_, 0xCCCD, ST_VN_C_
+//                .DW     0x5678, 0xFEDC, ST______, 0x579C, ST____C_
+//                .DW     0x89AB, 0x4321, ST____C_, 0x468A, ST_V____
+
 STIM_SUB        .DW     0x5678, 0x4321, ST______, 0x1357, ST______
                 .DW     0x5678, 0x5678, ST____C_, 0x0000, ST___Z__
-                .DW     0x5678, 0x5679, ST______, 0xFFFF, ST__N_CX
-                .DW     0x5678, 0x89AB, ST____C_, 0xCCCD, ST_VN_C_
+                .DW     0x5678, 0x5679, ST______, 0xFFFF, ST_VN_CX
+                .DW     0x5678, 0x89AB, ST____C_, 0xCCCD, ST__N_C_
                 .DW     0x5678, 0xFEDC, ST______, 0x579C, ST____C_
-                .DW     0x89AB, 0x4321, ST____C_, 0x468A, ST_V____
+                .DW     0x89AB, 0x4321, ST____C_, 0x468A, ST______
 
                 .DW     0x0000
 
@@ -1114,19 +1122,34 @@ L_SUBC_01       MOVE    @R8, R1                 // First operand
                 HALT
 E_SUBC_01       HALT
 
+// See Issue #57
+//STIM_SUBC       .DW     0x5678, 0x4321, ST______, 0x1357, ST______
+//                .DW     0x5678, 0x5678, ST______, 0x0000, ST___Z__
+//                .DW     0x5678, 0x5679, ST______, 0xFFFF, ST__N_CX
+//                .DW     0x5678, 0x89AB, ST______, 0xCCCD, ST_VN_C_
+//                .DW     0x5678, 0xFEDC, ST______, 0x579C, ST____C_
+//                .DW     0x89AB, 0x4321, ST______, 0x468A, ST_V____
+//
+//                .DW     0x5678, 0x4321, ST____C_, 0x1356, ST______
+//                .DW     0x5678, 0x5678, ST____C_, 0xFFFF, ST__N_CX
+//                .DW     0x5678, 0x5677, ST____C_, 0x0000, ST___Z__
+//                .DW     0x5678, 0x89AB, ST____C_, 0xCCCC, ST_VN_C_
+//                .DW     0x5678, 0xFEDC, ST____C_, 0x579B, ST____C_
+//                .DW     0x89AB, 0x4321, ST____C_, 0x4689, ST_V____
+
 STIM_SUBC       .DW     0x5678, 0x4321, ST______, 0x1357, ST______
                 .DW     0x5678, 0x5678, ST______, 0x0000, ST___Z__
-                .DW     0x5678, 0x5679, ST______, 0xFFFF, ST__N_CX
-                .DW     0x5678, 0x89AB, ST______, 0xCCCD, ST_VN_C_
+                .DW     0x5678, 0x5679, ST______, 0xFFFF, ST_VN_CX
+                .DW     0x5678, 0x89AB, ST______, 0xCCCD, ST__N_C_
                 .DW     0x5678, 0xFEDC, ST______, 0x579C, ST____C_
-                .DW     0x89AB, 0x4321, ST______, 0x468A, ST_V____
+                .DW     0x89AB, 0x4321, ST______, 0x468A, ST______
 
                 .DW     0x5678, 0x4321, ST____C_, 0x1356, ST______
-                .DW     0x5678, 0x5678, ST____C_, 0xFFFF, ST__N_CX
+                .DW     0x5678, 0x5678, ST____C_, 0xFFFF, ST_VN_CX
                 .DW     0x5678, 0x5677, ST____C_, 0x0000, ST___Z__
-                .DW     0x5678, 0x89AB, ST____C_, 0xCCCC, ST_VN_C_
+                .DW     0x5678, 0x89AB, ST____C_, 0xCCCC, ST__N_C_
                 .DW     0x5678, 0xFEDC, ST____C_, 0x579B, ST____C_
-                .DW     0x89AB, 0x4321, ST____C_, 0x4689, ST_V____
+                .DW     0x89AB, 0x4321, ST____C_, 0x4689, ST______
 
                 .DW     0x0000
 
@@ -1603,19 +1626,34 @@ L_CMP_01        MOVE    @R8, R1                 // First operand
                 HALT
 E_CMP_01        HALT
 
+// See Issue #57
+//STIM_CMP        .DW     0x5678, 0x4321, ST______, 0x5678, ST______
+//                .DW     0x5678, 0x5678, ST______, 0x5678, ST___Z__
+//                .DW     0x5678, 0x5679, ST______, 0x5678, ST__N_CX
+//                .DW     0x5678, 0x89AB, ST______, 0x5678, ST_VN_C_
+//                .DW     0x5678, 0xFEDC, ST______, 0x5678, ST____C_
+//                .DW     0x89AB, 0x4321, ST______, 0x89AB, ST_V____
+//
+//                .DW     0x5678, 0x4321, ST_VNZCX, 0x5678, ST______
+//                .DW     0x5678, 0x5678, ST_VNZCX, 0x5678, ST___Z__
+//                .DW     0x5678, 0x5679, ST_VNZCX, 0x5678, ST__N_CX
+//                .DW     0x5678, 0x89AB, ST_VNZCX, 0x5678, ST_VN_C_
+//                .DW     0x5678, 0xFEDC, ST_VNZCX, 0x5678, ST____C_
+//                .DW     0x89AB, 0x4321, ST_VNZCX, 0x89AB, ST_V____
+
 STIM_CMP        .DW     0x5678, 0x4321, ST______, 0x5678, ST______
                 .DW     0x5678, 0x5678, ST______, 0x5678, ST___Z__
-                .DW     0x5678, 0x5679, ST______, 0x5678, ST__N_CX
-                .DW     0x5678, 0x89AB, ST______, 0x5678, ST_VN_C_
-                .DW     0x5678, 0xFEDC, ST______, 0x5678, ST____C_
+                .DW     0x5678, 0x5679, ST______, 0x5678, ST_VN___
+                .DW     0x5678, 0x89AB, ST______, 0x5678, ST__N___
+                .DW     0x5678, 0xFEDC, ST______, 0x5678, ST__N___
                 .DW     0x89AB, 0x4321, ST______, 0x89AB, ST_V____
 
-                .DW     0x5678, 0x4321, ST_VNZCX, 0x5678, ST______
-                .DW     0x5678, 0x5678, ST_VNZCX, 0x5678, ST___Z__
-                .DW     0x5678, 0x5679, ST_VNZCX, 0x5678, ST__N_CX
-                .DW     0x5678, 0x89AB, ST_VNZCX, 0x5678, ST_VN_C_
-                .DW     0x5678, 0xFEDC, ST_VNZCX, 0x5678, ST____C_
-                .DW     0x89AB, 0x4321, ST_VNZCX, 0x89AB, ST_V____
+                .DW     0x5678, 0x4321, ST_VNZCX, 0x5678, ST____CX
+                .DW     0x5678, 0x5678, ST_VNZCX, 0x5678, ST___ZCX
+                .DW     0x5678, 0x5679, ST_VNZCX, 0x5678, ST_VN_CX
+                .DW     0x5678, 0x89AB, ST_VNZCX, 0x5678, ST__N_CX
+                .DW     0x5678, 0xFEDC, ST_VNZCX, 0x5678, ST__N_CX
+                .DW     0x89AB, 0x4321, ST_VNZCX, 0x89AB, ST_V__CX
 
                 .DW     0x1111
 
