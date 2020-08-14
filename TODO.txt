@@ -35,6 +35,10 @@ HARDWARE:
 
 * Refactor TIL and TIL Mask to support 8 digits / 32 bits
 
+* Dual SID (probably including a 6510 coprocessor): In conjunction
+  with the timier interrupt, this allows us to play back awesome
+  SID tunes in the background
+
 
 NEXYS4DDR HARDWARE:
 
