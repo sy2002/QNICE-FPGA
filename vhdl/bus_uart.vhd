@@ -1,6 +1,6 @@
 -- BUS UART
 -- meant to be connected with the QNICE CPU as data I/O is through MMIO
--- tristate outputs go high impedance when not enabled
+-- output goes zero when not enabled
 -- 8-N-1, no error state handling, CTS flow control
 -- DIVISOR assumes a 100 MHz system clock
 -- done by sy2002 and vaxman in August 2015
@@ -31,7 +31,7 @@ port (
    rts            : in std_logic;
    cts            : out std_logic;
    
-   -- conntect to CPU's address and data bus (data high impedance when en=0)
+   -- conntect to CPU's address and data bus (data output zero when en=0)
    -- since reading takes more than one clock cycle, CPU needs wait on uart_cpu_ws
    uart_en        : in std_logic;
    uart_we        : in std_logic;

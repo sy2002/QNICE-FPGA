@@ -1,6 +1,6 @@
 -- PS2 keyboard component that outputs ASCII
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
--- tristate outputs go high impedance when not enabled
+-- output goes zero when not enabled
 -- done by sy2002 in December 2015 and January 2016
 
 -- heavily inspired by Scott Larson's component
@@ -42,7 +42,7 @@ port (
    ps2_clk       : in std_logic;               -- clock signal from PS/2 keyboard
    ps2_data      : in std_logic;               -- data signal from PS/2 keyboard
    
-   -- conntect to CPU's data bus (data high impedance when all reg_* are 0)
+   -- conntect to CPU's data bus (data output zero when all reg_* are 0)
    kbd_en        : in std_logic;
    kbd_we        : in std_logic;
    kbd_reg       : in std_logic_vector(1 downto 0);   

@@ -71,9 +71,9 @@ port (
       
    ADDR           : out std_logic_vector(15 downto 0);      -- 16 bit address bus
    
-   --tristate 16 bit data bus
-   DATA_IN        : in std_logic_vector(15 downto 0);       -- send/receive data
-   DATA_OUT       : out std_logic_vector(15 downto 0);      -- send/receive data
+   -- bidirectional 16 bit data bus
+   DATA_IN        : in std_logic_vector(15 downto 0);       -- receive data
+   DATA_OUT       : out std_logic_vector(15 downto 0);      -- send data
    DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
    DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
    
@@ -95,7 +95,7 @@ generic (
 );
 port (
    clk         : in std_logic;                        -- read and write on rising clock edge
-   ce          : in std_logic;                        -- chip enable, when low then high impedance on output
+   ce          : in std_logic;                        -- chip enable, when low then zero on output
    
    address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
    data        : out std_logic_vector(15 downto 0);   -- read data
@@ -108,7 +108,7 @@ end component;
 component BRAM is
 port (
    clk      : in std_logic;                        -- read and write on rising clock edge
-   ce       : in std_logic;                        -- chip enable, when low then high impedance
+   ce       : in std_logic;                        -- chip enable, when low then zero on output
    
    address  : in std_logic_vector(14 downto 0);    -- address is for now 16 bit hard coded
    we       : in std_logic;                        -- write enable
@@ -174,7 +174,7 @@ port (
    rts            : in std_logic;
    cts            : out std_logic;   
    
-   -- conntect to CPU's address and data bus (data high impedance when en=0)
+   -- conntect to CPU's address and data bus (data goes zero when en=0)
    uart_en        : in std_logic;
    uart_we        : in std_logic;
    uart_reg       : in std_logic_vector(1 downto 0);
@@ -197,7 +197,7 @@ port (
    ps2_clk       : in std_logic;               -- clock signal from PS/2 keyboard
    ps2_data      : in std_logic;               -- data signal from PS/2 keyboard
    
-   -- conntect to CPU's data bus (data high impedance when all reg_* are 0)
+   -- conntect to CPU's data bus (data goes zero when all reg_* are 0)
    kbd_en        : in std_logic;
    kbd_we        : in std_logic;
    kbd_reg       : in std_logic_vector(1 downto 0);   
