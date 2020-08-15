@@ -33,9 +33,11 @@
 #define INSTRUCTION$CONTROL   2
 #define INSTRUCTION$DIRECTIVE 3
 
-#define HALT 0
-#define RTI  1
-#define INT  2
+#define HALT  0
+#define RTI   1
+#define INT   2
+#define INCRB 3
+#define DECRB 4
 
 #define NO_OPCODE         -1 /* No opcode found (just a label), do not emit an output line */
 
@@ -157,7 +159,7 @@ int translate_mnemonic(char *string, int *opcode, int *type) {
   int i;
   static char *normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                               "NOT", "AND", "OR", "XOR", "CMP", 0},
-    *control_mnemonics[] = {"HALT", "RTI", "INT", 0},
+    *control_mnemonics[] = {"HALT", "RTI", "INT", "INCRB", "DECRB", 0},
     *branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB", 0},
     *directives[] = {".ORG", ".ASCII_W", ".ASCII_P", ".EQU", ".BLOCK", ".DW", 0};
 
@@ -907,7 +909,7 @@ int assemble() {
       *entry->src_op = *entry->dest_op = (char) 0;
       token = tokenize((char* ) 0, delimiters);
 
-      if (entry->opcode == HALT || entry->opcode == RTI) {
+      if (entry->opcode == HALT || entry->opcode == RTI || entry->opcode == INCRB || entry->opcode == DECRB) {
         entry->number_of_words = 1; /* One word is required for HALT and RTI. */
         if (token) { /* No token expected after HALT and RTI. */
           sprintf(entry->error_text, "Line %d: WARNING: No token expected, found >>%s<<", line_counter, token);
