@@ -1,6 +1,6 @@
 -- 80x40 Textmode VGA
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
--- tristate outputs go high impedance when not enabled
+-- output goes zero when not enabled
 -- done by sy2002 in December 2015/January 2016, refactored in Mai/June 2020
 
 -- Features:
@@ -138,12 +138,12 @@ generic (
 );
 port (
    clk         : in std_logic;                        -- read and write on rising clock edge
-   ce          : in std_logic;                        -- chip enable, when low then high impedance on output
+   ce          : in std_logic;                        -- chip enable, when low then zero on output
    
    address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
    data        : out std_logic_vector(ROM_WIDTH - 1 downto 0);   -- read data
    
-   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes high impedance
+   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes zero
    -- if not needed (ce = 0) and can therefore directly be connected to a bus
    busy        : out std_logic                       
 );

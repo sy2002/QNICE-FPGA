@@ -3,7 +3,7 @@
 --
 -- performs 32-bit signed/unsigned integer multiplication and division and modulo
 --
--- meant to be connected to QNICE's data bus, tristate output goes high impedance
+-- meant to be connected to QNICE's data bus, output goes zero
 -- when en is '0'
 --
 -- It seems, that on a Xilinx/Artix-7 FPGA, the EAE can be synthesized in a way,

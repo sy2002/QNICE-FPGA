@@ -1,6 +1,6 @@
 -- 48-bit clock cycle counter
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
--- tristate outputs go high impedance when not enabled
+-- output goes zero when not enabled
 -- done by sy2002 in May 2016 and refactored in July 2020
 
 library IEEE;

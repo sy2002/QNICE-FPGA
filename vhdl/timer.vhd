@@ -4,7 +4,7 @@
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
 -- and meant to be connected with other interrupt capable devices via a Daisy Chain
 --
--- tristate outputs go high impedance when not enabled
+--  output goes zero when not enabled
 -- 
 -- Registers:
 --

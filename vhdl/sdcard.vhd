@@ -8,7 +8,7 @@
 -- into a state machine that supports the MMIO logic and that
 -- utilizes an internal 512-byte RAM buffer using the byte_bram component.
 -- It is meant to be connected with the QNICE CPU as data I/O controled through MMIO;
--- tristate outputs go high impedance when not enabled.
+-- output goes zero when not enabled.
 --
 -- registers:
 -- 0 : low word of 32bit SD card block address
