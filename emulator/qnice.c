@@ -437,7 +437,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       gbl$memory[address] = value;
     else { /* IO area */
       if ((gbl$debug))
-        printf("\twrite_memory: IO-area access at 0x%04X: 0x%04X\n\r", address, value);
+        printf("\twrite_memory: IO-area access from %04X at 0x%04X: 0x%04X\n\r", gbl$last_address, address, value);
 
       if (address == IO_SWITCH_REG) /* Read the switch register */
         gbl$memory[IO_SWITCH_REG] = value;

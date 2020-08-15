@@ -31,7 +31,7 @@ unsigned int timer_registers[NUMBER_OF_TIMERS * REG_PER_TIMER], // Global regist
     *interrupt_address,                                         // This is mapped to the interrupt_address in the emulator
     id[NUMBER_OF_TIMERS];                                       // Timer id for each thread
 
-unsigned long long interval[NUMBER_OF_TIMERS];
+struct timespec requested[NUMBER_OF_TIMERS], remaining[NUMBER_OF_TIMERS];
 
 pthread_t thread_list[NUMBER_OF_TIMERS];
 
@@ -52,28 +52,53 @@ unsigned int readTimerDeviceRegister(unsigned int address) {
 }
 
 void writeTimerDeviceRegister(unsigned int address, unsigned int value) {
+    int i;
+
     unsigned long long duration;
+#ifdef DEBUG
+    printf("timer: write access at address %04X.\n", address);
+#endif
 
     timer_registers[address] = value;
 
-    for (unsigned int i = 0; i < NUMBER_OF_TIMERS; i++) {
-        if (timer_registers[i * REG_PER_TIMER + REG_PRE] && 
-            timer_registers[i * REG_PER_TIMER + REG_CNT] && 
-            timer_registers[i * REG_PER_TIMER + REG_INT]) {
-            if (thread_list[i]) // If the timer is being reconfigured, cancel and recreate it
-                pthread_cancel(thread_list[i]);
+    i = (int) (address / REG_PER_TIMER);    // Which timer was accessed?
 
-            interval[i] = timer_registers[*id + REG_CNT] * timer_registers[*id + REG_PRE] * 10;
+    if (timer_registers[i * REG_PER_TIMER + REG_PRE] && 
+        timer_registers[i * REG_PER_TIMER + REG_CNT] && 
+        timer_registers[i * REG_PER_TIMER + REG_INT]) {
+        if (thread_list[i]) {   // If the timer is being reconfigured, cancel and recreate it
+            if (pthread_cancel(thread_list[i])) {
+              perror("[0] timer could not be removed!");
+              exit(-1);
+            }
+
+            if (pthread_join(thread_list[i], NULL)) {
+                perror("[1] timer could not be removed!");
+                exit(-1);
+            }
+        }
+
+        duration = timer_registers[i * REG_PER_TIMER + REG_CNT] * timer_registers[i * REG_PER_TIMER + REG_PRE] * 10000; // In ns
+        requested[i].tv_nsec = duration - ((int) (duration / 1e9) * 1e9);
+        requested[i].tv_sec  = (int) (duration / 1e9);
 #ifdef DEBUG
-            printf("timer: Timer %d was off, will now be activated for %llu.\n", i, duration);
+        printf("\t%d : %d\n", timer_registers[i * REG_PER_TIMER + REG_CNT], timer_registers[i * REG_PER_TIMER + REG_PRE]);
+        printf("\tTimer %d was off, will now be activated for %ld s, %ld ns.\n", i, requested[i].tv_sec, requested[i].tv_nsec);
 #endif
-            pthread_create(thread_list + i, NULL, (void *) timer, (void *) (id + i));
-        } else {
-            if (thread_list[i]) {
+        pthread_create(thread_list + i, NULL, (void *) timer, (void *) (id + i));
+    } else {
+        if (thread_list[i]) {
 #ifdef DEBUG
-                printf("timer: Timer %d was on, will now be deactivated.\n", i);
+            printf("\tTimer %d was on, will now be deactivated.\n", i);
 #endif
-                pthread_cancel(thread_list[i]);
+            if (pthread_cancel(thread_list[i])) {
+              perror("[0] timer could not be removed");
+              exit(-1);
+            }
+
+            if (pthread_join(thread_list[i], NULL)) {
+                perror("[1] timer could not be removed");
+                exit(-1);
             }
         }
     }
@@ -82,14 +107,14 @@ void writeTimerDeviceRegister(unsigned int address, unsigned int value) {
 void timer(unsigned int *id) {  // This implements one of n timers.
     for (;;) {
 #ifdef DEBUG
-        printf("\tTimer %d instantiated! Interval = %llu\n", *id, interval[*id]);
+        printf("\t\tTimer %d instantiated. Interval = %ld s, %ld ns\n", *id, requested[*id].tv_sec, requested[*id].tv_nsec);
 #endif
-        usleep(interval[*id]);
+        nanosleep(&requested[*id], &remaining[*id]);
 #ifdef DEBUG
-        printf("\tTimer %d triggered!\n", *id);
+        printf("\t\tTimer %d triggered: INT = %04X.\n", *id, timer_registers[*id * REG_PER_TIMER + REG_INT]);;
 #endif
 
-        *interrupt_address = timer_registers[*id + REG_INT];
+        *interrupt_address = timer_registers[*id * REG_PER_TIMER + REG_INT];
         *interrupt_request = TRUE;
     }
 }
