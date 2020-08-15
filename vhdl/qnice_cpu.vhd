@@ -465,7 +465,19 @@ begin
                      else
                         fsmNextCpuState <= cs_halt;
                      end if;
-                     
+                  
+                  -- increment the register bank address by one and leave the SR alone while doing so
+                  when ctrlINCRB =>
+                     fsmSR(15 downto 8) <= SR(15 downto 8) + 1;
+                     fsmCPUAddr <= PC;
+                     fsmNextCpuState <= cs_fetch;
+
+                  -- decrement the register bank address by one and leave the SR alone while doing so                     
+                  when ctrlDECRB =>
+                     fsmSR(15 downto 8) <= SR(15 downto 8) - 1;
+                     fsmCPUAddr <= PC;
+                     fsmNextCpuState <= cs_fetch;
+                                                               
                   -- illegal command: HALT
                   when others =>
                      fsmNextCpuState <= cs_halt;

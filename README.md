@@ -257,7 +257,7 @@ Programming in Assembler
   [Programming Card](doc/programming_card/programming_card_screen.pdf).
 
 * The `dist_kit` folder contains important include files, that contain
-  command shortcuts (RET, INCRB, DECRB, NOP, SYSCALL), register short names
+  command shortcuts (RET, NOP, SYSCALL), register short names
   (PC, SR, SP), addresses for memory mapped I/O of peripheral devices and 
   commonly used constants.
 
