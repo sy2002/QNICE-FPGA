@@ -240,10 +240,12 @@
        {\tt A}&{\tt OR}&{\tt src, dst}&{\tt dst := dst | src}\\
        {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
        {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\ 
-       {\tt D}&reserved&\\
+       {\tt D}&&&reserved\\
        {\tt E}&{\tt HALT}&&Halt the processor\\
        {\tt E}&{\tt RTI}&&Return from interrupt\\
        {\tt E}&{\tt INT}&\texttt{dst}&Issue software interrupt\\
+       {\tt E}&{\tt INCRB}&&Increment register bank addr.\\
+       {\tt E}&{\tt DECRB}&&Decrement register bank addr.\\
        {\tt F}&{\tt ABRA}&{\tt dst, [!]cond}&Absolute branch\\
        {\tt F}&{\tt ASUB}&{\tt dst, [!]cond}&Absolut subroutine call\\
        {\tt F}&{\tt RBRA}&{\tt dst, [!]cond}&Relative branch\\
@@ -268,6 +270,8 @@
        \texttt{000001}&\texttt{RTI}&Return from interrupt\\
        \texttt{000010}&\texttt{INT}&Issue a software interrupt with the\\
         &&address supplied by the source operand\\
+       \texttt{000011}&\texttt{INCRB}&Increment the register bank address\\
+       \texttt{000100}&\texttt{DECRB}&Decrement the register bank address\\
       \hline
      \end{tabular}
     \end{center}

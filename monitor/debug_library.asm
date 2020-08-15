@@ -48,7 +48,7 @@ DBG$DISASM          INCRB
 ; Treat control instructions:
 _DBG$DISASM_CTRL    MOVE    R1, R2              ; Determine the type of control instruction
                     SHR     0x0003, R2          ; Shift only three to the right as
-                    AND     0x0018, R2          ; each mnemonic is 8 characters long
+                    AND     0x01F8, R2          ; each mnemonic is 8 characters long
                     MOVE    _DBG$CTRL_MNEMONICS, R8
                     ADD     R2, R8
                     RSUB    IO$PUTS, 1          ; Print mnemonic
@@ -166,6 +166,8 @@ _DBG$MNEMONICS      .ASCII_W    "MOVE   "
 _DBG$CTRL_MNEMONICS .ASCII_W    "HALT   "
                     .ASCII_W    "RTI    "
                     .ASCII_W    "INT    "
+                    .ASCII_W    "INCRB  "
+                    .ASCII_W    "DECRB  "
                     .ASCII_W    "BRSU   "       ; This also is not really necessary
 _DBG$BRSU_MNEMONICS .ASCII_W    "ABRA   "
                     .ASCII_W    "ASUB   "

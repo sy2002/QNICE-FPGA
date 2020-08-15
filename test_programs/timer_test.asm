@@ -121,8 +121,7 @@ ISR_T1  INCRB
         MOVE    CURSOR, R3      ; move the turtle cursor to the last pos
         MOVE    @R3, @R1
         MOVE    0, @R2
-        MOVE    SCRSV, R4       ; restore the character that was "under"
-        MOVE    @R4, @R5        ; the turtle at the last iteration
+        MOVE    ' ', @R5        ; delete the old ball
 
         MOVE    DIR, R0         ; are we moving to the right?
         CMP     0, @R0
@@ -138,10 +137,8 @@ _IT1L   CMP     0, @R1          ; did we already reach the left boundary?
         RBRA    _IT1DR, 1
 _IT1LL  MOVE    0, @R0          ; change direction: move right
         RBRA    _IT1R1, 1
-_IT1DR  MOVE    @R5, @R4        ; save what is under the turtle
-        MOVE    'O', @R5        ; draw ball
+_IT1DR  MOVE    'O', @R5        ; draw ball
         MOVE    @R1, @R3        ; save cursor X
-
 
 _END    MOVE    @R1, R6         ; restore the original cursor pos values
         MOVE    @R2, R7
@@ -159,7 +156,6 @@ ISR_T0T .ASCII_W    "Timer 0 has issued interrupt request #"
 
 COUNTER .DW 0
 CURSOR  .DW 0
-SCRSV   .DW 32 ; space character
 DIR     .DW 0
 
         ; ----------------------------------------------------
