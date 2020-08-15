@@ -10,6 +10,7 @@
 **
 ** B. Ulmann, 25-JUL-2020   Disassembler can take care of control mnemonics
 **            26-JUL-2020   Control instructions added, started adding timers
+**            xx-AUG-2020   Lots of corrections, INCRB, DECRB added, new update_status_bits() etc.
 **
 ** The following defines are available:
 **
@@ -18,6 +19,7 @@
 **   USE_UART
 **   USE_VGA
 **   USE_TIMER
+**   OLD_V_LOGIC    If defined, the old overflow logic is used (v1.6 requires this!)
 **
 ** The different make scripts "make.bash", "make-vga.bash" and "make-emscripten.bash"
 ** are defining these. The emscripten environment is automatically defining __EMSCRIPTEN__.
@@ -99,6 +101,8 @@
 #define HALT_INSTRUCTION       0x0
 #define RTI_INSTRUCTION        0x1
 #define INT_INSTRUCTION        0x2
+#define INCRB_INSTRUCTION      0x3
+#define DECRB_INSTRUCTION      0x4
 
 #define NO_ADD_SUB_INSTRUCTION 0x0
 #define ADD_INSTRUCTION        0x1
@@ -124,22 +128,25 @@ int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$
     gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
     gbl$ctrl_c = FALSE, gbl$breakpoint = -1, gbl$cycle_counter_state = 0, gbl$eae_operand_0 = 0,
     gbl$eae_operand_1 = 0, gbl$eae_result_lo = 0, gbl$eae_result_hi = 0, gbl$eae_csr = 0,
-    gbl$last_addresses[MAX_LAST_ADDRESSES], gbl$last_addresses_pointer = 0, gbl$error = FALSE;;
+    gbl$error = FALSE;;
 
 unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                                 "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "ctrl"},
-     *gbl$control_mnemonics[] = {"HALT", "RTI", "INT"}, 
+     *gbl$control_mnemonics[] = {"HALT", "RTI", "INT", "INCRB", "DECRB"}, 
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNV--",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
 
-unsigned int gbl$interrupt_address,             // Interrupt address as set by the interrupting "device"
-             gbl$interrupt_request = FALSE,     // This flag denotes an interrupt request.
-             gbl$interrupt_active = FALSE,      // true if an interrupt is currently being serviced.
-             gbl$interrupt_R14,                 // Shadow registers for R14 / R15.
-             gbl$interrupt_R15;
+unsigned int gbl$interrupt_address,                 // Interrupt address as set by the interrupting "device"
+             gbl$interrupt_request = FALSE,         // This flag denotes an interrupt request.
+             gbl$interrupt_active = FALSE,          // true if an interrupt is currently being serviced.
+             gbl$interrupt_R14,                     // Shadow registers for R14 / R15.
+             gbl$interrupt_R15,
+             gbl$last_addresses[MAX_LAST_ADDRESSES],// List of last addresses executed 
+             gbl$last_addresses_pointer = 0,        // Pointer into the aforementioned list
+             gbl$last_address;                      // Just the last address to save accessing the ring buffer for this info
 
 statistic_data gbl$stat;
 
@@ -718,7 +725,7 @@ void write_destination(unsigned int mode, unsigned int regaddr, unsigned int val
 ** parameter may occupy 17 bits (including the carry)! Do not truncate this parameter prior
 ** to calling this routine!
 **
-**  Caveat: There are actually two implementations of the overflow logic: The old behaviour,
+**  Caveat: There are currently two implementations of the overflow logic: The old behaviour,
 **          which is not "by the book" and the new behaviour which works as described in 
 **          http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html.
 **
@@ -772,7 +779,7 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
 */
 int execute() {
   unsigned int instruction, address, opcode, source_mode, source_regaddr, destination_mode, destination_regaddr,
-    source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits, command;
+    source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits, command, rb;
 
   int condition, cmp_0, cmp_1;
 
@@ -808,7 +815,8 @@ int execute() {
   if (gbl$cycle_counter_state & 0x0002)
     gbl$cycle_counter++; /* Increment cycle counter which is an instruction counter in the emulator as opposed to the hardware. */
 
-  gbl$last_addresses[gbl$last_addresses_pointer++ % MAX_LAST_ADDRESSES] = debug_address = address = read_register(PC); /* Get PC */
+  gbl$last_address = gbl$last_addresses[gbl$last_addresses_pointer++ % MAX_LAST_ADDRESSES] 
+                   = debug_address = address = read_register(PC); /* Get PC */
   opcode = ((instruction = access_memory(address++, READ_MEMORY, 0)) >> 12 & 0Xf);
   write_register(PC, address); /* Update program counter */
 
@@ -974,6 +982,16 @@ int execute() {
           gbl$interrupt_address = read_source_operand(destination_mode, destination_regaddr, TRUE);
           write_destination(destination_mode, destination_regaddr, gbl$interrupt_address, TRUE);
           gbl$interrupt_request = TRUE;
+          break;
+        case INCRB_INSTRUCTION:
+          sr_bits = read_register(SR);
+          rb = ((sr_bits >> 8) + 1) & 0xff;
+          write_register(SR, ((sr_bits & 0x00ff) | (rb << 8)) & 0xffff);
+          break;
+        case DECRB_INSTRUCTION:
+          sr_bits = read_register(SR);
+          rb = (((sr_bits >> 8) & 0xff) - 1) & 0xff;
+          write_register(SR, ((sr_bits & 0x00ff) | (rb << 8)) & 0xffff);
           break;
         default:
           fprintf(stderr, "Illegal control instruction found: %02X\n", command);
@@ -1247,7 +1265,7 @@ int main_loop(char **argv) {
     gbl$mips_inst_cnt = 0;
     gbl$mips = 0;
 #endif
-    printf("Q> ");
+    printf("[%04X] Q> ", gbl$last_address);
     fgets(command, STRING_LENGTH, stdin);
     chomp(command);
     if (feof(stdin)) {
