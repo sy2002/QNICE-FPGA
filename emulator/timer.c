@@ -68,12 +68,12 @@ void writeTimerDeviceRegister(unsigned int address, unsigned int value) {
         timer_registers[i * REG_PER_TIMER + REG_INT]) {
         if (thread_list[i]) {   // If the timer is being reconfigured, cancel and recreate it
             if (pthread_cancel(thread_list[i])) {
-              perror("[0] timer could not be removed!");
+              perror("[0, 0] timer could not be removed!");
               exit(-1);
             }
 
             if (pthread_join(thread_list[i], NULL)) {
-                perror("[1] timer could not be removed!");
+                perror("[0, 1] timer could not be removed!");
                 exit(-1);
             }
         }
@@ -92,12 +92,12 @@ void writeTimerDeviceRegister(unsigned int address, unsigned int value) {
             printf("\tTimer %d was on, will now be deactivated.\n", i);
 #endif
             if (pthread_cancel(thread_list[i])) {
-              perror("[0] timer could not be removed");
+              perror("[1, 0] timer could not be removed");
               exit(-1);
             }
 
             if (pthread_join(thread_list[i], NULL)) {
-                perror("[1] timer could not be removed");
+                perror("[1, 1] timer could not be removed");
                 exit(-1);
             }
         }
