@@ -308,7 +308,9 @@ begin
                                 reg_read_addr1, reg_read_data1, reg_read_addr2, reg_read_data2,
                                 reg_write_addr, reg_write_data, reg_write_en,
                                 Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                
-   variable varResult : std_logic_vector(15 downto 0);   
+   variable varResult : std_logic_vector(15 downto 0);
+   variable var_C     : std_logic;
+   variable var_V     : std_logic;
    begin
       DATA_OUT <= (others => '0');
       INS_CNT_STROBE <= '0';
@@ -629,7 +631,6 @@ begin
             -- execute branches
             if Opcode = opcBRA then
                fsmNextCpuState <= cs_fetch;
-               --fsmSR <= SR(15 downto 8) & "00000001"; -- clear flags
                fsmCpuAddr <= PC;
                
                if SR(conv_integer(Bra_Condition)) = not Bra_Neg then             
@@ -665,8 +666,15 @@ begin
                -- immediatelly done, when cs_execute i entered. We need to make sure,
                -- that all ALU inputs contain valid data at this moment in time
                
-               -- store flags
-               fsmSR <= SR(15 downto 8) & "00" & Alu_V & Alu_N & Alu_Z & Alu_C & Alu_X & "1";
+               -- store flags, but MOVE must not change C and V
+               if Opcode = opcMOVE then
+                  var_V := SR(5);
+                  var_C := SR(2);
+               else
+                  var_V := Alu_V;
+                  var_C := Alu_C;
+               end if;
+               fsmSR <= SR(15 downto 8) & "00" & var_V & Alu_N & Alu_Z & var_C & Alu_X & "1";
                
                -- store result: direct
                if Dst_Mode = amDirect then
