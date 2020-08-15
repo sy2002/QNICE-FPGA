@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#
-#  It turned out that the assembler needs some kind of a preprocessor.
-# Since I am too lazy to write one I decided to use the cpp which is
-# the purpose of this small wrapper script. Assembling some QNICE
-# sources is done invoking this script with the source file name as 
-# its only parameter.
-#
+# The purpose of this wrapper script is to use the C preprocessor for
+# QNICE assembler. Assembling QNICE sources is done invoking this script
+# with the source file name as its only parameter.
+
+ASM_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+source $ASM_SCRIPT_DIR/../tools/detect.include
 
 temp_file=__temp__.asm
 
@@ -26,12 +26,12 @@ rm $destination 2> /dev/null
 rm $romfile 2> /dev/null
 
 #
-#  We use the standard C-preprocessor to perform the necessary 
+# We use the standard C-preprocessor to perform the necessary 
 # preprocessor steps for the QNICE-assembler. Since the preprocessor
-# inserts lines starting with a '#' which the assembler doest
+# inserts lines starting with a '#' which the assembler does
 # not like, these are subsequently removed with sed.
 #
-gcc -E -x c $1 | sed '/^#.*/d' > $temp_file
+$COMPILER -xc -E $1 | sed '/^#.*/d' > $temp_file
 
 $assembler $temp_file $destination
 if [ $? -ne 0 ]
@@ -43,6 +43,15 @@ fi
 
 rm $temp_file
 
-$makerom $destination $romfile
+if [ "$QNICE_ASM_NO_ROM" != "1" ]
+then
+    $makerom $destination $romfile
+fi
 
-cat $destination | pbcopy
+if [ $OSTP = "LINUX" ]; then
+    if hash xclip 2>/dev/null; then
+        cat $destination | xclip -selection clipboard
+    fi;
+elif [ $OSTP = "OSX" ]; then
+    cat $destination | pbcopy
+fi;
