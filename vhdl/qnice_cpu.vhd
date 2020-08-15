@@ -629,7 +629,7 @@ begin
             -- execute branches
             if Opcode = opcBRA then
                fsmNextCpuState <= cs_fetch;
-               fsmSR <= SR(15 downto 8) & "00000001"; -- clear flags
+               --fsmSR <= SR(15 downto 8) & "00000001"; -- clear flags
                fsmCpuAddr <= PC;
                
                if SR(conv_integer(Bra_Condition)) = not Bra_Neg then             
@@ -679,12 +679,8 @@ begin
                      
                      -- R14 aka SR
                      when x"E" =>
-                        -- not all parts of the SR are writeable: only the upper 8 bit plus
-                        -- the M, C and X register are writeable, 
-                        fsmSR(15 downto 8) <= std_logic_vector(Alu_Result(15 downto 8));
-                        fsmSR(7) <= std_logic(Alu_Result(7)); -- M
-                        fsmSR(2) <= std_logic(Alu_Result(2)); -- C
-                        fsmSR(1) <= std_logic(Alu_Result(1)); -- X
+                        -- bit 0 of the SR is not writeable, it is always 1
+                        fsmSR(15 downto 1) <= std_logic_vector(Alu_Result(15 downto 1));
                         
                      -- R15 aka PC
                      when x"F" =>
