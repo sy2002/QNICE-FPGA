@@ -2,6 +2,8 @@
 
 #include "supp.h"
 
+#include "../../../../dist_kit/sysdef.h"
+
 static char FILE_[]=__FILE__;
 /*  Public data that MUST be there.                             */
 
@@ -1907,7 +1909,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       if(c==MULT||c==DIV||c==MOD){
 	int code;
 	load_op(f,&p->q1,t,t1);
-	emit(f,"\tmove\t%ld,%s\n",(long)0xff1b,regnames[t2]);
+	emit(f,"\tmove\t%ld,%s\n",(long) IO_EAE_OPERAND_0,regnames[t2]);
 	emit(f,"\tmove\t");
 	emit_obj(f,&p->q1,t);
 	emit(f,",@%s++\n",regnames[t2]);
@@ -1915,12 +1917,12 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	emit(f,"\tmove\t");
 	emit_obj(f,&p->q2,t);
 	emit(f,",@%s++\n",regnames[t2]);
-	emit(f,"\tmove\t%ld,%s\n",(long)0xff1f,regnames[t1]);
+	emit(f,"\tmove\t%ld,%s\n",(long) IO_EAE_CSR,regnames[t1]);
 	if(c==MULT) code=0; else code=2;
 	if(!(t&UNSIGNED)) code++;
 	emit(f,"\tmove\t%d,@%s\n",code,regnames[t1]);
 	if(c==MOD)
-	  emit(f,"\tmove\t%ld,%s\n",(long)0xff1e,regnames[t2]);
+	  emit(f,"\tmove\t%ld,%s\n",(long) IO_EAE_RESULT_HI,regnames[t2]);
 	load_op(f,&p->z,t,t1);
 	emit(f,"\tmove\t@%s,",regnames[t2]);
 	emit_obj(f,&p->z,t);
