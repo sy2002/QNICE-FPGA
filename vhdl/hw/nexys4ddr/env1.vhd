@@ -72,7 +72,8 @@ port (
    ADDR           : out std_logic_vector(15 downto 0);      -- 16 bit address bus
    
    --tristate 16 bit data bus
-   DATA           : inout std_logic_vector(15 downto 0);    -- send/receive data
+   DATA_IN        : in std_logic_vector(15 downto 0);       -- send/receive data
+   DATA_OUT       : out std_logic_vector(15 downto 0);      -- send/receive data
    DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
    DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
    
@@ -129,7 +130,8 @@ port (
    en          : in std_logic;     -- enable for reading from or writing to the bus
    we          : in std_logic;     -- write to VGA's registers via system's data bus
    reg         : in std_logic_vector(3 downto 0);     -- register selector
-   data        : inout std_logic_vector(15 downto 0); -- system's data bus
+   data_in     : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out    : out std_logic_vector(15 downto 0);   -- system's data bus
    
    -- VGA output signals, monochrome only
    R           : out std_logic;
@@ -177,7 +179,8 @@ port (
    uart_we        : in std_logic;
    uart_reg       : in std_logic_vector(1 downto 0);
    uart_cpu_ws    : out std_logic;   
-   cpu_data       : inout std_logic_vector(15 downto 0)
+   cpu_data_in    : in std_logic_vector(15 downto 0);
+   cpu_data_out   : out std_logic_vector(15 downto 0)
 );
 end component;
 
@@ -198,7 +201,8 @@ port (
    kbd_en        : in std_logic;
    kbd_we        : in std_logic;
    kbd_reg       : in std_logic_vector(1 downto 0);   
-   cpu_data      : inout std_logic_vector(15 downto 0)
+   cpu_data_in   : in std_logic_vector(15 downto 0);
+   cpu_data_out  : out std_logic_vector(15 downto 0)
 );
 end component;
 
@@ -221,7 +225,8 @@ port (
    en             : in std_logic;                        -- enable for reading from or writing to the bus
    we             : in std_logic;                        -- write to the registers via system's data bus
    reg            : in std_logic_vector(2 downto 0);     -- register selector
-   data           : inout std_logic_vector(15 downto 0)  -- system's data bus
+   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus
 );
 end component;
 
@@ -236,7 +241,8 @@ port (
    en       : in std_logic;         -- enable for reading from or writing to the bus
    we       : in std_logic;         -- write to VGA's registers via system's data bus
    reg      : in std_logic_vector(1 downto 0);     -- register selector
-   data     : inout std_logic_vector(15 downto 0)  -- system's data bus
+   data_in  : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out : out std_logic_vector(15 downto 0)    -- system's data bus
 );
 end component;
 
@@ -250,7 +256,8 @@ port (
    en       : in std_logic;                        -- chip enable
    we       : in std_logic;                        -- write enable
    reg      : in std_logic_vector(2 downto 0);     -- register selector
-   data     : inout std_logic_vector(15 downto 0)  -- system's data bus
+   data_in  : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out : out std_logic_vector(15 downto 0)    -- system's data bus
 );
 end component;
 
@@ -264,7 +271,8 @@ port (
    en       : in std_logic;         -- enable for reading from or writing to the bus
    we       : in std_logic;         -- write to the registers via system's data bus
    reg      : in std_logic_vector(2 downto 0);      -- register selector
-   data     : inout std_logic_vector(15 downto 0);  -- system's data bus
+   data_in  : in std_logic_vector(15 downto 0);     -- system's data bus
+   data_out : out std_logic_vector(15 downto 0);    -- system's data bus
    
    -- hardware interface
    sd_reset : out std_logic;
@@ -339,7 +347,8 @@ end component;
 
 -- CPU control signals
 signal cpu_addr               : std_logic_vector(15 downto 0);
-signal cpu_data               : std_logic_vector(15 downto 0);
+signal cpu_data_in            : std_logic_vector(15 downto 0);
+signal cpu_data_out           : std_logic_vector(15 downto 0);
 signal cpu_data_dir           : std_logic;
 signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
@@ -350,39 +359,51 @@ signal cpu_igrant_n           : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
+signal rom_busy               : std_logic;
+signal rom_data_out           : std_logic_vector(15 downto 0);
 signal ram_enable             : std_logic;
 signal ram_busy               : std_logic;
-signal rom_busy               : std_logic;
+signal ram_data_out           : std_logic_vector(15 downto 0);
 signal pore_rom_enable        : std_logic;
 signal pore_rom_busy          : std_logic;
+signal pore_rom_data_out      : std_logic_vector(15 downto 0);
 signal til_reg0_enable        : std_logic;
 signal til_reg1_enable        : std_logic;
 signal switch_reg_enable      : std_logic;
+signal switch_data_out        : std_logic_vector(15 downto 0);
 signal kbd_en                 : std_logic;
 signal kbd_we                 : std_logic;
 signal kbd_reg                : std_logic_vector(1 downto 0);
+signal kbd_data_out           : std_logic_vector(15 downto 0);
 signal tin_en                 : std_logic;
 signal tin_we                 : std_logic;
 signal tin_reg                : std_logic_vector(2 downto 0);
+signal timer_data_out         : std_logic_vector(15 downto 0);
 signal vga_en                 : std_logic;
 signal vga_we                 : std_logic;
 signal vga_reg                : std_logic_vector(3 downto 0);
+signal vga_data_out           : std_logic_vector(15 downto 0);
 signal uart_en                : std_logic;
 signal uart_we                : std_logic;
 signal uart_reg               : std_logic_vector(1 downto 0);
+signal uart_data_out          : std_logic_vector(15 downto 0);
 signal uart_cpu_ws            : std_logic;
 signal cyc_en                 : std_logic;
 signal cyc_we                 : std_logic;
 signal cyc_reg                : std_logic_vector(1 downto 0);
+signal cyc_data_out           : std_logic_vector(15 downto 0);
 signal ins_en                 : std_logic;
 signal ins_we                 : std_logic;
 signal ins_reg                : std_logic_vector(1 downto 0);
+signal ins_data_out           : std_logic_vector(15 downto 0);
 signal eae_en                 : std_logic;
 signal eae_we                 : std_logic;
 signal eae_reg                : std_logic_vector(2 downto 0);
+signal eae_data_out           : std_logic_vector(15 downto 0);
 signal sd_en                  : std_logic;
 signal sd_we                  : std_logic;
 signal sd_reg                 : std_logic_vector(2 downto 0); 
+signal sd_data_out            : std_logic_vector(15 downto 0);
 
 signal reset_pre_pore         : std_logic;
 signal reset_post_pore        : std_logic;
@@ -414,6 +435,21 @@ signal i_til_data_in          : std_logic_vector(15 downto 0);
 
 begin
 
+   -- Merge data outputs from all devices into a single data input to the CPU.
+   -- This requires that all devices output 0's when not selected.
+   cpu_data_in <= pore_rom_data_out or
+                  rom_data_out      or
+                  ram_data_out      or
+                  switch_data_out   or
+                  kbd_data_out      or
+                  vga_data_out      or
+                  uart_data_out     or
+                  timer_data_out    or
+                  cyc_data_out      or
+                  ins_data_out      or
+                  eae_data_out      or
+                  sd_data_out;
+
   -- Non portable (Xilinx specific) way to generate the 25.175 MHz pixel clock
   -- Comment out and replace by the below-mentioned process "generate_clk25MHz"
   -- if you want to be portable and have a look at hw/README.md "General advise for porting"
@@ -443,7 +479,8 @@ begin
          RESET => reset_ctl,
          WAIT_FOR_DATA => cpu_wait_for_data,
          ADDR => cpu_addr,
-         DATA => cpu_data,
+         DATA_IN => cpu_data_in,
+         DATA_OUT => cpu_data_out,
          DATA_DIR => cpu_data_dir,
          DATA_VALID => cpu_data_valid,
          HALT => cpu_halt,
@@ -461,7 +498,7 @@ begin
          clk         => SLOW_CLOCK,
          ce          => rom_enable,
          address     => cpu_addr(14 downto 0),
-         data        => cpu_data,
+         data        => rom_data_out,
          busy        => rom_busy
       );
      
@@ -472,8 +509,8 @@ begin
          ce          => ram_enable,
          address     => cpu_addr(14 downto 0),
          we          => cpu_data_dir,         
-         data_i      => cpu_data,
-         data_o      => cpu_data,
+         data_i      => cpu_data_out,
+         data_o      => ram_data_out,
          busy        => ram_busy         
       );
       
@@ -488,7 +525,7 @@ begin
          clk         => SLOW_CLOCK,
          ce          => pore_rom_enable,
          address     => cpu_addr(14 downto 0),
-         data        => cpu_data,
+         data        => pore_rom_data_out,
          busy        => pore_rom_busy
       );
                  
@@ -506,7 +543,8 @@ begin
          en => vga_en,
          we => vga_we,
          reg => vga_reg,
-         data => cpu_data
+         data_in => cpu_data_out,
+         data_out => vga_data_out
       );
 
    -- TIL display emulation (4 digits)
@@ -537,7 +575,8 @@ begin
          uart_we => uart_we,
          uart_reg => uart_reg,
          uart_cpu_ws => uart_cpu_ws,         
-         cpu_data => cpu_data         
+         cpu_data_in => cpu_data_out,
+         cpu_data_out => uart_data_out
       );
       
    -- PS/2 keyboard
@@ -553,7 +592,8 @@ begin
          kbd_en => kbd_en,
          kbd_we => kbd_we,
          kbd_reg => kbd_reg,
-         cpu_data => cpu_data
+         cpu_data_in => cpu_data_out,
+         cpu_data_out => kbd_data_out
       );
       
    timer_interrupt : timer_module   
@@ -570,7 +610,8 @@ begin
          en => tin_en,
          we => tin_we,
          reg => tin_reg,
-         data => cpu_data
+         data_in => cpu_data_out,
+         data_out => timer_data_out
       );
             
    -- cycle counter
@@ -582,7 +623,8 @@ begin
          en => cyc_en,
          we => cyc_we,
          reg => cyc_reg,
-         data => cpu_data
+         data_in => cpu_data_out,
+         data_out => cyc_data_out
       );
       
    -- instruction counter
@@ -594,7 +636,8 @@ begin
          en => ins_en,
          we => ins_we,
          reg => ins_reg,
-         data => cpu_data
+         data_in => cpu_data_out,
+         data_out => ins_data_out
       );
       
    -- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
@@ -605,7 +648,8 @@ begin
          en => eae_en,
          we => eae_we,
          reg => eae_reg,
-         data => cpu_data         
+         data_in => cpu_data_out,
+         data_out => eae_data_out
       );
 
    -- SD Card
@@ -616,7 +660,8 @@ begin
          en => sd_en,
          we => sd_we,
          reg => sd_reg,
-         data => cpu_data,
+         data_in => cpu_data_out,
+         data_out => sd_data_out,
          sd_reset => SD_RESET,
          sd_clk => SD_CLK,
          sd_mosi => SD_MOSI,
@@ -676,9 +721,9 @@ begin
    switch_driver : process(switch_reg_enable, SWITCHES)
    begin
       if switch_reg_enable = '1' then
-         cpu_data <= SWITCHES;
+         switch_data_out <= SWITCHES;
       else
-         cpu_data <= (others => 'Z');
+         switch_data_out <= (others => '0');
       end if;
    end process;
    
@@ -701,10 +746,10 @@ begin
    -- debug mode handling: if switch 2 is on then:
    --   show the current cpu address in realtime on the LEDs
    --   on halt show the PC of the HALT command (aka address bus value) on TIL
-   debug_mode_handler : process(SWITCHES, cpu_addr, cpu_data, cpu_halt, til_reg0_enable)
+   debug_mode_handler : process(SWITCHES, cpu_addr, cpu_data_out, cpu_halt, til_reg0_enable)
    begin
       i_til_reg0_enable <= til_reg0_enable;
-      i_til_data_in <= cpu_data;
+      i_til_data_in <= cpu_data_out;
       LEDs <= cpu_halt & "000000000000000";
    
       -- debug mode

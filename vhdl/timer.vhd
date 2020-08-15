@@ -47,7 +47,8 @@ port (
    en             : in std_logic;                        -- enable for reading from or writing to the bus
    we             : in std_logic;                        -- write to the registers via system's data bus
    reg            : in std_logic_vector(1 downto 0);     -- register selector
-   data           : inout std_logic_vector(15 downto 0)  -- system's data bus
+   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus
 );
 end timer;
 
@@ -113,12 +114,23 @@ begin
       end if;
    end process;
    
-   fsm_output_decode : process(State, is_counting, has_fired, grant_n_in, int_n_in, reg_int)
+   fsm_output_decode : process(State, is_counting, has_fired, grant_n_in, int_n_in, reg_int,
+                               en, we, reg, reg_pre, reg_cnt, reg_int)
    begin
       int_n_out <= int_n_in;
       fsm_grant_n_reg <= grant_n_in; -- connect the outgoing "right" grant with the incoming "left" grant 
       fsmState_Next <= State;
-      data <= (others => 'Z');
+      data_out <= (others => '0');
+
+      -- read registers
+      if en = '1' and we = '0' then
+         case reg is
+            when REGNO_PRE => data_out <= std_logic_vector(reg_pre);
+            when REGNO_CNT => data_out <= std_logic_vector(reg_cnt);
+            when REGNO_INT => data_out <= std_logic_vector(reg_int);
+            when others => data_out <= (others => '0');
+         end case;
+      end if;
          
       case State is
          when s_idle =>
@@ -145,7 +157,7 @@ begin
             -- if interrupt is granted: put ISR address on the data bus          
             if grant_n_in = '0' then
                fsmState_Next <= s_provide_isr;
-               data <= std_logic_vector(reg_int);
+               data_out <= std_logic_vector(reg_int);
             end if;
             
          when s_provide_isr =>
@@ -155,7 +167,7 @@ begin
             -- keep putting the ISR address on the data bus until the grant is revoked
             if grant_n_in = '0' then            
                fsmState_Next <= s_provide_isr;
-               data <= std_logic_vector(reg_int);
+               data_out <= std_logic_vector(reg_int);
             else
                fsmState_Next <= s_reset;
             end if;
@@ -182,9 +194,9 @@ begin
          elsif new_timer_vals then
             has_fired <= false;
             if reg = REGNO_PRE then
-               counter_pre <= unsigned(data);               
+               counter_pre <= unsigned(data_in);
             elsif reg = REGNO_CNT then
-               counter_cnt <= unsigned(data);
+               counter_cnt <= unsigned(data_in);
             end if;
             freq_div_cnt <= to_unsigned(freq_div_sys_target, 16);
                
@@ -221,7 +233,7 @@ begin
    end process;
 
    -- MMIO: read/write registers: PRE, CNT, INT
-   handle_registers : process(clk, reset, en, we, reg, reg_pre, reg_cnt, reg_int)
+   handle_registers : process(clk, reset)
    begin
       if reset = '1' then
          reg_pre <= (others => '0');
@@ -232,25 +244,14 @@ begin
          if rising_edge(clk) then
             if en = '1' and we = '1' then
                case reg is
-                  when REGNO_PRE => reg_pre <= unsigned(data);
-                  when REGNO_CNT => reg_cnt <= unsigned(data);       
-                  when REGNO_INT => reg_int <= unsigned(data);
+                  when REGNO_PRE => reg_pre <= unsigned(data_in);
+                  when REGNO_CNT => reg_cnt <= unsigned(data_in);
+                  when REGNO_INT => reg_int <= unsigned(data_in);
                   when others => null;
                end case;
             end if;            
          end if;         
       end if;
-            
-      -- read registers
-      if en = '1' and we = '0' then
-         case reg is
-            when REGNO_PRE => data <= std_logic_vector(reg_pre);
-            when REGNO_CNT => data <= std_logic_vector(reg_cnt);
-            when REGNO_INT => data <= std_logic_vector(reg_int);
-            when others => data <= (others => '0');
-         end case;
-      else
-         data <= (others => 'Z');
-      end if;      
    end process;   
+
 end beh;

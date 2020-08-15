@@ -37,7 +37,8 @@ port (
    uart_we        : in std_logic;
    uart_reg       : in std_logic_vector(1 downto 0);
    uart_cpu_ws    : out std_logic;
-   cpu_data       : inout std_logic_vector(15 downto 0) 
+   cpu_data_in    : in std_logic_vector(15 downto 0);
+   cpu_data_out   : out std_logic_vector(15 downto 0)
 );
 end bus_uart;
 
@@ -191,16 +192,16 @@ begin
          case uart_reg is
          
             -- register 1: status register
-            when "01" => cpu_data <= x"000" & "00" & uart_tx_ready & (not fifo_empty);
+            when "01" => cpu_data_out <= x"000" & "00" & uart_tx_ready & (not fifo_empty);
 
             -- register 2: receive (aka read) register
             when "10" =>
-               cpu_data <= x"00" & fifo_rd_data;
+               cpu_data_out <= x"00" & fifo_rd_data;
             
-            when others => cpu_data <= (others => '0');
+            when others => cpu_data_out <= (others => '0');
          end case;
       else
-         cpu_data <= (others => 'Z');
+         cpu_data_out <= (others => '0');
       end if;
    end process;
    
@@ -212,7 +213,7 @@ begin
          if rising_edge(clk) then
             -- register 3: send (aka write) register
             if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
-               byte_tx_data <= cpu_data(7 downto 0);
+               byte_tx_data <= cpu_data_in(7 downto 0);
             end if;
          end if;
       end if;

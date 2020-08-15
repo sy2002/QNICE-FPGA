@@ -67,7 +67,7 @@ begin
    manage_tristate : process (we, ce, output)
    begin
       if (ce = '0') or (ce = '1' and we = '1') then
-         data_o <= (others => 'Z');
+         data_o <= (others => '0');
       else
          data_o <= output;
       end if;
@@ -106,12 +106,7 @@ begin
          async_reset <= '0';
       end if;      
    end process;
-                  
---   with ce select
---      busy <= counter when '1',
---              'Z' when others;
-   with ce select
-      busy <= '0' when '1',
-              'Z' when others;
+
+   busy <= '0';
    
 end beh;

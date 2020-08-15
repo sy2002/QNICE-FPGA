@@ -50,7 +50,8 @@ port (
    en             : in std_logic;                        -- enable for reading from or writing to the bus
    we             : in std_logic;                        -- write to the registers via system's data bus
    reg            : in std_logic_vector(2 downto 0);     -- register selector
-   data           : inout std_logic_vector(15 downto 0)  -- system's data bus
+   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus
 );
 end timer_module;
 
@@ -75,9 +76,13 @@ port (
    en             : in std_logic;                        -- enable for reading from or writing to the bus
    we             : in std_logic;                        -- write to the registers via system's data bus
    reg            : in std_logic_vector(1 downto 0);     -- register selector
-   data           : inout std_logic_vector(15 downto 0)  -- system's data bus
+   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus
 );
 end component;
+
+signal   timer0_data_out      : std_logic_vector(15 downto 0);
+signal   timer1_data_out      : std_logic_vector(15 downto 0);
 
 signal   t0_en                : std_logic;
 signal   t0_we                : std_logic;
@@ -90,6 +95,9 @@ signal   t1_reg               : std_logic_vector(1 downto 0);
 signal   t1_reg_tmp           : std_logic_vector(3 downto 0);
 
 begin
+
+   data_out <= timer0_data_out or
+               timer1_data_out;
 
    t0_en <= '1' when en = '1' and unsigned(reg) < x"3" else '0';
    t1_en <= '1' when en = '1' and t0_en = '0' else '0';
@@ -120,7 +128,8 @@ begin
       en => t0_en,
       we => t0_we,
       reg => t0_reg,
-      data => data
+      data_in => data_in,
+      data_out => timer0_data_out
    );
    
    timer1 : timer
@@ -142,7 +151,8 @@ begin
       en => t1_en,
       we => t1_we,
       reg => t1_reg,
-      data => data
+      data_in => data_in,
+      data_out => timer1_data_out
    );
    
 end beh;
