@@ -22,8 +22,9 @@ port (
    
    ADDR           : out std_logic_vector(15 downto 0);      -- 16 bit address bus
    
-   -- tristate 16 bit data bus
-   DATA           : inout std_logic_vector(15 downto 0);    -- send/receive data
+   -- bidirectional 16 bit data bus
+   DATA_IN        : in std_logic_vector(15 downto 0);       -- receive data
+   DATA_OUT       : out std_logic_vector(15 downto 0);      -- send data
    DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
    DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
    
@@ -300,7 +301,7 @@ begin
    end process;
    
    fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, SP_org, SR_org, PC_org,
-                                DATA, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
+                                DATA_IN, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
                                 Instruction, Opcode,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
@@ -309,7 +310,7 @@ begin
                                 Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                
    variable varResult : std_logic_vector(15 downto 0);   
    begin
-      DATA <= (others => 'Z');
+      DATA_OUT <= (others => '0');
       INS_CNT_STROBE <= '0';
       IGRANT_N <= '1';
          
@@ -370,10 +371,10 @@ begin
                   fsmNextCpuState <= cs_int_wait_isr;
                else
                   INS_CNT_STROBE <= '1';  -- count next instruction            
-                  fsmInstruction <= DATA; -- valid at falling edge
+                  fsmInstruction <= DATA_IN; -- valid at falling edge
                   fsmPC <= PC + 1;
-                  fsm_reg_read_addr1 <= DATA(11 downto 8); -- read Src register number
-                  fsm_reg_read_addr2 <= DATA(5 downto 2);  -- rest Dst register number
+                  fsm_reg_read_addr1 <= DATA_IN(11 downto 8); -- read Src register number
+                  fsm_reg_read_addr2 <= DATA_IN(5 downto 2);  -- rest Dst register number
                end if;
             end if;
                                     
@@ -465,7 +466,19 @@ begin
                      else
                         fsmNextCpuState <= cs_halt;
                      end if;
-                     
+                  
+                  -- increment the register bank address by one and leave the SR alone while doing so
+                  when ctrlINCRB =>
+                     fsmSR(15 downto 8) <= SR(15 downto 8) + 1;
+                     fsmCPUAddr <= PC;
+                     fsmNextCpuState <= cs_fetch;
+
+                  -- decrement the register bank address by one and leave the SR alone while doing so                     
+                  when ctrlDECRB =>
+                     fsmSR(15 downto 8) <= SR(15 downto 8) - 1;
+                     fsmCPUAddr <= PC;
+                     fsmNextCpuState <= cs_fetch;
+                                                               
                   -- illegal command: HALT
                   when others =>
                      fsmNextCpuState <= cs_halt;
@@ -541,7 +554,7 @@ begin
             -- data from bus is available
             else
                -- read the indirect value from the bus and store it
-               fsmSrc_Value <= DATA;
+               fsmSrc_Value <= DATA_IN;
                              
                -- perform post increment
                if Src_Mode = amIndirPostInc then
@@ -609,7 +622,7 @@ begin
             -- data from bus is available
             else         
                -- read the indirect value from the bus and store it
-               fsmDst_Value <= DATA;
+               fsmDst_Value <= DATA_IN;
             end if;                        
                         
          when cs_execute =>        
@@ -708,7 +721,7 @@ begin
             -- fsmCpuAddr in the previous step. But in a CMP case: Do not store anything. Still,
             -- we are executing this step to make sure any post increment works: CMP R1, @R2++
             if Opcode /= opcCMP then
-               DATA <= DATA_To_Bus;         
+               DATA_OUT <= DATA_To_Bus;
                fsmDataToBus <= DATA_To_Bus;
                fsmCpuDataDirCtrl <= '1';
                fsmCpuDataValid <= '1';
@@ -743,7 +756,7 @@ begin
             end if;
                   
          when cs_exepost_sub =>
-            DATA <= DATA_To_Bus;
+            DATA_OUT <= DATA_To_Bus;
             fsmDataToBus <= DATA_To_Bus;
             fsmCpuDataDirCtrl <= '0';
             fsmCpuDataValid <= '0';
@@ -758,7 +771,7 @@ begin
             end if;
 
          when cs_exepost_prepfetch =>
-            DATA <= DATA_To_Bus;            
+            DATA_OUT <= DATA_To_Bus;
             fsmCpuAddr <= PC;
             
          when cs_halt =>
@@ -771,8 +784,8 @@ begin
                -- requester signals ISR address is on DATA
                if INT_N = '1' then
                   fsmNextCPUState <= cs_int_jmp_isr;
-                  fsmCpuAddr <= DATA; -- put ISR address in CPU's address register
-                  fsmPC <= DATA;
+                  fsmCpuAddr <= DATA_IN; -- put ISR address in CPU's address register
+                  fsmPC <= DATA_IN;
                else
                   fsmNextCPUState <= cs_int_wait_isr;
                end if;
@@ -786,8 +799,8 @@ begin
             
          when cs_int_indirect_isr =>
             if Int_Active = '1' then
-               fsmCpuAddr <= DATA;
-               fsmPC <= DATA;
+               fsmCpuAddr <= DATA_IN;
+               fsmPC <= DATA_IN;
                fsmNextCpuState <= cs_fetch;
             end if;
         

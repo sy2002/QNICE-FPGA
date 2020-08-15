@@ -45,7 +45,8 @@ port (
    en       : in std_logic;         -- enable for reading from or writing to the bus
    we       : in std_logic;         -- write to the registers via system's data bus
    reg      : in std_logic_vector(2 downto 0);      -- register selector
-   data     : inout std_logic_vector(15 downto 0);  -- system's data bus
+   data_in  : in std_logic_vector(15 downto 0);  -- system's data bus
+   data_out : out std_logic_vector(15 downto 0);  -- system's data bus
    
    -- hardware interface
    sd_reset : out std_logic;
@@ -431,19 +432,19 @@ begin
      
       if en = '1' and we = '0' then
          case reg is
-            when "000" => data <= reg_addr_lo;
-            when "001" => data <= reg_addr_hi;
---            when "010" => data <= std_logic_vector(buffer_ptr); 
-            when "010" => data <= reg_data_pos;            
-            when "011" => data <= "00000000" & ram_data_o;
---            when "100" => data <= x"EE" & "00000" & sd_error_code;
-            when "100" => data <= sd_fsm & sd_error_code;
---            when "101" => data <= is_busy & is_error & sd_type & "00000000" & state_number;
-            when "101" => data <= is_busy & is_error & sd_type & "000000000000";
-            when others => data <= (others => '0');
+            when "000" => data_out <= reg_addr_lo;
+            when "001" => data_out <= reg_addr_hi;
+--            when "010" => data_out <= std_logic_vector(buffer_ptr);
+            when "010" => data_out <= reg_data_pos;
+            when "011" => data_out <= "00000000" & ram_data_o;
+--            when "100" => data_out <= x"EE" & "00000" & sd_error_code;
+            when "100" => data_out <= sd_fsm & sd_error_code;
+--            when "101" => data_out <= is_busy & is_error & sd_type & "00000000" & state_number;
+            when "101" => data_out <= is_busy & is_error & sd_type & "000000000000";
+            when others => data_out <= (others => '0');
          end case;
       else
-         data <= (others => 'Z');
+         data_out <= (others => '0');
       end if;
    end process;
    
@@ -458,10 +459,10 @@ begin
          if falling_edge(clk) then
             if en = '1' and we = '1' then
                case reg is               
-                  when "000" => reg_addr_lo <= data;
-                  when "001" => reg_addr_hi <= data;
-                  when "010" => reg_data_pos <= data;
-                  when "011" => reg_data <= data(7 downto 0);
+                  when "000" => reg_addr_lo <= data_in;
+                  when "001" => reg_addr_hi <= data_in;
+                  when "010" => reg_data_pos <= data_in;
+                  when "011" => reg_data <= data_in(7 downto 0);
                   when others => null;               
                end case;
             end if;
@@ -495,7 +496,7 @@ begin
       else
          if falling_edge(clk) then
             if en = '1' and we = '1' then
-               if reg = "101" and data = x"0000" then
+               if reg = "101" and data_in = x"0000" then
                   cmd_reset <= '1';
                end if;
             end if;
@@ -510,7 +511,7 @@ begin
       else
          if falling_edge(clk) then
             if en = '1' and we = '1' then
-               if reg = "101" and data = x"0001" then
+               if reg = "101" and data_in = x"0001" then
                   cmd_read <= '1';
                end if;
             end if;

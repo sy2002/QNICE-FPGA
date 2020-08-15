@@ -71,7 +71,7 @@ begin
    manage_tristate : process (ce, output)
    begin
       if (ce = '0') then
-         data <= (others => 'Z');
+         data <= (others => '0');
       else
          data <= output;
       end if;
@@ -109,11 +109,6 @@ begin
       end if;      
    end process;
                   
---   with ce select
---      busy <= counter when '1',
---              'Z' when others;
-   with ce select
-      busy <= '0' when '1',
-              'Z' when others;
+   busy <= '0';
    
 end beh;

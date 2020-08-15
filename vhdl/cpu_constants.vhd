@@ -43,6 +43,8 @@ constant bmRSUB         : std_logic_vector(1 downto 0) := "11";      -- relative
 constant ctrlHALT       : std_logic_vector(5 downto 0) := "000000";  -- HALT
 constant ctrlRTI        : std_logic_vector(5 downto 0) := "000001";  -- RTI (Return from Interrupt)
 constant ctrlINT        : std_logic_vector(5 downto 0) := "000010";  -- INT (Software Interrupt)
+constant ctrlINCRB      : std_logic_vector(5 downto 0) := "000011";  -- increment the register bank address by one
+constant ctrlDECRB      : std_logic_vector(5 downto 0) := "000100";  -- decrement the register bank address by one
 
 end cpu_constants;
 

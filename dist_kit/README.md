@@ -15,7 +15,7 @@ The *dist_kit* folder
 
 * Native QNICE assembler:
 
-  * sysdef.asm: Command shortcuts (RET, INCRB, DECRB, NOP, SYSCALL), register
+  * sysdef.asm: Command shortcuts (RET, NOP, SYSCALL), register
     short names (PC, SR, SP), addresses for memory mapped I/O of peripheral
     devices, commonly used constants.
 
@@ -26,8 +26,8 @@ The *dist_kit* folder
 
   * sysdef.vasm: Addresses for memory mapped I/O, commonly usd constants.
 
-  * qnice-conv.vasm: Convenience macros aka command shortcuts (RET, INCRB,
-    DECRB, NOP, SYSCALL).
+  * qnice-conv.vasm: Convenience macros aka command shortcuts (RET, NOP,
+    SYSCALL).
 
   * monitor.vdef: Addresses of operating system routines that can be used
     in SYSCALLs.

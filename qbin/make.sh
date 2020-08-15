@@ -53,3 +53,21 @@ mv   $ASM_TEST/sdcard.out .
 echo "assembling: tile_ed.asm"
 $ASM $ASM_DEMOS/tile_ed.asm
 mv   $ASM_DEMOS/tile_ed.out .
+echo "assembling: timer_test.asm"
+$ASM $ASM_TEST/timer_test.asm
+mv   $ASM_TEST/timer_test.out .
+
+# .out files are excluded by .gitignore so let's add them
+git add -f adventure.out
+git add -f shell.out
+git add -f sierpinski.out
+git add -f ttt2.out
+git add -f vga_calibration.out
+git add -f wolfram.out
+git add -f mandel.out
+git add -f mandel_zoom.out
+git add -f q-tris.out
+git add -f qtransfer.out
+git add -f sdcard.out
+git add -f tile_ed.out
+git add -f timer_test.out  
