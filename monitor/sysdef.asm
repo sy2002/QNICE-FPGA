@@ -8,8 +8,8 @@
 ;***************************************************************************************
 ;
 #define RET     MOVE    @R13++, R15
-#define INCRB   ADD     0x0100, R14
-#define DECRB   SUB     0x0100, R14
+;;#define INCRB   ADD     0x0100, R14 ; These two defines are no longer necessary
+;;#define DECRB   SUB     0x0100, R14 ; as of 15-AUG-2020!
 #define NOP     ABRA    R15, 1
 
 #define SYSCALL(x,y)    ASUB    x, y
