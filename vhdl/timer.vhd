@@ -86,10 +86,10 @@ signal   reg_cnt           : unsigned(15 downto 0);
 signal   reg_int           : unsigned(15 downto 0);
 
 -- Internal 100 kHz clock
-constant freq_internal        : natural := 100000;       -- internal clock speed
-signal   freq_div_sys_target  : natural := natural(ceil(real(CLK_FREQ) / real(freq_internal)));
---signal   CNT_WIDTH            : natural := f_log2(freq_div_sys_target); 
-signal   freq_div_cnt         : unsigned(15 downto 0);   -- CNT_WIDTH does not work with Vivado 2019.2
+constant FREQ_INTERNAL        : natural := 100000;       -- internal clock speed
+constant FREQ_DIV_SYS_TARGET  : natural := natural(ceil(real(CLK_FREQ) / real(FREQ_INTERNAL)));
+constant CNT_WIDTH            : natural := f_log2(FREQ_DIV_SYS_TARGET);
+signal   freq_div_cnt         : unsigned(CNT_WIDTH-1 downto 0);
 
 begin
 
@@ -188,7 +188,7 @@ begin
             has_fired <= false;
             counter_pre <= (others => '0');
             counter_cnt <= (others => '0');
-            freq_div_cnt <= to_unsigned(freq_div_sys_target, 16);
+            freq_div_cnt <= to_unsigned(FREQ_DIV_SYS_TARGET, CNT_WIDTH);
          
          -- new values for the PRE and CNT registers are on the data bus
          elsif new_timer_vals then
@@ -198,21 +198,21 @@ begin
             elsif reg = REGNO_CNT then
                counter_cnt <= unsigned(data_in);
             end if;
-            freq_div_cnt <= to_unsigned(freq_div_sys_target, 16);
+            freq_div_cnt <= to_unsigned(FREQ_DIV_SYS_TARGET, CNT_WIDTH);
                
          -- timer elapsed and fired and handled the interrupt, now it is time to reset the values
          elsif State = s_reset then
             has_fired <= false;
             counter_pre <= reg_pre;
             counter_cnt <= reg_cnt;
-            freq_div_cnt <= to_unsigned(freq_div_sys_target, 16);
+            freq_div_cnt <= to_unsigned(freq_div_sys_target, CNT_WIDTH);
          
          -- count, but only, if it has not yet fired
          elsif is_counting and State = s_count and not has_fired then
          
             -- create 100 kHz clock from system clock
             if freq_div_cnt = x"0000" or IS_SIMULATION then
-               freq_div_cnt <= to_unsigned(freq_div_sys_target, 16);
+               freq_div_cnt <= to_unsigned(FREQ_DIV_SYS_TARGET, CNT_WIDTH);
                -- prescaler divides the 100 kHz clock by the value stored in the PRE register
                if counter_pre = x"0001" then
                   counter_pre <= reg_pre;
