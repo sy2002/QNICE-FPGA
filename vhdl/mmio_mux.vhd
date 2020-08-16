@@ -203,7 +203,7 @@ begin
    vga_reg           <= addr(3 downto 0);
       
    -- Block FF80: CPU Bus Test
-   cbt_en            <= '1' when addr(15 downto 3) = x"FF8" & "0" and no_igrant_active else '0';            -- FF80
+   cbt_en            <= '1' when addr(15 downto 3) = x"FFE" & "1" and no_igrant_active else '0';      -- FFE8
    cbt_we            <= cbt_en and data_dir and data_valid;
    cbt_reg           <= addr(2 downto 0);
 
