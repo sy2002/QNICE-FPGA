@@ -4,7 +4,14 @@
 ; compatibility layer between QNICE assembler and VASM
 ;
 ; done by sy2002 in November 2016
-; updated to support the native INCRB/DECRB by sy2002 in August 2020
+
+    .macro  INCRB
+        ADD 0x100, R14
+    .endm
+
+    .macro  DECRB
+        SUB 0x100, R14
+    .endm
 
     .macro  RET
         MOVE @R13++, R15

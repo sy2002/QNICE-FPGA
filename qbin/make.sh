@@ -47,6 +47,9 @@ mv   $ASM_DEMOS/q-tris.out .
 echo "assembling: qtransfer.asm"
 $ASM ../tools/qtransfer.asm
 mv   ../tools/qtransfer.out .
+echo "assembling: simple_timer_test.asm"
+$ASM $ASM_TEST/simple_timer_test.asm
+mv   $ASM_TEST/simple_timer_test.out .
 echo "assembling: sdcard.asm"
 $ASM $ASM_TEST/sdcard.asm
 mv   $ASM_TEST/sdcard.out .
@@ -68,6 +71,7 @@ git add -f mandel.out
 git add -f mandel_zoom.out
 git add -f q-tris.out
 git add -f qtransfer.out
+git add -f simple_timer_test.out
 git add -f sdcard.out
 git add -f tile_ed.out
 git add -f timer_test.out  

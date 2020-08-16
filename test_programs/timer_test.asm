@@ -26,6 +26,8 @@
         MOVE    IO$TIMER_1_CNT, R4
         MOVE    IO$TIMER_1_INT, R5
 
+        RBRA    START, 1
+
         MOVE    0xFFFF, @R0
         MOVE    0xEEEE, @R1
         MOVE    0xDDDD, @R2
@@ -47,6 +49,8 @@
         RBRA    A_HALT, !Z
         CMP     0xBBBB, @R4
         RBRA    A_HALT, !Z
+
+START
 
         ; ----------------------------------------------------
         ; Install ISR for timer 0 with 1 sec period:
