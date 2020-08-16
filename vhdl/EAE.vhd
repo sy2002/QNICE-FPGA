@@ -3,7 +3,7 @@
 --
 -- performs 32-bit signed/unsigned integer multiplication and division and modulo
 --
--- meant to be connected to QNICE's data bus, tristate output goes high impedance
+-- meant to be connected to QNICE's data bus, output goes zero
 -- when en is '0'
 --
 -- It seems, that on a Xilinx/Artix-7 FPGA, the EAE can be synthesized in a way,
@@ -43,7 +43,8 @@ port (
    en       : in std_logic;                        -- chip enable
    we       : in std_logic;                        -- write enable
    reg      : in std_logic_vector(2 downto 0);     -- register selector
-   data     : inout std_logic_vector(15 downto 0)  -- system's data bus
+   data_in  : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out : out std_logic_vector(15 downto 0)    -- system's data bus
 );
 end EAE;
 
@@ -81,9 +82,9 @@ begin
       if falling_edge(clk) then
          if en = '1' and we = '1' then
             case reg is
-               when regOP0 => op0 <= data;
-               when regOP1 => op1 <= data;
-               when regCSR => csr <= data(1 downto 0);
+               when regOP0 => op0 <= data_in;
+               when regOP1 => op1 <= data_in;
+               when regCSR => csr <= data_in(1 downto 0);
                when others => null;
             end case;
          end if;
@@ -100,15 +101,15 @@ begin
    begin
       if en = '1' and we = '0' then
          case reg is
-            when regOP0 => data <= op0;
-            when regOP1 => data <= op1;
-            when regRLO => data <= res(15 downto 0);
-            when regRHI => data <= res(31 downto 16);
-            when regCSR => data <= busy & "0000000000000" & csr(1 downto 0);
-            when others => data <= (others => '0');
+            when regOP0 => data_out <= op0;
+            when regOP1 => data_out <= op1;
+            when regRLO => data_out <= res(15 downto 0);
+            when regRHI => data_out <= res(31 downto 16);
+            when regCSR => data_out <= busy & "0000000000000" & csr(1 downto 0);
+            when others => data_out <= (others => '0');
          end case;
       else
-         data <= (others => 'Z');
+         data_out <= (others => '0');
       end if;
    end process;
    

@@ -1,6 +1,6 @@
 -- PS2 keyboard component that outputs ASCII
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
--- tristate outputs go high impedance when not enabled
+-- output goes zero when not enabled
 -- done by sy2002 in December 2015 and January 2016
 
 -- heavily inspired by Scott Larson's component
@@ -42,11 +42,12 @@ port (
    ps2_clk       : in std_logic;               -- clock signal from PS/2 keyboard
    ps2_data      : in std_logic;               -- data signal from PS/2 keyboard
    
-   -- conntect to CPU's data bus (data high impedance when all reg_* are 0)
+   -- conntect to CPU's data bus (data output zero when all reg_* are 0)
    kbd_en        : in std_logic;
    kbd_we        : in std_logic;
    kbd_reg       : in std_logic_vector(1 downto 0);   
-   cpu_data      : inout std_logic_vector(15 downto 0)
+   cpu_data_in   : in std_logic_vector(15 downto 0);
+   cpu_data_out  : out std_logic_vector(15 downto 0)
 );
 end keyboard;
 
@@ -131,7 +132,7 @@ begin
       else
          if rising_edge(clk) then
             if kbd_en = '1' and kbd_we = '1' and kbd_reg = "00" then
-               ff_locale <= cpu_data(4 downto 2);
+               ff_locale <= cpu_data_in(4 downto 2);
             end if;
          end if;
       end if;
@@ -145,7 +146,7 @@ begin
          
             -- read status register
             when "00" =>
-               cpu_data <= "00000000" &
+               cpu_data_out <= "00000000" &
                            modifiers & -- bits 7 .. 5: ctrl/alt/shift
                            ff_locale &    -- bits 4 .. 2: 000 = US, 001 = DE
                            ff_spec_new &  -- bit 1: new special key
@@ -153,14 +154,14 @@ begin
                
             -- read data register
             when "01" =>
-               cpu_data <= spec_code & ascii_code;
+               cpu_data_out <= spec_code & ascii_code;
                
             when others =>
-               cpu_data <= (others => '0');
+               cpu_data_out <= (others => '0');
          
          end case;
       else
-         cpu_data <= (others => 'Z');
+         cpu_data_out <= (others => '0');
       end if;   
    end process;
 

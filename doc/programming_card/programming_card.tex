@@ -13,7 +13,7 @@
 %
  \section{General}
   QNICE features 16 bit words, 16 registers, 4 addressing modes, and 
-  a 16 bit address space (16 bit words, upper 1 kW page reserved for
+  a 16 bit address space (16 bit words, upper 256 words reserved for
   memory mapped I/O).
   \vspace*{-5mm}
 %
@@ -70,7 +70,7 @@
    \begin{center}
     \begin{longtable}{|c|ll|l|}
      \hline
-      Opc&Instr&Operands&Effect\\
+      $\!\!\!$Opc$\!\!\!$&Instr&Operands&Effect\\
      \hline
      \hline
       {\tt 0}&{\tt MOVE}&{\tt src, dst}&{\tt dst := src}\\
@@ -91,6 +91,8 @@
       {\tt E}&{\tt HALT}&&Halt the processor\\
       {\tt E}&{\tt RTI}&&Return from interrupt\\
       {\tt E}&{\tt INT}&dst&Issue software interrupt\\
+      {\tt E}&{\tt INCRB}&&Increment register bank address\\
+      {\tt E}&{\tt DECRB}&&Decrement register bank address\\
       {\tt F}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
       {\tt F}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
       {\tt F}&{\tt RBRA}&{\tt dest, [!]cond}&Relative branch\\
@@ -192,8 +194,6 @@
      \hline
      \hline
       \texttt{RET}&\texttt{MOVE @R13++, R15}\\
-      \texttt{INCRB}&\texttt{ADD 0x0100, R14}\\
-      \texttt{DECRB}&\texttt{SUB 0x0100, R14}\\
       \texttt{NOP}&\texttt{ABRA R15, 1}\\
       \texttt{SYSCALL(x, y)}&\texttt{ASUB x, y}\\
      \hline

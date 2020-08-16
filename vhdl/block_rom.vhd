@@ -14,12 +14,12 @@ generic (
 );
 port (
    clk         : in std_logic;                        -- read and write on rising clock edge
-   ce          : in std_logic;                        -- chip enable, when low then high impedance on output
+   ce          : in std_logic;                        -- chip enable, when low then zero on output
    
    address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
    data        : out std_logic_vector(ROM_WIDTH - 1 downto 0);   -- read data
    
-   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes high impedance
+   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes zero
    -- if not needed (ce = 0) and can therefore directly be connected to a bus
    busy        : out std_logic                       
 );
@@ -67,11 +67,11 @@ begin
       end if;
    end process;
    
-   -- high impedance while not ce
-   manage_tristate : process (ce, output)
+   -- zero while not ce
+   manage_output : process (ce, output)
    begin
       if (ce = '0') then
-         data <= (others => 'Z');
+         data <= (others => '0');
       else
          data <= output;
       end if;
@@ -109,11 +109,6 @@ begin
       end if;      
    end process;
                   
---   with ce select
---      busy <= counter when '1',
---              'Z' when others;
-   with ce select
-      busy <= '0' when '1',
-              'Z' when others;
+   busy <= '0';
    
 end beh;

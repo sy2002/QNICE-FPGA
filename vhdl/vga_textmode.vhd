@@ -1,6 +1,6 @@
 -- 80x40 Textmode VGA
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
--- tristate outputs go high impedance when not enabled
+-- output goes zero when not enabled
 -- done by sy2002 in December 2015/January 2016, refactored in Mai/June 2020
 
 -- Features:
@@ -62,7 +62,8 @@ port (
    en          : in std_logic;     -- enable for reading from or writing to the bus
    we          : in std_logic;     -- write to VGA's registers via system's data bus
    reg         : in std_logic_vector(3 downto 0);     -- register selector
-   data        : inout std_logic_vector(15 downto 0); -- system's data bus
+   data_in     : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out    : out std_logic_vector(15 downto 0);   -- system's data bus
    
    -- VGA output signals, monochrome only
    R           : out std_logic;
@@ -137,12 +138,12 @@ generic (
 );
 port (
    clk         : in std_logic;                        -- read and write on rising clock edge
-   ce          : in std_logic;                        -- chip enable, when low then high impedance on output
+   ce          : in std_logic;                        -- chip enable, when low then zero on output
    
    address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
    data        : out std_logic_vector(ROM_WIDTH - 1 downto 0);   -- read data
    
-   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes high impedance
+   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes zero
    -- if not needed (ce = 0) and can therefore directly be connected to a bus
    busy        : out std_logic                       
 );
@@ -374,42 +375,42 @@ begin
                case reg is
                   -- status register
                   when x"0" =>
-                     vga_ctl <= data(7 downto 0);
-                     vmem_offs_display <= data(10);
-                     vmem_offs_rw <= data(11);
+                     vga_ctl <= data_in(7 downto 0);
+                     vmem_offs_display <= data_in(10);
+                     vmem_offs_rw <= data_in(11);
                      
                   -- cursor x register
                   when x"1" =>
-                     vga_x <= data(7 downto 0);
-                     vx := unsigned(data(7 downto 0));
+                     vga_x <= data_in(7 downto 0);
+                     vx := unsigned(data_in(7 downto 0));
                      vy := unsigned(vga_y);
                      memory_pos := std_logic_vector(vx + (vy * 80));                     
                      print_addr <= memory_pos(11 downto 0);
                   
                   -- cursor y register
                   when x"2" =>
-                     vga_y <= data(6 downto 0);
+                     vga_y <= data_in(6 downto 0);
                      vx := unsigned(vga_x);
-                     vy := unsigned(data(6 downto 0));
+                     vy := unsigned(data_in(6 downto 0));
                      memory_pos := std_logic_vector(vx + (vy * 80));
                      print_addr <= memory_pos(11 downto 0);
 
                   -- character print register
                   when x"3" =>
-                     vga_char <= data(7 downto 0);                  
+                     vga_char <= data_in(7 downto 0);
                      vx := unsigned(vga_x);
                      vy := unsigned(vga_y);
                      memory_pos := std_logic_vector(vx + (vy * 80));                  
                      print_addr <= memory_pos(11 downto 0);
                      
                   -- offset registers
-                  when x"4" => offs_display <= data;
-                  when x"5" => offs_rw <= data;
+                  when x"4" => offs_display <= data_in;
+                  when x"5" => offs_rw <= data_in;
                   
                   -- ADV7511 HDMI DE config registers
-                  when x"6" => reg_hctr_min <= to_integer(unsigned(data));
-                  when x"7" => reg_hctr_max <= to_integer(unsigned(data));
-                  when x"8" => reg_vctr_max <= to_integer(unsigned(data));
+                  when x"6" => reg_hctr_min <= to_integer(unsigned(data_in));
+                  when x"7" => reg_hctr_max <= to_integer(unsigned(data_in));
+                  when x"8" => reg_vctr_max <= to_integer(unsigned(data_in));
                                     
                   when others => null;
                end case;
@@ -438,7 +439,7 @@ begin
       else
          if falling_edge(clk50MHz) then
             if en = '1' and we = '1' and reg = x"0" then
-               vga_clrscr <= data(8);
+               vga_clrscr <= data_in(8);
             end if;
          end if;
       end if;
@@ -450,27 +451,27 @@ begin
    begin   
       if en = '1' and we = '0' then
          case reg is            
-            when x"0" => data <= "0000" &                               -- status register
+            when x"0" => data_out <= "0000" &                               -- status register
                                  vmem_offs_rw &                         --    bit 11
                                  vmem_offs_display &                    --    bit 10
                                  vga_busy &                             --    bit 9
                                  vga_clrscr &                           --    bit 8
                                  vga_ctl;                               --    bits 0..7
-            when x"1" => data <= x"00"  & vga_x;                        -- cursor x register
-            when x"2" => data <= x"00" & '0' & vga_y;                   -- cursor y register
-            when x"3" => data <= x"00"  & vga_read_data;                -- character print/read register
-            when x"4" => data <= offs_display;                          -- display offset register
-            when x"5" => data <= offs_rw;                               -- memory access (read/write) offset register
+            when x"1" => data_out <= x"00"  & vga_x;                        -- cursor x register
+            when x"2" => data_out <= x"00" & '0' & vga_y;                   -- cursor y register
+            when x"3" => data_out <= x"00"  & vga_read_data;                -- character print/read register
+            when x"4" => data_out <= offs_display;                          -- display offset register
+            when x"5" => data_out <= offs_rw;                               -- memory access (read/write) offset register
             
             -- ADV7511 HDMI DE config registers
-            when x"6" => data <= std_logic_vector(to_unsigned(reg_hctr_min, 16));
-            when x"7" => data <= std_logic_vector(to_unsigned(reg_hctr_max, 16));
-            when x"8" => data <= std_logic_vector(to_unsigned(reg_vctr_max, 16));
+            when x"6" => data_out <= std_logic_vector(to_unsigned(reg_hctr_min, 16));
+            when x"7" => data_out <= std_logic_vector(to_unsigned(reg_hctr_max, 16));
+            when x"8" => data_out <= std_logic_vector(to_unsigned(reg_vctr_max, 16));
       
-            when others => data <= (others => '0');
+            when others => data_out <= (others => '0');
          end case;
       else
-         data <= (others => 'Z');
+         data_out <= (others => '0');
       end if;
    end process;
    
