@@ -30,6 +30,7 @@
 // PC_R15   : Test that PC is the same as R15
 // SUB      : Test the instructions RSUB and ASUB, and the use of the Stack Pointer and R13.
 // BANK     : Test register banking
+// RB_R14   : Test RB instructions with R14
 
 // Group 2. All combinations of instructions and status flags.
 // ADDC     : Test the ADDC instruction with all flags
@@ -1056,6 +1057,61 @@ L_RSUB_10
 
 
 // ---------------------------------------------------------------------------
+// Test RB instructions with R14
+
+L_RB_R14_00     MOVE    0x0000, R14             // All flags initially clear
+                INCRB
+                CMP     0x0101, R14             // Verify flags unchanged
+                RBRA    E_RB_R14_01, !Z
+
+                MOVE    0x00FF, R14             // All flags initially set
+                INCRB
+                CMP     0x01FF, R14             // Verify flags unchanged
+                RBRA    E_RB_R14_02, !Z
+
+                MOVE    0xFF00, R14             // All flags initially clear
+                INCRB
+                CMP     0x0001, R14             // Verify flags unchanged
+                RBRA    E_RB_R14_03, !Z
+
+                MOVE    0xFFFF, R14             // All flags initially set
+                INCRB
+                CMP     0x00FF, R14             // Verify flags unchanged
+                RBRA    E_RB_R14_04, !Z
+
+                MOVE    0x0100, R14             // All flags initially clear
+                DECRB
+                CMP     0x0001, R14             // Verify flags unchanged
+                RBRA    E_RB_R14_05, !Z
+
+                MOVE    0x01FF, R14             // All flags initially set
+                DECRB
+                CMP     0x00FF, R14             // Verify flags unchanged
+                RBRA    E_RB_R14_06, !Z
+
+                MOVE    0x0000, R14             // All flags initially clear
+                DECRB
+                CMP     0xFF01, R14             // Verify flags unchanged
+                RBRA    E_RB_R14_07, !Z
+
+                MOVE    0x00FF, R14             // All flags initially set
+                DECRB
+                CMP     0xFFFF, R14             // Verify flags unchanged
+                RBRA    E_RB_R14_08, !Z
+
+                RBRA    L_RB_R14_01, 1
+E_RB_R14_01     HALT
+E_RB_R14_02     HALT
+E_RB_R14_03     HALT
+E_RB_R14_04     HALT
+E_RB_R14_05     HALT
+E_RB_R14_06     HALT
+E_RB_R14_07     HALT
+E_RB_R14_08     HALT
+L_RB_R14_01
+
+
+// ---------------------------------------------------------------------------
 // Test register banking
 
 // First do a quick-and-dirty test to verify
@@ -1066,7 +1122,7 @@ L_BANK_00       MOVE    0, R14                  // Reset register bank
                 MOVE    0x0123, R0              // Stores values in R0 and R8
                 MOVE    0x4567, R8
 
-                ADD     0x0100, R14             // Change register bank
+                INCRB                           // Change register bank
 
                 MOVE    0x89AB, R0              // Store new value in (banked) R0
                 CMP     0x4567, R8              // Verify R8 is unchanged
@@ -1074,7 +1130,7 @@ L_BANK_00       MOVE    0, R14                  // Reset register bank
                 CMP     0x89AB, R0              // Verify R0 new value
                 RBRA    E_BANK_02, !Z           // Jump if error
 
-                SUB     0x0100, R14             // Revert register bank
+                DECRB                           // Revert register bank
 
                 CMP     0x4567, R8              // Verify R8 is unchanged
                 RBRA    E_BANK_03, !Z           // Jump if error
@@ -1102,14 +1158,13 @@ L_BANK_01       RSUB    L_BANK_PRNG, 1          // Get new value of R9
                 RSUB    L_BANK_PRNG, 1          // Get new value of R9
                 MOVE    R9, R7
 
-                ADD     0x0100, R14
+                INCRB
                 MOVE    R14, R10
                 AND     0xFF00, R10
                 RBRA    L_BANK_01, !Z
 
 // Verify all register banks
                 MOVE    0, R9                   // Current value to write
-                MOVE    0, R14                  // Reset register bank
 
 L_BANK_02       RSUB    L_BANK_PRNG, 1          // Get new value of R9
                 CMP     R9, R0
@@ -1136,7 +1191,7 @@ L_BANK_02       RSUB    L_BANK_PRNG, 1          // Get new value of R9
                 CMP     R9, R7
                 RBRA    E_BANK_05, !Z           // Jump if error
 
-                ADD     0x0100, R14
+                INCRB
                 MOVE    R14, R10
                 AND     0xFF00, R10
                 RBRA    L_BANK_02, !Z
