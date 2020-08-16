@@ -9,10 +9,10 @@
 
                 .ORG    0x8000
 
-                MOVE    0xFF84, R4              // Reads from 0xFF80
-                MOVE    0xFF85, R5              // Reads from 0xFF81
-                MOVE    0xFF86, R6              // Writes to 0xFF80
-                MOVE    0xFF87, R7              // Writes to 0xFF81
+                MOVE    CBT$CNT_READS_0, R4     // Reads from CBT$SCRATCH_0
+                MOVE    CBT$CNT_READS_1, R5     // Reads from CBT$SCRATCH_1
+                MOVE    CBT$CNT_WRITES_0, R6    // Writes to CBT$SCRATCH_0
+                MOVE    CBT$CNT_WRITES_1, R7    // Writes to CBT$SCRATCH_1
 
                 MOVE    STIM_START, R8
 
@@ -24,10 +24,10 @@ LOOP            MOVE    OPCODE, R9              // Store instruction to execute
                 MOVE    0, @R6
                 MOVE    0, @R7
 
-                MOVE    0xFF80, R0              // Setup registers
-                MOVE    0xFF81, R1
-                MOVE    0xFF81, R2
-                MOVE    0xFF82, R3
+                MOVE    CBT$SCRATCH_0, R0       // Setup registers
+                MOVE    CBT$SCRATCH_1, R1
+                MOVE    CBT$SCRATCH_1, R2
+                MOVE    CBT$RESERVED_0, R3
 
 OPCODE          MOVE    R0, R0                  // Perform instruction (one word)
 
