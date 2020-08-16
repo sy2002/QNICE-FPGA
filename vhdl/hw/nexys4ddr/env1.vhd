@@ -293,7 +293,8 @@ port (
    en       : in std_logic;         -- enable for reading from or writing to the bus
    we       : in std_logic;         -- write to the registers via system's data bus
    reg      : in std_logic_vector(2 downto 0);      -- register selector
-   data     : inout std_logic_vector(15 downto 0)   -- system's data bus
+   data_in  : in std_logic_vector(15 downto 0);     -- CPU data write
+   data_out : out std_logic_vector(15 downto 0)     -- CPU data read
 );
 end component;
 
@@ -470,7 +471,8 @@ begin
                   cyc_data_out      or
                   ins_data_out      or
                   eae_data_out      or
-                  sd_data_out;
+                  sd_data_out       or
+                  cbt_data_out;
 
   -- Non portable (Xilinx specific) way to generate the 25.175 MHz pixel clock
   -- Comment out and replace by the below-mentioned process "generate_clk25MHz"
@@ -698,7 +700,8 @@ begin
          en => cbt_en,
          we => cbt_we,
          reg => cbt_reg,
-         data => cpu_data
+         data_in => cpu_data_out,
+         data_out => cbt_data_out
       );
 
    -- memory mapped i/o controller
