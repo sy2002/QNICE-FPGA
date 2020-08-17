@@ -78,8 +78,8 @@
       {\tt 2}&{\tt ADDC}&{\tt src, dst}&{\tt dst := dst + src + C}\\
       {\tt 3}&{\tt SUB}&{\tt src, dst}&{\tt dst := dst - src}\\
       {\tt 4}&{\tt SUBC}&{\tt src, dst}&{\tt dst := dst - src - C}\\
-      {\tt 5}&{\tt SHL}&{\tt src, dst}&{\tt dst << src}, fill with X, shift to C\\
-      {\tt 6}&{\tt SHR}&{\tt src, dst}&{\tt dst >> src}, fill with C, shift to X\\
+      {\tt 5}&{\tt SHL}&{\tt src, dst}&{\tt dst << src}, fill with X, shift to C$^*$\\
+      {\tt 6}&{\tt SHR}&{\tt src, dst}&{\tt dst >> src}, fill with C, shift to X$^*$\\
       {\tt 7}&{\tt SWAP}&{\tt src, dst}&{\tt dst := ((src << 8) \& 0xFF00) |}\\
              &          &              &~~~~~~~~~~{\tt ((src >> 8) \& 0xFF)}\\
       {\tt 8}&{\tt NOT}&{\tt src, dst}&{\tt dst := !src}\\
@@ -100,6 +100,10 @@
      \hline
     \end{longtable}
    \end{center}
+   \vspace*{-12mm}
+   {\small $^*$) The shift instructions only change C or X and leave the
+    remaining condition bits in the status register unchanged.}
+   \vspace*{-5mm}
   }
 %
   \subsection{Basic Instructions (opcodes \texttt{0}..\texttt{C})}
