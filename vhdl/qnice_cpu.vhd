@@ -687,9 +687,12 @@ begin
                      
                      -- R14 aka SR
                      when x"E" =>
-                        -- bit 0 of the SR is not writeable, it is always 1
-                        fsmSR(15 downto 1) <= std_logic_vector(Alu_Result(15 downto 1));
-                        
+                        -- when doing a compare, then do not write back the old SR value
+                        if Opcode /= opcCMP then
+                           -- bit 0 of the SR is not writeable, it is always 1
+                           fsmSR(15 downto 1) <= std_logic_vector(Alu_Result(15 downto 1));
+                        end if;
+                           
                      -- R15 aka PC
                      when x"F" =>
                         fsmPC <= std_logic_vector(Alu_Result);
