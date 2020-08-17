@@ -1397,6 +1397,7 @@ E_SHL_01        HALT
 
 STIM_SHL
 ; X = 0, all other flags = 0
+                .DW     0x0000, 0x0000, ST______, 0x0000, ST______
                 .DW     0x5678, 0x0000, ST______, 0x5678, ST______
                 .DW     0x5678, 0x0001, ST______, 0xACF0, ST______
                 .DW     0x5678, 0x0002, ST______, 0x59E0, ST____C_
@@ -1415,6 +1416,7 @@ STIM_SHL
                 .DW     0xFFFF, 0xFFFF, ST______, 0x0000, ST______
 
 ; X = 0, all other flags = 1
+                .DW     0x0000, 0x0000, ST_VNZC_, 0x0000, ST_VNZC_
                 .DW     0x5678, 0x0000, ST_VNZC_, 0x5678, ST_VNZC_   ; C is unchanged when shifting zero bits
                 .DW     0x5678, 0x0001, ST_VNZC_, 0xACF0, ST_VNZ__
                 .DW     0x5678, 0x0002, ST_VNZC_, 0x59E0, ST_VNZC_
@@ -1433,6 +1435,7 @@ STIM_SHL
                 .DW     0xFFFF, 0xFFFF, ST_VNZC_, 0x0000, ST_VNZ__
 
 ; X = 1, all other flags = 0
+                .DW     0x0000, 0x0000, ST_____X, 0x0000, ST_____X
                 .DW     0x5678, 0x0000, ST_____X, 0x5678, ST_____X
                 .DW     0x5678, 0x0001, ST_____X, 0xACF1, ST_____X
                 .DW     0x5678, 0x0002, ST_____X, 0x59E3, ST____CX
@@ -1451,6 +1454,7 @@ STIM_SHL
                 .DW     0xFFFF, 0xFFFF, ST_____X, 0xFFFF, ST____CX
 
 ; X = 1, all other flags = 1
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_VNZCX
                 .DW     0x5678, 0x0000, ST_VNZCX, 0x5678, ST_VNZCX   ; C is unchanged when shifting zero bits
                 .DW     0x5678, 0x0001, ST_VNZCX, 0xACF1, ST_VNZ_X
                 .DW     0x5678, 0x0002, ST_VNZCX, 0x59E3, ST_VNZCX
@@ -1501,6 +1505,7 @@ E_SHR_01        HALT
 
 STIM_SHR
 ; C = 0, all other flags = 0
+                .DW     0x0000, 0x0000, ST______, 0x0000, ST______
                 .DW     0x8765, 0x0000, ST______, 0x8765, ST______
                 .DW     0x8765, 0x0001, ST______, 0x43B2, ST_____X
                 .DW     0x8765, 0x0002, ST______, 0x21D9, ST______
@@ -1517,6 +1522,7 @@ STIM_SHR
                 .DW     0x8765, 0xFFFE, ST______, 0x0000, ST______
                 .DW     0x8765, 0xFFFF, ST______, 0x0000, ST______
 ; C = 0, all other flags = 1
+                .DW     0x0000, 0x0000, ST_VNZ_X, 0x0000, ST_VNZ_X
                 .DW     0x8765, 0x0000, ST_VNZ_X, 0x8765, ST_VNZ_X    ; X is unchanged when shifting zero bits
                 .DW     0x8765, 0x0001, ST_VNZ_X, 0x43B2, ST_VNZ_X
                 .DW     0x8765, 0x0002, ST_VNZ_X, 0x21D9, ST_VNZ__
@@ -1533,6 +1539,7 @@ STIM_SHR
                 .DW     0x8765, 0xFFFE, ST_VNZ_X, 0x0000, ST_VNZ__
                 .DW     0x8765, 0xFFFF, ST_VNZ_X, 0x0000, ST_VNZ__
 ; C = 1, all other flags = 0
+                .DW     0x0000, 0x0000, ST____C_, 0x0000, ST____C_ 
                 .DW     0x8765, 0x0000, ST____C_, 0x8765, ST____C_
                 .DW     0x8765, 0x0001, ST____C_, 0xC3B2, ST____CX
                 .DW     0x8765, 0x0002, ST____C_, 0xE1D9, ST____C_
@@ -1549,6 +1556,7 @@ STIM_SHR
                 .DW     0x8765, 0xFFFE, ST____C_, 0xFFFF, ST____CX
                 .DW     0x8765, 0xFFFF, ST____C_, 0xFFFF, ST____CX
 ; C = 1, all other flags = 1
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_VNZCX
                 .DW     0x8765, 0x0000, ST_VNZCX, 0x8765, ST_VNZCX   ; X is unchanged when shifting zero bits
                 .DW     0x8765, 0x0001, ST_VNZCX, 0xC3B2, ST_VNZCX
                 .DW     0x8765, 0x0002, ST_VNZCX, 0xE1D9, ST_VNZC_

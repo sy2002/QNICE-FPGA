@@ -666,15 +666,26 @@ begin
                -- immediatelly done, when cs_execute i entered. We need to make sure,
                -- that all ALU inputs contain valid data at this moment in time
                
-               -- store flags, but MOVE must not change C and V
-               if Opcode = opcMOVE then
-                  var_V := SR(5);
-                  var_C := SR(2);
+               -- shift instructions must only modify C and X
+               if Opcode = opcSHL then
+                  -- fill with X and shift to C
+                  fsmSR <= SR(15 downto 8) & "00" & SR(5 downto 3) & Alu_C & SR(1) & "1";
+               elsif Opcode = opcSHR then
+                  -- fill with C and shift to X
+                  fsmSR <= SR(15 downto 8) & "00" & SR(5 downto 2) & Alu_X & "1";
+                     
+               -- all other opcodes
                else
-                  var_V := Alu_V;
-                  var_C := Alu_C;
+                  -- store flags, but MOVE must not change C and V
+                  if Opcode = opcMOVE then
+                     var_V := SR(5);
+                     var_C := SR(2);
+                  else
+                     var_V := Alu_V;
+                     var_C := Alu_C;
+                  end if;
+                  fsmSR <= SR(15 downto 8) & "00" & var_V & Alu_N & Alu_Z & var_C & Alu_X & "1";
                end if;
-               fsmSR <= SR(15 downto 8) & "00" & var_V & Alu_N & Alu_Z & var_C & Alu_X & "1";
                
                -- store result: direct
                if Dst_Mode = amDirect then
