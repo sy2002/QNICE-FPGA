@@ -162,7 +162,12 @@ signal Dst_Value           : std_logic_vector(15 downto 0) := (others => '0'); -
 signal Bra_Mode            : std_logic_vector(1 downto 0);  -- branch mode (branch type)
 signal Bra_Neg             : std_logic;                     -- branch condition negated
 signal Bra_Condition       : std_logic_vector(2 downto 0);  -- flag number within lower 8 bits of SR
-signal Ctrl_Cmd            : std_logic_vector(5 downto 0);  -- Control Command when Opcode = E 
+signal Ctrl_Cmd            : std_logic_vector(5 downto 0);  -- Control Command when Opcode = E
+
+-- delayed post increment situation (e.g. MOVE @R1++, @--R2) 
+signal Delayed_PostInc     : std_logic;
+signal DPI_RegNo           : std_logic_vector(3 downto 0);
+signal DPI_Value           : std_logic_vector(15 downto 0);
 
 -- state machine output buffers
 signal fsmDataToBus        : std_logic_vector(15 downto 0);
@@ -189,6 +194,10 @@ signal fsm_reg_write_en    : std_logic := '0';
 
 signal fsmSrc_Value        : std_logic_vector(15 downto 0);
 signal fsmDst_Value        : std_logic_vector(15 downto 0);
+
+signal fsmDelayed_PostInc  : std_logic;
+signal fsmDPI_RegNo        : std_logic_vector(3 downto 0);
+signal fsmDPI_Value        : std_logic_vector(15 downto 0);
 
 -- ALU signals are purely combinatorical
 signal Alu_Result          : IEEE.NUMERIC_STD.unsigned(15 downto 0); -- execution result
@@ -261,6 +270,10 @@ begin
             Src_Value <= (others => '0');
             Dst_Value <= (others => '0');
             
+            Delayed_PostInc <= '0';
+            DPI_RegNo <= (others => '0');
+            DPI_Value <= (others => '0');
+                           
             reg_read_addr1 <= (others => '0');
             reg_read_addr2 <= (others => '0');
             reg_write_addr <= (others => '0');
@@ -291,6 +304,10 @@ begin
             Src_Value <= fsmSrc_Value;
             Dst_Value <= fsmDst_Value;
             
+            Delayed_PostInc <= fsmDelayed_PostInc;
+            DPI_RegNo <= fsmDPI_RegNo;
+            DPI_Value <= fsmDPI_Value;
+                        
             reg_read_addr1 <= fsm_reg_read_addr1;
             reg_read_addr2 <= fsm_reg_read_addr2;            
             reg_write_addr <= fsm_reg_write_addr;
@@ -305,6 +322,7 @@ begin
                                 Instruction, Opcode,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
+                                Delayed_PostInc, DPI_RegNo, DPI_Value,
                                 reg_read_addr1, reg_read_data1, reg_read_addr2, reg_read_data2,
                                 reg_write_addr, reg_write_data, reg_write_en,
                                 Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                
@@ -327,7 +345,10 @@ begin
       fsmNextCpuState <= cs_std_seq;
       fsmInstruction <= Instruction;
       fsmSrc_Value <= Src_Value;
-      fsmDst_Value <= Dst_Value;
+      fsmDst_Value <= Dst_Value;      
+      fsmDelayed_PostInc <= Delayed_PostInc;
+      fsmDPI_RegNo <= DPI_RegNo;
+      fsmDPI_Value <= DPI_Value;   
       fsm_reg_read_addr1 <= reg_read_addr1;
       fsm_reg_read_addr2 <= reg_read_addr2;
       fsm_reg_write_addr <= reg_write_addr;
@@ -593,6 +614,20 @@ begin
                   -- within "elsif Dst_Mode /= amDirect then"
                   fsmNextCpuState <= cs_exeprep_get_dst_indirect;                  
                   if Dst_Mode = amIndirPreDec then
+                  
+                     -- The register bank is only able to write one register per cycle. If we need to
+                     -- post-increment any register between 0 and 12 and in parallel pre-decrement any
+                     -- register between 0 and 12, then this will not work in parallel and needs extra
+                     -- work in the next state cs_exeprep_get_dst_indirect.
+                     -- An exception are the registers SP, SR and PC, because they are not stored as
+                     -- part of the register bank, but modeled as CPU internal explicit registers
+                     if Src_Mode = amIndirPostInc and Src_RegNo < 13 and
+                        Dst_Mode = amIndirPreDec  and Dst_RegNo < 13 then
+                           fsmDelayed_PostInc <= '1';
+                           fsmDPI_RegNo <= Src_RegNo;
+                           fsmDPI_Value <= varResult;
+                     end if;
+                  
                      fsmCpuAddr <= reg_read_data2 - 1;
                      case Dst_RegNo is
                         when x"D" => fsmSP <= SP - 1;
@@ -623,9 +658,17 @@ begin
                fsmNextCpuState <= cs_exeprep_get_dst_indirect;
                
             -- data from bus is available
-            else         
+            else               
                -- read the indirect value from the bus and store it
                fsmDst_Value <= DATA_IN;
+               
+               -- handle delayed post-increment
+               if Delayed_PostInc = '1' then
+                  fsm_reg_write_addr <= DPI_RegNo;
+                  fsm_reg_write_data <= DPI_Value;
+                  fsm_reg_write_en <= '1';                  
+                  fsmDelayed_PostInc <= '0';
+               end if;               
             end if;                        
                         
          when cs_execute =>        
