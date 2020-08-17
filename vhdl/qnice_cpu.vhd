@@ -625,7 +625,14 @@ begin
                         Dst_Mode = amIndirPreDec  and Dst_RegNo < 13 then
                            fsmDelayed_PostInc <= '1';
                            fsmDPI_RegNo <= Src_RegNo;
-                           fsmDPI_Value <= varResult;
+                           
+                           if Src_RegNo /= Dst_RegNo then
+                              fsmDPI_Value <= varResult;
+                              
+                           -- doing a predec and then a postinc on the very same register results in no change at all                              
+                           else
+                              fsmDPI_Value <= Dst_Value;                              
+                           end if;
                      end if;
                   
                      fsmCpuAddr <= reg_read_data2 - 1;
