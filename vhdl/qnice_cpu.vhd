@@ -676,8 +676,8 @@ begin
                      
                -- all other opcodes
                else
-                  -- store flags, but MOVE must not change C and V
-                  if Opcode = opcMOVE then
+                  -- store flags, but MOVE and SWAP must not change C and V
+                  if Opcode = opcMOVE or Opcode = opcSWAP then
                      var_V := SR(5);
                      var_C := SR(2);
                   else
