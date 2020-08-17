@@ -311,6 +311,7 @@ begin
    variable varResult : std_logic_vector(15 downto 0);
    variable var_C     : std_logic;
    variable var_V     : std_logic;
+   variable var_X     : std_logic;
    begin
       DATA_OUT <= (others => '0');
       INS_CNT_STROBE <= '0';
@@ -676,15 +677,23 @@ begin
                      
                -- all other opcodes
                else
-                  -- store flags, but MOVE and SWAP must not change C and V
-                  if Opcode = opcMOVE or Opcode = opcSWAP then
-                     var_V := SR(5);
-                     var_C := SR(2);
-                  else
+                  -- the following defaults are overwritten by the "if Opcode..." section below
+                  var_V := SR(5);   -- default: V is not changed by the ALU
+                  var_C := SR(2);   -- default: C is not changed by the ALU
+                  var_X := Alu_X;   -- default: X is changed by the ALU
+            
+                  -- only additions and subtractions are allowed to change V and C
+                  if Opcode = opcADD or Opcode = opcADDC or Opcode = opcSUB or Opcode = opcSUBC then
                      var_V := Alu_V;
                      var_C := Alu_C;
+                     
+                  -- CMP is allowed to change Z, V and N (Alu_Z and Alu_N is already set in fsmSR below)
+                  elsif Opcode = opcCMP then
+                     var_V := Alu_V;
+                     var_X := SR(1); -- X cannot be changed by CMP
                   end if;
-                  fsmSR <= SR(15 downto 8) & "00" & var_V & Alu_N & Alu_Z & var_C & Alu_X & "1";
+                  
+                  fsmSR <= SR(15 downto 8) & "00" & var_V & Alu_N & Alu_Z & var_C & var_X & "1";
                end if;
                
                -- store result: direct
