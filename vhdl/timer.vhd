@@ -233,23 +233,23 @@ begin
    end process;
 
    -- MMIO: read/write registers: PRE, CNT, INT
-   handle_registers : process(clk, reset)
+   handle_registers : process(clk)
    begin
-      if reset = '1' then
-         reg_pre <= (others => '0');
-         reg_cnt <= (others => '0');
-         reg_int <= (others => '0');
-      else
          -- write registers
-         if rising_edge(clk) then
-            if en = '1' and we = '1' then
-               case reg is
-                  when REGNO_PRE => reg_pre <= unsigned(data_in);
-                  when REGNO_CNT => reg_cnt <= unsigned(data_in);
-                  when REGNO_INT => reg_int <= unsigned(data_in);
-                  when others => null;
-               end case;
-            end if;            
+      if rising_edge(clk) then
+         if en = '1' and we = '1' then
+            case reg is
+               when REGNO_PRE => reg_pre <= unsigned(data_in);
+               when REGNO_CNT => reg_cnt <= unsigned(data_in);
+               when REGNO_INT => reg_int <= unsigned(data_in);
+               when others => null;
+            end case;
+         end if;
+
+         if reset = '1' then
+            reg_pre <= (others => '0');
+            reg_cnt <= (others => '0');
+            reg_int <= (others => '0');
          end if;         
       end if;
    end process;   

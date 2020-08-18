@@ -77,7 +77,7 @@ signal busy       : std_logic;                        -- EAE is currently comput
 
 begin
 
-   write_eae_registers : process(clk, reset)
+   write_eae_registers : process(clk)
    begin
       if falling_edge(clk) then
          if en = '1' and we = '1' then
@@ -113,30 +113,30 @@ begin
       end if;
    end process;
    
-   calculate : process(clk, reset, op0_s, op0_u, op1_s, op1_u, csr)
+   calculate : process(clk)
    begin       
-      if reset = '1' then
-         res <= (others => '0');
-      else
-         if rising_edge(clk) then
-            case csr is      
-               when eaeMULU =>
-                  res <= std_logic_vector(op0_u * op1_u);
-                  
-               when eaeMULS =>
-                  res <= std_logic_vector(op0_s * op1_s);
-                  
-               when eaeDIVU =>
-                  res(15 downto 0)  <= std_logic_vector(op0_u / op1_u);
-                  res(31 downto 16) <= std_logic_vector(op0_u mod op1_u);
-                  
-               when eaeDIVS =>
-                  res(15 downto 0)  <= std_logic_vector(op0_s / op1_s);
-                  res(31 downto 16) <= std_logic_vector(op0_s mod op1_s);
-                  
-               when others =>
-                  res <= (others => '0');
-            end case;
+      if rising_edge(clk) then
+         case csr is
+            when eaeMULU =>
+               res <= std_logic_vector(op0_u * op1_u);
+
+            when eaeMULS =>
+               res <= std_logic_vector(op0_s * op1_s);
+
+            when eaeDIVU =>
+               res(15 downto 0)  <= std_logic_vector(op0_u / op1_u);
+               res(31 downto 16) <= std_logic_vector(op0_u mod op1_u);
+
+            when eaeDIVS =>
+               res(15 downto 0)  <= std_logic_vector(op0_s / op1_s);
+               res(31 downto 16) <= std_logic_vector(op0_s mod op1_s);
+
+            when others =>
+               res <= (others => '0');
+         end case;
+
+         if reset = '1' then
+            res <= (others => '0');
          end if;
       end if;
    end process;

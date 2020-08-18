@@ -65,38 +65,42 @@ architecture beh of basic_uart is
 begin
 
   -- sample signal at 16x baud rate, 1 CLK spikes
-  sample_process: process (clk,reset) is
+  sample_process: process (clk) is
   begin
-    if reset = '1' then
-      sample_counter <= (others => '0');
-      sample <= '0';
-    elsif rising_edge(clk) then
-      if sample_counter = DIVISOR-1 then
-        sample <= '1';
-        sample_counter <= (others => '0');
-      else
-        sample <= '0';
-        sample_counter <= sample_counter + 1;
-      end if;
-    end if;
+     if rising_edge(clk) then
+        if sample_counter = DIVISOR-1 then
+           sample <= '1';
+           sample_counter <= (others => '0');
+        else
+           sample <= '0';
+           sample_counter <= sample_counter + 1;
+        end if;
+
+        if reset = '1' then
+           sample_counter <= (others => '0');
+           sample <= '0';
+        end if;
+     end if;
   end process;
 
   -- RX, TX state registers update at each CLK, and RESET
-  reg_process: process (clk,reset) is
+  reg_process: process (clk) is
   begin
-    if reset = '1' then
-      rx_state.fsm_state <= idle;
-      rx_state.bits <= (others => '0');
-      rx_state.nbits <= (others => '0');
-      rx_state.enable <= '0';
-      tx_state.fsm_state <= idle;
-      tx_state.bits <= (others => '1');
-      tx_state.nbits <= (others => '0');
-      tx_state.ready <= '1';
-    elsif rising_edge(clk) then
-      rx_state <= rx_state_next;
-      tx_state <= tx_state_next;
-    end if;
+     if rising_edge(clk) then
+        rx_state <= rx_state_next;
+        tx_state <= tx_state_next;
+
+        if reset = '1' then
+           rx_state.fsm_state <= idle;
+           rx_state.bits <= (others => '0');
+           rx_state.nbits <= (others => '0');
+           rx_state.enable <= '0';
+           tx_state.fsm_state <= idle;
+           tx_state.bits <= (others => '1');
+           tx_state.nbits <= (others => '0');
+           tx_state.ready <= '1';
+        end if;
+     end if;
   end process;
   
   -- RX FSM

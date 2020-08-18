@@ -2,6 +2,7 @@
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
 -- output goes zero when not enabled
 -- done by sy2002 in December 2015/January 2016, refactored in Mai/June 2020
+-- refactored by MJoergen in August 2020
 
 -- Features:
 -- * 80x40 text mode
@@ -261,17 +262,17 @@ begin
          data => vga_font_d
       );
          
-   fsm_advance_state : process(clk50MHz, reset)
+   fsm_advance_state : process(clk50MHz)
    begin
-      if reset = '1' then
-         vga_cmd <= vc_idle;
-         clrscr_cnt <= (others => '0');
-      else
-         if falling_edge(clk50MHz) then
-            vga_cmd <= fsm_next_vga_cmd;
-            clrscr_cnt <= fsm_clrscr_cnt;
+      if falling_edge(clk50MHz) then
+         vga_cmd <= fsm_next_vga_cmd;
+         clrscr_cnt <= fsm_clrscr_cnt;
+
+         if reset = '1' then
+            vga_cmd <= vc_idle;
+            clrscr_cnt <= (others => '0');
          end if;
-      end if;     
+      end if;
    end process;
    
    fsm_calc_state : process(vga_cmd, vga_print, vga_clrscr, clrscr_cnt)
@@ -349,98 +350,98 @@ begin
       end case;
    end process;
       
-   write_vga_registers : process(clk50MHz, reset)
+   write_vga_registers : process(clk50MHz)
       variable vx : IEEE.NUMERIC_STD.unsigned(7 downto 0);
       variable vy : IEEE.NUMERIC_STD.unsigned(6 downto 0);
       variable memory_pos : std_logic_vector(13 downto 0); -- x + (80 * y)
    begin  
-      if reset = '1' then
-         vga_x <= (others => '0');
-         vga_y <= (others => '0');
-         vga_ctl <= (others => '0');
-         vga_char <= (others => '0');
-         print_addr <= (others => '0');
-         vmem_offs_display <= '0';
-         vmem_offs_rw <= '0';         
-         offs_display <= (others => '0');
-         offs_rw <= (others => '0');
-         
-         -- default settings so that the whole screen is visible
-         reg_hctr_min <= 9;
-         reg_hctr_max <= 650;
-         reg_vctr_max <= 480;                     
-      else                  
-         if falling_edge(clk50MHz) then
-            if en = '1' and we = '1' then
-               case reg is
+      if falling_edge(clk50MHz) then
+         if en = '1' and we = '1' then
+            case reg is
                   -- status register
-                  when x"0" =>
-                     vga_ctl <= data_in(7 downto 0);
-                     vmem_offs_display <= data_in(10);
-                     vmem_offs_rw <= data_in(11);
-                     
+               when x"0" =>
+                  vga_ctl <= data_in(7 downto 0);
+                  vmem_offs_display <= data_in(10);
+                  vmem_offs_rw <= data_in(11);
+
                   -- cursor x register
-                  when x"1" =>
-                     vga_x <= data_in(7 downto 0);
-                     vx := unsigned(data_in(7 downto 0));
-                     vy := unsigned(vga_y);
-                     memory_pos := std_logic_vector(vx + (vy * 80));                     
-                     print_addr <= memory_pos(11 downto 0);
-                  
+               when x"1" =>
+                  vga_x <= data_in(7 downto 0);
+                  vx := unsigned(data_in(7 downto 0));
+                  vy := unsigned(vga_y);
+                  memory_pos := std_logic_vector(vx + (vy * 80));
+                  print_addr <= memory_pos(11 downto 0);
+
                   -- cursor y register
-                  when x"2" =>
-                     vga_y <= data_in(6 downto 0);
-                     vx := unsigned(vga_x);
-                     vy := unsigned(data_in(6 downto 0));
-                     memory_pos := std_logic_vector(vx + (vy * 80));
-                     print_addr <= memory_pos(11 downto 0);
+               when x"2" =>
+                  vga_y <= data_in(6 downto 0);
+                  vx := unsigned(vga_x);
+                  vy := unsigned(data_in(6 downto 0));
+                  memory_pos := std_logic_vector(vx + (vy * 80));
+                  print_addr <= memory_pos(11 downto 0);
 
                   -- character print register
-                  when x"3" =>
-                     vga_char <= data_in(7 downto 0);
-                     vx := unsigned(vga_x);
-                     vy := unsigned(vga_y);
-                     memory_pos := std_logic_vector(vx + (vy * 80));                  
-                     print_addr <= memory_pos(11 downto 0);
-                     
+               when x"3" =>
+                  vga_char <= data_in(7 downto 0);
+                  vx := unsigned(vga_x);
+                  vy := unsigned(vga_y);
+                  memory_pos := std_logic_vector(vx + (vy * 80));
+                  print_addr <= memory_pos(11 downto 0);
+
                   -- offset registers
-                  when x"4" => offs_display <= data_in;
-                  when x"5" => offs_rw <= data_in;
-                  
+               when x"4" => offs_display <= data_in;
+               when x"5" => offs_rw <= data_in;
+
                   -- ADV7511 HDMI DE config registers
-                  when x"6" => reg_hctr_min <= to_integer(unsigned(data_in));
-                  when x"7" => reg_hctr_max <= to_integer(unsigned(data_in));
-                  when x"8" => reg_vctr_max <= to_integer(unsigned(data_in));
-                                    
-                  when others => null;
-               end case;
-            end if;
+               when x"6" => reg_hctr_min <= to_integer(unsigned(data_in));
+               when x"7" => reg_hctr_max <= to_integer(unsigned(data_in));
+               when x"8" => reg_vctr_max <= to_integer(unsigned(data_in));
+
+               when others => null;
+            end case;
+         end if;
+
+         if reset = '1' then
+            vga_x <= (others => '0');
+            vga_y <= (others => '0');
+            vga_ctl <= (others => '0');
+            vga_char <= (others => '0');
+            print_addr <= (others => '0');
+            vmem_offs_display <= '0';
+            vmem_offs_rw <= '0';
+            offs_display <= (others => '0');
+            offs_rw <= (others => '0');
+
+            -- default settings so that the whole screen is visible
+            reg_hctr_min <= 9;
+            reg_hctr_max <= 650;
+            reg_vctr_max <= 480;
          end if;
       end if;
    end process;
    
-   detect_vga_print : process(clk50MHz, reset, reset_vga_print)
+   detect_vga_print : process(clk50MHz)
    begin
-      if reset = '1' or reset_vga_print = '1' then
-         vga_print <= '0';
-      else
-         if falling_edge(clk50MHz) then
-            if en = '1' and we = '1' and reg = x"3" then         
-               vga_print <= '1';
-            end if;
+      if falling_edge(clk50MHz) then
+         if en = '1' and we = '1' and reg = x"3" then
+            vga_print <= '1';
+         end if;
+
+         if reset = '1' or reset_vga_print = '1' then
+            vga_print <= '0';
          end if;
       end if;
    end process;
    
-   detect_vga_clrscr : process(clk50MHz, reset, reset_vga_clrscr)
+   detect_vga_clrscr : process(clk50MHz)
    begin
-      if reset = '1' or reset_vga_clrscr = '1' then
-         vga_clrscr <= '0';
-      else
-         if falling_edge(clk50MHz) then
-            if en = '1' and we = '1' and reg = x"0" then
-               vga_clrscr <= data_in(8);
-            end if;
+      if falling_edge(clk50MHz) then
+         if en = '1' and we = '1' and reg = x"0" then
+            vga_clrscr <= data_in(8);
+         end if;
+
+         if reset = '1' or reset_vga_clrscr = '1' then
+            vga_clrscr <= '0';
          end if;
       end if;
    end process;
@@ -514,3 +515,4 @@ begin
    
    vga_busy <= '0' when vga_cmd = vc_idle else '1';
 end beh;
+

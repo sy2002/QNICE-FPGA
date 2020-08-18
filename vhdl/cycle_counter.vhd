@@ -29,28 +29,28 @@ signal cycle_is_counting      : std_logic;
 
 begin
 
-   count : process(clk, reset, en, we, reg, data_in)
+   count : process(clk)
    begin
-      if reset = '1' or (en = '1' and we='1' and reg="11" and data_in(0) = '1') then
-         counter <= (others => '0');
-      else
-         if rising_edge(clk) then
-            if impulse = '1' and cycle_is_counting = '1' then
-               counter <= counter + 1;
-            end if;
+      if rising_edge(clk) then
+         if impulse = '1' and cycle_is_counting = '1' then
+            counter <= counter + 1;
+         end if;
+
+         if reset = '1' or (en = '1' and we='1' and reg="11" and data_in(0) = '1') then
+            counter <= (others => '0');
          end if;
       end if;
    end process;
    
-   write_register : process(clk, reset)
+   write_register : process(clk)
    begin
-      if reset = '1' then
-         cycle_is_counting <= '1';
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' and reg = "11" then
-               cycle_is_counting <= data_in(0) or data_in(1);
-            end if;
+      if falling_edge(clk) then
+         if en = '1' and we = '1' and reg = "11" then
+            cycle_is_counting <= data_in(0) or data_in(1);
+         end if;
+
+         if reset = '1' then
+            cycle_is_counting <= '1';
          end if;
       end if;
    end process;
@@ -58,11 +58,7 @@ begin
    read_registers : process(en, we, reg, counter, cycle_is_counting)
    begin
       if en = '1' and we = '0' then
---         data_out <= x"9ABC";
          case reg is
---            when "00" => data_out  <= x"9ABC"; --std_logic_vector(counter(15 downto 0));
---            when "01" => data_out  <= x"5678"; --std_logic_vector(counter(31 downto 16));
---            when "10" => data_out <= x"1234"; --std_logic_vector(counter(47 downto 32));
             when "00" => data_out <= std_logic_vector(counter(15 downto 0));
             when "01" => data_out <= std_logic_vector(counter(31 downto 16));
             when "10" => data_out <= std_logic_vector(counter(47 downto 32));

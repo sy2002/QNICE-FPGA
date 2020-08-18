@@ -102,38 +102,38 @@ begin
          modifiers => modifiers
       );
 
-   ff_new_handler : process(clk, reset)
+   ff_new_handler : process(clk)
    begin
-      if reset = '1' then
-         ff_ascii_new <= '0';
-         ff_spec_new <= '0';
-      else
-         if rising_edge(clk) then
-            if kbd_en = '1' and kbd_we = '0' and kbd_reg = "01" then
-               ff_ascii_new <= '0';
-               ff_spec_new <= '0';
-            end if;
+      if rising_edge(clk) then
+         if kbd_en = '1' and kbd_we = '0' and kbd_reg = "01" then
+            ff_ascii_new <= '0';
+            ff_spec_new <= '0';
+         end if;
 
-            if ascii_new = '1' then
-               ff_ascii_new <= '1';
-            end if;
+         if ascii_new = '1' then
+            ff_ascii_new <= '1';
+         end if;
 
-            if spec_new = '1' then
-               ff_spec_new <= '1';
-            end if;
+         if spec_new = '1' then
+            ff_spec_new <= '1';
+         end if;
+
+         if reset = '1' then
+            ff_ascii_new <= '0';
+            ff_spec_new <= '0';
          end if;
       end if;
    end process;
-   
-   write_ff_locale: process(clk, kbd_en, kbd_we, kbd_reg, reset)
+
+   write_ff_locale: process(clk)
    begin
-      if reset = '1' then
-         ff_locale <= (others => '0');
-      else
-         if rising_edge(clk) then
-            if kbd_en = '1' and kbd_we = '1' and kbd_reg = "00" then
-               ff_locale <= cpu_data_in(4 downto 2);
-            end if;
+      if rising_edge(clk) then
+         if kbd_en = '1' and kbd_we = '1' and kbd_reg = "00" then
+            ff_locale <= cpu_data_in(4 downto 2);
+         end if;
+
+         if reset = '1' then
+            ff_locale <= (others => '0');
          end if;
       end if;
    end process;

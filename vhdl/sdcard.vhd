@@ -251,31 +251,31 @@ begin
          erase_count => (others => '0')
       );     
       
-   fsm_advance_state : process(clk, reset, cmd_reset)
+   fsm_advance_state : process(clk)
    begin
-      if reset = '1' or cmd_reset = '1' then
-         sd_state <= sds_reset;
-         
-         sd_sync_reset <= '0';
-         sd_block_read <= '0';
-         sd_block_addr <= (others => '0');
-         
-         current_byte  <= (others => '0');
-         buffer_ptr    <= (others => '0');
-      else
-         if rising_edge(clk) then
-            if fsm_state_next = sds_std_seq then
-               sd_state <= sd_state_next;
-            else
-               sd_state <= fsm_state_next;
-            end if;            
-            
-            sd_sync_reset <= fsm_sync_reset;
-            sd_block_read <= fsm_block_read;
-            sd_block_addr <= fsm_block_addr;
-            
-            current_byte  <= fsm_current_byte;
-            buffer_ptr    <= fsm_buffer_ptr;
+      if rising_edge(clk) then
+         if fsm_state_next = sds_std_seq then
+            sd_state <= sd_state_next;
+         else
+            sd_state <= fsm_state_next;
+         end if;
+
+         sd_sync_reset <= fsm_sync_reset;
+         sd_block_read <= fsm_block_read;
+         sd_block_addr <= fsm_block_addr;
+
+         current_byte  <= fsm_current_byte;
+         buffer_ptr    <= fsm_buffer_ptr;
+
+         if reset = '1' or cmd_reset = '1' then
+            sd_state <= sds_reset;
+
+            sd_sync_reset <= '0';
+            sd_block_read <= '0';
+            sd_block_addr <= (others => '0');
+
+            current_byte  <= (others => '0');
+            buffer_ptr    <= (others => '0');
          end if;
       end if;
    end process;
@@ -448,73 +448,73 @@ begin
       end if;
    end process;
    
-   write_sdcard_registers : process(clk, reset)
+   write_sdcard_registers : process(clk)
    begin
-      if reset = '1' then
-         reg_addr_lo <= (others => '0');
-         reg_addr_hi <= (others => '0');
-         reg_data_pos <= (others => '0');
-         reg_data <= (others => '0');
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' then
-               case reg is               
-                  when "000" => reg_addr_lo <= data_in;
-                  when "001" => reg_addr_hi <= data_in;
-                  when "010" => reg_data_pos <= data_in;
-                  when "011" => reg_data <= data_in(7 downto 0);
-                  when others => null;               
-               end case;
-            end if;
+      if falling_edge(clk) then
+         if en = '1' and we = '1' then
+            case reg is
+               when "000" => reg_addr_lo <= data_in;
+               when "001" => reg_addr_hi <= data_in;
+               when "010" => reg_data_pos <= data_in;
+               when "011" => reg_data <= data_in(7 downto 0);
+               when others => null;
+            end case;
+         end if;
+
+         if reset = '1' then
+            reg_addr_lo <= (others => '0');
+            reg_addr_hi <= (others => '0');
+            reg_data_pos <= (others => '0');
+            reg_data <= (others => '0');
          end if;
       end if;
    end process;
    
-   detect_write_data : process(clk, reset, write_data)
+   detect_write_data : process(clk)
    begin
-      if reset = '1' then
-         write_data <= "00";
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' and reg = "011" then
-               write_data <= "01";
-            else
-               if write_data = "01" then
-                  write_data <= "10";
-               elsif write_data = "10" then
-                  write_data <= "00";
-               end if;
+      if falling_edge(clk) then
+         if en = '1' and we = '1' and reg = "011" then
+            write_data <= "01";
+         else
+            if write_data = "01" then
+               write_data <= "10";
+            elsif write_data = "10" then
+               write_data <= "00";
             end if;
+         end if;
+
+         if reset = '1' then
+            write_data <= "00";
          end if;
       end if;
    end process;
    
-   detect_cmd_reset : process(clk, reset, reset_cmd_reset)
+   detect_cmd_reset : process(clk)
    begin
-      if reset = '1' or reset_cmd_reset = '1' then
-         cmd_reset <= '0';
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' then
-               if reg = "101" and data_in = x"0000" then
-                  cmd_reset <= '1';
-               end if;
+      if falling_edge(clk) then
+         if en = '1' and we = '1' then
+            if reg = "101" and data_in = x"0000" then
+               cmd_reset <= '1';
             end if;
+         end if;
+
+         if reset = '1' or reset_cmd_reset = '1' then
+            cmd_reset <= '0';
          end if;
       end if;
    end process;
    
-   detect_cmd_read : process(clk, reset, reset_cmd_read)
+   detect_cmd_read : process(clk)
    begin
-      if reset = '1' or reset_cmd_read = '1' then
-         cmd_read <= '0';
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' then
-               if reg = "101" and data_in = x"0001" then
-                  cmd_read <= '1';
-               end if;
+      if falling_edge(clk) then
+         if en = '1' and we = '1' then
+            if reg = "101" and data_in = x"0001" then
+               cmd_read <= '1';
             end if;
+         end if;
+
+         if reset = '1' or reset_cmd_read = '1' then
+            cmd_read <= '0';
          end if;
       end if;
    end process;

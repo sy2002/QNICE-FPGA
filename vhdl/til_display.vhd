@@ -62,20 +62,20 @@ begin
       );
 
    -- clock-in the current to-be-displayed value and mask into a FF for the TIL
-   til_driver : process(clk, reset)
+   til_driver : process(clk)
    begin
-      if reset = '1' then
-         TIL_311_buffer <= x"0000";
-         TIL_311_mask <= "1111";
-      else
-         if falling_edge(clk) then
-            if til_reg0_enable = '1' then
-               TIL_311_buffer <= data_in;            
-            end if;
-            
-            if til_reg1_enable = '1' then
-               TIL_311_mask <= data_in(3 downto 0);
-            end if;
+      if falling_edge(clk) then
+         if til_reg0_enable = '1' then
+            TIL_311_buffer <= data_in;
+         end if;
+
+         if til_reg1_enable = '1' then
+            TIL_311_mask <= data_in(3 downto 0);
+         end if;
+
+         if reset = '1' then
+            TIL_311_buffer <= x"0000";
+            TIL_311_mask <= "1111";
          end if;
       end if;
    end process;
