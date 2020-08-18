@@ -7,6 +7,8 @@
 ;*  Assembler macros which make life much easier:
 ;***************************************************************************************
 ;
+;;#define INCRB   ADD     0x0100, R14 ; These two defines are no longer necessary
+;;#define DECRB   SUB     0x0100, R14 ; as of 15-AUG-2020!
 
 
 ;

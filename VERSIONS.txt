@@ -6,8 +6,7 @@ Version 1.6     xxxxx, xx 2020
   the way for CONTROL instructions such has HALT, RTI, INCRB and DECRB. The
   latter two mean, that instead of adding/subtracting something to the upper
   byte of the SR, one can use these new commands. The new ISA is documented
-  in doc/intro/qnice_intro.pdf.
-  <@Bernd any thing missing here?>
+  in doc/intro/qnice_intro.pdf. SHL and SHR now modify Z and N condition flags.
 
 * MMIO: Cleaned up the MMIO address space and by doing so, changed all the 
   locations of MMIO devices in sysdef.asm. This breaks binary compatibility
@@ -44,7 +43,11 @@ Version 1.6     xxxxx, xx 2020
 
 * EMULATOR: Updated to reflect the new ISA.
 
-* EMULATOR: Usability improved: <@Bernd describe the usability changes you made here>
+* EMULATOR: Usability improved: 
+  At the "Q>" prompt the emulator now displays the address from which the
+  last instruction was read from. When an emulator run is interrupted by 
+  CRTL/C (SIGINT) the statistics page now also lists the last 16 addresses
+  from which instructions were executed.
 
 * EMULATOR: Made the WebAssembly target compatible with Emscripten 1.39.14
   (and newer and it still works with 1.39.10 and some of the older versions,
