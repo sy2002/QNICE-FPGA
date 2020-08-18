@@ -97,7 +97,7 @@ _DBG$DISASM_EXIT    RSUB    IO$PUT_CRLF, 1
                     MOVE    R0, R8              ; Restore address
                     DECRB
                     RET
-_DBG$REL_S          .ASCII_W    "   ("
+_DBG$REL_S          .ASCII_W    "\t\t(-> "
 ;
 ;  The following routine prints out the source operand and expects R1 to contain
 ; the instruction and R0 to contain the address. If the operand is R15 indirect,
