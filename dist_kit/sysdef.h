@@ -7,8 +7,6 @@
 //*  Assembler macros which make life much easier:
 //***************************************************************************************
 //
-//;#define INCRB   ADD     0x0100, R14 ; These two defines are no longer necessary
-//;#define DECRB   SUB     0x0100, R14 ; as of 15-AUG-2020!
 
 
 //
@@ -178,7 +176,7 @@
     // Bit      6: Hardware cursor enable
     // Bit      5: Hardware cursor blink enable
     // Bit      4: Hardware cursor mode: 1 - small
-    //                              0 - large
+    //                                   0 - large
     // Bits   2-0: Output color for the whole screen, bits (2, 1, 0) = RGB
 #define VGA_CR_X           	0xFF31 // VGA cursor X position
 #define VGA_CR_Y           	0xFF32 // VGA cursor Y position

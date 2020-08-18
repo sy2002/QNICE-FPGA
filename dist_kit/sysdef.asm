@@ -182,7 +182,7 @@ VGA$STATE           .EQU 0xFF30 ; VGA status register
     ; Bit      6: Hardware cursor enable
     ; Bit      5: Hardware cursor blink enable
     ; Bit      4: Hardware cursor mode: 1 - small
-    ;                              0 - large
+    ;                                   0 - large
     ; Bits   2-0: Output color for the whole screen, bits (2, 1, 0) = RGB
 VGA$CR_X            .EQU 0xFF31 ; VGA cursor X position
 VGA$CR_Y            .EQU 0xFF32 ; VGA cursor Y position

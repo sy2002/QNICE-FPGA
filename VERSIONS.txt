@@ -49,11 +49,10 @@ Version 1.6     xxxxx, xx 2020
 
 * EMULATOR: Updated to reflect the new ISA.
 
-* EMULATOR: Usability improved: 
-  At the "Q>" prompt the emulator now displays the address from which the
-  last instruction was read from. When an emulator run is interrupted by 
-  CRTL/C (SIGINT) the statistics page now also lists the last 16 addresses
-  from which instructions were executed.
+* EMULATOR: Usability improved: At the "Q>" prompt the emulator now displays
+  the address from which the last instruction was read from. When an emulator
+  run is interrupted by CRTL/C (SIGINT) the statistics page now also lists
+  the last 16 addresses from which instructions were executed.
 
 * EMULATOR: Made the WebAssembly target compatible with Emscripten 1.39.14
   (and newer and it still works with 1.39.10 and some of the older versions,
@@ -83,6 +82,10 @@ WIP Q-TRIS: Adjusted (slowed down) to match the CPU's speed increase by 7%.
 * TOOLCHAIN: Added Ubuntu Linux support, which means it should also run on
   any other Debian based distribution. You might want to install xclip for
   more convenience (.out copied to clipboard after assembler ran).
+
+* QBIN: All sample applications have been rebuilt due to changes in the ISA
+  and the MMIO. A new download-link for the sample disk image is available:
+  http://sy2002x.de/hwdp/qnice_disk_v16.img
 
 * DOCUMENTATION: Added CONTRIBUTING.md, doc/README.md, doc/best-practices.md,
   doc/mips.md, doc/how-to-release.md, hw/README.md & vhdl/hw/MEGA65/README.md.
