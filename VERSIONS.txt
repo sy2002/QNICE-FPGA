@@ -1,24 +1,50 @@
 Version 1.6     xxxxx, xx 2020
 ==============================
 
-<CPU upgraded to ISA 1.6: Interrupts added>
-<CPU bugfix: The CPU wrote back the second operand when comparing. This had
-no visible effects but this one: When using the register of a MMIO device as
-a second indirect operand such as CMP 1, @R0 and if the device was sensitive
-to this register being re-written. Details:
-https://github.com/sy2002/QNICE-FPGA/issues/9#issuecomment-670980704>
+* ISA: QNICE Instruction Set Architecture updated to version 1.6. The changes
+  are: Interrupt system added, HALT instruction changed the semantics opened
+  the way for CONTROL instructions such has HALT, RTI, INCRB and DECRB. The
+  latter two mean, that instead of adding/subtracting something to the upper
+  byte of the SR, one can use these new commands. The new ISA is documented
+  in doc/intro/qnice_intro.pdf.
+  <@Bernd any thing missing here?>
 
-<new MMIO map, new sysdef.asm, breaking change>
+* MMIO: Cleaned up the MMIO address space and by doing so, changed all the 
+  locations of MMIO devices in sysdef.asm. This breaks binary compatibility
+  with all software from version 1.5 and older and therefore all this
+  software needs to be reassembled and recompiled to run on version 1.6.
 
-* MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/)
+* CPU: Updates to reflect the new ISA. Added interrupt system. A a
+  comprehensive CPU test was added (test_programs/cpu_test.asm) and multiple
+  CPU bugs were fixed.
+
+* MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/). This includes
+  adding HDMI and HyperRAM support for the MEGA65.
+
+* TIMER INTERRUPT GENERATOR: Added. Is internally running on 100kHz and
+  contains two independent counters (see sysdef.asm for details).
+
+* INSTRUCTION COUNTER: Added. Counts all instructions executed by the CPU.
+  Can be used for performance testing as shown in
+  test_programs/q-tris_perf_test.asm and test_programs/mandel_perf_test.asm.
 
 * UART: Added a 32 Byte FIFO to the UART. This was necessary because the
   MEGA65 serial over JTag does not support RTS/CTS and therefore we needed
   more stability. Now RTS/CTS should be unnecessary in most cases.
 
-* INSTRUCTION COUNTER: Added. Counts all instructions executed by the CPU.
-  Can be used for performance testing as shown in
-  test_programs/q-tris_perf_test.asm and test_programs/mandel_perf_test.asm.
+* VHDL REFACTORINGS: The following system-wide refactorings have taken place
+  with the goal to improve the code quality and the FPGA performance:
+  register_file optimized to use LUTRAM instead of registers, replaced
+  Tristate based inout DATA bus by separate DATA_IN and DATA_OUT, got rid of
+  the large if/elsif/then section in mmio_mux and replaced by more elegant
+  direct logic assignments.
+  <@Michael: Is this list complete and correct?>
+
+* MONITOR: Disassembler can now handle the new ISA.
+
+* EMULATOR: Updated to reflect the new ISA.
+
+* EMULATOR: Usability improved: <@Bernd describe the usability changes you made here>
 
 * EMULATOR: Made the WebAssembly target compatible with Emscripten 1.39.14
   (and newer and it still works with 1.39.10 and some of the older versions,
@@ -28,6 +54,12 @@ https://github.com/sy2002/QNICE-FPGA/issues/9#issuecomment-670980704>
 WIP EMULATOR: Adjusted the standard emulation speed to 12.12 MIPS because this
   is the average Q-TRIS performance. Peak performance observed so far is in
   test_programs/mandel_perf_test.asm: 13.18 MIPS
+  <@sy2002: TODO>
+
+* TOOLCHAIN: Native assembler updated to reflect the ISA changes.
+
+* TOOLCHAIN: C code emitter and standard C library and Monitor library
+  updated to reflect the MMIO changes.
 
 * TOOLCHAIN: qtransfer: Convenient mechanism for transferring software
   (.out files) from the host computer to QNICE-FPGA. Details: doc/README.md
@@ -40,55 +72,10 @@ WIP EMULATOR: Adjusted the standard emulation speed to 12.12 MIPS because this
   any other Debian based distribution. You might want to install xclip for
   more convenience (.out copied to clipboard after assembler ran).
 
-* DOCUMENTATION: Added doc/README.md, hw/README.md & vhdl/hw/MEGA65/README.md
+* DOCUMENTATION: Added CONTRIBUTING.md, doc/README.md, doc/best-practices.md,
+  doc/mips.md, doc/how-to-release.md, hw/README.md & vhdl/hw/MEGA65/README.md.
+  <@sy2002: TODO doc/mips.md>
 
-<Repeat speed tests after having corrected the instruction counter. Do them
-at least on Nexys4DDR using a Vivado build and on the MEGA65. Note all values
-and create an average. It seems it is only 12.0 MIPS in Q-TRIS. Retest:
-After having done real speed tests: Adjust all the 12.9 MIPS claims
-to 12.12 MIPS (also in emulator, documentation, various README.MDs): the
-spectrum is between 12.12 MIPS in Q-TRIS and 13.18 MIPS in mandel_perf_test>
-
-<Now that Vivado for the Nexys board works again: make ISE also working again:
-Seems we need to add a list of caveats for ISE including a non working cycle
-and instruction counter; describe that in the hw/README.md - or is there
-anything else we can test?>
-
-HYPERRAM:
-
-<make ISE work again: 
-1. (Merge HDMI, done and) test HDMI and VGA
-2. (Merge Instruction count, done and) test instruction count
-3. did Paul finally fix the strange Hyperram smoking gun? If not, then I need
-to remove HyperRAM from the ISE version and write a note, that HyperRAM right
-now only works in Vivado and explain why>
-
-<is the double read of id0lo (or in general the first control register)
-still necessary? hardware bug still there? ref hyperram.asm "hw bug: 2 reads necessary!"
-reproduce on C65; notify Paul>
-
-<create a thorough HyperRAM test program and/or update the exiting ones in
-assembler and C>
-
-FINAL TOUCHES JUST BEFORE RELEASING:
-
-1. Make sure that the PORE texts are correct (for the MEGA65 version as well
-as for the standard version)
-
-2. <restructure dist_kit and have .bit and .cor files ready and then update
-all the links @TODO, for example in the hw/README.md and doc/README.md,
-others? Make all the .bit files with Vivado as it seems to be more reliable
-than ISE>
-
-3. <make sure to update the Getting Started section to reflect all the news
-about ISE and Vivado and also about the platforms. Have also a MEGA65.bit
-and a MEGA65.cor in the dist_kit and mention it in the Getting Started 
-section>
-
-DIRECTLY AFTER RELEASE:
-
-<Update the qnice-fpga.com website: new version number, mention hardware
-platforms, mention Vivado>
 
 Version 1.5     March, 22 2020
 ==============================
@@ -98,6 +85,7 @@ emulator. Detailed description: emulator/README.md
 
 * qnice-vga: VGA screen and PS/2 keyboard emulation
 * qnice-wasm: WebAssembly/WebGL version that runs in the web browser
+
 
 Version 1.41    December, 30 2016
 =================================
@@ -111,6 +99,7 @@ Version 1.41    December, 30 2016
   to see how it works.
 * EMULATOR: 'dump' now shows ASCII values additionally to the hex values.
 * Fixed a bunch of typos in various places and improved the documentation.
+
 
 Version 1.4    December, 26 2016
 ================================
@@ -159,6 +148,7 @@ Version 1.4    December, 26 2016
    * Math Library (Monitor): mulu, muls, divu, divs, mulu32, divu32
    * String Library (Monitor): chr2lower, split, h2dstr
 
+
 Version 1.3    May, 6 2016
 ==========================
 
@@ -185,6 +175,7 @@ Version 1.3    May, 6 2016
   clock cycles, it is counting instructions.
 * DOCUMENTATION: Added a programming card.
 
+
 Version 1.21   February, 13 2016
 ================================
 
@@ -193,6 +184,7 @@ Version 1.21   February, 13 2016
   Needs VGA and keyboard. Located in demos/q-tris.asm, starts at 0x8000 when
   being run via the monitor. Additionally, there is a special stand-alone
   autostart bitstream for the Digilent Nexys 4 DDR in dist_kit/q-tris.bit
+
 
 Version 1.2  January, 10 2016
 =============================
@@ -210,6 +202,7 @@ Version 1.2  January, 10 2016
   displayed.
 * ASSEMBLER: bugfixes and .DW now supports .EQUs and labels as arguments
 
+
 Version 1.1  December, 30 2015
 ==============================
 
@@ -220,6 +213,7 @@ monitor (80x40 characters):
 
 * PS/2 keyboard support: enable via SW0
 * VGA support: enable via SW1
+
 
 Version 1.0  August, 30 2015
 ============================
