@@ -882,6 +882,9 @@ int execute() {
         write_register(SR, (read_register(SR) & 0xfffb) | temp_flag);                 /* Shift into C bit */
         write_destination(destination_mode, destination_regaddr, destination, FALSE);
       }
+      update_status_bits(destination, source_0, source_1, 
+                         DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_X | DO_NOT_MODIFY_OVERFLOW, 
+                         NO_ADD_SUB_INSTRUCTION);
       break;
     case 6: /* SHR */
       if ((scratch = source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
@@ -893,6 +896,9 @@ int execute() {
         write_register(SR, (read_register(SR) & 0xfffd) | temp_flag);                     /* Shift into X bit */
         write_destination(destination_mode, destination_regaddr, destination, FALSE);
       }
+      update_status_bits(destination, source_0, source_1, 
+                         DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_X | DO_NOT_MODIFY_OVERFLOW, 
+                         NO_ADD_SUB_INSTRUCTION);
       break;
     case 7: /* SWAP */
       source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
