@@ -27,13 +27,22 @@
 ;
 ; PERFORMANCE TEST VERSION TO DETERMINE THE MIPS DURING PLAYING Q-TRIS
 ;
+; ISA 1.5:
+;
 ; Measurement #1 done on MEGA65 by sy2002 on July, 13th 2020:
 ; Clock cycles: 0003 C771 F13E = 16.231.035.198 => 324,62 sec
 ; Instructions: 0000 EA6E 73D1 =  3.933.107.153 => 12,12 MIPS
 ;
-; Measurement #2 done on Nexys4 DDR by sy2002 on July, 14th 2020:
+; Measurement #2 done on Nexys 4 DDR by sy2002 on July, 14th 2020:
 ; Clock cycles: 0001 0078 BDA3 =  4.302.880.163 => 86,06 sec
 ; Instructions: 0000 3E2F CF3E =  1.043.320.638 => 12,12 MIPS
+;
+; ISA 1.6:
+;
+; Measurement #3 done on Nexys 4 DDR by sy2002 on August, 18th 2020:
+; Clock cycles: 0005 33BE B478 = 22.342.972.536 => 446,86 sec => 7:27 min
+; Instructions: 0001 5996 6BCC =  5.797.997.516 => 3,85 cycles / instruction
+;                                               => 12,97 MIPS
 ;
 ; ****************************************************************************
 

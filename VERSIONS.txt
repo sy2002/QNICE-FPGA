@@ -5,8 +5,14 @@ Version 1.6     xxxxx, xx 2020
   are: Interrupt system added, HALT instruction changed the semantics opened
   the way for CONTROL instructions such has HALT, RTI, INCRB and DECRB. The
   latter two mean, that instead of adding/subtracting something to the upper
-  byte of the SR, one can use these new commands. The new ISA is documented
-  in doc/intro/qnice_intro.pdf. SHL and SHR now modify Z and N condition flags.
+  byte of the SR, one can use these new commands. SHL and SHR now modify Z
+  and N condition flags. The new ISA is documented in
+  doc/intro/qnice_intro.pdf.
+
+* PERFORMANCE: The new ISA leads to a speed increase of about 7% as documented
+  in `q-tris_perf_test.asm` compared to the old ISA. The main reason is, that
+  the new INCRB/DECRB only need two cycles compared to 4 cycles when switching
+  banks the old way. This leads to faster sub-routine calls.
 
 * MMIO: Cleaned up the MMIO address space and by doing so, changed all the 
   locations of MMIO devices in sysdef.asm. This breaks binary compatibility
@@ -57,6 +63,9 @@ Version 1.6     xxxxx, xx 2020
 WIP EMULATOR: Adjusted the standard emulation speed to 12.12 MIPS because this
   is the average Q-TRIS performance. Peak performance observed so far is in
   test_programs/mandel_perf_test.asm: 13.18 MIPS
+  <@sy2002: TODO>
+
+WIP Q-TRIS: Adjusted (slowed down) to match the CPU's speed increase by 7%.
   <@sy2002: TODO>
 
 * TOOLCHAIN: Native assembler updated to reflect the ISA changes.
