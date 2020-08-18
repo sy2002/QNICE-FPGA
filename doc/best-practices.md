@@ -136,10 +136,12 @@ C
   ```
   If you want to force it, even when the to-be-saved registers are smaller
   than treshold, then use the __rbank directive:
+  ```
   __rbank void always_use_bankswitching(int x)
   {
     ...
   }
+  ```
 * The `qvc` command has all the include and library paths automatically set,
   so that you do not need to at paths to your includes. Neither do you need
   to manually link any libraries.
