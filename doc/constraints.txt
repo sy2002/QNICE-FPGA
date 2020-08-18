@@ -1,7 +1,7 @@
 This file contains constraints of the QNICE-FPGA (env1) design, that should
 be mentioned, when writing the documentation.
 
-Written by sy2002 / Last modified in June 2020
+Written by sy2002 / Last modified in August 2020
 
 ==============================================================================
     SD Card
@@ -51,7 +51,12 @@ keyboards are tested and work:
     VGA
 ==============================================================================    
 
-The monitor needs to support 640x480 and 640x400 in 60 Hz.
+* The monitor needs to support 640x480 and 640x400 in 60 Hz.
+* The emulator does not support the following bits in VGA$STATE:
+  Bit 7: right now, VGA is always on
+  Bit 5: right now, if the HW cursor is on, then it always blinks
+  Bit 4: right now, the cursor is always large (i.e. a block)
+  Bit 2 to 0: right now, this is ignored and green is chosen as color
 
 ==============================================================================
     Encoding / Languages / Fonts

@@ -108,3 +108,9 @@ you can switch to use INCRB/DECRB instead of the stack for functions, mention
 heap and memory, ...For C: Mention -c99 and -O3
 (and that it is worth to use -O3), mention how you can switch to use
 INCRB/DECRB instead of the stack for functions, mention heap and memory, ...>
+
+The heap size is currently set to 4096 words. Short version: It grows
+  upwards coming from the end of the application and therefore grows towards
+  the stack which is coming downwards from somewhere near 0xFEFF. Currently
+  there are no checking mechanisms that check a collision between stack and
+  heap. So be careful.
