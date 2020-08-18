@@ -64,7 +64,7 @@ Playing Q-TRIS
   else in the file system, you can enter `f` and then `r` and then 
   `/qbin/q-tris.out` (including the leading forward slash `/`) to start the game.
 * Run the game for having a realistic baseline and while it runs, adjust
-  the emulation speed to match 12.9 MIPS as close as possible. This provides
+  the emulation speed to match 13.0 MIPS as close as possible. This provides
   you with the same gaming experience as you would have on the QNICE-FPGA
   hardware.
 * The current high score can be found
