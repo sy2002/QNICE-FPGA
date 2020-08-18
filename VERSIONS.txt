@@ -14,7 +14,7 @@ Version 1.6     xxxxx, xx 2020
   with all software from version 1.5 and older and therefore all this
   software needs to be reassembled and recompiled to run on version 1.6.
 
-* CPU: Updates to reflect the new ISA. Added interrupt system. A a
+* CPU: Updates to reflect the new ISA. Added interrupt system. And a
   comprehensive CPU test was added (test_programs/cpu_test.asm) and multiple
   CPU bugs were fixed.
 
