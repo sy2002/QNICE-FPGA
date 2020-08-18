@@ -26,7 +26,7 @@ There are two instrumented versions of QNICE demo programs located in
 STDIN=STDOUT=VGA. UART would lead to different results. Mandelbrot has been
 run three times, because the scrolling behaviour in VGA leads to different
 performance (scrolling does cost performance). Q-TRIS was played for about
-X:XX minutes to get a realistic value.
+7:27 minutes to get a realistic value.
 
 ### Mandelbrot: 13.62 MIPS
 
