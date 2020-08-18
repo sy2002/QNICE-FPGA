@@ -61,13 +61,11 @@ Version 1.6     xxxxx, xx 2020
   but not with the versions in between). The background of this phenomenon is
   explained here: https://github.com/emscripten-core/emscripten/issues/10746
 
-WIP EMULATOR: Adjusted the standard emulation speed to 12.12 MIPS because this
+* EMULATOR: Adjusted the standard emulation speed to 13.0 MIPS because this
   is the average Q-TRIS performance. Peak performance observed so far is in
-  test_programs/mandel_perf_test.asm: 13.18 MIPS
-  <@sy2002: TODO>
+  test_programs/mandel_perf_test.asm: 13.62 MIPS
 
-WIP Q-TRIS: Adjusted (slowed down) to match the CPU's speed increase by 7%.
-  <@sy2002: TODO>
+* Q-TRIS: Adjusted (slowed down) to match the CPU's speed increase by 7%.
 
 * TOOLCHAIN: Native assembler updated to reflect the ISA changes.
 
@@ -96,8 +94,7 @@ WIP Q-TRIS: Adjusted (slowed down) to match the CPU's speed increase by 7%.
   - doc/mips.md
   - doc/how-to-release.md
   - hw/README.md
-  - vhdl/hw/MEGA65/README.md.
-  <@sy2002: TODO doc/mips.md>
+  - vhdl/hw/MEGA65/README.md
 
 
 Version 1.5     March, 22 2020
