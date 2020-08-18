@@ -107,13 +107,16 @@ C
 -
 
 * You need to set up the environment by doing a
-  `source c/setenv.source`.
+  `source setenv.source` while being in the folder `c`. (It does not work,
+  if you call it from another folder.)
 * The sample programs are in `c/test_programs/`.
 * Most of the time, you will want to compile by using
-  `qvc <source> -c99 -O3 -opt-speed`, this leads to best performance. 
-  If the output `.out` grows too large, you might want to decrease
-  the optimization level to `-O2` or `-O1`. The C99 standard using `-c99`
-  is recommended for QNICE-FPGA.
+  `qvc <source> -c99 -O3`, this leads to best performance. 
+  If the output `.out` grows too large or does not work as expected, you
+  might want to decrease the optimization level to `-O2` or `-O1`.
+  The C99 standard using `-c99` is recommended for QNICE-FPGA.
+* If you need the intermediary files such as the assembler file, that the
+  compiler generates, then use the switch `-k`.
 * The heap size is currently set to 4096 words. It grows upwards coming from
   the end of the application and therefore grows towards the stack which is
   coming downwards from somewhere near 0xFEFF. Currently there are no
@@ -124,7 +127,7 @@ C
 * VBCC is able to use QNICE's register bank feature: If `-opt-speed` is set, 
   then VBCC evaluates `-rw-threshold`, which is 2 by default. It means:
   As soon as more than 2 registers need to be saved, then bank switching
-  is performed.
+  is performed. (Caveat: This does not work currently and needs to be fixed.)
 
   If you need to prevent this, e.g. because you have a recursive function,
   then use the __norbank directive:
@@ -141,7 +144,7 @@ C
   {
     ...
   }
-  ```
+  ``
 * The `qvc` command has all the include and library paths automatically set,
   so that you do not need to at paths to your includes. Neither do you need
   to manually link any libraries.
