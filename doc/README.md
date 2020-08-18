@@ -21,21 +21,24 @@ Folder Structure
 
 ### Documentation Folder
 
-| Folder name      | Description
-|------------------|----------------------------------------------------------
-| demos            | Screenshots for the web site and for the main README.md showing the demos. Additionally, this folder contains the all-time high-scores for Q-TRIS in [q-tris-highscore.txt](demos/q-tris-highscore.txt).
-| github           | Images used for the presentation of the project on GitHub
-| history          | Right now, this folder only contains an old paper (`nice_can.pdf`) about the predecessor of QNICE: The NICE architecture. QNICE albeit a 16-bit architecture was created later than the 32-bit NICE architecture.
-| intro            | LaTeX source and [PDF version](intro/qnice_intro.pdf) of the QNICE introduction presentation
-| monitor          | The script [create_documentation.pl](../monitor/create_documentation.pl) uses LaTeX to generate the basic Monitor library function documentation in the PDF file [doc.pdf](monitor/doc.pdf).
-| programming_card | LaTeX source and [PDF version](programming_card/programming_card_screen.pdf) of a convenient QNICE Assembler programming card (quick guide)
+| Folder name       | Description
+|-------------------|----------------------------------------------------------
+| demos             | Screenshots for the web site and for the main README.md showing the demos. Additionally, this folder contains the all-time high-scores for Q-TRIS in [q-tris-highscore.txt](demos/q-tris-highscore.txt).
+| github            | Images used for the presentation of the project on GitHub
+| history           | Right now, this folder only contains an old paper (`nice_can.pdf`) about the predecessor of QNICE: The NICE architecture. QNICE albeit a 16-bit architecture was created later than the 32-bit NICE architecture.
+| intro             | LaTeX source and [PDF version](intro/qnice_intro.pdf) of the QNICE introduction presentation
+| monitor           | The script [create_documentation.pl](../monitor/create_documentation.pl) uses LaTeX to generate the basic Monitor library function documentation in the PDF file [doc.pdf](monitor/doc.pdf).
+| programming_card  | LaTeX source and [PDF version](programming_card/programming_card_screen.pdf) of a convenient QNICE Assembler programming card (quick guide)
 
-| File name        | Description
-|------------------|----------------------------------------------------------
-| constraints.txt  | Known constraints of the QNICE-FPGA design: SD Cards and keyboards that are working, VGA monitor requirements, character encoding, languages, fonts, standard C library
-| emumount.txt     | Hints about creating and mounting FAT32 devices in the emulator
-| requirements.txt | Minimum requirements to work with QNICE-FPGA
-| vbcc.txt         | Hints for improving performance while using the vbcc compiler system
+| File name         | Description
+|-------------------|----------------------------------------------------------
+| best-practices.md | Best practices and programming conventions for assembly and C
+| constraints.txt   | Known constraints of the QNICE-FPGA design: SD Cards and keyboards that are working, VGA monitor requirements, character encoding, languages, fonts, standard C library
+| emumount.txt      | Hints about creating and mounting FAT32 devices in the emulator
+| how-to-release.md | Checklist for making a new release
+| MIPS.md           | Performance measurements and QNICE-FPGA performance characteristics
+| requirements.txt  | Minimum requirements to work with QNICE-FPGA
+| vbcc.txt          | Hints for improving performance while using the vbcc compiler system
 
 Basics
 ------

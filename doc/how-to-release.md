@@ -12,6 +12,8 @@ update this document on the go while doing the V1.6 release
 
 update VERSIONS.txt
 
+how to locally run Jekyll (from GitHub doc, link to GitHub)
+
 FINAL TOUCHES JUST BEFORE RELEASING on GitHub:
 
 1. Make sure that the PORE texts are correct (for the MEGA65 version as well
