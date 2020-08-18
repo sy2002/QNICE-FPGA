@@ -1267,10 +1267,10 @@ L_ADDC_02
 ; Test the SUB instruction
 
 L_SUB_00        MOVE    STIM_SUB, R8
-L_SUB_01        MOVE    @R8, R1                 ; First operand
+L_SUB_01        MOVE    @R8, R1                 ; Dst operand (= minuend)
                 RBRA    L_SUB_02, Z             ; End of test
                 ADD     0x0001, R8
-                MOVE    @R8, R0                 ; Second operand
+                MOVE    @R8, R0                 ; Src operand (= subtrahend)
                 ADD     0x0001, R8
                 MOVE    @R8, R2                 ; Carry input
                 ADD     0x0001, R8
@@ -1313,10 +1313,10 @@ L_SUB_02
 ; Test the SUBC instruction
 
 L_SUBC_00       MOVE    STIM_SUBC, R8
-L_SUBC_01       MOVE    @R8, R1                 ; First operand
+L_SUBC_01       MOVE    @R8, R1                 ; Dst operand (= minuend)
                 RBRA    L_SUBC_02, Z            ; End of test
                 ADD     0x0001, R8
-                MOVE    @R8, R0                 ; Second operand
+                MOVE    @R8, R0                 ; Src operand (= subtrahend)
                 ADD     0x0001, R8
                 MOVE    @R8, R2                 ; Carry input
                 ADD     0x0001, R8
