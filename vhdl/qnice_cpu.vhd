@@ -606,7 +606,7 @@ begin
                   -- in case of postinc and the destination is the source: make sure the updated destination (!) value
                   -- (not the source value) goes to the ALU, but only if we are executing an opcode that calculates something
                   -- (not necessary for SP, SR and PC because they are separate explicit CPU registers) 
-                  if Src_RegNo = Dst_RegNo and Src_RegNo < 13 and  Opcode /= opcMOVE and Opcode /= opcSWAP and
+                  if Src_RegNo = Dst_RegNo and Src_RegNo < 13 and Opcode /= opcMOVE and Opcode /= opcSWAP and
                      Opcode /= opcBRA and Opcode /= opcCTRL and Opcode /= opcCMP then
                      fsmDst_Value <= varResult;
                   end if;
@@ -636,14 +636,17 @@ begin
                            
                            if Src_RegNo /= Dst_RegNo then
                               fsmDPI_Value <= varResult;
+                              fsmCpuAddr <= reg_read_data2 - 1;
                               
                            -- doing a predec and then a postinc on the very same register results in no change at all                              
                            else
-                              fsmDPI_Value <= Dst_Value;                              
+                              fsmDPI_Value <= Dst_Value;
+                              fsmCpuAddr <= reg_read_data2;                       
                            end if;
+                     else                     
+                        fsmCpuAddr <= reg_read_data2 - 1;
                      end if;
-                  
-                     fsmCpuAddr <= reg_read_data2 - 1;
+                     
                      case Dst_RegNo is
                         when x"D" => fsmSP <= SP - 1;
                         when x"E" => fsmSR <= SR - 1;
