@@ -23,8 +23,8 @@ and this special website branch:
 * dist_kit
 * doc
 * emulator
+* hw
 * monitor
-* nexys4ddr
 * pore
 * qbin
 * test_programs
