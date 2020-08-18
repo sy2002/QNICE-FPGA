@@ -18,14 +18,15 @@ All languages
   documented in `doc/monitor/doc.pdf`. They range from IO functions over
   math and string functions to debug functions.
 * Configure your editor to convert SPACEs to TABs
-* When using register banks, always make sure, that the register bank
+* When using register banks make sure, that the register bank
   selector in the upper eight bits of SR is **always** pointing to the highest
-  active bank. Reason: Interrupt Service Routines might also use register
-  banks to save and restore the lower registers. So: If you need to reserve
-  multiple banks, then just increase the bank selector accordingly. The
-  principle is similar to reserving something on the stack, but the other
-  way round: You are *incrementing* the bank selector to reserve space but
-  you would *decrement* the stack pointer for doing so.
+  active bank. Reason: Interrupt Service Routines might interrupt your code
+  any time and they might also use register banks to save and restore the
+  lower registers. So: If you need to reserve multiple banks, then just
+  increase the bank selector accordingly. The principle is similar to
+  reserving something on the stack, but the other way round: You
+  are *incrementing* the bank selector to reserve space but you would
+  *decrement* the stack pointer for doing so.
 * When writing an interrupt service routine (ISR), make sure that you do not
   leave any register modified when calling `RTI`. You may use the stack.    
 
@@ -74,7 +75,7 @@ CALC_TTR_POS    MOVE    Tetromino_Y, R1
   you can type your comment (`C`) with a maximum of 28 characters.
 
 There is a template file in `test_programs/template.asm` that you an use as
-a starting point for your projets. It contains the right columns and spacings
+a starting point for your projects. It contains the right columns and spacings
 and includes some more best practices.
 
 ### Subroutines
@@ -83,9 +84,8 @@ and includes some more best practices.
 * They must not change any upper register that is not needed for returning 
   values.
 * Another elegant way to return one or more boolean values is to use the
-  status register's flags C, V and N, because you can then use branch
-  commands after the subroutine returns without the need of an additional
-  `CMP`.
+  status register's flags because you can then use branch commands after
+  the subroutine returns without the need of an additional `CMP`.
 * QNICE's register banks often times allow you to omit the stack when entering
   and leaving sub routines because in many cases, the lower registers R0 to R7
   are more than enough (and if not, you can use more than one bank per
@@ -97,20 +97,54 @@ and includes some more best practices.
 VASM assembler
 --------------
 
-WIP, <different includes, supports macros>
+* The priciples of the native assembler apply in principle.
+* In `c/test_programs/vasm_test.asm` there is a sample file.
+* Include `dist_kit/qnice-conv.vasm` for accessing the convenience macros,
+  `dist_kit/sysdef.vasm` for the MMIO addresses and registers and 
+  `monitor.vdef` for the "operating system" routines.
 
 C
 -
 
-WIP
-<For C: Mention -c99 and -O3 (and that it is worth to use -O3), mention how
-you can switch to use INCRB/DECRB instead of the stack for functions, mention
-heap and memory, ...For C: Mention -c99 and -O3
-(and that it is worth to use -O3), mention how you can switch to use
-INCRB/DECRB instead of the stack for functions, mention heap and memory, ...>
+* You need to set up the environment by doing a
+  `source c/setenv.source`.
+* The sample programs are in `c/test_programs/`.
+* Most of the time, you will want to compile by using
+  `qvc <source> -c99 -O3 -opt-speed`, this leads to best performance. 
+  If the output `.out` grows too large, you might want to decrease
+  the optimization level to `-O2` or `-O1`. The C99 standard using `-c99`
+  is recommended for QNICE-FPGA.
+* The heap size is currently set to 4096 words. It grows upwards coming from
+  the end of the application and therefore grows towards the stack which is
+  coming downwards from somewhere near 0xFEFF. Currently there are no
+  checking mechanisms that check a collision between stack and heap.
+  So be careful.
+* Instead of heap memory, you might just want to use static variables within
+  the code segment.
+* VBCC is able to use QNICE's register bank feature: If `-opt-speed` is set, 
+  then VBCC evaluates `-rw-threshold`, which is 2 by default. It means:
+  As soon as more than 2 registers need to be saved, then bank switching
+  is performed.
 
-The heap size is currently set to 4096 words. Short version: It grows
-  upwards coming from the end of the application and therefore grows towards
-  the stack which is coming downwards from somewhere near 0xFEFF. Currently
-  there are no checking mechanisms that check a collision between stack and
-  heap. So be careful.
+  If you need to prevent this, e.g. because you have a recursive function,
+  then use the __norbank directive:
+  ```
+  __norbank void highly_recursive(int x, int y, int z)
+  {
+    ...
+  }
+  ```
+  If you want to force it, even when the to-be-saved registers are smaller
+  than treshold, then use the __rbank directive:
+  __rbank void always_use_bankswitching(int x)
+  {
+    ...
+  }
+* The `qvc` command has all the include and library paths automatically set,
+  so that you do not need to at paths to your includes. Neither do you need
+  to manually link any libraries.
+* Additionally to the Standard C library that can be included as usual, there
+  is the QNICE Monitor library that provides "operating system functions"
+  to C programs. It can be included via `#include "qmon.h"` and you can find
+  it in `c/qnice/monitor-lib/include/qmon.h`
+* You can also include `sysdef.h`, if you need low-level access to devices.
