@@ -602,6 +602,14 @@ begin
                         varResult := Src_Value + 1;
                         fsm_reg_write_en <= '1';                        
                   end case;
+                  
+                  -- in case of postinc and the destination is the source: make sure the updated destination (!) value
+                  -- (not the source value) goes to the ALU, but only if we are executing an opcode that calculates something
+                  -- (not necessary for SP, SR and PC because they are separate explicit CPU registers) 
+                  if Src_RegNo = Dst_RegNo and Src_RegNo < 13 and  Opcode /= opcMOVE and Opcode /= opcSWAP and
+                     Opcode /= opcBRA and Opcode /= opcCTRL and Opcode /= opcCMP then
+                     fsmDst_Value <= varResult;
+                  end if;
                else
                   varResult := reg_read_data2;
                end if;
