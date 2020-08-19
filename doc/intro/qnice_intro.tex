@@ -10,8 +10,8 @@
   \titlepage
  \end{frame}
 %
- \section{Introduction}
-  \subsection{Goal}
+% \section{Introduction}
+%  \subsection{Goal}
    \begin{frame}
     \frametitle{Goal}
     Why a new 16 bit processor architecture? Why not stay with commodity
@@ -33,7 +33,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Basics}
+%  \subsection{Basics}
    \begin{frame}
     \frametitle{Basics}
     \begin{itemize}
@@ -52,8 +52,8 @@
     \end{itemize}
    \end{frame}
 %
- \section{Architecture}
-  \subsection{Registers}
+% \section{Architecture}
+%  \subsection{Registers}
    \begin{frame}
     \frametitle{Registers}
     \begin{itemize}
@@ -80,7 +80,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{The status register {\tt R14}}
+%  \subsection{The status register {\tt R14}}
    \begin{frame}
     \frametitle{The status register {\tt R14}}
     The status register is divided into two parts: The lower
@@ -125,7 +125,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Input/Output}
+%  \subsection{Input/Output}
    \begin{frame}
     \frametitle{Input/Ouput}
     \begin{itemize}
@@ -138,8 +138,8 @@
     \end{itemize}
    \end{frame}
 %
- \section{Instruction set and addressing modes}
-  \subsection{Instruction set basics}
+% \section{Instruction set and addressing modes}
+%  \subsection{Instruction set basics}
    \begin{frame}
     \frametitle{Instruction set basics}
     \begin{itemize}
@@ -162,7 +162,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Instruction format}
+%  \subsection{Instruction format}
    \begin{frame}
     \frametitle{Instruction format}
     \begin{itemize}
@@ -206,7 +206,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{List of instructions}
+%  \subsection{List of instructions}
    \begin{frame}
     \frametitle{List of instructions}
     \begin{center}
@@ -255,7 +255,7 @@
     \end{center}
    \end{frame}
 %
-  \subsection{Affected condition bits}
+%  \subsection{Affected condition bits}
    \begin{frame}
     \frametitle{Affected condition bits}
     The following table shows which instructions (R)eads, (W)rites or is 
@@ -282,7 +282,7 @@
     \end{center}
    \end{frame}
 %
-  \subsection{Affected condition bits}
+%  \subsection{Affected condition bits}
    \begin{frame}
     \frametitle{Affected condition bits}
     \begin{center}
@@ -306,7 +306,7 @@
    \end{frame}
 %blub
 %
-  \subsection{\texttt{CMP} instruction}
+%  \subsection{\texttt{CMP} instruction}
    \begin{frame}
     \frametitle{\texttt{CMP} instruction}
     The \texttt{CMP} instruction affects the condition flags in the 
@@ -328,7 +328,7 @@
     \end{center}
    \end{frame}
 %
-  \subsection{Control instructions}
+%  \subsection{Control instructions}
    \begin{frame}
     \frametitle{Control instructions}
     All control instructions share the opcode \texttt{E}. The command to be
@@ -350,7 +350,7 @@
     \end{center}
    \end{frame}
 %
-  \subsection{Branches and subroutine calls}
+%  \subsection{Branches and subroutine calls}
    \begin{frame}
     \frametitle{Branches and subroutine calls}
     The four branch and call instructions need some clarification:
@@ -393,7 +393,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Addressing modes}
+%  \subsection{Addressing modes}
    \begin{frame}
     \frametitle{Addressing modes}
     All {\tt src} and {\tt dst} operands may be specified using one out of 
@@ -463,7 +463,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Branches and calls}
+%  \subsection{Branches and calls}
    \begin{frame}
     \frametitle{Branches and calls}
     \begin{itemize}
@@ -487,7 +487,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Examples}
+%  \subsection{Examples}
    \begin{frame}
     \frametitle{Examples}
     The following examples may help in understanding the binary representation
@@ -532,7 +532,7 @@
     }
    \end{frame}
 %
- \section{Code example}
+% \section{Code example}
   \begin{frame}[containsverbatim]
    \frametitle{Code example: {\scriptsize$\sum_{i=0}^{0x1000}i$}}
    \begin{verbatim}
@@ -546,7 +546,7 @@
    \end{verbatim}
   \end{frame}
 %
-  \subsection{Subroutines}
+%  \subsection{Subroutines}
    \begin{frame}
     \frametitle{Subroutines}
     \begin{itemize}
@@ -582,7 +582,7 @@
     }
    \end{frame}
 %
- \section{Interrupts}
+% \section{Interrupts}
   \begin{frame}
    \frametitle{Interrupts}
    QNICE supports a simple interrupt scheme:
@@ -641,7 +641,7 @@
 %]}
   \end{frame}
 %
- \section{Soft- and hardware}
+% \section{Soft- and hardware}
   \begin{frame}
    \frametitle{Soft- and hardware}
    \begin{itemize}
@@ -658,7 +658,7 @@
    \end{itemize}
   \end{frame}
 %
- \section{The emulator}
+% \section{The emulator}
   \begin{frame}
    \frametitle{The emulator}
    \begin{itemize}
@@ -765,19 +765,21 @@ rx   :    12290 (42.86%)    rx   :     8194 (28.57%)
    }
   \end{frame}
 %
- \section{Future plans}
+% \section{Future plans}
   \begin{frame}
    \frametitle{Future plans}
    \begin{itemize}
-    \item As of now (AUG-2015) three QNICE implementations exist: The
-     emulator, an AVR-implementation and Mirko Holzer's 
-     FPGA-implementation.
-    \item The next step is to develop a useful monitor program, maybe
-     in conjunction with a Forth interpreter.
-    \item Next, a system controller will be designed which implements
-     an interrupt controller and a simple MMU.
-    \item With these prerequisites a UNIX-like operating system for
-     QNICE should be possible.
+    \item As of now (AUG-2020) the following QNICE implementations 
+     exist: 
+     \begin{itemize}
+      \item A software emulator (\texttt{qnice.c}),
+      \item an AVR-implementation (only of historic interest),
+      \item a \textbf{a fully fledged FPGA implementation}, and
+      \item a TTL-implementation (ongoing project).
+     \end{itemize}
+    \item We plan to port a UNIX-like operating system such as 
+     XINU to QNICE in the not too far future.
+    \item A Forth-interpreter would be great, too. :-)
    \end{itemize}
   \end{frame}
 %
