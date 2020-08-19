@@ -15,29 +15,29 @@ The *dist_kit* folder
 
 * Native QNICE assembler:
 
-  * sysdef.asm: Command shortcuts (RET, NOP, SYSCALL), register
+  * `sysdef.asm`: Command shortcuts (RET, NOP, SYSCALL), register
     short names (PC, SR, SP), addresses for memory mapped I/O of peripheral
     devices, commonly used constants.
 
-  * monitor.def: Addresses of operating system routines that can be used in
+  * `monitor.def`: Addresses of operating system routines that can be used in
     SYSCALLs.
 
 * VASM:
 
-  * sysdef.vasm: Addresses for memory mapped I/O, commonly usd constants.
+  * `sysdef.vasm`: Addresses for memory mapped I/O, commonly used constants.
 
-  * qnice-conv.vasm: Convenience macros aka command shortcuts (RET, NOP,
+  * `qnice-conv.vasm`: Convenience macros aka command shortcuts (RET, NOP,
     SYSCALL).
 
-  * monitor.vdef: Addresses of operating system routines that can be used
+  * `monitor.vdef`: Addresses of operating system routines that can be used
     in SYSCALLs.
 
 * C:
 
-  * sysdef.h: Addresses for memory mapped I/O, commonly used constants.
+  * `sysdef.h`: Addresses for memory mapped I/O, commonly used constants.
 
-  * qmon-ep.h Addresses of operating system routines. Since they sometimes
+  * `qmon-ep.h`: Addresses of operating system routines. Since they sometimes
     have other call semantics than the C-QMON ABI, you should normally not
     use qmon-ep.h directly, but use the Standard C Library instead.
     If you need to use the monitor library functions directly, then preferably
-    use the wrappers in c/qnice/monitor-lib/include/qmon.h
+    use the wrappers in `c/qnice/monitor-lib/include/qmon.h`.

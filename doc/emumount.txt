@@ -1,7 +1,7 @@
 How to mount FAT32 devices and files in the Emulator
 ====================================================
 
-QNICE-FPGA is able to work with (micro)SD Cards that are formatted using the
+QNICE-FPGA is able to work with (micro)SD Cards that are formatted with the
 FAT32 file system and the MBR partition table. Please have a look at
 doc/constraints.txt to learn more about that.
 
@@ -16,7 +16,7 @@ device.
 Creating a raw image file from existing folders
 -----------------------------------------------
 
-Use the tool, that your operating system provides, to generate a raw image
+Use the tool that your operating system provides, to generate a raw image
 from existing folders of your hard drive.
 
 For macOS:

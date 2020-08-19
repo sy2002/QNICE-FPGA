@@ -4,7 +4,7 @@ QNICE-FPGA Performance Characteristics
 * The system runs with 50 MHz on all currently supported hardware targets.
 
 * The CPU is built around a variable-length state machine. This means that
-  there are commands that are as short as two clock cycles and others that
+  there are instructions that are as short as two clock cycles and others that
   are in general as long as six clock cycles.
 
 * Slow RAM, ROM and peripheral devices can make the execution even longer, as
