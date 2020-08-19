@@ -399,9 +399,9 @@
         ...
         RSUB SUBR, 1     ; Call subroutine
         ...
-SUBR:   ADD 0x0100, R14  ; Get free reg. set
+SUBR:   INCRB            ; Get free reg. set
         ...
-        SUB 0x0100, R14  ; Restore reg. set
+        DECRB            ; Restore reg. set
         MOVE @R13++, R15 ; RET
    \end{verbatim}
 \vspace*{-5mm}
