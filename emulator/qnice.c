@@ -779,7 +779,7 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
 */
 int execute() {
   unsigned int instruction, address, opcode, source_mode, source_regaddr, destination_mode, destination_regaddr,
-    source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits, command, rb;
+    source_0, source_1, destination, i, debug_address, temp_flag, sr_bits, command, rb;
 
   int condition, cmp_0, cmp_1;
 
@@ -873,8 +873,9 @@ int execute() {
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 5: /* SHL */
-      if ((source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
-        destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      if (source_0) {
         for (i = 0; i < source_0; i++) {
           temp_flag = (destination & 0x8000) >> 13;
           destination = (destination << 1) | ((read_register(SR) >> 1) & 1);          /* Fill with X bit */
@@ -887,8 +888,9 @@ int execute() {
                          NO_ADD_SUB_INSTRUCTION);
       break;
     case 6: /* SHR */
-      if ((scratch = source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
-        destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      if (source_0) {
         for (i = 0; i < source_0; i++) {
           temp_flag = (destination & 1) << 1;
           destination = ((destination >> 1) & 0xffff) | ((read_register(SR) & 4) << 13);  /* Fill with C bit */
