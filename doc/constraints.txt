@@ -128,6 +128,10 @@ keyboards are tested and work:
 * VASM and the code emitter are not supporting the new ISA 1.6 as described
   in https://github.com/sy2002/QNICE-FPGA/issues/65
 
+* Known compiler bug: If you compile without optimizations, then you might
+  run into problems. Solutins: Always compile at least with `-O1` (or higher)
+  set. More details: https://github.com/sy2002/QNICE-FPGA/issues/75
+
 ==============================================================================
     Standard C Library
 ==============================================================================    

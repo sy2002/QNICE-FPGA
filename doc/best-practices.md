@@ -115,6 +115,9 @@ C
   If the output `.out` grows too large or does not work as expected, you
   might want to decrease the optimization level to `-O2` or `-O1`.
   The C99 standard using `-c99` is recommended for QNICE-FPGA.
+* Known compiler bug: If you compile without optimizations, then you might
+  run into problems. Solutins: Always compile at least with `-O1` (or higher)
+  set. More details: https://github.com/sy2002/QNICE-FPGA/issues/75
 * If you need the intermediary files such as the assembler file, that the
   compiler generates, then use the switch `-k`.
 * The heap size is currently set to 4096 words. It grows upwards coming from
