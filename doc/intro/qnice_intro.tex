@@ -118,7 +118,7 @@
       to be used.
      \item To switch between register pages it is only necessary to 
       change the contents of {\tt rbank} -- normally this will be 
-      accomplished by a simple {\tt ADD} or {\tt SUB} instruction.
+      accomplished by the {\tt INCRB} and {\tt DECRB} instructions.
      \item The multiple register banks are very handy in programming
       subroutines since they remove the necessity of saving lots of
       registers on entry and restoring them on exit of a subroutine.
@@ -522,9 +522,9 @@
       &{\tt ...}&\\
       &{\tt RSUB ROUTINE, 1}&! Unconditionally jump to the subroutine\\
       &{\tt...}&! Continue with main program\\
-      {\tt ROUTINE:}&{\tt ADD 0x0100, R14}&! Incr. the register bank pointer\\
+      {\tt ROUTINE:}&{\tt INCRB}&! Incr. the register bank pointer\\
       &{\tt ...}&! Perform subroutine operations\\
-      &{\tt SUB 0x0100, R14}&! Restore the register bank\\
+      &{\tt DECRB}&! Restore the register bank\\
       &{\tt MOVE @R13++, R15}&! Return to the calling program\\
      \end{tabular}
     \end{center}
