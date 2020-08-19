@@ -118,7 +118,7 @@
       to be used.
      \item To switch between register pages it is only necessary to 
       change the contents of {\tt rbank} -- normally this will be 
-      accomplished by a simple {\tt ADD} or {\tt SUB} instruction.
+      accomplished by the {\tt INCRB} and {\tt DECRB} instructions.
      \item The multiple register banks are very handy in programming
       subroutines since they remove the necessity of saving lots of
       registers on entry and restoring them on exit of a subroutine.
@@ -229,7 +229,7 @@
    \end{frame}
 %
    \begin{frame}
-%    \frametitle{List of instructions}
+    \frametitle{List of instructions}
     \begin{center}
      \begin{tabular}{|c|ll|l|}
       \hline
@@ -254,6 +254,57 @@
      \end{tabular}
     \end{center}
    \end{frame}
+%
+  \subsection{Affected condition bits}
+   \begin{frame}
+    \frametitle{Affected condition bits}
+    The following table shows which instructions (R)eads, (W)rites or is 
+    (C)ontrolled by which condition bits:
+    \begin{center}
+     \begin{tabular}{|l|c|c|c|c|c|c|}
+      \hline
+       Instruction&\texttt{V}&\texttt{N}&\texttt{Z}&\texttt{C}&\texttt{X}&\texttt{1}\\
+      \hline
+       \texttt{MOVE} & &W&W& &W& \\
+       \texttt{ADD}  &W&W&W&W&W& \\
+       \texttt{ADDC} &W&W&W&R/W&W& \\
+       \texttt{SUB}  &W&W&W&W&W& \\
+       \texttt{SUBC} &W&W&W&R/W&W& \\
+       \texttt{SHL}  & &W&W&W&R& \\
+       \texttt{SHR}  & &W&W&R&W& \\
+       \texttt{SWAP} & &W&W& &W& \\
+       \texttt{NOT}  & &W&W& &W& \\
+       \texttt{AND}  & &W&W& &W& \\
+       \texttt{OR}   & &W&W& &W& \\
+       \texttt{XOR}  & &W&W& &W& \\
+      \hline
+     \end{tabular}
+    \end{center}
+   \end{frame}
+%
+  \subsection{Affected condition bits}
+   \begin{frame}
+    \frametitle{Affected condition bits}
+    \begin{center}
+     \begin{tabular}{|l|c|c|c|c|c|c|}
+      \hline
+       Instruction&\texttt{V}&\texttt{N}&\texttt{Z}&\texttt{C}&\texttt{X}&\texttt{1}\\
+      \hline
+       \texttt{CMP}  &W&W&W& & & \\
+       \texttt{HALT} & & & & & & \\
+       \texttt{RTI}  & & & & & & \\
+       \texttt{INT}  & & & & & & \\
+       \texttt{INCRB}& & & & & & \\
+       \texttt{DECRB}& & & & & & \\
+       \texttt{ABRA} &C&C&C&C&C&C\\
+       \texttt{ASUB} &C&C&C&C&C&C\\
+       \texttt{RBRA} &C&C&C&C&C&C\\
+       \texttt{RSUB} &C&C&C&C&C&C\\
+      \hline
+     \end{tabular}
+    \end{center}
+   \end{frame}
+%blub
 %
   \subsection{\texttt{CMP} instruction}
    \begin{frame}
@@ -522,9 +573,9 @@
       &{\tt ...}&\\
       &{\tt RSUB ROUTINE, 1}&! Unconditionally jump to the subroutine\\
       &{\tt...}&! Continue with main program\\
-      {\tt ROUTINE:}&{\tt ADD 0x0100, R14}&! Incr. the register bank pointer\\
+      {\tt ROUTINE:}&{\tt INCRB}&! Incr. the register bank pointer\\
       &{\tt ...}&! Perform subroutine operations\\
-      &{\tt SUB 0x0100, R14}&! Restore the register bank\\
+      &{\tt DECRB}&! Restore the register bank\\
       &{\tt MOVE @R13++, R15}&! Return to the calling program\\
      \end{tabular}
     \end{center}
