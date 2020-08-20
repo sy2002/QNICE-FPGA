@@ -103,13 +103,13 @@
 ; Instruction | Flags affected
 ;             | V | N | Z | C | X |
 ; MOVE        | . | * | * | . | * |
-; ADD/SUB     | * | * | * | * | * |
-; SHL         | . | . | . | * | . |
-; SHR         | . | . | . | . | * |
 ; SWAP        | . | * | * | . | * |
 ; NOT         | . | * | * | . | * |
 ; AND/OR/XOR  | . | * | * | . | * |
-; CMP         | * | * | * | * | * |
+; ADD/SUB     | * | * | * | * | * |
+; SHL         | . | * | * | * | . |
+; SHR         | . | * | * | . | * |
+; CMP         | * | * | * | . | . |
 ; BRA/SUB     | . | . | . | . | . |
 
 
@@ -1267,10 +1267,10 @@ L_ADDC_02
 ; Test the SUB instruction
 
 L_SUB_00        MOVE    STIM_SUB, R8
-L_SUB_01        MOVE    @R8, R1                 ; First operand
+L_SUB_01        MOVE    @R8, R1                 ; Dst operand (= minuend)
                 RBRA    L_SUB_02, Z             ; End of test
                 ADD     0x0001, R8
-                MOVE    @R8, R0                 ; Second operand
+                MOVE    @R8, R0                 ; Src operand (= subtrahend)
                 ADD     0x0001, R8
                 MOVE    @R8, R2                 ; Carry input
                 ADD     0x0001, R8
@@ -1313,10 +1313,10 @@ L_SUB_02
 ; Test the SUBC instruction
 
 L_SUBC_00       MOVE    STIM_SUBC, R8
-L_SUBC_01       MOVE    @R8, R1                 ; First operand
+L_SUBC_01       MOVE    @R8, R1                 ; Dst operand (= minuend)
                 RBRA    L_SUBC_02, Z            ; End of test
                 ADD     0x0001, R8
-                MOVE    @R8, R0                 ; Second operand
+                MOVE    @R8, R0                 ; Src operand (= subtrahend)
                 ADD     0x0001, R8
                 MOVE    @R8, R2                 ; Carry input
                 ADD     0x0001, R8
@@ -1374,6 +1374,7 @@ L_SUBC_02
 
 L_SHL_00        MOVE    STIM_SHL, R8
 L_SHL_01        MOVE    @R8, R1                 ; First operand
+                CMP     0x1111, R1
                 RBRA    L_SHL_02, Z             ; End of test
                 ADD     0x0001, R8
                 MOVE    @R8, R0                 ; Second operand
@@ -1397,82 +1398,82 @@ E_SHL_01        HALT
 
 STIM_SHL
 ; X = 0, all other flags = 0
-                .DW     0x0000, 0x0000, ST______, 0x0000, ST______
+                .DW     0x0000, 0x0000, ST______, 0x0000, ST___Z__
                 .DW     0x5678, 0x0000, ST______, 0x5678, ST______
-                .DW     0x5678, 0x0001, ST______, 0xACF0, ST______
+                .DW     0x5678, 0x0001, ST______, 0xACF0, ST__N___
                 .DW     0x5678, 0x0002, ST______, 0x59E0, ST____C_
-                .DW     0x5678, 0x0003, ST______, 0xB3C0, ST______
+                .DW     0x5678, 0x0003, ST______, 0xB3C0, ST__N___
                 .DW     0x5678, 0x0004, ST______, 0x6780, ST____C_
-                .DW     0x5678, 0x0005, ST______, 0xCF00, ST______
-                .DW     0x5678, 0x000F, ST______, 0x0000, ST______
-                .DW     0xFFFF, 0x000F, ST______, 0x8000, ST____C_
-                .DW     0xFFFF, 0x0010, ST______, 0x0000, ST____C_
-                .DW     0xFFFF, 0x0011, ST______, 0x0000, ST______
-                .DW     0xFFFF, 0x8000, ST______, 0x0000, ST______
-                .DW     0xFFFF, 0xFFF0, ST______, 0x0000, ST______
-                .DW     0xFFFF, 0xFFF8, ST______, 0x0000, ST______
-                .DW     0xFFFF, 0xFFFC, ST______, 0x0000, ST______
-                .DW     0xFFFF, 0xFFFE, ST______, 0x0000, ST______
-                .DW     0xFFFF, 0xFFFF, ST______, 0x0000, ST______
+                .DW     0x5678, 0x0005, ST______, 0xCF00, ST__N___
+                .DW     0x5678, 0x000F, ST______, 0x0000, ST___Z__
+                .DW     0xFFFF, 0x000F, ST______, 0x8000, ST__N_C_
+                .DW     0xFFFF, 0x0010, ST______, 0x0000, ST___ZC_
+                .DW     0xFFFF, 0x0011, ST______, 0x0000, ST___Z__
+                .DW     0xFFFF, 0x8000, ST______, 0x0000, ST___Z__
+                .DW     0xFFFF, 0xFFF0, ST______, 0x0000, ST___Z__
+                .DW     0xFFFF, 0xFFF8, ST______, 0x0000, ST___Z__
+                .DW     0xFFFF, 0xFFFC, ST______, 0x0000, ST___Z__
+                .DW     0xFFFF, 0xFFFE, ST______, 0x0000, ST___Z__
+                .DW     0xFFFF, 0xFFFF, ST______, 0x0000, ST___Z__
 
 ; X = 0, all other flags = 1
-                .DW     0x0000, 0x0000, ST_VNZC_, 0x0000, ST_VNZC_
-                .DW     0x5678, 0x0000, ST_VNZC_, 0x5678, ST_VNZC_   ; C is unchanged when shifting zero bits
-                .DW     0x5678, 0x0001, ST_VNZC_, 0xACF0, ST_VNZ__
-                .DW     0x5678, 0x0002, ST_VNZC_, 0x59E0, ST_VNZC_
-                .DW     0x5678, 0x0003, ST_VNZC_, 0xB3C0, ST_VNZ__
-                .DW     0x5678, 0x0004, ST_VNZC_, 0x6780, ST_VNZC_
-                .DW     0x5678, 0x0005, ST_VNZC_, 0xCF00, ST_VNZ__
-                .DW     0x5678, 0x000F, ST_VNZC_, 0x0000, ST_VNZ__
-                .DW     0xFFFF, 0x000F, ST_VNZC_, 0x8000, ST_VNZC_
-                .DW     0xFFFF, 0x0010, ST_VNZC_, 0x0000, ST_VNZC_
-                .DW     0xFFFF, 0x0011, ST_VNZC_, 0x0000, ST_VNZ__
-                .DW     0xFFFF, 0x8000, ST_VNZC_, 0x0000, ST_VNZ__
-                .DW     0xFFFF, 0xFFF0, ST_VNZC_, 0x0000, ST_VNZ__
-                .DW     0xFFFF, 0xFFF8, ST_VNZC_, 0x0000, ST_VNZ__
-                .DW     0xFFFF, 0xFFFC, ST_VNZC_, 0x0000, ST_VNZ__
-                .DW     0xFFFF, 0xFFFE, ST_VNZC_, 0x0000, ST_VNZ__
-                .DW     0xFFFF, 0xFFFF, ST_VNZC_, 0x0000, ST_VNZ__
+                .DW     0x0000, 0x0000, ST_VNZC_, 0x0000, ST_V_ZC_
+                .DW     0x5678, 0x0000, ST_VNZC_, 0x5678, ST_V__C_   ; C is unchanged when shifting zero bits
+                .DW     0x5678, 0x0001, ST_VNZC_, 0xACF0, ST_VN___
+                .DW     0x5678, 0x0002, ST_VNZC_, 0x59E0, ST_V__C_
+                .DW     0x5678, 0x0003, ST_VNZC_, 0xB3C0, ST_VN___
+                .DW     0x5678, 0x0004, ST_VNZC_, 0x6780, ST_V__C_
+                .DW     0x5678, 0x0005, ST_VNZC_, 0xCF00, ST_VN___
+                .DW     0x5678, 0x000F, ST_VNZC_, 0x0000, ST_V_Z__
+                .DW     0xFFFF, 0x000F, ST_VNZC_, 0x8000, ST_VN_C_
+                .DW     0xFFFF, 0x0010, ST_VNZC_, 0x0000, ST_V_ZC_
+                .DW     0xFFFF, 0x0011, ST_VNZC_, 0x0000, ST_V_Z__
+                .DW     0xFFFF, 0x8000, ST_VNZC_, 0x0000, ST_V_Z__
+                .DW     0xFFFF, 0xFFF0, ST_VNZC_, 0x0000, ST_V_Z__
+                .DW     0xFFFF, 0xFFF8, ST_VNZC_, 0x0000, ST_V_Z__
+                .DW     0xFFFF, 0xFFFC, ST_VNZC_, 0x0000, ST_V_Z__
+                .DW     0xFFFF, 0xFFFE, ST_VNZC_, 0x0000, ST_V_Z__
+                .DW     0xFFFF, 0xFFFF, ST_VNZC_, 0x0000, ST_V_Z__
 
 ; X = 1, all other flags = 0
-                .DW     0x0000, 0x0000, ST_____X, 0x0000, ST_____X
+                .DW     0x0000, 0x0000, ST_____X, 0x0000, ST___Z_X
                 .DW     0x5678, 0x0000, ST_____X, 0x5678, ST_____X
-                .DW     0x5678, 0x0001, ST_____X, 0xACF1, ST_____X
+                .DW     0x5678, 0x0001, ST_____X, 0xACF1, ST__N__X
                 .DW     0x5678, 0x0002, ST_____X, 0x59E3, ST____CX
-                .DW     0x5678, 0x0003, ST_____X, 0xB3C7, ST_____X
+                .DW     0x5678, 0x0003, ST_____X, 0xB3C7, ST__N__X
                 .DW     0x5678, 0x0004, ST_____X, 0x678F, ST____CX
-                .DW     0x5678, 0x0005, ST_____X, 0xCF1F, ST_____X
+                .DW     0x5678, 0x0005, ST_____X, 0xCF1F, ST__N__X
                 .DW     0x5678, 0x000F, ST_____X, 0x7FFF, ST_____X
-                .DW     0xFFFF, 0x000F, ST_____X, 0xFFFF, ST____CX
-                .DW     0xFFFF, 0x0010, ST_____X, 0xFFFF, ST____CX
-                .DW     0xFFFF, 0x0011, ST_____X, 0xFFFF, ST____CX
-                .DW     0xFFFF, 0x8000, ST_____X, 0xFFFF, ST____CX
-                .DW     0xFFFF, 0xFFF0, ST_____X, 0xFFFF, ST____CX
-                .DW     0xFFFF, 0xFFF8, ST_____X, 0xFFFF, ST____CX
-                .DW     0xFFFF, 0xFFFC, ST_____X, 0xFFFF, ST____CX
-                .DW     0xFFFF, 0xFFFE, ST_____X, 0xFFFF, ST____CX
-                .DW     0xFFFF, 0xFFFF, ST_____X, 0xFFFF, ST____CX
+                .DW     0xFFFF, 0x000F, ST_____X, 0xFFFF, ST__N_CX
+                .DW     0xFFFF, 0x0010, ST_____X, 0xFFFF, ST__N_CX
+                .DW     0xFFFF, 0x0011, ST_____X, 0xFFFF, ST__N_CX
+                .DW     0xFFFF, 0x8000, ST_____X, 0xFFFF, ST__N_CX
+                .DW     0xFFFF, 0xFFF0, ST_____X, 0xFFFF, ST__N_CX
+                .DW     0xFFFF, 0xFFF8, ST_____X, 0xFFFF, ST__N_CX
+                .DW     0xFFFF, 0xFFFC, ST_____X, 0xFFFF, ST__N_CX
+                .DW     0xFFFF, 0xFFFE, ST_____X, 0xFFFF, ST__N_CX
+                .DW     0xFFFF, 0xFFFF, ST_____X, 0xFFFF, ST__N_CX
 
 ; X = 1, all other flags = 1
-                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_VNZCX
-                .DW     0x5678, 0x0000, ST_VNZCX, 0x5678, ST_VNZCX   ; C is unchanged when shifting zero bits
-                .DW     0x5678, 0x0001, ST_VNZCX, 0xACF1, ST_VNZ_X
-                .DW     0x5678, 0x0002, ST_VNZCX, 0x59E3, ST_VNZCX
-                .DW     0x5678, 0x0003, ST_VNZCX, 0xB3C7, ST_VNZ_X
-                .DW     0x5678, 0x0004, ST_VNZCX, 0x678F, ST_VNZCX
-                .DW     0x5678, 0x0005, ST_VNZCX, 0xCF1F, ST_VNZ_X
-                .DW     0x5678, 0x000F, ST_VNZCX, 0x7FFF, ST_VNZ_X
-                .DW     0xFFFF, 0x000F, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0xFFFF, 0x0010, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0xFFFF, 0x0011, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0xFFFF, 0x8000, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0xFFFF, 0xFFF0, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0xFFFF, 0xFFF8, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0xFFFF, 0xFFFC, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0xFFFF, 0xFFFE, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0xFFFF, 0xFFFF, ST_VNZCX, 0xFFFF, ST_VNZCX
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZCX
+                .DW     0x5678, 0x0000, ST_VNZCX, 0x5678, ST_V__CX   ; C is unchanged when shifting zero bits
+                .DW     0x5678, 0x0001, ST_VNZCX, 0xACF1, ST_VN__X
+                .DW     0x5678, 0x0002, ST_VNZCX, 0x59E3, ST_V__CX
+                .DW     0x5678, 0x0003, ST_VNZCX, 0xB3C7, ST_VN__X
+                .DW     0x5678, 0x0004, ST_VNZCX, 0x678F, ST_V__CX
+                .DW     0x5678, 0x0005, ST_VNZCX, 0xCF1F, ST_VN__X
+                .DW     0x5678, 0x000F, ST_VNZCX, 0x7FFF, ST_V___X
+                .DW     0xFFFF, 0x000F, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0xFFFF, 0x0010, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0xFFFF, 0x0011, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0xFFFF, 0x8000, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0xFFFF, 0xFFF0, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0xFFFF, 0xFFF8, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0xFFFF, 0xFFFC, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0xFFFF, 0xFFFE, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0xFFFF, 0xFFFF, ST_VNZCX, 0xFFFF, ST_VN_CX
 
-                .DW     0x0000
+                .DW     0x1111
 
 L_SHL_02
 
@@ -1482,6 +1483,7 @@ L_SHL_02
 
 L_SHR_00        MOVE    STIM_SHR, R8
 L_SHR_01        MOVE    @R8, R1                 ; First operand
+                CMP     0x1111, R1
                 RBRA    L_SHR_02, Z             ; End of test
                 ADD     0x0001, R8
                 MOVE    @R8, R0                 ; Second operand
@@ -1505,75 +1507,75 @@ E_SHR_01        HALT
 
 STIM_SHR
 ; C = 0, all other flags = 0
-                .DW     0x0000, 0x0000, ST______, 0x0000, ST______
-                .DW     0x8765, 0x0000, ST______, 0x8765, ST______
+                .DW     0x0000, 0x0000, ST______, 0x0000, ST___Z__
+                .DW     0x8765, 0x0000, ST______, 0x8765, ST__N___
                 .DW     0x8765, 0x0001, ST______, 0x43B2, ST_____X
                 .DW     0x8765, 0x0002, ST______, 0x21D9, ST______
                 .DW     0x8765, 0x0003, ST______, 0x10EC, ST_____X
                 .DW     0x8765, 0x0004, ST______, 0x0876, ST______
                 .DW     0x8765, 0x0005, ST______, 0x043B, ST______
                 .DW     0x8765, 0x000F, ST______, 0x0001, ST______
-                .DW     0x8765, 0x0010, ST______, 0x0000, ST_____X
-                .DW     0x8765, 0x0011, ST______, 0x0000, ST______
-                .DW     0x8765, 0x8000, ST______, 0x0000, ST______
-                .DW     0x8765, 0xFFF0, ST______, 0x0000, ST______
-                .DW     0x8765, 0xFFF8, ST______, 0x0000, ST______
-                .DW     0x8765, 0xFFFC, ST______, 0x0000, ST______
-                .DW     0x8765, 0xFFFE, ST______, 0x0000, ST______
-                .DW     0x8765, 0xFFFF, ST______, 0x0000, ST______
+                .DW     0x8765, 0x0010, ST______, 0x0000, ST___Z_X
+                .DW     0x8765, 0x0011, ST______, 0x0000, ST___Z__
+                .DW     0x8765, 0x8000, ST______, 0x0000, ST___Z__
+                .DW     0x8765, 0xFFF0, ST______, 0x0000, ST___Z__
+                .DW     0x8765, 0xFFF8, ST______, 0x0000, ST___Z__
+                .DW     0x8765, 0xFFFC, ST______, 0x0000, ST___Z__
+                .DW     0x8765, 0xFFFE, ST______, 0x0000, ST___Z__
+                .DW     0x8765, 0xFFFF, ST______, 0x0000, ST___Z__
 ; C = 0, all other flags = 1
-                .DW     0x0000, 0x0000, ST_VNZ_X, 0x0000, ST_VNZ_X
-                .DW     0x8765, 0x0000, ST_VNZ_X, 0x8765, ST_VNZ_X    ; X is unchanged when shifting zero bits
-                .DW     0x8765, 0x0001, ST_VNZ_X, 0x43B2, ST_VNZ_X
-                .DW     0x8765, 0x0002, ST_VNZ_X, 0x21D9, ST_VNZ__
-                .DW     0x8765, 0x0003, ST_VNZ_X, 0x10EC, ST_VNZ_X
-                .DW     0x8765, 0x0004, ST_VNZ_X, 0x0876, ST_VNZ__
-                .DW     0x8765, 0x0005, ST_VNZ_X, 0x043B, ST_VNZ__
-                .DW     0x8765, 0x000F, ST_VNZ_X, 0x0001, ST_VNZ__
-                .DW     0x8765, 0x0010, ST_VNZ_X, 0x0000, ST_VNZ_X
-                .DW     0x8765, 0x0011, ST_VNZ_X, 0x0000, ST_VNZ__
-                .DW     0x8765, 0x8000, ST_VNZ_X, 0x0000, ST_VNZ__
-                .DW     0x8765, 0xFFF0, ST_VNZ_X, 0x0000, ST_VNZ__
-                .DW     0x8765, 0xFFF8, ST_VNZ_X, 0x0000, ST_VNZ__
-                .DW     0x8765, 0xFFFC, ST_VNZ_X, 0x0000, ST_VNZ__
-                .DW     0x8765, 0xFFFE, ST_VNZ_X, 0x0000, ST_VNZ__
-                .DW     0x8765, 0xFFFF, ST_VNZ_X, 0x0000, ST_VNZ__
+                .DW     0x0000, 0x0000, ST_VNZ_X, 0x0000, ST_V_Z_X
+                .DW     0x8765, 0x0000, ST_VNZ_X, 0x8765, ST_VN__X    ; X is unchanged when shifting zero bits
+                .DW     0x8765, 0x0001, ST_VNZ_X, 0x43B2, ST_V___X
+                .DW     0x8765, 0x0002, ST_VNZ_X, 0x21D9, ST_V____
+                .DW     0x8765, 0x0003, ST_VNZ_X, 0x10EC, ST_V___X
+                .DW     0x8765, 0x0004, ST_VNZ_X, 0x0876, ST_V____
+                .DW     0x8765, 0x0005, ST_VNZ_X, 0x043B, ST_V____
+                .DW     0x8765, 0x000F, ST_VNZ_X, 0x0001, ST_V____
+                .DW     0x8765, 0x0010, ST_VNZ_X, 0x0000, ST_V_Z_X
+                .DW     0x8765, 0x0011, ST_VNZ_X, 0x0000, ST_V_Z__
+                .DW     0x8765, 0x8000, ST_VNZ_X, 0x0000, ST_V_Z__
+                .DW     0x8765, 0xFFF0, ST_VNZ_X, 0x0000, ST_V_Z__
+                .DW     0x8765, 0xFFF8, ST_VNZ_X, 0x0000, ST_V_Z__
+                .DW     0x8765, 0xFFFC, ST_VNZ_X, 0x0000, ST_V_Z__
+                .DW     0x8765, 0xFFFE, ST_VNZ_X, 0x0000, ST_V_Z__
+                .DW     0x8765, 0xFFFF, ST_VNZ_X, 0x0000, ST_V_Z__
 ; C = 1, all other flags = 0
-                .DW     0x0000, 0x0000, ST____C_, 0x0000, ST____C_ 
-                .DW     0x8765, 0x0000, ST____C_, 0x8765, ST____C_
-                .DW     0x8765, 0x0001, ST____C_, 0xC3B2, ST____CX
-                .DW     0x8765, 0x0002, ST____C_, 0xE1D9, ST____C_
-                .DW     0x8765, 0x0003, ST____C_, 0xF0EC, ST____CX
-                .DW     0x8765, 0x0004, ST____C_, 0xF876, ST____C_
-                .DW     0x8765, 0x0005, ST____C_, 0xFC3B, ST____C_
-                .DW     0x8765, 0x000F, ST____C_, 0xFFFF, ST____C_
-                .DW     0x8765, 0x0010, ST____C_, 0xFFFF, ST____CX
-                .DW     0x8765, 0x0011, ST____C_, 0xFFFF, ST____CX
-                .DW     0x8765, 0x8000, ST____C_, 0xFFFF, ST____CX
-                .DW     0x8765, 0xFFF0, ST____C_, 0xFFFF, ST____CX
-                .DW     0x8765, 0xFFF8, ST____C_, 0xFFFF, ST____CX
-                .DW     0x8765, 0xFFFC, ST____C_, 0xFFFF, ST____CX
-                .DW     0x8765, 0xFFFE, ST____C_, 0xFFFF, ST____CX
-                .DW     0x8765, 0xFFFF, ST____C_, 0xFFFF, ST____CX
+                .DW     0x0000, 0x0000, ST____C_, 0x0000, ST___ZC_ 
+                .DW     0x8765, 0x0000, ST____C_, 0x8765, ST__N_C_
+                .DW     0x8765, 0x0001, ST____C_, 0xC3B2, ST__N_CX
+                .DW     0x8765, 0x0002, ST____C_, 0xE1D9, ST__N_C_
+                .DW     0x8765, 0x0003, ST____C_, 0xF0EC, ST__N_CX
+                .DW     0x8765, 0x0004, ST____C_, 0xF876, ST__N_C_
+                .DW     0x8765, 0x0005, ST____C_, 0xFC3B, ST__N_C_
+                .DW     0x8765, 0x000F, ST____C_, 0xFFFF, ST__N_C_
+                .DW     0x8765, 0x0010, ST____C_, 0xFFFF, ST__N_CX
+                .DW     0x8765, 0x0011, ST____C_, 0xFFFF, ST__N_CX
+                .DW     0x8765, 0x8000, ST____C_, 0xFFFF, ST__N_CX
+                .DW     0x8765, 0xFFF0, ST____C_, 0xFFFF, ST__N_CX
+                .DW     0x8765, 0xFFF8, ST____C_, 0xFFFF, ST__N_CX
+                .DW     0x8765, 0xFFFC, ST____C_, 0xFFFF, ST__N_CX
+                .DW     0x8765, 0xFFFE, ST____C_, 0xFFFF, ST__N_CX
+                .DW     0x8765, 0xFFFF, ST____C_, 0xFFFF, ST__N_CX
 ; C = 1, all other flags = 1
-                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_VNZCX
-                .DW     0x8765, 0x0000, ST_VNZCX, 0x8765, ST_VNZCX   ; X is unchanged when shifting zero bits
-                .DW     0x8765, 0x0001, ST_VNZCX, 0xC3B2, ST_VNZCX
-                .DW     0x8765, 0x0002, ST_VNZCX, 0xE1D9, ST_VNZC_
-                .DW     0x8765, 0x0003, ST_VNZCX, 0xF0EC, ST_VNZCX
-                .DW     0x8765, 0x0004, ST_VNZCX, 0xF876, ST_VNZC_
-                .DW     0x8765, 0x0005, ST_VNZCX, 0xFC3B, ST_VNZC_
-                .DW     0x8765, 0x000F, ST_VNZCX, 0xFFFF, ST_VNZC_
-                .DW     0x8765, 0x0010, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0x8765, 0x0011, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0x8765, 0x8000, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0x8765, 0xFFF0, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0x8765, 0xFFF8, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0x8765, 0xFFFC, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0x8765, 0xFFFE, ST_VNZCX, 0xFFFF, ST_VNZCX
-                .DW     0x8765, 0xFFFF, ST_VNZCX, 0xFFFF, ST_VNZCX
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZCX
+                .DW     0x8765, 0x0000, ST_VNZCX, 0x8765, ST_VN_CX   ; X is unchanged when shifting zero bits
+                .DW     0x8765, 0x0001, ST_VNZCX, 0xC3B2, ST_VN_CX
+                .DW     0x8765, 0x0002, ST_VNZCX, 0xE1D9, ST_VN_C_
+                .DW     0x8765, 0x0003, ST_VNZCX, 0xF0EC, ST_VN_CX
+                .DW     0x8765, 0x0004, ST_VNZCX, 0xF876, ST_VN_C_
+                .DW     0x8765, 0x0005, ST_VNZCX, 0xFC3B, ST_VN_C_
+                .DW     0x8765, 0x000F, ST_VNZCX, 0xFFFF, ST_VN_C_
+                .DW     0x8765, 0x0010, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x8765, 0x0011, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x8765, 0x8000, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x8765, 0xFFF0, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x8765, 0xFFF8, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x8765, 0xFFFC, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x8765, 0xFFFE, ST_VNZCX, 0xFFFF, ST_VN_CX
+                .DW     0x8765, 0xFFFF, ST_VNZCX, 0xFFFF, ST_VN_CX
 
-                .DW     0x0000
+                .DW     0x1111
 
 L_SHR_02
 

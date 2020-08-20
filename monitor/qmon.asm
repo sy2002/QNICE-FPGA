@@ -18,8 +18,8 @@
 ;;  OCT-2016:    32bit integer math, SD Card and FAT32 support (by sy2002)
 ;;  DEC-2016:    Completely redone string input: gets, gets_s, gets_slf, gets_core (by sy2002)
 ;;               Added file system support: mount, browse, load/run (by sy2002)
+;;  AUG-2020:    Support for new ISA, improved disassembly of relative branches (by vaxman)
 ;;
-;; Known bugs: 
 ;;
 ;; Bits and pieces:
 ;;   - All functions expect their input parameters in the registers R8, R9 and maybe R10.
@@ -124,7 +124,7 @@ QMON$COLDSTART  AND     0x00FF, SR              ; Make sure we are in register b
 ;                XOR     R10, R10                ; Clear with zero words
 ;                RSUB    MEM$FILL, 1             ; Clear
                 RBRA    QMON$MAIN_LOOP, 1       ; skip redundant warmstart commands
-;;TODO: Clear registers
+
 QMON$WARMSTART  AND     0x00FF, SR              ; Reset register bank to zero
                 MOVE    VAR$STACK_START, SP     ; Set up stack pointer to highest available address
                 RSUB    IO$PUT_CRLF, 1
@@ -600,7 +600,7 @@ QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 1.6 (Bernd Ulman
 #ifdef RAM_MONITOR
                 .ASCII_P    "Running in RAM!\n"
 #endif
-                .ASCII_W    "------------------------------------------------------------------------\n\n"
+                .ASCII_W    "----------------------------------------------------------------------\n\n"
 QMON$PROMPT     .ASCII_W    "QMON> "
 QMON$ILLCMDGRP  .ASCII_W    " *** Illegal command group ***\n"
 QMON$ILLCMD     .ASCII_W    " *** Illegal command ***\n"

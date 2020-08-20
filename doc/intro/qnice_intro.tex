@@ -10,8 +10,8 @@
   \titlepage
  \end{frame}
 %
- \section{Introduction}
-  \subsection{Goal}
+% \section{Introduction}
+%  \subsection{Goal}
    \begin{frame}
     \frametitle{Goal}
     Why a new 16 bit processor architecture? Why not stay with commodity
@@ -33,7 +33,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Basics}
+%  \subsection{Basics}
    \begin{frame}
     \frametitle{Basics}
     \begin{itemize}
@@ -52,8 +52,8 @@
     \end{itemize}
    \end{frame}
 %
- \section{Architecture}
-  \subsection{Registers}
+% \section{Architecture}
+%  \subsection{Registers}
    \begin{frame}
     \frametitle{Registers}
     \begin{itemize}
@@ -80,7 +80,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{The status register {\tt R14}}
+%  \subsection{The status register {\tt R14}}
    \begin{frame}
     \frametitle{The status register {\tt R14}}
     The status register is divided into two parts: The lower
@@ -118,14 +118,14 @@
       to be used.
      \item To switch between register pages it is only necessary to 
       change the contents of {\tt rbank} -- normally this will be 
-      accomplished by a simple {\tt ADD} or {\tt SUB} instruction.
+      accomplished by the {\tt INCRB} and {\tt DECRB} instructions.
      \item The multiple register banks are very handy in programming
       subroutines since they remove the necessity of saving lots of
       registers on entry and restoring them on exit of a subroutine.
     \end{itemize}
    \end{frame}
 %
-  \subsection{Input/Output}
+%  \subsection{Input/Output}
    \begin{frame}
     \frametitle{Input/Ouput}
     \begin{itemize}
@@ -138,8 +138,8 @@
     \end{itemize}
    \end{frame}
 %
- \section{Instruction set and addressing modes}
-  \subsection{Instruction set basics}
+% \section{Instruction set and addressing modes}
+%  \subsection{Instruction set basics}
    \begin{frame}
     \frametitle{Instruction set basics}
     \begin{itemize}
@@ -162,7 +162,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Instruction format}
+%  \subsection{Instruction format}
    \begin{frame}
     \frametitle{Instruction format}
     \begin{itemize}
@@ -206,7 +206,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{List of instructions}
+%  \subsection{List of instructions}
    \begin{frame}
     \frametitle{List of instructions}
     \begin{center}
@@ -219,20 +219,17 @@
        {\tt 2}&{\tt ADDC}&{\tt src, dst}&{\tt dst := dst + src + C}\\
        {\tt 3}&{\tt SUB}&{\tt src, dst}&{\tt dst := dst - src}\\
        {\tt 4}&{\tt SUBC}&{\tt src, dst}&{\tt dst := dst - src - C}\\
-       {\tt 5}&{\tt SHL}&{\tt src, dst}&{\tt dst << src}, fill with X, shift to C$^*$\\
-       {\tt 6}&{\tt SHR}&{\tt src, dst}&{\tt dst >> src}, fill with C, shift to X$^*$\\
+       {\tt 5}&{\tt SHL}&{\tt src, dst}&{\tt dst << src}, fill with X, shift to C\\
+       {\tt 6}&{\tt SHR}&{\tt src, dst}&{\tt dst >> src}, fill with C, shift to X\\
        {\tt 7}&{\tt SWAP}&{\tt src, dst}&{\tt dst := ((src << 8) \& 0xFF00) |}\\
               &          &              &{\tt ((src >> 8) \& 0xFF)}\\
       \hline
      \end{tabular}
     \end{center}
-~\\~\\
-    {\small $^*$) The shift instructions only change C or X and leave the 
-     remaining condition bits in the status register unchanged.}
    \end{frame}
 %
    \begin{frame}
-%    \frametitle{List of instructions}
+    \frametitle{List of instructions}
     \begin{center}
      \begin{tabular}{|c|ll|l|}
       \hline
@@ -258,7 +255,80 @@
     \end{center}
    \end{frame}
 %
-  \subsection{Control instructions}
+%  \subsection{Affected condition bits}
+   \begin{frame}
+    \frametitle{Affected condition bits}
+    The following table shows which instructions (R)eads, (W)rites or is 
+    (C)ontrolled by which condition bits:
+    \begin{center}
+     \begin{tabular}{|l|c|c|c|c|c|c|}
+      \hline
+       Instruction&\texttt{V}&\texttt{N}&\texttt{Z}&\texttt{C}&\texttt{X}&\texttt{1}\\
+      \hline
+       \texttt{MOVE} & &W&W& &W& \\
+       \texttt{ADD}  &W&W&W&W&W& \\
+       \texttt{ADDC} &W&W&W&R/W&W& \\
+       \texttt{SUB}  &W&W&W&W&W& \\
+       \texttt{SUBC} &W&W&W&R/W&W& \\
+       \texttt{SHL}  & &W&W&W&R& \\
+       \texttt{SHR}  & &W&W&R&W& \\
+       \texttt{SWAP} & &W&W& &W& \\
+       \texttt{NOT}  & &W&W& &W& \\
+       \texttt{AND}  & &W&W& &W& \\
+       \texttt{OR}   & &W&W& &W& \\
+       \texttt{XOR}  & &W&W& &W& \\
+      \hline
+     \end{tabular}
+    \end{center}
+   \end{frame}
+%
+%  \subsection{Affected condition bits}
+   \begin{frame}
+    \frametitle{Affected condition bits}
+    \begin{center}
+     \begin{tabular}{|l|c|c|c|c|c|c|}
+      \hline
+       Instruction&\texttt{V}&\texttt{N}&\texttt{Z}&\texttt{C}&\texttt{X}&\texttt{1}\\
+      \hline
+       \texttt{CMP}  &W&W&W& & & \\
+       \texttt{HALT} & & & & & & \\
+       \texttt{RTI}  & & & & & & \\
+       \texttt{INT}  & & & & & & \\
+       \texttt{INCRB}& & & & & & \\
+       \texttt{DECRB}& & & & & & \\
+       \texttt{ABRA} &C&C&C&C&C&C\\
+       \texttt{ASUB} &C&C&C&C&C&C\\
+       \texttt{RBRA} &C&C&C&C&C&C\\
+       \texttt{RSUB} &C&C&C&C&C&C\\
+      \hline
+     \end{tabular}
+    \end{center}
+   \end{frame}
+%blub
+%
+%  \subsection{\texttt{CMP} instruction}
+   \begin{frame}
+    \frametitle{\texttt{CMP} instruction}
+    The \texttt{CMP} instruction affects the condition flags in the 
+    status register as follows:
+~\\~\\
+    \begin{center}
+     \begin{tabular}{|l|l|l|l|l|}
+      \hline
+      Condition&\multicolumn{4}{c|}{Flags}\\
+               &\multicolumn{2}{c|}{unsigned}&\multicolumn{2}{c|}{signed}\\
+               &\texttt{Z}&\texttt{N}&\texttt{Z}&\texttt{V}\\
+      \hline
+      \hline
+      \texttt{src}$<$\texttt{dst}&\texttt{0}&\texttt{0}&\texttt{0}&\texttt{0}\\
+      \texttt{src}$=$\texttt{dst}&\texttt{1}&\texttt{0}&\texttt{1}&\texttt{0}\\
+      \texttt{src}$>$\texttt{dst}&\texttt{0}&\texttt{1}&\texttt{0}&\texttt{1}\\
+      \hline
+     \end{tabular}
+    \end{center}
+   \end{frame}
+%
+%  \subsection{Control instructions}
    \begin{frame}
     \frametitle{Control instructions}
     All control instructions share the opcode \texttt{E}. The command to be
@@ -280,7 +350,7 @@
     \end{center}
    \end{frame}
 %
-  \subsection{Branches and subroutine calls}
+%  \subsection{Branches and subroutine calls}
    \begin{frame}
     \frametitle{Branches and subroutine calls}
     The four branch and call instructions need some clarification:
@@ -323,7 +393,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Addressing modes}
+%  \subsection{Addressing modes}
    \begin{frame}
     \frametitle{Addressing modes}
     All {\tt src} and {\tt dst} operands may be specified using one out of 
@@ -393,7 +463,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Branches and calls}
+%  \subsection{Branches and calls}
    \begin{frame}
     \frametitle{Branches and calls}
     \begin{itemize}
@@ -417,7 +487,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Examples}
+%  \subsection{Examples}
    \begin{frame}
     \frametitle{Examples}
     The following examples may help in understanding the binary representation
@@ -462,7 +532,7 @@
     }
    \end{frame}
 %
- \section{Code example}
+% \section{Code example}
   \begin{frame}[containsverbatim]
    \frametitle{Code example: {\scriptsize$\sum_{i=0}^{0x1000}i$}}
    \begin{verbatim}
@@ -476,7 +546,7 @@
    \end{verbatim}
   \end{frame}
 %
-  \subsection{Subroutines}
+%  \subsection{Subroutines}
    \begin{frame}
     \frametitle{Subroutines}
     \begin{itemize}
@@ -503,16 +573,16 @@
       &{\tt ...}&\\
       &{\tt RSUB ROUTINE, 1}&! Unconditionally jump to the subroutine\\
       &{\tt...}&! Continue with main program\\
-      {\tt ROUTINE:}&{\tt ADD 0x0100, R14}&! Incr. the register bank pointer\\
+      {\tt ROUTINE:}&{\tt INCRB}&! Incr. the register bank pointer\\
       &{\tt ...}&! Perform subroutine operations\\
-      &{\tt SUB 0x0100, R14}&! Restore the register bank\\
+      &{\tt DECRB}&! Restore the register bank\\
       &{\tt MOVE @R13++, R15}&! Return to the calling program\\
      \end{tabular}
     \end{center}
     }
    \end{frame}
 %
- \section{Interrupts}
+% \section{Interrupts}
   \begin{frame}
    \frametitle{Interrupts}
    QNICE supports a simple interrupt scheme:
@@ -571,7 +641,7 @@
 %]}
   \end{frame}
 %
- \section{Soft- and hardware}
+% \section{Soft- and hardware}
   \begin{frame}
    \frametitle{Soft- and hardware}
    \begin{itemize}
@@ -588,7 +658,7 @@
    \end{itemize}
   \end{frame}
 %
- \section{The emulator}
+% \section{The emulator}
   \begin{frame}
    \frametitle{The emulator}
    \begin{itemize}
@@ -695,19 +765,21 @@ rx   :    12290 (42.86%)    rx   :     8194 (28.57%)
    }
   \end{frame}
 %
- \section{Future plans}
+% \section{Future plans}
   \begin{frame}
    \frametitle{Future plans}
    \begin{itemize}
-    \item As of now (AUG-2015) three QNICE implementations exist: The
-     emulator, an AVR-implementation and Mirko Holzer's 
-     FPGA-implementation.
-    \item The next step is to develop a useful monitor program, maybe
-     in conjunction with a Forth interpreter.
-    \item Next, a system controller will be designed which implements
-     an interrupt controller and a simple MMU.
-    \item With these prerequisites a UNIX-like operating system for
-     QNICE should be possible.
+    \item As of now (AUG-2020) the following QNICE implementations 
+     exist: 
+     \begin{itemize}
+      \item A software emulator (\texttt{qnice.c}),
+      \item an AVR-implementation (only of historic interest),
+      \item a \textbf{a fully fledged FPGA implementation}, and
+      \item a TTL-implementation (ongoing project).
+     \end{itemize}
+    \item We plan to port a UNIX-like operating system such as 
+     XINU to QNICE in the not too far future.
+    \item A Forth-interpreter would be great, too. :-)
    \end{itemize}
   \end{frame}
 %

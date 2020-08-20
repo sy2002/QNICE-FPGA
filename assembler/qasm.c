@@ -672,7 +672,11 @@ int assemble() {
             *(entry->data + i - 1) = (char) 13;
             *(entry->data + i)     = (char) 10;
             special_char = 0;
-          } else if (special_char && *(p + i) != 'n') {
+          } else if (special_char && *(p + i) == 't') {
+            *(entry->data + i - 1) = (char) 9;
+            *(entry->data + i) = ' ';
+            special_char = 0;
+          } else if (special_char && *(p + i) != 'n' && special_char && *(p + i) != 't') {
             *(entry->data + i - 1) = *(p + i - 1);
             *(entry->data + i)     = *(p + i);
           } else {

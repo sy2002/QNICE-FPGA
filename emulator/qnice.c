@@ -177,8 +177,8 @@ const unsigned long   gbl$ipi_default                = 500000;
 unsigned long         gbl$instructions_per_iteration = gbl$ipi_default;
 #endif
 
-/* According to ../test_programs/mandel_perf_test.asm, the current QNICE hardware,
-   which runs at 50 MHz performs at 12.93 MIPS.
+/* According to ../doc/MIPS.md, the current QNICE hardware,
+   which runs at 50 MHz performs at 13.00 MIPS.
    The speed regulation occurs every 10 milliseconds, which is why we introduce
    a "target instructions per 10-milliseconds" measurement using gbl$target_iptms.
    Since there is system jitter, the gbl$target_iptms needs to be adjusted,
@@ -186,12 +186,12 @@ unsigned long         gbl$instructions_per_iteration = gbl$ipi_default;
    the gbl$target_iptms_adjustment_factor in the thread "mips_adjustment_thread"
 
    Linux gcc does not allow gbl$qnice_mips to be used within gbl$target_mips and
-   gbl$target_iptms, therefore the value 12.93 is repeated.
+   gbl$target_iptms, therefore the value 13.00 is repeated.
 */
-const float           gbl$qnice_mips   = 12.93;
+const float           gbl$qnice_mips   = 13.00;
 const float           gbl$max_mips     = INFINITY; 
-float                 gbl$target_mips  = 12.93;
-unsigned long         gbl$target_iptms = ((12.93 * 1e6) / 1e3) * 10;
+float                 gbl$target_mips  = 13.00;
+unsigned long         gbl$target_iptms = ((13.00 * 1e6) / 1e3) * 10;
 float                 gbl$target_iptms_adjustment_factor = 1.0;
 const unsigned long   gbl$target_sampling_s = 3;
 bool                  mips_adjustment_thread_running = false;
@@ -779,7 +779,7 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
 */
 int execute() {
   unsigned int instruction, address, opcode, source_mode, source_regaddr, destination_mode, destination_regaddr,
-    source_0, source_1, destination, scratch, i, debug_address, temp_flag, sr_bits, command, rb;
+    source_0, source_1, destination, i, debug_address, temp_flag, sr_bits, command, rb;
 
   int condition, cmp_0, cmp_1;
 
@@ -873,8 +873,9 @@ int execute() {
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 5: /* SHL */
-      if ((source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
-        destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      if (source_0) {
         for (i = 0; i < source_0; i++) {
           temp_flag = (destination & 0x8000) >> 13;
           destination = (destination << 1) | ((read_register(SR) >> 1) & 1);          /* Fill with X bit */
@@ -882,10 +883,14 @@ int execute() {
         write_register(SR, (read_register(SR) & 0xfffb) | temp_flag);                 /* Shift into C bit */
         write_destination(destination_mode, destination_regaddr, destination, FALSE);
       }
+      update_status_bits(destination, source_0, source_1, 
+                         DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_X | DO_NOT_MODIFY_OVERFLOW, 
+                         NO_ADD_SUB_INSTRUCTION);
       break;
     case 6: /* SHR */
-      if ((scratch = source_0 = read_source_operand(source_mode, source_regaddr, FALSE))) {
-        destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      if (source_0) {
         for (i = 0; i < source_0; i++) {
           temp_flag = (destination & 1) << 1;
           destination = ((destination >> 1) & 0xffff) | ((read_register(SR) & 4) << 13);  /* Fill with C bit */
@@ -893,6 +898,9 @@ int execute() {
         write_register(SR, (read_register(SR) & 0xfffd) | temp_flag);                     /* Shift into X bit */
         write_destination(destination_mode, destination_regaddr, destination, FALSE);
       }
+      update_status_bits(destination, source_0, source_1, 
+                         DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_X | DO_NOT_MODIFY_OVERFLOW, 
+                         NO_ADD_SUB_INSTRUCTION);
       break;
     case 7: /* SWAP */
       source_0 = read_source_operand(source_mode, source_regaddr, FALSE);

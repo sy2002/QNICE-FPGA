@@ -356,6 +356,26 @@ you are getting started:
   above-mentioned `shell.c` is an example of how to read files without
   using the Standard C library but by directly using Monitor functions.
 
+Documentation
+-------------
+
+If you are new to QNICE-FPGA, then reading the documentation in the following
+order is recommended:
+
+1. [Introduction](doc/intro/qnice_intro.pdf) to the QNICE Instruction Set Architecture
+
+2. [Hardware](hw/README.md): Description of supported hardware platforms, how to build, and guides for porting to other platforms
+
+3. [Overview](doc/README.md) of directory structure and available documentation
+
+4. [Emulator](emulator/README.md) and [mounting FAT32 devices](doc/emumount.txt)
+
+5. [Constraints](doc/constraints.txt)
+
+6. [Programming Best Practices](doc/best-practices.md)
+
+7. [Programming Card](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/programming_card/programming_card_screen.pdf)
+
 Acknowledgements
 ----------------
 

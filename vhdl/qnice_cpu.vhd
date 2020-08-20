@@ -728,13 +728,13 @@ begin
                -- immediatelly done, when cs_execute i entered. We need to make sure,
                -- that all ALU inputs contain valid data at this moment in time
                
-               -- shift instructions must only modify C and X
+               -- shift instructions must only modify Z, N, C and X
                if Opcode = opcSHL then
                   -- fill with X and shift to C
-                  fsmSR <= SR(15 downto 8) & "00" & SR(5 downto 3) & Alu_C & SR(1) & "1";
+                  fsmSR <= SR(15 downto 8) & "00" & SR(5) & Alu_N & Alu_Z & Alu_C & SR(1) & "1";
                elsif Opcode = opcSHR then
                   -- fill with C and shift to X
-                  fsmSR <= SR(15 downto 8) & "00" & SR(5 downto 2) & Alu_X & "1";
+                  fsmSR <= SR(15 downto 8) & "00" & SR(5) & Alu_N & Alu_Z & SR(2) & Alu_X & "1";
                      
                -- all other opcodes
                else

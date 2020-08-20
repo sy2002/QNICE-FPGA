@@ -144,14 +144,18 @@ NATIVE TOOLCHAIN: ASSEMBLER:
 
 VBCC TOOLCHAIN: C COMPILER:
 
-* check/validate correct register bank usage
+* Update to newer version
+
+* Fix or obtain bugfix for -opt-speed (see doc/best-practices.md)
+
+* Check/validate correct register bank usage
 
 * Function entry points: remove superflous register MOVEs
 
 * Optimization: Correct "costs", so that e.g. in -O3 constants are
   loaded in to registers in a loop instead of e.g doing SUB 1, @R1++
 
-* code generation for 16bit multiplication: EAE wait code as soon as necessary
+* Code generation for 16bit multiplication: EAE wait code as soon as necessary
   (currently no wait code is being generated, maybe this becomes necessary
   when we switch to 100 MHz)
 

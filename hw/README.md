@@ -11,9 +11,9 @@ we are supporting these vendor/board/toolchain combinations:
 * Xilinx: **Nexys4 DDR** and **Nexys A7** using Vivado or ISE
 * Xilinx: **MEGA65** using Vivado or ISE
 
-Scroll down to the respective section learn more about a particular supported
-combinations. And if your hardware is not included here, please read on
-at the section "General advise for porting", which is at the very bottom
+Scroll down to the respective section to learn more about a particular supported
+combination. And if your hardware is not included here, please read on
+at the section "General advice for porting", which is at the very bottom
 of this README.md.
 
 The structure of this folder is:
@@ -41,10 +41,10 @@ we know, the sucessor
 is compatible, so we currently assume, that you can use the Nexys 4 DDR
 files to also synthesize for the Nexys A7.
 
-The top file for this platform is [env1.vhd](../vhdl/hw/nexys4ddr/env1.vhd).
+The top file for this platform is [vhdl/hw/nexys4ddr/env1.vhd](../vhdl/hw/nexys4ddr/env1.vhd).
 
 For a quickstart, you can download the bitstream
-[here](@TODO). If you just want use your Nexys board as a Q-TRIS Arcade
+[here](@TODO). If you just want to use your Nexys board as a Q-TRIS Arcade
 machine, then you can download
 [this](@TODO)
 bitstream.
@@ -59,8 +59,8 @@ Open the project `hw/xilinx/nexys4ddr/ISE/env1.xise` to synthesize using ISE.
 ### Vivado 2019.2 (or newer)
 
 Vivado is the successor of ISE. Even though ISE can still be downloaded for
-free from Xilinx as the time of writing, Vivado is way to go when developing
-for Xilinx FPGAs. So we made a port of QNIEC-FPGA to Vivado, which you can
+free from Xilinx as the time of writing, Vivado is the way to go when developing
+for Xilinx FPGAs. So we made a port of QNICE-FPGA to Vivado, which you can
 [download here](https://www.xilinx.com/support/download.html); we recommend
 to use the "HLx Editions" with the free Vivado WebPACK license.
 Open the project `hw/xilinx/nexys4ddr/Vivado/qnice_nexys.xpr`
@@ -101,7 +101,7 @@ compatible with MEGA65 Cores. Right-click "Generate Programming File" in
 ISE's process view and choose "Process Properties" to learn more.
 
 The top file for MEGA65 using ISE is
-[MEGA65_ISE.vhd](../vhdl/hw/MEGA65/MEGA65_ISE.vhd).
+[vhdl/hw/MEGA65/MEGA65_ISE.vhd](../vhdl/hw/MEGA65/MEGA65_ISE.vhd).
 
 ### Vivado 2019.2 (or newer)
 
@@ -112,7 +112,7 @@ with MEGA65 Cores. Look at the
 "## Configuration and Bitstream properties" to learn more.
 
 The top file for MEGA65 using Vivado is
-[MEGA65_Vivado.vhd](../vhdl/hw/MEGA65/MEGA65_Vivado.vhd).
+[vhdl/hw/MEGA65/MEGA65_Vivado.vhd](../vhdl/hw/MEGA65/MEGA65_Vivado.vhd).
 
 ### MEGA65 board revisions and hardware versions
 
@@ -127,11 +127,11 @@ have an even higher board revision.
 For learning more about how QNICE-FPGA supports the different MEGA65 hardware
 versions, have a look at [doc/README.md](../doc/README.md).
 
-General advise for porting
+General advice for porting
 --------------------------
 
-* In general, the code that is written in a portable way and therefore is
-  suitable as a good starting point for porting is the QNICE-FPGA
+* In general, the code is written in a portable way and therefore is
+  suitable as a good starting point for porting the QNICE-FPGA
   implementation for Digilent's Xilinx Virtex-7 based board
   "Nexys4 DDR": Create two new folders according to the folder
   structure mentioned above. Copy this top file into your own folder:
@@ -147,11 +147,11 @@ General advise for porting
   comment out the `UNISIM` library and the `MMCME` instantiation that
   generates the signal `clk25MHz` and comment in the clock divider process
   `generate_clk25MHz : process(SLOW_CLOCK)` instead. Do not forget to
-  set appropriate time constraints for the clock in the IDE or development
+  set appropriate timing constraints for the clock in the IDE or development
   environment of your choice; `TS_clk25MHz` in `env1.ucf` might be an
   inspiration.
 
-* In the file `hw/xilinx/nexys4ddr/ISE/env1.ucf` you will find advise 
+* In the file `hw/xilinx/nexys4ddr/ISE/env1.ucf` you will find advice
   about how to do the mapping from the NETs to the hardware's pins and what
   kind of timing constraints you might want to use.
 
