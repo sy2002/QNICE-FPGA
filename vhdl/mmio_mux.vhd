@@ -19,6 +19,11 @@ use work.env1_globals.all;
 use work.qnice_tools.all;
 
 entity mmio_mux is
+generic (
+   GD_TIL            : boolean := true;   -- support TIL leds (e.g. as available on the Nexys 4 DDR)
+   GD_SWITCHES       : boolean := true;   -- support SWITCHES (e.g. as available on the Nexys 4 DDR)
+   GD_HRAM           : boolean := false   -- support HyperRAM (e.g. as available on the MEGA65)
+);
 port (
    -- input from hardware
    HW_RESET          : in std_logic;
@@ -95,6 +100,12 @@ port (
    vga_we            : out std_logic;
    vga_reg           : out std_logic_vector(3 downto 0);
 
+   -- HyerRAM register range $FFF0 .. $FFF3
+   hram_en           : buffer std_logic;
+   hram_we           : out std_logic;
+   hram_reg          : out std_logic_vector(3 downto 0); 
+   hram_cpu_ws       : in std_logic; -- insert CPU wait states (aka WAIT_FOR_DATA)   
+ 
    -- global state and reset management
    reset_pre_pore    : out std_logic;
    reset_post_pore   : out std_logic
@@ -155,9 +166,9 @@ begin
    no_igrant_active <= true when cpu_igrant_n = '1' else false;
    
    -- Block FF00: FUNDAMENTAL IO
-   switch_reg_enable <= not data_dir            when addr = x"FF00" and no_igrant_active else '0';    -- Read only
-   til_reg0_enable   <= data_dir and data_valid when addr = x"FF01" and no_igrant_active else '0';    -- Write only
-   til_reg1_enable   <= data_dir and data_valid when addr = x"FF02" and no_igrant_active else '0';    -- Write only
+   switch_reg_enable <= not data_dir            when GD_SWITCHES and addr = x"FF00" and no_igrant_active else '0'; -- Read only
+   til_reg0_enable   <= data_dir and data_valid when GD_TIL and addr = x"FF01" and no_igrant_active else '0';    -- Write only
+   til_reg1_enable   <= data_dir and data_valid when GD_TIL and addr = x"FF02" and no_igrant_active else '0';    -- Write only
 
    kbd_en            <= '1' when addr(15 downto 2) = x"FF0" & "01" and no_igrant_active else '0';     -- FF04
    kbd_we            <= kbd_en and data_dir and data_valid;
@@ -187,7 +198,7 @@ begin
    sd_we             <= sd_en and data_dir and data_valid;
    sd_reg            <= addr(2 downto 0);
    
-   -- Timer Interrupt Generator range $FF28 .. $FF2F
+   -- Block FF28: Timer Interrupt Generator
    tin_en            <= '1' when addr(15 downto 3) = x"FF2" & "1" and no_igrant_active else '0';      -- FF28   
    tin_we            <= tin_en and data_dir and data_valid;
    tin_reg           <= addr(2 downto 0);   
@@ -196,7 +207,12 @@ begin
    vga_en            <= '1' when addr(15 downto 4) = x"FF3" and no_igrant_active else '0';            -- FF30
    vga_we            <= vga_en and data_dir and data_valid;
    vga_reg           <= addr(3 downto 0);
-      
+   
+   -- Block FFF0: MEGA65 block, currently only HyperRAM
+   hram_en           <= '1' when GD_HRAM and addr(15 downto 4) = x"FFF" and no_igrant_active else '0';   -- FFF0
+   hram_we           <= hram_en and data_dir and data_valid;
+   hram_reg          <= addr(3 downto 0); -- needs to be modified, as soon as there is more than just HRAM 
+            
    -- generate CPU wait signal   
    -- as long as the RAM is the only device on the bus that can make the
    -- CPU wait, this simple implementation is good enough
@@ -213,6 +229,8 @@ begin
          elsif rom_enable_i = '1' and rom_busy = '1' then
             cpu_wait_for_data <= '1';
          elsif pore_rom_enable_i = '1' and pore_rom_busy = '1' then
+            cpu_wait_for_data <= '1';
+         elsif GD_HRAM and hram_cpu_ws = '1' then
             cpu_wait_for_data <= '1';
          elsif uart_cpu_ws = '1' then
             cpu_wait_for_data <= '1';
