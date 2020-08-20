@@ -2,13 +2,13 @@
 
 #include "supp.h"
 
-#include "../../../../dist_kit/sysdef.h"
+#include "sysdef.h"
 
 static char FILE_[]=__FILE__;
 /*  Public data that MUST be there.                             */
 
 /* Name and copyright. */
-char cg_copyright[]="vbcc code-generator for qnice V0.1 (c) in 2016 by Volker Barthelmann";
+char cg_copyright[]="vbcc code-generator for qnice V0.2 (c) in 2016, 2020 by Volker Barthelmann";
 
 /*  Commandline-flags the code-generator accepts                */
 int g_flags[MAXGF]={VALFLAG,0,0,0,
@@ -425,9 +425,6 @@ static void function_top(FILE *f,struct Var *v,long offset)
   }else{
     emit(f,"%s%ld:\n",labprefix,zm2l(v->offset));  
   }
-  if(v->tattr&INTERRUPT){
-    ierror(0);
-  }
   if(stack_check){
     stackchecklabel=++label;
     BSET(regs_modified,t1);
@@ -440,7 +437,8 @@ static void function_top(FILE *f,struct Var *v,long offset)
   }
   if(v->tattr&NORBANK) rcnt=0;
   if(rcnt>((v->tattr&RBANK)?0:rwthreshold)){
-    emit(f,"\tadd\t256,%s\n",regnames[sr]);
+    /*emit(f,"\tadd\t256,%s\n",regnames[sr]);*/
+    emit(f,"\tincrb\n");
     have_frame=3;
   }else{
     for(i=1;i<=16;i++){
@@ -463,7 +461,8 @@ static void function_bottom(FILE *f,struct Var *v,long offset)
   int i;
   if(offset) emit(f,"\tadd\t%ld,%s\n",offset,regnames[sp]);
   if(have_frame==3){
-    emit(f,"\tsub\t256,%s\n",regnames[sr]);
+    /*emit(f,"\tsub\t256,%s\n",regnames[sr]);*/
+    emit(f,"\tdecrb\n");
   }else{
     for(i=16;i>0;i--){
       if(regused[i]&&!regscratch[i]&&!regsa[i]){
@@ -472,7 +471,11 @@ static void function_bottom(FILE *f,struct Var *v,long offset)
       }
     }
   }
+  if(v->tattr&INTERRUPT){
+    emit(f,"\trti\n");
+  }else{
   if(ret) emit(f,"\t%s\n",ret);
+  }
   if(v->storage_class==EXTERN){
     emit(f,"\t.type\t%s%s,@function\n",idprefix,v->identifier);
     emit(f,"\t.size\t%s%s,$-%s%s\n",idprefix,v->identifier,idprefix,v->identifier);
@@ -499,7 +502,7 @@ static int compare_objects(struct obj *o1,struct obj *o2)
 {
   if((o1->flags&(REG|DREFOBJ))==REG&&(o2->flags&(REG|DREFOBJ))==REG&&o1->reg==o2->reg)
     return 1;
-  if(o1->flags==o2->flags&&o1->am==o2->am){
+  if((o1->flags&(KONST|VAR|DREFOBJ|REG|VARADR))==(o2->flags&(KONST|VAR|DREFOBJ|REG|VARADR))&&o1->am==o2->am){
     if(!(o1->flags&VAR)||(o1->v==o2->v&&zmeqto(o1->val.vmax,o2->val.vmax))){
       if(!(o1->flags&REG)||o1->reg==o2->reg){
 	return 1;
@@ -913,7 +916,7 @@ int init_cg(void)
   tu_max[MAXINT]=t_max(UNSIGNED|LLONG);
 
   /*  Reserve a few registers for use by the code-generator.      */
-  regsa[sp]=regsa[sr]=regsa[pc]=regsa[t1]=regsa[t2]=regsa[22]=1;
+  regsa[sp]=regsa[sr]=regsa[pc]=regsa[t1]=regsa[t2]=regsa[MTMP1]=1;
   regscratch[sp]=regscratch[sr]=regscratch[pc]=regscratch[t1]=regscratch[t2]=0;
   target_macros=marray;
   if(TINY) marray[0]="__TINY__";
@@ -1376,8 +1379,6 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
     call="asub";
     jump="abra";
   }
-  if(v->tattr&INTERRUPT)
-    ierror(0);
   if(DEBUG&1) printf("gen_code()\n");
   if(!v->fi) v->fi=new_fi();
   v->fi->flags|=ALL_REGS;
