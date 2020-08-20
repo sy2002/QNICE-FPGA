@@ -11,6 +11,9 @@ this should become a checklist style document
 rebuild the toolchain using tools/make-toolchain.sh, this includes rebuilding
 the Monitor ROM and PORE ROM
 
+note to self: did we explain somewhere what a .cor file for MEGA65 is? 
+.cor file generation is part of the release process
+
 update this document on the go while doing the V1.6 release
 
 update VERSIONS.txt

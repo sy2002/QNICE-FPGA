@@ -49,7 +49,8 @@ port (
    kbd_en        : in std_logic;
    kbd_we        : in std_logic;
    kbd_reg       : in std_logic_vector(1 downto 0);   
-   cpu_data      : inout std_logic_vector(15 downto 0);
+   cpu_data_in   : in std_logic_vector(15 downto 0);  -- incoming data from CPU
+   cpu_data_out  : out std_logic_vector(15 downto 0); -- outgoing data to CPU
    
    -- allow to control STDIN/STDOUT via pressing <RESTORE>+<1|2> (1=toggle STDIN, 2=toggle STDOUT)
    stdinout      : out std_logic_vector(1 downto 0)
@@ -417,7 +418,7 @@ begin
       else
          if rising_edge(clk) then
             if kbd_en = '1' and kbd_we = '1' and kbd_reg = "00" then
-               ff_locale <= cpu_data(4 downto 2);
+               ff_locale <= cpu_data_in(4 downto 2);
             end if;
          end if;
       end if;
@@ -426,30 +427,28 @@ begin
    read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new, ff_ascii_key, ff_spec_code, modifiers)
    begin
       reset_ff_new <= '0';
+      cpu_data_out <= (others => '0');
       
       if kbd_en = '1' and kbd_we = '0' then
          case kbd_reg is
          
             -- read status register
             when "00" =>
-               cpu_data <= "00000000" &
-                           modifiers &    -- bits 7 .. 5: ctrl/alt/shift
-                           ff_locale &    -- bits 4 .. 2: 000 = US, 001 = DE
-                           ff_spec_new &  -- bit 1: new special key
-                           (ff_ascii_new and not ff_spec_new); -- bit 0: new ascii key
+               cpu_data_out <= "00000000" &
+                               modifiers &    -- bits 7 .. 5: ctrl/alt/shift
+                               ff_locale &    -- bits 4 .. 2: 000 = US, 001 = DE
+                               ff_spec_new &  -- bit 1: new special key
+                               (ff_ascii_new and not ff_spec_new); -- bit 0: new ascii key
                
             -- read data register
             when "01" =>
-               cpu_data <= ff_spec_code & ff_ascii_key;
+               cpu_data_out <= ff_spec_code & ff_ascii_key;
                reset_ff_new <= '1';
                
             when others =>
-               cpu_data <= (others => '0');
-         
+               cpu_data_out<= (others => '0');         
          end case;
-      else
-         cpu_data <= (others => 'Z');
-      end if;   
+      end if;
    end process;
       
    modifiers(2)   <= bucky_key(2);                   -- CTRL

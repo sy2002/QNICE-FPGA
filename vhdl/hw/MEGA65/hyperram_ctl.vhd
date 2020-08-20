@@ -1,10 +1,10 @@
 -- QNICE-MEGA65 HyperRAM controller
--- done by sy2002 in April and May 2020
+-- done by sy2002 in April to August 2020
 --
 -- Wraps the MEGA65 HyperRAM controller so that it can be connected
 -- to the QNICE CPU's data bus and controled via MMIO. 
 -- CPU wait states are automatically inserted by the HyperRAM controller.
--- Goes high impedance when not enabled.
+-- data_out goes to zero, if not enabled
 --
 -- Registers:
 --
@@ -31,7 +31,8 @@ port(
    hram_we     : in std_logic;
    hram_reg    : in std_logic_vector(3 downto 0); 
    hram_cpu_ws : out std_logic;              -- insert CPU wait states (aka WAIT_FOR_DATA)
-   cpu_data    : inout std_logic_vector(15 downto 0);
+   data_in     : in std_logic_vector(15 downto 0);
+   data_out    : out std_logic_vector(15 downto 0);
    
    -- hardware connections
    hr_d        : inout unsigned(7 downto 0); -- Data/Address
@@ -280,32 +281,32 @@ begin
    read_registers : process(hram_en, hram_we, hram_reg, hram_data_ready_strobe, hram_busy, 
                             hram_address, hram_rdata_ff, dbg_chkadd_ff)
    begin
+      data_out <= (others => '0');
+   
       if hram_en = '1' and hram_we = '0' then
          case hram_reg is
             
             -- read low word of address
-            when x"0" => cpu_data <= std_logic_vector(hram_address(15 downto 0));
+            when x"0" => data_out <= std_logic_vector(hram_address(15 downto 0));
             
             -- read (partial) high word of address
-            when x"1" => cpu_data <= std_logic_vector("00000" & hram_address(26 downto 16));
+            when x"1" => data_out <= std_logic_vector("00000" & hram_address(26 downto 16));
             
             -- read 8-bit data
             when x"2" =>
-               cpu_data <= x"00" & std_logic_vector(hram_rdata_ff(7 downto 0));
+               data_out <= x"00" & std_logic_vector(hram_rdata_ff(7 downto 0));
                
             -- read 16-bit data
             when x"3" =>
-               cpu_data <= std_logic_vector(hram_rdata_ff);
+               data_out <= std_logic_vector(hram_rdata_ff);
                
             -- debug              
             when x"6" =>
-               cpu_data <= std_logic_vector(dbg_chkadd_ff);
+               data_out <= std_logic_vector(dbg_chkadd_ff);
                         
             when others =>
-               cpu_data <= (others => '0');
+               data_out <= (others => '0');
          end case;
-      else
-         cpu_data <= (others => 'Z');
       end if;
    end process;
 
@@ -321,18 +322,18 @@ begin
                case hram_reg is
                
                   -- write low word of address
-                  when x"0" => hram_addr_lo_ff <= unsigned(cpu_data);
+                  when x"0" => hram_addr_lo_ff <= unsigned(data_in);
                   
                   -- write high word of address
-                  when x"1" => hram_addr_hi_ff <= unsigned(cpu_data);
+                  when x"1" => hram_addr_hi_ff <= unsigned(data_in);
                   
                   -- write 8-bit data register
                   when x"2" =>
-                     hram_wdata_ff <= x"00" & unsigned(cpu_data(7 downto 0));
+                     hram_wdata_ff <= x"00" & unsigned(data_in(7 downto 0));
                      
                   -- write 16-bit data register
                   when x"3" =>
-                     hram_wdata_ff <= unsigned(cpu_data);    
+                     hram_wdata_ff <= unsigned(data_in);    
                      
                   when others => null;
                end case;
