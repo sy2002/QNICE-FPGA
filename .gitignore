@@ -45,6 +45,12 @@ emulator/qnice_disk.img
 emulator/qnice_disk_v16.img
 pore/boot_message_mega65.asm
 pore/boot_message.asm
+dist_kit/monitor.def
+dist_kit/monitor.vdef
+dist_kit/qmon-ep.h
+dist_kit/sysdef.asm
+dist_kit/sysdef.h
+dist_kit/sysdef.vasm
 *.bin
 *.lis
 *.out
