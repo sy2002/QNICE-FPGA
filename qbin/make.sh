@@ -11,6 +11,9 @@ C_DEMOS=../c/test_programs
 echo "building:   adventure.c"
 qvc  $C_DEMOS/adventure.c $C_FLAGS
 mv   $C_DEMOS/adventure.out .
+echo "building:   hdmi_de.c"
+qvc  $C_DEMOS/hdmi_de.c $C_FLAGS
+mv   $C_DEMOS/hdmi_de.out .
 echo "building:   shell.c"
 qvc  $C_DEMOS/shell.c $C_FLAGS
 mv   $C_DEMOS/shell.out .
@@ -62,6 +65,7 @@ mv   $ASM_TEST/timer_test.out .
 
 # .out files are excluded by .gitignore so let's add them
 git add -f adventure.out
+git add -f hdmi_de.out
 git add -f shell.out
 git add -f sierpinski.out
 git add -f ttt2.out
