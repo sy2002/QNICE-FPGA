@@ -43,6 +43,8 @@ emulator/qnice.wasm
 emulator/qnice.data
 emulator/qnice_disk.img
 emulator/qnice_disk_v16.img
+pore/boot_message_mega65.asm
+pore/boot_message.asm
 *.bin
 *.lis
 *.out
