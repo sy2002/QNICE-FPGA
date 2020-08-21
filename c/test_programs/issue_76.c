@@ -1,6 +1,8 @@
 /*
    Displayed result: r=565, res=565
    Expected result:  r=565, res=190
+
+   Fixed. So the expected result should be shown.
 */
 
 #include <stdio.h>
