@@ -50,7 +50,8 @@ generic (
 port (
    CLK            : in std_logic;
    RESET          : in std_logic;
-   DATA           : inout std_logic_vector(15 downto 0);   
+   DATA_IN        : in std_logic_vector(15 downto 0);   
+   DATA_OUT       : out std_logic_vector(15 downto 0);   
   
    INT_N          : out std_logic;
    IGRANT_N       : in std_logic   
@@ -107,21 +108,23 @@ port (
    en             : in std_logic;                        -- enable for reading from or writing to the bus
    we             : in std_logic;                        -- write to the registers via system's data bus
    reg            : in std_logic_vector(2 downto 0);     -- register selector
-   data           : inout std_logic_vector(15 downto 0)  -- system's data bus
+   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus   
 );
 end component;
 
 -- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
 component EAE is
 port (
-   clk      : in std_logic;                        -- system clock
-   reset    : in std_logic;                        -- system reset
+   clk      : in std_logic;                              -- system clock
+   reset    : in std_logic;                              -- system reset
    
    -- EAE registers
-   en       : in std_logic;                        -- chip enable
-   we       : in std_logic;                        -- write enable
-   reg      : in std_logic_vector(2 downto 0);     -- register selector
-   data     : inout std_logic_vector(15 downto 0)  -- system's data bus
+   en       : in std_logic;                              -- chip enable
+   we       : in std_logic;                              -- write enable
+   reg      : in std_logic_vector(2 downto 0);           -- register selector
+   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus   
 );
 end component;
 
@@ -167,7 +170,8 @@ end component;
 
 -- CPU control signals
 signal cpu_addr               : std_logic_vector(15 downto 0);
-signal cpu_data               : std_logic_vector(15 downto 0);
+signal cpu_data_in            : std_logic_vector(15 downto 0);
+signal cpu_data_out           : std_logic_vector(15 downto 0);
 signal cpu_data_dir           : std_logic;
 signal cpu_data_valid         : std_logic;
 signal cpu_wait_for_data      : std_logic;
@@ -178,17 +182,22 @@ signal cpu_igrant_n           : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
+signal rom_busy               : std_logic;
+signal rom_data_out           : std_logic_vector(15 downto 0);
 signal ram_enable             : std_logic;
 signal ram_busy               : std_logic;
-signal rom_busy               : std_logic;
+signal ram_data_out           : std_logic_vector(15 downto 0);
 signal switch_reg_enable      : std_logic;
+signal switch_data_out        : std_logic_vector(15 downto 0);
 signal eae_en                 : std_logic;
 signal eae_we                 : std_logic;
 signal eae_reg                : std_logic_vector(2 downto 0);
+signal eae_data_out           : std_logic_vector(15 downto 0);
 signal tin_en                 : std_logic;
 signal tin_we                 : std_logic;
 signal tin_reg                : std_logic_vector(2 downto 0);
-
+signal tin_data_out           : std_logic_vector(15 downto 0);
+signal hig_data_out           : std_logic_vector(15 downto 0);
 
 -- clock for simulation
 signal CLK                    : std_logic;
@@ -201,6 +210,13 @@ signal gbl_reset              : std_logic;
 signal SWITCHES               : std_logic_vector(15 downto 0);
 
 begin
+   
+   cpu_data_in <= rom_data_out or
+                  ram_data_out or
+                  eae_data_out or
+                  switch_data_out or
+                  tin_data_out or
+                  hig_data_out;
 
    -- QNICE CPU
    cpu : QNICE_CPU
@@ -209,7 +225,8 @@ begin
          RESET => gbl_reset,
          WAIT_FOR_DATA => cpu_wait_for_data,
          ADDR => cpu_addr,
-         DATA => cpu_data,
+         DATA_IN => cpu_data_in,
+         DATA_OUT => cpu_data_out,
          DATA_DIR => cpu_data_dir,
          DATA_VALID => cpu_data_valid,
          HALT => cpu_halt,
@@ -227,7 +244,7 @@ begin
          clk         => CLK,
          ce          => rom_enable,
          address     => cpu_addr(14 downto 0),
-         data        => cpu_data,
+         data        => rom_data_out,
          busy        => rom_busy
       );
      
@@ -238,8 +255,8 @@ begin
          ce          => ram_enable,
          address     => cpu_addr(14 downto 0),
          we          => cpu_data_dir,         
-         data_i      => cpu_data,
-         data_o      => cpu_data,
+         data_i      => cpu_data_out,
+         data_o      => ram_data_out,
          busy        => ram_busy         
       );
             
@@ -251,7 +268,8 @@ begin
          en => eae_en,
          we => eae_we,
          reg => eae_reg,
-         data => cpu_data         
+         data_in => cpu_data_out,
+         data_out => eae_data_out       
       );
 
    -- memory mapped i/o controller
@@ -293,9 +311,11 @@ begin
          en => tin_en,
          we => tin_we,
          reg => tin_reg,
-         data => cpu_data
+         data_in => cpu_data_out,
+         data_out => tin_data_out
       );
       
+   hig_data_out <= (others => '0');      
 --   hardcoded_interrupt_generator : dev_int_source
 --      generic map (
 --         fire_1 => 17,           -- interrupt in the mid of the execution of MOVE 3, @R12++
@@ -305,7 +325,8 @@ begin
 --      port map (
 --         CLK => CLK,
 --         RESET => gbl_reset,
---         DATA => cpu_data,
+--         DATA_IN => cpu_data_out,
+--         DATA_OUT => hig_data_out,
 --         INT_N => cpu_int_n,
 --         IGRANT_N => cpu_igrant_n
 --      );
@@ -331,13 +352,5 @@ begin
    gbl_reset <= '1' when reset_counter < x"20" else '0';    
          
    -- handle the toggle switches
-   switch_driver : process(switch_reg_enable, SWITCHES)
-   begin
-      if switch_reg_enable = '1' then
-         cpu_data <= x"0000";
-      else
-         cpu_data <= (others => 'Z');
-      end if;
-   end process;
-   
+   switch_data_out <= (others => '0');   
 end beh;
