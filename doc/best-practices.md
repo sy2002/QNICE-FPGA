@@ -115,9 +115,6 @@ C
   If the output `.out` grows too large or does not work as expected, you
   might want to decrease the optimization level to `-O2` or `-O1`.
   The C99 standard using `-c99` is recommended for QNICE-FPGA.
-* Known compiler bug: If you compile without optimizations, then you might
-  run into problems. Solution: Always compile at least with `-O1` (or higher)
-  set. More details: https://github.com/sy2002/QNICE-FPGA/issues/75
 * If you need the intermediary files such as the assembler file that the
   compiler generates, then use the switch `-k`.
 * The heap size is currently set to 4096 words. It grows upwards coming from
@@ -127,10 +124,10 @@ C
   So be careful.
 * Instead of heap memory, you might just want to use static variables within
   the code segment.
-* VBCC is able to use QNICE's register bank feature: If `-opt-speed` is set, 
+* VBCC is able to use QNICE's register bank feature: If `-speed` is set, 
   then VBCC evaluates `-rw-threshold`, which is 2 by default. It means:
   As soon as more than 2 registers need to be saved, then bank switching
-  is performed. (Caveat: This does not work currently and needs to be fixed.)
+  is performed.
 
   If you need to prevent this, e.g. because you have a recursive function,
   then use the `__norbank` directive:
@@ -147,7 +144,14 @@ C
   {
     ...
   }
-  ``
+  ```
+* If you write an ISR in C then use `__interrupt`, as in this example
+  ```
+  __interrupt __rbank void irq(void)
+  {
+    ...
+  }  
+  ```
 * The `qvc` command has all the include and library paths automatically set,
   so that you do not need to add paths to your includes. Neither do you need
   to manually link any libraries.

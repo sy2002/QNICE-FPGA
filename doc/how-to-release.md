@@ -3,6 +3,8 @@ How to make a new QNICE-FPGA release
 
 WORK-IN-PROGRESS
 
+Rebuild toolchain, rebuild monitor library, rebuild VBCC library
+
 Perform "cpu_test.asm" and "The Smoke Test" (describe it) on the hardware and
 on the emulator
 
