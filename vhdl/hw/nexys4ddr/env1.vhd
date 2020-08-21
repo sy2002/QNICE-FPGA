@@ -285,12 +285,16 @@ end component;
 
 -- multiplexer to control the data bus (enable/disable the different parties)
 component mmio_mux is
+generic (
+   GD_TIL            : boolean;        -- support TIL leds (e.g. as available on the Nexys 4 DDR)
+   GD_SWITCHES       : boolean;        -- support SWITCHES (e.g. as available on the Nexys 4 DDR)
+   GD_HRAM           : boolean         -- support HyperRAM (e.g. as available on the MEGA65)
+);
 port (
    -- input from hardware
    HW_RESET          : in std_logic;
    CLK               : in std_logic;
 
-   
    -- input from CPU
    addr              : in std_logic_vector(15 downto 0);
    data_dir          : in std_logic;
@@ -298,50 +302,79 @@ port (
    cpu_halt          : in std_logic;
    cpu_igrant_n      : in std_logic; -- if this goes to 0, then all devices need to leave the DATA bus alone,
                                      -- because the interrupt device will put the ISR address on the bus
-      
+   
    -- let the CPU wait for data from the bus
-   cpu_wait_for_data : out std_logic;   
+   cpu_wait_for_data : out std_logic;
    
    -- ROM is enabled when the address is < $8000 and the CPU is reading
    rom_enable        : out std_logic;
-   ram_enable        : out std_logic;
    rom_busy          : in std_logic;
-   ram_busy          : in std_logic;
-   pore_rom_enable   : out std_logic;
-   pore_rom_busy     : in std_logic;   
    
-   -- signals for peripheral devices
+   -- RAM is enabled when the address is in ($8000..$FEFF)
+   ram_enable        : out std_logic;
+   ram_busy          : in std_logic;
+   
+   -- PORE ROM (PowerOn & Reset Execution ROM)
+   pore_rom_enable   : out std_logic;
+   pore_rom_busy     : in std_logic;
+   
+   -- SWITCHES is $FF00
+   switch_reg_enable : out std_logic;
+   
+   -- TIL register range: $FF01..$FF02
    til_reg0_enable   : out std_logic;
    til_reg1_enable   : out std_logic;
-   switch_reg_enable : out std_logic;
-   kbd_en            : out std_logic;
+   
+   -- Keyboard register range $FF04..$FF07
+   kbd_en            : buffer std_logic;
    kbd_we            : out std_logic;
    kbd_reg           : out std_logic_vector(1 downto 0);
-   tin_en            : out std_logic;
-   tin_we            : out std_logic;
-   tin_reg           : out std_logic_vector(2 downto 0);
       
-   vga_en            : out std_logic;
-   vga_we            : out std_logic;
-   vga_reg           : out std_logic_vector(3 downto 0);
-   uart_en           : out std_logic;
-   uart_we           : out std_logic;
-   uart_reg          : out std_logic_vector(1 downto 0);
-   uart_cpu_ws       : in std_logic;   
-   cyc_en            : out std_logic;
+   -- Cycle counter register range $FF08..$FF0B
+   cyc_en            : buffer std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
-   ins_en            : out std_logic;
+
+   -- Instruction counter register range $FF0C..$FF0F
+   ins_en            : buffer std_logic;
    ins_we            : out std_logic;
    ins_reg           : out std_logic_vector(1 downto 0);
-   eae_en            : out std_logic;
+
+   -- UART register range $FF10..$FF13
+   uart_en           : buffer std_logic;
+   uart_we           : out std_logic;
+   uart_reg          : out std_logic_vector(1 downto 0);
+   uart_cpu_ws       : in std_logic;
+   
+   -- Extended Arithmetic Element register range $FF18..$FF1F
+   eae_en            : buffer std_logic;
    eae_we            : out std_logic;
    eae_reg           : out std_logic_vector(2 downto 0);
-   sd_en             : out std_logic;
+
+   -- SD Card register range $FF20..FF27
+   sd_en             : buffer std_logic;
    sd_we             : out std_logic;
-   sd_reg            : out std_logic_vector(2 downto 0);   
+   sd_reg            : out std_logic_vector(2 downto 0);
+
+   -- Timer Interrupt Generator range $FF28 .. $FF2F
+   tin_en            : buffer std_logic;
+   tin_we            : out std_logic;
+   tin_reg           : out std_logic_vector(2 downto 0);
+   
+   -- VGA register range $FF30..$FF3F
+   vga_en            : buffer std_logic;
+   vga_we            : out std_logic;
+   vga_reg           : out std_logic_vector(3 downto 0);
+
+   -- HyerRAM register range $FFF0 .. $FFF3
+   hram_en           : out std_logic;
+   hram_we           : out std_logic;
+   hram_reg          : out std_logic_vector(3 downto 0); 
+   hram_cpu_ws       : in std_logic; -- insert CPU wait states (aka WAIT_FOR_DATA)   
+ 
+   -- global state and reset management
    reset_pre_pore    : out std_logic;
-   reset_post_pore   : out std_logic   
+   reset_post_pore   : out std_logic
 );
 end component;
 
@@ -670,6 +703,11 @@ begin
                         
    -- memory mapped i/o controller
    mmio_controller : mmio_mux
+      generic map (
+         GD_TIL      => true,                -- yes, support TIL leds
+         GD_SWITCHES => true,                -- yes, support SWITCHES
+         GD_HRAM     => false                -- no, do not support HyperRAM
+      )
       port map (
          HW_RESET => not RESET_N,
          CLK => SLOW_CLOCK,                  -- @TODO change debouncer bitsize when going to 100 MHz
@@ -714,7 +752,13 @@ begin
          sd_we => sd_we,
          sd_reg => sd_reg,
          reset_pre_pore => reset_pre_pore,
-         reset_post_pore => reset_post_pore
+         reset_post_pore => reset_post_pore,
+         
+         -- no HyperRAM available
+         hram_en => open,
+         hram_we => open,
+         hram_reg => open, 
+         hram_cpu_ws => '0'    
       );
    
    -- handle the toggle switches

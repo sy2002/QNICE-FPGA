@@ -4,14 +4,24 @@ The *dist_kit* folder
 * This is the distribution kit of QNICE.
 
 * For those of you having a Nexys 4 DDR board, the most important file here
-  is the FPGA bitstream file having the .bit file extension. It contains the
+  is the FPGA bitstream file having the `.bit` file extension. It contains the
   QNICE FPGA hardware plus the Monitor ROM. Copy it on a microSD card
   or a USB stick, set the jumpers on your board correctly and you can boot
   up QNICE-FPGA.
 
+* If you have a MEGA65, you can youse the `.cor` file.
+
 * The other files are needed for doing QNICE software development, as they
   contain important register definitions, common constants and command
   shortcuts.
+
+* Nearly all of the files from the following description are not checked-in
+  into the Git repository, but they are automatically generated when you
+  initially run `tools/make-toolchain.sh`. If you changed anything regarding
+  `monitor/sysdef.asm`, you can rebuild them using 
+  `monitor/compile_and_distribute.sh`. The expection is the file
+  `qnice-conv.vasm`: It is a manually written file that contains convenience
+  macros for VASM.
 
 * Native QNICE assembler:
 

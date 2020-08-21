@@ -50,7 +50,8 @@ void sd_attach(char *filename)
 
 void sd_detach()
 {
-  fclose(image);
+  if (image)
+    fclose(image);
   image = 0;
   memset(sd_data, 0, SD_SECTOR_SIZE);
 }

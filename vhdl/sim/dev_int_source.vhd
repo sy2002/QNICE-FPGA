@@ -14,7 +14,8 @@ generic (
 port (
    CLK            : in std_logic;
    RESET          : in std_logic;
-   DATA           : inout std_logic_vector(15 downto 0);   
+   DATA_IN        : in std_logic_vector(15 downto 0);   
+   DATA_OUT       : out std_logic_vector(15 downto 0);   
   
    INT_N          : out std_logic;
    IGRANT_N       : in std_logic   
@@ -49,7 +50,7 @@ begin
    fsm_output_decode : process(State, counter, IGRANT_N)
    begin
       fsmNextState <= State;
-      DATA <= (others => 'Z');
+      DATA_OUT <= (others => '0');
       INT_N <= '1';
    
       case State is
@@ -66,7 +67,7 @@ begin
          when s_signal =>
             if IGRANT_N = '0' then
                fsmNextState <= s_provide_isr;
-               DATA <= std_logic_vector(to_unsigned(ISR_ADDR, 16));                      
+               DATA_OUT <= std_logic_vector(to_unsigned(ISR_ADDR, 16));                      
             else
                INT_N <= '0';         
                fsmNextState <= s_signal;
@@ -75,7 +76,7 @@ begin
          when s_provide_isr =>
             if IGRANT_N = '0' then            
                fsmNextState <= s_provide_isr;
-               DATA <= std_logic_vector(to_unsigned(ISR_ADDR, 16));
+               DATA_OUT <= std_logic_vector(to_unsigned(ISR_ADDR, 16));
             else
                fsmNextState <= s_idle;
             end if;            
