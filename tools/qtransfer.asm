@@ -188,11 +188,9 @@ CALC_CRC16      INCRB
 
 _CCRC16_LOOP    XOR     @R2++, R0               ; crc ^= *buffer
 
-                MOVE    R0, R4 
                 AND     0xFFFB, SR              ; prepare SHR: clear carry
                 SHR     1, R0                   ; crc >> 1
-                AND     1, R4
-                RBRA    _CCRC16_NOXOR, Z        ; crc & 1 == 0? no mask!
+                RBRA    _CCRC16_NOXOR, !X       ; crc & 1 == 0? no mask!
                 XOR     R1, R0                  ; crc ^= mask
 
 _CCRC16_NOXOR   ADD     1, R3
