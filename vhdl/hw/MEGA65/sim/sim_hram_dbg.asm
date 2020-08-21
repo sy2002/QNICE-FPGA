@@ -3,6 +3,8 @@
 ; for simulation
 ; done by sy2002 on June, 12 2020
 ;
+; Test passes successfully since August, 21 2020
+;
 
 #include "../../../../dist_kit/sysdef.asm"
 #include "../../../../dist_kit/monitor.def"
@@ -23,6 +25,9 @@
                                                 ; and do it again
                 MOVE    @R2, R8                 ; PROBLEM: system stalls here
 
+                ; version for simulator (comment out for tests on hardware)
+                HALT                            ; this code is never reached
+
+                ; version for tests on hardware
                 SYSCALL(puthex, 1)              ; this code is never reached
                 SYSCALL(exit, 1)
-
