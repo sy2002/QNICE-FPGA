@@ -214,9 +214,32 @@ signal Dst_Value_Fast      : std_logic_vector(15 downto 0);
 
 
 begin
+   -- internal signals
+   Opcode         <= Instruction(15 downto 12);
+   Src_RegNo      <= Instruction(11 downto 8);
+   Src_Mode       <= Instruction(7 downto 6);
+   Dst_RegNo      <= Instruction(5 downto 2);
+   Dst_Mode       <= Instruction(1 downto 0);
+   Bra_Mode       <= Instruction(5 downto 4);
+   Bra_Neg        <= Instruction(3);
+   Bra_Condition  <= Instruction(2 downto 0);
+   Ctrl_Cmd       <= Instruction(11 downto 6);
+   
+   -- external signals
+   ADDR           <= ADDR_Bus;
+   HALT           <= '1' when cpu_state = cs_halt else '0';
+
    -- Fastpath: When we have a direct register to register operation or a branch, where the address is in a register
-   FastPath       <= true when (Opcode /= opcBRA and Src_Mode = amDirect and Dst_Mode = amDirect) or
-                               (Opcode  = opcBRA and Src_Mode = amDirect)
+   -- In cs_fetch, the Instruction register is not set, yet, so we need to listen to the data bus
+   FastPath       <= true when (DATA_IN(15 downto 12) /= opcCTRL and cpu_state = cs_fetch and (
+                                 (DATA_IN(15 downto 12) /= opcBRA and DATA_IN(7 downto 6) = amDirect and DATA_IN(1 downto 0) = amDirect) or
+                                 (DATA_IN(15 downto 0)   = opcBRA and DATA_IN(7 downto 6) = amDirect)
+                               ))
+                               or 
+                               (cpu_state = cs_execute and Opcode /= opcCTRL and (
+                                 (Opcode /= opcBRA and Src_Mode = amDirect and Dst_Mode = amDirect) or
+                                 (Opcode  = opcBRA and Src_Mode = amDirect))
+                               )
                                else false;                           
    Src_Value_Fast <= reg_read_data1 when FastPath and cpu_state = cs_execute else Src_Value;
    Dst_Value_Fast <= reg_read_data2 when FastPath and cpu_state = cs_execute else Dst_Value;
@@ -330,8 +353,9 @@ begin
    
    fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, SP_org, SR_org, PC_org,
                                 DATA_IN, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
-                                Instruction, Opcode,
+                                Instruction, Opcode, FastPath,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
+                                Src_Value_Fast, Dst_Value_Fast,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
                                 Delayed_PostInc, DPI_RegNo, DPI_Value,
                                 reg_read_addr1, reg_read_data1, reg_read_addr2, reg_read_data2,
@@ -941,21 +965,5 @@ begin
          when others                         => cpu_state_next <= cs_halt;  -- ditto
       end case;
    end process;
-               
-   -- internal signals
-   Opcode         <= Instruction(15 downto 12);
-   Src_RegNo      <= Instruction(11 downto 8);
-   Src_Mode       <= Instruction(7 downto 6);
-   Dst_RegNo      <= Instruction(5 downto 2);
-   Dst_Mode       <= Instruction(1 downto 0);
-   Bra_Mode       <= Instruction(5 downto 4);
-   Bra_Neg        <= Instruction(3);
-   Bra_Condition  <= Instruction(2 downto 0);
-   Ctrl_Cmd       <= Instruction(11 downto 6);
-   
-   -- external signals
-   ADDR           <= ADDR_Bus;
-   HALT           <= '1' when cpu_state = cs_halt else '0';
-   
+                  
 end beh;
-

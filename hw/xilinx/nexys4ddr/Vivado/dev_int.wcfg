@@ -13,15 +13,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="4159000fs"></ZoomStartTime>
-      <ZoomEndTime time="4467479fs"></ZoomEndTime>
-      <Cursor1Time time="4260107fs"></Cursor1Time>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="81401fs"></ZoomEndTime>
+      <Cursor1Time time="0fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="147"></NameColumnWidth>
+      <NameColumnWidth column_width="139"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="40" />
+   <WVObjectSize size="43" />
    <wvobject type="logic" fp_name="/dev_int/CLK">
       <obj_property name="ElementShortName">CLK</obj_property>
       <obj_property name="ObjectShortName">CLK</obj_property>
@@ -29,6 +29,10 @@
    <wvobject type="other" fp_name="/dev_int/cpu/cpu_state">
       <obj_property name="ElementShortName">cpu_state</obj_property>
       <obj_property name="ObjectShortName">cpu_state</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/dev_int/cpu/fsmNextCpuState">
+      <obj_property name="ElementShortName">fsmNextCpuState</obj_property>
+      <obj_property name="ObjectShortName">fsmNextCpuState</obj_property>
    </wvobject>
    <wvobject type="other" fp_name="/dev_int/cpu/cpu_state_next">
       <obj_property name="ElementShortName">cpu_state_next</obj_property>
@@ -66,9 +70,17 @@
       <obj_property name="ElementShortName">ADDR[15:0]</obj_property>
       <obj_property name="ObjectShortName">ADDR[15:0]</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/dev_int/cpu/DATA">
-      <obj_property name="ElementShortName">DATA[15:0]</obj_property>
-      <obj_property name="ObjectShortName">DATA[15:0]</obj_property>
+   <wvobject type="array" fp_name="/dev_int/cpu/DATA_IN">
+      <obj_property name="ElementShortName">DATA_IN[15:0]</obj_property>
+      <obj_property name="ObjectShortName">DATA_IN[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/cpu/DATA_OUT">
+      <obj_property name="ElementShortName">DATA_OUT[15:0]</obj_property>
+      <obj_property name="ObjectShortName">DATA_OUT[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/dev_int/cpu/FastPath">
+      <obj_property name="ElementShortName">FastPath</obj_property>
+      <obj_property name="ObjectShortName">FastPath</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/dev_int/cpu/WAIT_FOR_DATA">
       <obj_property name="ElementShortName">WAIT_FOR_DATA</obj_property>
