@@ -207,8 +207,19 @@ signal Alu_Z               : std_logic;
 signal Alu_N               : std_logic;
 signal Alu_V               : std_logic;
 
+-- Fastpath handling
+signal FastPath            : boolean;
+signal Src_Value_Fast      : std_logic_vector(15 downto 0);
+signal Dst_Value_Fast      : std_logic_vector(15 downto 0);
+
 
 begin
+   -- Fastpath: When we have a direct register to register operation or a branch, where the address is in a register
+   FastPath       <= true when (Opcode /= opcBRA and Src_Mode = amDirect and Dst_Mode = amDirect) or
+                               (Opcode  = opcBRA and Src_Mode = amDirect)
+                               else false;                           
+   Src_Value_Fast <= reg_read_data1 when FastPath and cpu_state = cs_execute else Src_Value;
+   Dst_Value_Fast <= reg_read_data2 when FastPath and cpu_state = cs_execute else Dst_Value;
       
    -- Registers
    Registers : register_file
@@ -233,8 +244,8 @@ begin
       port map
       (
          opcode      => Opcode,
-         input1      => IEEE.NUMERIC_STD.unsigned(Src_Value),
-         input2      => IEEE.NUMERIC_STD.unsigned(Dst_Value),
+         input1      => IEEE.NUMERIC_STD.unsigned(Src_Value_Fast),
+         input2      => IEEE.NUMERIC_STD.unsigned(Dst_Value_Fast),
          c_in        => SR(2),
          x_in        => SR(1),
          result      => Alu_Result,
@@ -399,6 +410,13 @@ begin
                   fsmPC <= PC + 1;
                   fsm_reg_read_addr1 <= DATA_IN(11 downto 8); -- read Src register number
                   fsm_reg_read_addr2 <= DATA_IN(5 downto 2);  -- rest Dst register number
+                  
+                  -- for direct register to register operations or a branch based on a register, we can 
+                  -- skip the decode phase, but we must then make sure that the Alu has the right
+                  -- input value: see FastPath handling above and the special "if FastPath" in cs_execute
+                  if FastPath then
+                     fsmNextCpuState <= cs_execute;
+                  end if;
                end if;
             end if;
                                     
@@ -689,7 +707,13 @@ begin
                end if;               
             end if;                        
                         
-         when cs_execute =>        
+         when cs_execute =>       
+            -- When we arrived here via FastPath we still need to store Src and Dst
+            if FastPath then
+               fsmSrc_Value <= reg_read_data1;
+               fsmDst_Value <= reg_read_data2;
+            end if;
+          
             -- execute branches
             if Opcode = opcBRA then
                fsmNextCpuState <= cs_fetch;
@@ -698,12 +722,12 @@ begin
                if SR(conv_integer(Bra_Condition)) = not Bra_Neg then             
                   case Bra_Mode is
                      when bmABRA =>
-                        fsmPC <= Src_Value;
-                        fsmCpuAddr <= Src_Value;
+                        fsmPC <= Src_Value_Fast;
+                        fsmCpuAddr <= Src_Value_Fast;
                   
                      when bmRBRA =>
-                        fsmPC <= PC + Src_Value;
-                        fsmCpuAddr <= PC + Src_Value;
+                        fsmPC <= PC + Src_Value_Fast;
+                        fsmCpuAddr <= PC + Src_Value_Fast;
                         
                      when bmASUB | bmRSUB =>
                         -- decrease stack pointer and store the current program
