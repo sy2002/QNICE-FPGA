@@ -219,7 +219,7 @@ begin
    -- otherwise, a "req_busy" bus could be built (replacing the ram_busy input)
    -- the block_ram's busy line is already a tri state, so it is ready for such a bus
    cpu_wait_control : process (ram_enable_i, rom_enable_i, pore_rom_enable_i, ram_busy, rom_busy,
-                               pore_rom_busy, uart_cpu_ws)
+                               pore_rom_busy, uart_cpu_ws, hram_cpu_ws, no_igrant_active)
    begin
       cpu_wait_for_data <= '0';
       
