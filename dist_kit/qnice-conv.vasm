@@ -5,14 +5,6 @@
 ;
 ; done by sy2002 in November 2016
 
-    .macro  INCRB
-        ADD 0x100, R14
-    .endm
-
-    .macro  DECRB
-        SUB 0x100, R14
-    .endm
-
     .macro  RET
         MOVE @R13++, R15
     .endm

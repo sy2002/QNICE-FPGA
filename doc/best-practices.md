@@ -3,7 +3,7 @@ QNICE Programming Best Practices
 
 There are three ways to program QNICE, all of them are covered in this guide.
 
-* Native assembler
+* Native QNICE assembler
 * VASM assembler (from the VBCC toolchain)
 * C (VBCC toolchain)
 
@@ -13,12 +13,12 @@ that it is even near to complete.
 All languages
 -------------
 
-* The folder `dist_kit` contains important includes
+* The folder `dist_kit` contains important includes.
 * The Monitor acts as "operating system" and offers convenient functions as
   documented in `doc/monitor/doc.pdf`. They range from IO functions over
   math and string functions to debug functions.
-* Configure your editor to convert SPACEs to TABs
-* When using register banks make sure, that the register bank
+* Configure your editor to convert SPACEs to TABs.
+* When using register banks make sure that the register bank
   selector in the upper eight bits of SR is **always** pointing to the highest
   active bank. Reason: Interrupt Service Routines might interrupt your code
   any time and they might also use register banks to save and restore the
@@ -30,21 +30,21 @@ All languages
 * When writing an interrupt service routine (ISR), make sure that you do not
   leave any register modified when calling `RTI`. You may use the stack.    
 
-Native assembler
-----------------
+Native QNICE assembler
+----------------------
 
-* Use `.asm` as file extension
-* Use one semicolon `;` to start a comment
-* Write all mnemonics, register names and labels in UPPER CASE
-* Write comments in mixed case
+* Use `.asm` as file extension.
+* Use one semicolon `;` to start a comment.
+* Write all mnemonics, register names, and labels in UPPER CASE.
+* Write comments in mixed case.
 * Always include `dist_kit/sysdef.asm`, so that you have the convenience
-  macros for the CPU registers `SP`, `SR` and `PC` as well as the
+  macros for the CPU registers `SP`, `SR`, and `PC` as well as the
   convenience macros for `RET` for returning from a subroutine and 
   `SYSCALL` (if monitor functions are needed).
 * Use `SYSCALL(<monitor function>, <branch flag>)` to call a monitor function.
   Do not directly use a branch command, because we might at a later stage
   add more logic to `SYSCALL`.
-* Optinally include `dist_kit/monitor.def`, if you need "operating system"
+* Optionally include `dist_kit/monitor.def`, if you need "operating system"
   functions such as "return to monitor" aka `SYSCALL(exit, 1)` or others.
 
 ### Columns and spacing
@@ -74,7 +74,7 @@ CALC_TTR_POS    MOVE    Tetromino_Y, R1
   followed by a space `; ` (`S`) in columns 49 and 50. From column 51 on,
   you can type your comment (`C`) with a maximum of 28 characters.
 
-There is a template file in `test_programs/template.asm` that you an use as
+There is a template file in `test_programs/template.asm` that you can use as
 a starting point for your projects. It contains the right columns and spacings
 and includes some more best practices.
 
@@ -99,9 +99,9 @@ VASM assembler
 
 * The priciples of the native assembler apply in principle.
 * In `c/test_programs/vasm_test.asm` there is a sample file.
-* Include `dist_kit/qnice-conv.vasm` for accessing the convenience macros,
-  `dist_kit/sysdef.vasm` for the MMIO addresses and registers and 
-  `monitor.vdef` for the "operating system" routines.
+* Include `dist_kit/qnice-conv.vasm` for accessing the convenience macros.
+* Include `dist_kit/sysdef.vasm` for the MMIO addresses and registers.
+* Include `monitor.vdef` for the "operating system" routines.
 
 C
 -
@@ -111,26 +111,26 @@ C
   if you call it from another folder.)
 * The sample programs are in `c/test_programs/`.
 * Most of the time, you will want to compile by using
-  `qvc <source> -c99 -O3`, this leads to best performance. 
+  `qvc <source> -c99 -O3`; this leads to best performance.
   If the output `.out` grows too large or does not work as expected, you
   might want to decrease the optimization level to `-O2` or `-O1`.
   The C99 standard using `-c99` is recommended for QNICE-FPGA.
-* If you need the intermediary files such as the assembler file, that the
+* If you need the intermediary files such as the assembler file that the
   compiler generates, then use the switch `-k`.
 * The heap size is currently set to 4096 words. It grows upwards coming from
-  the end of the application and therefore grows towards the stack which is
+  the end of the application and therefore grows towards the stack that is
   coming downwards from somewhere near 0xFEFF. Currently there are no
   checking mechanisms that check a collision between stack and heap.
   So be careful.
 * Instead of heap memory, you might just want to use static variables within
   the code segment.
-* VBCC is able to use QNICE's register bank feature: If `-opt-speed` is set, 
+* VBCC is able to use QNICE's register bank feature: If `-speed` is set, 
   then VBCC evaluates `-rw-threshold`, which is 2 by default. It means:
   As soon as more than 2 registers need to be saved, then bank switching
-  is performed. (Caveat: This does not work currently and needs to be fixed.)
+  is performed.
 
   If you need to prevent this, e.g. because you have a recursive function,
-  then use the __norbank directive:
+  then use the `__norbank` directive:
   ```
   __norbank void highly_recursive(int x, int y, int z)
   {
@@ -138,15 +138,22 @@ C
   }
   ```
   If you want to force it, even when the to-be-saved registers are smaller
-  than treshold, then use the __rbank directive:
+  than threshold, then use the `__rbank` directive:
   ```
   __rbank void always_use_bankswitching(int x)
   {
     ...
   }
-  ``
+  ```
+* If you write an ISR in C then use `__interrupt`, as in this example
+  ```
+  __interrupt __rbank void irq(void)
+  {
+    ...
+  }  
+  ```
 * The `qvc` command has all the include and library paths automatically set,
-  so that you do not need to at paths to your includes. Neither do you need
+  so that you do not need to add paths to your includes. Neither do you need
   to manually link any libraries.
 * Additionally to the Standard C library that can be included as usual, there
   is the QNICE Monitor library that provides "operating system functions"

@@ -122,12 +122,6 @@ keyboards are tested and work:
 
 * We are currently on a rather old version of VBCC
 
-* The "-opt-speed" switch that is meant to make sure that register bank
-  switching is used instead of the stack in functions does not seem to work
-
-* VASM and the code emitter are not supporting the new ISA 1.6 as described
-  in https://github.com/sy2002/QNICE-FPGA/issues/65
-
 ==============================================================================
     Standard C Library
 ==============================================================================    

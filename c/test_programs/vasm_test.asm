@@ -1,11 +1,11 @@
 ; This is a small test program for vasm and vlink, which can be used as an
 ; alternative to the native QNICE assembler.
 ;
-; Before proceeding, make sure, that you entered "source setenv.source" in
-; your terminal, which is located in the in the "c" folder. This sets the path
+; Before proceeding, make sure that you entered "source setenv.source" in
+; your terminal, which is located in the "c" folder. This sets the path
 ; and the environment variables correctly.
 ;
-; Enter this to assemble, link and to create a QNICE .out file:
+; Enter this command to assemble, link and to create a QNICE .out file:
 ; qvasm vasm_test.asm
 ;
 ; done by sy2002 in December 2016

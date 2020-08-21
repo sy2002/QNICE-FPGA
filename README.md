@@ -362,11 +362,11 @@ Documentation
 If you are new to QNICE-FPGA, then reading the documentation in the following
 order is recommended:
 
-1. [Introduction](doc/intro/qnice_intro.pdf) to the QNICE Instruction Set Architecture.
+1. [Introduction](doc/intro/qnice_intro.pdf) to the QNICE Instruction Set Architecture
 
-2. [Hardware](hw/README.md). Description of supported hardware platforms, how to build, and guides for porting to other platforms.
+2. [Hardware](hw/README.md): Description of supported hardware platforms, how to build, and guides for porting to other platforms
 
-3. [Overview](doc/README.md) of directory structure and available documentation.
+3. [Overview](doc/README.md) of directory structure and available documentation
 
 4. [Emulator](emulator/README.md) and [mounting FAT32 devices](doc/emumount.txt)
 
