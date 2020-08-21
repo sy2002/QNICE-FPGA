@@ -157,8 +157,42 @@ signal Alu_Z               : std_logic;
 signal Alu_N               : std_logic;
 signal Alu_V               : std_logic;
 
+-- Fastpath handling
+signal FastPath            : boolean;
+signal Src_Value_Fast      : std_logic_vector(15 downto 0);
+signal Dst_Value_Fast      : std_logic_vector(15 downto 0);
+
 
 begin
+   -- internal signals
+   Opcode         <= Instruction(15 downto 12);
+   Src_RegNo      <= Instruction(11 downto 8);
+   Src_Mode       <= Instruction(7 downto 6);
+   Dst_RegNo      <= Instruction(5 downto 2);
+   Dst_Mode       <= Instruction(1 downto 0);
+   Bra_Mode       <= Instruction(5 downto 4);
+   Bra_Neg        <= Instruction(3);
+   Bra_Condition  <= Instruction(2 downto 0);
+   Ctrl_Cmd       <= Instruction(11 downto 6);
+   
+   -- external signals
+   ADDR           <= ADDR_Bus;
+   HALT           <= '1' when cpu_state = cs_halt else '0';
+
+   -- Fastpath: When we have a direct register to register operation or a branch, where the address is in a register
+   -- In cs_fetch, the Instruction register is not set, yet, so we need to listen to the data bus
+   FastPath       <= true when (DATA_IN(15 downto 12) /= opcCTRL and cpu_state = cs_fetch and (
+                                 (DATA_IN(15 downto 12) /= opcBRA and DATA_IN(7 downto 6) = amDirect and DATA_IN(1 downto 0) = amDirect) or
+                                 (DATA_IN(15 downto 0)   = opcBRA and DATA_IN(7 downto 6) = amDirect)
+                               ))
+                               or 
+                               (cpu_state = cs_execute and Opcode /= opcCTRL and (
+                                 (Opcode /= opcBRA and Src_Mode = amDirect and Dst_Mode = amDirect) or
+                                 (Opcode  = opcBRA and Src_Mode = amDirect))
+                               )
+                               else false;                           
+   Src_Value_Fast <= reg_read_data1 when FastPath and cpu_state = cs_execute else Src_Value;
+   Dst_Value_Fast <= reg_read_data2 when FastPath and cpu_state = cs_execute else Dst_Value;
       
    -- Registers
    Registers : entity work.register_file
@@ -183,8 +217,8 @@ begin
       port map
       (
          opcode      => Opcode,
-         input1      => IEEE.NUMERIC_STD.unsigned(Src_Value),
-         input2      => IEEE.NUMERIC_STD.unsigned(Dst_Value),
+         input1      => IEEE.NUMERIC_STD.unsigned(Src_Value_Fast),
+         input2      => IEEE.NUMERIC_STD.unsigned(Dst_Value_Fast),
          c_in        => SR(2),
          x_in        => SR(1),
          result      => Alu_Result,
@@ -269,8 +303,9 @@ begin
    
    fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, SP_org, SR_org, PC_org,
                                 DATA_IN, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
-                                Instruction, Opcode,
+                                Instruction, Opcode, FastPath,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
+                                Src_Value_Fast, Dst_Value_Fast,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
                                 Delayed_PostInc, DPI_RegNo, DPI_Value,
                                 reg_read_addr1, reg_read_data1, reg_read_addr2, reg_read_data2,
@@ -349,6 +384,13 @@ begin
                   fsmPC <= PC + 1;
                   fsm_reg_read_addr1 <= DATA_IN(11 downto 8); -- read Src register number
                   fsm_reg_read_addr2 <= DATA_IN(5 downto 2);  -- rest Dst register number
+                  
+                  -- for direct register to register operations or a branch based on a register, we can 
+                  -- skip the decode phase, but we must then make sure that the Alu has the right
+                  -- input value: see FastPath handling above and the special "if FastPath" in cs_execute
+                  if FastPath then
+                     fsmNextCpuState <= cs_execute;
+                  end if;
                end if;
             end if;
                                     
@@ -639,7 +681,13 @@ begin
                end if;               
             end if;                        
                         
-         when cs_execute =>        
+         when cs_execute =>       
+            -- When we arrived here via FastPath we still need to store Src and Dst
+            if FastPath then
+               fsmSrc_Value <= reg_read_data1;
+               fsmDst_Value <= reg_read_data2;
+            end if;
+          
             -- execute branches
             if Opcode = opcBRA then
                fsmNextCpuState <= cs_fetch;
@@ -648,12 +696,12 @@ begin
                if SR(conv_integer(Bra_Condition)) = not Bra_Neg then             
                   case Bra_Mode is
                      when bmABRA =>
-                        fsmPC <= Src_Value;
-                        fsmCpuAddr <= Src_Value;
+                        fsmPC <= Src_Value_Fast;
+                        fsmCpuAddr <= Src_Value_Fast;
                   
                      when bmRBRA =>
-                        fsmPC <= PC + Src_Value;
-                        fsmCpuAddr <= PC + Src_Value;
+                        fsmPC <= PC + Src_Value_Fast;
+                        fsmCpuAddr <= PC + Src_Value_Fast;
                         
                      when bmASUB | bmRSUB =>
                         -- decrease stack pointer and store the current program
@@ -867,21 +915,5 @@ begin
          when others                         => cpu_state_next <= cs_halt;  -- ditto
       end case;
    end process;
-               
-   -- internal signals
-   Opcode         <= Instruction(15 downto 12);
-   Src_RegNo      <= Instruction(11 downto 8);
-   Src_Mode       <= Instruction(7 downto 6);
-   Dst_RegNo      <= Instruction(5 downto 2);
-   Dst_Mode       <= Instruction(1 downto 0);
-   Bra_Mode       <= Instruction(5 downto 4);
-   Bra_Neg        <= Instruction(3);
-   Bra_Condition  <= Instruction(2 downto 0);
-   Ctrl_Cmd       <= Instruction(11 downto 6);
-   
-   -- external signals
-   ADDR           <= ADDR_Bus;
-   HALT           <= '1' when cpu_state = cs_halt else '0';
-   
+                  
 end beh;
-
