@@ -12,17 +12,18 @@
  * done by MJoergen in August 2020
  */
 
-#include "conio.h"
-#include "rand.h"
+#include "conio.h"   // Function to write to the VGA screen
+#include "rand.h"    // Random generator
 
-#define MAX_ROWS  15
-#define MAX_COLS  15
+// Define the size of the maze.
+#define MAX_ROWS  18
+#define MAX_COLS  38
 #define MAX_SQUARES	(MAX_ROWS*MAX_COLS)
 
+// Each square has a value that is a bitmask of open walls.
+// E.g. the value 3 means that the square has openings to the north and the
+// east, while there are blocking walls to the south and the west.
 char grid[MAX_SQUARES];
-
-#define GetRow(sq)	(sq % MAX_ROWS)
-#define GetCol(sq)	(sq / MAX_ROWS)
 
 enum
 {
@@ -32,20 +33,25 @@ enum
    DIR_SOUTH,
    MAX_DIRS
 };
+
+#define GetRow(sq)	(sq % MAX_ROWS)
+#define GetCol(sq)	(sq / MAX_ROWS)
+
 const int offset[MAX_DIRS] = {-1, MAX_ROWS, -MAX_ROWS, 1};
 
-char GetRandomDir()
+static char GetRandomDir()
 {
    return my_rand() % MAX_DIRS;
 }
 
-int GetRandomSquare()
+static int GetRandomSquare()
 {
    return my_rand() % MAX_SQUARES;
 }
 
 
-void DrawPos(int sq)
+// Draw the current square as 3x3 characters.
+static void DrawPos(int sq)
 {
    const char wall = '#';
    char col = 1 + 2*GetCol(sq);
@@ -60,11 +66,21 @@ void DrawPos(int sq)
    cputcxy(col+2, row+1, (g&(1<<DIR_EAST))  ? ' ' : wall);
    cputcxy(col,   row+1, (g&(1<<DIR_WEST))  ? ' ' : wall);
    cputcxy(col+1, row+2, (g&(1<<DIR_SOUTH)) ? ' ' : wall);
-   cputcxy(col+1, row+1, ' ');
+   cputcxy(col+1, row+1, ' ');   // Place cursor at centre of square.
 } // end of DrawPos
 
+static void pause()
+{
+   for (long i=0; i<1000; ++i)
+   {
+      // Calling my_rand() prevents the optimizer from pruning this loop,
+      // because my_rand() has side-effects (it updates the seed).
+      my_rand();
+   }
+} // end of pause
 
-void InitMaze(void)
+// Generate maze
+static void InitMaze(void)
 {
    int sq;
    int count;
@@ -72,19 +88,20 @@ void InitMaze(void)
 
    for(sq=0; sq<MAX_SQUARES; sq++)
    {
-      grid[sq]=0;
+      grid[sq]=0; // Initially all walls are blocked.
    }
 
-   sq = GetRandomSquare();
-   count = MAX_SQUARES-1;
-   while (count)
+   sq = GetRandomSquare(); // Start at a random square in the maze.
+   count = MAX_SQUARES-1;  // Number of squares remaining to be visited.
+   while (count)           // Continue until all squares are visited.
    {
       int dir = GetRandomDir();
-      int newSq = sq + offset[dir];
+      int newSq = sq + offset[dir]; // Go to a neighbouring square.
 
       int sameRow = (GetRow(sq)==GetRow(newSq));
       int sameCol = (GetCol(sq)==GetCol(newSq));
 
+      // Check whether the new square is in fact inside the maze.
       if ( ((sameRow && !sameCol) || (!sameRow && sameCol))
             && (newSq>=0) && (newSq<MAX_SQUARES) )
       {
@@ -94,57 +111,42 @@ void InitMaze(void)
             /* Make an opening */
             int mask_old = 1 << dir;
             int mask_new = 1 << (MAX_DIRS-1) - dir;
-            grid[sq] += mask_old; // DrawPos(sq); // Uncomment during debugging
+            grid[sq] += mask_old; DrawPos(sq);
             sq = newSq;
-            grid[sq] += mask_new; // DrawPos(sq); // Uncomment during debugging
+            grid[sq] += mask_new; DrawPos(sq);
             count--;
+            pause();
          }
-         else if ((my_rand() % 6) == 0)
-         {
-            /* Start from a different square that is connected */
-            do
+         else
+         {  // We're moved to a square we've already visited.
+            // Either we continue moving around, or we - occasionally -
+            // teleport to a random other square inside the part of the maze
+            // already built.
+            if ((my_rand() % 6) == 0)
             {
-               sq = GetRandomSquare();
+               /* Start from a different square that is connected */
+               do
+               {
+                  sq = GetRandomSquare();
+               }
+               while (!grid[sq]);
             }
-            while (!grid[sq]);
          }
       }
    }
 } // end of InitMaze
 
 
-int main()
+static void playGame()
 {
-   int curSq, printSq;
-
-   int seed = time();
-   my_srand(seed);
-
-   cputsxy(1, 18, "Generating maze for you ...\0");
-
-   InitMaze();
-
-   clrscr();
-
    /* Set start square to lower right corner */
-   curSq = MAX_SQUARES - 1;
+   int curSq = MAX_SQUARES - 1;
 
    while (curSq >= 0)
    {
       int dir;
 
-#define BEEN_HERE 1<<7
-
-      grid[curSq] |= BEEN_HERE;
-
-      // Redraw entire maze on screen.
-      for (printSq=0; printSq<MAX_SQUARES; printSq++)
-      {
-         if (grid[printSq] & BEEN_HERE)
-         {
-            DrawPos(printSq);
-         }
-      }
+      DrawPos(curSq);
 
       // Set cursor at current position.
       cputcxy(2+GetCol(curSq)*2, 2+GetRow(curSq)*2, curSq ? '@' : '*');
@@ -153,7 +155,7 @@ int main()
       if (!curSq)
       {
          cputsxy(1, 38, "You escaped!\0");
-         return 0;
+         return;
       }
 
       // Get input direction from user.
@@ -167,6 +169,9 @@ int main()
          case 'q': curSq = -1; break;  // Exit game
       }
 
+      // Clear cursor at current position.
+      cputcxy(2+GetCol(curSq)*2, 2+GetRow(curSq)*2, ' ');
+
       if (dir < MAX_DIRS)
       {
          if (grid[curSq] & (1<<dir))   // Check if move is allowed.
@@ -175,6 +180,30 @@ int main()
          }
       }
    } // end of while (curSq >= 0)
+} // end of playGame
+
+int main()
+{
+   clrscr();
+   cputsxy(1, 10, "Welcom to this aMAZEing game!\0");
+   cputsxy(1, 12, "Press g to generate a new maze.\0");
+   cputsxy(1, 13, "Move around with the keys wasd or hjkl.\0");
+   cputsxy(1, 14, "Press r to reset the current maze.\0");
+   cputsxy(1, 15, "Press q to quit the game.\0");
+
+   switch (cgetc())
+   {
+      case 'g' :
+         my_srand(time());    // Seed random number generator.
+         InitMaze();          // Generate a completely new maze.
+         clrscr();            // Clear screen.
+         playGame();          // Play the game.
+         break;
+
+      case 'q' :
+         cputsxy(1, 16, "GOODBYE!.\0");
+         return 0;
+   }
 
    return 0;
 } // end of main
