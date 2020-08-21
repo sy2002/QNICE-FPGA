@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 
+VASM_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+source $VASM_SCRIPT_DIR/../../tools/detect.include
+
 vasmqnice_std -Fvobj $1 -o ${1/.asm/}.obj -I$DIST_KIT
 vlink -b rawbin1 -T$VBCC/../qnice/vclib/targets/qnice-mon/vlink.cmd -o ${1/.asm/}.bin ${1/.asm/}.obj
 qniceconv 0x8000 < ${1/.asm/}.bin > ${1/.asm/}.out
-cat ${1/.asm/}.out | pbcopy
+
+if [ $OSTP = "LINUX" ]; then
+    if hash xclip 2>/dev/null; then
+        cat ${1/.asm/}.out | xclip -selection clipboard
+    fi;
+elif [ $OSTP = "OSX" ]; then
+    cat ${1/.asm/}.out | pbcopy
+fi;
