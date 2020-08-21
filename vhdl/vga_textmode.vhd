@@ -79,77 +79,6 @@ end vga_textmode;
 
 architecture beh of vga_textmode is
 
-component vga80x40
-port (
-   reset       : in  std_logic;
-   clk25MHz    : in  std_logic;
-
-   -- VGA signals, monochrome only   
-   R           : out std_logic;
-   G           : out std_logic;
-   B           : out std_logic;
-   hsync       : out std_logic;
-   vsync       : out std_logic;
-   
-   -- address and data lines of video ram for text
-   TEXT_A      : out std_logic_vector(11 downto 0);
-   TEXT_D      : in  std_logic_vector(07 downto 0);
-   
-   -- address and data lines of font rom
-   FONT_A      : out std_logic_vector(11 downto 0);
-   FONT_D      : in  std_logic_vector(07 downto 0);
-   
-   -- hardware cursor x and y positions
-   ocrx        : in  std_logic_vector(7 downto 0);
-   ocry        : in  std_logic_vector(7 downto 0);
-   
-   -- control register
-   octl        : in  std_logic_vector(7 downto 0);
-   
-   -- ADV7511: HDMI Data Enable: high when valid pixels being output   
-   hdmi_de     : out std_logic;
-   de_hctr_min : integer range 793 downto 0;
-   de_hctr_max : integer range 793 downto 0;
-   de_vctr_max : integer range 524 downto 0   
-);   
-end component;
-
-component video_bram is
-generic (
-   SIZE_BYTES     : integer
-);
-port (
-   clk1           : in std_logic;
-   we             : in std_logic;   
-   address_i      : in std_logic_vector(15 downto 0);
-   data_i         : in std_logic_vector(7 downto 0);
-   address1_o     : in std_logic_vector(15 downto 0);
-   data1_o        : out std_logic_vector(7 downto 0);
-
-   clk2           : in std_logic;
-   address2_o     : in std_logic_vector(15 downto 0);
-   data2_o        : out std_logic_vector(7 downto 0)
-);
-end component;
-
-component BROM is
-generic (
-   FILE_NAME   : string;
-   ROM_WIDTH   : integer   
-);
-port (
-   clk         : in std_logic;                        -- read and write on rising clock edge
-   ce          : in std_logic;                        -- chip enable, when low then zero on output
-   
-   address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
-   data        : out std_logic_vector(ROM_WIDTH - 1 downto 0);   -- read data
-   
-   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes zero
-   -- if not needed (ce = 0) and can therefore directly be connected to a bus
-   busy        : out std_logic                       
-);
-end component;
-
 -- signals for wiring video and font ram with the vga80x40 component
 signal vga_text_a          : std_logic_vector(11 downto 0);
 signal vga_text_d          : std_logic_vector(7 downto 0);
@@ -211,7 +140,7 @@ signal fsm_clrscr_cnt      : unsigned(15 downto 0);
 
 begin
 
-   vga : vga80x40
+   vga : entity work.vga80x40
       port map (
          reset => reset,
          clk25MHz => clk25MHz,
@@ -233,7 +162,7 @@ begin
          de_vctr_max => reg_vctr_max
       );
       
-   video_ram : video_bram
+   video_ram : entity work.video_bram
       generic map (
          SIZE_BYTES => VGA_RAM_SIZE
       )
@@ -250,7 +179,7 @@ begin
          data2_o => vga_text_d                  
       );
        
-   font_rom : BROM
+   font_rom : entity work.BROM
       generic map (
          FILE_NAME => "vga/lat9w-12_sy2002.rom",
          ROM_WIDTH => 8

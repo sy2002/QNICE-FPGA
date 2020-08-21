@@ -23,23 +23,6 @@ end til_display;
 
 architecture beh of til_display is
 
--- Nexys 4 DDR specific 7 segment display driver
-component drive_7digits
-generic (
-   CLOCK_DIVIDER        : integer                  -- clock divider: clock cycles per digit cycle
-);
-port (
-   clk    : in std_logic;                          -- clock signal divided by above mentioned divider
-   
-   digits : in std_logic_vector(31 downto 0);      -- the actual information to be shown on the display
-   mask   : in std_logic_vector(7 downto 0);       -- control individual digits ('1' = digit is lit)  
-   
-   -- 7 segment display needs multiplexed approach due to common anode
-   SSEG_AN     : out std_logic_vector(7 downto 0); -- common anode: selects digit
-   SSEG_CA     : out std_logic_vector(7 downto 0) -- cathode: selects segment within a digit 
-);
-end component;
-
 -- TIL display control signals
 signal TIL_311_buffer         : std_logic_vector(15 downto 0) := x"0000";
 signal TIL_311_mask           : std_logic_vector(3 downto 0)  := "1111";
@@ -47,7 +30,7 @@ signal TIL_311_mask           : std_logic_vector(3 downto 0)  := "1111";
 begin
 
    -- 7 segment display: Nexys 4 DDR specific component
-   disp_7seg : drive_7digits
+   disp_7seg : entity work.drive_7digits
       generic map
       (
          CLOCK_DIVIDER => 100000 -- we are currently @ 50 MHz; 200.000 clock cycles @ 100 MHz = 2ms per digit

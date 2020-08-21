@@ -58,62 +58,6 @@ end sdcard;
 
 architecture Behavioral of sdcard is
 
--- the actual SD Card controller that is wrapped by this state machine
-component sd_controller is
-port (
-	cs : out std_logic;				   -- To SD card
-	mosi : out std_logic;			   -- To SD card
-	miso : in std_logic;			      -- From SD card
-	sclk : out std_logic;			   -- To SD card
-	card_present : in std_logic;	   -- From socket - can be fixed to '1' if no switch is present
-	card_write_prot : in std_logic;	-- From socket - can be fixed to '0' if no switch is present, or '1' to make a Read-Only interface
-
-	rd : in std_logic;				   -- Trigger single block read
-	rd_multiple : in std_logic;		-- Trigger multiple block read
-	dout : out std_logic_vector(7 downto 0);	-- Data from SD card
-	dout_avail : out std_logic;		-- Set when dout is valid
-	dout_taken : in std_logic;		   -- Acknowledgement for dout
-	
-	wr : in std_logic;				   -- Trigger single block write
-	wr_multiple : in std_logic;		-- Trigger multiple block write
-	din : in std_logic_vector(7 downto 0);	-- Data to SD card
-	din_valid : in std_logic;		   -- Set when din is valid
-	din_taken : out std_logic;		   -- Ackowledgement for din
-	
-	addr : in std_logic_vector(31 downto 0);	-- Block address
-	erase_count : in std_logic_vector(7 downto 0); -- For wr_multiple only
-
-	sd_error : out std_logic;		   -- '1' if an error occurs, reset on next RD or WR
-	sd_busy : out std_logic;		   -- '0' if a RD or WR can be accepted
-	sd_error_code : out std_logic_vector(7 downto 0); -- See above, 000=No error
-	
-	
-	reset : in std_logic;	         -- System reset
-	clk : in std_logic;		         -- twice the SPI clk (max 50MHz)
-	
-	-- Optional debug outputs
-	sd_type : out std_logic_vector(1 downto 0);	-- Card status (see above)
-	sd_fsm : out std_logic_vector(7 downto 0) := "11111111" -- FSM state (see block at end of file)
-);
-end component;
-
--- 8-bit BRAM with a 16-bit address bus
-component byte_bram is
-generic (
-   SIZE_BYTES     : integer
-);
-port (
-   clk            : in std_logic;
-
-   we             : in std_logic;
-   
-   address_i      : in std_logic_vector(15 downto 0);
-   address_o      : in std_logic_vector(15 downto 0);
-   data_i         : in std_logic_vector(7 downto 0);
-   data_o         : out std_logic_vector(7 downto 0)
-);
-end component;
-
 -- RAM signals (512 byte buffer RAM)
 signal ram_we           : std_logic;
 signal ram_addr_i       : std_logic_vector(15 downto 0);
@@ -198,7 +142,7 @@ signal fsm_state_next   : sd_fsm_type;
 begin
 
    -- 512 byte buffer RAM (SD card is configured to read/write 512 byte blocks)
-   buffer_ram : byte_bram
+   buffer_ram : entity work.byte_bram
       generic map (
          SIZE_BYTES => 512
       )
@@ -213,7 +157,7 @@ begin
       );
         
    -- SD Card Controller
-   sdctl : sd_controller
+   sdctl : entity work.sd_controller
       port map (
          -- general signals
 --         clk => Slow_Clock_25MHz,

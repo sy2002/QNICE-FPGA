@@ -90,29 +90,6 @@ architecture rtl of vga80x40 is
   signal ctl_g     : std_logic;
   signal ctl_b     : std_logic;
 
-  component ctrm
-    generic (
-      M : integer := 08);
-    port (
-      clk   : in  std_logic;
-      ce    : in  std_logic;            -- enable counting
-      rs    : in  std_logic;            -- syncronous reset
-      do    : out integer range (M-1) downto 0
-      );
-  end component;
-
-  component losr
-    generic (
-      N : integer := 04);
-    port (
-      reset : in  std_logic;
-      clk   : in  std_logic;
-      load  : in  std_logic;
-      ce    : in  std_logic;
-      do    : out std_logic;
-      di    : in  std_logic_vector(N-1 downto 0));
-  end component;
-  
 begin
 
 -------------------------------------------------------------------------------
@@ -224,20 +201,20 @@ begin
 
   begin
     
-    U_HCTR : ctrm generic map (M => 794) port map (
+    U_HCTR : entity work.ctrm generic map (M => 794) port map (
 	 clk=>clk25MHz, ce =>hctr_ce, rs =>hctr_rs, do => hctr);
 	 
-    U_VCTR : ctrm generic map (M => 525) port map (clk25MHz, vctr_ce, vctr_rs, vctr);
+    U_VCTR : entity work.ctrm generic map (M => 525) port map (clk25MHz, vctr_ce, vctr_rs, vctr);
 
     hctr_ce <= '1';
     hctr_rs <= '1' when hctr = 793 else reset;
     vctr_ce <= '1' when hctr = 663 else '0';
     vctr_rs <= '1' when vctr = 524 else reset;
 
-    U_CHRX: ctrm generic map (M => 008) port map (clk25MHz, chrx_ce, chrx_rs, chrx);
-    U_CHRY: ctrm generic map (M => 012) port map (clk25MHz, chry_ce, chry_rs, chry);
-    U_SCRX: ctrm generic map (M => 080) port map (clk25MHz, scrx_ce, scrx_rs, scrx);
-    U_SCRY: ctrm generic map (M => 040) port map (clk25MHz, scry_ce, scry_rs, scry);
+    U_CHRX: entity work.ctrm generic map (M => 008) port map (clk25MHz, chrx_ce, chrx_rs, chrx);
+    U_CHRY: entity work.ctrm generic map (M => 012) port map (clk25MHz, chry_ce, chry_rs, chry);
+    U_SCRX: entity work.ctrm generic map (M => 080) port map (clk25MHz, scrx_ce, scrx_rs, scrx);
+    U_SCRY: entity work.ctrm generic map (M => 040) port map (clk25MHz, scry_ce, scry_rs, scry);
 
     hctr_639 <= '1' when hctr = 639 else '0';
     vctr_479 <= '1' when vctr = 479 else '0';
@@ -272,7 +249,7 @@ begin
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
-  U_LOSR : losr generic map (N => 8)
+  U_LOSR : entity work.losr generic map (N => 8)
     port map (reset, clk25MHz, losr_ld, losr_ce, losr_do, FONT_D);
   
   losr_ce <= blank;

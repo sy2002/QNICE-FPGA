@@ -25,47 +25,6 @@ end vga80x40_test;
 
 architecture behavioral of vga80x40_test is
 
-	component vga80x40
-    port (
-      reset       : in  std_logic;
-      clk25MHz    : in  std_logic;
-      R           : out std_logic;
-      G           : out std_logic;
-      B           : out std_logic;
-      TEXT_A           : out std_logic_vector(11 downto 0);
-      TEXT_D           : in  std_logic_vector(07 downto 0);
-		FONT_A           : out std_logic_vector(11 downto 0);
-      FONT_D           : in  std_logic_vector(07 downto 0);
-      hsync       : out std_logic;
-      vsync       : out std_logic;
-      ocrx    : in  std_logic_vector(7 downto 0);
-      ocry    : in  std_logic_vector(7 downto 0);
-      octl    : in  std_logic_vector(7 downto 0)
-      );   
-  end component;
-  
-  component mem_text
-    port (
-      clka  : in  std_logic;
-      dina  : in  std_logic_vector(07 downto 0);
-      addra : in  std_logic_vector(11 downto 0);
-      wea   : in  std_logic_vector(00 downto 0);
-      douta : out std_logic_vector(07 downto 0);
-      clkb  : in  std_logic;
-      dinb  : in  std_logic_vector(07 downto 0);
-      addrb : in  std_logic_vector(11 downto 0);
-      web   : in  std_logic_vector(00 downto 0);
-      doutb : out std_logic_vector(07 downto 0));
-
-  end component;
-
-	component mem_font
-    port (
-    clka: IN std_logic;
-    addra: IN std_logic_VECTOR(11 downto 0);
-    douta: OUT std_logic_VECTOR(7 downto 0));
-	end component;
-
   signal clk25MHz    : std_logic;
   signal crx_oreg_ce : std_logic;
   signal cry_oreg_ce : std_logic;
@@ -98,7 +57,7 @@ begin
   clk25MHz <= '0' when reset = '1' else
               not clk25MHz when rising_edge(clk50MHz);
   
-  U_VGA : vga80x40 port map (
+  U_VGA : entity work.vga80x40 port map (
     reset       => reset,
     clk25MHz    => clk25MHz,
     R           => R,
@@ -114,7 +73,7 @@ begin
     ocry    => cry_oreg,
     octl    => ctl_oreg);
 
-  U_TEXT: mem_text port map (
+  U_TEXT: entity work.mem_text port map (
     clka  => clk25MHz,
     dina  => ram_diA,
     addra => ram_adA,
@@ -126,7 +85,7 @@ begin
     web   => ram_weB,
     doutb => ram_doB
     );
-  U_FONT: mem_font port map (
+  U_FONT: entity work.mem_font port map (
     clka => CLK25mhZ,
     addra => rom_adB,
     douta => rom_doB);

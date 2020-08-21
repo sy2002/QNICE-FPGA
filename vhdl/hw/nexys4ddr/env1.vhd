@@ -60,324 +60,6 @@ end env1;
 
 architecture beh of env1 is
 
--- QNICE CPU
-component QNICE_CPU
-port (
-   -- clock
-   CLK            : in std_logic;
-   RESET          : in std_logic;
-   
-   WAIT_FOR_DATA  : in std_logic;                            -- 1=CPU adds wait cycles while re-reading from bus
-      
-   ADDR           : out std_logic_vector(15 downto 0);      -- 16 bit address bus
-   
-   -- bidirectional 16 bit data bus
-   DATA_IN        : in std_logic_vector(15 downto 0);       -- receive data
-   DATA_OUT       : out std_logic_vector(15 downto 0);      -- send data
-   DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
-   DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
-   
-   -- signals about the CPU state
-   HALT           : out std_logic;                          -- 1=CPU halted due to the HALT command, 0=running
-   INS_CNT_STROBE : out std_logic;                          -- goes high for one clock cycle for each new instruction
-   
-   -- interrupt system                                      -- refer to doc/intro/qnice_intro.pdf to learn how this works
-   INT_N          : in std_logic   := '1';
-   IGRANT_N       : out std_logic
-    
-);
-end component;
-
--- ROM
-component BROM is
-generic (
-   FILE_NAME   : string
-);
-port (
-   clk         : in std_logic;                        -- read and write on rising clock edge
-   ce          : in std_logic;                        -- chip enable, when low then zero on output
-   
-   address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
-   data        : out std_logic_vector(15 downto 0);   -- read data
-   
-   busy        : out std_logic                        -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA               
-);
-end component;
-
--- BLOCK RAM
-component BRAM is
-port (
-   clk      : in std_logic;                        -- read and write on rising clock edge
-   ce       : in std_logic;                        -- chip enable, when low then zero on output
-   
-   address  : in std_logic_vector(14 downto 0);    -- address is for now 16 bit hard coded
-   we       : in std_logic;                        -- write enable
-   data_i   : in std_logic_vector(15 downto 0);    -- write data
-   data_o   : out std_logic_vector(15 downto 0);   -- read data
-   
-   busy     : out std_logic                        -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA   
-);
-end component;
-
--- VGA 80x40 monoschrome screen
-component vga_textmode is
-port (
-   reset       : in std_logic;     -- async reset
-   clk25MHz    : in std_logic;
-   clk50MHz    : in std_logic;
-
-   -- VGA registers
-   en          : in std_logic;     -- enable for reading from or writing to the bus
-   we          : in std_logic;     -- write to VGA's registers via system's data bus
-   reg         : in std_logic_vector(3 downto 0);     -- register selector
-   data_in     : in std_logic_vector(15 downto 0);    -- system's data bus
-   data_out    : out std_logic_vector(15 downto 0);   -- system's data bus
-   
-   -- VGA output signals, monochrome only
-   R           : out std_logic;
-   G           : out std_logic;
-   B           : out std_logic;
-   hsync       : out std_logic;
-   vsync       : out std_logic
-);
-end component;
-
--- TIL display emulation (4 digits)
-component til_display is
-port (
-   clk               : in std_logic;
-   reset             : in std_logic;
-   
-   til_reg0_enable   : in std_logic;      -- data register
-   til_reg1_enable   : in std_logic;      -- mask register (each bit equals one digit)
-   
-   data_in           : in std_logic_vector(15 downto 0);
-   
-   -- 7 segment display needs multiplexed approach due to common anode
-   SSEG_AN           : out std_logic_vector(7 downto 0); -- common anode: selects digit
-   SSEG_CA           : out std_logic_vector(7 downto 0) -- cathode: selects segment within a digit 
-);
-end component;
-
--- UART
-component bus_uart is
-generic (
-   DIVISOR        : natural               -- see UART_DIVISOR in env1_globals.vhd
-);
-port (
-   clk            : in std_logic;                       
-   reset          : in std_logic;
-
-   -- physical interface
-   rx             : in std_logic;
-   tx             : out std_logic;
-   rts            : in std_logic;
-   cts            : out std_logic;   
-   
-   -- conntect to CPU's address and data bus (data goes zero when en=0)
-   uart_en        : in std_logic;
-   uart_we        : in std_logic;
-   uart_reg       : in std_logic_vector(1 downto 0);
-   uart_cpu_ws    : out std_logic;   
-   cpu_data_in    : in std_logic_vector(15 downto 0);
-   cpu_data_out   : out std_logic_vector(15 downto 0)
-);
-end component;
-
--- PS/2 keyboard
-component keyboard is
-generic (
-   clk_freq      : integer
-);
-port (
-   clk           : in std_logic;               -- system clock input
-   reset         : in std_logic;               -- system reset
-
-   -- PS/2
-   ps2_clk       : in std_logic;               -- clock signal from PS/2 keyboard
-   ps2_data      : in std_logic;               -- data signal from PS/2 keyboard
-   
-   -- conntect to CPU's data bus (data goes zero when all reg_* are 0)
-   kbd_en        : in std_logic;
-   kbd_we        : in std_logic;
-   kbd_reg       : in std_logic_vector(1 downto 0);   
-   cpu_data_in   : in std_logic_vector(15 downto 0);
-   cpu_data_out  : out std_logic_vector(15 downto 0)
-);
-end component;
-
--- Interrupt generator: Timer Module
-component timer_module is
-generic (
-   CLK_FREQ       : natural                              -- system clock in Hertz
-);
-port (
-   clk            : in std_logic;                        -- system clock
-   reset          : in std_logic;                        -- async reset
-   
-   -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
-   int_n_out      : out std_logic;                        -- left device's interrupt signal input
-   grant_n_in     : in std_logic;                         -- left device's grant signal output
-   int_n_in       : in std_logic;                         -- right device's interrupt signal output
-   grant_n_out    : out std_logic;                        -- right device's grant signal input
-   
-   -- Registers
-   en             : in std_logic;                        -- enable for reading from or writing to the bus
-   we             : in std_logic;                        -- write to the registers via system's data bus
-   reg            : in std_logic_vector(2 downto 0);     -- register selector
-   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
-   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus
-);
-end component;
-
--- impulse (cycle) counter
-component cycle_counter is
-port (
-   clk      : in std_logic;         -- system clock
-   impulse  : in std_logic;         -- impulse that is counted   
-   reset    : in std_logic;         -- async reset
-   
-   -- cycle counter's registers
-   en       : in std_logic;         -- enable for reading from or writing to the bus
-   we       : in std_logic;         -- write to VGA's registers via system's data bus
-   reg      : in std_logic_vector(1 downto 0);     -- register selector
-   data_in  : in std_logic_vector(15 downto 0);    -- system's data bus
-   data_out : out std_logic_vector(15 downto 0)    -- system's data bus
-);
-end component;
-
--- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
-component EAE is
-port (
-   clk      : in std_logic;                        -- system clock
-   reset    : in std_logic;                        -- system reset
-   
-   -- EAE registers
-   en       : in std_logic;                        -- chip enable
-   we       : in std_logic;                        -- write enable
-   reg      : in std_logic_vector(2 downto 0);     -- register selector
-   data_in  : in std_logic_vector(15 downto 0);    -- system's data bus
-   data_out : out std_logic_vector(15 downto 0)    -- system's data bus
-);
-end component;
-
--- SD Card
-component sdcard is
-port (
-   clk      : in std_logic;         -- system clock
-   reset    : in std_logic;         -- async reset
-   
-   -- registers
-   en       : in std_logic;         -- enable for reading from or writing to the bus
-   we       : in std_logic;         -- write to the registers via system's data bus
-   reg      : in std_logic_vector(2 downto 0);      -- register selector
-   data_in  : in std_logic_vector(15 downto 0);     -- system's data bus
-   data_out : out std_logic_vector(15 downto 0);    -- system's data bus
-   
-   -- hardware interface
-   sd_reset : out std_logic;
-   sd_clk   : out std_logic;
-   sd_mosi  : out std_logic;
-   sd_miso  : in std_logic
-);
-end component;
-
-
--- multiplexer to control the data bus (enable/disable the different parties)
-component mmio_mux is
-generic (
-   GD_TIL            : boolean;        -- support TIL leds (e.g. as available on the Nexys 4 DDR)
-   GD_SWITCHES       : boolean;        -- support SWITCHES (e.g. as available on the Nexys 4 DDR)
-   GD_HRAM           : boolean         -- support HyperRAM (e.g. as available on the MEGA65)
-);
-port (
-   -- input from hardware
-   HW_RESET          : in std_logic;
-   CLK               : in std_logic;
-
-   -- input from CPU
-   addr              : in std_logic_vector(15 downto 0);
-   data_dir          : in std_logic;
-   data_valid        : in std_logic;
-   cpu_halt          : in std_logic;
-   cpu_igrant_n      : in std_logic; -- if this goes to 0, then all devices need to leave the DATA bus alone,
-                                     -- because the interrupt device will put the ISR address on the bus
-   
-   -- let the CPU wait for data from the bus
-   cpu_wait_for_data : out std_logic;
-   
-   -- ROM is enabled when the address is < $8000 and the CPU is reading
-   rom_enable        : out std_logic;
-   rom_busy          : in std_logic;
-   
-   -- RAM is enabled when the address is in ($8000..$FEFF)
-   ram_enable        : out std_logic;
-   ram_busy          : in std_logic;
-   
-   -- PORE ROM (PowerOn & Reset Execution ROM)
-   pore_rom_enable   : out std_logic;
-   pore_rom_busy     : in std_logic;
-   
-   -- SWITCHES is $FF00
-   switch_reg_enable : out std_logic;
-   
-   -- TIL register range: $FF01..$FF02
-   til_reg0_enable   : out std_logic;
-   til_reg1_enable   : out std_logic;
-   
-   -- Keyboard register range $FF04..$FF07
-   kbd_en            : buffer std_logic;
-   kbd_we            : out std_logic;
-   kbd_reg           : out std_logic_vector(1 downto 0);
-      
-   -- Cycle counter register range $FF08..$FF0B
-   cyc_en            : buffer std_logic;
-   cyc_we            : out std_logic;
-   cyc_reg           : out std_logic_vector(1 downto 0);
-
-   -- Instruction counter register range $FF0C..$FF0F
-   ins_en            : buffer std_logic;
-   ins_we            : out std_logic;
-   ins_reg           : out std_logic_vector(1 downto 0);
-
-   -- UART register range $FF10..$FF13
-   uart_en           : buffer std_logic;
-   uart_we           : out std_logic;
-   uart_reg          : out std_logic_vector(1 downto 0);
-   uart_cpu_ws       : in std_logic;
-   
-   -- Extended Arithmetic Element register range $FF18..$FF1F
-   eae_en            : buffer std_logic;
-   eae_we            : out std_logic;
-   eae_reg           : out std_logic_vector(2 downto 0);
-
-   -- SD Card register range $FF20..FF27
-   sd_en             : buffer std_logic;
-   sd_we             : out std_logic;
-   sd_reg            : out std_logic_vector(2 downto 0);
-
-   -- Timer Interrupt Generator range $FF28 .. $FF2F
-   tin_en            : buffer std_logic;
-   tin_we            : out std_logic;
-   tin_reg           : out std_logic_vector(2 downto 0);
-   
-   -- VGA register range $FF30..$FF3F
-   vga_en            : buffer std_logic;
-   vga_we            : out std_logic;
-   vga_reg           : out std_logic_vector(3 downto 0);
-
-   -- HyerRAM register range $FFF0 .. $FFF3
-   hram_en           : out std_logic;
-   hram_we           : out std_logic;
-   hram_reg          : out std_logic_vector(3 downto 0); 
-   hram_cpu_ws       : in std_logic; -- insert CPU wait states (aka WAIT_FOR_DATA)   
- 
-   -- global state and reset management
-   reset_pre_pore    : out std_logic;
-   reset_post_pore   : out std_logic
-);
-end component;
-
 -- CPU control signals
 signal cpu_addr               : std_logic_vector(15 downto 0);
 signal cpu_data_in            : std_logic_vector(15 downto 0);
@@ -506,7 +188,7 @@ begin
   );
 
    -- QNICE CPU
-   cpu : QNICE_CPU
+   cpu : entity work.QNICE_CPU
       port map (
          CLK => SLOW_CLOCK,
          RESET => reset_ctl,
@@ -523,7 +205,7 @@ begin
       );
 
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
-   rom : BROM
+   rom : entity work.BROM
       generic map (
          FILE_NAME   => ROM_FILE
       )
@@ -536,7 +218,7 @@ begin
       );
      
    -- RAM: up to 64kB consisting of up to 32.000 16 bit words
-   ram : BRAM
+   ram : entity work.BRAM
       port map (
          clk         => SLOW_CLOCK,
          ce          => ram_enable,
@@ -550,7 +232,7 @@ begin
    -- PORE ROM: Power On & Reset Execution ROM
    -- contains code that is executed during power on and/or during reset
    -- MMIO is managing the PORE process
-   pore_rom : BROM
+   pore_rom : entity work.BROM
       generic map (
          FILE_NAME   => PORE_ROM_FILE
       )
@@ -563,7 +245,7 @@ begin
       );
                  
    -- VGA: 80x40 textmode VGA adaptor   
-   vga_screen : vga_textmode
+   vga_screen : entity work.vga_textmode
       port map (
          reset => reset_ctl,
          clk25MHz => clk25MHz,
@@ -581,7 +263,7 @@ begin
       );
 
    -- TIL display emulation (4 digits)
-   til_leds : til_display
+   til_leds : entity work.til_display
       port map (
          clk => SLOW_CLOCK,
          reset => reset_ctl,
@@ -593,7 +275,7 @@ begin
       );
 
    -- special UART with FIFO that can be directly connected to the CPU bus
-   uart : bus_uart
+   uart : entity work.bus_uart
       generic map (
          DIVISOR => UART_DIVISOR
       )
@@ -613,7 +295,7 @@ begin
       );
       
    -- PS/2 keyboard
-   kbd : keyboard
+   kbd : entity work.keyboard
       generic map (
          clk_freq => 50000000                -- see @TODO in keyboard.vhd and TODO.txt
       )
@@ -629,7 +311,7 @@ begin
          cpu_data_out => kbd_data_out
       );
       
-   timer_interrupt : timer_module   
+   timer_interrupt : entity work.timer_module
       generic map (
          CLK_FREQ => 50000000
       )
@@ -648,7 +330,7 @@ begin
       );
             
    -- cycle counter
-   cyc : cycle_counter
+   cyc : entity work.cycle_counter
       port map (
          clk => SLOW_CLOCK,
          impulse => '1',
@@ -661,7 +343,7 @@ begin
       );
       
    -- instruction counter
-   ins : cycle_counter
+   ins : entity work.cycle_counter
       port map (
          clk => SLOW_CLOCK,
          impulse => cpu_ins_cnt_strobe,
@@ -674,7 +356,7 @@ begin
       );
       
    -- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
-   eae_inst : eae
+   eae_inst : entity work.eae
       port map (
          clk => SLOW_CLOCK,
          reset => reset_ctl,
@@ -686,7 +368,7 @@ begin
       );
 
    -- SD Card
-   sd_card : sdcard
+   sd_card : entity work.sdcard
       port map (
          clk => SLOW_CLOCK,
          reset => reset_ctl,
@@ -702,7 +384,7 @@ begin
       );
                         
    -- memory mapped i/o controller
-   mmio_controller : mmio_mux
+   mmio_controller : entity work.mmio_mux
       generic map (
          GD_TIL      => true,                -- yes, support TIL leds
          GD_SWITCHES => true,                -- yes, support SWITCHES

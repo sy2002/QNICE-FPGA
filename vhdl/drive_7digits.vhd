@@ -29,30 +29,6 @@ end drive_7digits;
 
 architecture Behavioral of drive_7digits is
 
--- this component counts to the specified value COUNTER_FINISH,
--- then it fires 'overflow' for one clock cycle and then it restarts at zero
-component SyTargetCounter is
-generic (
-   COUNTER_FINISH : integer;
-   COUNTER_WIDTH  : integer range 2 to 32 
-);
-port (
-   clk     : in std_logic;
-   reset   : in std_logic;
-   
-   cnt       :  out std_logic_vector(COUNTER_WIDTH - 1 downto 0);
-   overflow  : out std_logic := '0'
-);
-end component;
-
--- generates the cathode signals to display a single hex digit 'nibble'
-component nibble_to_cathode is
-port (
-   nibble   : in std_logic_vector(3 downto 0);
-   cathode  : out std_logic_vector(7 downto 0)
-);
-end component;
-
 -- signals
 signal counter_overflow : std_logic;
 signal digit : std_logic_vector(2 downto 0) := "000"; -- 7-segment digit to be shown: 0 = rightmost
@@ -61,7 +37,7 @@ signal display : std_logic_vector(3 downto 0) := (others => '0'); -- signal to b
 begin
 
    -- slow down the master clock signal
-   clockdivider : SyTargetCounter
+   clockdivider : entity work.SyTargetCounter
       generic map (
          COUNTER_WIDTH => f_log2(CLOCK_DIVIDER),
          COUNTER_FINISH => CLOCK_DIVIDER
@@ -83,7 +59,7 @@ begin
    end process digit_iterator;
    
    -- cathode signal for current digit
-   cathode_control : nibble_to_cathode
+   cathode_control : entity work.nibble_to_cathode
       port map (
          nibble => display,
          cathode => SSEG_CA

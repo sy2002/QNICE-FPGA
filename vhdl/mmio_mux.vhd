@@ -114,17 +114,6 @@ end mmio_mux;
 
 architecture Behavioral of mmio_mux is
 
-component debounce is
-generic (
-   counter_size  : integer
-);
-port (
-   clk           : in std_logic;
-   button        : in std_logic;
-   result        : out std_logic
-);
-end component;
-
 signal ram_enable_i : std_logic;
 signal rom_enable_i : std_logic;
 signal pore_rom_enable_i : std_logic;
@@ -239,7 +228,7 @@ begin
    end process;
 
    -- debounce the reset button
-   reset_btn_debouncer : debounce
+   reset_btn_debouncer : entity work.debounce
       generic map (
          counter_size => 18            -- @TODO change to 19 when running with 100 MHz
       )
