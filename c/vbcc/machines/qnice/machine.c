@@ -2122,10 +2122,10 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 
 	/* TODO: try to eliminate */
 	if(c==LSHIFT){
-	  emit(f,"\tcmp\t%s,%s\n",regnames[sp],regnames[sp]);
+	  emit(f,"\tand\t0xFFFD,%s\n",regnames[sr]); //clear X
 	}else if(c==RSHIFT){
 	  if(t&UNSIGNED){
-	    emit(f,"\tor\t%s,%s\n",regnames[sp],regnames[sp]);
+        emit(f,"\tand\t0xFFFB,%s\n",regnames[sr]); //clear carry
 	  }else{
 	    emit(f,"\tshl\t1,");
 	    emit_obj(f,&p->z,t);
