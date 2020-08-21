@@ -250,15 +250,15 @@ begin
       );
 
    -- PORE state machine: advance state
-   fsm_advance_state : process (clk, debounced_hw_reset)
+   fsm_advance_state : process (clk)
    begin
-      if debounced_hw_reset = '1' then
-         global_state <= gsReset;
-         reset_counter <= (others => '0');
-      else
-         if rising_edge(clk) then
-            global_state      <= fsm_next_global_state;
-            reset_counter     <= fsm_reset_counter;
+      if rising_edge(clk) then
+         global_state      <= fsm_next_global_state;
+         reset_counter     <= fsm_reset_counter;
+
+         if debounced_hw_reset = '1' then
+            global_state <= gsReset;
+            reset_counter <= (others => '0');
          end if;
       end if;
    end process;

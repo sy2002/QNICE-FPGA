@@ -94,7 +94,6 @@ architecture rtl of vga80x40 is
     generic (
       M : integer := 08);
     port (
-      reset : in  std_logic;            -- asyncronous reset
       clk   : in  std_logic;
       ce    : in  std_logic;            -- enable counting
       rs    : in  std_logic;            -- syncronous reset
@@ -226,19 +225,19 @@ begin
   begin
     
     U_HCTR : ctrm generic map (M => 794) port map (
-	 reset =>'0', clk=>clk25MHz, ce =>hctr_ce, rs =>hctr_rs, do => hctr);
+	 clk=>clk25MHz, ce =>hctr_ce, rs =>hctr_rs, do => hctr);
 	 
-    U_VCTR : ctrm generic map (M => 525) port map ('0', clk25MHz, vctr_ce, vctr_rs, vctr);
+    U_VCTR : ctrm generic map (M => 525) port map (clk25MHz, vctr_ce, vctr_rs, vctr);
 
     hctr_ce <= '1';
     hctr_rs <= '1' when hctr = 793 else reset;
     vctr_ce <= '1' when hctr = 663 else '0';
     vctr_rs <= '1' when vctr = 524 else reset;
 
-    U_CHRX: ctrm generic map (M => 008) port map ('0', clk25MHz, chrx_ce, chrx_rs, chrx);
-    U_CHRY: ctrm generic map (M => 012) port map ('0', clk25MHz, chry_ce, chry_rs, chry);
-    U_SCRX: ctrm generic map (M => 080) port map ('0', clk25MHz, scrx_ce, scrx_rs, scrx);
-    U_SCRY: ctrm generic map (M => 040) port map ('0', clk25MHz, scry_ce, scry_rs, scry);
+    U_CHRX: ctrm generic map (M => 008) port map (clk25MHz, chrx_ce, chrx_rs, chrx);
+    U_CHRY: ctrm generic map (M => 012) port map (clk25MHz, chry_ce, chry_rs, chry);
+    U_SCRX: ctrm generic map (M => 080) port map (clk25MHz, scrx_ce, scrx_rs, scrx);
+    U_SCRY: ctrm generic map (M => 040) port map (clk25MHz, scry_ce, scry_rs, scry);
 
     hctr_639 <= '1' when hctr = 639 else '0';
     vctr_479 <= '1' when vctr = 479 else '0';

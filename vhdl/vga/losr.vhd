@@ -44,7 +44,7 @@ end losr;
 architecture arch of losr is
 begin
 
-  process(reset, clk)
+  process(clk)
     variable data : std_logic_vector(N-1 downto 0);
   begin
      if rising_edge(clk) then

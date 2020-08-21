@@ -29,7 +29,6 @@ entity ctrm is
   generic (
     M : integer := 08);
   port (
-    reset : in  std_logic;              -- asyncronous reset
     clk   : in  std_logic;
     ce    : in  std_logic;              -- enable counting
     rs    : in  std_logic;              -- syncronous reset
@@ -45,12 +44,9 @@ begin
 
   do <= c;
 
-  process(reset, clk)
+  process(clk)
   begin
-    if reset = '1' then
-      c <= 0;
-      
-    elsif rising_edge(clk) then
+    if rising_edge(clk) then
       if ce = '1' then
         if rs = '1' then
           c <= 0;
