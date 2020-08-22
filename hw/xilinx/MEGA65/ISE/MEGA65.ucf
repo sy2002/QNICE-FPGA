@@ -1,5 +1,5 @@
 ## MEGA65 mapping for QNICE-FPGA
-## done by sy2002 in April 2020
+## done by sy2002 in April to August 2020 
 
 ## Clock signal
 NET "CLK"                  LOC = V13  | IOSTANDARD = "LVCMOS33";
@@ -29,45 +29,87 @@ NET "kb_io1"               LOC = A13  | IOSTANDARD = LVCMOS33;
 NET "kb_io2"               LOC = C13  | IOSTANDARD = LVCMOS33;
 
 ## VGA
-NET "vga_red[0]"           LOC = U15   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_red[1]"           LOC = V15   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_red[2]"           LOC = T14   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_red[3]"           LOC = Y17   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_red[4]"           LOC = Y16   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_red[5]"           LOC = AB17  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_red[6]"           LOC = AA16  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_red[7]"           LOC = AB16  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[0]"           LOC = U15   | IOSTANDARD = LVCMOS33;
+NET "vga_red[1]"           LOC = V15   | IOSTANDARD = LVCMOS33;
+NET "vga_red[2]"           LOC = T14   | IOSTANDARD = LVCMOS33;
+NET "vga_red[3]"           LOC = Y17   | IOSTANDARD = LVCMOS33;
+NET "vga_red[4]"           LOC = Y16   | IOSTANDARD = LVCMOS33;
+NET "vga_red[5]"           LOC = AB17  | IOSTANDARD = LVCMOS33;
+NET "vga_red[6]"           LOC = AA16  | IOSTANDARD = LVCMOS33;
+NET "vga_red[7]"           LOC = AB16  | IOSTANDARD = LVCMOS33;
 
-NET "vga_green[0]"         LOC = Y14   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_green[1]"         LOC = W14   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_green[2]"         LOC = AA15  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_green[3]"         LOC = AB15  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_green[4]"         LOC = Y13   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_green[5]"         LOC = AA14  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_green[6]"         LOC = AA13  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_green[7]"         LOC = AB13  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[0]"         LOC = Y14   | IOSTANDARD = LVCMOS33;
+NET "vga_green[1]"         LOC = W14   | IOSTANDARD = LVCMOS33;
+NET "vga_green[2]"         LOC = AA15  | IOSTANDARD = LVCMOS33;
+NET "vga_green[3]"         LOC = AB15  | IOSTANDARD = LVCMOS33;
+NET "vga_green[4]"         LOC = Y13   | IOSTANDARD = LVCMOS33;
+NET "vga_green[5]"         LOC = AA14  | IOSTANDARD = LVCMOS33;
+NET "vga_green[6]"         LOC = AA13  | IOSTANDARD = LVCMOS33;
+NET "vga_green[7]"         LOC = AB13  | IOSTANDARD = LVCMOS33;
 
-NET "vga_blue[0]"          LOC = W10   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_blue[1]"          LOC = Y12   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_blue[2]"          LOC = AB12  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_blue[3]"          LOC = AA11  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_blue[4]"          LOC = AB11  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_blue[5]"          LOC = Y11   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_blue[6]"          LOC = AB10  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_blue[7]"          LOC = AA10  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[0]"          LOC = W10   | IOSTANDARD = LVCMOS33;
+NET "vga_blue[1]"          LOC = Y12   | IOSTANDARD = LVCMOS33;
+NET "vga_blue[2]"          LOC = AB12  | IOSTANDARD = LVCMOS33;
+NET "vga_blue[3]"          LOC = AA11  | IOSTANDARD = LVCMOS33;
+NET "vga_blue[4]"          LOC = AB11  | IOSTANDARD = LVCMOS33;
+NET "vga_blue[5]"          LOC = Y11   | IOSTANDARD = LVCMOS33;
+NET "vga_blue[6]"          LOC = AB10  | IOSTANDARD = LVCMOS33;
+NET "vga_blue[7]"          LOC = AA10  | IOSTANDARD = LVCMOS33;
 
-NET "vga_hs"               LOC = W12   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vga_vs"               LOC = V14   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_hs"               LOC = W12   | IOSTANDARD = LVCMOS33;
+NET "vga_vs"               LOC = V14   | IOSTANDARD = LVCMOS33;
 
-NET "vdac_clk"             LOC = AA9   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vdac_sync_n"          LOC = V10   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
-NET "vdac_blank_n"         LOC = W11   | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vdac_clk"             LOC = AA9   | IOSTANDARD = LVCMOS33;
+NET "vdac_sync_n"          LOC = V10   | IOSTANDARD = LVCMOS33;
+NET "vdac_blank_n"         LOC = W11   | IOSTANDARD = LVCMOS33;
 
 ## Micro SD Connector (this is the slot at the bottom side of the case under the cover)
 NET "SD_RESET"             LOC = B15   | IOSTANDARD = LVCMOS33;
 NET "SD_CLK"               LOC = B17   | IOSTANDARD = LVCMOS33;
 NET "SD_MOSI"              LOC = B16   | IOSTANDARD = LVCMOS33;
 NET "SD_MISO"              LOC = B18   | IOSTANDARD = LVCMOS33;
+
+## HDMI via ADV7511
+NET "hdmired[0]"           LOC = AB3   | IOSTANDARD = LVCMOS33;
+NET "hdmired[1]"           LOC = Y4    | IOSTANDARD = LVCMOS33;
+NET "hdmired[2]"           LOC = AA4   | IOSTANDARD = LVCMOS33;
+NET "hdmired[3]"           LOC = AA5   | IOSTANDARD = LVCMOS33;
+NET "hdmired[4]"           LOC = AB5   | IOSTANDARD = LVCMOS33;
+NET "hdmired[5]"           LOC = Y6    | IOSTANDARD = LVCMOS33;
+NET "hdmired[6]"           LOC = AA6   | IOSTANDARD = LVCMOS33;
+NET "hdmired[7]"           LOC = AB6   | IOSTANDARD = LVCMOS33;
+
+NET "hdmigreen[0]"         LOC = Y1    | IOSTANDARD = LVCMOS33;
+NET "hdmigreen[1]"         LOC = Y3    | IOSTANDARD = LVCMOS33;
+NET "hdmigreen[2]"         LOC = W4    | IOSTANDARD = LVCMOS33;
+NET "hdmigreen[3]"         LOC = W5    | IOSTANDARD = LVCMOS33;
+NET "hdmigreen[4]"         LOC = V7    | IOSTANDARD = LVCMOS33;
+NET "hdmigreen[5]"         LOC = V8    | IOSTANDARD = LVCMOS33;
+NET "hdmigreen[6]"         LOC = AB1   | IOSTANDARD = LVCMOS33;
+NET "hdmigreen[7]"         LOC = W6    | IOSTANDARD = LVCMOS33;
+
+NET "hdmiblue[0]"          LOC = T6    | IOSTANDARD = LVCMOS33;
+NET "hdmiblue[1]"          LOC = U1    | IOSTANDARD = LVCMOS33;
+NET "hdmiblue[2]"          LOC = U5    | IOSTANDARD = LVCMOS33;
+NET "hdmiblue[3]"          LOC = U6    | IOSTANDARD = LVCMOS33;
+NET "hdmiblue[4]"          LOC = U2    | IOSTANDARD = LVCMOS33;
+NET "hdmiblue[5]"          LOC = U3    | IOSTANDARD = LVCMOS33;
+NET "hdmiblue[6]"          LOC = V4    | IOSTANDARD = LVCMOS33;
+NET "hdmiblue[7]"          LOC = V2    | IOSTANDARD = LVCMOS33;
+
+NET "hdmi_hsync"           LOC =  R4   | IOSTANDARD = LVCMOS33;
+NET "hdmi_vsync"           LOC =  R6   | IOSTANDARD = LVCMOS33;
+NET "hdmi_de"              LOC =  R2   | IOSTANDARD = LVCMOS33;
+NET "hdmi_clk"             LOC =  Y2   | IOSTANDARD = LVCMOS33;
+
+NET "hdmi_scl"             LOC =  T3   | IOSTANDARD = LVCMOS33;
+NET "hdmi_sda"             LOC =  U7   | IOSTANDARD = LVCMOS33;
+NET "hdmi_int"             LOC =  Y9   | IOSTANDARD = LVCMOS33;
+NET "hdmi_spdif"           LOC =  AA1  | IOSTANDARD = LVCMOS33;
+
+## TPD12S016 companion chip for ADV7511
+NET "ct_hpd"               LOC = M15   | IOSTANDARD = LVCMOS33;
+NET "ls_oe"                LOC = AB8   | IOSTANDARD = LVCMOS33;
 
 ## HyperRAM (standard)
 NET "hr_clk_p"             LOC = D22 | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
