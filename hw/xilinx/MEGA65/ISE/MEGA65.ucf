@@ -108,7 +108,7 @@ NET "hdmi_int"             LOC =  Y9   | IOSTANDARD = LVCMOS33;
 NET "hdmi_spdif"           LOC =  AA1  | IOSTANDARD = LVCMOS33;
 
 ## TPD12S016 companion chip for ADV7511
-NET "ct_hpd"               LOC = M15   | IOSTANDARD = LVCMOS33;
+NET "ct_hpd"               LOC = M15   | IOSTANDARD = LVCMOS33;
 NET "ls_oe"                LOC = AB8   | IOSTANDARD = LVCMOS33;
 
 ## HyperRAM (standard)
