@@ -6,15 +6,15 @@ NET "CLK"                  LOC = V13  | IOSTANDARD = "LVCMOS33";
 NET "CLK" TNM_NET = sys_clk_pin;
 TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 100 MHz HIGH 50%;
 
-NET "SLOW_CLOCK" TNM_NET = SLOW_CLOCK;
-TIMESPEC TS_SLOW_CLOCK = PERIOD "SLOW_CLOCK" 50 MHz HIGH 50%;
+#NET "SLOW_CLOCK" TNM_NET = SLOW_CLOCK;
+#TIMESPEC TS_SLOW_CLOCK = PERIOD "SLOW_CLOCK" 50 MHz HIGH 50%;
 
 ## EAE's combinatorial division networks take longer than
 ## the regular clock period, so we specify a timing constraint
 ## for them (see also the comments in EAE.vhd)
 INST "eae_inst/op*" TNM="EAE_OPS";
 INST "eae_inst/res*" TNM="EAE_RES";
-TIMESPEC TS_EAE=FROM "EAE_OPS" TO "EAE_RES" 32 ns;
+TIMESPEC TS_EAE=FROM "EAE_OPS" TO "EAE_RES" 34 ns;
 
 ## Reset button
 NET "RESET_N"              LOC = M13 | IOSTANDARD = LVCMOS33;
