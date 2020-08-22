@@ -570,7 +570,7 @@ begin
     divclk_divide    => 1,          --   800 MHz /1 common divide to stay within 600MHz-1600MHz range
     clkout0_divide_f => 31.7775571, --   25.175 MHz / 31.7775571 == pixelclock
     clkout1_divide   => 8,          --   100 MHz /8
-    clkout2_divide   => 16,         --   50  MHz /16
+--    clkout2_divide   => 16,         --   50  MHz /16
     clkout3_divide   => 4          --    200 MHz /4
   )
   port map
@@ -582,7 +582,7 @@ begin
     clkfbout => clk_fb_main,
     clkout0  => clk25MHz,           --  pixelclock
     clkout1  => CLK1x,              --  100 MHz
-    clkout2  => SLOW_CLOCK,         --  50 MHz
+--    clkout2  => SLOW_CLOCK,         --  50 MHz
     clkout3  => CLK2x,              --  200 MHz
     locked   => pll_locked_main
   );
@@ -882,13 +882,13 @@ begin
       end if;
    end process;
 
---    -- clock divider: create a 50 MHz clock from the 100 MHz input
---   generate_slow_clock : process(CLK)
---   begin
---      if rising_edge(CLK) then
---         SLOW_CLOCK <= not SLOW_CLOCK;
---      end if;
---   end process;       
+    -- clock divider: create a 50 MHz clock from the 100 MHz input
+   generate_slow_clock : process(CLK)
+   begin
+      if rising_edge(CLK) then
+         SLOW_CLOCK <= not SLOW_CLOCK;
+      end if;
+   end process;      
 
    video_signal_latches : process(clk25MHz)
    begin

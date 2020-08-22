@@ -6,8 +6,8 @@ NET "CLK"                  LOC = V13  | IOSTANDARD = "LVCMOS33";
 NET "CLK" TNM_NET = sys_clk_pin;
 TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 100 MHz HIGH 50%;
 
-#NET "SLOW_CLOCK" TNM_NET = SLOW_CLOCK;
-#TIMESPEC TS_SLOW_CLOCK = PERIOD "SLOW_CLOCK" 50 MHz HIGH 50%;
+NET "SLOW_CLOCK" TNM_NET = SLOW_CLOCK;
+TIMESPEC TS_SLOW_CLOCK = PERIOD "SLOW_CLOCK" 50 MHz HIGH 50%;
 
 ## EAE's combinatorial division networks take longer than
 ## the regular clock period, so we specify a timing constraint
