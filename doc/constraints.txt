@@ -187,3 +187,37 @@ keyboards are tested and work:
   and then starts the compilation.
   The result, i.e. the binary standard library and the startup code are then
   copied to c/vbcc/targets/qnice-mon/lib: libvc.a and startup.o
+
+==============================================================================
+    MEGA65
+==============================================================================    
+
+* The HyperRAM is currently not stable, yet. See the following issues:
+  https://github.com/sy2002/QNICE-FPGA/issues/90
+  https://github.com/sy2002/QNICE-FPGA/issues/91
+
+* HyperRAM does not synthesize on ISE due to the following not yet fixed
+  warning. This is why HyperRAM is deactivated on ISE:
+  "[Synth 8-5787] Register current_cache_line_update_flags_reg in module
+  hyperram is clocked by two different clocks in the same process. This may
+  cause simulation mismatches and synthesis errors. Consider using different
+  process statements  ["QNICE-FPGA/vhdl/hw/MEGA65/drivers/hyperram.vhdl":491]
+
+* For the QNICE @ MEGA65 release at hand, we used the very first MEGA65
+  prototype computer, which has the board revision 2 (MEGA65R2). There where
+  only a couple of those prototypes produced, so you will probably have a
+  newer board revision: The first publicly available MEGA65 computer will be
+  the MEGA65 DevKit with board revision 3 (MEGA65R3). Acording to our current
+  knowledge R3 will have a different way of producing HDMI output so we 
+  expect that the R2 HDMI output will not work on R3.
+
+==============================================================================
+    ISE
+============================================================================== 
+
+* Using ISE is deprecated. We still support it with Version 1.6.
+
+* The ROMs are too large and waste FPGA resources. When the FPGA is large
+  enough (such as the Artix-7 used on the Nexys 4 DDR and in the MEGA65),
+  this is not a problem. See also the following issue:
+  

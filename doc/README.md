@@ -8,7 +8,7 @@ Folder Structure
 | assembler     | Native QNICE assembler: Main file is `qasm.c`. You usually call it via the script `asm`, which utilizes the C preprocessor (mainly for `#include`, `#define`, `#ifdef`, etc).
 | c             | C programming environment based on the [vbcc](http://www.compilers.de/vbcc.html) compiler system. You need to activate `setenv.source` (e.g. via `source`) to use it and then use `qvc <sources> <options>` to compile and link. The subfolder `c/test_programs` contains experiments and demos written in C.
 | demos         | QNICE demos written in assembler. Most noteworthy is `q-tris.asm`.
-| dist_kit      | Distribution Kit: Contains standard include files for assembler and C as well as ready-made bitstreams and MEGA Core files. You might want to set this folder as your default folder for includes. Learn more via [dist_kit/README.md](../dist_kit/README.md)
+| dist_kit      | Distribution Kit: Contains standard include files for assembler and C as well as ready-made bitstreams and MEGA Core files in the folder `dist_kit/bin`. You might want to set this folder as your default folder for includes. Learn more via [dist_kit/README.md](../dist_kit/README.md)
 | doc           | Documentation: See explanation of file and folder structure below.
 | emulator      | QNICE Emulator: Learn more via [emulator/README.md](../emulator/README.md)
 | hw            | Project files for IDEs to synthesize QNICE-FPGA: Learn more via [hw/README.md](../hw/README.md)
