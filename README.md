@@ -64,13 +64,18 @@ Get started using actual FPGA hardware:
 * Hardware: Currently, we develop QNICE-FPGA on a Nexys 4 DDR development
   board. Nexys updated and renamed it to Nexys A7.
   So, if you own one of those, the fastest way of getting started is to
-  download the bitstream file `dist_kit/qnice-v141.bit` on a microSD card or
-  a USB stick, insert it into the Nexys board and set the jumpers to read the
-  FPGA configuration from the SD card or USB stick. Do not copy more than one
-  `*.bit` file on the SD card, i.e. do not copy `dist_kit/q-tris.bit`, yet.
+  download the bitstream file `dist_kit/bin/QNICE-V16.bit` on a microSD card
+  or an USB stick, insert it into the Nexys board and set the jumpers to
+  read the FPGA configuration from the SD card or USB stick. Do not copy
+  more than one `*.bit` file on the SD card, i.e. do not copy
+  `dist_kit/bin/QTRIS-V16.bit`, yet.
+
   Do empty the "Recycle Bin" or similar of your host OS between two `*.bit`
   copies, so that the Nexys board does not accidentally read the `*.bit` from
   your trash instead of the recent one.
+
+  If you have a MEGA65, then you can directly use the Core files `.cor` in
+  `dist_kit/bin`, as described in [hw/README.md](hw/README.md).
 
 * If you do not own a Nexys 4 DDR or A7 board or if you want to synthesize
   the FPGA configuration bitstream by yourself, then go to the hardware

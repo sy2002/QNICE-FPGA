@@ -44,9 +44,9 @@ files to also synthesize for the Nexys A7.
 The top file for this platform is [vhdl/hw/nexys4ddr/env1.vhd](../vhdl/hw/nexys4ddr/env1.vhd).
 
 For a quickstart, you can download the bitstream
-[here](@TODO). If you just want to use your Nexys board as a Q-TRIS Arcade
+[here](../dist_kit/bin/QNICE-V16.bit). If you just want to use your Nexys board as a Q-TRIS Arcade
 machine, then you can download
-[this](@TODO)
+[this](../dist_kit/qbin/QTRIS-V16.bit)
 bitstream.
 
 ### ISE 14.7
