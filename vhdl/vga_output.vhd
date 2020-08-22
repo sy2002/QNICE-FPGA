@@ -4,24 +4,25 @@ use ieee.numeric_std.all;
 
 entity vga_output is
    port (
-      clk_i       : in  std_logic;
+      clk_i            : in  std_logic;
 
-      scroll_en_i : in  std_logic;
-      offset_en_i : in  std_logic;
-      busy_o      : out std_logic;
-      clrscr_i    : in  std_logic;
-      vga_en_i    : in  std_logic;
-      curs_en_i   : in  std_logic;
-      blink_en_i  : in  std_logic;
-      curs_mode_i : in  std_logic;
+      -- Interface to Register Map
+      display_offset_i : in std_logic_vector(15 downto 0);
+      tile_offset_i    : in std_logic_vector(15 downto 0);
+      -- Pixel Counters
+      pixel_x_i        : in  std_logic_vector(9 downto 0);
+      pixel_y_i        : in  std_logic_vector(9 downto 0);
+      -- Interface to Video RAM
+      vram_addr_o      : out std_logic_vector(14 downto 0);
+      vram_data_i      : in  std_logic_vector(15 downto 0);
+      -- Interface to Palette RAM
+      palette_addr_o   : out std_logic_vector(4 downto 0);
+      palette_data_i   : in  std_logic_vector(15 downto 0);
 
-      vram_addr_o : out std_logic_vector(14 downto 0);
-      vram_data_i : in  std_logic_vector(15 downto 0);
-
-      hsync_o     : out std_logic;
-      vsync_o     : out std_logic;
-      colour_o    : out std_logic_vector(11 downto 0);
-      data_en_o   : out std_logic
+      hsync_o          : out std_logic;
+      vsync_o          : out std_logic;
+      colour_o         : out std_logic_vector(11 downto 0);
+      data_en_o        : out std_logic
    );
 end vga_output;
 
@@ -58,23 +59,20 @@ begin
       port map (
          clk_i       => clk_i,
          -- Interface to Register Map
-         scroll_en_i => scroll_en_i,
-         offset_en_i => offset_en_i,
-         busy_o      => busy_o,
-         clrscr_i    => clrscr_i,
-         vga_en_i    => vga_en_i,
-         curs_en_i   => curs_en_i,
-         blink_en_i  => blink_en_i,
-         curs_mode_i => curs_mode_i,
+         display_offset_i => display_offset_i,
+         tile_offset_i    => tile_offset_i,
          -- Pixel Counters
-         pixel_x_i   => pixel_x,
-         pixel_y_i   => pixel_y,
+         pixel_x_i        => pixel_x,
+         pixel_y_i        => pixel_y,
          -- Interface to Video RAM
-         vram_addr_o => vram_addr_o,
-         vram_data_i => vram_data_i,
+         vram_addr_o      => vram_addr_o,
+         vram_data_i      => vram_data_i,
+         -- Interface to Palette RAM
+         palette_addr_o   => palette_addr_o,
+         palette_data_i   => palette_data_i,
          -- Current pixel colour
-         colour_o    => colour,
-         delay_o     => delay
+         colour_o         => colour,
+         delay_o          => delay
       ); -- i_vga_text_mode
 
 
