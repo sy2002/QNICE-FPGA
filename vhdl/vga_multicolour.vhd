@@ -35,33 +35,32 @@ use work.env1_globals.all;                -- VGA_RAM_SIZE
 -- each signal in this file has its name prefixed with the corresponding clock
 -- domain.
 -- The design is split into three parts:
--- * The vga_register_map running entirely on the CPU clock domain
--- * The vga_output running entirely on the VGA clock domain
+-- * The vga_register_map running entirely on the CPU clock domain.
+-- * The vga_output running entirely on the VGA clock domain.
 -- * The vga_video_ram, which is a True Dual Port RAM using block clock domains.
 -- The only communication (so far) between the CPU and VGA clock domains is via
 -- the Video RAM.
 --
--- Memory Map of Video RAM:
--- The entire Video RAM contains 32 kW, i.e. addresses 0x0000 - 0x7FFF.
--- 0x0000 - 0x6FFF : Display (gives almost 9 screens).
--- 0x7000 - 0x7BFF : 8x12 Font (12 words for each of 256 characters).
--- 0x7C00 - 0x7FFF : Reserved.
+-- The Video RAM actually contains three different RAM blocks:
+-- * The Display RAM
+-- * The Font RAM
+-- * The Palette RAM
 --
--- The Display part is organized as 358 lines of 80 characters. Each word
+-- The Display RAM contains 64 kW, i.e. addresses 0x0000 - 0xFFFF.
+-- 0x0000 - 0xFFFF : Display (64000 words gives 20 screens).
+--
+-- The Display RAM is organized as 800 lines of 80 characters. Each word
 -- is interpreted as follows:
 -- Bits 15-12 : Background colour selected from a palette of 16 colours.
 -- Bits 11- 8 : Foreground colour selected from a palette of 16 colours.
--- Bits  7- 0 : Characted index (index into Font).
+-- Bits  7- 0 : Character index (index into Font).
 --
--- Video RAM bandwidth considerations:
--- While displaying a character, the controller must:
--- * Calculate the address into the Display Memory (combinatorially)
--- * Read current character from Display Memory (one clock cycle)
--- * Calculate the address into the Font Memory (combinatorially)
--- * Read the current bitmap from the Font Memory (one clock cycle)
--- Notice that 2 reads from Video RAM is necessary for each character. But
--- since a character is 8 pixels wide, there are still 6 "free" clock cycles.
--- These can be used for sprites.
+-- The Font RAM contains 3kB, i.e. addresses 0x0000 - 0x03FF.
+-- 12 bytes for each of the 256 different characters.
+--
+-- The Palette RAM contains 32 words, i.e. addresses 0x0000 - 0x001F.
+-- 16 words for each of the foreground colours, and another 16 words
+-- for the background colours.
 
 entity vga_multicolour is
    port (
@@ -102,8 +101,12 @@ architecture synthesis of vga_multicolour is
    signal cpu_vram_rd_addr : std_logic_vector(C_VRAM_SIZE-1 downto 0);
    signal cpu_vram_rd_data : std_logic_vector(15 downto 0);
 
-   signal vga_vram_rd_addr : std_logic_vector(C_VRAM_SIZE-1 downto 0);
-   signal vga_vram_rd_data : std_logic_vector(15 downto 0);
+   signal vga_display_addr : std_logic_vector(15 downto 0);
+   signal vga_display_data : std_logic_vector(15 downto 0);
+   signal vga_font_addr    : std_logic_vector(9 downto 0);
+   signal vga_font_data    : std_logic_vector(15 downto 0);
+   signal vga_palette_addr : std_logic_vector(4 downto 0);
+   signal vga_palette_data : std_logic_vector(15 downto 0);
 
 begin
 
@@ -136,24 +139,28 @@ begin
    -- Interface to the Video RAM (True Dual Port)
    -----------------------------------------------
 
-   i_vga_video_ram : entity work.true_dual_port_ram
+   i_vga_video_ram : entity work.vga_video_ram
       generic map (
          G_ADDR_SIZE => C_VRAM_SIZE,
          G_DATA_SIZE => 16
       )
       port map (
          -- CPU access
-         a_clk_i     => cpu_clk_i,
-         a_wr_addr_i => cpu_vram_wr_addr,
-         a_wr_en_i   => cpu_vram_wr_en,
-         a_wr_data_i => cpu_vram_wr_data,
-         a_rd_addr_i => cpu_vram_rd_addr,
-         a_rd_data_o => cpu_vram_rd_data,
+         cpu_clk_i          => cpu_clk_i,
+         cpu_wr_addr_i      => cpu_vram_wr_addr,
+         cpu_wr_en_i        => cpu_vram_wr_en,
+         cpu_wr_data_i      => cpu_vram_wr_data,
+         cpu_rd_addr_i      => cpu_vram_rd_addr,
+         cpu_rd_data_o      => cpu_vram_rd_data,
 
          -- VGA access
-         b_clk_i     => vga_clk_i,
-         b_rd_addr_i => vga_vram_rd_addr,
-         b_rd_data_o => vga_vram_rd_data
+         vga_clk_i          => vga_clk_i,
+         vga_display_addr_i => vga_display_addr,
+         vga_display_data_o => vga_display_data,
+         vga_font_addr_i    => vga_font_addr,
+         vga_font_data_o    => vga_font_data,
+         vga_palette_addr_i => vga_palette_addr,
+         vga_palette_data_o => vga_palette_data
       ); -- i_vga_video_ram
 
 
@@ -163,27 +170,35 @@ begin
 
    i_vga_output : entity work.vga_output
       port map (
-         clk_i       => vga_clk_i,
+         clk_i          => vga_clk_i,
 
          -- Configuration from Register Map
-         scroll_en_i => vga_scroll_en,
-         offset_en_i => vga_offset_en,
-         busy_o      => vga_busy,
-         clrscr_i    => vga_clrscr,
-         vga_en_i    => vga_vga_en,
-         curs_en_i   => vga_curs_en,
-         blink_en_i  => vga_blink_en,
-         curs_mode_i => vga_curs_mode,
+         scroll_en_i    => vga_scroll_en,
+         offset_en_i    => vga_offset_en,
+         busy_o         => vga_busy,
+         clrscr_i       => vga_clrscr,
+         vga_en_i       => vga_vga_en,
+         curs_en_i      => vga_curs_en,
+         blink_en_i     => vga_blink_en,
+         curs_mode_i    => vga_curs_mode,
 
-         -- Read from Video RAM
-         vram_addr_o => vga_vram_rd_addr,
-         vram_data_i => vga_vram_rd_data,
+         -- Read from Display RAM
+         display_addr_o => vga_display_rd_addr,
+         display_data_i => vga_display_rd_data,
+
+         -- Read from Font RAM
+         font_addr_o    => vga_font_rd_addr,
+         font_data_i    => vga_font_rd_data,
+
+         -- Read from Palette RAM
+         palette_addr_o => vga_palette_rd_addr,
+         palette_data_i => vga_palette_rd_data,
 
          -- VGA output signals
-         hsync_o     => vga_hsync_o,
-         vsync_o     => vga_vsync_o,
-         colour_o    => vga_colour_o,
-         data_en_o   => vga_data_en_o
+         hsync_o        => vga_hsync_o,
+         vsync_o        => vga_vsync_o,
+         colour_o       => vga_colour_o,
+         data_en_o      => vga_data_en_o
       ); -- i_vga_output
 
 end synthesis;
