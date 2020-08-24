@@ -10,12 +10,14 @@ use ieee.numeric_std.all;
 entity vga_pixel_counters is
    generic (
       G_PIXEL_X_COUNT : integer;
-      G_PIXEL_Y_COUNT : integer
+      G_PIXEL_Y_COUNT : integer;
+      G_FRAME_COUNT   : integer
    );
    port (
       clk_i     : in  std_logic;
       pixel_x_o : out std_logic_vector(9 downto 0);
-      pixel_y_o : out std_logic_vector(9 downto 0)
+      pixel_y_o : out std_logic_vector(9 downto 0);
+      frame_o   : out std_logic_vector(5 downto 0)
    );
 end vga_pixel_counters;
 
@@ -23,6 +25,7 @@ architecture synthesis of vga_pixel_counters is
 
    signal pixel_x : std_logic_vector(9 downto 0) := (others => '0');
    signal pixel_y : std_logic_vector(9 downto 0) := (others => '0');
+   signal frame   : std_logic_vector(5 downto 0) := (others => '0');
 
 begin
    
@@ -60,12 +63,33 @@ begin
    end process p_pixel_y;
 
 
+   -----------------------------------
+   -- Generate frame counter
+   -----------------------------------
+
+   p_frame : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         if unsigned(pixel_x) = G_PIXEL_X_COUNT-1 then
+            if unsigned(pixel_y) = G_PIXEL_Y_COUNT-1 then
+               if unsigned(frame) = G_FRAME_COUNT-1 then
+                  frame <= (others => '0');
+               else
+                  frame <= std_logic_vector(unsigned(frame) + 1);
+               end if;
+            end if;
+         end if;
+      end if;
+   end process p_frame;
+
+
    ------------------------
    -- Drive output signals
    ------------------------
 
    pixel_x_o <= pixel_x;
    pixel_y_o <= pixel_y;
+   frame_o   <= frame;
 
 end architecture synthesis;
 

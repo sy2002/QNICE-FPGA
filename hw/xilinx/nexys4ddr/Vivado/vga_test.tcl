@@ -12,6 +12,8 @@ read_vhdl { \
 }
 read_xdc vga_test.xdc
 synth_design -top vga_test -part xc7a100tcsg324-1 -flatten_hierarchy none
+source debug.tcl
+opt_design
 place_design
 route_design
 write_checkpoint -force vga_test.dcp

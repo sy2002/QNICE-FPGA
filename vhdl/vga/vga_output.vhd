@@ -9,6 +9,11 @@ entity vga_output is
       -- Interface to Register Map
       display_offset_i : in std_logic_vector(15 downto 0);
       tile_offset_i    : in std_logic_vector(15 downto 0);
+      cursor_enable_i  : in  std_logic;
+      cursor_blink_i   : in  std_logic;
+      cursor_size_i    : in  std_logic;
+      cursor_x_i       : in  std_logic_vector(6 downto 0); -- 0 to 79
+      cursor_y_i       : in  std_logic_vector(5 downto 0); -- 0 to 39
 
       -- Interface to Video RAM
       display_addr_o   : out std_logic_vector(15 downto 0);
@@ -30,6 +35,7 @@ architecture synthesis of vga_output is
 
    signal pixel_x : std_logic_vector(9 downto 0);  -- 0 to 799
    signal pixel_y : std_logic_vector(9 downto 0);  -- 0 to 524
+   signal frame   : std_logic_vector(5 downto 0);  -- 0 to 59
    signal colour  : std_logic_vector(11 downto 0);
    signal delay   : std_logic_vector(9 downto 0);
 
@@ -42,12 +48,14 @@ begin
    i_vga_pixel_counters : entity work.vga_pixel_counters
       generic map (
          G_PIXEL_X_COUNT => 800,
-         G_PIXEL_Y_COUNT => 525
+         G_PIXEL_Y_COUNT => 525,
+         G_FRAME_COUNT   => 60
       )
       port map (
          clk_i     => clk_i,
          pixel_x_o => pixel_x,
-         pixel_y_o => pixel_y
+         pixel_y_o => pixel_y,
+         frame_o   => frame
       ); -- i_vga_pixel_counters
 
 
@@ -57,13 +65,19 @@ begin
 
    i_vga_text_mode : entity work.vga_text_mode
       port map (
-         clk_i       => clk_i,
+         clk_i            => clk_i,
          -- Interface to Register Map
          display_offset_i => display_offset_i,
          tile_offset_i    => tile_offset_i,
+         cursor_enable_i  => cursor_enable_i,
+         cursor_blink_i   => cursor_blink_i,
+         cursor_size_i    => cursor_size_i,
+         cursor_x_i       => cursor_x_i,
+         cursor_y_i       => cursor_y_i,
          -- Pixel Counters
          pixel_x_i        => pixel_x,
          pixel_y_i        => pixel_y,
+         frame_i          => frame,
          -- Interface to Video RAM
          display_addr_o   => display_addr_o,
          display_data_i   => display_data_i,

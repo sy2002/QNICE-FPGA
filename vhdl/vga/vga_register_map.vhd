@@ -1,6 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+use ieee.std_logic_unsigned.all;
 
 -- This file is the top-level VGA controller. It connects directly to the CPU
 -- and to the output ports on the FPGA.
@@ -28,49 +28,56 @@ use ieee.numeric_std.all;
 
 entity vga_register_map is
    port (
-      clk_i         : in  std_logic;
-      rst_i         : in  std_logic;
-      en_i          : in  std_logic;
-      we_i          : in  std_logic;
-      reg_i         : in  std_logic_vector(3 downto 0);
-      data_i        : in  std_logic_vector(15 downto 0);
-      data_o        : out std_logic_vector(15 downto 0);
+      clk_i           : in  std_logic;
+      rst_i           : in  std_logic;
+      en_i            : in  std_logic;
+      we_i            : in  std_logic;
+      reg_i           : in  std_logic_vector(3 downto 0);
+      data_i          : in  std_logic_vector(15 downto 0);
+      data_o          : out std_logic_vector(15 downto 0);
 
-      scroll_en_o   : out std_logic;
-      offset_en_o   : out std_logic;
-      busy_i        : in  std_logic;
-      clrscr_o      : out std_logic;
-      vga_en_o      : out std_logic;
-      cursor_en_o   : out std_logic;
-      blink_en_o    : out std_logic;
-      cursor_size_o : out std_logic
+      scroll_en_o     : out std_logic;
+      offset_en_o     : out std_logic;
+      busy_i          : in  std_logic;
+      clrscr_o        : out std_logic;
+      vga_en_o        : out std_logic;
+      cursor_enable_o : out std_logic;
+      cursor_blink_o  : out std_logic;
+      cursor_size_o   : out std_logic;
+      cursor_x_o      : out std_logic_vector(6 downto 0);
+      cursor_y_o      : out std_logic_vector(5 downto 0)
    );
 end vga_register_map;
 
 architecture synthesis of vga_register_map is
 
-   signal reg0 : std_logic_vector(15 downto 0);
-   signal reg1 : std_logic_vector(15 downto 0);
-   signal reg2 : std_logic_vector(15 downto 0);
-   signal reg3 : std_logic_vector(15 downto 0);
-   signal reg4 : std_logic_vector(15 downto 0);
-   signal reg5 : std_logic_vector(15 downto 0);
-   signal reg6 : std_logic_vector(15 downto 0);
-   signal reg7 : std_logic_vector(15 downto 0);
-   signal reg8 : std_logic_vector(15 downto 0);
+   type mem_t is array (0 to 15) of std_logic_vector(15 downto 0);
+
+   signal mem : mem_t;
 
 begin
 
-   data_o <= (others => '0');
-   reg0 <= (others => '0');
+   p_map : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         if en_i = '1' and we_i = '1' then
+            mem(conv_integer(reg_i)) <= data_i;
+         end if;
+      end if;
+   end process p_map;
 
-   scroll_en_o   <= reg0(11);
-   offset_en_o   <= reg0(10);
-   clrscr_o      <= reg0( 8);
-   vga_en_o      <= reg0( 7);
-   cursor_en_o   <= reg0( 6);
-   blink_en_o    <= reg0( 5);
-   cursor_size_o <= reg0( 4);
+   data_o <= mem(conv_integer(reg_i)) when en_i = '1' and we_i = '0' else
+             (others => '0');
+
+   scroll_en_o     <= mem(0)(11);
+   offset_en_o     <= mem(0)(10);
+   clrscr_o        <= mem(0)( 8);
+   vga_en_o        <= mem(0)( 7);
+   cursor_enable_o <= mem(0)( 6);
+   cursor_blink_o  <= mem(0)( 5);
+   cursor_size_o   <= mem(0)( 4);
+   cursor_x_o      <= mem(1)(6 downto 0);
+   cursor_y_o      <= mem(2)(5 downto 0);
 
 end synthesis;
 
