@@ -97,8 +97,8 @@ begin
    char_column_0   <= std_logic_vector(unsigned(pixel_x_i) / C_CHAR_WIDTH);
    char_row_0      <= std_logic_vector(unsigned(pixel_y_i) / C_CHAR_HEIGHT);
 
-   cursor_here_0 <= '1' when  "000" & cursor_x_i = char_column_0 and
-                             "0000" & cursor_y_i = char_row_0
+   cursor_here_0 <= '1' when  ("000" & cursor_x_i) = char_column_0 and
+                             ("0000" & cursor_y_i) = char_row_0
                else '0';
 
    -- Calculate relative pixel offsets in current character.

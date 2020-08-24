@@ -114,6 +114,12 @@ begin
          data_i          => cpu_data_i,
          data_o          => cpu_data_o,
 
+         vram_wr_addr_o  => cpu_vram_wr_addr,
+         vram_wr_en_o    => cpu_vram_wr_en,
+         vram_wr_data_o  => cpu_vram_wr_data,
+         vram_rd_addr_o  => cpu_vram_rd_addr,
+         vram_rd_data_i  => cpu_vram_rd_data,
+
          scroll_en_o     => cpu_scroll_en,     -- Reg 0 bit 11
          offset_en_o     => cpu_offset_en,     -- Reg 0 bit 10
          busy_i          => cpu_busy,          -- Reg 0 bit 9

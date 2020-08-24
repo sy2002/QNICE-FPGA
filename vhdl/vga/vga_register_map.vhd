@@ -36,6 +36,12 @@ entity vga_register_map is
       data_i          : in  std_logic_vector(15 downto 0);
       data_o          : out std_logic_vector(15 downto 0);
 
+      vram_wr_addr_o  : out std_logic_vector(15 downto 0);
+      vram_wr_en_o    : out std_logic;
+      vram_wr_data_o  : out std_logic_vector(15 downto 0);
+      vram_rd_addr_o  : out std_logic_vector(15 downto 0);
+      vram_rd_data_i  : in  std_logic_vector(15 downto 0);
+
       scroll_en_o     : out std_logic;
       offset_en_o     : out std_logic;
       busy_i          : in  std_logic;
@@ -66,7 +72,8 @@ begin
       end if;
    end process p_map;
 
-   data_o <= mem(conv_integer(reg_i)) when en_i = '1' and we_i = '0' else
+   data_o <= vram_rd_data_i when en_i = '1' and we_i = '0' and reg_i = "0011" else
+             mem(conv_integer(reg_i)) when en_i = '1' and we_i = '0' else
              (others => '0');
 
    scroll_en_o     <= mem(0)(11);
@@ -78,6 +85,11 @@ begin
    cursor_size_o   <= mem(0)( 4);
    cursor_x_o      <= mem(1)(6 downto 0);
    cursor_y_o      <= mem(2)(5 downto 0);
+
+   vram_wr_addr_o  <= cursor_y_o*80 + cursor_x_o;
+   vram_wr_en_o    <= '1' when en_i = '1' and we_i = '1' and reg_i = "0011";
+   vram_wr_data_o  <= data_i;
+   vram_rd_addr_o  <= cursor_y_o*80 + cursor_x_o;
 
 end synthesis;
 
