@@ -1,7 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use work.env1_globals.all;                -- VGA_RAM_SIZE
 
 -- This file is the top-level VGA controller. It connects directly to the CPU
 -- and to the output ports on the FPGA.
@@ -64,49 +63,51 @@ use work.env1_globals.all;                -- VGA_RAM_SIZE
 
 entity vga_multicolour is
    port (
-      cpu_clk_i    : in  std_logic;          -- CPU clock (currently at 50 MHz)
-      cpu_rst_i    : in  std_logic;
-      cpu_en_i     : in  std_logic;
-      cpu_we_i     : in  std_logic;
-      cpu_reg_i    : in  std_logic_vector(3 downto 0);
-      cpu_data_i   : in  std_logic_vector(15 downto 0);
-      cpu_data_o   : out std_logic_vector(15 downto 0);
+      cpu_clk_i     : in  std_logic;            -- CPU clock (currently at 50 MHz)
+      cpu_rst_i     : in  std_logic;
+      cpu_en_i      : in  std_logic;
+      cpu_we_i      : in  std_logic;
+      cpu_reg_i     : in  std_logic_vector(3 downto 0);
+      cpu_data_i    : in  std_logic_vector(15 downto 0);
+      cpu_data_o    : out std_logic_vector(15 downto 0);
 
-      vga_clk_i    : in  std_logic;          -- VGA clock (25.175 MHz)
-      vga_hsync_o  : out std_logic;
-      vga_vsync_o  : out std_logic;
-      vga_colour_o : out std_logic_vector(11 downto 0);
-      vga_de_o     : out std_logic           -- Data Enable
+      vga_clk_i     : in  std_logic;            -- VGA clock (25.175 MHz)
+      vga_hsync_o   : out std_logic;
+      vga_vsync_o   : out std_logic;
+      vga_colour_o  : out std_logic_vector(11 downto 0);
+      vga_data_en_o : out std_logic             -- Data Enable
    );
 end vga_multicolour;
 
 architecture synthesis of vga_multicolour is
 
-   -- Size of Video Ram Address
-   constant C_VRAM_SIZE    : natural := f_log2(VGA_RAM_SIZE);
-
    -- Register Map
-   signal cpu_scroll_en    : std_logic;
-   signal cpu_offset_en    : std_logic;
-   signal cpu_busy         : std_logic;
-   signal cpu_clrscr       : std_logic;
-   signal cpu_vga_en       : std_logic;
-   signal cpu_cursor_en    : std_logic;
-   signal cpu_blink_en     : std_logic;
-   signal cpu_cursor_size  : std_logic;
+   signal cpu_scroll_en      : std_logic;
+   signal cpu_offset_en      : std_logic;
+   signal cpu_busy           : std_logic;
+   signal cpu_clrscr         : std_logic;
+   signal cpu_vga_en         : std_logic;
+   signal cpu_cursor_en      : std_logic;
+   signal cpu_blink_en       : std_logic;
+   signal cpu_cursor_size    : std_logic;
+   signal cpu_display_offset : std_logic_vector(15 downto 0);
+   signal cpu_tile_offset    : std_logic_vector(15 downto 0);
 
-   signal cpu_vram_wr_addr : std_logic_vector(C_VRAM_SIZE-1 downto 0);
-   signal cpu_vram_wr_en   : std_logic;
-   signal cpu_vram_wr_data : std_logic_vector(15 downto 0);
-   signal cpu_vram_rd_addr : std_logic_vector(C_VRAM_SIZE-1 downto 0);
-   signal cpu_vram_rd_data : std_logic_vector(15 downto 0);
+   signal vga_display_offset : std_logic_vector(15 downto 0);
+   signal vga_tile_offset    : std_logic_vector(15 downto 0);
 
-   signal vga_display_addr : std_logic_vector(15 downto 0);
-   signal vga_display_data : std_logic_vector(15 downto 0);
-   signal vga_font_addr    : std_logic_vector(9 downto 0);
-   signal vga_font_data    : std_logic_vector(15 downto 0);
-   signal vga_palette_addr : std_logic_vector(4 downto 0);
-   signal vga_palette_data : std_logic_vector(15 downto 0);
+   signal cpu_vram_wr_addr   : std_logic_vector(17 downto 0);
+   signal cpu_vram_wr_en     : std_logic;
+   signal cpu_vram_wr_data   : std_logic_vector(15 downto 0);
+   signal cpu_vram_rd_addr   : std_logic_vector(17 downto 0);
+   signal cpu_vram_rd_data   : std_logic_vector(15 downto 0);
+
+   signal vga_display_addr   : std_logic_vector(15 downto 0);
+   signal vga_display_data   : std_logic_vector(15 downto 0);
+   signal vga_font_addr      : std_logic_vector(9 downto 0);
+   signal vga_font_data      : std_logic_vector(15 downto 0);
+   signal vga_palette_addr   : std_logic_vector(4 downto 0);
+   signal vga_palette_data   : std_logic_vector(15 downto 0);
 
 begin
 
@@ -140,10 +141,6 @@ begin
    -----------------------------------------------
 
    i_vga_video_ram : entity work.vga_video_ram
-      generic map (
-         G_ADDR_SIZE => C_VRAM_SIZE,
-         G_DATA_SIZE => 16
-      )
       port map (
          -- CPU access
          cpu_clk_i          => cpu_clk_i,
@@ -170,35 +167,25 @@ begin
 
    i_vga_output : entity work.vga_output
       port map (
-         clk_i          => vga_clk_i,
+         clk_i            => vga_clk_i,
 
          -- Configuration from Register Map
-         scroll_en_i    => vga_scroll_en,
-         offset_en_i    => vga_offset_en,
-         busy_o         => vga_busy,
-         clrscr_i       => vga_clrscr,
-         vga_en_i       => vga_vga_en,
-         curs_en_i      => vga_curs_en,
-         blink_en_i     => vga_blink_en,
-         curs_mode_i    => vga_curs_mode,
+         display_offset_i => vga_display_offset,
+         tile_offset_i    => vga_tile_offset,
 
-         -- Read from Display RAM
-         display_addr_o => vga_display_rd_addr,
-         display_data_i => vga_display_rd_data,
-
-         -- Read from Font RAM
-         font_addr_o    => vga_font_rd_addr,
-         font_data_i    => vga_font_rd_data,
-
-         -- Read from Palette RAM
-         palette_addr_o => vga_palette_rd_addr,
-         palette_data_i => vga_palette_rd_data,
+         -- Interface to Video RAM
+         display_addr_o   => vga_display_addr,
+         display_data_i   => vga_display_data,
+         font_addr_o      => vga_font_addr,
+         font_data_i      => vga_font_data,
+         palette_addr_o   => vga_palette_addr,
+         palette_data_i   => vga_palette_data,
 
          -- VGA output signals
-         hsync_o        => vga_hsync_o,
-         vsync_o        => vga_vsync_o,
-         colour_o       => vga_colour_o,
-         data_en_o      => vga_data_en_o
+         hsync_o          => vga_hsync_o,
+         vsync_o          => vga_vsync_o,
+         colour_o         => vga_colour_o,
+         data_en_o        => vga_data_en_o
       ); -- i_vga_output
 
 end synthesis;

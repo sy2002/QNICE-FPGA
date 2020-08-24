@@ -6,10 +6,10 @@ use ieee.std_logic_1164.all;
 entity vga_video_ram is
    port (
       cpu_clk_i          : in  std_logic;
-      cpu_wr_addr_i      : in  std_logic_vector(15 downto 0);
+      cpu_wr_addr_i      : in  std_logic_vector(17 downto 0);
       cpu_wr_en_i        : in  std_logic;
       cpu_wr_data_i      : in  std_logic_vector(15 downto 0);
-      cpu_rd_addr_i      : in  std_logic_vector(15 downto 0);
+      cpu_rd_addr_i      : in  std_logic_vector(17 downto 0);
       cpu_rd_data_o      : out std_logic_vector(15 downto 0);
 
       vga_clk_i          : in  std_logic;
@@ -24,7 +24,15 @@ end vga_video_ram;
 
 architecture synthesis of vga_video_ram is
 
+   signal cpu_rd_data_display : std_logic_vector(15 downto 0);
+   signal cpu_rd_data_font    : std_logic_vector(15 downto 0);
+   signal cpu_rd_data_palette : std_logic_vector(15 downto 0);
+
 begin
+
+   cpu_rd_data_o <= cpu_rd_data_display or
+                    cpu_rd_data_font    or
+                    cpu_rd_data_palette;
 
 -- The Display RAM contains 64 kW, i.e. addresses 0x0000 - 0xFFFF.
 -- 0x0000 - 0xFFFF : Display (64000 words gives 20 screens).
@@ -41,11 +49,11 @@ begin
       )
       port map (
          a_clk_i     => cpu_clk_i,
-         a_wr_addr_i => cpu_wr_addr_i,
+         a_wr_addr_i => cpu_wr_addr_i(15 downto 0),
          a_wr_en_i   => cpu_wr_en_i,
          a_wr_data_i => cpu_wr_data_i,
-         a_rd_addr_i => cpu_rd_addr_i,
-         a_rd_data_o => cpu_rd_data_o,
+         a_rd_addr_i => cpu_rd_addr_i(15 downto 0),
+         a_rd_data_o => cpu_rd_data_display,
          b_clk_i     => vga_clk_i,
          b_rd_addr_i => vga_display_addr_i,
          b_rd_data_o => vga_display_data_o
@@ -60,11 +68,11 @@ begin
       )
       port map (
          a_clk_i     => cpu_clk_i,
-         a_wr_addr_i => cpu_wr_addr_i,
+         a_wr_addr_i => cpu_wr_addr_i(9 downto 0),
          a_wr_en_i   => cpu_wr_en_i,
          a_wr_data_i => cpu_wr_data_i,
-         a_rd_addr_i => cpu_rd_addr_i,
-         a_rd_data_o => cpu_rd_data_o,
+         a_rd_addr_i => cpu_rd_addr_i(9 downto 0),
+         a_rd_data_o => cpu_rd_data_font,
          b_clk_i     => vga_clk_i,
          b_rd_addr_i => vga_font_addr_i,
          b_rd_data_o => vga_font_data_o
@@ -80,11 +88,11 @@ begin
       )
       port map (
          a_clk_i     => cpu_clk_i,
-         a_wr_addr_i => cpu_wr_addr_i,
+         a_wr_addr_i => cpu_wr_addr_i(4 downto 0),
          a_wr_en_i   => cpu_wr_en_i,
          a_wr_data_i => cpu_wr_data_i,
-         a_rd_addr_i => cpu_rd_addr_i,
-         a_rd_data_o => cpu_rd_data_o,
+         a_rd_addr_i => cpu_rd_addr_i(4 downto 0),
+         a_rd_data_o => cpu_rd_data_palette,
          b_clk_i     => vga_clk_i,
          b_rd_addr_i => vga_palette_addr_i,
          b_rd_data_o => vga_palette_data_o

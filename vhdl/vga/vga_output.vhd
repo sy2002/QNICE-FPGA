@@ -9,13 +9,12 @@ entity vga_output is
       -- Interface to Register Map
       display_offset_i : in std_logic_vector(15 downto 0);
       tile_offset_i    : in std_logic_vector(15 downto 0);
-      -- Pixel Counters
-      pixel_x_i        : in  std_logic_vector(9 downto 0);
-      pixel_y_i        : in  std_logic_vector(9 downto 0);
+
       -- Interface to Video RAM
-      vram_addr_o      : out std_logic_vector(14 downto 0);
-      vram_data_i      : in  std_logic_vector(15 downto 0);
-      -- Interface to Palette RAM
+      display_addr_o   : out std_logic_vector(15 downto 0);
+      display_data_i   : in  std_logic_vector(15 downto 0);
+      font_addr_o      : out std_logic_vector(9 downto 0);
+      font_data_i      : in  std_logic_vector(15 downto 0);
       palette_addr_o   : out std_logic_vector(4 downto 0);
       palette_data_i   : in  std_logic_vector(15 downto 0);
 
@@ -65,9 +64,10 @@ begin
          pixel_x_i        => pixel_x,
          pixel_y_i        => pixel_y,
          -- Interface to Video RAM
-         vram_addr_o      => vram_addr_o,
-         vram_data_i      => vram_data_i,
-         -- Interface to Palette RAM
+         display_addr_o   => display_addr_o,
+         display_data_i   => display_data_i,
+         font_addr_o      => font_addr_o,
+         font_data_i      => font_data_i,
          palette_addr_o   => palette_addr_o,
          palette_data_i   => palette_data_i,
          -- Current pixel colour
