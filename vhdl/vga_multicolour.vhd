@@ -36,30 +36,9 @@ use ieee.numeric_std.all;
 -- The design is split into three parts:
 -- * The vga_register_map running entirely on the CPU clock domain.
 -- * The vga_output running entirely on the VGA clock domain.
--- * The vga_video_ram, which is a True Dual Port RAM using block clock domains.
--- The only communication (so far) between the CPU and VGA clock domains is via
--- the Video RAM.
---
--- The Video RAM actually contains three different RAM blocks:
--- * The Display RAM
--- * The Font RAM
--- * The Palette RAM
---
--- The Display RAM contains 64 kW, i.e. addresses 0x0000 - 0xFFFF.
--- 0x0000 - 0xFFFF : Display (64000 words gives 20 screens).
---
--- The Display RAM is organized as 800 lines of 80 characters. Each word
--- is interpreted as follows:
--- Bits 15-12 : Background colour selected from a palette of 16 colours.
--- Bits 11- 8 : Foreground colour selected from a palette of 16 colours.
--- Bits  7- 0 : Character index (index into Font).
---
--- The Font RAM contains 3kB, i.e. addresses 0x0000 - 0x03FF.
--- 12 bytes for each of the 256 different characters.
---
--- The Palette RAM contains 32 words, i.e. addresses 0x0000 - 0x001F.
--- 16 words for each of the foreground colours, and another 16 words
--- for the background colours.
+-- * The vga_video_ram, which is a True Dual Port RAM using both clock domains.
+-- The only communication between the CPU and VGA clock domains is via the
+-- Video RAM module.
 
 entity vga_multicolour is
    port (
@@ -105,9 +84,9 @@ architecture synthesis of vga_multicolour is
    signal vga_display_addr   : std_logic_vector(15 downto 0);
    signal vga_display_data   : std_logic_vector(15 downto 0);
    signal vga_font_addr      : std_logic_vector(9 downto 0);
-   signal vga_font_data      : std_logic_vector(15 downto 0);
+   signal vga_font_data      : std_logic_vector(7 downto 0);
    signal vga_palette_addr   : std_logic_vector(4 downto 0);
-   signal vga_palette_data   : std_logic_vector(15 downto 0);
+   signal vga_palette_data   : std_logic_vector(11 downto 0);
 
 begin
 

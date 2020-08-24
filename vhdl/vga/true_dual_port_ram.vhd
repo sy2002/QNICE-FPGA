@@ -1,13 +1,17 @@
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
+use ieee.std_logic_unsigned.all; -- conv_integer
+use ieee.std_logic_textio.all;
+--use ieee.numeric_std.all;        -- unsigned
+use std.textio.all;
 
 -- This emulates a True Dual Port RAM, and should be inferred to BRAMs.
 
 entity true_dual_port_ram is
    generic (
       G_ADDR_SIZE : natural;
-      G_DATA_SIZE : natural
+      G_DATA_SIZE : natural;
+      G_FILE_NAME : string := "" -- Optionally provide initial data in text file.
    );
    port (
       -- Port A (R/W)
@@ -29,7 +33,27 @@ architecture synthesis of true_dual_port_ram is
 
    type mem_t is array (0 to 2**G_ADDR_SIZE-1) of std_logic_vector(G_DATA_SIZE-1 downto 0);
 
-   signal mem : mem_t := (others => (others => '0'));
+   impure function read_romfile return mem_t is
+      file     rom_file : text;
+      variable line_v   : line;
+      variable rom_v    : mem_t;
+   begin
+      rom_v := (others => (others => '0'));
+
+      if G_FILE_NAME /= "" then
+         file_open(rom_file, G_FILE_NAME, read_mode);
+         for i in mem_t'range loop
+            if not endfile(rom_file) then
+               readline(rom_file, line_v);
+               read(line_v, rom_v(i));
+            end if;
+         end loop;
+      end if;
+
+      return rom_v;
+   end function;
+
+   signal mem : mem_t := read_romfile;
 
 begin
 
