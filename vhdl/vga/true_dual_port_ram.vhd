@@ -16,10 +16,9 @@ entity true_dual_port_ram is
    port (
       -- Port A (R/W)
       a_clk_i     : in  std_logic;
-      a_wr_addr_i : in  std_logic_vector(G_ADDR_SIZE-1 downto 0);
+      a_addr_i    : in  std_logic_vector(G_ADDR_SIZE-1 downto 0);
       a_wr_en_i   : in  std_logic;
       a_wr_data_i : in  std_logic_vector(G_DATA_SIZE-1 downto 0);
-      a_rd_addr_i : in  std_logic_vector(G_ADDR_SIZE-1 downto 0);
       a_rd_data_o : out std_logic_vector(G_DATA_SIZE-1 downto 0);
 
       -- Port B (RO)
@@ -65,9 +64,9 @@ begin
    begin
       if rising_edge(a_clk_i) then
          if a_wr_en_i = '1' then
-            mem(conv_integer(a_wr_addr_i)) <= a_wr_data_i;
+            mem(conv_integer(a_addr_i)) <= a_wr_data_i;
          end if;
-         a_rd_data_o <= mem(conv_integer(a_rd_addr_i));
+         a_rd_data_o <= mem(conv_integer(a_addr_i));
       end if;
    end process p_a;
 

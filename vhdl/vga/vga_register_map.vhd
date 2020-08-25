@@ -3,16 +3,15 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 
--- This file is the top-level VGA controller. It connects directly to the CPU
--- and to the output ports on the FPGA.
+-- This file contains the Register Map as seen by the CPU.
 --
 -- Register Map:
 -- 00 : Control
 -- 01 : Cursor X
 -- 02 : Cursor Y
 -- 03 : Character and Colour at Cursor
--- 04 : Scroll
--- 05 : Offset
+-- 04 : Display offset
+-- 05 : Cursor offset
 -- 06 : hctr_min
 -- 07 : hctr_max
 -- 08 : vctr_max
@@ -29,30 +28,30 @@ use ieee.numeric_std.all;
 
 entity vga_register_map is
    port (
-      clk_i           : in  std_logic;
-      rst_i           : in  std_logic;
-      en_i            : in  std_logic;
-      we_i            : in  std_logic;
-      reg_i           : in  std_logic_vector(3 downto 0);
-      data_i          : in  std_logic_vector(15 downto 0);
-      data_o          : out std_logic_vector(15 downto 0);
+      -- Connected to CPU
+      clk_i            : in  std_logic;
+      rst_i            : in  std_logic;
+      en_i             : in  std_logic;
+      we_i             : in  std_logic;
+      reg_i            : in  std_logic_vector(3 downto 0);
+      data_i           : in  std_logic_vector(15 downto 0);
+      data_o           : out std_logic_vector(15 downto 0);
 
-      vram_wr_addr_o  : out std_logic_vector(17 downto 0);
-      vram_wr_en_o    : out std_logic;
-      vram_wr_data_o  : out std_logic_vector(15 downto 0);
-      vram_rd_addr_o  : out std_logic_vector(17 downto 0);
-      vram_rd_data_i  : in  std_logic_vector(15 downto 0);
+      -- Connected to Video RAM
+      vram_addr_o      : out std_logic_vector(17 downto 0);
+      vram_wr_en_o     : out std_logic;
+      vram_wr_data_o   : out std_logic_vector(15 downto 0);
+      vram_rd_data_i   : in  std_logic_vector(15 downto 0);
 
-      scroll_en_o     : out std_logic;
-      offset_en_o     : out std_logic;
-      busy_i          : in  std_logic;
-      clrscr_o        : out std_logic;
-      vga_en_o        : out std_logic;
-      cursor_enable_o : out std_logic;
-      cursor_blink_o  : out std_logic;
-      cursor_size_o   : out std_logic;
-      cursor_x_o      : buffer std_logic_vector(6 downto 0);
-      cursor_y_o      : buffer std_logic_vector(5 downto 0)
+      -- Connected to VGA output
+      busy_i           : in  std_logic;
+      vga_en_o         : out std_logic;
+      cursor_enable_o  : out std_logic;
+      cursor_blink_o   : out std_logic;
+      cursor_size_o    : out std_logic;
+      cursor_x_o       : buffer std_logic_vector(6 downto 0);
+      cursor_y_o       : buffer std_logic_vector(5 downto 0);
+      display_offset_o : out std_logic_vector(15 downto 0)
    );
 end vga_register_map;
 
@@ -65,6 +64,7 @@ architecture synthesis of vga_register_map is
    signal clrscr_addr : std_logic_vector(17 downto 0);
    signal clrscr_old  : std_logic;
    signal clrscr_new  : std_logic;
+   signal vram_offset : std_logic_vector(15 downto 0);
 
    attribute mark_debug                    : boolean;
    attribute mark_debug of rst_i           : signal is true;
@@ -73,10 +73,9 @@ architecture synthesis of vga_register_map is
    attribute mark_debug of reg_i           : signal is true;
    attribute mark_debug of data_i          : signal is true;
    attribute mark_debug of data_o          : signal is true;
-   attribute mark_debug of vram_wr_addr_o  : signal is true;
+   attribute mark_debug of vram_addr_o     : signal is true;
    attribute mark_debug of vram_wr_en_o    : signal is true;
    attribute mark_debug of vram_wr_data_o  : signal is true;
-   attribute mark_debug of vram_rd_addr_o  : signal is true;
    attribute mark_debug of vram_rd_data_i  : signal is true;
    attribute mark_debug of scroll_en_o     : signal is true;
    attribute mark_debug of offset_en_o     : signal is true;
@@ -95,16 +94,19 @@ architecture synthesis of vga_register_map is
 begin
 
    clrscr_old <= mem(0)(8);
-   clrscr_new <= '1' when en_i = '1' and we_i = '1' and conv_integer(reg_i) = 0 and data_i(8) = '1'
-            else '0';
+   clrscr_new <= data_i(8) when en_i = '1' and we_i = '1' and conv_integer(reg_i) = 0
+            else clrscr_old;
 
-   p_map : process (clk_i)
+   p_register_map : process (clk_i)
    begin
       if falling_edge(clk_i) then
          if en_i = '1' and we_i = '1' then
             mem(conv_integer(reg_i)) <= data_i;
          end if;
 
+         -- Special handling for reg 0 bits 8 and 9.
+         -- Bit 8 is the CLRSCR bit, and it autoclears.
+         -- Bit 9 is the BUSY bit.
          if clrscr_old = '0' and clrscr_new = '1' then
             clrscr_addr <= (others => '0');
             mem(0)(9) <= '1'; -- Set busy
@@ -116,34 +118,32 @@ begin
             end if;
          end if;
       end if;
-   end process p_map;
+   end process p_register_map;
 
 
    data_o <= vram_rd_data_i           when en_i = '1' and we_i = '0' and reg_i = "0011" else
              mem(conv_integer(reg_i)) when en_i = '1' and we_i = '0' else
              (others => '0');
 
-   scroll_en_o     <= mem(0)(11);
-   offset_en_o     <= mem(0)(10);
-   clrscr_o        <= mem(0)( 8);
-   vga_en_o        <= mem(0)( 7);
-   cursor_enable_o <= mem(0)( 6);
-   cursor_blink_o  <= mem(0)( 5);
-   cursor_size_o   <= mem(0)( 4);
-   cursor_x_o      <= mem(1)(6 downto 0);
-   cursor_y_o      <= mem(2)(5 downto 0);
+   vga_en_o         <= mem(0)( 7);
+   cursor_enable_o  <= mem(0)( 6);
+   cursor_blink_o   <= mem(0)( 5);
+   cursor_size_o    <= mem(0)( 4);
+   cursor_x_o       <= mem(1)(6 downto 0);
+   cursor_y_o       <= mem(2)(5 downto 0);
+   display_offset_o <= mem(4) when mem(0)(10) = '1' else (others => '0');
+   vram_offset      <= mem(5) when mem(0)(11) = '1' else (others => '0');
 
-   vram_wr_addr_o  <= clrscr_addr when clrscr_old = '1'
-                 else "000000" & (std_logic_vector(unsigned(cursor_y_o)*80) + cursor_x_o);
+   vram_addr_o     <= clrscr_addr when clrscr_old = '1'
+                 else ("000000" & (std_logic_vector(unsigned(cursor_y_o)*80) + cursor_x_o))
+                    + vram_offset;
 
    vram_wr_en_o    <= '1' when clrscr_old = '1'
-                 else '1' when en_i = '1' and we_i = '1' and reg_i = "0011";
+                 else '1' when en_i = '1' and we_i = '1' and reg_i = "0011"
                  else '0';
 
    vram_wr_data_o  <= X"0020" when clrscr_old = '1'
                  else data_i;
-
-   vram_rd_addr_o  <= "000000" & (std_logic_vector(unsigned(cursor_y_o)*80) + cursor_x_o);
 
 end synthesis;
 

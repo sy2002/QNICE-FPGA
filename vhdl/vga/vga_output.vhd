@@ -7,8 +7,9 @@ entity vga_output is
       clk_i            : in  std_logic;
 
       -- Interface to Register Map
-      display_offset_i : in std_logic_vector(15 downto 0);
-      tile_offset_i    : in std_logic_vector(15 downto 0);
+      output_enable_i  : in  std_logic;
+      display_offset_i : in  std_logic_vector(15 downto 0);
+      tile_offset_i    : in  std_logic_vector(15 downto 0);
       cursor_enable_i  : in  std_logic;
       cursor_blink_i   : in  std_logic;
       cursor_size_i    : in  std_logic;
@@ -97,15 +98,16 @@ begin
 
    i_vga_sync : entity work.vga_sync
       port map (
-         clk_i     => clk_i,
-         pixel_x_i => pixel_x,
-         pixel_y_i => pixel_y,
-         colour_i  => colour,
-         delay_i   => delay,
-         hsync_o   => hsync_o,    
-         vsync_o   => vsync_o,   
-         colour_o  => colour_o, 
-         data_en_o => data_en_o
+         clk_i       => clk_i,
+         output_en_i => output_enable_i,
+         pixel_x_i   => pixel_x,
+         pixel_y_i   => pixel_y,
+         colour_i    => colour,
+         delay_i     => delay,
+         hsync_o     => hsync_o,
+         vsync_o     => vsync_o,
+         colour_o    => colour_o,
+         data_en_o   => data_en_o
       ); -- i_vga_sync
 
 end architecture synthesis;

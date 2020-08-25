@@ -6,10 +6,9 @@ use ieee.std_logic_1164.all;
 entity vga_video_ram is
    port (
       cpu_clk_i          : in  std_logic;
-      cpu_wr_addr_i      : in  std_logic_vector(17 downto 0);
+      cpu_addr_i         : in  std_logic_vector(17 downto 0);
       cpu_wr_en_i        : in  std_logic;
       cpu_wr_data_i      : in  std_logic_vector(15 downto 0);
-      cpu_rd_addr_i      : in  std_logic_vector(17 downto 0);
       cpu_rd_data_o      : out std_logic_vector(15 downto 0);
 
       vga_clk_i          : in  std_logic;
@@ -49,10 +48,9 @@ begin
       )
       port map (
          a_clk_i     => cpu_clk_i,
-         a_wr_addr_i => cpu_wr_addr_i(15 downto 0),
+         a_addr_i    => cpu_addr_i(15 downto 0),
          a_wr_en_i   => cpu_wr_en_i,
          a_wr_data_i => cpu_wr_data_i,
-         a_rd_addr_i => cpu_rd_addr_i(15 downto 0),
          a_rd_data_o => cpu_rd_data_display,
          b_clk_i     => vga_clk_i,
          b_rd_addr_i => vga_display_addr_i,
@@ -70,10 +68,9 @@ begin
       )
       port map (
          a_clk_i     => cpu_clk_i,
-         a_wr_addr_i => cpu_wr_addr_i(11 downto 0),
-         a_wr_en_i   => cpu_wr_en_i,
+         a_addr_i    => cpu_addr_i(11 downto 0),
+         a_wr_en_i   => '0', -- cpu_wr_en_i,
          a_wr_data_i => cpu_wr_data_i(7 downto 0),
-         a_rd_addr_i => cpu_rd_addr_i(11 downto 0),
          a_rd_data_o => cpu_rd_data_font,
          b_clk_i     => vga_clk_i,
          b_rd_addr_i => vga_font_addr_i,
@@ -91,10 +88,9 @@ begin
       )
       port map (
          a_clk_i     => cpu_clk_i,
-         a_wr_addr_i => cpu_wr_addr_i(4 downto 0),
-         a_wr_en_i   => cpu_wr_en_i,
+         a_addr_i    => cpu_addr_i(4 downto 0),
+         a_wr_en_i   => '0', -- cpu_wr_en_i,
          a_wr_data_i => cpu_wr_data_i(11 downto 0),
-         a_rd_addr_i => cpu_rd_addr_i(4 downto 0),
          a_rd_data_o => cpu_rd_data_palette,
          b_clk_i     => vga_clk_i,
          b_rd_addr_i => vga_palette_addr_i,

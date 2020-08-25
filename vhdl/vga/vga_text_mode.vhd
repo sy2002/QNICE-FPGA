@@ -83,6 +83,7 @@ architecture synthesis of vga_text_mode is
    signal colour_fg_5   : std_logic_vector(3 downto 0);
    signal bitmap_5      : std_logic_vector(C_CHAR_WIDTH-1 downto 0);
    signal column_5      : natural range 0 to C_CHAR_WIDTH-1;
+   signal cursor_5      : std_logic;
    signal pixel_5       : std_logic;
    signal cursor_here_5 : std_logic;
    signal blink_5       : std_logic_vector(5 downto 0);
@@ -105,13 +106,14 @@ begin
    char_column_0 <= std_logic_vector(unsigned(pixel_x_i) / C_CHAR_WIDTH);
    char_row_0    <= std_logic_vector(unsigned(pixel_y_i) / C_CHAR_HEIGHT);
 
-   cursor_here_0 <= '1' when conv_integer(cursor_x_i) = conv_integer(char_column_0) and
-                             conv_integer(cursor_y_i) = conv_integer(char_row_0)
-               else '0';
-
    -- Calculate relative pixel offsets in current character.
    offset_x_0 <= conv_integer(pixel_x_i) mod C_CHAR_WIDTH;
    offset_y_0 <= conv_integer(pixel_y_i) mod C_CHAR_HEIGHT;
+
+   cursor_here_0 <= '1' when conv_integer(cursor_x_i) = conv_integer(char_column_0) and
+                             conv_integer(cursor_y_i) = conv_integer(char_row_0) and
+                             (cursor_size_i = '0' or offset_y_0 > 8)
+               else '0';
 
    -- Generate blink frequency (2 Hz).
    blink_0 <= std_logic_vector(unsigned(frame_i) / 15);
@@ -184,8 +186,10 @@ begin
    -- data corresponds to the lowest pixel coordinate.
    column_5 <= (5 + C_CHAR_WIDTH-1 - offset_x_0) mod C_CHAR_WIDTH;
 
+   cursor_5 <= (not cursor_blink_i) or blink_5(1);
+
    -- Read pixel from cursor or from bitmap.
-   pixel_5  <= (not cursor_blink_i) or blink_5(1) when cursor_enable_i = '1' and cursor_here_5 = '1'
+   pixel_5  <= cursor_5 when cursor_enable_i = '1' and cursor_here_5 = '1'
           else bitmap_5(column_5);
 
    -- Read colour from Palette RAM

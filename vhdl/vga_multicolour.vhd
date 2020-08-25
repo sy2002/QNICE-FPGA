@@ -61,42 +61,60 @@ end vga_multicolour;
 architecture synthesis of vga_multicolour is
 
    -- Register Map synchronized to CPU clock.
-   signal cpu_scroll_en      : std_logic;
-   signal cpu_offset_en      : std_logic;
-   signal cpu_busy           : std_logic;
-   signal cpu_clrscr         : std_logic;
-   signal cpu_vga_en         : std_logic;
-   signal cpu_display_offset : std_logic_vector(15 downto 0);
-   signal cpu_tile_offset    : std_logic_vector(15 downto 0);
-   signal cpu_cursor_enable  : std_logic;
-   signal cpu_cursor_blink   : std_logic;
-   signal cpu_cursor_size    : std_logic;
-   signal cpu_cursor_x       : std_logic_vector(6 downto 0);
-   signal cpu_cursor_y       : std_logic_vector(5 downto 0);
+   signal cpu_busy            : std_logic;
+   signal cpu_output_enable   : std_logic;
+   signal cpu_display_offset  : std_logic_vector(15 downto 0);
+   signal cpu_tile_offset     : std_logic_vector(15 downto 0);
+   signal cpu_cursor_enable   : std_logic;
+   signal cpu_cursor_blink    : std_logic;
+   signal cpu_cursor_size     : std_logic;
+   signal cpu_cursor_x        : std_logic_vector(6 downto 0);
+   signal cpu_cursor_y        : std_logic_vector(5 downto 0);
 
    -- CPU Interface to Video RAM.
-   signal cpu_vram_wr_addr   : std_logic_vector(17 downto 0);
-   signal cpu_vram_wr_en     : std_logic;
-   signal cpu_vram_wr_data   : std_logic_vector(15 downto 0);
-   signal cpu_vram_rd_addr   : std_logic_vector(17 downto 0);
-   signal cpu_vram_rd_data   : std_logic_vector(15 downto 0);
+   signal cpu_vram_addr       : std_logic_vector(17 downto 0);
+   signal cpu_vram_wr_en      : std_logic;
+   signal cpu_vram_wr_data    : std_logic_vector(15 downto 0);
+   signal cpu_vram_rd_data    : std_logic_vector(15 downto 0);
+
+   -- Clock Domain Crossing
+   signal meta_output_enable  : std_logic;
+   signal meta_display_offset : std_logic_vector(15 downto 0);
+   signal meta_tile_offset    : std_logic_vector(15 downto 0);
+   signal meta_cursor_enable  : std_logic;
+   signal meta_cursor_blink   : std_logic;
+   signal meta_cursor_size    : std_logic;
+   signal meta_cursor_x       : std_logic_vector(6 downto 0);
+   signal meta_cursor_y       : std_logic_vector(5 downto 0);
+
+   -- Instruct synthesis tool that these registers are used for CDC.
+   attribute ASYNC_REG                        : boolean;
+   attribute ASYNC_REG of meta_output_enable  : signal is true;
+   attribute ASYNC_REG of meta_display_offset : signal is true;
+   attribute ASYNC_REG of meta_tile_offset    : signal is true;
+   attribute ASYNC_REG of meta_cursor_enable  : signal is true;
+   attribute ASYNC_REG of meta_cursor_blink   : signal is true;
+   attribute ASYNC_REG of meta_cursor_size    : signal is true;
+   attribute ASYNC_REG of meta_cursor_x       : signal is true;
+   attribute ASYNC_REG of meta_cursor_y       : signal is true;
 
    -- Control signals synchronized to VGA clock.
-   signal vga_display_offset : std_logic_vector(15 downto 0);
-   signal vga_tile_offset    : std_logic_vector(15 downto 0);
-   signal vga_cursor_enable  : std_logic;
-   signal vga_cursor_blink   : std_logic;
-   signal vga_cursor_size    : std_logic;
-   signal vga_cursor_x       : std_logic_vector(6 downto 0);
-   signal vga_cursor_y       : std_logic_vector(5 downto 0);
+   signal vga_output_enable   : std_logic;
+   signal vga_display_offset  : std_logic_vector(15 downto 0);
+   signal vga_tile_offset     : std_logic_vector(15 downto 0);
+   signal vga_cursor_enable   : std_logic;
+   signal vga_cursor_blink    : std_logic;
+   signal vga_cursor_size     : std_logic;
+   signal vga_cursor_x        : std_logic_vector(6 downto 0);
+   signal vga_cursor_y        : std_logic_vector(5 downto 0);
 
    -- VGA Interface to Video RAM.
-   signal vga_display_addr   : std_logic_vector(15 downto 0);
-   signal vga_display_data   : std_logic_vector(15 downto 0);
-   signal vga_font_addr      : std_logic_vector(11 downto 0);
-   signal vga_font_data      : std_logic_vector(7 downto 0);
-   signal vga_palette_addr   : std_logic_vector(4 downto 0);
-   signal vga_palette_data   : std_logic_vector(11 downto 0);
+   signal vga_display_addr    : std_logic_vector(15 downto 0);
+   signal vga_display_data    : std_logic_vector(15 downto 0);
+   signal vga_font_addr       : std_logic_vector(11 downto 0);
+   signal vga_font_data       : std_logic_vector(7 downto 0);
+   signal vga_palette_addr    : std_logic_vector(4 downto 0);
+   signal vga_palette_data    : std_logic_vector(11 downto 0);
 
 begin
 
@@ -106,30 +124,27 @@ begin
 
    i_vga_register_map : entity work.vga_register_map
       port map (
-         clk_i           => cpu_clk_i,
-         rst_i           => cpu_rst_i,
-         en_i            => cpu_en_i,
-         we_i            => cpu_we_i,
-         reg_i           => cpu_reg_i,
-         data_i          => cpu_data_i,
-         data_o          => cpu_data_o,
+         clk_i            => cpu_clk_i,
+         rst_i            => cpu_rst_i,
+         en_i             => cpu_en_i,
+         we_i             => cpu_we_i,
+         reg_i            => cpu_reg_i,
+         data_i           => cpu_data_i,
+         data_o           => cpu_data_o,
 
-         vram_wr_addr_o  => cpu_vram_wr_addr,
-         vram_wr_en_o    => cpu_vram_wr_en,
-         vram_wr_data_o  => cpu_vram_wr_data,
-         vram_rd_addr_o  => cpu_vram_rd_addr,
-         vram_rd_data_i  => cpu_vram_rd_data,
+         vram_addr_o      => cpu_vram_addr,
+         vram_wr_en_o     => cpu_vram_wr_en,
+         vram_wr_data_o   => cpu_vram_wr_data,
+         vram_rd_data_i   => cpu_vram_rd_data,
 
-         scroll_en_o     => cpu_scroll_en,     -- Reg 0 bit 11
-         offset_en_o     => cpu_offset_en,     -- Reg 0 bit 10
-         busy_i          => cpu_busy,          -- Reg 0 bit 9
-         clrscr_o        => cpu_clrscr,        -- Reg 0 bit 8
-         vga_en_o        => cpu_vga_en,        -- Reg 0 bit 7
-         cursor_enable_o => cpu_cursor_enable, -- Reg 0 bit 6
-         cursor_blink_o  => cpu_cursor_blink,  -- Reg 0 bit 5
-         cursor_size_o   => cpu_cursor_size,   -- Reg 0 bit 4
-         cursor_x_o      => cpu_cursor_x,      -- Reg 1
-         cursor_y_o      => cpu_cursor_y       -- Reg 2
+         busy_i           => cpu_busy,          -- Reg 0 bit 9
+         vga_en_o         => cpu_output_enable, -- Reg 0 bit 7
+         cursor_enable_o  => cpu_cursor_enable, -- Reg 0 bit 6
+         cursor_blink_o   => cpu_cursor_blink,  -- Reg 0 bit 5
+         cursor_size_o    => cpu_cursor_size,   -- Reg 0 bit 4
+         cursor_x_o       => cpu_cursor_x,      -- Reg 1
+         cursor_y_o       => cpu_cursor_y,      -- Reg 2
+         display_offset_o => cpu_display_offset -- Reg 4
       ); -- i_vga_register_map
 
 
@@ -141,10 +156,9 @@ begin
       port map (
          -- CPU access
          cpu_clk_i          => cpu_clk_i,
-         cpu_wr_addr_i      => cpu_vram_wr_addr,
+         cpu_addr_i         => cpu_vram_addr,
          cpu_wr_en_i        => cpu_vram_wr_en,
          cpu_wr_data_i      => cpu_vram_wr_data,
-         cpu_rd_addr_i      => cpu_vram_rd_addr,
          cpu_rd_data_o      => cpu_vram_rd_data,
 
          -- VGA access
@@ -165,13 +179,23 @@ begin
    p_cdc : process (vga_clk_i)
    begin
       if rising_edge(vga_clk_i) then
-         vga_display_offset <= cpu_display_offset;
-         vga_tile_offset    <= cpu_tile_offset;
-         vga_cursor_enable  <= cpu_cursor_enable;
-         vga_cursor_blink   <= cpu_cursor_blink;
-         vga_cursor_size    <= cpu_cursor_size;
-         vga_cursor_x       <= cpu_cursor_x;
-         vga_cursor_y       <= cpu_cursor_y;
+         meta_output_enable  <= cpu_output_enable;
+         meta_display_offset <= cpu_display_offset;
+         meta_tile_offset    <= cpu_tile_offset;
+         meta_cursor_enable  <= cpu_cursor_enable;
+         meta_cursor_blink   <= cpu_cursor_blink;
+         meta_cursor_size    <= cpu_cursor_size;
+         meta_cursor_x       <= cpu_cursor_x;
+         meta_cursor_y       <= cpu_cursor_y;
+
+         vga_output_enable   <= meta_output_enable;
+         vga_display_offset  <= meta_display_offset;
+         vga_tile_offset     <= meta_tile_offset;
+         vga_cursor_enable   <= meta_cursor_enable;
+         vga_cursor_blink    <= meta_cursor_blink;
+         vga_cursor_size     <= meta_cursor_size;
+         vga_cursor_x        <= meta_cursor_x;
+         vga_cursor_y        <= meta_cursor_y;
       end if;
    end process p_cdc;
 
@@ -185,6 +209,7 @@ begin
          clk_i            => vga_clk_i,
 
          -- Configuration from Register Map
+         output_enable_i  => vga_output_enable,
          display_offset_i => vga_display_offset,
          tile_offset_i    => vga_tile_offset,
          cursor_enable_i  => vga_cursor_enable,

@@ -9,17 +9,18 @@ use ieee.numeric_std.all;
 
 entity vga_sync is
    port (
-      clk_i     : in  std_logic;
+      clk_i       : in  std_logic;
 
-      pixel_x_i : in  std_logic_vector( 9 downto 0);
-      pixel_y_i : in  std_logic_vector( 9 downto 0);
-      colour_i  : in  std_logic_vector(11 downto 0);
-      delay_i   : in  std_logic_vector( 9 downto 0);
+      output_en_i : in  std_logic;
+      pixel_x_i   : in  std_logic_vector( 9 downto 0);
+      pixel_y_i   : in  std_logic_vector( 9 downto 0);
+      colour_i    : in  std_logic_vector(11 downto 0);
+      delay_i     : in  std_logic_vector( 9 downto 0);
 
-      hsync_o   : out std_logic;
-      vsync_o   : out std_logic;
-      colour_o  : out std_logic_vector(11 downto 0);
-      data_en_o : out std_logic
+      hsync_o     : out std_logic;
+      vsync_o     : out std_logic;
+      colour_o    : out std_logic_vector(11 downto 0);
+      data_en_o   : out std_logic
    );
 end vga_sync;
 
@@ -68,6 +69,13 @@ begin
          if pixel_x_i >= std_logic_vector(H_PIXELS+unsigned(delay_i))
             or pixel_x_i < delay_i or unsigned(pixel_y_i) >= V_PIXELS then
             colour_o  <= (others => '0');    -- Black
+            data_en_o <= '0';
+         end if;
+
+         if output_en_i = '0' then
+            hsync_o   <= '0';
+            vsync_o   <= '0';
+            colour_o  <= (others => '0');
             data_en_o <= '0';
          end if;
       end if;
