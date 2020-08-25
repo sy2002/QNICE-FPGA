@@ -13,6 +13,7 @@ blocks:
 * `vga_register_map`
 * `vga_output`
 * `vga_video_ram`
+
 The first block (`vga_register_map`) connects to the CPU using only the CPU
 clock domain (50 MHx) and the second block (`vga_output`) connects to the VGA
 output port using only the VGA clock domain (25 MHz). Only the last block
@@ -21,23 +22,24 @@ output port using only the VGA clock domain (25 MHz). Only the last block
 Each of these blocks will be described below.
 
 ## `vga_register_map`
-This entire block works in the solely in the CPU clock domain.
+This entire block works solely in the CPU clock domain.
 
 The core of this block is the signal `register_map` that contains the 16
 registers accessible by the CPU.
 
-The outputs from this block are divided into two groups: One group writes to
-and reads from the Video RAM and the other group provides control signals
-directly to the `vga_output` block.
+The output signals from this block are divided into two groups: One group
+writes to and reads from the Video RAM and the other group provides
+configuration signals directly to the `vga_output` block.
 
 ## `vga_output`
 This block receives configuration signals from the `vga_register_map` block as
-well as has access to read from the three parts of the Video RAM (Display RAM,
-Font RAM, and Palette RAM). From these, this block generates the VGA output
-signals.  This block consists of these three sub blocks:
+well as reads from the three parts of the Video RAM (Display RAM, Font RAM, and
+Palette RAM). From these, this block generates the VGA output signals.  This
+block consists of these three sub blocks:
 * `vga_pixel_counters`
 * `vga_text_mode`
 * `vga_sync`
+
 These blocks will be described in the following:
 
 ### `vga_pixel_counters`
@@ -59,7 +61,7 @@ calculated from the current pixel coordinates.
 2. Then it reads a single word from the Font RAM, where the address is calculated
 from the value read from the Display RAM.
 3. Finally it reads a single word from the Palette RAM, where the adress is
-calculated from the value read from the Font RAM.
+calculated from the values read from the Font RAM and the Display RAM.
 
 ### `vga_sync`
 This small module generates the Horizontal and Vertical synchronization signals
