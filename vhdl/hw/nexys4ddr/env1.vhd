@@ -123,10 +123,8 @@ signal sd_data_out            : std_logic_vector(15 downto 0);
 signal reset_pre_pore         : std_logic;
 signal reset_post_pore        : std_logic;
 
--- VGA control signals
-signal vga_r                  : std_logic;
-signal vga_g                  : std_logic;
-signal vga_b                  : std_logic;
+-- VGA colour output
+signal vga_colour             : std_logic_vector(11 downto 0);
 
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
@@ -245,22 +243,27 @@ begin
       );
                  
    -- VGA: 80x40 textmode VGA adaptor   
-   vga_screen : entity work.vga_textmode
+   i_vga_multicolour : entity work.vga_multicolour
       port map (
-         reset => reset_ctl,
-         clk25MHz => clk25MHz,
-         clk50MHz => SLOW_CLOCK,
-         R => vga_r,
-         G => vga_g,
-         B => vga_b,
-         hsync => VGA_HS,
-         vsync => VGA_VS,
-         en => vga_en,
-         we => vga_we,
-         reg => vga_reg,
-         data_in => cpu_data_out,
-         data_out => vga_data_out
-      );
+         cpu_clk_i     => SLOW_CLOCK,
+         cpu_rst_i     => reset_ctl,
+         cpu_en_i      => vga_en,
+         cpu_we_i      => vga_we,
+         cpu_reg_i     => vga_reg,
+         cpu_data_i    => cpu_data_out,
+         cpu_data_o    => vga_data_out,
+
+         vga_clk_i     => clk25MHz,
+         vga_hsync_o   => VGA_HS,
+         vga_vsync_o   => VGA_VS,
+         vga_colour_o  => vga_colour,
+         vga_data_en_o => open
+      ); -- i_vga_multicolour
+
+   -- wire the simplified color system of the VGA component to the VGA outputs
+   VGA_RED   <= vga_colour(11 downto 8);
+   VGA_GREEN <= vga_colour(7 downto 4);
+   VGA_BLUE  <= vga_colour(3 downto 0);
 
    -- TIL display emulation (4 digits)
    til_leds : entity work.til_display
@@ -489,11 +492,6 @@ begin
       end if;
    end process;
        
-   -- wire the simplified color system of the VGA component to the VGA outputs
-   VGA_RED   <= vga_r & vga_r & vga_r & vga_r;
-   VGA_GREEN <= vga_g & vga_g & vga_g & vga_g;
-   VGA_BLUE  <= vga_b & vga_b & vga_b & vga_b;
-   
    -- generate the general reset signal
    reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';
    

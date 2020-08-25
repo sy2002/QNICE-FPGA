@@ -65,28 +65,28 @@ architecture synthesis of vga_register_map is
    signal clrscr_new  : std_logic;
    signal vram_offset : std_logic_vector(15 downto 0);
 
-   attribute mark_debug                     : boolean;
-   attribute mark_debug of rst_i            : signal is true;
-   attribute mark_debug of en_i             : signal is true;
-   attribute mark_debug of we_i             : signal is true;
-   attribute mark_debug of reg_i            : signal is true;
-   attribute mark_debug of data_i           : signal is true;
-   attribute mark_debug of data_o           : signal is true;
-   attribute mark_debug of vram_addr_o      : signal is true;
-   attribute mark_debug of vram_wr_en_o     : signal is true;
-   attribute mark_debug of vram_wr_data_o   : signal is true;
-   attribute mark_debug of vram_rd_data_i   : signal is true;
-   attribute mark_debug of vga_en_o         : signal is true;
-   attribute mark_debug of cursor_enable_o  : signal is true;
-   attribute mark_debug of cursor_blink_o   : signal is true;
-   attribute mark_debug of cursor_size_o    : signal is true;
-   attribute mark_debug of cursor_x_o       : signal is true;
-   attribute mark_debug of cursor_y_o       : signal is true;
-   attribute mark_debug of clrscr_addr      : signal is true;
-   attribute mark_debug of clrscr_old       : signal is true;
-   attribute mark_debug of clrscr_new       : signal is true;
-   attribute mark_debug of display_offset_o : signal is true;
-   attribute mark_debug of vram_offset      : signal is true;
+--   attribute mark_debug                     : boolean;
+--   attribute mark_debug of rst_i            : signal is true;
+--   attribute mark_debug of en_i             : signal is true;
+--   attribute mark_debug of we_i             : signal is true;
+--   attribute mark_debug of reg_i            : signal is true;
+--   attribute mark_debug of data_i           : signal is true;
+--   attribute mark_debug of data_o           : signal is true;
+--   attribute mark_debug of vram_addr_o      : signal is true;
+--   attribute mark_debug of vram_wr_en_o     : signal is true;
+--   attribute mark_debug of vram_wr_data_o   : signal is true;
+--   attribute mark_debug of vram_rd_data_i   : signal is true;
+--   attribute mark_debug of vga_en_o         : signal is true;
+--   attribute mark_debug of cursor_enable_o  : signal is true;
+--   attribute mark_debug of cursor_blink_o   : signal is true;
+--   attribute mark_debug of cursor_size_o    : signal is true;
+--   attribute mark_debug of cursor_x_o       : signal is true;
+--   attribute mark_debug of cursor_y_o       : signal is true;
+--   attribute mark_debug of clrscr_addr      : signal is true;
+--   attribute mark_debug of clrscr_old       : signal is true;
+--   attribute mark_debug of clrscr_new       : signal is true;
+--   attribute mark_debug of display_offset_o : signal is true;
+--   attribute mark_debug of vram_offset      : signal is true;
 
 begin
 

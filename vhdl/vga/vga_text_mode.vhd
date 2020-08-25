@@ -88,17 +88,17 @@ architecture synthesis of vga_text_mode is
    signal cursor_here_5 : std_logic;
    signal blink_5       : std_logic_vector(5 downto 0);
 
-   attribute mark_debug                   : boolean;
-   attribute mark_debug of pixel_x_i      : signal is true;
-   attribute mark_debug of pixel_y_i      : signal is true;
-   attribute mark_debug of frame_i        : signal is true;
-   attribute mark_debug of display_addr_o : signal is true;
-   attribute mark_debug of display_data_i : signal is true;
-   attribute mark_debug of font_addr_o    : signal is true;
-   attribute mark_debug of font_data_i    : signal is true;
-   attribute mark_debug of palette_addr_o : signal is true;
-   attribute mark_debug of palette_data_i : signal is true;
-   attribute mark_debug of colour_o       : signal is true;
+--   attribute mark_debug                   : boolean;
+--   attribute mark_debug of pixel_x_i      : signal is true;
+--   attribute mark_debug of pixel_y_i      : signal is true;
+--   attribute mark_debug of frame_i        : signal is true;
+--   attribute mark_debug of display_addr_o : signal is true;
+--   attribute mark_debug of display_data_i : signal is true;
+--   attribute mark_debug of font_addr_o    : signal is true;
+--   attribute mark_debug of font_data_i    : signal is true;
+--   attribute mark_debug of palette_addr_o : signal is true;
+--   attribute mark_debug of palette_data_i : signal is true;
+--   attribute mark_debug of colour_o       : signal is true;
 
 begin
 
