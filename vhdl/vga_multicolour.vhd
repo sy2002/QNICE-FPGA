@@ -61,7 +61,6 @@ end vga_multicolour;
 architecture synthesis of vga_multicolour is
 
    -- Register Map synchronized to CPU clock.
-   signal cpu_busy            : std_logic;
    signal cpu_output_enable   : std_logic;
    signal cpu_display_offset  : std_logic_vector(15 downto 0);
    signal cpu_tile_offset     : std_logic_vector(15 downto 0);
@@ -87,17 +86,6 @@ architecture synthesis of vga_multicolour is
    signal meta_cursor_x       : std_logic_vector(6 downto 0);
    signal meta_cursor_y       : std_logic_vector(5 downto 0);
 
-   -- Instruct synthesis tool that these registers are used for CDC.
-   attribute ASYNC_REG                        : boolean;
-   attribute ASYNC_REG of meta_output_enable  : signal is true;
-   attribute ASYNC_REG of meta_display_offset : signal is true;
-   attribute ASYNC_REG of meta_tile_offset    : signal is true;
-   attribute ASYNC_REG of meta_cursor_enable  : signal is true;
-   attribute ASYNC_REG of meta_cursor_blink   : signal is true;
-   attribute ASYNC_REG of meta_cursor_size    : signal is true;
-   attribute ASYNC_REG of meta_cursor_x       : signal is true;
-   attribute ASYNC_REG of meta_cursor_y       : signal is true;
-
    -- Control signals synchronized to VGA clock.
    signal vga_output_enable   : std_logic;
    signal vga_display_offset  : std_logic_vector(15 downto 0);
@@ -115,6 +103,25 @@ architecture synthesis of vga_multicolour is
    signal vga_font_data       : std_logic_vector(7 downto 0);
    signal vga_palette_addr    : std_logic_vector(4 downto 0);
    signal vga_palette_data    : std_logic_vector(11 downto 0);
+
+   -- Instruct synthesis tool that these registers are used for CDC.
+   attribute ASYNC_REG                        : boolean;
+   attribute ASYNC_REG of meta_output_enable  : signal is true;
+   attribute ASYNC_REG of meta_display_offset : signal is true;
+   attribute ASYNC_REG of meta_tile_offset    : signal is true;
+   attribute ASYNC_REG of meta_cursor_enable  : signal is true;
+   attribute ASYNC_REG of meta_cursor_blink   : signal is true;
+   attribute ASYNC_REG of meta_cursor_size    : signal is true;
+   attribute ASYNC_REG of meta_cursor_x       : signal is true;
+   attribute ASYNC_REG of meta_cursor_y       : signal is true;
+   attribute ASYNC_REG of vga_output_enable   : signal is true;
+   attribute ASYNC_REG of vga_display_offset  : signal is true;
+   attribute ASYNC_REG of vga_tile_offset     : signal is true;
+   attribute ASYNC_REG of vga_cursor_enable   : signal is true;
+   attribute ASYNC_REG of vga_cursor_blink    : signal is true;
+   attribute ASYNC_REG of vga_cursor_size     : signal is true;
+   attribute ASYNC_REG of vga_cursor_x        : signal is true;
+   attribute ASYNC_REG of vga_cursor_y        : signal is true;
 
 begin
 
@@ -137,7 +144,6 @@ begin
          vram_wr_data_o   => cpu_vram_wr_data,
          vram_rd_data_i   => cpu_vram_rd_data,
 
-         busy_i           => cpu_busy,          -- Reg 0 bit 9
          vga_en_o         => cpu_output_enable, -- Reg 0 bit 7
          cursor_enable_o  => cpu_cursor_enable, -- Reg 0 bit 6
          cursor_blink_o   => cpu_cursor_blink,  -- Reg 0 bit 5

@@ -2,10 +2,11 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
--- This module generates a pair of free-running pixel coordinates.
--- To enable a 640x480 display, you must
--- choose G_PIXEL_X_COUNT = 800 amd G_PIXEL_Y_COUNT = 525
--- and supply a clock of 25.175 MHz.
+-- This module generates a pair of free-running pixel coordinates and a frame
+-- counter.
+-- To enable a 640x480 display, you must choose G_PIXEL_X_COUNT = 800,
+-- G_PIXEL_Y_COUNT = 525, and G_FRAME_COUNT = 60 and supply a clock of 25.2
+-- MHz.
 
 entity vga_pixel_counters is
    generic (
