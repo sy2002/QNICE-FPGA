@@ -93,7 +93,7 @@ architecture synthesis of vga_multicolour is
    -- VGA Interface to Video RAM.
    signal vga_display_addr   : std_logic_vector(15 downto 0);
    signal vga_display_data   : std_logic_vector(15 downto 0);
-   signal vga_font_addr      : std_logic_vector(9 downto 0);
+   signal vga_font_addr      : std_logic_vector(11 downto 0);
    signal vga_font_data      : std_logic_vector(7 downto 0);
    signal vga_palette_addr   : std_logic_vector(4 downto 0);
    signal vga_palette_data   : std_logic_vector(11 downto 0);
@@ -167,11 +167,11 @@ begin
       if rising_edge(vga_clk_i) then
          vga_display_offset <= cpu_display_offset;
          vga_tile_offset    <= cpu_tile_offset;
-         vga_cursor_enable  <= '1';       -- cpu_cursor_enable;
-         vga_cursor_blink   <= '1';       -- cpu_cursor_blink;
-         vga_cursor_size    <= '1';       -- cpu_cursor_size;
-         vga_cursor_x       <= "0001010"; -- cpu_cursor_x;
-         vga_cursor_y       <= "001010";  -- cpu_cursor_y;
+         vga_cursor_enable  <= cpu_cursor_enable;
+         vga_cursor_blink   <= cpu_cursor_blink;
+         vga_cursor_size    <= cpu_cursor_size;
+         vga_cursor_x       <= cpu_cursor_x;
+         vga_cursor_y       <= cpu_cursor_y;
       end if;
    end process p_cdc;
 

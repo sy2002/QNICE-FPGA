@@ -18,7 +18,7 @@ entity vga_output is
       -- Interface to Video RAM
       display_addr_o   : out std_logic_vector(15 downto 0);
       display_data_i   : in  std_logic_vector(15 downto 0);
-      font_addr_o      : out std_logic_vector(9 downto 0);
+      font_addr_o      : out std_logic_vector(11 downto 0);
       font_data_i      : in  std_logic_vector(7 downto 0);
       palette_addr_o   : out std_logic_vector(4 downto 0);
       palette_data_i   : in  std_logic_vector(11 downto 0);

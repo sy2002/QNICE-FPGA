@@ -15,7 +15,7 @@ SAVE       = $(TB).gtkw
 .PHONY: sim
 sim: $(SOURCES)
 	ghdl -i --work=work $(SOURCES) $(TB_SOURCES)
-	ghdl -m --ieee=synopsys  -fexplicit $(TB)
-	ghdl -r $(TB) --wave=$(WAVE) --stop-time=200us
+	ghdl -m --ieee=synopsys -fexplicit $(TB)
+	ghdl -r -fsynopsys  $(TB) --wave=$(WAVE) --stop-time=200us
 	gtkwave $(WAVE) $(SAVE)
 

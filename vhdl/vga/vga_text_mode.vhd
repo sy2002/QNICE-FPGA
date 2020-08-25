@@ -38,7 +38,7 @@ entity vga_text_mode is
       -- Interface to Video RAM
       display_addr_o   : out std_logic_vector(15 downto 0);
       display_data_i   : in  std_logic_vector(15 downto 0);
-      font_addr_o      : out std_logic_vector(9 downto 0);
+      font_addr_o      : out std_logic_vector(11 downto 0);
       font_data_i      : in  std_logic_vector(7 downto 0);
       palette_addr_o   : out std_logic_vector(4 downto 0);
       palette_data_i   : in  std_logic_vector(11 downto 0);
@@ -59,19 +59,25 @@ architecture synthesis of vga_text_mode is
    signal char_row_0    : std_logic_vector(9 downto 0);
    signal char_column_0 : std_logic_vector(9 downto 0);
    signal cursor_here_0 : std_logic;
+   signal blink_0       : std_logic_vector(5 downto 0);
 
+   signal offset_y_1    : natural range 0 to C_CHAR_HEIGHT-1;
    signal cursor_here_1 : std_logic;
+   signal blink_1       : std_logic_vector(5 downto 0);
 
+   signal offset_y_2    : natural range 0 to C_CHAR_HEIGHT-1;
    signal cursor_here_2 : std_logic;
+   signal blink_2       : std_logic_vector(5 downto 0);
 
    signal colour_bg_3   : std_logic_vector(3 downto 0);
    signal colour_fg_3   : std_logic_vector(3 downto 0);
-   signal tile_3        : std_logic_vector(7 downto 0);
    signal cursor_here_3 : std_logic;
+   signal blink_3       : std_logic_vector(5 downto 0);
 
    signal colour_bg_4   : std_logic_vector(3 downto 0);
    signal colour_fg_4   : std_logic_vector(3 downto 0);
    signal cursor_here_4 : std_logic;
+   signal blink_4       : std_logic_vector(5 downto 0);
 
    signal colour_bg_5   : std_logic_vector(3 downto 0);
    signal colour_fg_5   : std_logic_vector(3 downto 0);
@@ -79,10 +85,12 @@ architecture synthesis of vga_text_mode is
    signal column_5      : natural range 0 to C_CHAR_WIDTH-1;
    signal pixel_5       : std_logic;
    signal cursor_here_5 : std_logic;
+   signal blink_5       : std_logic_vector(5 downto 0);
 
    attribute mark_debug                   : boolean;
    attribute mark_debug of pixel_x_i      : signal is true;
    attribute mark_debug of pixel_y_i      : signal is true;
+   attribute mark_debug of frame_i        : signal is true;
    attribute mark_debug of display_addr_o : signal is true;
    attribute mark_debug of display_data_i : signal is true;
    attribute mark_debug of font_addr_o    : signal is true;
@@ -94,27 +102,27 @@ architecture synthesis of vga_text_mode is
 begin
 
    -- Calculate character coordinate.
-   char_column_0   <= std_logic_vector(unsigned(pixel_x_i) / C_CHAR_WIDTH);
-   char_row_0      <= std_logic_vector(unsigned(pixel_y_i) / C_CHAR_HEIGHT);
+   char_column_0 <= std_logic_vector(unsigned(pixel_x_i) / C_CHAR_WIDTH);
+   char_row_0    <= std_logic_vector(unsigned(pixel_y_i) / C_CHAR_HEIGHT);
 
-   cursor_here_0 <= '1' when  ("000" & cursor_x_i) = char_column_0 and
-                             ("0000" & cursor_y_i) = char_row_0
+   cursor_here_0 <= '1' when conv_integer(cursor_x_i) = conv_integer(char_column_0) and
+                             conv_integer(cursor_y_i) = conv_integer(char_row_0)
                else '0';
 
    -- Calculate relative pixel offsets in current character.
    offset_x_0 <= conv_integer(pixel_x_i) mod C_CHAR_WIDTH;
    offset_y_0 <= conv_integer(pixel_y_i) mod C_CHAR_HEIGHT;
 
-   -- Invert column, because the MSB of the bitmap
-   -- data corresponds to the lowest pixel coordinate.
-   column_5 <= (5 + C_CHAR_WIDTH-1 - offset_x_0) mod C_CHAR_WIDTH;
-   pixel_5  <= bitmap_5(column_5);
+   -- Generate blink frequency (2 Hz).
+   blink_0 <= std_logic_vector(unsigned(frame_i) / 15);
+
 
    -----------------------
    -- Read from Video RAM
    -----------------------
 
    p_video_ram : process (clk_i)
+      variable tile_2  : std_logic_vector(7 downto 0);
       variable address : std_logic_vector(19 downto 0);
    begin
       if rising_edge(clk_i) then
@@ -126,13 +134,17 @@ begin
             -- Stage 1 : Read colour and tile from Display RAM.
             --           Ready in stage 3.
             when 0 =>
+               offset_y_1     <= offset_y_0;
                address := std_logic_vector(unsigned(char_row_0)*80) + char_column_0 + display_offset_i;
                display_addr_o <= address(15 downto 0);
                cursor_here_1  <= cursor_here_0;
+               blink_1        <= blink_0;
 
             -- Stage 2 : Wait for Display RAM.
             when 1 =>
+               offset_y_2     <= offset_y_1;
                cursor_here_2  <= cursor_here_1;
+               blink_2        <= blink_1;
 
             -- Stage 3 : Store colour.
             --           Read bitmap from Font RAM.
@@ -140,16 +152,19 @@ begin
             when 2 =>
                colour_bg_3   <= display_data_i(15 downto 12);
                colour_fg_3   <= display_data_i(11 downto 8);
-               tile_3        <= display_data_i(7 downto 0);
-               address(15 downto 0) := std_logic_vector(unsigned(tile_3)*12) + offset_y_0 + tile_offset_i;
-               font_addr_o   <= address(9 downto 0);
+
+               tile_2        := display_data_i(7 downto 0);
+               address(15 downto 0) := std_logic_vector(unsigned(tile_2)*12) + offset_y_2 + tile_offset_i;
+               font_addr_o   <= address(11 downto 0);
                cursor_here_3 <= cursor_here_2;
+               blink_3       <= blink_2;
 
             -- Stage 4 : Wait for Font RAM.
             when 3 =>
                colour_bg_4   <= colour_bg_3;
                colour_fg_4   <= colour_fg_3;
                cursor_here_4 <= cursor_here_3;
+               blink_4       <= blink_3;
 
             -- Stage 5 : Store bitmap data.
             when 4 =>
@@ -157,39 +172,30 @@ begin
                colour_fg_5   <= colour_fg_4;
                bitmap_5      <= font_data_i;
                cursor_here_5 <= cursor_here_4;
+               blink_5       <= blink_4;
 
             when others => null;
          end case;
-
       end if;
    end process p_video_ram;
 
 
-   -------------------------
-   -- Read from Palette RAM
-   -------------------------
+   -- Invert column, because the MSB of the bitmap
+   -- data corresponds to the lowest pixel coordinate.
+   column_5 <= (5 + C_CHAR_WIDTH-1 - offset_x_0) mod C_CHAR_WIDTH;
 
-   p_palette_ram : process (clk_i)
-   begin
-      if rising_edge(clk_i) then
+   -- Read pixel from cursor or from bitmap.
+   pixel_5  <= (not cursor_blink_i) or blink_5(1) when cursor_enable_i = '1' and cursor_here_5 = '1'
+          else bitmap_5(column_5);
 
-         -- Stage 6 : Read from palette
-         case pixel_5 is
-            when '0' => palette_addr_o <= "1" & colour_bg_5;   -- Background colour
-            when '1' => palette_addr_o <= "0" & colour_fg_5;   -- Foreground colour
-            when others => null;
-         end case;
+   -- Read colour from Palette RAM
+   palette_addr_o <= "0" & colour_fg_5 when pixel_5 = '1'   -- Foreground colour
+                else "1" & colour_bg_5;                     -- Background colouur
 
-         if cursor_enable_i = '1' and cursor_here_5 = '1' then
-            palette_addr_o <= "0" & colour_fg_5;   -- Foreground colour
-         end if;
 
-      end if;
-   end process p_palette_ram;
-
-   -- Stage 7 : Generate output
+   -- Stage 6 : Generate output
    colour_o <= palette_data_i;
-   delay_o  <= std_logic_vector(to_unsigned(7, 10));
+   delay_o  <= std_logic_vector(to_unsigned(6, 10));
 
 end architecture synthesis;
 

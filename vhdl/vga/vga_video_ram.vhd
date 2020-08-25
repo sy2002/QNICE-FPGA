@@ -15,7 +15,7 @@ entity vga_video_ram is
       vga_clk_i          : in  std_logic;
       vga_display_addr_i : in  std_logic_vector(15 downto 0);
       vga_display_data_o : out std_logic_vector(15 downto 0);
-      vga_font_addr_i    : in  std_logic_vector(9 downto 0);
+      vga_font_addr_i    : in  std_logic_vector(11 downto 0);
       vga_font_data_o    : out std_logic_vector(7 downto 0);
       vga_palette_addr_i : in  std_logic_vector(4 downto 0);
       vga_palette_data_o : out std_logic_vector(11 downto 0)
@@ -56,25 +56,24 @@ begin
          a_rd_data_o => cpu_rd_data_display,
          b_clk_i     => vga_clk_i,
          b_rd_addr_i => vga_display_addr_i,
-         b_rd_data_o => open -- vga_display_data_o
+         b_rd_data_o => vga_display_data_o
       ); -- i_display_ram
 
-   vga_display_data_o <= vga_display_addr_i;
 
 -- The Font RAM contains 3kB, i.e. addresses 0x0000 - 0x03FF.
 -- 12 bytes for each of the 256 different characters.
    i_font_ram : entity work.true_dual_port_ram
       generic map (
-         G_ADDR_SIZE => 10,
+         G_ADDR_SIZE => 12,
          G_DATA_SIZE => 8,
          G_FILE_NAME => "lat9w-12_sy2002.rom"
       )
       port map (
          a_clk_i     => cpu_clk_i,
-         a_wr_addr_i => cpu_wr_addr_i(9 downto 0),
+         a_wr_addr_i => cpu_wr_addr_i(11 downto 0),
          a_wr_en_i   => cpu_wr_en_i,
          a_wr_data_i => cpu_wr_data_i(7 downto 0),
-         a_rd_addr_i => cpu_rd_addr_i(9 downto 0),
+         a_rd_addr_i => cpu_rd_addr_i(11 downto 0),
          a_rd_data_o => cpu_rd_data_font,
          b_clk_i     => vga_clk_i,
          b_rd_addr_i => vga_font_addr_i,

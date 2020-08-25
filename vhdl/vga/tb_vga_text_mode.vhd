@@ -1,6 +1,5 @@
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 
 entity tb_vga_text_mode is
@@ -22,7 +21,7 @@ architecture simulation of tb_vga_text_mode is
    signal frame          : std_logic_vector(5 downto 0);
    signal display_addr   : std_logic_vector(15 downto 0);
    signal display_data   : std_logic_vector(15 downto 0);
-   signal font_addr      : std_logic_vector(9 downto 0);
+   signal font_addr      : std_logic_vector(11 downto 0);
    signal font_data      : std_logic_vector(7 downto 0);
    signal palette_addr   : std_logic_vector(4 downto 0);
    signal palette_data   : std_logic_vector(11 downto 0);
