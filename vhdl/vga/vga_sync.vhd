@@ -61,15 +61,15 @@ begin
             vsync_o <= '1';
          end if;
 
-         -- Generate pixel colour
-         colour_o  <= colour_i;
-         data_en_o <= '1';
+         -- Default is black
+         colour_o  <= (others => '0');
+         data_en_o <= '0';
 
-         -- Make sure colour is black outside visible screen
-         if pixel_x_i >= std_logic_vector(H_PIXELS+unsigned(delay_i))
-            or pixel_x_i < delay_i or unsigned(pixel_y_i) >= V_PIXELS then
-            colour_o  <= (others => '0');    -- Black
-            data_en_o <= '0';
+         -- Only show colour when inside visible screen area
+         if pixel_x_i >= delay_i and pixel_x_i < std_logic_vector(H_PIXELS+unsigned(delay_i))
+            and unsigned(pixel_y_i) < V_PIXELS then
+            colour_o  <= colour_i;
+            data_en_o <= '1';
          end if;
 
          if output_en_i = '0' then

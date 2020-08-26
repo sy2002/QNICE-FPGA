@@ -1,12 +1,16 @@
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+
+-- This block receives configuration signals from the `vga_register_map` block
+-- as well as reads from the three parts of the Video RAM (Display RAM, Font
+-- RAM, and Palette RAM). From these, this block generates the VGA output
+-- signals.
 
 entity vga_output is
    port (
       clk_i            : in  std_logic;
 
-      -- Interface to Register Map
+      -- Configuration from Register Map
       output_enable_i  : in  std_logic;
       display_offset_i : in  std_logic_vector(15 downto 0);
       tile_offset_i    : in  std_logic_vector(15 downto 0);
@@ -67,7 +71,7 @@ begin
    i_vga_text_mode : entity work.vga_text_mode
       port map (
          clk_i            => clk_i,
-         -- Interface to Register Map
+         -- Configuration from Register Map
          display_offset_i => display_offset_i,
          tile_offset_i    => tile_offset_i,
          cursor_enable_i  => cursor_enable_i,

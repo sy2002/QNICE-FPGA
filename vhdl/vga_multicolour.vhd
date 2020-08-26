@@ -5,26 +5,7 @@ use ieee.numeric_std.all;
 -- This file is the top-level VGA controller. It connects directly to the CPU
 -- and to the output ports on the FPGA.
 --
--- Register Map:
--- 00 : Control
--- 01 : Cursor X
--- 02 : Cursor Y
--- 03 : Character and Colour at Cursor
--- 04 : Scroll
--- 05 : Offset
--- 06 : hctr_min
--- 07 : hctr_max
--- 08 : vctr_max
---
--- Interpretation of Control Register:
--- bit  4 : R/W : Cursor Size
--- bit  5 : R/W : Cursor Blinking
--- bit  6 : R/W : Cursor Enabled
--- bit  7 : R/W : VGA output enabled
--- bit  8 : R/W : Clear screen
--- bit  9 : R/O : VGA controller busy
--- bit 10 : R/W : Offset enable
--- bit 11 : R/W : Scrolling enable
+-- See the file vga_register_map.vhd for the complete Register Map.
 --
 -- Design and Naming Conventions:
 -- This design makes use of two independent clock signals: The CPU clock
@@ -60,7 +41,9 @@ end vga_multicolour;
 
 architecture synthesis of vga_multicolour is
 
-   -- Register Map synchronized to CPU clock.
+   signal cpu_clkn            : std_logic;      -- Inverted CPU clock
+
+   -- Configuration signals synchronized to CPU clock.
    signal cpu_output_enable   : std_logic;
    signal cpu_display_offset  : std_logic_vector(15 downto 0);
    signal cpu_tile_offset     : std_logic_vector(15 downto 0);
@@ -92,7 +75,7 @@ architecture synthesis of vga_multicolour is
    signal meta_cursor_x       : std_logic_vector(6 downto 0);
    signal meta_cursor_y       : std_logic_vector(5 downto 0);
 
-   -- Control signals synchronized to VGA clock.
+   -- Configuration signals synchronized to VGA clock.
    signal vga_output_enable   : std_logic;
    signal vga_display_offset  : std_logic_vector(15 downto 0);
    signal vga_tile_offset     : std_logic_vector(15 downto 0);
@@ -131,13 +114,20 @@ architecture synthesis of vga_multicolour is
 
 begin
 
+   -- Invert CPU clock. The reason for this is to be able to write
+   -- rising_edge(cpu_clkn) instead of falling_edge(cpu_clk_i).
+   -- The Vivado tool has a bug when inferring BRAM, see:
+   -- https://forums.xilinx.com/t5/Synthesis/falling-edge-not-supported-in-inferred-RAM/m-p/1039276
+   cpu_clkn <= not cpu_clk_i;
+
+
    ------------------------
    -- Interface to the CPU
    ------------------------
 
    i_vga_register_map : entity work.vga_register_map
       port map (
-         clk_i            => cpu_clk_i,
+         clk_i            => cpu_clkn,
          rst_i            => cpu_rst_i,
          en_i             => cpu_en_i,
          we_i             => cpu_we_i,
@@ -173,7 +163,7 @@ begin
    i_vga_video_ram : entity work.vga_video_ram
       port map (
          -- CPU access
-         cpu_clk_i             => cpu_clk_i,
+         cpu_clk_i             => cpu_clkn,
          cpu_display_addr_i    => cpu_vram_display_addr,
          cpu_display_wr_en_i   => cpu_vram_display_wr_en,
          cpu_display_rd_data_o => cpu_vram_display_rd_data,

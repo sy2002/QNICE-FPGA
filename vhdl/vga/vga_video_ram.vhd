@@ -1,6 +1,10 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+-- This block connects the CPU clock domain with the VGA clock domain.
+-- Inside this block are three True Dual Port memories: Display RAM,
+-- Font RAM, and Palette RAM.
+
 entity vga_video_ram is
    port (
       cpu_clk_i             : in  std_logic;
@@ -29,14 +33,14 @@ architecture synthesis of vga_video_ram is
 
 begin
 
--- The Display RAM contains 64 kW, i.e. addresses 0x0000 - 0xFFFF.
--- 0x0000 - 0xFFFF : Display (64000 words gives 20 screens).
---
--- The Display RAM is organized as 800 lines of 80 characters. Each word
--- is interpreted as follows:
--- Bits 15-12 : Background colour selected from a palette of 16 colours.
--- Bits 11- 8 : Foreground colour selected from a palette of 16 colours.
--- Bits  7- 0 : Character index (index into Font).
+   -- The Display RAM contains 64 kW, i.e. addresses 0x0000 - 0xFFFF.
+   -- 0x0000 - 0xFFFF : Display (64000 words gives 20 screens).
+   --
+   -- The Display RAM is organized as 800 lines of 80 characters. Each word
+   -- is interpreted as follows:
+   -- Bits 15-12 : Background colour selected from a palette of 16 colours.
+   -- Bits 11- 8 : Foreground colour selected from a palette of 16 colours.
+   -- Bits  7- 0 : Character index (index into Font).
    i_display_ram : entity work.true_dual_port_ram
       generic map (
          G_ADDR_SIZE => 16,
@@ -54,8 +58,8 @@ begin
       ); -- i_display_ram
 
 
--- The Font RAM contains 3kB, i.e. addresses 0x0000 - 0x03FF.
--- 12 bytes for each of the 256 different characters.
+   -- The Font RAM contains 3kB, i.e. addresses 0x0000 - 0x03FF.
+   -- 12 bytes for each of the 256 different characters.
    i_font_ram : entity work.true_dual_port_ram
       generic map (
          G_ADDR_SIZE => 12,
@@ -74,9 +78,9 @@ begin
       ); -- i_font_ram
 
 
--- The Palette RAM contains 32 words, i.e. addresses 0x0000 - 0x001F.
--- 16 words for each of the foreground colours, and another 16 words
--- for the background colours.
+   -- The Palette RAM contains 32 words, i.e. addresses 0x0000 - 0x001F.
+   -- 16 words for each of the foreground colours, and another 16 words
+   -- for the background colours.
    i_palette_ram : entity work.true_dual_port_ram
       generic map (
          G_ADDR_SIZE => 5,

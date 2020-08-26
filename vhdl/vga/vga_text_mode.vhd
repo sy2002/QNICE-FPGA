@@ -7,7 +7,7 @@ use ieee.numeric_std.all;
 -- The tiles are 8 pixels wide and 12 pixels high.  The entire screen contains
 -- 80 tiles horizontally and 40 tiles vertically.
 --
--- The design works by having a state machine performing two reads from Video
+-- The design works by having a state machine perform two reads from Video
 -- RAM for every 8 pixels (i.e. one tile horizontally).
 -- Simultaneously, another process continuously (i.e. every clock cycle) reads
 -- from Palette RAM.
@@ -195,7 +195,6 @@ begin
    -- Read colour from Palette RAM
    palette_addr_o <= "0" & colour_fg_5 when pixel_5 = '1'   -- Foreground colour
                 else "1" & colour_bg_5;                     -- Background colouur
-
 
    -- Stage 6 : Generate output
    colour_o <= palette_data_i;
