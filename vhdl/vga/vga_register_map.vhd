@@ -38,10 +38,16 @@ entity vga_register_map is
       data_o           : out std_logic_vector(15 downto 0);
 
       -- Connected to Video RAM
-      vram_addr_o      : out std_logic_vector(17 downto 0);
-      vram_wr_en_o     : out std_logic;
-      vram_wr_data_o   : out std_logic_vector(15 downto 0);
-      vram_rd_data_i   : in  std_logic_vector(15 downto 0);
+      vram_display_addr_o    : out std_logic_vector(15 downto 0);
+      vram_display_wr_en_o   : out std_logic;
+      vram_display_rd_data_i : in  std_logic_vector(15 downto 0);
+      vram_font_addr_o       : out std_logic_vector(11 downto 0);
+      vram_font_wr_en_o      : out std_logic;
+      vram_font_rd_data_i    : in  std_logic_vector(7 downto 0);
+      vram_palette_addr_o    : out std_logic_vector(4 downto 0);
+      vram_palette_wr_en_o   : out std_logic;
+      vram_palette_rd_data_i : in  std_logic_vector(11 downto 0);
+      vram_wr_data_o         : out std_logic_vector(15 downto 0);
 
       -- Connected to VGA output
       vga_en_o         : out std_logic;
@@ -60,33 +66,44 @@ architecture synthesis of vga_register_map is
 
    signal register_map : register_map_t;
 
-   signal clrscr_addr : std_logic_vector(17 downto 0);
-   signal clrscr_old  : std_logic;
-   signal clrscr_new  : std_logic;
-   signal vram_offset : std_logic_vector(15 downto 0);
+   signal clrscr_addr    : std_logic_vector(15 downto 0);
+   signal clrscr_old     : std_logic;
+   signal clrscr_new     : std_logic;
+   signal display_offset : std_logic_vector(15 downto 0);
+   signal cursor_offset  : std_logic_vector(15 downto 0);
+   signal cursor_x       : std_logic_vector(6 downto 0);
+   signal cursor_y       : std_logic_vector(5 downto 0);
+   signal cursor_addr    : std_logic_vector(15 downto 0);
 
---   attribute mark_debug                     : boolean;
---   attribute mark_debug of rst_i            : signal is true;
---   attribute mark_debug of en_i             : signal is true;
---   attribute mark_debug of we_i             : signal is true;
---   attribute mark_debug of reg_i            : signal is true;
---   attribute mark_debug of data_i           : signal is true;
---   attribute mark_debug of data_o           : signal is true;
---   attribute mark_debug of vram_addr_o      : signal is true;
---   attribute mark_debug of vram_wr_en_o     : signal is true;
---   attribute mark_debug of vram_wr_data_o   : signal is true;
---   attribute mark_debug of vram_rd_data_i   : signal is true;
---   attribute mark_debug of vga_en_o         : signal is true;
---   attribute mark_debug of cursor_enable_o  : signal is true;
---   attribute mark_debug of cursor_blink_o   : signal is true;
---   attribute mark_debug of cursor_size_o    : signal is true;
---   attribute mark_debug of cursor_x_o       : signal is true;
---   attribute mark_debug of cursor_y_o       : signal is true;
---   attribute mark_debug of clrscr_addr      : signal is true;
---   attribute mark_debug of clrscr_old       : signal is true;
---   attribute mark_debug of clrscr_new       : signal is true;
---   attribute mark_debug of display_offset_o : signal is true;
---   attribute mark_debug of vram_offset      : signal is true;
+--   attribute mark_debug                           : boolean;
+--   attribute mark_debug of rst_i                  : signal is true;
+--   attribute mark_debug of en_i                   : signal is true;
+--   attribute mark_debug of we_i                   : signal is true;
+--   attribute mark_debug of reg_i                  : signal is true;
+--   attribute mark_debug of data_i                 : signal is true;
+--   attribute mark_debug of data_o                 : signal is true;
+--   attribute mark_debug of vram_wr_data_o         : signal is true;
+--   attribute mark_debug of vram_display_addr_o    : signal is true;
+--   attribute mark_debug of vram_display_wr_en_o   : signal is true;
+--   attribute mark_debug of vram_display_rd_data_i : signal is true;
+--   attribute mark_debug of vram_font_addr_o       : signal is true;
+--   attribute mark_debug of vram_font_wr_en_o      : signal is true;
+--   attribute mark_debug of vram_font_rd_data_i    : signal is true;
+--   attribute mark_debug of vram_palette_addr_o    : signal is true;
+--   attribute mark_debug of vram_palette_wr_en_o   : signal is true;
+--   attribute mark_debug of vram_palette_rd_data_i : signal is true;
+--   attribute mark_debug of vga_en_o               : signal is true;
+--   attribute mark_debug of cursor_enable_o        : signal is true;
+--   attribute mark_debug of cursor_blink_o         : signal is true;
+--   attribute mark_debug of cursor_size_o          : signal is true;
+--   attribute mark_debug of cursor_x_o             : signal is true;
+--   attribute mark_debug of cursor_y_o             : signal is true;
+--   attribute mark_debug of clrscr_addr            : signal is true;
+--   attribute mark_debug of clrscr_old             : signal is true;
+--   attribute mark_debug of clrscr_new             : signal is true;
+--   attribute mark_debug of display_offset         : signal is true;
+--   attribute mark_debug of cursor_offset          : signal is true;
+--   attribute mark_debug of cursor_addr            : signal is true;
 
 begin
 
@@ -117,9 +134,23 @@ begin
       end if;
    end process p_register_map;
 
-   data_o <= vram_rd_data_i                    when en_i = '1' and we_i = '0' and reg_i = "0011" else
+   data_o <= vram_display_rd_data_i            when en_i = '1' and we_i = '0' and reg_i = "0011" else
+             X"00" & vram_font_rd_data_i       when en_i = '1' and we_i = '0' and reg_i = "1101" else
+             X"0" & vram_palette_rd_data_i     when en_i = '1' and we_i = '0' and reg_i = "1111" else
              register_map(conv_integer(reg_i)) when en_i = '1' and we_i = '0'                    else
              (others => '0');
+
+   cursor_x    <= register_map(1)(6 downto 0);
+   cursor_y    <= register_map(2)(5 downto 0);
+   -- Manually calculate addr = y*80 + x. For some reason, Vivado was unable to correctly synthesize that.
+   cursor_addr <= ("0000" & cursor_y & "000000") +
+                  ("000000" & cursor_y & "0000") +
+                  ("000000000" & cursor_x);
+
+   display_offset <= register_map(4) when register_map(0)(10) = '1' else
+                     (others => '0');
+   cursor_offset  <= register_map(5) when register_map(0)(11) = '1' else
+                   (others => '0');
 
    p_output : process (clk_i)
    begin
@@ -128,32 +159,31 @@ begin
          cursor_enable_o  <= register_map(0)(6);
          cursor_blink_o   <= register_map(0)(5);
          cursor_size_o    <= register_map(0)(4);
-         cursor_x_o       <= register_map(1)(6 downto 0);
-         cursor_y_o       <= register_map(2)(5 downto 0);
+         cursor_x_o       <= cursor_x;
+         cursor_y_o       <= cursor_y;
 
-         display_offset_o <= (others => '0');
-         if register_map(0)(10) = '1' then
-            display_offset_o <= register_map(4);
-         end if;
+         display_offset_o <= display_offset;
 
-         vram_offset <= (others => '0');
-         if register_map(0)(11) = '1' then
-            vram_offset <= register_map(5);
-         end if;
+         vram_display_addr_o <= cursor_addr + cursor_offset;
+         vram_font_addr_o    <= register_map(12)(11 downto 0);
+         vram_palette_addr_o <= register_map(14)(4 downto 0);
 
-         vram_addr_o    <= (others => '0');
-         vram_wr_en_o   <= '0';
-         vram_wr_data_o <= (others => '0');
-         if en_i = '1' and we_i = '1' and reg_i = "0011" then
-            vram_addr_o    <= ("000000" & std_logic_vector(unsigned(cursor_y_o)*80 + unsigned(cursor_x_o)))
-                              + vram_offset;
-            vram_wr_en_o   <= '1';
-            vram_wr_data_o <= data_i;
-         end if;
+         vram_display_wr_en_o <= '0';
+         vram_font_wr_en_o    <= '0';
+         vram_palette_wr_en_o <= '0';
+         vram_wr_data_o       <= data_i;
+
+         case reg_i is
+            when "0011" => vram_display_wr_en_o <= en_i and we_i;
+            when "1101" => vram_font_wr_en_o    <= en_i and we_i;
+            when "1111" => vram_palette_wr_en_o <= en_i and we_i;
+            when others => null;
+         end case;
+
          if clrscr_old = '1' then
-            vram_addr_o    <= clrscr_addr;
-            vram_wr_en_o   <= '1';
-            vram_wr_data_o <= X"0020";
+            vram_display_addr_o  <= clrscr_addr;
+            vram_display_wr_en_o <= '1';
+            vram_wr_data_o       <= X"0020";
          end if;
       end if;
    end process p_output;

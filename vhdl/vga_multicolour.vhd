@@ -71,10 +71,16 @@ architecture synthesis of vga_multicolour is
    signal cpu_cursor_y        : std_logic_vector(5 downto 0);
 
    -- CPU Interface to Video RAM.
-   signal cpu_vram_addr       : std_logic_vector(17 downto 0);
-   signal cpu_vram_wr_en      : std_logic;
-   signal cpu_vram_wr_data    : std_logic_vector(15 downto 0);
-   signal cpu_vram_rd_data    : std_logic_vector(15 downto 0);
+   signal cpu_vram_display_addr    : std_logic_vector(15 downto 0);
+   signal cpu_vram_display_wr_en   : std_logic;
+   signal cpu_vram_display_rd_data : std_logic_vector(15 downto 0);
+   signal cpu_vram_font_addr       : std_logic_vector(11 downto 0);
+   signal cpu_vram_font_wr_en      : std_logic;
+   signal cpu_vram_font_rd_data    : std_logic_vector(7 downto 0);
+   signal cpu_vram_palette_addr    : std_logic_vector(4 downto 0);
+   signal cpu_vram_palette_wr_en   : std_logic;
+   signal cpu_vram_palette_rd_data : std_logic_vector(11 downto 0);
+   signal cpu_vram_wr_data         : std_logic_vector(15 downto 0);
 
    -- Clock Domain Crossing
    signal meta_output_enable  : std_logic;
@@ -139,10 +145,16 @@ begin
          data_i           => cpu_data_i,
          data_o           => cpu_data_o,
 
-         vram_addr_o      => cpu_vram_addr,
-         vram_wr_en_o     => cpu_vram_wr_en,
-         vram_wr_data_o   => cpu_vram_wr_data,
-         vram_rd_data_i   => cpu_vram_rd_data,
+         vram_display_addr_o    => cpu_vram_display_addr,
+         vram_display_wr_en_o   => cpu_vram_display_wr_en,
+         vram_display_rd_data_i => cpu_vram_display_rd_data,
+         vram_font_addr_o       => cpu_vram_font_addr,
+         vram_font_wr_en_o      => cpu_vram_font_wr_en,
+         vram_font_rd_data_i    => cpu_vram_font_rd_data,
+         vram_palette_addr_o    => cpu_vram_palette_addr,
+         vram_palette_wr_en_o   => cpu_vram_palette_wr_en,
+         vram_palette_rd_data_i => cpu_vram_palette_rd_data,
+         vram_wr_data_o         => cpu_vram_wr_data,
 
          vga_en_o         => cpu_output_enable, -- Reg 0 bit 7
          cursor_enable_o  => cpu_cursor_enable, -- Reg 0 bit 6
@@ -161,11 +173,17 @@ begin
    i_vga_video_ram : entity work.vga_video_ram
       port map (
          -- CPU access
-         cpu_clk_i          => cpu_clk_i,
-         cpu_addr_i         => cpu_vram_addr,
-         cpu_wr_en_i        => cpu_vram_wr_en,
-         cpu_wr_data_i      => cpu_vram_wr_data,
-         cpu_rd_data_o      => cpu_vram_rd_data,
+         cpu_clk_i             => cpu_clk_i,
+         cpu_display_addr_i    => cpu_vram_display_addr,
+         cpu_display_wr_en_i   => cpu_vram_display_wr_en,
+         cpu_display_rd_data_o => cpu_vram_display_rd_data,
+         cpu_font_addr_i       => cpu_vram_font_addr,
+         cpu_font_wr_en_i      => cpu_vram_font_wr_en,
+         cpu_font_rd_data_o    => cpu_vram_font_rd_data,
+         cpu_palette_addr_i    => cpu_vram_palette_addr,
+         cpu_palette_wr_en_i   => cpu_vram_palette_wr_en,
+         cpu_palette_rd_data_o => cpu_vram_palette_rd_data,
+         cpu_wr_data_i         => cpu_vram_wr_data,
 
          -- VGA access
          vga_clk_i          => vga_clk_i,
