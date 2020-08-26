@@ -199,6 +199,10 @@ VGA$OFFS_RW         .EQU 0xFF35 ; Offset in bytes that is used, when you read
 VGA$HDMI_H_MIN      .EQU 0xFF36 ; HDMI Data Enable: X: minimum valid column
 VGA$HDMI_H_MAX      .EQU 0xFF37 ; HDMI Data Enable: X: maximum valid column
 VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)                                
+VGA$FONT_ADDR       .EQU 0xFF3C ; Font Address
+VGA$FONT_DATA       .EQU 0xFF3D ; Font Data
+VGA$PALETTE_ADDR    .EQU 0xFF3E ; Palette Address
+VGA$PALETTE_DATA    .EQU 0xFF3F ; Palette Data
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FFF0: MEGA65 (double block, 16 registers)
