@@ -75,21 +75,21 @@ port (
    SD_RESET       : out std_logic;
    SD_CLK         : out std_logic;
    SD_MOSI        : out std_logic;
-   SD_MISO        : in std_logic;
+   SD_MISO        : in std_logic
    
-   -- Built-in HyperRAM
-   hr_d           : inout unsigned(7 downto 0);    -- Data/Address
-   hr_rwds        : inout std_logic;               -- RW Data strobe
-   hr_reset       : out std_logic;                 -- Active low RESET line to HyperRAM
-   hr_clk_p       : out std_logic;
-   
-   -- Optional additional HyperRAM in trap-door slot
-   hr2_d          : inout unsigned(7 downto 0);    -- Data/Address
-   hr2_rwds       : inout std_logic;               -- RW Data strobe
-   hr2_reset      : out std_logic;                 -- Active low RESET line to HyperRAM
-   hr2_clk_p      : out std_logic;
-   hr_cs0         : out std_logic;
-   hr_cs1         : out std_logic   
+--   -- Built-in HyperRAM
+--   hr_d           : inout unsigned(7 downto 0);    -- Data/Address
+--   hr_rwds        : inout std_logic;               -- RW Data strobe
+--   hr_reset       : out std_logic;                 -- Active low RESET line to HyperRAM
+--   hr_clk_p       : out std_logic;
+--
+--   -- Optional additional HyperRAM in trap-door slot
+--   hr2_d          : inout unsigned(7 downto 0);    -- Data/Address
+--   hr2_rwds       : inout std_logic;               -- RW Data strobe
+--   hr2_reset      : out std_logic;                 -- Active low RESET line to HyperRAM
+--   hr2_clk_p      : out std_logic;
+--   hr_cs0         : out std_logic;
+--   hr_cs1         : out std_logic
 ); 
 end MEGA65;
 
