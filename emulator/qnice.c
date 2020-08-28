@@ -418,7 +418,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
         value = uart_read_register(&gbl$first_uart, address - IO_UART_BASE_ADDRESS);
 #endif
 #ifdef USE_VGA
-      else if (address >= VGA_STATE && address <= VGA_OFFS_RW) /* VGA register */
+      else if (address >= VGA_STATE && address <= VGA_PALETTE_DATA) /* VGA register */
         value = vga_read_register(address);
       else if (address >= IO_KBD_STATE && address <= IO_KBD_DATA)
         value = kbd_read_register(address);
@@ -500,7 +500,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       }
 #endif
 #ifdef USE_VGA
-      else if (address >= VGA_STATE && address <= VGA_OFFS_RW) /* VGA register */
+      else if (address >= VGA_STATE && address <= VGA_PALETTE_DATA) /* VGA register */
         vga_write_register(address, value);
       else if (address >= IO_KBD_STATE && address <= IO_KBD_DATA)
         kbd_write_register(address, value);

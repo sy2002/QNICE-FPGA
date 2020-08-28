@@ -35,6 +35,9 @@ static Uint16   vga_x;
 static Uint16   vga_y;
 static Uint16   vga_offs_display;
 static Uint16   vga_offs_rw;
+static Uint16   font_addr;
+static Uint16   palette_addr;
+
 
 static Uint16   kbd_state;
 static Uint16   kbd_data;
@@ -58,7 +61,6 @@ fifo_t*         kbd_fifo;
 
 const float     zoom_x      = (float) display_dx / (float) render_dx;
 const float     zoom_y      = (float) display_dy / (float) render_dy;
-static Uint32   font[font_dx * font_dy * QNICE_FONT_CHARS];
 
 static bool     cursor = false;
 static float    cursor_fx, cursor_fy; //compensation factors for non-propotionally resized window
@@ -323,6 +325,28 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
     }
 }
 
+static Uint32 palette[32] = {
+   0x0000FF00, 0x0000FFFF, 0x00FF0000, 0x00FF00FF, // Foreground colours
+   0x00FFFF00, 0x00FFFFFF, 0x00808080, 0x008080FF,
+   0x0080FF80, 0x0080FFFF, 0x00FF8080, 0x00FF80FF,
+   0x00FFFF80, 0x00FFFFFF, 0x00000000, 0x000000FF,
+
+   0x00000000, 0x000000FF, 0x0000FF00, 0x0000FFFF, // Background colours
+   0x00FF0000, 0x00FF00FF, 0x00FFFF00, 0x00FFFFFF,
+   0x00808080, 0x008080FF, 0x0080FF80, 0x0080FFFF,
+   0x00FF8080, 0x00FF80FF, 0x00FFFF80, 0x00FFFFFF
+};
+
+static unsigned int palette_convert_24_to_12(Uint32 colour)
+{
+   return ((colour >> 12) & 0x0F00) + ((colour >> 8) & 0x00F0) + ((colour >> 4) & 0x000F);
+}
+
+static Uint32 palette_convert_12_to_24(unsigned int colour)
+{
+   return ((colour & 0x0F00) * 0x1100) + ((colour & 0x00F0) * 0x110) + ((colour & 0x000F) * 0x11);
+}
+
 unsigned int vga_read_register(unsigned int address)
 {
     switch (address)
@@ -336,7 +360,12 @@ unsigned int vga_read_register(unsigned int address)
            the file "vga_textmode.vhd". */
         case VGA_CR_X:          return vga_x & 0x00FF;
         case VGA_CR_Y:          return vga_y & 0x007F;
-        case VGA_CHAR:          return vram[((vga_y * screen_dx + vga_x) & 0x0FFF) + vga_offs_rw] & 0x00FF;
+        case VGA_CHAR:          return vram[((vga_y * screen_dx + vga_x) & 0x0FFF) + vga_offs_rw];
+
+        case VGA_FONT_ADDR:     return font_addr;
+        case VGA_FONT_DATA:     return qnice_font[font_addr & 0x0FFF];
+        case VGA_PALETTE_ADDR:  return palette_addr;
+        case VGA_PALETTE_DATA:  return palette_convert_24_to_12(palette[palette_addr & 0x001F]);
     }
 
     return 0;
@@ -379,8 +408,22 @@ void vga_write_register(unsigned int address, unsigned int value)
             //make sure that the to-be-printed char is within the visible window
             unsigned int print_addr = vga_offs_rw + vga_y * screen_dx + vga_x;
             if (print_addr >= vga_offs_display && print_addr < vga_offs_display + screen_dy * screen_dx)
-                vga_render_to_pixelbuffer(vga_x, vga_y, (Uint8) value);
+                vga_render_to_pixelbuffer(vga_x, vga_y, value);
             break;
+
+        case VGA_FONT_ADDR:
+            font_addr = value;
+
+        case VGA_FONT_DATA:
+            qnice_font[font_addr & 0x0FFF] = value;
+            vga_refresh_rendering();
+
+        case VGA_PALETTE_ADDR:
+            palette_addr = value;
+
+        case VGA_PALETTE_DATA:
+            palette[palette_addr & 0x001F] = palette_convert_12_to_24(value);
+            vga_refresh_rendering();
     }
 }
 
@@ -460,18 +503,8 @@ int vga_init()
         return 0;
     }
 
-    vga_create_font_cache();    
     vga_clear_screen();
     return 1;
-}
-
-void vga_create_font_cache()
-{
-    const Uint32 green = 0x0000ff00;
-    for (int i = 0; i < QNICE_FONT_CHARS; i++)
-        for (int char_y = 0; char_y < font_dy; char_y++)
-            for (int char_x = 0; char_x < font_dx; char_x++)
-                font[i * font_dx * font_dy + char_y * font_dx + char_x] = qnice_font[i * font_dy + char_y] & (128 >> char_x) ? green : 0;
 }
 
 void vga_shutdown()
@@ -528,19 +561,22 @@ void vga_refresh_rendering()
             vga_render_to_pixelbuffer(x, y, vram[y * screen_dx + x + vga_offs_display]);
 }
 
-void vga_render_to_pixelbuffer(int x, int y, Uint8 c)
+void vga_render_to_pixelbuffer(int x, int y, Uint16 c)
 {
     if (x < 0 || x >= screen_dx || y < 0 || y >= screen_dy)
         return;
 
     unsigned long scr_offs = y * font_dy * render_dx + x * font_dx;
-    unsigned long fnt_offs = font_dx * font_dy * c;
+    unsigned long fnt_offs = font_dy * (c & 0xFF);
+    Uint32 fg_col = palette[(c >> 8) & 0xF];
+    Uint32 bg_col = palette[16 + ((c >> 12) & 0xF)];
     for (int char_y = 0; char_y < font_dy; char_y++)
     {
+        unsigned int bitmap_row = qnice_font[fnt_offs];
         for (int char_x = 0; char_x < font_dx; char_x++)
-            screen_pixels[scr_offs + char_x] = font[fnt_offs + char_x]; 
+            screen_pixels[scr_offs + char_x] = bitmap_row & (128 >> char_x) ? fg_col : bg_col;
         scr_offs += render_dx;
-        fnt_offs += font_dx;
+        fnt_offs += 1;
     }
 }
 
