@@ -11,33 +11,10 @@ HARDWARE:
   do it in a way, that after a RESET, the Monitor RAM area is re-filled from
   a ROM.
 
-* Get rid of hardcoded clock speed dependencies:
-  + Have a global constant that reflects the speed of the board and refactor
-  all hardcoded frequencies to be dependend formulas from this speed
-  (e.g. UART, SD card, VGA, debouncer, SD$TIMEOUT_HIGH, etc.)
-  + Have a generator that generates the speeds that certain components need
-  as input, e.g. the SD Card component needs currently hardcoded 25 MHz
-  + Keyboard: remove hardcoded 18000 constant
-  + Monitor: gets hardcoded 10000 clock cycles => 2.000 "nop" loops
-
-* Improve design to support 100 MHz
-  + EAE might need the busy flag then (currently the combinatorial net
-    for div and mod takes about 30ns to execute, therefore it is buffered
-    in the FF "res")
-
-* Add pipelining to the CPU
-  + Create a comprehensive CPU testsuite first
-  + Create comprehensive measurement mechanisms first, so that we can
-    measure the speedup ("before/after")
-
 * PS/2: Refactor scancode conversion to be more table/ROM like and less
   like a huge array of multiplexers
 
 * Refactor TIL and TIL Mask to support 8 digits / 32 bits
-
-* Dual SID (probably including a 6510 coprocessor): In conjunction
-  with the timier interrupt, this allows us to play back awesome
-  SID tunes in the background
 
 
 NEXYS4DDR HARDWARE:
