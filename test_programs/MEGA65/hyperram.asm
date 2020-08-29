@@ -6,6 +6,9 @@
 
                 .ORG 0x8000
 
+                MOVE    STACK_RESTORE, R8
+                MOVE    SP, @R8
+
                 ABRA    _start, 1
 
                 ; DEBUG/SIMULATION
@@ -250,9 +253,6 @@ _start_16bit    MOVE    STR_16BIT, R8
                 MOVE    0x3333, @R0             ; lo-word
                 XOR     R5, R5                  ; repeatedly runs to 0xFFFF
 
-                ; DEBUG                
-                MOVE    0x4321, R5
-
 _16bit_loop     CMP     0x0043, @R1             ; hi-word of 1MB reached?
                 RBRA    _16bl_write, !Z         ; no: write next word
                 CMP     0x3333, @R0             ; yes: check if lo-word fits
@@ -272,57 +272,91 @@ _16bit_check    MOVE    0x0033, @R1             ; hi-word of 0x0333333
                 XOR     R5, R5                  ; repeatedly runs to 0xFFFF
                 XOR     R6, R6                  ; R6 = error counter
 
-                ; DEBUG
-_dbgstart       MOVE    STR_OK, R8
-                SYSCALL(puts, 1)
-
-                MOVE    @R2, R8
-                SYSCALL(puthex, 1)
-                MOVE    @R2, R8
-                SYSCALL(puthex, 1)
-                MOVE    @R2, R8
-                SYSCALL(puthex, 1)                                
-                RBRA    _END, 1
-                
-                ; DEBUG
-                ;MOVE    IO$M65HRAM_DATA8, R2    ; 8-bit data access  
-
-_16bit_cloop    MOVE    STR_OK, R8
-                SYSCALL(puts, 1)
-
-                CMP     0x0043, @R1             ; hi-word of 1MB reached?
+_16bit_cloop    CMP     0x0043, @R1             ; hi-word of 1MB reached?
                 RBRA    _16bl_check, !Z         ; no: check next word
                 CMP     0x3333, @R0             ; yes: check if lo-word fits
                 RBRA    _16bit_res, Z           ; yes: leave and print result
 
-_16bl_check     MOVE    @R2, R8
-                SYSCALL(puthex, 1)
-                SYSCALL(crlf, 1)
-
-                MOVE    STR_OK, R8
-                SYSCALL(puts, 1)
-
-                MOVE    @R2, R8
-                SYSCALL(puthex, 1)
-                SYSCALL(crlf, 1)
-
-                MOVE    STR_OK, R8
-                SYSCALL(puts, 1)
-
-                CMP     R5, @R2                 ; HRAM = test value?
+_16bl_check     MOVE    @R2, R12                ; due to caching problems that
+                                                ; might occur, we are saving
+                                                ; the value instead of
+                                                ; re-reading it in the error
+                                                ; recording part
+                CMP     R5, R12                 ; HRAM = test value?
                 RBRA    _16bit_err, !Z          ; no: error
-                ADD     1, R5                   ; yes: increase test value
+_16bl_cont      ADD     1, R5                   ; yes: increase test value
                 ADD     1, @R0                  ; next word (inc lo-word)
                 RBRA    _16bit_cloop, !Z        ; no overflow => continue
+
+                CMP     R6, 0                   ; no errors: finish program
+                RBRA    _16bit_res, Z
+
+                MOVE    ERR_16BIT, R8
+                SYSCALL(puts, 1)
+                MOVE    ERR_READ, R8
+                SYSCALL(puts, 1)
+                MOVE    R6, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; save the current stack pointer as the following SP math
+                ; is moving it around and we need it for subroutine calls
+                ; in betweem
+                MOVE    SP, R10
+
+                MOVE    STR_HEADLINE, R8
+                SYSCALL(puts, 1)
+
+                ; jump to the first entry on the stack so that we can
+                ; output the errors in the order of occurance
+                AND     0xFF01, SR              ; clear SR for SHL
+                MOVE    R6, R11                
+                SHL     2, R11                  ; multiply #errors x 4
+                ADD     R11, SP
+                MOVE    SP, R11
+
+_16ble_loop     MOVE    R11, SP                 ; restore our running pointer
+                MOVE    @--SP, R3               ; address: lo word
+                MOVE    @--SP, R2               ; address: hi word
+                MOVE    @--SP, R1               ; actual value
+                MOVE    @--SP, R0               ; target value
+
+                MOVE    SP, R11                 ; remember new SP value
+                MOVE    R10, SP                 ; store org SP for subroutines
+
+                MOVE    R2, R8
+                SYSCALL(puthex, 1)
+                MOVE    R3, R8
+                SYSCALL(puthex, 1)
+                MOVE    STR_COLON_SPACE, R8
+                SYSCALL(puts, 1)
+                MOVE    R1, R8
+                SYSCALL(puthex, 1)
+                MOVE    STR_4SPACE, R8
+                SYSCALL(puts, 1)
+                MOVE    R0, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+                SUB     1, R6
+                RBRA    _16ble_loop, !Z
+                RBRA    _END, 1
 
 _16bit_res      MOVE    STR_16BIT_OK, R8
                 SYSCALL(puts, 1)
                 RBRA    _END, 1
 
-_16bit_err      MOVE    ERR_16BIT, R8
-                SYSCALL(puts, 1)
+_16bit_err      ADD     1, R6
+                MOVE    @R0, @--SP
+                MOVE    @R1, @--SP
+                MOVE    R12, @--SP
+                MOVE    R5, @--SP
+                RBRA    _16bl_cont, 1
 
-_END            SYSCALL(exit, 1)
+_END            MOVE    STACK_RESTORE, R8
+                MOVE    @R8, SP
+                SYSCALL(exit, 1)
+
+STACK_RESTORE   .DW 0
 
 ; Function xyz
 ; R8 = Title
@@ -346,6 +380,8 @@ STR_8BIT_OK     .ASCII_W "8-bit test: PASSED\n"
 STR_16BIT       .ASCII_W "\n16-bit linear test: Fill 1MB from 0x0333333 with 16-bit values, then test:\n"
 STR_16BIT_OK    .ASCII_W "16-bit linear test: PASSED\n"
 
+STR_HEADLINE    .ASCII_W "Address   Actual  Expected\n"
+STR_4SPACE      .ASCII_W "    "
 STR_COLON_SPACE .ASCII_W ": "
 STR_OK          .ASCII_W "OK\n"
 

@@ -3,6 +3,8 @@
 ; for simulation
 ; done by sy2002 on June, 12 2020
 ;
+; Test passes successfully since August, 21 2020
+;
 
 #include "../../../../dist_kit/sysdef.asm"
 #include "../../../../dist_kit/monitor.def"
@@ -23,17 +25,9 @@
                                                 ; and do it again
                 MOVE    @R2, R8                 ; PROBLEM: system stalls here
 
+                ; version for simulator (comment out for tests on hardware)
+                HALT                            ; this code is never reached
+
+                ; version for tests on hardware
                 SYSCALL(puthex, 1)              ; this code is never reached
                 SYSCALL(exit, 1)
-
-;=============================================================================
-; Register and Constants for sysdef.asm
-;=============================================================================
-
-;
-;  HyperRAM
-;
-IO$M65HRAM_LO       .EQU 0xFF60 ; Low word of address  (15 downto 0)
-IO$M65HRAM_HI       .EQU 0xFF61 ; High word of address (26 downto 16)
-IO$M65HRAM_DATA8    .EQU 0xFF62 ; HyperRAM native 8-bit data in/out
-IO$M65HRAM_DATA16   .EQU 0xFF63 ; HyperRAM 16-bit data in/out

@@ -44,9 +44,9 @@ files to also synthesize for the Nexys A7.
 The top file for this platform is [vhdl/hw/nexys4ddr/env1.vhd](../vhdl/hw/nexys4ddr/env1.vhd).
 
 For a quickstart, you can download the bitstream
-[here](@TODO). If you just want to use your Nexys board as a Q-TRIS Arcade
+[here](../dist_kit/bin/QNICE-V16.bit). If you just want to use your Nexys board as a Q-TRIS Arcade
 machine, then you can download
-[this](@TODO)
+[this](../dist_kit/bin/QTRIS-V16.bit)
 bitstream.
 
 ### ISE 14.7
@@ -87,9 +87,8 @@ needs to be in a specific format as described [here](../tools/bit2core.c#L16)
 to work as a Core on the MEGA65.
 
 For a quickstart, you can download the ready-made QNICE-FPGA Core for MEGA65
-[here](@TODO). If you want to use the MEGA65 as a Q-TRIS Arcade machine,
-then download
-[this](@TODO)
+[here](../dist_kit/bin/MEGA65.cor). If you want to use the MEGA65 as a
+Q-TRIS Arcade machine, then download [this](../dist_kit/bin/M65QTRIS.cor)
 Core. Have a look at [doc/README.md](../doc/README.md) to learn how to install
 and run the QNICE-FPGA core on the MEGA65.
  
@@ -102,6 +101,9 @@ ISE's process view and choose "Process Properties" to learn more.
 
 The top file for MEGA65 using ISE is
 [vhdl/hw/MEGA65/MEGA65_ISE.vhd](../vhdl/hw/MEGA65/MEGA65_ISE.vhd).
+
+Currently, HyperRAM is deactivated when synthesizing with ISE. Please have
+a look at [doc/constraints.txt](../doc/constraints.txt) to learn more.
 
 ### Vivado 2019.2 (or newer)
 

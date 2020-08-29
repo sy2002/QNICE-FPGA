@@ -3,13 +3,13 @@ The *dist_kit* folder
 
 * This is the distribution kit of QNICE.
 
-* For those of you having a Nexys 4 DDR board, the most important file here
-  is the FPGA bitstream file having the `.bit` file extension. It contains the
-  QNICE FPGA hardware plus the Monitor ROM. Copy it on a microSD card
-  or a USB stick, set the jumpers on your board correctly and you can boot
-  up QNICE-FPGA.
-
-* If you have a MEGA65, you can youse the `.cor` file.
+* For those of you having a Nexys 4 DDR board or a MEGA65, the most important
+  files here are the binary bitstreams in the subfolder `bin`: There are two
+  types of files there: The FPGA bitstream file is having the `.bit` file
+  extension. It contains the QNICE FPGA hardware plus the Monitor ROM.
+  Copy it on a microSD card or a USB stick, set the jumpers on your board
+  correctly and you can boot up QNICE-FPGA. If you have a MEGA65, you
+  can use the `.cor` files.
 
 * The other files are needed for doing QNICE software development, as they
   contain important register definitions, common constants and command

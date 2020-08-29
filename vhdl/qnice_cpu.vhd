@@ -303,7 +303,7 @@ begin
    
    fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, SP_org, SR_org, PC_org,
                                 DATA_IN, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
-                                Instruction, Opcode, FastPath,
+                                Instruction, Opcode, FastPath, Ctrl_Cmd,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 Src_Value_Fast, Dst_Value_Fast,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
@@ -412,10 +412,10 @@ begin
                   when ctrlRTI =>                     
                      if Int_Active = '1' then
                         fsmInt_Active <= '0';
-                        fsmSP <= fsmSP_org;
-                        fsmSR <= fsmSR_org;
-                        fsmPC <= fsmPC_org;
-                        fsmCPUAddr <= fsmPC_org;
+                        fsmSP <= SP_org;
+                        fsmSR <= SR_org;
+                        fsmPC <= PC_org;
+                        fsmCPUAddr <= PC_org;
                         fsmNextCpuState <= cs_fetch;
                      -- rogue RTI: HALT
                      else

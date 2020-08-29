@@ -167,8 +167,7 @@ dblock *eval_instruction(instruction *p,section *sec,taddr pc)
   dblock *db=new_dblock();
   int opcode,c,osize;
   unsigned int code,addr1,addr2,aflag=0;
-  char *d;
-  taddr val;
+  unsigned char *d;
   rlist *relocs=0;
 
   c=translate(p,sec,pc);
@@ -180,19 +179,22 @@ dblock *eval_instruction(instruction *p,section *sec,taddr pc)
 
   code=opcode<<12;
   if(p->op[0]){
+    int of=6;
+    if(opcode==14)
+      of=0;
     if(p->op[0]->type==OP_ABS){
-      code|=15<<8;
-      code|=(OP_POSTINC-1)<<6;
+      code|=15<<(of+2);
+      code|=(OP_POSTINC-1)<<of;
       addr1=absoffset(p->op[0]->offset,sec,pc,&relocs,p->op[0]->reg,16,16);
       aflag=1;
     }else if(p->op[0]->type==OP_REL){
-      code|=15<<8;
-      code|=(OP_POSTINC-1)<<6;
+      code|=15<<(of+2);
+      code|=(OP_POSTINC-1)<<of;
       addr1=reloffset(p->op[0]->offset,sec,pc);
       aflag=1;
     }else{
-      code|=p->op[0]->reg<<8;
-      code|=(p->op[0]->type-1)<<6;
+      code|=p->op[0]->reg<<(of+2);
+      code|=(p->op[0]->type-1)<<of;
     }
   }
   if(mnemonics[c].ext.encoding==0){
@@ -214,7 +216,8 @@ dblock *eval_instruction(instruction *p,section *sec,taddr pc)
     }
   }else{
     code|=(mnemonics[c].ext.encoding-1)<<4;
-    code|=p->op[1]->cc<<0;
+    if(p->op[1])
+      code|=p->op[1]->cc<<0;
   }
 
   d=db->data;
