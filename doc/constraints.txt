@@ -14,7 +14,8 @@ Written by sy2002 / Last modified in August 2020
   64 MB and 2 GB using also different card brands (Nokia, SanDisk, Transcend).
 * When it comes to SDHC cards, i.e. cards larger than 2 GB, the following are
   tested as working: SanDisk 32 GB microSDHC Class 4,
-  Transcend 32 GB microSDHC Class 10, Elegant 32 GB, Verbatim Premium 8 GB
+  Transcend 32 GB microSDHC Class 10, Elegant 32 GB, Verbatim Premium 8 GB,
+  Kingston 16GB SDHC Class 4, Kingston 8GB SDHC UHS 1 Class 10
 * NOT WORKING are cards like SanDisk "Ultra" Class 10 cards (80 MB/sec). Use
   slower cards instead, like SanDisk's 32 GB Class 4 card. So for summing it
   up: If you want to be on the safe side, then use cards SD cards (no SDHC,
