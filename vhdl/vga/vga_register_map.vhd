@@ -16,8 +16,8 @@ use ieee.numeric_std.all;
 -- 07 : TBD: hctr_max
 -- 08 : TBD: vctr_max
 -- 09 : Reserved
--- 0A : Reserved
--- 0B : Reserved
+-- 0A : Scan line to generate interrupt on
+-- 0B : Current scan line
 -- 0C : Font RAM address
 -- 0D : Font RAM data
 -- 0E : Palette RAM address
@@ -63,7 +63,8 @@ entity vga_register_map is
       cursor_size_o    : out std_logic;
       cursor_x_o       : out std_logic_vector(6 downto 0);
       cursor_y_o       : out std_logic_vector(5 downto 0);
-      display_offset_o : out std_logic_vector(15 downto 0)
+      display_offset_o : out std_logic_vector(15 downto 0);
+      pixel_y_i        : in  std_logic_vector(9 downto 0)
    );
 end vga_register_map;
 
@@ -195,6 +196,7 @@ begin
 
    -- Data output is combinatorial.
    data_o <= vram_display_rd_data_i            when en_i = '1' and we_i = '0' and reg_i = X"3" else
+             "000000" & pixel_y_i              when en_i = '1' and we_i = '0' and reg_i = X"B" else
              X"00" & vram_font_rd_data_i       when en_i = '1' and we_i = '0' and reg_i = X"D" else
              "0" & vram_palette_rd_data_i      when en_i = '1' and we_i = '0' and reg_i = X"F" else
              register_map(conv_integer(reg_i)) when en_i = '1' and we_i = '0'                  else

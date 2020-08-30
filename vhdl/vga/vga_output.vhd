@@ -19,6 +19,7 @@ entity vga_output is
       cursor_size_i    : in  std_logic;
       cursor_x_i       : in  std_logic_vector(6 downto 0); -- 0 to 79
       cursor_y_i       : in  std_logic_vector(5 downto 0); -- 0 to 39
+      pixel_y_o        : out std_logic_vector(9 downto 0); -- 0 to 524
 
       -- Interface to Video RAM
       display_addr_o   : out std_logic_vector(15 downto 0);
@@ -113,6 +114,8 @@ begin
          colour_o    => colour_o,
          data_en_o   => data_en_o
       ); -- i_vga_sync
+
+   pixel_y_o <= pixel_y;
 
 end architecture synthesis;
 
