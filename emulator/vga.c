@@ -413,17 +413,21 @@ void vga_write_register(unsigned int address, unsigned int value)
 
         case VGA_FONT_ADDR:
             font_addr = value;
+            break;
 
         case VGA_FONT_DATA:
             qnice_font[font_addr & 0x0FFF] = value;
             vga_refresh_rendering();
+            break;
 
         case VGA_PALETTE_ADDR:
             palette_addr = value;
+            break;
 
         case VGA_PALETTE_DATA:
             palette[palette_addr & 0x001F] = palette_convert_12_to_24(value);
             vga_refresh_rendering();
+            break;
     }
 }
 
