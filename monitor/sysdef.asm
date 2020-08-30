@@ -233,10 +233,23 @@ VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling ena
 VGA$CLR_SCRN            .EQU    0x0100                  ; Clear screen
 VGA$BUSY                .EQU    0x0200                  ; VGA is currently performing a task
 
-VGA$COLOR_RED           .EQU    0x0004
-VGA$COLOR_GREEN         .EQU    0x0002
-VGA$COLOR_BLUE          .EQU    0x0001
-VGA$COLOR_WHITE         .EQU    0x0007
+VGA$COLOR_BLACK         .EQU    0x0000
+VGA$COLOR_DARK_GRAY     .EQU    0x294A
+VGA$COLOR_RED           .EQU    0x5484
+VGA$COLOR_BLUE          .EQU    0x153A
+VGA$COLOR_GREEN         .EQU    0x0DA2
+VGA$COLOR_BROWN         .EQU    0x4123
+VGA$COLOR_PURPLE        .EQU    0x4098
+VGA$COLOR_LIGHT_GRAY    .EQU    0x5294
+VGA$COLOR_LIGHT_GREEN   .EQU    0x430F
+VGA$COLOR_LIGHT_BLUE    .EQU    0x4EBF
+VGA$COLOR_CYAN          .EQU    0x175A
+VGA$COLOR_ORANGE        .EQU    0x7E46
+VGA$COLOR_YELLOW        .EQU    0x7FA6
+VGA$COLOR_TAN           .EQU    0x7777
+VGA$COLOR_PINK          .EQU    0x7F3E
+VGA$COLOR_WHITE         .EQU    0x7FFF
+
 
 ; ========== CYCLE COUNTER ==========
 

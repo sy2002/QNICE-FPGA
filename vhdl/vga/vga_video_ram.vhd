@@ -16,7 +16,7 @@ entity vga_video_ram is
       cpu_font_rd_data_o    : out std_logic_vector(7 downto 0);
       cpu_palette_addr_i    : in  std_logic_vector(4 downto 0);
       cpu_palette_wr_en_i   : in  std_logic;
-      cpu_palette_rd_data_o : out std_logic_vector(11 downto 0);
+      cpu_palette_rd_data_o : out std_logic_vector(14 downto 0);
       cpu_wr_data_i         : in  std_logic_vector(15 downto 0);
 
       vga_clk_i          : in  std_logic;
@@ -25,7 +25,7 @@ entity vga_video_ram is
       vga_font_addr_i    : in  std_logic_vector(11 downto 0);
       vga_font_data_o    : out std_logic_vector(7 downto 0);
       vga_palette_addr_i : in  std_logic_vector(4 downto 0);
-      vga_palette_data_o : out std_logic_vector(11 downto 0)
+      vga_palette_data_o : out std_logic_vector(14 downto 0)
    );
 end vga_video_ram;
 
@@ -84,14 +84,14 @@ begin
    i_palette_ram : entity work.true_dual_port_ram
       generic map (
          G_ADDR_SIZE => 5,
-         G_DATA_SIZE => 12,
+         G_DATA_SIZE => 15,
          G_FILE_NAME => "palette.txt"
       )
       port map (
          a_clk_i     => cpu_clk_i,
          a_addr_i    => cpu_palette_addr_i,
          a_wr_en_i   => cpu_palette_wr_en_i,
-         a_wr_data_i => cpu_wr_data_i(11 downto 0),
+         a_wr_data_i => cpu_wr_data_i(14 downto 0),
          a_rd_data_o => cpu_palette_rd_data_o,
          b_clk_i     => vga_clk_i,
          b_rd_addr_i => vga_palette_addr_i,

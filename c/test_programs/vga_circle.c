@@ -112,8 +112,7 @@ int main()
 
    while (1)
    {
-//      printf("r=%d, g=%d, dr=%d, dg=%d\n", r, g, dr, dg);
-      if (g+dg>=0 && g+dg<16)
+      if (g+dg>=0 && g+dg<32)
       {
          g += dg;
       }
@@ -121,7 +120,7 @@ int main()
       {
          dg = -dg;
 
-         if (r+dr>=0 && r+dr<16)
+         if (r+dr>=0 && r+dr<32)
          {
             r += dr;
          }
@@ -132,7 +131,7 @@ int main()
       }
 
       MMIO(VGA_PALETTE_ADDR) = 0;
-      MMIO(VGA_PALETTE_DATA) = 256*r+16*g;
+      MMIO(VGA_PALETTE_DATA) = 32*32*r+32*g;
       for (int j=0; j<10000; j++)
          for (int k=0; k<20; k++)
             ;

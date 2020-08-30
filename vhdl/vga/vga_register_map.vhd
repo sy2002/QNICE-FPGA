@@ -53,7 +53,7 @@ entity vga_register_map is
       vram_font_rd_data_i    : in  std_logic_vector(7 downto 0);
       vram_palette_addr_o    : out std_logic_vector(4 downto 0);
       vram_palette_wr_en_o   : out std_logic;
-      vram_palette_rd_data_i : in  std_logic_vector(11 downto 0);
+      vram_palette_rd_data_i : in  std_logic_vector(14 downto 0);
       vram_wr_data_o         : out std_logic_vector(15 downto 0);
 
       -- Connected to VGA output
@@ -196,7 +196,7 @@ begin
    -- Data output is combinatorial.
    data_o <= vram_display_rd_data_i            when en_i = '1' and we_i = '0' and reg_i = X"3" else
              X"00" & vram_font_rd_data_i       when en_i = '1' and we_i = '0' and reg_i = X"D" else
-             X"0" & vram_palette_rd_data_i     when en_i = '1' and we_i = '0' and reg_i = X"F" else
+             "0" & vram_palette_rd_data_i      when en_i = '1' and we_i = '0' and reg_i = X"F" else
              register_map(conv_integer(reg_i)) when en_i = '1' and we_i = '0'                  else
              (others => '0');
 

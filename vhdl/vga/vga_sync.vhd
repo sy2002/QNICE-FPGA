@@ -14,12 +14,12 @@ entity vga_sync is
       output_en_i : in  std_logic;
       pixel_x_i   : in  std_logic_vector( 9 downto 0);
       pixel_y_i   : in  std_logic_vector( 9 downto 0);
-      colour_i    : in  std_logic_vector(11 downto 0);
+      colour_i    : in  std_logic_vector(14 downto 0);
       delay_i     : in  std_logic_vector( 9 downto 0);
 
       hsync_o     : out std_logic;
       vsync_o     : out std_logic;
-      colour_o    : out std_logic_vector(11 downto 0);
+      colour_o    : out std_logic_vector(14 downto 0);
       data_en_o   : out std_logic
    );
 end vga_sync;

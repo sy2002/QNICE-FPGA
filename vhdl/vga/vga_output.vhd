@@ -26,12 +26,12 @@ entity vga_output is
       font_addr_o      : out std_logic_vector(11 downto 0);
       font_data_i      : in  std_logic_vector(7 downto 0);
       palette_addr_o   : out std_logic_vector(4 downto 0);
-      palette_data_i   : in  std_logic_vector(11 downto 0);
+      palette_data_i   : in  std_logic_vector(14 downto 0);
 
       -- VGA output
       hsync_o          : out std_logic;
       vsync_o          : out std_logic;
-      colour_o         : out std_logic_vector(11 downto 0);
+      colour_o         : out std_logic_vector(14 downto 0);
       data_en_o        : out std_logic
    );
 end vga_output;
@@ -41,7 +41,7 @@ architecture synthesis of vga_output is
    signal pixel_x : std_logic_vector(9 downto 0);  -- 0 to 799
    signal pixel_y : std_logic_vector(9 downto 0);  -- 0 to 524
    signal frame   : std_logic_vector(5 downto 0);  -- 0 to 59
-   signal colour  : std_logic_vector(11 downto 0);
+   signal colour  : std_logic_vector(14 downto 0);
    signal delay   : std_logic_vector(9 downto 0);
 
 begin

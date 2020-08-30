@@ -1,5 +1,50 @@
 # VGA Multicolour Design
 
+This file contains a brief description of the features supported by the VGA
+module, and now they are implemented.
+
+## Features
+### Colours and palettes
+The QNICE project uses 15-bit colours, with 5 bits for each colour channel
+(RGB).  On some platforms (e.g. the Nexys4DDR) with lower colour resolution,
+the LSBs are discarded.
+
+The QNICE supports a palette of 16 different colours. The initial colours are
+from [here](http://alumni.media.mit.edu/~wad/color/palette.html), scaled down
+to 15 bits.
+
+Index | Colour      | RGB (5,5,5 bits) | 15-bit value
+----- | ----------- | ---------------- | ------------
+  0   | Black       | 0, 0, 0          | 0x0000
+  1   | Dark Gray   | 10, 10, 10       | 0x294A
+  2   | Red         | 21, 4, 4         | 0x5484
+  3   | Blue        | 5, 9, 26         | 0x153A
+  4   | Green       | 3, 13, 2         | 0x0DA2
+  5   | Brown       | 16, 9, 3         | 0x4123
+  6   | Purple      | 16, 4, 24        | 0x4098
+  7   | Light Gray  | 20, 20, 20       | 0x5294
+  8   | Light Green | 16, 24, 15       | 0x430F
+  9   | Light Blue  | 19, 21, 31       | 0x4EBF
+ 10   | Cyan        | 5, 26, 26        | 0x175A
+ 11   | Orange      | 31, 18, 6        | 0x7E46
+ 12   | Yellow      | 31, 29, 6        | 0x7FA6
+ 13   | Tan         | 29, 27, 23       | 0x7777
+ 14   | Pink        | 31, 25, 30       | 0x7F3E
+ 15   | White       | 31, 31, 31       | 0x7FFF
+
+
+### VGA resolution
+The VGA output has a resolution of 640x480 pixels at 60 frames per second. The
+pixel clock freqeuncy is 25.2 MHz.
+
+### Display modes
+The QNICE project supports the following display modes:
+* Colour text mode: 80x40 characters. Foreground and Background colours selected
+individually from two different 16-colour palettes.
+* Lo-res graphics mode: 320x200 pixels, with 15-bit colours for each pixel.
+* Hi-res graphics mode: 640x400 pixels, with colour selected from a 16-colour palette.
+
+## Implementation
 The VGA Multicolour block connects directly to the CPU and to the VGA output
 port on the FPGA.
 

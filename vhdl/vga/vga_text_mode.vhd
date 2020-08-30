@@ -35,9 +35,9 @@ entity vga_text_mode is
       font_addr_o      : out std_logic_vector(11 downto 0);
       font_data_i      : in  std_logic_vector(7 downto 0);
       palette_addr_o   : out std_logic_vector(4 downto 0);
-      palette_data_i   : in  std_logic_vector(11 downto 0);
+      palette_data_i   : in  std_logic_vector(14 downto 0);
       -- Current pixel colour
-      colour_o         : out std_logic_vector(11 downto 0);
+      colour_o         : out std_logic_vector(14 downto 0);
       delay_o          : out std_logic_vector(9 downto 0)
    );
 end vga_text_mode;

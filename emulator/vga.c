@@ -326,25 +326,30 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
 }
 
 static Uint32 palette[32] = {
-   0x0000FF00, 0x0000FFFF, 0x00FF0000, 0x00FF00FF, // Foreground colours
-   0x00FFFF00, 0x00FFFFFF, 0x00808080, 0x008080FF,
-   0x0080FF80, 0x0080FFFF, 0x00FF8080, 0x00FF80FF,
-   0x00FFFF80, 0x00FFFFFF, 0x00000000, 0x000000FF,
 
-   0x00000000, 0x000000FF, 0x0000FF00, 0x0000FFFF, // Background colours
-   0x00FF0000, 0x00FF00FF, 0x00FFFF00, 0x00FFFFFF,
-   0x00808080, 0x008080FF, 0x0080FF80, 0x0080FFFF,
-   0x00FF8080, 0x00FF80FF, 0x00FFFF80, 0x00FFFFFF
+   0x0080C078, 0x0098A8F8, 0x0028D0D0, 0x00F89030, // Foreground colours
+   0x00F8E830, 0x00E8D8B8, 0x00F8C8F0, 0x00F8F8F8,
+   0x00000000, 0x00505050, 0x00A82020, 0x002848D0,
+   0x00186810, 0x00804818, 0x008020C0, 0x00A0A0A0,
+
+   0x00000000, 0x00505050, 0x00A82020, 0x002848D0, // Background colours
+   0x00186810, 0x00804818, 0x008020C0, 0x00A0A0A0,
+   0x0080C078, 0x0098A8F8, 0x0028D0D0, 0x00F89030,
+   0x00F8E830, 0x00E8D8B8, 0x00F8C8F0, 0x00F8F8F8
 };
 
-static unsigned int palette_convert_24_to_12(Uint32 colour)
+static unsigned int palette_convert_24_to_15(Uint32 colour)
 {
-   return ((colour >> 12) & 0x0F00) + ((colour >> 8) & 0x00F0) + ((colour >> 4) & 0x000F);
+   return ((colour & 0x00F80000) >> 9)
+        + ((colour & 0x0000F800) >> 6)
+        + ((colour & 0x000000F8) >> 3);
 }
 
-static Uint32 palette_convert_12_to_24(unsigned int colour)
+static Uint32 palette_convert_15_to_24(unsigned int colour)
 {
-   return ((colour & 0x0F00) * 0x1100) + ((colour & 0x00F0) * 0x110) + ((colour & 0x000F) * 0x11);
+   return ((colour << 9) & 0x00F80000)
+        + ((colour << 6) & 0x0000F800)
+        + ((colour << 3) & 0x000000F8);
 }
 
 unsigned int vga_read_register(unsigned int address)
@@ -365,7 +370,7 @@ unsigned int vga_read_register(unsigned int address)
         case VGA_FONT_ADDR:     return font_addr;
         case VGA_FONT_DATA:     return qnice_font[font_addr & 0x0FFF];
         case VGA_PALETTE_ADDR:  return palette_addr;
-        case VGA_PALETTE_DATA:  return palette_convert_24_to_12(palette[palette_addr & 0x001F]);
+        case VGA_PALETTE_DATA:  return palette_convert_24_to_15(palette[palette_addr & 0x001F]);
     }
 
     return 0;
@@ -425,7 +430,7 @@ void vga_write_register(unsigned int address, unsigned int value)
             break;
 
         case VGA_PALETTE_DATA:
-            palette[palette_addr & 0x001F] = palette_convert_12_to_24(value);
+            palette[palette_addr & 0x001F] = palette_convert_15_to_24(value);
             vga_refresh_rendering();
             break;
     }

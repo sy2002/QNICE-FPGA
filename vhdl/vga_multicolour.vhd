@@ -34,7 +34,7 @@ entity vga_multicolour is
       vga_clk_i     : in  std_logic;            -- VGA clock (25.175 MHz)
       vga_hsync_o   : out std_logic;
       vga_vsync_o   : out std_logic;
-      vga_colour_o  : out std_logic_vector(11 downto 0);
+      vga_colour_o  : out std_logic_vector(14 downto 0);
       vga_data_en_o : out std_logic             -- Data Enable
    );
 end vga_multicolour;
@@ -62,7 +62,7 @@ architecture synthesis of vga_multicolour is
    signal cpu_vram_font_rd_data    : std_logic_vector(7 downto 0);
    signal cpu_vram_palette_addr    : std_logic_vector(4 downto 0);
    signal cpu_vram_palette_wr_en   : std_logic;
-   signal cpu_vram_palette_rd_data : std_logic_vector(11 downto 0);
+   signal cpu_vram_palette_rd_data : std_logic_vector(14 downto 0);
    signal cpu_vram_wr_data         : std_logic_vector(15 downto 0);
 
    -- Clock Domain Crossing
@@ -91,7 +91,7 @@ architecture synthesis of vga_multicolour is
    signal vga_font_addr       : std_logic_vector(11 downto 0);
    signal vga_font_data       : std_logic_vector(7 downto 0);
    signal vga_palette_addr    : std_logic_vector(4 downto 0);
-   signal vga_palette_data    : std_logic_vector(11 downto 0);
+   signal vga_palette_data    : std_logic_vector(14 downto 0);
 
    -- Instruct synthesis tool that these registers are used for CDC.
    attribute ASYNC_REG                        : boolean;

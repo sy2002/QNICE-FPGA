@@ -124,7 +124,7 @@ signal reset_pre_pore         : std_logic;
 signal reset_post_pore        : std_logic;
 
 -- VGA colour output
-signal vga_colour             : std_logic_vector(11 downto 0);
+signal vga_colour             : std_logic_vector(14 downto 0);
 
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
@@ -260,10 +260,11 @@ begin
          vga_data_en_o => open
       ); -- i_vga_multicolour
 
-   -- wire the simplified color system of the VGA component to the VGA outputs
-   VGA_RED   <= vga_colour(11 downto 8);
-   VGA_GREEN <= vga_colour(7 downto 4);
-   VGA_BLUE  <= vga_colour(3 downto 0);
+   -- wire the simplified color system of the VGA component to the VGA outputs.
+   -- Convert from 15-bit to 12-bit by discarding the LSB of each colour channel.
+   VGA_RED   <= vga_colour(14 downto 11);
+   VGA_GREEN <= vga_colour(9 downto 6);
+   VGA_BLUE  <= vga_colour(4 downto 1);
 
    -- TIL display emulation (4 digits)
    til_leds : entity work.til_display
