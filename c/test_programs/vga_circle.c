@@ -6,43 +6,38 @@
  *  by continuously modifying the font (the 256 character
  *  bitmaps) while drawing the circle.
  *
- *  How to compile: qvc vga_circle.c -O3 -c99
+ *  How to compile: qvc vga_circle.c -O2 -c99
  *
  *  done by MJoergen in August 2020
 */
 
 #include <stdio.h>
 
-//#include "qmon.h"
 #include "sysdef.h"
 
 //convenient mechanism to access QNICE's Memory Mapped IO registers
 #define MMIO( __x ) *((unsigned int volatile *) __x )
 
 static int next_char = 0x21;
-static int first = 1;
 
 static const int font_height = 12;
 static const int font_width = 8;
-static const int font_allbits = 255;
-static const int char_empty = 0x20;
-static const int char_full = 0x1F;
+static const int char_space = 0x20;
 
-static void circle_plot(unsigned int x, unsigned int y, int right)
+static void plot(unsigned int x, unsigned int y)
 {
    // Convert pixel coordinates to character coordinates
    unsigned int char_x = x/font_width;
    unsigned int char_y = y/font_height;
 
+   // Get character at this position.
    MMIO(VGA_CR_X) = char_x;
    MMIO(VGA_CR_Y) = char_y;
-
-   // Get character at this position.
    int ch = MMIO(VGA_CHAR) & 0xFF;
 
    // If character is a space, we need to allocate a new character
    // and clear the bitmap.
-   if (ch <= char_empty)
+   if (ch == char_space)
    {
       MMIO(VGA_CHAR) = next_char;
       ch = next_char;
@@ -55,46 +50,24 @@ static void circle_plot(unsigned int x, unsigned int y, int right)
       }
 
       next_char++;
-
-      if (right)
-      {
-         if (first)
-         {
-            // Clear bitmap of new character.
-            for (int i=0; i<font_height; ++i)
-            {
-               MMIO(VGA_FONT_ADDR) = char_full*font_height+i;
-               MMIO(VGA_FONT_DATA) = font_allbits;
-            }
-            first = 0;
-         }
-
-         MMIO(VGA_CR_X) += 1;
-         while ((MMIO(VGA_CHAR) & 0xFF) == char_empty)
-         {
-            MMIO(VGA_CHAR) = char_full;
-            MMIO(VGA_CR_X) += 1;
-         }
-      }
    }
 
+   // Set pixel
    unsigned int offset_x = x % font_width;
    unsigned int offset_y = y % font_height;
-
-   // Set all pixels left or right of this point
    MMIO(VGA_FONT_ADDR) = ch*font_height+offset_y;
-   if (right)
-      MMIO(VGA_FONT_DATA) |= font_allbits >> offset_x;
-   else
-      MMIO(VGA_FONT_DATA) |= ~((font_allbits>>1) >> offset_x);
-} // circle_plot
+   MMIO(VGA_FONT_DATA) |= 128 >> offset_x;
+} // plot
 
 
 int main()
 {
+   MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // Disable hardware cursor.
+   MMIO(VGA_STATE) |= VGA_CLR_SCRN;       // Initiate hardware screen clearing.
+
    const unsigned int centre_x = 300;
    const unsigned int centre_y = 240;
-   const unsigned int radius = 220;
+   const unsigned int radius = 75;
 
    // Bresenham's Circle Drawing Algorithm
 
@@ -104,14 +77,17 @@ int main()
 
    while (x <= y)
    {
-      circle_plot(centre_x + x, centre_y + y, 0);
-      circle_plot(centre_x + y, centre_y + x, 0);
-      circle_plot(centre_x + x, centre_y - y, 0);
-      circle_plot(centre_x + y, centre_y - x, 0);
-      circle_plot(centre_x - x, centre_y + y, 1);
-      circle_plot(centre_x - y, centre_y + x, 1);
-      circle_plot(centre_x - x, centre_y - y, 1);
-      circle_plot(centre_x - y, centre_y - x, 1);
+      for (int px = centre_x - x; px <= centre_x + x; ++px)
+      {
+         plot(px, centre_y - y);
+         plot(px, centre_y + y);
+      }
+      for (int px = centre_x - y; px <= centre_x + y; ++px)
+      {
+         plot(px, centre_y - x);
+         plot(px, centre_y + x);
+      }
+
       x += 1;
       if (d<0)
          d += 4*x+6;
@@ -121,6 +97,16 @@ int main()
          y -= 1;
       }
    }
+
+   for (int i=0; i<800; ++i)
+   {
+      for (int j=0; j<10000; j++)
+         for (int k=0; k<50; k++)
+            ;
+      MMIO(VGA_PALETTE_ADDR) = 0;
+      MMIO(VGA_PALETTE_DATA) += 240;
+   }
+
    return 0;
 } // int main()
 
