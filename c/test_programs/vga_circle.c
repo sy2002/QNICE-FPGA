@@ -6,6 +6,9 @@
  *  by continuously modifying the font (the 256 character
  *  bitmaps) while drawing the circle.
  *
+ *  When the circle is completed, the colours will gradually
+ *  blend. This is done using the palette.
+ *
  *  How to compile: qvc vga_circle.c -O2 -c99
  *
  *  done by MJoergen in August 2020
@@ -65,6 +68,10 @@ int main()
    MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // Disable hardware cursor.
    MMIO(VGA_STATE) |= VGA_CLR_SCRN;       // Initiate hardware screen clearing.
 
+   // Wait until hardware screen clearing is done.
+   while (MMIO(VGA_STATE) & (VGA_CLR_SCRN | VGA_BUSY))
+      ;
+
    const unsigned int centre_x = 300;
    const unsigned int centre_y = 240;
    const unsigned int radius = 75;
@@ -98,13 +105,37 @@ int main()
       }
    }
 
-   for (int i=0; i<800; ++i)
+   int r=0;
+   int g=0;
+   int dr=1;
+   int dg=1;
+
+   while (1)
    {
-      for (int j=0; j<10000; j++)
-         for (int k=0; k<50; k++)
-            ;
+//      printf("r=%d, g=%d, dr=%d, dg=%d\n", r, g, dr, dg);
+      if (g+dg>=0 && g+dg<16)
+      {
+         g += dg;
+      }
+      else
+      {
+         dg = -dg;
+
+         if (r+dr>=0 && r+dr<16)
+         {
+            r += dr;
+         }
+         else
+         {
+            dr = -dr;
+         }
+      }
+
       MMIO(VGA_PALETTE_ADDR) = 0;
-      MMIO(VGA_PALETTE_DATA) += 240;
+      MMIO(VGA_PALETTE_DATA) = 256*r+16*g;
+      for (int j=0; j<10000; j++)
+         for (int k=0; k<20; k++)
+            ;
    }
 
    return 0;
