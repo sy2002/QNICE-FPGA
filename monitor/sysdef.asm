@@ -183,7 +183,6 @@ VGA$STATE           .EQU 0xFF30 ; VGA status register
     ; Bit      5: Hardware cursor blink enable
     ; Bit      4: Hardware cursor mode: 1 - small
     ;                                   0 - large
-    ; Bits   2-0: Output color for the whole screen, bits (2, 1, 0) = RGB
 VGA$CR_X            .EQU 0xFF31 ; VGA cursor X position
 VGA$CR_Y            .EQU 0xFF32 ; VGA cursor Y position
 VGA$CHAR            .EQU 0xFF33 ; write: VGA character to be displayed
@@ -199,6 +198,8 @@ VGA$OFFS_RW         .EQU 0xFF35 ; Offset in bytes that is used, when you read
 VGA$HDMI_H_MIN      .EQU 0xFF36 ; HDMI Data Enable: X: minimum valid column
 VGA$HDMI_H_MAX      .EQU 0xFF37 ; HDMI Data Enable: X: maximum valid column
 VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)                                
+VGA$SCAN_INT        .EQU 0xFF3A ; Scan line to generate interrupt on
+VGA$SCAN_LINE       .EQU 0xFF3B ; Current scan line
 VGA$FONT_ADDR       .EQU 0xFF3C ; Font Address
 VGA$FONT_DATA       .EQU 0xFF3D ; Font Data
 VGA$PALETTE_ADDR    .EQU 0xFF3E ; Palette Address
