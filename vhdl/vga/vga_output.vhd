@@ -1,5 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
 
 -- This block receives configuration signals from the `vga_register_map` block
 -- as well as reads from the three parts of the Video RAM (Display RAM, Font
@@ -38,6 +40,10 @@ entity vga_output is
 end vga_output;
 
 architecture synthesis of vga_output is
+
+   -- Define visible screen size
+   constant H_PIXELS : integer := 640;
+   constant V_PIXELS : integer := 480;
 
    signal pixel_x : std_logic_vector(9 downto 0);  -- 0 to 799
    signal pixel_y : std_logic_vector(9 downto 0);  -- 0 to 524
@@ -115,7 +121,8 @@ begin
          data_en_o   => data_en_o
       ); -- i_vga_sync
 
-   pixel_y_o <= pixel_y;
+   pixel_y_o <= pixel_y+1 when conv_integer(pixel_x) >= H_PIXELS else
+                pixel_y;
 
 end architecture synthesis;
 
