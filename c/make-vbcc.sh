@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+cp qnice/compiler-backend/ vbcc/machines/qnice/
 cd vbcc
 mkdir bin
 make TARGET=qnice
