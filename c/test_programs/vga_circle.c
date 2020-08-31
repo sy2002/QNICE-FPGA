@@ -84,6 +84,10 @@ int main()
 
    while (x <= y)
    {
+      // Wait until outside visible screen
+      while (MMIO(VGA_SCAN_LINE) < 480)
+         ;
+
       for (int px = centre_x - x; px <= centre_x + x; ++px)
       {
          plot(px, centre_y - y);
@@ -112,6 +116,10 @@ int main()
 
    while (1)
    {
+      // Wait until outside visible screen
+      while (MMIO(VGA_SCAN_LINE) < 480)
+         ;
+
       if (g+dg>=0 && g+dg<32)
       {
          g += dg;
