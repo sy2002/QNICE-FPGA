@@ -14,7 +14,6 @@
 VGA$INIT                INCRB
                         MOVE    VGA$STATE, R0
                         MOVE    0x00E0, @R0             ; Enable everything
-                        OR      VGA$COLOR_GREEN, @R0    ; Set font color to green
                         OR      VGA$EN_HW_SCRL, @R0     ; Enable offset registers
                         XOR     R0, R0
                         MOVE    _VGA$X, R1
