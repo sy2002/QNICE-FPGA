@@ -64,7 +64,7 @@ All three memory blocks are accessed by first setting up the address and then
 reading/writing the data at the specified address.
 
 ### Display RAM
-The Display RAM has a size of 64 kW. This corresponds to 20 screen (= 800
+The Display RAM has a size of 64 kW. This corresponds to 20 screens (= 800
 lines) of text when in 16-colour text mode.
 
 The address in the Display RAM is dependent on the display mode. In 16-colour
@@ -78,8 +78,8 @@ and Status Register`. This bit auto-clears when the clearing has completed (in
 65536/25.2 MHz = approximately 3 milliseconds).
 
 When in 16-colour text mode, the data in the Display RAM is interpreted as follows:
-* Bits 15-12 : Background colour selected from background palette
-* Bits 11- 8 : Foreground colour selected from foreground palette
+* Bits 15-12 : Background colour selected from background palette.
+* Bits 11- 8 : Foreground colour selected from foreground palette.
 * Bits  7- 0 : Character value. Selects one of 256 possible characters.
 
 ### Font RAM
@@ -99,11 +99,11 @@ address 0x1000 - 0x1FFF, and to edit the font there.
 
 ### Palette RAM
 The Palette RAM is used when in 16-colour modes (both text and hi-res graphics).
-The Palette RAM has a size of 32 kw. This corresponds to two different palettes.
+The Palette RAM has a size of 32 words. This corresponds to two different palettes.
 
-* The address 0x00 - 0x0F is used for the foreground palette (when in text mode
+* The addresses 0x00 - 0x0F are used for the foreground palette (when in text mode
 and in hi-res graphics mode).
-* The address 0x10 - 0x1F is used for the background palette (when in text mode).
+* The addresses 0x10 - 0x1F are used for the background palette (when in text mode).
 
 The Palette RAM must be initialized in software.
 
