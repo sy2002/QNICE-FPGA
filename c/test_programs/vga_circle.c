@@ -7,7 +7,8 @@
  *  bitmaps) while drawing the circle.
  *
  *  When the circle is completed, the colours will gradually
- *  blend. This is done using the palette.
+ *  blend. This is done using the palette. Synchronization
+ *  is achieved by continuously monitoring the current scan line.
  *
  *  How to compile: qvc vga_circle.c -O2 -c99
  *
@@ -17,6 +18,7 @@
 #include <stdio.h>
 
 #include "sysdef.h"
+#include "qmon.h"
 
 //convenient mechanism to access QNICE's Memory Mapped IO registers
 #define MMIO( __x ) *((unsigned int volatile *) __x )
@@ -25,7 +27,28 @@ static int next_char = 0x21;
 
 static const int font_height = 12;
 static const int font_width = 8;
+static const int font_offset = 4096;
 static const int char_space = 0x20;
+
+static void initialize()
+{
+   // Disable hardware cursor.
+   MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;
+
+   // Clear screen
+   qmon_vga_cls();
+
+   // Clear bitmap of space character in secondary font.
+   for (int i=0; i<font_height; ++i)
+   {
+      MMIO(VGA_FONT_ADDR) = char_space*font_height+i + font_offset;
+      MMIO(VGA_FONT_DATA) = 0;
+   }
+
+   // Select secondary font.
+   MMIO(VGA_OFFS_FONT) = font_offset;
+
+} // initialize
 
 static void plot(unsigned int x, unsigned int y)
 {
@@ -48,7 +71,7 @@ static void plot(unsigned int x, unsigned int y)
       // Clear bitmap of new character.
       for (int i=0; i<font_height; ++i)
       {
-         MMIO(VGA_FONT_ADDR) = ch*font_height+i + 4096;
+         MMIO(VGA_FONT_ADDR) = ch*font_height+i + font_offset;
          MMIO(VGA_FONT_DATA) = 0;
       }
 
@@ -58,34 +81,12 @@ static void plot(unsigned int x, unsigned int y)
    // Set pixel
    unsigned int offset_x = x % font_width;
    unsigned int offset_y = y % font_height;
-   MMIO(VGA_FONT_ADDR) = ch*font_height+offset_y + 4096;
+   MMIO(VGA_FONT_ADDR) = ch*font_height+offset_y + font_offset;
    MMIO(VGA_FONT_DATA) |= 128 >> offset_x;
 } // plot
 
-
-int main()
+static void draw_circle(unsigned int centre_x, unsigned int centre_y, unsigned int radius)
 {
-   MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // Disable hardware cursor.
-   MMIO(VGA_STATE) |= VGA_CLR_SCRN;       // Initiate hardware screen clearing.
-
-   // Wait until hardware screen clearing is done.
-   while (MMIO(VGA_STATE) & (VGA_CLR_SCRN | VGA_BUSY))
-      ;
-
-   MMIO(VGA_OFFS_FONT) = 4096;            // Select secondary font memory.
-
-   // Clear bitmap of space character in secondary font.
-   for (int i=0; i<font_height; ++i)
-   {
-      MMIO(VGA_FONT_ADDR) = char_space*font_height+i + 4096;
-      MMIO(VGA_FONT_DATA) = 0;
-   }
-
-
-   const unsigned int centre_x = 300;
-   const unsigned int centre_y = 240;
-   const unsigned int radius = 75;
-
    // Bresenham's Circle Drawing Algorithm
 
    int x=0;
@@ -118,7 +119,10 @@ int main()
          y -= 1;
       }
    }
+} // draw_circle
 
+static void blend_colours()
+{
    int r=0;
    int g=0;
    int dr=1;
@@ -130,6 +134,7 @@ int main()
       while (MMIO(VGA_SCAN_LINE) < 480)
          ;
 
+      // Calculate next colour
       if (g+dg>=0 && g+dg<32)
       {
          g += dg;
@@ -150,10 +155,20 @@ int main()
 
       MMIO(VGA_PALETTE_ADDR) = 0;
       MMIO(VGA_PALETTE_DATA) = 32*32*r+32*g;
-      for (int j=0; j<10000; j++)
-         for (int k=0; k<20; k++)
-            ;
+
+      // Wait until inside visible screen
+      while (MMIO(VGA_SCAN_LINE) >= 480)
+         ;
    }
+} // blend_colours
+
+int main()
+{
+   initialize();
+
+   draw_circle(300, 240, 75); // x, y, r
+
+   blend_colours();
 
    return 0;
 } // int main()
