@@ -15,7 +15,7 @@ use ieee.numeric_std.all;
 -- 06 : TBD: hctr_min
 -- 07 : TBD: hctr_max
 -- 08 : TBD: vctr_max
--- 09 : Reserved
+-- 09 : Font offset
 -- 0A : Scan line to generate interrupt on
 -- 0B : Current scan line
 -- 0C : Font RAM address
@@ -32,6 +32,8 @@ use ieee.numeric_std.all;
 -- bit  9 : R/O : VGA controller busy
 -- bit 10 : R/W : Display offset enable
 -- bit 11 : R/W : Cursor offset enable
+--
+-- The Font RAM is 8 kW. The first 4 kW is read-only.
 
 entity vga_register_map is
    port (
@@ -48,7 +50,7 @@ entity vga_register_map is
       vram_display_addr_o    : out std_logic_vector(15 downto 0);
       vram_display_wr_en_o   : out std_logic;
       vram_display_rd_data_i : in  std_logic_vector(15 downto 0);
-      vram_font_addr_o       : out std_logic_vector(11 downto 0);
+      vram_font_addr_o       : out std_logic_vector(12 downto 0);
       vram_font_wr_en_o      : out std_logic;
       vram_font_rd_data_i    : in  std_logic_vector(7 downto 0);
       vram_palette_addr_o    : out std_logic_vector(4 downto 0);
@@ -64,6 +66,7 @@ entity vga_register_map is
       cursor_x_o       : out std_logic_vector(6 downto 0);
       cursor_y_o       : out std_logic_vector(5 downto 0);
       display_offset_o : out std_logic_vector(15 downto 0);
+      font_offset_o    : out std_logic_vector(15 downto 0);
       pixel_y_i        : in  std_logic_vector(9 downto 0)
    );
 end vga_register_map;
@@ -169,9 +172,10 @@ begin
          cursor_y_o       <= cursor_y;
 
          display_offset_o <= display_offset;
+         font_offset_o    <= register_map(9);
 
          vram_display_addr_o  <= cursor_addr + cursor_offset;
-         vram_font_addr_o     <= register_map(12)(11 downto 0);
+         vram_font_addr_o     <= register_map(12)(12 downto 0);
          vram_palette_addr_o  <= register_map(14)(4 downto 0);
 
          vram_display_wr_en_o <= '0';
@@ -181,7 +185,7 @@ begin
 
          case reg_i is
             when X"3" => vram_display_wr_en_o <= en_i and we_i;
-            when X"D" => vram_font_wr_en_o    <= en_i and we_i;
+            when X"D" => vram_font_wr_en_o    <= en_i and we_i and register_map(12)(12);
             when X"F" => vram_palette_wr_en_o <= en_i and we_i;
             when others => null;
          end case;

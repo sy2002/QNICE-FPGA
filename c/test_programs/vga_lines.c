@@ -32,11 +32,14 @@ int main()
    int j=0;
    while (1)
    {
-      for (int i=0; i<30000; ++i)
+      while (MMIO(VGA_SCAN_LINE) < 480)
       {
          MMIO(VGA_PALETTE_DATA) = (MMIO(VGA_SCAN_LINE)+j)*62;
       }
+
       ++j;
+      while (MMIO(VGA_SCAN_LINE) >= 480)
+         ;
    }
 
    return 0;

@@ -19,7 +19,7 @@ entity vga_text_mode is
 
       -- Interface to Register Map
       display_offset_i : in  std_logic_vector(15 downto 0);
-      tile_offset_i    : in  std_logic_vector(15 downto 0);
+      font_offset_i    : in  std_logic_vector(15 downto 0);
       cursor_enable_i  : in  std_logic;
       cursor_blink_i   : in  std_logic;
       cursor_size_i    : in  std_logic;
@@ -32,7 +32,7 @@ entity vga_text_mode is
       -- Interface to Video RAM
       display_addr_o   : out std_logic_vector(15 downto 0);
       display_data_i   : in  std_logic_vector(15 downto 0);
-      font_addr_o      : out std_logic_vector(11 downto 0);
+      font_addr_o      : out std_logic_vector(12 downto 0);
       font_data_i      : in  std_logic_vector(7 downto 0);
       palette_addr_o   : out std_logic_vector(4 downto 0);
       palette_data_i   : in  std_logic_vector(14 downto 0);
@@ -130,8 +130,8 @@ begin
 
    -- Calculate address in Font RAM
    stage1.font_addr <= std_logic_vector(unsigned(stage1.tile)*12)
-                       + stage1.char_offset_y + tile_offset_i;
-   font_addr_o <= stage1.font_addr(11 downto 0);
+                       + stage1.char_offset_y + font_offset_i;
+   font_addr_o <= stage1.font_addr(12 downto 0);
 
 
 

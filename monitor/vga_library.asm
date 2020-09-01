@@ -28,8 +28,57 @@ VGA$INIT                INCRB
                         MOVE    R0, @R1
                         MOVE    VGA$OFFS_RW, R1         ; Reset the rw offset reg.
                         MOVE    R0, @R1
+                        MOVE    VGA$OFFS_FONT, R1       ; Reset the font offset reg.
+                        MOVE    R0, @R1
+                        RBRA    _VGA$INIT_PALETTE, 1    ; Initialize palettes
                         DECRB
                         RET
+
+_VGA$DEFAULT_PALETTE    .DW     0x0000                  ; Black
+                        .DW     0x294A                  ; Dark Gray
+                        .DW     0x5484                  ; Red
+                        .DW     0x153A                  ; Blue
+                        .DW     0x0DA2                  ; Green
+                        .DW     0x4123                  ; Brown
+                        .DW     0x4098                  ; Purple
+                        .DW     0x5294                  ; Light Gray
+                        .DW     0x430F                  ; Light Green
+                        .DW     0x4EBF                  ; Light Blue
+                        .DW     0x175A                  ; Cyan
+                        .DW     0x7E46                  ; Orange
+                        .DW     0x7FA6                  ; Yellow
+                        .DW     0x7777                  ; Tan
+                        .DW     0x7F3E                  ; Pink
+                        .DW     0x7FFF                  ; White
+
+_VGA$INIT_PALETTE       INCRB
+                        MOVE    VGA$PALETTE_ADDR, R0
+                        MOVE    VGA$PALETTE_DATA, R1
+
+                        ; Write backeground palette
+                        MOVE    _VGA$DEFAULT_PALETTE, R2
+                        MOVE    16, @R0                 ; Palette ADDR
+_VGA$INIT_LOOP_FG       MOVE    @R2++, @R1
+                        ADD     1, @R0
+                        CMP     32, @R0
+                        RBRA    _VGA$INIT_LOOP_FG, !Z
+
+                        ; Write foreground palette
+                        MOVE    _VGA$DEFAULT_PALETTE, R2
+                        MOVE    8, @R0                  ; Palette ADDR
+_VGA$INIT_LOOP_BG_1     MOVE    @R2++, @R1
+                        ADD     1, @R0
+                        CMP     16, @R0
+                        RBRA    _VGA$INIT_LOOP_BG_1, !Z
+                        MOVE    0, @R0                  ; Palette ADDR
+_VGA$INIT_LOOP_BG_2     MOVE    @R2++, @R1
+                        ADD     1, @R0
+                        CMP     8, @R0
+                        RBRA    _VGA$INIT_LOOP_BG_2, !Z
+
+                        DECRB
+                        RET
+
 ;
 ;***************************************************************************************
 ;* VGA$CHAR_AT_XY

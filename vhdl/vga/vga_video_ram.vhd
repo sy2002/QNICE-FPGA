@@ -11,7 +11,7 @@ entity vga_video_ram is
       cpu_display_addr_i    : in  std_logic_vector(15 downto 0);
       cpu_display_wr_en_i   : in  std_logic;
       cpu_display_rd_data_o : out std_logic_vector(15 downto 0);
-      cpu_font_addr_i       : in  std_logic_vector(11 downto 0);
+      cpu_font_addr_i       : in  std_logic_vector(12 downto 0);
       cpu_font_wr_en_i      : in  std_logic;
       cpu_font_rd_data_o    : out std_logic_vector(7 downto 0);
       cpu_palette_addr_i    : in  std_logic_vector(4 downto 0);
@@ -22,7 +22,7 @@ entity vga_video_ram is
       vga_clk_i          : in  std_logic;
       vga_display_addr_i : in  std_logic_vector(15 downto 0);
       vga_display_data_o : out std_logic_vector(15 downto 0);
-      vga_font_addr_i    : in  std_logic_vector(11 downto 0);
+      vga_font_addr_i    : in  std_logic_vector(12 downto 0);
       vga_font_data_o    : out std_logic_vector(7 downto 0);
       vga_palette_addr_i : in  std_logic_vector(4 downto 0);
       vga_palette_data_o : out std_logic_vector(14 downto 0)
@@ -62,7 +62,7 @@ begin
    -- 12 bytes for each of the 256 different characters.
    i_font_ram : entity work.true_dual_port_ram
       generic map (
-         G_ADDR_SIZE => 12,
+         G_ADDR_SIZE => 13,
          G_DATA_SIZE => 8,
          G_FILE_NAME => "lat9w-12_sy2002.rom"
       )
@@ -84,8 +84,7 @@ begin
    i_palette_ram : entity work.true_dual_port_ram
       generic map (
          G_ADDR_SIZE => 5,
-         G_DATA_SIZE => 15,
-         G_FILE_NAME => "palette.txt"
+         G_DATA_SIZE => 15
       )
       port map (
          a_clk_i     => cpu_clk_i,

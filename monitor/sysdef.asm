@@ -198,6 +198,7 @@ VGA$OFFS_RW         .EQU 0xFF35 ; Offset in bytes that is used, when you read
 VGA$HDMI_H_MIN      .EQU 0xFF36 ; HDMI Data Enable: X: minimum valid column
 VGA$HDMI_H_MAX      .EQU 0xFF37 ; HDMI Data Enable: X: maximum valid column
 VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)                                
+VGA$OFFS_FONT       .EQU 0xFF39 ; Offset in words into the Font RAM
 VGA$SCAN_INT        .EQU 0xFF3A ; Scan line to generate interrupt on
 VGA$SCAN_LINE       .EQU 0xFF3B ; Current scan line
 VGA$FONT_ADDR       .EQU 0xFF3C ; Font Address

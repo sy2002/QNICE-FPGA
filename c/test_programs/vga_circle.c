@@ -48,7 +48,7 @@ static void plot(unsigned int x, unsigned int y)
       // Clear bitmap of new character.
       for (int i=0; i<font_height; ++i)
       {
-         MMIO(VGA_FONT_ADDR) = ch*font_height+i;
+         MMIO(VGA_FONT_ADDR) = ch*font_height+i + 4096;
          MMIO(VGA_FONT_DATA) = 0;
       }
 
@@ -58,7 +58,7 @@ static void plot(unsigned int x, unsigned int y)
    // Set pixel
    unsigned int offset_x = x % font_width;
    unsigned int offset_y = y % font_height;
-   MMIO(VGA_FONT_ADDR) = ch*font_height+offset_y;
+   MMIO(VGA_FONT_ADDR) = ch*font_height+offset_y + 4096;
    MMIO(VGA_FONT_DATA) |= 128 >> offset_x;
 } // plot
 
@@ -71,6 +71,16 @@ int main()
    // Wait until hardware screen clearing is done.
    while (MMIO(VGA_STATE) & (VGA_CLR_SCRN | VGA_BUSY))
       ;
+
+   MMIO(VGA_OFFS_FONT) = 4096;            // Select secondary font memory.
+
+   // Clear bitmap of space character in secondary font.
+   for (int i=0; i<font_height; ++i)
+   {
+      MMIO(VGA_FONT_ADDR) = char_space*font_height+i + 4096;
+      MMIO(VGA_FONT_DATA) = 0;
+   }
+
 
    const unsigned int centre_x = 300;
    const unsigned int centre_y = 240;
