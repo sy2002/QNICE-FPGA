@@ -22,6 +22,8 @@ use ieee.numeric_std.all;
 -- 0D : Font RAM data
 -- 0E : Palette RAM address
 -- 0F : Palette RAM data
+-- 10 : Adjust X
+-- 11 : Adjust Y
 --
 -- Interpretation of Control Register:
 -- bit  4 : R/W : Cursor Size
@@ -42,7 +44,7 @@ entity vga_register_map is
       rst_i            : in  std_logic;
       en_i             : in  std_logic;
       we_i             : in  std_logic;
-      reg_i            : in  std_logic_vector(3 downto 0);
+      reg_i            : in  std_logic_vector(4 downto 0);
       data_i           : in  std_logic_vector(15 downto 0);
       data_o           : out std_logic_vector(15 downto 0);
 
@@ -67,13 +69,15 @@ entity vga_register_map is
       cursor_y_o       : out std_logic_vector(5 downto 0);
       display_offset_o : out std_logic_vector(15 downto 0);
       font_offset_o    : out std_logic_vector(15 downto 0);
+      adjust_x_o       : out std_logic_vector(9 downto 0);
+      adjust_y_o       : out std_logic_vector(9 downto 0);
       pixel_y_i        : in  std_logic_vector(9 downto 0)
    );
 end vga_register_map;
 
 architecture synthesis of vga_register_map is
 
-   type register_map_t is array (0 to 15) of std_logic_vector(15 downto 0);
+   type register_map_t is array (0 to 31) of std_logic_vector(15 downto 0);
 
    signal register_map : register_map_t;
 
@@ -119,7 +123,7 @@ architecture synthesis of vga_register_map is
 begin
 
    clrscr_old <= register_map(0)(8);
-   clrscr_new <= data_i(8) when en_i = '1' and we_i = '1' and reg_i = X"0"
+   clrscr_new <= data_i(8) when en_i = '1' and we_i = '1' and reg_i = "00000"
             else clrscr_old;
 
    p_register_map : process (clk_i)
@@ -170,6 +174,8 @@ begin
          cursor_size_o    <= register_map(0)(4);
          cursor_x_o       <= cursor_x;
          cursor_y_o       <= cursor_y;
+         adjust_x_o       <= register_map(16)(9 downto 0);
+         adjust_y_o       <= register_map(17)(9 downto 0);
 
          display_offset_o <= display_offset;
          font_offset_o    <= register_map(9);
@@ -184,9 +190,9 @@ begin
          vram_wr_data_o       <= data_i;
 
          case reg_i is
-            when X"3" => vram_display_wr_en_o <= en_i and we_i;
-            when X"D" => vram_font_wr_en_o    <= en_i and we_i and register_map(12)(12);
-            when X"F" => vram_palette_wr_en_o <= en_i and we_i;
+            when "0" & X"3" => vram_display_wr_en_o <= en_i and we_i;
+            when "0" & X"D" => vram_font_wr_en_o    <= en_i and we_i and register_map(12)(12);
+            when "0" & X"F" => vram_palette_wr_en_o <= en_i and we_i;
             when others => null;
          end case;
 
@@ -199,10 +205,10 @@ begin
    end process p_output;
 
    -- Data output is combinatorial.
-   data_o <= vram_display_rd_data_i            when en_i = '1' and we_i = '0' and reg_i = X"3" else
-             "000000" & pixel_y_i              when en_i = '1' and we_i = '0' and reg_i = X"B" else
-             X"00" & vram_font_rd_data_i       when en_i = '1' and we_i = '0' and reg_i = X"D" else
-             "0" & vram_palette_rd_data_i      when en_i = '1' and we_i = '0' and reg_i = X"F" else
+   data_o <= vram_display_rd_data_i            when en_i = '1' and we_i = '0' and reg_i = "0" & X"3" else
+             "000000" & pixel_y_i              when en_i = '1' and we_i = '0' and reg_i = "0" & X"B" else
+             X"00" & vram_font_rd_data_i       when en_i = '1' and we_i = '0' and reg_i = "0" & X"D" else
+             "0" & vram_palette_rd_data_i      when en_i = '1' and we_i = '0' and reg_i = "0" & X"F" else
              register_map(conv_integer(reg_i)) when en_i = '1' and we_i = '0'                  else
              (others => '0');
 

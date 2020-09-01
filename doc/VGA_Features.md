@@ -107,3 +107,8 @@ and in hi-res graphics mode).
 
 The Palette RAM must be initialized in software.
 
+## Pixel scrolling
+When in text mode the screen contents may be shifted any number of pixels in
+either direction.  This is controlled by the two registers `VGA_ADJUST_X` and
+`VGA_ADJUST_Y`.
+

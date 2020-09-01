@@ -130,6 +130,8 @@ Address | Description
 `FF3D`  | Data to/from Font RAM
 `FF3E`  | Address into Palette RAM
 `FF3F`  | Data to/from Palette RAM
+`FF40`  | Pixels to adjust screen in X direction
+`FF41`  | Pixels to adjust screen in Y direction
 
 The Command and Status Register is decoded as follows
 * Bit 11 : Cursor offset enable (`FF35`)

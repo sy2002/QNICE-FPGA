@@ -205,6 +205,8 @@ VGA$FONT_ADDR       .EQU 0xFF3C ; Font Address
 VGA$FONT_DATA       .EQU 0xFF3D ; Font Data
 VGA$PALETTE_ADDR    .EQU 0xFF3E ; Palette Address
 VGA$PALETTE_DATA    .EQU 0xFF3F ; Palette Data
+VGA$ADJUST_X        .EQU 0xFF40 ; Pixels to adjust screen in X direction
+VGA$ADJUST_Y        .EQU 0xFF41 ; Pixels to adjust screen in Y direction
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FFF0: MEGA65 (double block, 16 registers)

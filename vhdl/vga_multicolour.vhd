@@ -27,7 +27,7 @@ entity vga_multicolour is
       cpu_rst_i     : in  std_logic;
       cpu_en_i      : in  std_logic;
       cpu_we_i      : in  std_logic;
-      cpu_reg_i     : in  std_logic_vector(3 downto 0);
+      cpu_reg_i     : in  std_logic_vector(4 downto 0);
       cpu_data_i    : in  std_logic_vector(15 downto 0);
       cpu_data_o    : out std_logic_vector(15 downto 0);
 
@@ -53,6 +53,8 @@ architecture synthesis of vga_multicolour is
    signal cpu_cursor_x        : std_logic_vector(6 downto 0);
    signal cpu_cursor_y        : std_logic_vector(5 downto 0);
    signal cpu_pixel_y         : std_logic_vector(9 downto 0);
+   signal cpu_adjust_x        : std_logic_vector(9 downto 0);
+   signal cpu_adjust_y        : std_logic_vector(9 downto 0);
 
    -- CPU Interface to Video RAM.
    signal cpu_vram_display_addr    : std_logic_vector(15 downto 0);
@@ -76,6 +78,8 @@ architecture synthesis of vga_multicolour is
    signal meta_cursor_x       : std_logic_vector(6 downto 0);
    signal meta_cursor_y       : std_logic_vector(5 downto 0);
    signal meta_pixel_y        : std_logic_vector(9 downto 0);
+   signal meta_adjust_x       : std_logic_vector(9 downto 0);
+   signal meta_adjust_y       : std_logic_vector(9 downto 0);
 
    -- Configuration signals synchronized to VGA clock.
    signal vga_output_enable   : std_logic;
@@ -87,6 +91,8 @@ architecture synthesis of vga_multicolour is
    signal vga_cursor_x        : std_logic_vector(6 downto 0);
    signal vga_cursor_y        : std_logic_vector(5 downto 0);
    signal vga_pixel_y         : std_logic_vector(9 downto 0);
+   signal vga_adjust_x        : std_logic_vector(9 downto 0);
+   signal vga_adjust_y        : std_logic_vector(9 downto 0);
 
    -- VGA Interface to Video RAM.
    signal vga_display_addr    : std_logic_vector(15 downto 0);
@@ -106,6 +112,8 @@ architecture synthesis of vga_multicolour is
    attribute ASYNC_REG of meta_cursor_size    : signal is true;
    attribute ASYNC_REG of meta_cursor_x       : signal is true;
    attribute ASYNC_REG of meta_cursor_y       : signal is true;
+   attribute ASYNC_REG of meta_adjust_x       : signal is true;
+   attribute ASYNC_REG of meta_adjust_y       : signal is true;
    attribute ASYNC_REG of meta_pixel_y        : signal is true;
    attribute ASYNC_REG of vga_output_enable   : signal is true;
    attribute ASYNC_REG of vga_display_offset  : signal is true;
@@ -115,6 +123,8 @@ architecture synthesis of vga_multicolour is
    attribute ASYNC_REG of vga_cursor_size     : signal is true;
    attribute ASYNC_REG of vga_cursor_x        : signal is true;
    attribute ASYNC_REG of vga_cursor_y        : signal is true;
+   attribute ASYNC_REG of vga_adjust_x        : signal is true;
+   attribute ASYNC_REG of vga_adjust_y        : signal is true;
    attribute ASYNC_REG of cpu_pixel_y         : signal is true;
 
 begin
@@ -159,6 +169,8 @@ begin
          cursor_y_o       => cpu_cursor_y,         -- Reg 2
          display_offset_o => cpu_display_offset,   -- Reg 4
          font_offset_o    => cpu_font_offset,      -- Reg 9
+         adjust_x_o       => cpu_adjust_x,         -- Reg 16
+         adjust_y_o       => cpu_adjust_y,         -- Reg 17
          pixel_y_i        => cpu_pixel_y           -- Reg 11
       ); -- i_vga_register_map
 
@@ -208,6 +220,8 @@ begin
          meta_cursor_size    <= cpu_cursor_size;
          meta_cursor_x       <= cpu_cursor_x;
          meta_cursor_y       <= cpu_cursor_y;
+         meta_adjust_x       <= cpu_adjust_x;
+         meta_adjust_y       <= cpu_adjust_y;
 
          vga_output_enable   <= meta_output_enable;
          vga_display_offset  <= meta_display_offset;
@@ -217,6 +231,8 @@ begin
          vga_cursor_size     <= meta_cursor_size;
          vga_cursor_x        <= meta_cursor_x;
          vga_cursor_y        <= meta_cursor_y;
+         vga_adjust_x        <= meta_adjust_x;
+         vga_adjust_y        <= meta_adjust_y;
       end if;
    end process p_cpu_to_vga;
 
@@ -247,6 +263,8 @@ begin
          cursor_x_i       => vga_cursor_x,
          cursor_y_i       => vga_cursor_y,
          pixel_y_o        => vga_pixel_y,
+         adjust_x_i       => vga_adjust_x,
+         adjust_y_i       => vga_adjust_y,
 
          -- Interface to Video RAM
          display_addr_o   => vga_display_addr,

@@ -22,6 +22,8 @@ entity vga_output is
       cursor_x_i       : in  std_logic_vector(6 downto 0); -- 0 to 79
       cursor_y_i       : in  std_logic_vector(5 downto 0); -- 0 to 39
       pixel_y_o        : out std_logic_vector(9 downto 0); -- 0 to 524
+      adjust_x_i       : in  std_logic_vector(9 downto 0);
+      adjust_y_i       : in  std_logic_vector(9 downto 0);
 
       -- Interface to Video RAM
       display_addr_o   : out std_logic_vector(15 downto 0);
@@ -50,6 +52,8 @@ architecture synthesis of vga_output is
    signal frame   : std_logic_vector(5 downto 0);  -- 0 to 59
    signal colour  : std_logic_vector(14 downto 0);
    signal delay   : std_logic_vector(9 downto 0);
+   signal pixel_adj_x : std_logic_vector(9 downto 0);
+   signal pixel_adj_y : std_logic_vector(9 downto 0);
 
 begin
 
@@ -70,6 +74,8 @@ begin
          frame_o   => frame
       ); -- i_vga_pixel_counters
 
+   pixel_adj_x <= pixel_x + adjust_x_i;
+   pixel_adj_y <= pixel_y + adjust_y_i;
 
    -------------------------
    -- Instantiate Text Mode
@@ -87,8 +93,8 @@ begin
          cursor_x_i       => cursor_x_i,
          cursor_y_i       => cursor_y_i,
          -- Pixel Counters
-         pixel_x_i        => pixel_x,
-         pixel_y_i        => pixel_y,
+         pixel_x_i        => pixel_adj_x,
+         pixel_y_i        => pixel_adj_y,
          frame_i          => frame,
          -- Interface to Video RAM
          display_addr_o   => display_addr_o,

@@ -96,7 +96,7 @@ signal tin_reg                : std_logic_vector(2 downto 0);
 signal timer_data_out         : std_logic_vector(15 downto 0);
 signal vga_en                 : std_logic;
 signal vga_we                 : std_logic;
-signal vga_reg                : std_logic_vector(3 downto 0);
+signal vga_reg                : std_logic_vector(4 downto 0);
 signal vga_data_out           : std_logic_vector(15 downto 0);
 signal uart_en                : std_logic;
 signal uart_we                : std_logic;
