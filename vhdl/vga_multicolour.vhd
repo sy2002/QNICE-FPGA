@@ -197,7 +197,7 @@ begin
    -- Clock Domain Crossing
    -----------------------------------------------
 
-   p_cdc : process (vga_clk_i)
+   p_cpu_to_vga : process (vga_clk_i)
    begin
       if rising_edge(vga_clk_i) then
          meta_output_enable  <= cpu_output_enable;
@@ -208,7 +208,6 @@ begin
          meta_cursor_size    <= cpu_cursor_size;
          meta_cursor_x       <= cpu_cursor_x;
          meta_cursor_y       <= cpu_cursor_y;
-         meta_pixel_y        <= vga_pixel_y;
 
          vga_output_enable   <= meta_output_enable;
          vga_display_offset  <= meta_display_offset;
@@ -218,9 +217,16 @@ begin
          vga_cursor_size     <= meta_cursor_size;
          vga_cursor_x        <= meta_cursor_x;
          vga_cursor_y        <= meta_cursor_y;
+      end if;
+   end process p_cpu_to_vga;
+
+   p_vga_to_cpu : process (cpu_clk_i)
+   begin
+      if rising_edge(cpu_clk_i) then
+         meta_pixel_y        <= vga_pixel_y;
          cpu_pixel_y         <= meta_pixel_y;
       end if;
-   end process p_cdc;
+   end process p_vga_to_cpu;
 
 
    -----------------------------------------------
