@@ -15,6 +15,7 @@ system-on-a-chip in portable VHDL on a FPGA. Specifications:
 * 32k words RAM (64kB)
 * UART 115,200 baud, 8-N-1, CTS
 * VGA 80x40 character textmode display (640x480 resolution)
+  (learn more in [VGA_Features.md](doc/VGA_Features.md))
 * PS/2 keyboard support (mapped to USB on the Nexys 4 DDR)
 * SD Card and FAT32 support (microSD card on the Nexys 4 DDR)
 * 4-digit 7-segment display
