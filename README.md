@@ -250,9 +250,7 @@ possible I/O devices.
 | FF40 - FFEF | Reserved                                    |
 | FFF0 - FFFF | HyperRAM (MEGA65)                           |
 
-
-The registers for the individual I/O devices are described in the assembler
-header file [monitor/sysdef.asm](monitor/sysdef.asm).
+[Here](doc/IO_Devices.md) is a detailed description of I/O devices.
 
 
 Programming in Assembler
@@ -397,5 +395,5 @@ Acknowledgements
   QNICE specific vbcc backend incl. standard C library.
 
 * [MJoergen](http://www.github.com/MJoergen): Performance improvements and
-  bugfixes, CPU functional test suite.
+  bugfixes, CPU functional test suite, VGA multicolour support.
 
