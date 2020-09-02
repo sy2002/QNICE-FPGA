@@ -1,7 +1,38 @@
 # VGA Features
 
-This file contains a description of the features supported by the VGA
-module.
+This file contains the register map for the VGA module and a description of the
+features supported by the VGA module.
+
+## Register Map
+
+Address | Description
+------- | ------------
+`FF30`  | Command and Status (CSR)
+`FF31`  | Cursor X
+`FF32`  | Cursor Y
+`FF33`  | Character at cursor
+`FF34`  | Display offset
+`FF35`  | Cursor offset
+`FF39`  | Font offset
+`FF3C`  | Address into Font RAM
+`FF3D`  | Data to/from Font RAM
+`FF3E`  | Address into Palette RAM
+`FF3F`  | Data to/from Palette RAM
+`FF40`  | Pixels to adjust screen in X direction
+`FF41`  | Pixels to adjust screen in Y direction
+`FF42`  | Current scan line
+`FF43`  | Scan line to generate interrupt on
+`FF44`  | Interrupt Service Routine Address
+
+The Command and Status Register is decoded as follows
+* Bit 11 : Cursor offset enable (`FF35`)
+* Bit 10 : Display offset enable (`FF34`)
+* Bit  9 (R/O) : Busy
+* Bit  8 : Clear screen (this bit autoclears)
+* Bit  7 : VGA output enable
+* Bit  6 : Hardware cursor enable
+* Bit  5 : Hardware cursor blink enable
+* Bit  4 : Hardware cursor size
 
 ## VGA resolution
 The VGA output has a resolution of 640x480 pixels at 60 frames per second. The
@@ -18,8 +49,8 @@ the LSBs are discarded.
 The QNICE project supports the following display modes:
 * 16-Colour text mode: 80x40 characters. Foreground and Background colours
   selected individually from two different palettes.
-* Lo-res graphics mode: 320x200 pixels, with 15-bit colours for each pixel.
-* Hi-res (16-colour) graphics mode: 640x400 pixels, with colour selected from a
+* (TBD) Lo-res graphics mode: 320x200 pixels, with 15-bit colours for each pixel.
+* (TBD) Hi-res (16-colour) graphics mode: 640x400 pixels, with colour selected from a
   palette.
 
 ## Default palette
@@ -111,4 +142,9 @@ The Palette RAM must be initialized in software.
 When in text mode the screen contents may be shifted any number of pixels in
 either direction.  This is controlled by the two registers `VGA_ADJUST_X` and
 `VGA_ADJUST_Y`.
+
+## Scan line interrupt
+The VGA module allows the processor to read the horizontal scan line being
+currently being displayed. Furthermore, the VGA module can be programmed to
+generate an interrupt when a specific scan line is reached.
 
