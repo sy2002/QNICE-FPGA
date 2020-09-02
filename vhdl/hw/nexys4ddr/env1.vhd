@@ -71,6 +71,8 @@ signal cpu_halt               : std_logic;
 signal cpu_ins_cnt_strobe     : std_logic;
 signal cpu_int_n              : std_logic;
 signal cpu_igrant_n           : std_logic;
+signal vga_int_n_out          : std_logic;
+signal vga_grant_n_in         : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
@@ -252,6 +254,8 @@ begin
          cpu_reg_i     => vga_reg,
          cpu_data_i    => cpu_data_out,
          cpu_data_o    => vga_data_out,
+         cpu_int_n_o   => vga_int_n_out,
+         cpu_grant_n_i => vga_grant_n_in,
 
          vga_clk_i     => clk25MHz,
          vga_hsync_o   => VGA_HS,
@@ -324,8 +328,8 @@ begin
          reset => reset_ctl,
          int_n_out => cpu_int_n,
          grant_n_in => cpu_igrant_n,
-         int_n_in => '1',        -- no more devices to in Daisy Chain: 1=no interrupt
-         grant_n_out => open,    -- ditto: open=grant goes nowhere
+         int_n_in => vga_int_n_out,
+         grant_n_out => vga_grant_n_in,
          en => tin_en,
          we => tin_we,
          reg => tin_reg,

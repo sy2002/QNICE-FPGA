@@ -199,14 +199,15 @@ VGA$HDMI_H_MIN      .EQU 0xFF36 ; HDMI Data Enable: X: minimum valid column
 VGA$HDMI_H_MAX      .EQU 0xFF37 ; HDMI Data Enable: X: maximum valid column
 VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)                                
 VGA$OFFS_FONT       .EQU 0xFF39 ; Offset in words into the Font RAM
-VGA$SCAN_INT        .EQU 0xFF3A ; Scan line to generate interrupt on
-VGA$SCAN_LINE       .EQU 0xFF3B ; Current scan line
 VGA$FONT_ADDR       .EQU 0xFF3C ; Font Address
 VGA$FONT_DATA       .EQU 0xFF3D ; Font Data
 VGA$PALETTE_ADDR    .EQU 0xFF3E ; Palette Address
 VGA$PALETTE_DATA    .EQU 0xFF3F ; Palette Data
 VGA$ADJUST_X        .EQU 0xFF40 ; Pixels to adjust screen in X direction
 VGA$ADJUST_Y        .EQU 0xFF41 ; Pixels to adjust screen in Y direction
+VGA$SCAN_LINE       .EQU 0xFF42 ; Current scan line
+VGA$SCAN_INT        .EQU 0xFF43 ; Scan line to generate interrupt on
+VGA$SCAN_ISR        .EQU 0xFF44 ; Inserrupt Service Routine Address
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FFF0: MEGA65 (double block, 16 registers)

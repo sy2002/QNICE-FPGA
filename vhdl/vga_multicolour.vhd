@@ -30,6 +30,8 @@ entity vga_multicolour is
       cpu_reg_i     : in  std_logic_vector(4 downto 0);
       cpu_data_i    : in  std_logic_vector(15 downto 0);
       cpu_data_o    : out std_logic_vector(15 downto 0);
+      cpu_int_n_o   : out std_logic;
+      cpu_grant_n_i : in  std_logic;
 
       vga_clk_i     : in  std_logic;            -- VGA clock (25.175 MHz)
       vga_hsync_o   : out std_logic;
@@ -149,6 +151,8 @@ begin
          reg_i            => cpu_reg_i,
          data_i           => cpu_data_i,
          data_o           => cpu_data_o,
+         int_n_o          => cpu_int_n_o,
+         grant_n_i        => cpu_grant_n_i,
 
          vram_display_addr_o    => cpu_vram_display_addr,
          vram_display_wr_en_o   => cpu_vram_display_wr_en,

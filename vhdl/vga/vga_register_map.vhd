@@ -6,24 +6,27 @@ use ieee.numeric_std.all;
 -- This file contains the Register Map as seen by the CPU.
 --
 -- Register Map:
--- 00 : Control
--- 01 : Cursor X
--- 02 : Cursor Y
--- 03 : Character and Colour at Cursor
--- 04 : Display offset
--- 05 : Cursor offset
--- 06 : TBD: hctr_min
--- 07 : TBD: hctr_max
--- 08 : TBD: vctr_max
--- 09 : Font offset
--- 0A : Scan line to generate interrupt on
--- 0B : Current scan line
--- 0C : Font RAM address
--- 0D : Font RAM data
--- 0E : Palette RAM address
--- 0F : Palette RAM data
--- 10 : Adjust X
--- 11 : Adjust Y
+-- 0x00 : Control
+-- 0x01 : Cursor X
+-- 0x02 : Cursor Y
+-- 0x03 : Character and Colour at Cursor
+-- 0x04 : Display offset
+-- 0x05 : Cursor offset
+-- 0x06 : TBD: hctr_min
+-- 0x07 : TBD: hctr_max
+-- 0x08 : TBD: vctr_max
+-- 0x09 : Font offset
+-- 0x0A : Reserved
+-- 0x0B : Reserved
+-- 0x0C : Font RAM address
+-- 0x0D : Font RAM data
+-- 0x0E : Palette RAM address
+-- 0x0F : Palette RAM data
+-- 0x10 : Adjust X
+-- 0x11 : Adjust Y
+-- 0x12 : Current scan line
+-- 0x13 : Scan line to generate interrupt on
+-- 0x14 : Interrupt Service Routine Address
 --
 -- Interpretation of Control Register:
 -- bit  4 : R/W : Cursor Size
@@ -40,13 +43,15 @@ use ieee.numeric_std.all;
 entity vga_register_map is
    port (
       -- Connected to CPU
-      clk_i            : in  std_logic;
-      rst_i            : in  std_logic;
-      en_i             : in  std_logic;
-      we_i             : in  std_logic;
-      reg_i            : in  std_logic_vector(4 downto 0);
-      data_i           : in  std_logic_vector(15 downto 0);
-      data_o           : out std_logic_vector(15 downto 0);
+      clk_i            : in     std_logic;
+      rst_i            : in     std_logic;
+      en_i             : in     std_logic;
+      we_i             : in     std_logic;
+      reg_i            : in     std_logic_vector(4 downto 0);
+      data_i           : in     std_logic_vector(15 downto 0);
+      data_o           : out    std_logic_vector(15 downto 0);
+      int_n_o          : buffer std_logic;
+      grant_n_i        : in     std_logic;
 
       -- Connected to Video RAM
       vram_display_addr_o    : out std_logic_vector(15 downto 0);
@@ -204,12 +209,27 @@ begin
       end if;
    end process p_output;
 
+   p_interrupt : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         int_n_o <= '1';
+         if pixel_y_i = register_map(19)(9 downto 0) and register_map(20) /= 0 then
+            int_n_o <= '0';
+         end if;
+
+         if int_n_o = '0' and grant_n_i = '0' then
+            int_n_o <= '1';
+         end if;
+      end if;
+   end process p_interrupt;
+
    -- Data output is combinatorial.
-   data_o <= vram_display_rd_data_i            when en_i = '1' and we_i = '0' and reg_i = "0" & X"3" else
-             "000000" & pixel_y_i              when en_i = '1' and we_i = '0' and reg_i = "0" & X"B" else
+   data_o <= register_map(20)                  when int_n_o = '1' and grant_n_i = '0'                else
+             vram_display_rd_data_i            when en_i = '1' and we_i = '0' and reg_i = "0" & X"3" else
+             "000000" & pixel_y_i              when en_i = '1' and we_i = '0' and reg_i = "1" & X"2" else
              X"00" & vram_font_rd_data_i       when en_i = '1' and we_i = '0' and reg_i = "0" & X"D" else
              "0" & vram_palette_rd_data_i      when en_i = '1' and we_i = '0' and reg_i = "0" & X"F" else
-             register_map(conv_integer(reg_i)) when en_i = '1' and we_i = '0'                  else
+             register_map(conv_integer(reg_i)) when en_i = '1' and we_i = '0'                        else
              (others => '0');
 
 end synthesis;
