@@ -75,9 +75,10 @@ Version 1.6     xxxxx, xx 2020
 * TOOLCHAIN: qtransfer: Convenient mechanism for transferring software
   (.out files) from the host computer to QNICE-FPGA. Details: doc/README.md
 
-* TOOLCHAIN: Added Xilinx Vivado as an alternative IDE to work with.
-  Structured all hardware dependencies in the new folder 'hw' and added
-  a documentation in 'hw/README.md'.
+* TOOLCHAIN: Added support for Xilinx Vivado and made Vivado the main
+  toolchain for our project. ISE is still supported though. Structured all
+  hardware dependencies in the new folder 'hw' and added documentation
+  in 'hw/README.md'.
 
 * TOOLCHAIN: Added Ubuntu Linux support, which means it should also run on
   any other Debian based distribution. You might want to install xclip for
