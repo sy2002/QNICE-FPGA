@@ -327,3 +327,25 @@ between VGA and the UART.
 Caveat: After switching STDIN to another input, you still need to press one
 more key on the old input, before the switch to the new input is finally
 active.
+
+### Creating Core files
+
+The MEGA65 is able to load `.cor` files directly from SD card, so that MEGA65
+users do not need a Xilinx toolchain to change the bitstrem ("Core") that they
+are running.
+
+Core files can be generated from compatible bitstreams using `tools/bit2core`.
+"Compatible" means, that the following settings are used in the Vivado `xdc`
+file and/or that these properties are configured in the ISE project within
+the IDE.
+
+```
+## Configuration and Bitstream properties
+set_property CONFIG_VOLTAGE 3.3 [current_design]
+set_property CFGBVS VCCO [current_design]
+set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
+set_property BITSTREAM.CONFIG.CONFIGRATE 66 [current_design]
+set_property CONFIG_MODE SPIx4 [current_design]
+set_property BITSTREAM.CONFIG.SPI_32BIT_ADDR YES [current_design]
+set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]
+```

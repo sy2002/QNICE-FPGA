@@ -198,9 +198,9 @@ Have a look at the current highscore in
 [doc/demos/q-tris-highscore.txt](doc/demos/q-tris-highscore.txt).
 
 The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
-for the QNICE-FPGA: Just use `dist_kit/q-tris.bit` instead of the
-above-mentioned `dist_kit/qnice-v141.bit`. Or, you can run it regularly as an
-app within the Monitor environment:
+for the QNICE-FPGA: Just use `dist_kit/bin/QTRIS-V16.bit` instead of the
+above-mentioned `dist_kit/bin/QTRIS-V16.bit`. Or, you can run it regularly
+as an app within the Monitor environment:
 
 * If you copied the `qbin` folder on your SD Card, you can load and run it
   directly from the Monitor by entering `F R` and then `/qbin/q-tris.out`.
