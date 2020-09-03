@@ -30,6 +30,19 @@ conduct or even written coding guidelines. As written above: This is meant to
 be a relaxed project :-) Nevertheless, here are some basics that we expect you
 to follow when contributing.
 
+Style
+-----
+
+* Ensure consistency: When editing an existing file, no matter if it is code
+  or documentation, please stick as closely as you can to the style of the
+  existing file. We sometimes do have mixed programming styles in multiple
+  files; but we try to be consistent as possible within one file.
+  
+* Use American English. That means for example: color instead of colour,
+  behavior instead of behaviour, favorite instead of favourite,
+  center instead of centre, fiber instead of fibre,
+  license instead of licence, etc.
+
 Branches
 --------
 
