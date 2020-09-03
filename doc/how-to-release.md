@@ -190,11 +190,20 @@ Test, if synthesis works also on ISE for all platforms and perform some basic
 tests using ISE bistreams. But you can discard the generated bitstreams as
 they are not part of the release.
 
-Step 4: Update VERSIONS.txt
----------------------------
+Step 4: Update VERSIONS.txt and the documentation
+-------------------------------------------------
 
-Add all relevant news to `VERSIONS.txt`. Make sure, that you stick to the
-style and to the way how this file is structured.
+* Add all relevant news to `VERSIONS.txt`. Make sure, that you stick to the
+  style and to the way how this file is structured.
+
+* Mentally work through all the changes you made in the current release and
+  think about the implications that they might have to various parts of the
+  documentation: ISA/MMIO/device changes (programming card, intro document);
+  monitor changes (re-run `monitor/create_documentation.pl`); platforms? (`hw`
+  folder); general programming topics?; getting started topics?; etc.
+
+* Update the documentation and re-run LaTeX for the respective documentations
+  and check-in the PDF versions of those documents.
 
 Step 5: Merge to the `master` branch
 ------------------------------------
