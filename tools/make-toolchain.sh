@@ -3,6 +3,7 @@
 source ./detect.include
 
 $COMPILER bit2core.c -O3 -o bit2core
+$COMPILER rgb2q.c -o rgb2q -O3 -Wno-format
 
 cd ..
 $COMPILER assembler/qasm.c -o assembler/qasm

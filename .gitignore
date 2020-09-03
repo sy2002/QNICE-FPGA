@@ -80,4 +80,4 @@ c/qnice/compiler-backend/sysdef.h
 c/qnice/monitor-lib/lib/*.asm
 tools/qtransfer
 tools/bit2core
-
+tools/rgb2q

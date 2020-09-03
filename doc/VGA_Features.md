@@ -38,27 +38,47 @@ The Command and Status Register is decoded as follows
 The VGA output has a resolution of 640x480 pixels at 60 frames per second. The
 pixel clock freqeuncy is 25.2 MHz.
 
-The colour depth is board dependent: On the Nexys4DDR board there are 12 colour bits,
-while on the MEGA65 there are 24 colour bits.
+The color depth is board dependent: On the Nexys4DDR board there are 12 color bits,
+while on the MEGA65 there are 24 color bits.
 
-The QNICE project uses 15-bit colours, with 5 bits for each colour channel
-(RGB).  On some platforms (e.g. the Nexys4DDR) with lower colour resolution,
+## Special QNICE 15-bit color mode
+
+The QNICE project uses 15-bit colors, with 5 bits for each color channel
+(RGB).  On some platforms (e.g. the Nexys4DDR) with lower color resolution,
 the LSBs are discarded.
+
+The bit pattern of the QNICE 15-bit color format is: `XRRRRRGGGGGBBBBB`,
+where `X` is the background/foreground bit and the `R`, `G`, `B` bits are
+5-bit versions of the red, green, blue values. Since a conversion from the
+more straight forward 24-bit format to the 15-bit format is not something that
+many people can perform in their head, you can use the command line tool
+`tools/rgb2q`. For example, if you want to convert a straight green
+to QNICE 15-bit, then enter
+
+```
+tools/rgb2q 0x00FF00
+```
+
+and you will receive 
+
+```
+24-bit RGB value 00FF00 => 15-bit QNICE value 0x03E0
+```
 
 ## Display modes
 The QNICE project supports the following display modes:
-* 16-Colour text mode: 80x40 characters. Foreground and Background colours
+* 16-Color text mode: 80x40 characters. Foreground and Background colors
   selected individually from two different palettes.
-* (TBD) Lo-res graphics mode: 320x200 pixels, with 15-bit colours for each pixel.
-* (TBD) Hi-res (16-colour) graphics mode: 640x400 pixels, with colour selected from a
+* (TBD) Lo-res graphics mode: 320x200 pixels, with 15-bit colors for each pixel.
+* (TBD) Hi-res (16-color) graphics mode: 640x400 pixels, with color selected from a
   palette.
 
 ## Default palette
-The QNICE supports two palettes of 16 different colours. The initial colours are
+The QNICE supports two palettes of 16 different colors. The initial colors are
 from [here](http://alumni.media.mit.edu/~wad/color/palette.html), scaled down
 to 15 bits.
 
-Index | Colour      | RGB (5,5,5 bits) | 15-bit value | 24-bit value
+Index | Color       | RGB (5,5,5 bits) | 15-bit value | 24-bit value
 ----- | ----------- | ---------------- | ------------ | ------------
   0   | Black       | 0, 0, 0          | 0x0000       | 000000
   1   | Dark Gray   | 10, 10, 10       | 0x294A       | 505050
@@ -86,19 +106,19 @@ When in text mode, the hardware supports of to 20 screens (= 800 lines) of text.
 ## Video RAM
 The VGA module contains a (separate from the CPU) Video RAM. This memory is
 divided into three different blocks:
-* Display RAM: Contains the characters and colour (when in text mode) or the
+* Display RAM: Contains the characters and color (when in text mode) or the
   bitmap (when in graphics mode).
 * Font RAM: Contains the bitmaps of the individual characters.
-* Palette RAM: Contains the palette used when in 16-colour mode.
+* Palette RAM: Contains the palette used when in 16-color mode.
 
 All three memory blocks are accessed by first setting up the address and then
 reading/writing the data at the specified address.
 
 ### Display RAM
 The Display RAM has a size of 64 kW. This corresponds to 20 screens (= 800
-lines) of text when in 16-colour text mode.
+lines) of text when in 16-color text mode.
 
-The address in the Display RAM is dependent on the display mode. In 16-colour
+The address in the Display RAM is dependent on the display mode. In 16-color
 text mode, the address is calculated from the cursor position and the cursor
 offset. In other words:
 
@@ -108,13 +128,13 @@ Clearing of the entire Display RAM can be done by setting bit 8 of the `Command
 and Status Register`. This bit auto-clears when the clearing has completed (in
 65536/25.2 MHz = approximately 3 milliseconds).
 
-When in 16-colour text mode, the data in the Display RAM is interpreted as follows:
-* Bits 15-12 : Background colour selected from background palette.
-* Bits 11- 8 : Foreground colour selected from foreground palette.
+When in 16-color text mode, the data in the Display RAM is interpreted as follows:
+* Bits 15-12 : Background color selected from background palette.
+* Bits 11- 8 : Foreground color selected from foreground palette.
 * Bits  7- 0 : Character value. Selects one of 256 possible characters.
 
 ### Font RAM
-The Font RAM is used when in 16-colour text mode. Each of the 256 characters
+The Font RAM is used when in 16-color text mode. Each of the 256 characters
 has an associated 8x12 bitmap, i.e. 8 pixels wide and 12 pixels high.
 
 The Font RAM has a size of 8 kB, addressed one byte at a time (i.e. 0x0000 -
@@ -129,7 +149,7 @@ modifications to the default font, it is necessary to copy the default font to
 address 0x1000 - 0x1FFF, and to edit the font there.
 
 ### Palette RAM
-The Palette RAM is used when in 16-colour modes (both text and hi-res graphics).
+The Palette RAM is used when in 16-color modes (both text and hi-res graphics).
 The Palette RAM has a size of 32 words. This corresponds to two different palettes.
 
 * The addresses 0x00 - 0x0F are used for the foreground palette (when in text mode

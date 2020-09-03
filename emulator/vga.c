@@ -327,29 +327,29 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
 
 static Uint32 palette[32] = {
 
-   0x0080C078, 0x0098A8F8, 0x0028D0D0, 0x00F89030, // Foreground colours
+   0x0080C078, 0x0098A8F8, 0x0028D0D0, 0x00F89030, // Foreground colors
    0x00F8E830, 0x00E8D8B8, 0x00F8C8F0, 0x00F8F8F8,
    0x00000000, 0x00505050, 0x00A82020, 0x002848D0,
    0x00186810, 0x00804818, 0x008020C0, 0x00A0A0A0,
 
-   0x00000000, 0x00505050, 0x00A82020, 0x002848D0, // Background colours
+   0x00000000, 0x00505050, 0x00A82020, 0x002848D0, // Background colors
    0x00186810, 0x00804818, 0x008020C0, 0x00A0A0A0,
    0x0080C078, 0x0098A8F8, 0x0028D0D0, 0x00F89030,
    0x00F8E830, 0x00E8D8B8, 0x00F8C8F0, 0x00F8F8F8
 };
 
-static unsigned int palette_convert_24_to_15(Uint32 colour)
+static unsigned int palette_convert_24_to_15(Uint32 color)
 {
-   return ((colour & 0x00F80000) >> 9)
-        + ((colour & 0x0000F800) >> 6)
-        + ((colour & 0x000000F8) >> 3);
+   return ((color & 0x00F80000) >> 9)
+        + ((color & 0x0000F800) >> 6)
+        + ((color & 0x000000F8) >> 3);
 }
 
-static Uint32 palette_convert_15_to_24(unsigned int colour)
+static Uint32 palette_convert_15_to_24(unsigned int color)
 {
-   return ((colour << 9) & 0x00F80000)
-        + ((colour << 6) & 0x0000F800)
-        + ((colour << 3) & 0x000000F8);
+   return ((color << 9) & 0x00F80000)
+        + ((color << 6) & 0x0000F800)
+        + ((color << 3) & 0x000000F8);
 }
 
 unsigned int vga_read_register(unsigned int address)
