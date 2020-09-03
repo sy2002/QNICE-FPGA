@@ -76,6 +76,7 @@ c/qnice/mapfile
 c/test_programs/wolfram
 c/vclib
 c/vclib*.tgz
+c/qnice/compiler-backend/sysdef.h
 c/qnice/monitor-lib/lib/*.asm
 tools/qtransfer
 tools/bit2core

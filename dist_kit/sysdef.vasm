@@ -177,7 +177,6 @@
     ; Bit      5: Hardware cursor blink enable
     ; Bit      4: Hardware cursor mode: 1 - small
     ;                                   0 - large
-    ; Bits   2-0: Output color for the whole screen, bits (2, 1, 0) = RGB
 .equ VGA$CR_X           ,	0xFF31 ; VGA cursor X position
 .equ VGA$CR_Y           ,	0xFF32 ; VGA cursor Y position
 .equ VGA$CHAR           ,	0xFF33 ; write: VGA character to be displayed
@@ -193,6 +192,16 @@
 .equ VGA$HDMI_H_MIN     ,	0xFF36 ; HDMI Data Enable: X: minimum valid column
 .equ VGA$HDMI_H_MAX     ,	0xFF37 ; HDMI Data Enable: X: maximum valid column
 .equ VGA$HDMI_V_MAX     ,	0xFF38 ; HDMI Data Enable: Y: maximum row (line)                                
+.equ VGA$OFFS_FONT      ,	0xFF39 ; Offset in words into the Font RAM
+.equ VGA$FONT_ADDR      ,	0xFF3C ; Font Address
+.equ VGA$FONT_DATA      ,	0xFF3D ; Font Data
+.equ VGA$PALETTE_ADDR   ,	0xFF3E ; Palette Address
+.equ VGA$PALETTE_DATA   ,	0xFF3F ; Palette Data
+.equ VGA$ADJUST_X       ,	0xFF40 ; Pixels to adjust screen in X direction
+.equ VGA$ADJUST_Y       ,	0xFF41 ; Pixels to adjust screen in Y direction
+.equ VGA$SCAN_LINE      ,	0xFF42 ; Current scan line
+.equ VGA$SCAN_INT       ,	0xFF43 ; Scan line to generate interrupt on
+.equ VGA$SCAN_ISR       ,	0xFF44 ; Inserrupt Service Routine Address
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FFF0: MEGA65 (double block, 16 registers)
@@ -223,10 +232,23 @@
 .equ VGA$CLR_SCRN           ,	0x0100                  ; Clear screen
 .equ VGA$BUSY               ,	0x0200                  ; VGA is currently performing a task
 
-.equ VGA$COLOR_RED          ,	0x0004
-.equ VGA$COLOR_GREEN        ,	0x0002
-.equ VGA$COLOR_BLUE         ,	0x0001
-.equ VGA$COLOR_WHITE        ,	0x0007
+.equ VGA$COLOR_BLACK        ,	0x0000
+.equ VGA$COLOR_DARK_GRAY    ,	0x294A
+.equ VGA$COLOR_RED          ,	0x5484
+.equ VGA$COLOR_BLUE         ,	0x153A
+.equ VGA$COLOR_GREEN        ,	0x0DA2
+.equ VGA$COLOR_BROWN        ,	0x4123
+.equ VGA$COLOR_PURPLE       ,	0x4098
+.equ VGA$COLOR_LIGHT_GRAY   ,	0x5294
+.equ VGA$COLOR_LIGHT_GREEN  ,	0x430F
+.equ VGA$COLOR_LIGHT_BLUE   ,	0x4EBF
+.equ VGA$COLOR_CYAN         ,	0x175A
+.equ VGA$COLOR_ORANGE       ,	0x7E46
+.equ VGA$COLOR_YELLOW       ,	0x7FA6
+.equ VGA$COLOR_TAN          ,	0x7777
+.equ VGA$COLOR_PINK         ,	0x7F3E
+.equ VGA$COLOR_WHITE        ,	0x7FFF
+
 
 ; ========== CYCLE COUNTER ==========
 

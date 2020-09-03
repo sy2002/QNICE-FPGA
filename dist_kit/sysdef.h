@@ -177,7 +177,6 @@
     // Bit      5: Hardware cursor blink enable
     // Bit      4: Hardware cursor mode: 1 - small
     //                                   0 - large
-    // Bits   2-0: Output color for the whole screen, bits (2, 1, 0) = RGB
 #define VGA_CR_X           	0xFF31 // VGA cursor X position
 #define VGA_CR_Y           	0xFF32 // VGA cursor Y position
 #define VGA_CHAR           	0xFF33 // write: VGA character to be displayed
@@ -193,6 +192,16 @@
 #define VGA_HDMI_H_MIN     	0xFF36 // HDMI Data Enable: X: minimum valid column
 #define VGA_HDMI_H_MAX     	0xFF37 // HDMI Data Enable: X: maximum valid column
 #define VGA_HDMI_V_MAX     	0xFF38 // HDMI Data Enable: Y: maximum row (line)                                
+#define VGA_OFFS_FONT      	0xFF39 // Offset in words into the Font RAM
+#define VGA_FONT_ADDR      	0xFF3C // Font Address
+#define VGA_FONT_DATA      	0xFF3D // Font Data
+#define VGA_PALETTE_ADDR   	0xFF3E // Palette Address
+#define VGA_PALETTE_DATA   	0xFF3F // Palette Data
+#define VGA_ADJUST_X       	0xFF40 // Pixels to adjust screen in X direction
+#define VGA_ADJUST_Y       	0xFF41 // Pixels to adjust screen in Y direction
+#define VGA_SCAN_LINE      	0xFF42 // Current scan line
+#define VGA_SCAN_INT       	0xFF43 // Scan line to generate interrupt on
+#define VGA_SCAN_ISR       	0xFF44 // Inserrupt Service Routine Address
 //
 //---------------------------------------------------------------------------------------
 //  Block FFF0: MEGA65 (double block, 16 registers)
@@ -223,10 +232,23 @@
 #define VGA_CLR_SCRN           	0x0100                  // Clear screen
 #define VGA_BUSY               	0x0200                  // VGA is currently performing a task
 
-#define VGA_COLOR_RED          	0x0004
-#define VGA_COLOR_GREEN        	0x0002
-#define VGA_COLOR_BLUE         	0x0001
-#define VGA_COLOR_WHITE        	0x0007
+#define VGA_COLOR_BLACK        	0x0000
+#define VGA_COLOR_DARK_GRAY    	0x294A
+#define VGA_COLOR_RED          	0x5484
+#define VGA_COLOR_BLUE         	0x153A
+#define VGA_COLOR_GREEN        	0x0DA2
+#define VGA_COLOR_BROWN        	0x4123
+#define VGA_COLOR_PURPLE       	0x4098
+#define VGA_COLOR_LIGHT_GRAY   	0x5294
+#define VGA_COLOR_LIGHT_GREEN  	0x430F
+#define VGA_COLOR_LIGHT_BLUE   	0x4EBF
+#define VGA_COLOR_CYAN         	0x175A
+#define VGA_COLOR_ORANGE       	0x7E46
+#define VGA_COLOR_YELLOW       	0x7FA6
+#define VGA_COLOR_TAN          	0x7777
+#define VGA_COLOR_PINK         	0x7F3E
+#define VGA_COLOR_WHITE        	0x7FFF
+
 
 // ========== CYCLE COUNTER ==========
 
