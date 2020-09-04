@@ -58,27 +58,58 @@ CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
 
 * Every interrupt capable device must support the following signals:
   ```
-  -- "left/right" comments are meant to describe a situation, 
-  -- where the CPU is the leftmost device
+  -- "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
   int_n_out      : out std_logic;    -- left device's interrupt signal input
   grant_n_in     : in std_logic;     -- left device's grant signal output
+
   int_n_in       : in std_logic;     -- right device's interrupt signal output
   grant_n_out    : out std_logic;    -- right device's grant signal input  
   ```
   In this description, "left" is a device (or the CPU) that has the authority
-  to grant an interrupt to the "right" device. Ultimately this authoritry
-  stems from the CPU, of course. Due to the very nature of the Daisy chain
-  mechanism, an **interrupt request** is passed from device to device to "the
-  left" until it reaches the CPU and an **interrupt grant** is passed from
-  device to device to "the right" until it reaches the requesting device.
+  to grant an interrupt our device. And the "right" device is a device "right"
+  next to our device, which is dependent on our device granting an interrupt
+  to it. Ultimately this authoritry of course stems from the CPU. Due to the
+  very nature of the Daisy chain mechanism, an **interrupt request** is passed
+  from device to device to "the left" until it reaches the CPU and
+  an **interrupt grant** is passed from device to device to "the right" until
+  it reaches the requesting device.
 
-* There are two very important mechanism, that needs to be built into all
-  interrupt capable devices: 
+* There are two very important mechanisms, that need to be built into all
+  interrupt capable devices are "Pass-Through" and
+  "Wait-until-it-is-our-turn":
 
 
-  1. X
+  1. **Pass-Through:** If the device is idle regarding interrupts, i.e. it
+     does not need to request an interrupt, then it just passes through the
+     `int_n_in` (interrupt request output from the "right" device that is an
+     input for our device) to the `int_n_out` (interrupt request input of the
+     "left" device that is an output for our device). Additionally, the
+     `grant_n_in` (interrupt grant output from the "left" device, that is
+     an input for our device) to the `grant_n_out` (interrupt grant input
+     of the "right" device, that is an output for our device).
 
-  2. Y
+  2. **Wait-until-it-is-our-turn:** This mechanism might require a more
+    complex logic, so do not underestimate the subtleties: If our device needs
+    to request an interrupt (e.g. due to a timer that has fired or due to a
+    VGA scanline that has been reached), it might happen that we need to wait
+    rather long until it is our turn. The CPU might be busy with active ISRs
+    or devices with higher priorities (left of us) might be also waiting
+    to issue their request.
 
-* This all means also: The "closer" a device is to the "left" (i.e. near
+    Or - and this needs special attention - the device that is "right" of us
+    already started its interrupt request during our "idle" phase (as
+    described above). In such a case, we need to monitor the activity that is
+    already taking place and only if the already running activity is over, we
+    can request an interrupt. In other words: Our device **must never**
+    interfere with an already active transaction of a device that is located
+    to "the right" of us.
+
+    Depending on your requirements and the behavior you would like to
+    implement, this whole section means, that you might need a FIFO buffer
+    or similar mechanisms to queue waiting interrupts.
+
+* All of this means also: The "closer" a device is to the "left" (i.e. near
   to the CPU), the higher is the priority of its interrupts.
+
+* There is a well-commented reference implementation of the Daisy chain
+  handling in `vhdl/timer.vhd` in the process `fsm_output_decode`.
