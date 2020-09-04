@@ -1,7 +1,6 @@
-This file contains constraints of the QNICE-FPGA (env1) design, that should
-be mentioned, when writing the documentation.
+This file contains constraints of the QNICE-FPGA design
 
-Written by sy2002 / Last modified in August 2020
+Written by sy2002 / Last modified in September 2020
 
 ==============================================================================
     SD Card
