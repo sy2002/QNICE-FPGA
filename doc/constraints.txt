@@ -54,6 +54,13 @@ keyboards are tested and work:
 ==============================================================================    
 
 * The monitor needs to support 640x480 and 640x400 in 60 Hz.
+
+==============================================================================
+    EMULATOR
+==============================================================================    
+
+* The WebAssembly (WASM) emulator does not support the timer interrupt module.
+
 * The emulator does not support the following bits in VGA$STATE:
   Bit 7: right now, VGA is always on
   Bit 5: right now, if the HW cursor is on, then it always blinks
@@ -193,7 +200,7 @@ keyboards are tested and work:
   "[Synth 8-5787] Register current_cache_line_update_flags_reg in module
   hyperram is clocked by two different clocks in the same process. This may
   cause simulation mismatches and synthesis errors. Consider using different
-  process statements  ["QNICE-FPGA/vhdl/hw/MEGA65/drivers/hyperram.vhdl":491]
+  process statements ["QNICE-FPGA/vhdl/hw/MEGA65/drivers/hyperram.vhdl":491]
 
 * For the QNICE @ MEGA65 release at hand, we used the very first MEGA65
   prototype computer, which has the board revision 2 (MEGA65R2). There where
@@ -211,5 +218,8 @@ keyboards are tested and work:
 
 * The ROMs are too large and waste FPGA resources. When the FPGA is large
   enough (such as the Artix-7 used on the Nexys 4 DDR and in the MEGA65),
-  this is not a problem. See also the following issue:
+  this is not a problem. On Vivado this was solvable by introducing
+  dynamic ROM sizes depending on the ROM file that is being loaded,
+  but on ISE this did not work, so we needed to use `vhdl/block_rom_ise.vhd`
+  which has a constant ROM size of 8k words (16kB) per ROM.
   
