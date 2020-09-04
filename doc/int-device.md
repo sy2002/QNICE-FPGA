@@ -95,7 +95,6 @@ CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
     rather long until it is our turn. The CPU might be busy with active ISRs
     or devices with higher priorities (left of us) might be also waiting
     to issue their request.
-
     Or - and this needs special attention - the device that is "right" of us
     already started its interrupt request during our "idle" phase (as
     described above). In such a case, we need to monitor the activity that is
@@ -103,7 +102,6 @@ CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
     can request an interrupt. In other words: Our device **must never**
     interfere with an already active transaction of a device that is located
     to "the right" of us.
-
     Depending on your requirements and the behavior you would like to
     implement, this whole section means, that you might need a FIFO buffer
     or similar mechanisms to queue waiting interrupts.
