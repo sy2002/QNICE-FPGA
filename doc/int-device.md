@@ -104,7 +104,8 @@ CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
     to "the right" of us.
     Depending on your requirements and the behavior you would like to
     implement, this whole section means, that you might need a FIFO buffer
-    or similar mechanisms to queue waiting interrupts.
+    to queue waiting interrupts or other mechanisms **to avoid blocking your
+    device while it waits for its turn**.
 
 * All of this means also: The "closer" a device is to the "left" (i.e. near
   to the CPU), the higher is the priority of its interrupts.
