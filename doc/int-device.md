@@ -30,9 +30,14 @@ all the details. Here is the summary:
 
 * As soon as the CPU is able to service the interrupt, it will pull
   `IGRANT_N` to `0`. This means, that the device shall now put the address of
-  the desired ISR onto the data bus.
+  the desired ISR onto the data bus. Please notice: It might take a while
+  until the CPU is able to service the interrupt, because for example there
+  might be already an ISR running and then the interrupt requests of other
+  devices might be serviced first. So any device needs to be prepared to
+  wait "indefinitly" long until the interrupt request is granted.
 
-* As soon as the data is valid, the device pulls `INT_N` back to `1`.
+* As soon as the ISR address data that the device put on the data bus is
+  valid, the device pulls `INT_N` back to `1`.
 
 * The CPU now reads the data and pulls `IGRANT_N` to `1` to notify the device
   that it must release the data bus. The CPU then jumps to this address and
@@ -42,6 +47,10 @@ all the details. Here is the summary:
 
 Daisy chaining
 --------------
+
+```
+CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
+```
 
 * The basic idea of the Daisy chaining protocol used at QNICE-FPGA is that
   no device is aware of its "position" within the Daisy chain. It might be

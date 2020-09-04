@@ -36,6 +36,7 @@ Folder Structure
 | constraints.txt   | Known constraints of the QNICE-FPGA design: SD Cards and keyboards that are working, VGA monitor requirements, character encoding, languages, fonts, and standard C library.
 | emumount.txt      | Hints about creating and mounting FAT32 devices in the emulator.
 | how-to-release.md | Checklist for making a new release.
+| int-device.md     | Description of how any interrupt capable device needs to be implemented.
 | MIPS.md           | Performance measurements and QNICE-FPGA performance characteristics.
 | requirements.txt  | Minimum requirements to work with QNICE-FPGA.
 | vbcc.txt          | Hints for improving performance while using the vbcc compiler system.
