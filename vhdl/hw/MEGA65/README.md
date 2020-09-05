@@ -91,14 +91,17 @@ in case you need to get these files from the original source.
 Important: Due to the cursor key enhancements, `matrix_col_idx` needs now
 to count from 0 to 9 (versus 0 to 8 in the original driver).
 
-### !!! WIP !!! HyperRAM Driver
+### HyperRAM Driver
+
+**Currently, in QNICE-FPGA release V1.6, the HyperRAM driver is not stable,
+yet. See issues #90 and #91**
 
 The MEGA65 HyperRAM driver consists of the file `hyperram.vhdl`.
 
-I took it on June, 6 2020 from the
+I took it on August, 22 2020 from the
 [MEGA65 GitHub Core Repo](https://github.com/MEGA65/mega65-core)
-using branch `165-hyperram`.
-[This link points to the relevant Commit #a100863](https://github.com/MEGA65/mega65-core/blob/a100863955f5feb67949f872cbb112d81aa7ce1e/src/vhdl/hyperram.vhdl),
+using branch `138-hdmi-audio-27mhz`.
+[This link points to the relevant Commit #56c61c1](https://github.com/MEGA65/mega65-core/blob/56c61c112d9e62236d5beb69c16a3605ac9723d7/src/vhdl/hyperram.vhdl),
 in case you need to get the file from the original source.
 
 #### Modifications
