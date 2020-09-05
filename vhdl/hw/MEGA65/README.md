@@ -94,7 +94,9 @@ to count from 0 to 9 (versus 0 to 8 in the original driver).
 ### HyperRAM Driver
 
 **Currently, in QNICE-FPGA release V1.6, the HyperRAM driver is not stable,
-yet. See issues #90 and #91**
+yet. See issues
+[#90](https://github.com/sy2002/QNICE-FPGA/issues/90) and
+[#91](https://github.com/sy2002/QNICE-FPGA/issues/91).**
 
 The MEGA65 HyperRAM driver consists of the file `hyperram.vhdl`.
 
