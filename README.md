@@ -107,11 +107,10 @@ Get started using actual FPGA hardware:
 * Compile the mandelbrot demo by entering
   `assembler/asm demos/mandel.asm`.
 
-* On macOS, you now have an ASCII file in the clipboard/pasteboard that starts
-  with the line `0xA000 0x0F80`. On other operating systems, you might see an
-  error message, stating that `pbcopy` is not available. You can savely
-  ignore this and manually copy the file `demos/mandel.out` into your
-  clipboard/pasteboard.
+* On macOS and if you have xclip installed also on Linux, you now have an
+  ASCII file in the clipboard/pasteboard that starts with the line
+  `0xA000 0x0F80`. Alternatively, you can manually copy the file
+  `demos/mandel.out` into your clipboard/pasteboard.
 
 * Open a serial terminal program, configure it as 115,200 baud, 8-N-1, CTS ON,
   attach the QNICE-FPGA, turn it on, after the bitstream loaded from the SD
