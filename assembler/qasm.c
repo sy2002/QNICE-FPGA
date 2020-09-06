@@ -561,6 +561,13 @@ int assemble() {
     if (translate_mnemonic(token, &opcode, &type)) /* First token is a mnemonic or a directive */
       strcpy(entry->mnemonic, token);
     else { /* If the first token is neither a mnemonic nor an opcode, assume it is a label */
+      if (entry->source[0] == ' ') {    // Whatever it is, it did not start in column 1 and is thus not a label!
+        sprintf(entry->error_text, "Line %d: No valid mnemonic/no label (does not start in column 1)", line_counter);
+        PRINT_ERROR;
+        error_counter++;
+        continue;
+      }
+
       if (label[strlen(label) - 1] == '!') { /* This label should be exported! */
         label[strlen(label) - 1] = (char) 0;
         entry->export = 1;
