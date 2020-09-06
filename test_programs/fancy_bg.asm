@@ -29,7 +29,17 @@ TITLE_STR       .ASCII_W "Fancy background installed. Call F000 to uninstall."
 S_ISR_LINE      .DW 0x0000
 S_ISR_J         .DW 0x0000
 
-S_ISR           INCRB                           ; make sure, R8..R11 are not
+S_ISR           INCRB
+
+                MOVE    VGA$PALETTE_ADDR, R0
+                MOVE    16, @R0++
+                MOVE    0x2222, @R0
+
+                DECRB
+                RTI
+
+
+S_ISR1           INCRB                           ; make sure, R8..R11 are not
                 MOVE    R8, R0                  ; changed in this ISR
                 MOVE    R9, R1
                 MOVE    R10, R2
