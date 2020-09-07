@@ -88,9 +88,6 @@ Getting Started
 Acknowledgements
 ----------------
 
-Acknowledgements
-----------------
-
 * [sy2002](http://www.sy2002.de): Creator and maintainer of QNICE-FPGA:
   hardware development (VHDL), FAT32 library, additional Monitor libraries and
   functions, Q-TRIS, additional QNICE specific vbcc toolchain,
