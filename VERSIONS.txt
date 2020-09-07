@@ -1,3 +1,18 @@
+Version 1.7     xxxxxxxx, yy zzzz
+=================================
+
+* CPU: Implemented "FastPath" feature that makes sure, that all instructions
+  that operate on registers only (including branches) are from now on only
+  taking two CPU cycles. This leads to an average speed-up of 2% compared
+  to V1.6 and a new peak performance of 14.67 MIPS which is an improvement
+  of 8% compared to V1.6.
+
+* EMULATOR: Adjusted the standard emulation speed to 13.21 MIPS because this
+  is the average Q-TRIS performance. 
+
+WIP * Q-TRIS: Color, switchable to classic, ...
+  Adjusted (slowed down) to match the CPU's speedup.
+
 Version 1.6     September, 7 2020
 =================================
 

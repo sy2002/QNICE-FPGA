@@ -23,6 +23,11 @@
 ; it loads to 0x8000. #define QTRIS_STANDALONE for the standalone mode.
 ;
 ; done by sy2002 in January and February 2016
+;
+; ****************************************************************************
+; 
+; !!! All test results from V1.7 on are in doc/MIPS.md !!!
+;
 ; ****************************************************************************
 ;
 ; PERFORMANCE TEST VERSION TO DETERMINE THE MIPS DURING PLAYING Q-TRIS

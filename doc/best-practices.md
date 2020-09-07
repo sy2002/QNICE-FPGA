@@ -46,6 +46,11 @@ Native QNICE assembler
   add more logic to `SYSCALL`.
 * Optionally include `dist_kit/monitor.def`, if you need "operating system"
   functions such as "return to monitor" aka `SYSCALL(exit, 1)` or others.
+* When writing a tight inner loop which needs maximum performance, be aware
+  that register to register operations only need two CPU cycles, so that
+  for example your inner loop should branch to an address stored in a register
+  like `RBRA R8, 1` versus directly addressing a label like
+  `RBRA MY_LABEL, 1`. Also `ADD R8, R9` is faster than `ADD @R8, R9`.
 
 ### Columns and spacing
 

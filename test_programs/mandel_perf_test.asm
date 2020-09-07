@@ -3,6 +3,12 @@
 ; performance testbed done and used for CPU improvement by sy2002 in May 2016
 ; added instruction counter by sy2002 in July 2020
 ;
+; ****************************************************************************
+; 
+; !!! All test results from V1.7 on are in doc/MIPS.md !!!
+;
+; ****************************************************************************
+;
 ; Results on August, 18th 2020 (Vivado on Nexys 4 DDR):
 
 ; speed and cycle count comparison using VGA (after three runs due to cater
