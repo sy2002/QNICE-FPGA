@@ -27,6 +27,7 @@
 ; Version 1.2 done on August, 18 2020: Slow down by 7% to cater for the speed
 ; increase of the ISA V1.6
 ;
+; !!! WIP Version 2.0: Classic mode, color mode
 ; ****************************************************************************
 
 #undef QTRIS_STANDALONE
@@ -41,7 +42,7 @@
 #else
                 .ORG    0x8000                  ; start at 0x8000
 #endif
-                RSUB    INIT_SCREENHW, 1        ; clear screen, no hw cursor
+                RSUB    INIT_SCREENHW, 1        ; clear screen, init vga hw
                 RSUB    INIT_GLOBALS, 1         ; init global variables
                 RSUB    PAINT_PLAYFIELD, 1      ; paint playfield & logo
                 RSUB    PAINT_STATS, 1          ; paint score, level, etc.
@@ -2125,6 +2126,7 @@ _CLR_RECT_XL    MOVE    R4, @R2                 ; clear position
 ; ****************************************************************************
 ; INIT_SCREENHW
 ;   Clear the screen and do not display the hardware cursor
+;   Modify the palette to have the classic "full" "very" green color
 ; ****************************************************************************
 
 INIT_SCREENHW   INCRB
@@ -2135,10 +2137,17 @@ INIT_SCREENHW   INCRB
                 MOVE    0x00E0, @R0             ; enable everything
                 OR      VGA$COLOR_GREEN, @R0    ; Set font color to green
 #endif
-                RSUB    CLR_SCR, 1
+                RSUB    CLR_SCR, 1              ; clear screen
+
                 NOT     VGA$EN_HW_CURSOR, R1    ; no blinking hw cursor
                 AND     @R0, R1
                 MOVE    R1, @R0
+
+                MOVE    VGA$PALETTE_ADDR, R0    ; set "full" "very" green
+                MOVE    VGA$PALETTE_DATA, R1
+                MOVE    0, @R0
+                MOVE    0x03E0, @R1
+
                 DECRB
                 RET
 

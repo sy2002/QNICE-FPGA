@@ -95,10 +95,10 @@ port (
    tin_we            : out std_logic;
    tin_reg           : out std_logic_vector(2 downto 0);
    
-   -- VGA register range $FF30..$FF3F
+   -- VGA register range $FF30..$FF47
    vga_en            : buffer std_logic;
    vga_we            : out std_logic;
-   vga_reg           : out std_logic_vector(3 downto 0);
+   vga_reg           : out std_logic_vector(4 downto 0);
 
    -- HyerRAM register range $FFF0 .. $FFF3
    hram_en           : buffer std_logic;
@@ -113,17 +113,6 @@ port (
 end mmio_mux;
 
 architecture Behavioral of mmio_mux is
-
-component debounce is
-generic (
-   counter_size  : integer
-);
-port (
-   clk           : in std_logic;
-   button        : in std_logic;
-   result        : out std_logic
-);
-end component;
 
 signal ram_enable_i : std_logic;
 signal rom_enable_i : std_logic;
@@ -203,10 +192,11 @@ begin
    tin_we            <= tin_en and data_dir and data_valid;
    tin_reg           <= addr(2 downto 0);   
 
-   -- Block FF30: VGA (double block, 16 registers)
-   vga_en            <= '1' when addr(15 downto 4) = x"FF3" and no_igrant_active else '0';            -- FF30
+   -- Block FF30: VGA (tripple block, 24 registers)
+   vga_en            <= '1' when (addr(15 downto 4) = x"FF3" or addr(15 downto 3) = x"FF4" & "0")
+                        and no_igrant_active else '0';            -- FF30
    vga_we            <= vga_en and data_dir and data_valid;
-   vga_reg           <= addr(3 downto 0);
+   vga_reg           <= (not addr(4)) & addr(3 downto 0);
    
    -- Block FFF0: MEGA65 block, currently only HyperRAM
    hram_en           <= '1' when GD_HRAM and addr(15 downto 4) = x"FFF" and no_igrant_active else '0';   -- FFF0
@@ -239,7 +229,7 @@ begin
    end process;
 
    -- debounce the reset button
-   reset_btn_debouncer : debounce
+   reset_btn_debouncer : entity work.debounce
       generic map (
          counter_size => 18            -- @TODO change to 19 when running with 100 MHz
       )
@@ -250,15 +240,15 @@ begin
       );
 
    -- PORE state machine: advance state
-   fsm_advance_state : process (clk, debounced_hw_reset)
+   fsm_advance_state : process (clk)
    begin
-      if debounced_hw_reset = '1' then
-         global_state <= gsReset;
-         reset_counter <= (others => '0');
-      else
-         if rising_edge(clk) then
-            global_state      <= fsm_next_global_state;
-            reset_counter     <= fsm_reset_counter;
+      if rising_edge(clk) then
+         global_state      <= fsm_next_global_state;
+         reset_counter     <= fsm_reset_counter;
+
+         if debounced_hw_reset = '1' then
+            global_state <= gsReset;
+            reset_counter <= (others => '0');
          end if;
       end if;
    end process;

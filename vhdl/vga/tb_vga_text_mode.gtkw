@@ -1,0 +1,32 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Mon Aug 24 17:03:07 2020
+[*]
+[dumpfile] "/home/mike/git/sy2092/QNICE-FPGA/vhdl/vga/tb_vga_text_mode.ghw"
+[dumpfile_mtime] "Mon Aug 24 17:03:00 2020"
+[dumpfile_size] 945211
+[savefile] "/home/mike/git/sy2092/QNICE-FPGA/vhdl/vga/tb_vga_text_mode.gtkw"
+[timestart] 0
+[size] 1920 1011
+[pos] -1 -1
+*-34.740051 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.tb_vga_text_mode.
+[treeopen] top.tb_vga_text_mode.i_vga_text_mode.
+[sst_width] 249
+[signals_width] 230
+[sst_expanded] 1
+[sst_vpaned_height] 455
+@22
+#{top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[9:0]} top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[9] top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[8] top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[7] top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[6] top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[5] top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[4] top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[3] top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[2] top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[1] top.tb_vga_text_mode.i_vga_text_mode.pixel_x_i[0]
+#{top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[9:0]} top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[9] top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[8] top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[7] top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[6] top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[5] top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[4] top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[3] top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[2] top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[1] top.tb_vga_text_mode.i_vga_text_mode.pixel_y_i[0]
+#{top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[15:0]} top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[15] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[14] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[13] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[12] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[11] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[10] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[9] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[8] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[7] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[6] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[5] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[4] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[3] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[2] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[1] top.tb_vga_text_mode.i_vga_text_mode.display_addr_o[0]
+#{top.tb_vga_text_mode.i_vga_text_mode.display_data_i[15:0]} top.tb_vga_text_mode.i_vga_text_mode.display_data_i[15] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[14] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[13] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[12] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[11] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[10] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[9] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[8] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[7] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[6] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[5] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[4] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[3] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[2] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[1] top.tb_vga_text_mode.i_vga_text_mode.display_data_i[0]
+#{top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[9:0]} top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[9] top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[8] top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[7] top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[6] top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[5] top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[4] top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[3] top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[2] top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[1] top.tb_vga_text_mode.i_vga_text_mode.font_addr_o[0]
+#{top.tb_vga_text_mode.i_vga_text_mode.font_data_i[7:0]} top.tb_vga_text_mode.i_vga_text_mode.font_data_i[7] top.tb_vga_text_mode.i_vga_text_mode.font_data_i[6] top.tb_vga_text_mode.i_vga_text_mode.font_data_i[5] top.tb_vga_text_mode.i_vga_text_mode.font_data_i[4] top.tb_vga_text_mode.i_vga_text_mode.font_data_i[3] top.tb_vga_text_mode.i_vga_text_mode.font_data_i[2] top.tb_vga_text_mode.i_vga_text_mode.font_data_i[1] top.tb_vga_text_mode.i_vga_text_mode.font_data_i[0]
+#{top.tb_vga_text_mode.i_vga_text_mode.palette_addr_o[4:0]} top.tb_vga_text_mode.i_vga_text_mode.palette_addr_o[4] top.tb_vga_text_mode.i_vga_text_mode.palette_addr_o[3] top.tb_vga_text_mode.i_vga_text_mode.palette_addr_o[2] top.tb_vga_text_mode.i_vga_text_mode.palette_addr_o[1] top.tb_vga_text_mode.i_vga_text_mode.palette_addr_o[0]
+#{top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[11:0]} top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[11] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[10] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[9] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[8] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[7] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[6] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[5] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[4] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[3] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[2] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[1] top.tb_vga_text_mode.i_vga_text_mode.palette_data_i[0]
+@23
+#{top.tb_vga_text_mode.i_vga_text_mode.colour_o[11:0]} top.tb_vga_text_mode.i_vga_text_mode.colour_o[11] top.tb_vga_text_mode.i_vga_text_mode.colour_o[10] top.tb_vga_text_mode.i_vga_text_mode.colour_o[9] top.tb_vga_text_mode.i_vga_text_mode.colour_o[8] top.tb_vga_text_mode.i_vga_text_mode.colour_o[7] top.tb_vga_text_mode.i_vga_text_mode.colour_o[6] top.tb_vga_text_mode.i_vga_text_mode.colour_o[5] top.tb_vga_text_mode.i_vga_text_mode.colour_o[4] top.tb_vga_text_mode.i_vga_text_mode.colour_o[3] top.tb_vga_text_mode.i_vga_text_mode.colour_o[2] top.tb_vga_text_mode.i_vga_text_mode.colour_o[1] top.tb_vga_text_mode.i_vga_text_mode.colour_o[0]
+[pattern_trace] 1
+[pattern_trace] 0

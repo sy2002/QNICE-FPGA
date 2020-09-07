@@ -183,7 +183,6 @@ VGA$STATE           .EQU 0xFF30 ; VGA status register
     ; Bit      5: Hardware cursor blink enable
     ; Bit      4: Hardware cursor mode: 1 - small
     ;                                   0 - large
-    ; Bits   2-0: Output color for the whole screen, bits (2, 1, 0) = RGB
 VGA$CR_X            .EQU 0xFF31 ; VGA cursor X position
 VGA$CR_Y            .EQU 0xFF32 ; VGA cursor Y position
 VGA$CHAR            .EQU 0xFF33 ; write: VGA character to be displayed
@@ -199,6 +198,16 @@ VGA$OFFS_RW         .EQU 0xFF35 ; Offset in bytes that is used, when you read
 VGA$HDMI_H_MIN      .EQU 0xFF36 ; HDMI Data Enable: X: minimum valid column
 VGA$HDMI_H_MAX      .EQU 0xFF37 ; HDMI Data Enable: X: maximum valid column
 VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)                                
+VGA$OFFS_FONT       .EQU 0xFF39 ; Offset in words into the Font RAM
+VGA$FONT_ADDR       .EQU 0xFF3C ; Font Address
+VGA$FONT_DATA       .EQU 0xFF3D ; Font Data
+VGA$PALETTE_ADDR    .EQU 0xFF3E ; Palette Address
+VGA$PALETTE_DATA    .EQU 0xFF3F ; Palette Data
+VGA$ADJUST_X        .EQU 0xFF40 ; Pixels to adjust screen in X direction
+VGA$ADJUST_Y        .EQU 0xFF41 ; Pixels to adjust screen in Y direction
+VGA$SCAN_LINE       .EQU 0xFF42 ; Current scan line
+VGA$SCAN_INT        .EQU 0xFF43 ; Scan line to generate interrupt on
+VGA$SCAN_ISR        .EQU 0xFF44 ; Inserrupt Service Routine Address
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FFF0: MEGA65 (double block, 16 registers)
@@ -229,10 +238,23 @@ VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling ena
 VGA$CLR_SCRN            .EQU    0x0100                  ; Clear screen
 VGA$BUSY                .EQU    0x0200                  ; VGA is currently performing a task
 
-VGA$COLOR_RED           .EQU    0x0004
-VGA$COLOR_GREEN         .EQU    0x0002
-VGA$COLOR_BLUE          .EQU    0x0001
-VGA$COLOR_WHITE         .EQU    0x0007
+VGA$COLOR_BLACK         .EQU    0x0000
+VGA$COLOR_DARK_GRAY     .EQU    0x294A
+VGA$COLOR_RED           .EQU    0x5484
+VGA$COLOR_BLUE          .EQU    0x153A
+VGA$COLOR_GREEN         .EQU    0x0DA2
+VGA$COLOR_BROWN         .EQU    0x4123
+VGA$COLOR_PURPLE        .EQU    0x4098
+VGA$COLOR_LIGHT_GRAY    .EQU    0x5294
+VGA$COLOR_LIGHT_GREEN   .EQU    0x430F
+VGA$COLOR_LIGHT_BLUE    .EQU    0x4EBF
+VGA$COLOR_CYAN          .EQU    0x175A
+VGA$COLOR_ORANGE        .EQU    0x7E46
+VGA$COLOR_YELLOW        .EQU    0x7FA6
+VGA$COLOR_TAN           .EQU    0x7777
+VGA$COLOR_PINK          .EQU    0x7F3E
+VGA$COLOR_WHITE         .EQU    0x7FFF
+
 
 ; ========== CYCLE COUNTER ==========
 

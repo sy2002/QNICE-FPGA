@@ -40,56 +40,6 @@ end QNICE_CPU;
 
 architecture beh of QNICE_CPU is
 
--- QNICE specific register file
-component register_file is
-port (
-   clk         : in  std_logic;   -- clock: writing occurs at the rising edge
-   
-   -- input stack pointer (SP) status register (SR) and program counter (PC) so
-   -- that they can conveniently be read when adressing 13 (SP), 14 (SR), 15 (PC)
-   SP          : in std_logic_vector(15 downto 0);   
-   SR          : in std_logic_vector(15 downto 0);
-   PC          : in std_logic_vector(15 downto 0);   
-   
-   -- select the appropriate register window for the lower 8 registers
-   sel_rbank   : in  std_logic_vector(7 downto 0);
-      
-   -- read register addresses and read result
-   read_addr1  : in  std_logic_vector(3 downto 0);
-   read_addr2  : in  std_logic_vector(3 downto 0);
-   read_data1  : out std_logic_vector(15 downto 0);
-   read_data2  : out std_logic_vector(15 downto 0);
-   
-   -- write register address & data and write enable
-   write_addr  : in  std_logic_vector(3 downto 0);
-   write_data  : in  std_logic_vector(15 downto 0);
-   write_en    : in  std_logic 
-);
-end component;
-
--- ALU
-component alu is
-port (
-   opcode      : in std_logic_vector(3 downto 0);
-   
-   -- input1 is meant to be source (Src) and input2 is meant to be destination (Dst)
-   -- c_in is carry in
-   input1      : in IEEE.NUMERIC_STD.unsigned(15 downto 0);
-   input2      : in IEEE.NUMERIC_STD.unsigned(15 downto 0);
-   c_in        : in std_logic;
-   x_in        : in std_logic;
-   
-   -- ALU operation result and flags
-   result      : out IEEE.NUMERIC_STD.unsigned(15 downto 0);
-   X           : out std_logic;
-   C           : out std_logic;
-   Z           : out std_logic;
-   N           : out std_logic;
-   V           : out std_logic
-);
-end component;      
-
-
 -- CPU's main state machine
 type tCPU_States is (cs_reset,
                      
@@ -245,7 +195,7 @@ begin
    Dst_Value_Fast <= reg_read_data2 when FastPath and cpu_state = cs_execute else Dst_Value;
       
    -- Registers
-   Registers : register_file
+   Registers : entity work.register_file
       port map
       (
          clk         => CLK,
@@ -263,7 +213,7 @@ begin
       );
       
    -- ALU
-   QNICE_ALU : alu
+   QNICE_ALU : entity work.alu
       port map
       (
          opcode      => Opcode,
@@ -353,7 +303,11 @@ begin
    
    fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, SP_org, SR_org, PC_org,
                                 DATA_IN, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
+<<<<<<< HEAD
                                 Instruction, Opcode, Ctrl_Cmd, FastPath,
+=======
+                                Instruction, Opcode, FastPath, Ctrl_Cmd,
+>>>>>>> dev-vga-colour
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 Src_Value_Fast, Dst_Value_Fast,
                                 Bra_Mode, Bra_Condition, Bra_Neg,

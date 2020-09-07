@@ -57,30 +57,6 @@ end timer_module;
 
 architecture beh of timer_module is
 
-component timer is
-generic (
-   CLK_FREQ       : natural;                             -- system clock in Hertz
-   IS_SIMULATION  : boolean := false                     -- is the module running in simulation?
-);
-port (
-   clk            : in std_logic;                        -- system clock
-   reset          : in std_logic;                        -- async reset
-   
-   -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
-   int_n_out      : out std_logic;                        -- left device's interrupt signal input
-   grant_n_in     : in std_logic;                         -- left device's grant signal output
-   int_n_in       : in std_logic;                         -- right device's interrupt signal output
-   grant_n_out    : out std_logic;                        -- right device's grant signal input
-   
-   -- Registers
-   en             : in std_logic;                        -- enable for reading from or writing to the bus
-   we             : in std_logic;                        -- write to the registers via system's data bus
-   reg            : in std_logic_vector(1 downto 0);     -- register selector
-   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
-   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus
-);
-end component;
-
 signal   timer0_data_out      : std_logic_vector(15 downto 0);
 signal   timer1_data_out      : std_logic_vector(15 downto 0);
 
@@ -109,7 +85,7 @@ begin
    t1_reg_tmp <= std_logic_vector(unsigned(reg) - x"3");
    t1_reg <= t1_reg_tmp(1 downto 0);
 
-   timer0 : timer
+   timer0 : entity work.timer
    generic map
    (
       CLK_FREQ => CLK_FREQ,
@@ -132,7 +108,7 @@ begin
       data_out => timer0_data_out
    );
    
-   timer1 : timer
+   timer1 : entity work.timer
    generic map
    (
       CLK_FREQ => CLK_FREQ,

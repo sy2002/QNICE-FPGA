@@ -33,25 +33,6 @@ end alu;
 
 architecture beh of alu is
 
-component alu_shifter is
-port (
-   -- dir = 0 means left, direction = 1 means right
-   dir         : in std_logic;
-
-   -- input1 is meant to be source (Src) and input2 is meant to be destination (Dst)
-   -- c_in is carry in, x_in is X-flag in
-   input1      : in unsigned(15 downto 0);
-   input2      : in unsigned(15 downto 0);
-   c_in        : in std_logic;
-   x_in        : in std_logic;
-   
-   -- result
-   result      : out unsigned(15 downto 0);
-   c_out       : out std_logic;
-   x_out       : out std_logic
-);
-end component;
-
 signal s_input1 : signed(15 downto 0);
 signal s_input2 : signed(15 downto 0);
 
@@ -68,7 +49,7 @@ signal shifter_x_out : std_logic;
 
 begin
 
-   shifter : alu_shifter
+   shifter : entity work.alu_shifter
       port map
       (
          dir => not opcode(3) and opcode(2) and opcode(1) and not opcode(0), -- SHR opcode = 0110

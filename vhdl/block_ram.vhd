@@ -36,11 +36,6 @@ signal bram : bram_t := (others => x"0000");
 
 signal output : std_logic_vector(15 downto 0);
 
-signal counter : std_logic := '1'; -- important to be initialized to one
-signal address_old : std_logic_vector(14 downto 0) := (others => 'U');
-signal we_old : std_logic := '0';
-signal async_reset : std_logic;
-
 begin
 
    -- process for read and write operation on the falling clock edge
@@ -54,11 +49,9 @@ begin
          if ce = '1' then
             output <= bram(conv_integer(address));
          else
-            output <= (others => 'U');
+            output <= (others => '0');
          end if;
          
-         address_old <= address;
-         we_old <= we;
       end if;
    end process;
    
@@ -72,40 +65,6 @@ begin
       end if;
    end process;
    
-   -- generate a busy signal for one clock cycle, because this is
-   -- the read delay that this block RAM is having
-   manage_busy : process (clk, async_reset)
-   begin
-      if rising_edge(clk) then
-         if ce = '1' then
-            counter <= not counter;
-         else
-            counter <= '1'; -- reverse logic because busy needs to be "immediatelly" one when needed
-         end if;
-      end if;
-
-      if async_reset = '1' then
-         counter <= '1';
-      end if;
-   end process;
-   
-   -- address changes or changes between reading and writing are
-   -- re-triggering the busy-cycle as this means a new operation for the BRAM
-   manage_busy_on_changes : process (ce, we, we_old, address, address_old)
-   begin
-      if ce = '1' then
-         if we /= we_old then
-            async_reset <= '1';
-         elsif address /= address_old then
-            async_reset <= '1';
-         else
-            async_reset <= '0';
-         end if;
-      else
-         async_reset <= '0';
-      end if;      
-   end process;
-
    busy <= '0';
    
 end beh;

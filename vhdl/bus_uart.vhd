@@ -44,58 +44,6 @@ end bus_uart;
 
 architecture beh of bus_uart is
 
-component basic_uart is
-generic (
-   DIVISOR: natural
-);
-port (
-   clk: in std_logic;                       
-   reset: in std_logic;
-
-   -- client interface: receive data
-   rx_data: out std_logic_vector(7 downto 0); -- received byte
-   rx_enable: out std_logic;                  -- validates received byte (1 system clock spike)
-   
-   -- client interface: send data
-   tx_data: in std_logic_vector(7 downto 0);  -- byte to send
-   tx_enable: in std_logic;                   -- validates byte to send if tx_ready is '1'
-   tx_ready: out std_logic;                   -- if '1', we can send a new byte, otherwise we won't take it
-
-   -- physical interface
-   rx: in std_logic;
-   tx: out std_logic   
-);
-end component;
-
-component ring_buffer is
-  generic (
-    RAM_WIDTH : natural;
-    RAM_DEPTH : natural
-  );
-  port (
-    clk : in std_logic;
-    rst : in std_logic;
- 
-    -- Write port
-    wr_en : in std_logic;
-    wr_data : in std_logic_vector(RAM_WIDTH - 1 downto 0);
- 
-    -- Read port
-    rd_en : in std_logic;
-    rd_valid : out std_logic;
-    rd_data : out std_logic_vector(RAM_WIDTH - 1 downto 0);
- 
-    -- Flags
-    empty : out std_logic;
-    empty_next : out std_logic;
-    full : out std_logic;
-    full_next : out std_logic;
- 
-    -- The number of elements in the FIFO
-    fill_count : out integer range RAM_DEPTH - 1 downto 0
-  );
-end component;
-
 -- UART control signals
 signal uart_rx_data           : std_logic_vector(7 downto 0);
 signal uart_rx_enable         : std_logic;
@@ -121,7 +69,7 @@ signal byte_tx_data           : std_logic_vector(7 downto 0);
 begin
 
    -- UART
-   uart : basic_uart
+   uart : entity work.basic_uart
       generic map
       (
          DIVISOR => DIVISOR
@@ -140,7 +88,7 @@ begin
       );
       
    -- FIFO
-   fifo : ring_buffer
+   fifo : entity work.ring_buffer
       generic map
       (
          RAM_WIDTH => 8,
@@ -173,15 +121,15 @@ begin
       end if;
    end process;
    
-   handle_reading : process(clk, reset, reset_reading, uart_en, uart_we, uart_reg)
+   handle_reading : process(clk)
    begin
-      if reset = '1' or reset_reading = '1' then
-         reading <= '0';
-      else
-         if rising_edge(clk) then
-            if uart_en = '1' and uart_we = '0' and uart_reg = "10" then
-               reading <= '1';
-            end if;
+      if rising_edge(clk) then
+         if uart_en = '1' and uart_we = '0' and uart_reg = "10" then
+            reading <= '1';
+         end if;
+
+         if reset = '1' or reset_reading = '1' then
+            reading <= '0';
          end if;
       end if;
    end process;
@@ -205,30 +153,30 @@ begin
       end if;
    end process;
    
-   write_registers : process(clk, reset)
+   write_registers : process(clk)
    begin
-      if reset = '1' then
-         byte_tx_data <= (others => '0');
-      else
-         if rising_edge(clk) then
+      if rising_edge(clk) then
             -- register 3: send (aka write) register
-            if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
-               byte_tx_data <= cpu_data_in(7 downto 0);
-            end if;
+         if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
+            byte_tx_data <= cpu_data_in(7 downto 0);
+         end if;
+
+         if reset = '1' then
+            byte_tx_data <= (others => '0');
          end if;
       end if;
    end process;
 
-   handle_tx_ready : process(clk, reset, reset_byte_tx_ready)
+   handle_tx_ready : process(clk)
    begin
-      if reset = '1' or reset_byte_tx_ready = '1' then
-         byte_tx_ready <= '0';
-      else
-         if rising_edge(clk) then
+      if rising_edge(clk) then
             -- tx_ready listens to write operations to register 3
-            if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
-               byte_tx_ready <= '1';
-            end if;
+         if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
+            byte_tx_ready <= '1';
+         end if;
+
+         if reset = '1' or reset_byte_tx_ready = '1' then
+            byte_tx_ready <= '0';
          end if;
       end if;
    end process;

@@ -53,24 +53,6 @@ end keyboard;
 
 architecture beh of keyboard is
 
-component ps2_keyboard_to_ascii is
-generic (
-   clk_freq      : integer;                           -- system clock frequency in Hz
-   ps2_debounce_counter_size : integer                -- set such that 2^size/clk_freq = 5us (size = 8 for 50MHz)
-);
-port (
-   clk           : in std_logic;                      -- system clock input   
-   ps2_clk       : in std_logic;                      -- clock signal from PS2 keyboard
-   ps2_data      : in std_logic;                      -- data signal from PS2 keyboard
-   ascii_new     : out std_logic;                     -- output flag indicating new ASCII value
-   ascii_code    : out std_logic_vector(7 downto 0);  -- ASCII value
-   spec_new      : out std_logic;                     -- output flag indicating new special key value
-   spec_code     : out std_logic_vector(7 downto 0);  -- special key value
-   locale        : in std_logic_vector(2 downto 0);   -- locale will not be latched but eval. in real time
-   modifiers     : out STD_LOGIC_VECTOR(2 downto 0)   -- modifiers: 0 = shift, 1 = alt, 2 = ctrl   
-);
-end component;
-
 -- signals for communicating with the ps2_keyboard_to_ascii component
 signal ascii_new           : std_logic;
 signal ascii_code          : std_logic_vector(7 downto 0);
@@ -85,7 +67,7 @@ signal modifiers           : std_logic_vector(2 downto 0);
 
 begin
 
-   kbd : ps2_keyboard_to_ascii
+   kbd : entity work.ps2_keyboard_to_ascii
       generic map (
          clk_freq => clk_freq,
          ps2_debounce_counter_size => 8       -- set such that 2^size/clk_freq = 5us (size = 8 for 50MHz)
@@ -102,38 +84,38 @@ begin
          modifiers => modifiers
       );
 
-   ff_new_handler : process(clk, reset)
+   ff_new_handler : process(clk)
    begin
-      if reset = '1' then
-         ff_ascii_new <= '0';
-         ff_spec_new <= '0';
-      else
-         if rising_edge(clk) then
-            if kbd_en = '1' and kbd_we = '0' and kbd_reg = "01" then
-               ff_ascii_new <= '0';
-               ff_spec_new <= '0';
-            end if;
+      if rising_edge(clk) then
+         if kbd_en = '1' and kbd_we = '0' and kbd_reg = "01" then
+            ff_ascii_new <= '0';
+            ff_spec_new <= '0';
+         end if;
 
-            if ascii_new = '1' then
-               ff_ascii_new <= '1';
-            end if;
+         if ascii_new = '1' then
+            ff_ascii_new <= '1';
+         end if;
 
-            if spec_new = '1' then
-               ff_spec_new <= '1';
-            end if;
+         if spec_new = '1' then
+            ff_spec_new <= '1';
+         end if;
+
+         if reset = '1' then
+            ff_ascii_new <= '0';
+            ff_spec_new <= '0';
          end if;
       end if;
    end process;
-   
-   write_ff_locale: process(clk, kbd_en, kbd_we, kbd_reg, reset)
+
+   write_ff_locale: process(clk)
    begin
-      if reset = '1' then
-         ff_locale <= (others => '0');
-      else
-         if rising_edge(clk) then
-            if kbd_en = '1' and kbd_we = '1' and kbd_reg = "00" then
-               ff_locale <= cpu_data_in(4 downto 2);
-            end if;
+      if rising_edge(clk) then
+         if kbd_en = '1' and kbd_we = '1' and kbd_reg = "00" then
+            ff_locale <= cpu_data_in(4 downto 2);
+         end if;
+
+         if reset = '1' then
+            ff_locale <= (others => '0');
          end if;
       end if;
    end process;

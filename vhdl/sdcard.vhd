@@ -58,62 +58,6 @@ end sdcard;
 
 architecture Behavioral of sdcard is
 
--- the actual SD Card controller that is wrapped by this state machine
-component sd_controller is
-port (
-	cs : out std_logic;				   -- To SD card
-	mosi : out std_logic;			   -- To SD card
-	miso : in std_logic;			      -- From SD card
-	sclk : out std_logic;			   -- To SD card
-	card_present : in std_logic;	   -- From socket - can be fixed to '1' if no switch is present
-	card_write_prot : in std_logic;	-- From socket - can be fixed to '0' if no switch is present, or '1' to make a Read-Only interface
-
-	rd : in std_logic;				   -- Trigger single block read
-	rd_multiple : in std_logic;		-- Trigger multiple block read
-	dout : out std_logic_vector(7 downto 0);	-- Data from SD card
-	dout_avail : out std_logic;		-- Set when dout is valid
-	dout_taken : in std_logic;		   -- Acknowledgement for dout
-	
-	wr : in std_logic;				   -- Trigger single block write
-	wr_multiple : in std_logic;		-- Trigger multiple block write
-	din : in std_logic_vector(7 downto 0);	-- Data to SD card
-	din_valid : in std_logic;		   -- Set when din is valid
-	din_taken : out std_logic;		   -- Ackowledgement for din
-	
-	addr : in std_logic_vector(31 downto 0);	-- Block address
-	erase_count : in std_logic_vector(7 downto 0); -- For wr_multiple only
-
-	sd_error : out std_logic;		   -- '1' if an error occurs, reset on next RD or WR
-	sd_busy : out std_logic;		   -- '0' if a RD or WR can be accepted
-	sd_error_code : out std_logic_vector(7 downto 0); -- See above, 000=No error
-	
-	
-	reset : in std_logic;	         -- System reset
-	clk : in std_logic;		         -- twice the SPI clk (max 50MHz)
-	
-	-- Optional debug outputs
-	sd_type : out std_logic_vector(1 downto 0);	-- Card status (see above)
-	sd_fsm : out std_logic_vector(7 downto 0) := "11111111" -- FSM state (see block at end of file)
-);
-end component;
-
--- 8-bit BRAM with a 16-bit address bus
-component byte_bram is
-generic (
-   SIZE_BYTES     : integer
-);
-port (
-   clk            : in std_logic;
-
-   we             : in std_logic;
-   
-   address_i      : in std_logic_vector(15 downto 0);
-   address_o      : in std_logic_vector(15 downto 0);
-   data_i         : in std_logic_vector(7 downto 0);
-   data_o         : out std_logic_vector(7 downto 0)
-);
-end component;
-
 -- RAM signals (512 byte buffer RAM)
 signal ram_we           : std_logic;
 signal ram_addr_i       : std_logic_vector(15 downto 0);
@@ -198,7 +142,7 @@ signal fsm_state_next   : sd_fsm_type;
 begin
 
    -- 512 byte buffer RAM (SD card is configured to read/write 512 byte blocks)
-   buffer_ram : byte_bram
+   buffer_ram : entity work.byte_bram
       generic map (
          SIZE_BYTES => 512
       )
@@ -213,7 +157,7 @@ begin
       );
         
    -- SD Card Controller
-   sdctl : sd_controller
+   sdctl : entity work.sd_controller
       port map (
          -- general signals
 --         clk => Slow_Clock_25MHz,
@@ -251,31 +195,31 @@ begin
          erase_count => (others => '0')
       );     
       
-   fsm_advance_state : process(clk, reset, cmd_reset)
+   fsm_advance_state : process(clk)
    begin
-      if reset = '1' or cmd_reset = '1' then
-         sd_state <= sds_reset;
-         
-         sd_sync_reset <= '0';
-         sd_block_read <= '0';
-         sd_block_addr <= (others => '0');
-         
-         current_byte  <= (others => '0');
-         buffer_ptr    <= (others => '0');
-      else
-         if rising_edge(clk) then
-            if fsm_state_next = sds_std_seq then
-               sd_state <= sd_state_next;
-            else
-               sd_state <= fsm_state_next;
-            end if;            
-            
-            sd_sync_reset <= fsm_sync_reset;
-            sd_block_read <= fsm_block_read;
-            sd_block_addr <= fsm_block_addr;
-            
-            current_byte  <= fsm_current_byte;
-            buffer_ptr    <= fsm_buffer_ptr;
+      if rising_edge(clk) then
+         if fsm_state_next = sds_std_seq then
+            sd_state <= sd_state_next;
+         else
+            sd_state <= fsm_state_next;
+         end if;
+
+         sd_sync_reset <= fsm_sync_reset;
+         sd_block_read <= fsm_block_read;
+         sd_block_addr <= fsm_block_addr;
+
+         current_byte  <= fsm_current_byte;
+         buffer_ptr    <= fsm_buffer_ptr;
+
+         if reset = '1' or cmd_reset = '1' then
+            sd_state <= sds_reset;
+
+            sd_sync_reset <= '0';
+            sd_block_read <= '0';
+            sd_block_addr <= (others => '0');
+
+            current_byte  <= (others => '0');
+            buffer_ptr    <= (others => '0');
          end if;
       end if;
    end process;
@@ -448,73 +392,73 @@ begin
       end if;
    end process;
    
-   write_sdcard_registers : process(clk, reset)
+   write_sdcard_registers : process(clk)
    begin
-      if reset = '1' then
-         reg_addr_lo <= (others => '0');
-         reg_addr_hi <= (others => '0');
-         reg_data_pos <= (others => '0');
-         reg_data <= (others => '0');
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' then
-               case reg is               
-                  when "000" => reg_addr_lo <= data_in;
-                  when "001" => reg_addr_hi <= data_in;
-                  when "010" => reg_data_pos <= data_in;
-                  when "011" => reg_data <= data_in(7 downto 0);
-                  when others => null;               
-               end case;
-            end if;
+      if falling_edge(clk) then
+         if en = '1' and we = '1' then
+            case reg is
+               when "000" => reg_addr_lo <= data_in;
+               when "001" => reg_addr_hi <= data_in;
+               when "010" => reg_data_pos <= data_in;
+               when "011" => reg_data <= data_in(7 downto 0);
+               when others => null;
+            end case;
+         end if;
+
+         if reset = '1' then
+            reg_addr_lo <= (others => '0');
+            reg_addr_hi <= (others => '0');
+            reg_data_pos <= (others => '0');
+            reg_data <= (others => '0');
          end if;
       end if;
    end process;
    
-   detect_write_data : process(clk, reset, write_data)
+   detect_write_data : process(clk)
    begin
-      if reset = '1' then
-         write_data <= "00";
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' and reg = "011" then
-               write_data <= "01";
-            else
-               if write_data = "01" then
-                  write_data <= "10";
-               elsif write_data = "10" then
-                  write_data <= "00";
-               end if;
+      if falling_edge(clk) then
+         if en = '1' and we = '1' and reg = "011" then
+            write_data <= "01";
+         else
+            if write_data = "01" then
+               write_data <= "10";
+            elsif write_data = "10" then
+               write_data <= "00";
             end if;
+         end if;
+
+         if reset = '1' then
+            write_data <= "00";
          end if;
       end if;
    end process;
    
-   detect_cmd_reset : process(clk, reset, reset_cmd_reset)
+   detect_cmd_reset : process(clk)
    begin
-      if reset = '1' or reset_cmd_reset = '1' then
-         cmd_reset <= '0';
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' then
-               if reg = "101" and data_in = x"0000" then
-                  cmd_reset <= '1';
-               end if;
+      if falling_edge(clk) then
+         if en = '1' and we = '1' then
+            if reg = "101" and data_in = x"0000" then
+               cmd_reset <= '1';
             end if;
+         end if;
+
+         if reset = '1' or reset_cmd_reset = '1' then
+            cmd_reset <= '0';
          end if;
       end if;
    end process;
    
-   detect_cmd_read : process(clk, reset, reset_cmd_read)
+   detect_cmd_read : process(clk)
    begin
-      if reset = '1' or reset_cmd_read = '1' then
-         cmd_read <= '0';
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' then
-               if reg = "101" and data_in = x"0001" then
-                  cmd_read <= '1';
-               end if;
+      if falling_edge(clk) then
+         if en = '1' and we = '1' then
+            if reg = "101" and data_in = x"0001" then
+               cmd_read <= '1';
             end if;
+         end if;
+
+         if reset = '1' or reset_cmd_read = '1' then
+            cmd_read <= '0';
          end if;
       end if;
    end process;
