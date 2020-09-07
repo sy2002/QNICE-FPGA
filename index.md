@@ -6,7 +6,7 @@ show_webring: true
 ---
 
 QNICE-FPGA is a 16-bit computer system built as a fully-fledged
-System-on-a-Chip in portable VHDL on a FPGA. Everything - from the hardware
+System-on-a-Chip in portable VHDL on an FPGA. Everything - from the hardware
 design in VHDL to the toolchain (assembler and C) is Open Source, so you can
 start hacking right away.
 
