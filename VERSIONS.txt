@@ -1,5 +1,5 @@
-Version 1.6     xxxxx, xx 2020
-==============================
+Version 1.6     September, 7 2020
+=================================
 
 * ISA: QNICE Instruction Set Architecture updated to version 1.6. The changes
   are:
@@ -70,7 +70,8 @@ Version 1.6     xxxxx, xx 2020
 * TOOLCHAIN: Native assembler updated to reflect the ISA changes.
 
 * TOOLCHAIN: C code emitter and standard C library and Monitor library
-  updated to reflect the MMIO changes.
+  updated to reflect the MMIO changes. Standard C library recompiled to
+  use register bank switching instead of the stack in all function calls.
 
 * TOOLCHAIN: qtransfer: Convenient mechanism for transferring software
   (.out files) from the host computer to QNICE-FPGA. Details: doc/README.md
@@ -92,8 +93,9 @@ Version 1.6     xxxxx, xx 2020
   - CONTRIBUTING.md
   - doc/README.md
   - doc/best-practices.md
-  - doc/mips.md
   - doc/how-to-release.md
+  - doc/int-device.md
+  - doc/mips.md  
   - hw/README.md
   - vhdl/hw/MEGA65/README.md
 
