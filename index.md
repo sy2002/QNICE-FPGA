@@ -41,7 +41,7 @@ Out of the box, the project contains support for the
 development boards as well as for the
 [MEGA65](https://github.com/sy2002/QNICE-FPGA/tree/master/hw#mega65).
 
-| Nexys4 DDR and Nexys A7     | MEGA65                                      |
+| Nexys4 DDR<br> and Nexys A7 | MEGA65                                      |
 |-----------------------------|---------------------------------------------|
 |![Nexys_Img](public/nexys4ddr.jpg)|![MEGA65_Img](public/mega65.jpg)|
 
