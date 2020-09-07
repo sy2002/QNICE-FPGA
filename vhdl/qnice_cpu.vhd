@@ -353,7 +353,7 @@ begin
    
    fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, SP_org, SR_org, PC_org,
                                 DATA_IN, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
-                                Instruction, Opcode, FastPath,
+                                Instruction, Opcode, Ctrl_Cmd, FastPath,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
                                 Src_Value_Fast, Dst_Value_Fast,
                                 Bra_Mode, Bra_Condition, Bra_Neg,
