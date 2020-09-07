@@ -92,6 +92,8 @@ BEGIN
   BEGIN
     IF(clk'EVENT AND clk = '1') THEN
       prev_ps2_code_new <= ps2_code_new; --keep track of previous ps2_code_new values to determine low-to-high transitions
+      ascii_new <= '0';                                       --reset new ASCII code indicator
+      spec_new <= '0';
       CASE state IS
       
         --ready state: wait for a new PS2 code to be received
@@ -100,11 +102,7 @@ BEGIN
           spec <= x"00";
           
           IF(prev_ps2_code_new = '0' AND ps2_code_new = '1') THEN --new PS2 code received
-            ascii_new <= '0';                                       --reset new ASCII code indicator
-            spec_new <= '0';
             state <= new_code;                                      --proceed to new_code state
-          ELSE                                                    --no new PS2 code received yet
-            state <= ready;                                         --remain in ready state
           END IF;
           
         --new_code state: determine what to do with the new PS2 code  
@@ -553,10 +551,7 @@ BEGIN
           
           IF spec /= x"00" THEN
             spec_new <= '1';
-            ascii_new <= '0';
             ascii_code <= x"00";
-          ELSE
-            spec_new <= '0';
           END IF;
           spec_code <= spec;
           

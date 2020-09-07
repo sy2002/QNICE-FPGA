@@ -7,7 +7,6 @@
 #define FPGA
 #include "../dist_kit/sysdef.asm"
 
-
                 MOVE    IO$TIL_DISPLAY, R12
                 MOVE    0xFFAA, @R12
 

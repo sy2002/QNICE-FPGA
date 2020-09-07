@@ -11,13 +11,10 @@ package env1_globals is
 
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
 constant ROM_FILE             : string    := "../monitor/monitor.rom";
-constant ROM_SIZE             : natural   := 6477;
 --constant ROM_FILE             : string    := "../demos/q-tris.rom";
---constant ROM_SIZE             : natural   := 4544;
 
 -- file name of file and file size (in lines) of the file containing the Power On & Reset Execution (PORE) ROM
 constant PORE_ROM_FILE        : string    := "../pore/pore.rom";
-constant PORE_ROM_SIZE        : natural   := 477;
 
 -- size of lower register bank: should be 256
 -- set to 16 during development for faster synthesis, routing, etc.
@@ -50,6 +47,7 @@ constant VGA_RAM_SIZE         : natural   := 64000;
 --    1562500 -> 4
 --    2083333 -> 3
 constant UART_DIVISOR          : natural  := 27; -- above mentioned / 2, as long as we are using SLOW_CLOCK with 50 MHz
+constant UART_FIFO_SIZE        : natural  := 32; -- size of the UART's FIFO buffer in bytes
 
 -- Amount of CPU cycles, that the reset signal shall be active
 constant RESET_DURATION        : natural  := 16;

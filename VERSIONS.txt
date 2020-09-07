@@ -1,3 +1,103 @@
+Version 1.6     xxxxx, xx 2020
+==============================
+
+* ISA: QNICE Instruction Set Architecture updated to version 1.6. The changes
+  are:
+  - Interrupt system added.
+  - HALT instruction changed. The semantics opened the way for CONTROL
+    instructions such has HALT, RTI, INCRB and DECRB. The latter two mean that
+    instead of adding/subtracting something to the upper byte of the SR, one
+    can use these new commands.
+  - SHL and SHR now modify Z and N condition flags.
+  The new ISA is documented in doc/intro/qnice_intro.pdf.
+
+* PERFORMANCE: The new ISA leads to a speed increase of about 7% as documented
+  in `q-tris_perf_test.asm` compared to the old ISA. The main reason is that
+  the new INCRB/DECRB only need two cycles compared to 4 cycles when switching
+  banks the old way. This leads to faster sub-routine calls.
+
+* MMIO: Cleaned up the MMIO address space and by doing so, changed all the 
+  locations of MMIO devices in sysdef.asm. This breaks binary compatibility
+  with all software from version 1.5 and older, and therefore all this
+  software needs to be reassembled and recompiled to run on version 1.6.
+
+* CPU: Updates to reflect the new ISA. Added interrupt system. And a
+  comprehensive CPU test was added (test_programs/cpu_test.asm) and multiple
+  CPU bugs were fixed both in the emulator and in the hardware.
+
+* MEGA65: Ported QNICE-FPGA to the MEGA65 (https://mega65.org/). This includes
+  adding HDMI and HyperRAM support for the MEGA65.
+
+* TIMER INTERRUPT GENERATOR: Added. Is internally running on 100 kHz and
+  contains two independent counters (see sysdef.asm for details).
+
+* INSTRUCTION COUNTER: Added. Counts all instructions executed by the CPU.
+  Can be used for performance testing as shown in
+  test_programs/q-tris_perf_test.asm and test_programs/mandel_perf_test.asm.
+
+* UART: Added a 32 Byte FIFO to the UART. This was necessary because the
+  MEGA65 serial over JTAG does not support RTS/CTS and therefore we needed
+  more stability. Now RTS/CTS should be unnecessary in most cases.
+
+* VHDL REFACTORINGS: The following system-wide refactorings have taken place
+  with the goal to improve the code quality and the FPGA performance:
+  - register_file optimized to use LUTRAM instead of registers.
+  - replaced Tristate based inout DATA bus by separate DATA_IN and DATA_OUT.
+  - got rid of the large if/elsif/then section in mmio_mux and replaced by
+    more elegant direct logic assignments.
+  - line endings in source files are now consistent with the unix scheme.
+
+* MONITOR: Disassembler can now handle the new ISA.
+
+* EMULATOR: Updated to reflect the new ISA.
+
+* EMULATOR: Usability improved: At the "Q>" prompt the emulator now displays
+  the address from which the last instruction was read from. When an emulator
+  run is interrupted by CRTL/C (SIGINT) the statistics page now also lists
+  the last 16 addresses from which instructions were executed.
+
+* EMULATOR: Made the WebAssembly target compatible with Emscripten 1.39.14
+  (and newer and it still works with 1.39.10 and some of the older versions,
+  but not with the versions in between). The background of this phenomenon is
+  explained here: https://github.com/emscripten-core/emscripten/issues/10746
+
+* EMULATOR: Adjusted the standard emulation speed to 13.0 MIPS because this
+  is the average Q-TRIS performance. Peak performance observed so far is in
+  test_programs/mandel_perf_test.asm: 13.62 MIPS
+
+* Q-TRIS: Adjusted (slowed down) to match the CPU's speed increase by 7%.
+
+* TOOLCHAIN: Native assembler updated to reflect the ISA changes.
+
+* TOOLCHAIN: C code emitter and standard C library and Monitor library
+  updated to reflect the MMIO changes.
+
+* TOOLCHAIN: qtransfer: Convenient mechanism for transferring software
+  (.out files) from the host computer to QNICE-FPGA. Details: doc/README.md
+
+* TOOLCHAIN: Added support for Xilinx Vivado and made Vivado the main
+  toolchain for our project. ISE is still supported though. Structured all
+  hardware dependencies in the new folder 'hw' and added documentation
+  in 'hw/README.md'.
+
+* TOOLCHAIN: Added Ubuntu Linux support, which means it should also run on
+  any other Debian based distribution. You might want to install xclip for
+  more convenience (.out copied to clipboard after assembler ran).
+
+* QBIN: All sample applications have been rebuilt due to changes in the ISA
+  and the MMIO. A new download-link for the sample disk image is available:
+  http://sy2002x.de/hwdp/qnice_disk_v16.img
+
+* DOCUMENTATION: Added:
+  - CONTRIBUTING.md
+  - doc/README.md
+  - doc/best-practices.md
+  - doc/mips.md
+  - doc/how-to-release.md
+  - hw/README.md
+  - vhdl/hw/MEGA65/README.md
+
+
 Version 1.5     March, 22 2020
 ==============================
 
@@ -6,6 +106,7 @@ emulator. Detailed description: emulator/README.md
 
 * qnice-vga: VGA screen and PS/2 keyboard emulation
 * qnice-wasm: WebAssembly/WebGL version that runs in the web browser
+
 
 Version 1.41    December, 30 2016
 =================================
@@ -19,6 +120,7 @@ Version 1.41    December, 30 2016
   to see how it works.
 * EMULATOR: 'dump' now shows ASCII values additionally to the hex values.
 * Fixed a bunch of typos in various places and improved the documentation.
+
 
 Version 1.4    December, 26 2016
 ================================
@@ -67,6 +169,7 @@ Version 1.4    December, 26 2016
    * Math Library (Monitor): mulu, muls, divu, divs, mulu32, divu32
    * String Library (Monitor): chr2lower, split, h2dstr
 
+
 Version 1.3    May, 6 2016
 ==========================
 
@@ -76,7 +179,7 @@ Version 1.3    May, 6 2016
 * CPU: Fixed a bug that prevented things like CMP 0x00AA, 0x00FF or things
   like OR @R0++, @R0, i.e. situations, where both operands perform an
   indirect access, where the source and destination operands are identical
-  and where the  source operand is post-incremented.
+  and where the source operand is post-incremented.
 * ALU: Fixed CMP opcode behaviour: using the N flag it now treats the
   operands as unsigned and using the V flag it treats them as signed.
 * ALU: Fixed V flag CPU bug (AND, OR, XOR)
@@ -93,6 +196,7 @@ Version 1.3    May, 6 2016
   clock cycles, it is counting instructions.
 * DOCUMENTATION: Added a programming card.
 
+
 Version 1.21   February, 13 2016
 ================================
 
@@ -101,6 +205,7 @@ Version 1.21   February, 13 2016
   Needs VGA and keyboard. Located in demos/q-tris.asm, starts at 0x8000 when
   being run via the monitor. Additionally, there is a special stand-alone
   autostart bitstream for the Digilent Nexys 4 DDR in dist_kit/q-tris.bit
+
 
 Version 1.2  January, 10 2016
 =============================
@@ -118,6 +223,7 @@ Version 1.2  January, 10 2016
   displayed.
 * ASSEMBLER: bugfixes and .DW now supports .EQUs and labels as arguments
 
+
 Version 1.1  December, 30 2015
 ==============================
 
@@ -128,6 +234,7 @@ monitor (80x40 characters):
 
 * PS/2 keyboard support: enable via SW0
 * VGA support: enable via SW1
+
 
 Version 1.0  August, 30 2015
 ============================

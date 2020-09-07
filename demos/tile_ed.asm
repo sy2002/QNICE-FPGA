@@ -366,7 +366,7 @@ _CS_STORE_NEW   MOVE    TILE_DX, R12
                 RBRA    TILE_ED_RESET, 1        ; reset TileEd with new DX, DY
 
                 ; return to the system by clearing the screen and resetting
- END            SYSCALL(vga_init, 1)
+END             SYSCALL(vga_init, 1)
                 SYSCALL(vga_cls, 1)
                 SYSCALL(exit, 1)
 

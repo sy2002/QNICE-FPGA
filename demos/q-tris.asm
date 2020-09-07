@@ -23,6 +23,10 @@
 ; it loads to 0x8000. #define QTRIS_STANDALONE for the standalone mode.
 ;
 ; done by sy2002 in January and February 2016
+;
+; Version 1.2 done on August, 18 2020: Slow down by 7% to cater for the speed
+; increase of the ISA V1.6
+;
 ; ****************************************************************************
 
 #undef QTRIS_STANDALONE
@@ -183,7 +187,7 @@ CAH_H       .EQU 9          ; do not show the "Exit the game..." string
 CAH_H       .EQU 10
 #endif
 
-CRE_A_HELP  .ASCII_W "Q-TRIS V1.1 by sy2002 in May 2016       "
+CRE_A_HELP  .ASCII_W "Q-TRIS V1.2 by sy2002 in August 2020    "
             .ASCII_W "                                        "
             .ASCII_W "How to play:                            "
             .ASCII_W "                                        "
@@ -395,16 +399,25 @@ GAME_WON     .EQU 10        ; game is won, when "Level 10" is reached
 ; speed is defined by wasted cycles, both numbers are multiplied
 ; second number is also used for blinking frequency, so adjust carefully
 ; (preferably only adjust the first number)
-Level_Speed .DW 946, 251    ; Level 1  (was 800 at V1.21)
-            .DW 827, 251    ; Level 2  (was 700 at V1.21)
-            .DW 709, 251    ; Level 3  (was 600 at V1.21)
-            .DW 591, 251    ; Level 4  (was 500 at V1.21)
-            .DW 532, 251    ; Level 5  (was 450 at V1.21)
-            .DW 473, 251    ; Level 6  (was 400 at V1.21)
-            .DW 414, 251    ; Level 7  (was 350 at V1.21)
-            .DW 355, 251    ; Level 8  (was 300 at V1.21)
-            .DW 296, 251    ; Level 9  (was 250 at V1.21)
-            .DW 296, 251    ; non existing "Level 10" => Game Won
+Level_Speed .DW 946, 269    ; Level 1  (was 800, at ISA V1.21, 
+                            ;           was 946, 251 until ISA V1.5)
+            .DW 827, 269    ; Level 2  (was 700 at ISA V1.21
+                            ;           was 827, 251 until ISA V1.5)
+            .DW 709, 269    ; Level 3  (was 600 at ISA V1.21
+                            ;           was 709, 251 until ISA V1.5)
+            .DW 591, 269    ; Level 4  (was 500 at ISA V1.21
+                            ;           was 591, 251 until ISA V1.5)
+            .DW 532, 269    ; Level 5  (was 450 at ISA V1.21
+                            ;           was 532, 251 until ISA V1.5)
+            .DW 473, 269    ; Level 6  (was 400 at ISA V1.21
+                            ;           was 473, 251 until ISA V1.5)
+            .DW 414, 269    ; Level 7  (was 350 at ISA V1.21
+                            ;           was 414, 251 until ISA V1.5)
+            .DW 355, 269    ; Level 8  (was 300 at ISA V1.21
+                            ;           was 355, 251 until ISA V1.5)
+            .DW 296, 269    ; Level 9  (was 250 at ISA V1.21
+                            ;           was 296, 251 until ISA V1.5)
+            .DW 296, 269    ; non existing "Level 10" => Game Won
 
 ; ****************************************************************************
 ; HANDLE_END

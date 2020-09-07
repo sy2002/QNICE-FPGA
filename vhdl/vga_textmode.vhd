@@ -1,7 +1,7 @@
 -- 80x40 Textmode VGA
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
--- tristate outputs go high impedance when not enabled
--- done by sy2002 in December 2015/January 2016
+-- output goes zero when not enabled
+-- done by sy2002 in December 2015/January 2016, refactored in Mai/June 2020
 
 -- Features:
 -- * 80x40 text mode
@@ -31,6 +31,12 @@
 -- register 4: vga display offset register used e.g. for hardware scrolling (0..63999)
 -- register 5: vga read/write offset register used for accessing the whole vram (0..63999)
 --
+-- The following registers currently only make sense on a MEGA65 R2 board that uses the ADV7511;
+-- on other platforms they do not harm though:
+-- register 6: hctr_min: HDMI Data Enable: X: minimum valid column
+-- register 7: hctr_max: HDMI Data Enable: X: maximum valid column
+-- register 8: vctr_max: HDMI Data Enable: Y: maximum valid row (line)
+--
 -- this component uses Javier Valcarce's vga core
 -- http://www.javiervalcarce.eu/html/vhdl-vga80x40-en.html
 
@@ -48,22 +54,25 @@ use work.env1_globals.all;
 
 entity vga_textmode is
 port (
-   reset    : in std_logic;     -- async reset
-   clk      : in std_logic;     -- system clock
-   clk50MHz : in std_logic;     -- needs to be a 50 MHz clock
+   reset       : in std_logic;     -- async reset
+   clk25MHz    : in std_logic;
+   clk50MHz    : in std_logic;
 
    -- VGA registers
-   en       : in std_logic;     -- enable for reading from or writing to the bus
-   we       : in std_logic;     -- write to VGA's registers via system's data bus
-   reg      : in std_logic_vector(3 downto 0);     -- register selector
-   data     : inout std_logic_vector(15 downto 0); -- system's data bus
+   en          : in std_logic;     -- enable for reading from or writing to the bus
+   we          : in std_logic;     -- write to VGA's registers via system's data bus
+   reg         : in std_logic_vector(3 downto 0);     -- register selector
+   data_in     : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out    : out std_logic_vector(15 downto 0);   -- system's data bus
    
    -- VGA output signals, monochrome only
-   R        : out std_logic;
-   G        : out std_logic;
-   B        : out std_logic;
-   hsync    : out std_logic;
-   vsync    : out std_logic
+   R           : out std_logic;
+   G           : out std_logic;
+   B           : out std_logic;
+   hsync       : out std_logic;
+   vsync       : out std_logic;
+   
+   hdmi_de     : out std_logic
 );
 end vga_textmode;
 
@@ -82,61 +91,63 @@ port (
    vsync       : out std_logic;
    
    -- address and data lines of video ram for text
-   TEXT_A           : out std_logic_vector(11 downto 0);
-   TEXT_D           : in  std_logic_vector(07 downto 0);
+   TEXT_A      : out std_logic_vector(11 downto 0);
+   TEXT_D      : in  std_logic_vector(07 downto 0);
    
    -- address and data lines of font rom
-   FONT_A           : out std_logic_vector(11 downto 0);
-   FONT_D           : in  std_logic_vector(07 downto 0);
+   FONT_A      : out std_logic_vector(11 downto 0);
+   FONT_D      : in  std_logic_vector(07 downto 0);
    
    -- hardware cursor x and y positions
-   ocrx    : in  std_logic_vector(7 downto 0);
-   ocry    : in  std_logic_vector(7 downto 0);
+   ocrx        : in  std_logic_vector(7 downto 0);
+   ocry        : in  std_logic_vector(7 downto 0);
    
    -- control register
-   octl    : in  std_logic_vector(7 downto 0)
+   octl        : in  std_logic_vector(7 downto 0);
+   
+   -- ADV7511: HDMI Data Enable: high when valid pixels being output   
+   hdmi_de     : out std_logic;
+   de_hctr_min : integer range 793 downto 0;
+   de_hctr_max : integer range 793 downto 0;
+   de_vctr_max : integer range 524 downto 0   
 );   
 end component;
 
-component video_bram
+component video_bram is
 generic (
-   SIZE_BYTES     : integer;    -- size of the RAM/ROM in bytes
-   CONTENT_FILE   : string;     -- if not empty then a prefilled RAM ("ROM") from a .rom file is generated
-   FILE_LINES     : integer;    -- size of the content file in lines (files may be smaller than the RAM/ROM size)   
-   DEFAULT_VALUE  : bit_vector  -- default value to fill the memory with
+   SIZE_BYTES     : integer
 );
 port (
-   clk            : in std_logic;
+   clk1           : in std_logic;
    we             : in std_logic;   
    address_i      : in std_logic_vector(15 downto 0);
-   address_o      : in std_logic_vector(15 downto 0);
    data_i         : in std_logic_vector(7 downto 0);
-   data_o         : out std_logic_vector(7 downto 0);
+   address1_o     : in std_logic_vector(15 downto 0);
+   data1_o        : out std_logic_vector(7 downto 0);
 
-   -- performant reading facility
-   pr_clk         : in std_logic;
-   pr_addr        : in std_logic_vector(15 downto 0);
-   pr_data        : out std_logic_vector(7 downto 0)   
+   clk2           : in std_logic;
+   address2_o     : in std_logic_vector(15 downto 0);
+   data2_o        : out std_logic_vector(7 downto 0)
 );
 end component;
 
-component SyTargetCounter is
+component BROM is
 generic (
-   COUNTER_FINISH : integer;                 -- target value
-   COUNTER_WIDTH  : integer range 2 to 32    -- bit width of target value
+   FILE_NAME   : string;
+   ROM_WIDTH   : integer   
 );
 port (
-   clk       : in std_logic;                 -- clock
-   reset     : in std_logic;                 -- async reset
+   clk         : in std_logic;                        -- read and write on rising clock edge
+   ce          : in std_logic;                        -- chip enable, when low then zero on output
    
-   cnt       : out std_logic_vector(COUNTER_WIDTH -1 downto 0); -- current value
-   overflow  : out std_logic := '0' -- true for one clock cycle when the counter wraps around
+   address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
+   data        : out std_logic_vector(ROM_WIDTH - 1 downto 0);   -- read data
+   
+   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes zero
+   -- if not needed (ce = 0) and can therefore directly be connected to a bus
+   busy        : out std_logic                       
 );
 end component;
-
-
--- VGA specific clock, also used for video ram and font rom
-signal clk25MHz            : std_logic;
 
 -- signals for wiring video and font ram with the vga80x40 component
 signal vga_text_a          : std_logic_vector(11 downto 0);
@@ -177,19 +188,24 @@ signal offs_display        : std_logic_vector(15 downto 0) := (others => '0');
 signal offs_rw             : std_logic_vector(15 downto 0) := (others => '0');
 signal print_addr_w_offs   : std_logic_vector(15 downto 0);
 
+-- HDMI data enable
+signal reg_hctr_min        : integer range 793 downto 0;
+signal reg_hctr_max        : integer range 793 downto 0;
+signal reg_vctr_max        : integer range 524 downto 0;
+
 -- command type: print char
 signal vga_print           : std_logic := '0';
 signal reset_vga_print     : std_logic;
 signal print_addr          : std_logic_vector(11 downto 0);
 
 -- command type: clear screen
-signal clrscr_cnt          : IEEE.NUMERIC_STD.unsigned(15 downto 0);
+signal clrscr_cnt          : unsigned(15 downto 0);
 signal vga_clrscr          : std_logic := '0';
 signal reset_vga_clrscr    : std_logic;
 
 -- state machine signals
 signal fsm_next_vga_cmd    : vga_command_type;
-signal fsm_clrscr_cnt      : IEEE.NUMERIC_STD.unsigned(15 downto 0);
+signal fsm_clrscr_cnt      : unsigned(15 downto 0);
 
 
 begin
@@ -209,53 +225,49 @@ begin
          FONT_D => vga_font_d,
          ocrx => vga_x,
          ocry => "0" & vga_y,
-         octl => vga_ctl
-      );
-
-   video_ram : video_bram
-      generic map (
-         SIZE_BYTES => VGA_RAM_SIZE,                     -- see env1_globals.vhd
-         CONTENT_FILE => "../vga_textmode.vhd",          -- dummy file that is not read ...
-         FILE_LINES => 0,                                -- ... because FILE_LINES = 0
-         DEFAULT_VALUE => x"20"                          -- ACSII code of the space character
-      )
-      port map (
-         clk => clk25MHz,
-         we => vmem_we,
-         address_o => vmem_disp_addr,
-         data_o => vga_text_d,
-         address_i => vmem_addr,
-         data_i => vmem_data,
-         pr_clk => clk,
-         pr_addr => print_addr_w_offs,
-         pr_data => vga_read_data
+         octl => vga_ctl,
+         hdmi_de => hdmi_de,
+         de_hctr_min => reg_hctr_min,
+         de_hctr_max => reg_hctr_max,
+         de_vctr_max => reg_vctr_max
       );
       
-   font_rom : video_bram
+   video_ram : video_bram
       generic map (
-         SIZE_BYTES => 3072,
-         CONTENT_FILE => "lat9w-12_sy2002.rom",
-         FILE_LINES => 3072,
-         DEFAULT_VALUE => x"00"
+         SIZE_BYTES => VGA_RAM_SIZE
+      )
+      port map (
+         clk1 => clk50Mhz,
+         we => vmem_we,
+         address_i => vmem_addr,
+         data_i => vmem_data,
+         address1_o => print_addr_w_offs,
+         data1_o => vga_read_data,
+         
+         clk2 => clk25Mhz,
+         address2_o => vmem_disp_addr,
+         data2_o => vga_text_d                  
+      );
+       
+   font_rom : BROM
+      generic map (
+         FILE_NAME => "vga/lat9w-12_sy2002.rom",
+         ROM_WIDTH => 8
       )
       port map (
          clk => clk25MHz,
-         we => '0',
-         address_o => "0000" & vga_font_a,
-         data_o => vga_font_d,
-         address_i => (others => '0'),
-         data_i => (others => '0'),
-         pr_clk => '0',
-         pr_addr => (others => '0')
+         ce => '1',
+         address => "000" & vga_font_a,
+         data => vga_font_d
       );
          
-   fsm_advance_state : process(clk25MHz, reset)
+   fsm_advance_state : process(clk50MHz, reset)
    begin
       if reset = '1' then
          vga_cmd <= vc_idle;
          clrscr_cnt <= (others => '0');
       else
-         if falling_edge(clk25MHz) then
+         if falling_edge(clk50MHz) then
             vga_cmd <= fsm_next_vga_cmd;
             clrscr_cnt <= fsm_clrscr_cnt;
          end if;
@@ -337,7 +349,7 @@ begin
       end case;
    end process;
       
-   write_vga_registers : process(clk, reset)
+   write_vga_registers : process(clk50MHz, reset)
       variable vx : IEEE.NUMERIC_STD.unsigned(7 downto 0);
       variable vy : IEEE.NUMERIC_STD.unsigned(6 downto 0);
       variable memory_pos : std_logic_vector(13 downto 0); -- x + (80 * y)
@@ -352,44 +364,54 @@ begin
          vmem_offs_rw <= '0';         
          offs_display <= (others => '0');
          offs_rw <= (others => '0');
+         
+         -- default settings so that the whole screen is visible
+         reg_hctr_min <= 9;
+         reg_hctr_max <= 650;
+         reg_vctr_max <= 480;                     
       else                  
-         if falling_edge(clk) then
+         if falling_edge(clk50MHz) then
             if en = '1' and we = '1' then
                case reg is
                   -- status register
                   when x"0" =>
-                     vga_ctl <= data(7 downto 0);
-                     vmem_offs_display <= data(10);
-                     vmem_offs_rw <= data(11);
+                     vga_ctl <= data_in(7 downto 0);
+                     vmem_offs_display <= data_in(10);
+                     vmem_offs_rw <= data_in(11);
                      
                   -- cursor x register
                   when x"1" =>
-                     vga_x <= data(7 downto 0);
-                     vx := IEEE.NUMERIC_STD.unsigned(data(7 downto 0));
-                     vy := IEEE.NUMERIC_STD.unsigned(vga_y);
+                     vga_x <= data_in(7 downto 0);
+                     vx := unsigned(data_in(7 downto 0));
+                     vy := unsigned(vga_y);
                      memory_pos := std_logic_vector(vx + (vy * 80));                     
                      print_addr <= memory_pos(11 downto 0);
                   
                   -- cursor y register
                   when x"2" =>
-                     vga_y <= data(6 downto 0);
-                     vx := IEEE.NUMERIC_STD.unsigned(vga_x);
-                     vy := IEEE.NUMERIC_STD.unsigned(data(6 downto 0));
+                     vga_y <= data_in(6 downto 0);
+                     vx := unsigned(vga_x);
+                     vy := unsigned(data_in(6 downto 0));
                      memory_pos := std_logic_vector(vx + (vy * 80));
                      print_addr <= memory_pos(11 downto 0);
 
                   -- character print register
                   when x"3" =>
-                     vga_char <= data(7 downto 0);                  
-                     vx := IEEE.NUMERIC_STD.unsigned(vga_x);
-                     vy := IEEE.NUMERIC_STD.unsigned(vga_y);
+                     vga_char <= data_in(7 downto 0);
+                     vx := unsigned(vga_x);
+                     vy := unsigned(vga_y);
                      memory_pos := std_logic_vector(vx + (vy * 80));                  
                      print_addr <= memory_pos(11 downto 0);
                      
                   -- offset registers
-                  when x"4" => offs_display <= data;
-                  when x"5" => offs_rw <= data;
+                  when x"4" => offs_display <= data_in;
+                  when x"5" => offs_rw <= data_in;
                   
+                  -- ADV7511 HDMI DE config registers
+                  when x"6" => reg_hctr_min <= to_integer(unsigned(data_in));
+                  when x"7" => reg_hctr_max <= to_integer(unsigned(data_in));
+                  when x"8" => reg_vctr_max <= to_integer(unsigned(data_in));
+                                    
                   when others => null;
                end case;
             end if;
@@ -397,12 +419,12 @@ begin
       end if;
    end process;
    
-   detect_vga_print : process(clk, reset, reset_vga_print)
+   detect_vga_print : process(clk50MHz, reset, reset_vga_print)
    begin
       if reset = '1' or reset_vga_print = '1' then
          vga_print <= '0';
       else
-         if falling_edge(clk) then
+         if falling_edge(clk50MHz) then
             if en = '1' and we = '1' and reg = x"3" then         
                vga_print <= '1';
             end if;
@@ -410,50 +432,57 @@ begin
       end if;
    end process;
    
-   detect_vga_clrscr : process(clk, reset, reset_vga_clrscr)
+   detect_vga_clrscr : process(clk50MHz, reset, reset_vga_clrscr)
    begin
       if reset = '1' or reset_vga_clrscr = '1' then
          vga_clrscr <= '0';
       else
-         if falling_edge(clk) then
+         if falling_edge(clk50MHz) then
             if en = '1' and we = '1' and reg = x"0" then
-               vga_clrscr <= data(8);
+               vga_clrscr <= data_in(8);
             end if;
          end if;
       end if;
    end process;
          
    read_vga_registers : process(en, we, reg, vga_ctl, vga_x, vga_y, vga_char, vga_busy, vga_clrscr, vga_read_data,
-                                vmem_offs_rw, vmem_offs_display, offs_display, offs_rw)
+                                vmem_offs_rw, vmem_offs_display, offs_display, offs_rw,
+                                reg_hctr_min, reg_hctr_max, reg_vctr_max)
    begin   
       if en = '1' and we = '0' then
          case reg is            
-            when x"0" => data <= "0000" &                               -- status register
+            when x"0" => data_out <= "0000" &                               -- status register
                                  vmem_offs_rw &                         --    bit 11
                                  vmem_offs_display &                    --    bit 10
                                  vga_busy &                             --    bit 9
                                  vga_clrscr &                           --    bit 8
                                  vga_ctl;                               --    bits 0..7
-            when x"1" => data <= x"00"  & vga_x;                        -- cursor x register
-            when x"2" => data <= x"00" & '0' & vga_y;                   -- cursor y register
-            when x"3" => data <= x"00"  & vga_read_data;                -- character print/read register
-            when x"4" => data <= offs_display;                          -- display offset register
-            when x"5" => data <= offs_rw;                               -- memory access (read/write) offset register
-            when others => data <= (others => '0');
+            when x"1" => data_out <= x"00"  & vga_x;                        -- cursor x register
+            when x"2" => data_out <= x"00" & '0' & vga_y;                   -- cursor y register
+            when x"3" => data_out <= x"00"  & vga_read_data;                -- character print/read register
+            when x"4" => data_out <= offs_display;                          -- display offset register
+            when x"5" => data_out <= offs_rw;                               -- memory access (read/write) offset register
+            
+            -- ADV7511 HDMI DE config registers
+            when x"6" => data_out <= std_logic_vector(to_unsigned(reg_hctr_min, 16));
+            when x"7" => data_out <= std_logic_vector(to_unsigned(reg_hctr_max, 16));
+            when x"8" => data_out <= std_logic_vector(to_unsigned(reg_vctr_max, 16));
+      
+            when others => data_out <= (others => '0');
          end case;
       else
-         data <= (others => 'Z');
+         data_out <= (others => '0');
       end if;
    end process;
    
    calc_vmem_disp_addr : process(vmem_offs_display, offs_display, vga_text_a)
-      variable disp_addr : IEEE.NUMERIC_STD.unsigned(16 downto 0);
-      variable disp_offs : IEEE.NUMERIC_STD.unsigned(16 downto 0);
+      variable disp_addr : unsigned(16 downto 0);
+      variable disp_offs : unsigned(16 downto 0);
    begin
       if vmem_offs_display = '1' then
          -- address for display = address generated by the vga80x40 component plus offset
-         disp_offs := "0" & IEEE.NUMERIC_STD.unsigned(offs_display);
-         disp_addr := disp_offs + IEEE.NUMERIC_STD.unsigned(vga_text_a);
+         disp_offs := "0" & unsigned(offs_display);
+         disp_addr := disp_offs + unsigned(vga_text_a);
          
          -- manual wrap around due to the (0..VGA_RAM_SIZE-1) memory size
          if disp_addr > (VGA_RAM_SIZE - 1) then
@@ -467,12 +496,12 @@ begin
    end process;
    
    calc_print_addr_w_offs : process(vmem_offs_rw, offs_rw, print_addr)
-      variable disp_addr : IEEE.NUMERIC_STD.unsigned(16 downto 0);
-      variable disp_offs : IEEE.NUMERIC_STD.unsigned(16 downto 0);   
+      variable disp_addr : unsigned(16 downto 0);
+      variable disp_offs : unsigned(16 downto 0);   
    begin
       if vmem_offs_rw = '1' then
-         disp_offs := "0" & IEEE.NUMERIC_STD.unsigned(offs_rw);
-         disp_addr := disp_offs + IEEE.NUMERIC_STD.unsigned(print_addr);
+         disp_offs := "0" & unsigned(offs_rw);
+         disp_addr := disp_offs + unsigned(print_addr);
          if disp_addr > (VGA_RAM_SIZE - 1) then
             disp_addr := disp_addr - VGA_RAM_SIZE;
          end if;
@@ -483,7 +512,5 @@ begin
       end if;
    end process;
    
-   clk25MHz <= '0' when reset = '1' else
-               not clk25MHz when rising_edge(clk50MHz);
    vga_busy <= '0' when vga_cmd = vc_idle else '1';
 end beh;

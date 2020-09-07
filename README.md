@@ -13,7 +13,7 @@ system-on-a-chip in portable VHDL on a FPGA. Specifications:
   (learn more in [qnice_intro.pdf](doc/intro/qnice_intro.pdf))
 * 32k words ROM (64kB)
 * 32k words RAM (64kB)
-* UART 115.200 baud, 8-N-1, CTS
+* UART 115,200 baud, 8-N-1, CTS
 * VGA 80x40 character textmode display (640x480 resolution)
 * PS/2 keyboard support (mapped to USB on the Nexys 4 DDR)
 * SD Card and FAT32 support (microSD card on the Nexys 4 DDR)
@@ -21,6 +21,24 @@ system-on-a-chip in portable VHDL on a FPGA. Specifications:
 * 16 hardware toggle switches
 
 The main purpose of QNICE-FPGA is learning, teaching and having fun.
+
+Platforms
+---------
+
+Due to the portable nature of the way this project has been developed,
+QNICE-FPGA is able to run on any sufficiently powerful FPGA platform.
+Additionally, there is an
+[emulator](emulator/README.md) available for macOS, Linux and
+[WebGL](https://qnice-fpga.com/emulator.html).
+
+Out of the box, this repository contains support for the
+[Nexys4 DDR and Nexys A7](hw/README.md#nexys-4-ddr-and-nexys-a7)
+development boards as well as for the
+[MEGA65](hw/README.md#mega65).
+
+| Nexys4 DDR and Nexys A7     | MEGA65                                      |
+|-----------------------------|---------------------------------------------|
+|![Nexys_Img](doc/github/nexys4ddr.jpg)|![MEGA65_Img](doc/github/mega65.jpg)|
 
 Getting Started
 ---------------
@@ -46,19 +64,24 @@ Get started using actual FPGA hardware:
 * Hardware: Currently, we develop QNICE-FPGA on a Nexys 4 DDR development
   board. Nexys updated and renamed it to Nexys A7.
   So, if you own one of those, the fastest way of getting started is to
-  download the bitstream file `dist_kit/qnice-v141.bit` on a microSD card or
-  a USB stick, insert it into the Nexys board and set the jumpers to read the
-  FPGA configuration from the SD card or USB stick. Do not copy more than one
-  `*.bit` file on the SD card, i.e. do not copy `dist_kit/q-tris.bit`, yet.
+  download the bitstream file `dist_kit/bin/QNICE-V16.bit` on a microSD card
+  or an USB stick, insert it into the Nexys board and set the jumpers to
+  read the FPGA configuration from the SD card or USB stick. Do not copy
+  more than one `*.bit` file on the SD card, i.e. do not copy
+  `dist_kit/bin/QTRIS-V16.bit`, yet.
+
   Do empty the "Recycle Bin" or similar of your host OS between two `*.bit`
   copies, so that the Nexys board does not accidentally read the `*.bit` from
   your trash instead of the recent one.
 
-* If you do not own a Nexys 4 DDR or A7 board, then use your VHDL development
-  environment to synthesize QNICE-FPGA. The root file for the system
-  is `vhdl/env1.vhdl`. Make sure that you connect at least the IO pins
-  for PS2, VGA, UART and the two switches. In the file `nexys4ddr/env1.ucf`
-  you will find some advise of how to do the mapping.
+  If you have a MEGA65, then you can directly use the Core files `.cor` in
+  `dist_kit/bin`, as described in [hw/README.md](hw/README.md).
+
+* If you do not own a Nexys 4 DDR or A7 board or if you want to synthesize
+  the FPGA configuration bitstream by yourself, then go to the hardware
+  folder `hw`. It contains the FPGA, board and toolchain (IDE) specific files.
+  QNICE-FPGA has been designed to be portable. Have a look at
+  [hw/README.md](hw/README.md) to learn more.
 
 * Attach an "old" USB keyboard supporting boot mode to the board and attach
   a VGA monitor. Attach the USB cable to your desktop computer, so that you
@@ -84,13 +107,12 @@ Get started using actual FPGA hardware:
 * Compile the mandelbrot demo by entering
   `assembler/asm demos/mandel.asm`.
 
-* On macOS, you now have an ASCII file in the clipboard/pasteboard that starts
-  with the line `0xA000 0x0F80`. On other operating systems, you might see an
-  error message, stating that `pbcopy` is not available. You can savely
-  ignore this and manually copy the file `demos/mandel.out` into your
-  clipboard/pasteboard.
+* On macOS and if you have xclip installed also on Linux, you now have an
+  ASCII file in the clipboard/pasteboard that starts with the line
+  `0xA000 0x0F80`. Alternatively, you can manually copy the file
+  `demos/mandel.out` into your clipboard/pasteboard.
 
-* Open a serial terminal program, configure it as 115.200 baud, 8-N-1, CTS ON,
+* Open a serial terminal program, configure it as 115,200 baud, 8-N-1, CTS ON,
   attach the QNICE-FPGA, turn it on, after the bitstream loaded from the SD
   card, connect the terminal program to the serial interface of the FPGA and
   press the reset button. You should see a welcome message and the `QMON>`
@@ -175,9 +197,9 @@ Have a look at the current highscore in
 [doc/demos/q-tris-highscore.txt](doc/demos/q-tris-highscore.txt).
 
 The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
-for the QNICE-FPGA: Just use `dist_kit/q-tris.bit` instead of the
-above-mentioned `dist_kit/qnice-v141.bit`. Or, you can run it regularly as an
-app within the Monitor environment:
+for the QNICE-FPGA: Just use `dist_kit/bin/QTRIS-V16.bit` instead of the
+above-mentioned `dist_kit/bin/QTRIS-V16.bit`. Or, you can run it regularly
+as an app within the Monitor environment:
 
 * If you copied the `qbin` folder on your SD Card, you can load and run it
   directly from the Monitor by entering `F R` and then `/qbin/q-tris.out`.
@@ -192,6 +214,46 @@ app within the Monitor environment:
   Monitor's `M L` command sequence and start Q-TRIS using `C R` and the
   address `8000`.
 
+Memory map
+----------
+
+The QNICE CPU has a 16-bit address bus and a 16-bit data bus.  Each value of
+the memory address bus addresses an entire 16-bit word. There is no byte-level
+access. So the total memory area addressable by the QNICE CPU is 64 kWords =
+128 kBytes.
+
+In the QNICE system the following simple memory map is used:
+
+| Address     | Use                       |
+| -------     | -------                   |
+| 0000 - 7FFF | ROM (32 kW = 64 kB)       |
+| 8000 - FEFF | RAM (32 kW = 64 kB)       |
+| FF00 - FFFF | Memory Mapped I/O devices |
+
+I/O devices
+-----------
+
+The I/O memory area is divided into chunks of 8 words, leading to a total of 32
+possible I/O devices.
+
+| Address     | Use                                         |
+| -------     | -------                                     |
+| FF00 - FF07 | Fundamental I/O (switches, TIL, keyboard)   |
+| FF08 - FF0F | System Counters (cycles and instructions)   |
+| FF10 - FF17 | UART                                        |
+| FF18 - FF1F | EAE                                         |
+| FF20 - FF27 | SD CARD                                     |
+| FF28 - FF2F | Timers                                      |
+| FF30 - FF37 | VGA                                         |
+| FF38 - FF3F | VGA                                         |
+| FF40 - FFEF | Reserved                                    |
+| FFF0 - FFFF | HyperRAM (MEGA65)                           |
+
+
+The registers for the individual I/O devices are described in the assembler
+header file [monitor/sysdef.asm](monitor/sysdef.asm).
+
+
 Programming in Assembler
 ------------------------
 
@@ -199,7 +261,7 @@ Programming in Assembler
   [Programming Card](doc/programming_card/programming_card_screen.pdf).
 
 * The `dist_kit` folder contains important include files, that contain
-  command shortcuts (RET, INCRB, DECRB, NOP, SYSCALL), register short names
+  command shortcuts (RET, NOP, SYSCALL), register short names
   (PC, SR, SP), addresses for memory mapped I/O of peripheral devices and 
   commonly used constants.
 
@@ -304,17 +366,17 @@ Documentation
 If you are new to QNICE-FPGA, then reading the documentation in the following
 order is recommended:
 
-1. [Introduction](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/intro/qnice_intro.pdf)
+1. [Introduction](doc/intro/qnice_intro.pdf) to the QNICE Instruction Set Architecture
 
-2. [Getting Started](https://github.com/sy2002/QNICE-FPGA/blob/master/README.md#getting-started)
+2. [Hardware](hw/README.md): Description of supported hardware platforms, how to build, and guides for porting to other platforms
 
-3. [Hardware](https://github.com/sy2002/QNICE-FPGA/blob/develop/hw/README.md)
+3. [Overview](doc/README.md) of directory structure and available documentation
 
-4. [Overview](https://github.com/sy2002/QNICE-FPGA/blob/develop/doc/README.md)
+4. [Emulator](emulator/README.md) and [mounting FAT32 devices](doc/emumount.txt)
 
-5. [Emulator](https://github.com/sy2002/QNICE-FPGA/blob/master/emulator/README.md)
+5. [Constraints](doc/constraints.txt)
 
-6. [Constraints](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/constraints.txt)
+6. [Programming Best Practices](doc/best-practices.md)
 
 7. [Programming Card](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/programming_card/programming_card_screen.pdf)
 
@@ -324,7 +386,7 @@ Acknowledgements
 * [sy2002](http://www.sy2002.de): Creator and maintainer of QNICE-FPGA:
   hardware development (VHDL), FAT32 library, additional Monitor libraries and
   functions, Q-TRIS, additional QNICE specific vbcc toolchain,
-  VGA and WebAssembly versions of the emulator.
+  VGA and WebAssembly versions of the emulator, MEGA65 port.
 
 * [vaxman](http://www.vaxman.de): Inventor of the [QNICE ISA](http://qnice.sourceforge.net):
   system architect, assembler, original POSIX version of the emulator,
@@ -332,3 +394,7 @@ Acknowledgements
 
 * [Volker Barthelmann](http://www.compilers.de): vbcc compiler system,
   QNICE specific vbcc backend incl. standard C library.
+
+* [MJoergen](http://www.github.com/MJoergen): Performance improvements and
+  bugfixes, CPU functional test suite.
+

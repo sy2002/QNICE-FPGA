@@ -31,18 +31,20 @@ command -v emcc >/dev/null 2>&1 || {
 }
 
 EMCC_VERSION=`emcc --version|grep emcc|egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
-if [[ $EMCC_VERSION != "1.39.10" ]]; then
-    echo "Warning: Emscripten SDK other than 1.39.10 might lead to errors."
+if [[ $EMCC_VERSION = "1.39.11" ]] || [[ $EMCC_VERSION = "1.39.12" ]] || [[ $EMCC_VERSION = "1.39.13" ]]; then
+    echo "Error: This Emscripten SDK version will not work. Please upgrade."
     echo "(see also https://github.com/emscripten-core/emscripten/issues/10746)"
+    echo ""
+    exit 1
 fi
 
-if [[ ! -f qnice_disk.img ]]; then
-    echo "Warning: qnice_disk.img not found. You can still compile the emulator."
+if [[ ! -f qnice_disk_v16.img ]]; then
+    echo "Warning: qnice_disk_v16.img not found. You can still compile the emulator."
 fi
 
 FILES="qnice.c fifo.c sd.c vga.c"
 DEF_SWITCHES="-DUSE_SD -DUSE_VGA"
-UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART"
+UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART -UUSE_TIMER"
 PRELOAD_FILES="--preload-file monitor.out"
 
 if [ "$1" == "DEVELOP-RELEASE" ]; then

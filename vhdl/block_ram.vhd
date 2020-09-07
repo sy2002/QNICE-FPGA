@@ -3,8 +3,7 @@
 --   is generating control signals on rising edges; so there is enough time for the signals to settle
 --   and therefore we do not need to waste a cycle
 -- * the RAM is initialized to zero on system start
--- * can be directly connected to a bus, as it goes high impedance on low chip enable and on writing
--- * can directly control the CPU's (or any bus arbiter's) WAIT_FOR_DATA line 
+-- * on writing can directly control the CPU's (or any bus arbiter's) WAIT_FOR_DATA line
 -- inspired by http://vhdlguru.blogspot.de/2011/01/block-and-distributed-rams-on-xilinx.html
 -- done by sy2002 in August 2015
 
@@ -17,15 +16,15 @@ use work.env1_globals.all;
 entity BRAM is
 port (
    clk      : in std_logic;                        -- read and write on rising clock edge
-   ce       : in std_logic;                        -- chip enable, when low then high impedance on output
+   ce       : in std_logic;                        -- chip enable, when low then zeros on output
    
    address  : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
    we       : in std_logic;                        -- write enable
    data_i   : in std_logic_vector(15 downto 0);    -- write data
    data_o   : out std_logic_vector(15 downto 0);   -- read data
    
-   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes high impedance
-   -- if not needed (ce = 0) and can therefore directly be connected to a bus
+   -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA, goes zero
+   -- if not needed (ce = 0)
    busy     : out std_logic                       
 );
 end BRAM;
@@ -63,11 +62,11 @@ begin
       end if;
    end process;
    
-   -- high impedance while not ce OR while writing
-   manage_tristate : process (we, ce, output)
+   -- zero while not ce OR while writing
+   manage_output : process (we, ce, output)
    begin
       if (ce = '0') or (ce = '1' and we = '1') then
-         data_o <= (others => 'Z');
+         data_o <= (others => '0');
       else
          data_o <= output;
       end if;
@@ -106,12 +105,7 @@ begin
          async_reset <= '0';
       end if;      
    end process;
-                  
---   with ce select
---      busy <= counter when '1',
---              'Z' when others;
-   with ce select
-      busy <= '0' when '1',
-              'Z' when others;
+
+   busy <= '0';
    
 end beh;

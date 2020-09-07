@@ -8,16 +8,22 @@
 -- also implements the global state and reset management
 -- 
 -- done in 2015, 2016 by sy2002
+-- enhanced in July/August 2020 by Michael Jørgensen and sy2002 
 ----------------------------------------------------------------------------------
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use IEEE.MATH_REAL.ALL;
 
 use work.env1_globals.all;
+use work.qnice_tools.all;
 
 entity mmio_mux is
+generic (
+   GD_TIL            : boolean := true;   -- support TIL leds (e.g. as available on the Nexys 4 DDR)
+   GD_SWITCHES       : boolean := true;   -- support SWITCHES (e.g. as available on the Nexys 4 DDR)
+   GD_HRAM           : boolean := false   -- support HyperRAM (e.g. as available on the MEGA65)
+);
 port (
    -- input from hardware
    HW_RESET          : in std_logic;
@@ -28,6 +34,8 @@ port (
    data_dir          : in std_logic;
    data_valid        : in std_logic;
    cpu_halt          : in std_logic;
+   cpu_igrant_n      : in std_logic; -- if this goes to 0, then all devices need to leave the DATA bus alone,
+                                     -- because the interrupt device will put the ISR address on the bus
    
    -- let the CPU wait for data from the bus
    cpu_wait_for_data : out std_logic;
@@ -44,43 +52,60 @@ port (
    pore_rom_enable   : out std_logic;
    pore_rom_busy     : in std_logic;
    
-   -- VGA register range $FF00..$FF0F
-   vga_en            : out std_logic;
-   vga_we            : out std_logic;
-   vga_reg           : out std_logic_vector(3 downto 0);
+   -- SWITCHES is $FF00
+   switch_reg_enable : out std_logic;
    
-   -- TIL register rage: $FF10..$FF11
+   -- TIL register range: $FF01..$FF02
    til_reg0_enable   : out std_logic;
    til_reg1_enable   : out std_logic;
    
-   -- SWITCHES is $FF12
-   switch_reg_enable : out std_logic;
-   
-   -- Keyboard register range $FF13..$FF16
-   kbd_en            : out std_logic;
+   -- Keyboard register range $FF04..$FF07
+   kbd_en            : buffer std_logic;
    kbd_we            : out std_logic;
    kbd_reg           : out std_logic_vector(1 downto 0);
-   
-   -- Cycle counter regsiter range $FF17..$FF1A
-   cyc_en            : out std_logic;
+      
+   -- Cycle counter register range $FF08..$FF0B
+   cyc_en            : buffer std_logic;
    cyc_we            : out std_logic;
    cyc_reg           : out std_logic_vector(1 downto 0);
 
-   -- Extended Arithmetic Element register range $FF1B..$FF1F
-   eae_en            : out std_logic;
-   eae_we            : out std_logic;
-   eae_reg           : out std_logic_vector(2 downto 0);
-   
-   -- UART register range $FF20..$FF23
-   uart_en           : out std_logic;
+   -- Instruction counter register range $FF0C..$FF0F
+   ins_en            : buffer std_logic;
+   ins_we            : out std_logic;
+   ins_reg           : out std_logic_vector(1 downto 0);
+
+   -- UART register range $FF10..$FF13
+   uart_en           : buffer std_logic;
    uart_we           : out std_logic;
    uart_reg          : out std_logic_vector(1 downto 0);
+   uart_cpu_ws       : in std_logic;
    
-   -- SD Card register range $FF24..FF29
-   sd_en             : out std_logic;
+   -- Extended Arithmetic Element register range $FF18..$FF1F
+   eae_en            : buffer std_logic;
+   eae_we            : out std_logic;
+   eae_reg           : out std_logic_vector(2 downto 0);
+
+   -- SD Card register range $FF20..FF27
+   sd_en             : buffer std_logic;
    sd_we             : out std_logic;
    sd_reg            : out std_logic_vector(2 downto 0);
+
+   -- Timer Interrupt Generator range $FF28 .. $FF2F
+   tin_en            : buffer std_logic;
+   tin_we            : out std_logic;
+   tin_reg           : out std_logic_vector(2 downto 0);
    
+   -- VGA register range $FF30..$FF3F
+   vga_en            : buffer std_logic;
+   vga_we            : out std_logic;
+   vga_reg           : out std_logic_vector(3 downto 0);
+
+   -- HyerRAM register range $FFF0 .. $FFF3
+   hram_en           : buffer std_logic;
+   hram_we           : out std_logic;
+   hram_reg          : out std_logic_vector(3 downto 0); 
+   hram_cpu_ws       : in std_logic; -- insert CPU wait states (aka WAIT_FOR_DATA)   
+ 
    -- global state and reset management
    reset_pre_pore    : out std_logic;
    reset_post_pore   : out std_logic
@@ -119,7 +144,7 @@ type global_state_type is
 
 -- as we check for "= RESET_DURATION", we need one bit more,
 -- so RESET_COUNTER_BTS is not decremented by 1
-constant RESET_COUNTER_BTS    : natural := integer(ceil(log2(real(RESET_DURATION))));
+constant RESET_COUNTER_BTS    : natural := f_log2(RESET_DURATION);
 
 signal global_state           : global_state_type := gsPowerOn;
 
@@ -131,202 +156,85 @@ signal reset_counter          : unsigned(RESET_COUNTER_BTS downto 0);
 signal fsm_next_global_state  : global_state_type;
 signal fsm_reset_counter      : unsigned(RESET_COUNTER_BTS downto 0);
 
+signal no_igrant_active : boolean;
 
-begin   
+begin
 
-   -- TIL register base is FF10
-   -- writing to base equals register0 equals the actual value
-   -- writing to register1 (FF11) equals the mask
-   til_control : process(addr, data_dir, data_valid)
-   begin
-      if addr(15 downto 4) = x"FF1" and data_dir = '1' and data_valid = '1' then
-      
-         -- TIL register 0
-         if addr(3 downto 0) = x"0" then
-            til_reg0_enable <= '1';
-         else
-            til_reg0_enable <= '0';
-         end if;
-         
-         -- TIL register 1
-         if addr(3 downto 0) = x"1" then
-            til_reg1_enable <= '1';
-         else
-            til_reg1_enable <= '0';
-         end if;
-                  
-      else
-         til_reg0_enable <= '0';
-         til_reg1_enable <= '0';
-      end if;
-   end process;
+   -- we need to decouple all devices from the data bus during an IGRANT_N, because
+   -- the requesting device is putting the address of the ISR on the data bus durnig that time
+   -- (see also doc/intro/qnice_intro.pdf, section 5 "Interrupts")
+   no_igrant_active <= true when cpu_igrant_n = '1' else false;
    
-   -- SWITCH register is FF12
-   switch_control : process(addr, data_dir, data_valid)
-   begin
-      if addr(15 downto 0) = x"FF12" and data_dir = '0' then
-         switch_reg_enable <= '1';
-      else
-         switch_reg_enable <= '0';
-      end if;
-   end process;
-   
-   -- Keyboard status register is FF13 and data register is FF14
-   keyboard_control : process(addr, data_dir, data_valid)
-   begin
-      kbd_en <= '0';
-      kbd_we <= '0';
-      kbd_reg <= "00";
-      
-      if addr = x"FF13" then
-         kbd_en <= '1';
-         kbd_we <= data_dir and data_valid;
-         kbd_reg <= "00";
-      elsif addr = x"FF14" then
-         kbd_en <= '1';
-         kbd_we <= data_dir and data_valid;
-         kbd_reg <= "01";
-      end if;      
-   end process;
-   
-   -- Cycle counter starts at FF17
-   cyc_control : process(addr, data_dir, data_valid)
-   begin
-      cyc_en <= '0';
-      cyc_we <= '0';
-      cyc_reg <= "00";
-      
-      if addr = x"FF17" then
-         cyc_en <= '1';
-         cyc_we <= data_dir and data_valid;
-         cyc_reg <= "00";
-      elsif addr = x"FF18" then
-         cyc_en <= '1';
-         cyc_we <= data_dir and data_valid;
-         cyc_reg <= "01";
-      elsif addr = x"FF19" then
-         cyc_en <= '1';
-         cyc_we <= data_dir and data_valid;
-         cyc_reg <= "10";
-      elsif addr = x"FF1A" then
-         cyc_en <= '1';
-         cyc_we <= data_dir and data_valid;
-         cyc_reg <= "11";
-      end if;
-   end process;
-   
-   eae_control : process(addr, data_dir, data_valid)
-   begin
-      eae_en <= '0';
-      eae_we <= '0';
-      eae_reg <= "000";
-      
-      if addr = x"FF1B" then
-         eae_en <= '1';
-         eae_we <= data_dir and data_valid;
-         eae_reg <= "000";
-      elsif addr = x"FF1C" then
-         eae_en <= '1';
-         eae_we <= data_dir and data_valid;
-         eae_reg <= "001";
-      elsif addr = x"FF1D" then
-         eae_en <= '1';
-         eae_we <= data_dir and data_valid;
-         eae_reg <= "010";
-      elsif addr = x"FF1E" then
-         eae_en <= '1';
-         eae_we <= data_dir and data_valid;
-         eae_reg <= "011";
-      elsif addr = x"FF1F" then
-         eae_en <= '1';
-         eae_we <= data_dir and data_valid;
-         eae_reg <= "100";
-      end if;      
-   end process;
+   -- Block FF00: FUNDAMENTAL IO
+   switch_reg_enable <= not data_dir            when GD_SWITCHES and addr = x"FF00" and no_igrant_active else '0'; -- Read only
+   til_reg0_enable   <= data_dir and data_valid when GD_TIL and addr = x"FF01" and no_igrant_active else '0';    -- Write only
+   til_reg1_enable   <= data_dir and data_valid when GD_TIL and addr = x"FF02" and no_igrant_active else '0';    -- Write only
 
-   uart_control : process(addr, data_dir, data_valid)
-   begin
-      uart_en <= '0';
-      uart_we <= '0';
-      uart_reg <= "00";
-      
-      if addr = x"FF21" then
-         uart_en <= '1';
-         uart_we <= data_dir and data_valid;
-         uart_reg <= "01";
-      elsif addr = x"FF22" then
-         uart_en <= '1';
-         uart_we <= data_dir and data_valid;
-         uart_reg <= "10";
-      elsif addr = x"FF23" then
-         uart_en <= '1';
-         uart_we <= data_dir and data_valid;
-         uart_reg <= "11";      
-      end if;
-   end process;
+   kbd_en            <= '1' when addr(15 downto 2) = x"FF0" & "01" and no_igrant_active else '0';     -- FF04
+   kbd_we            <= kbd_en and data_dir and data_valid;
+   kbd_reg           <= addr(1 downto 0);
+
+   -- Block FF08: SYSTEM COUNTERS
+   cyc_en            <= '1' when addr(15 downto 2) = x"FF0" & "10" and no_igrant_active else '0';     -- FF08
+   cyc_we            <= cyc_en and data_dir and data_valid;
+   cyc_reg           <= addr(1 downto 0);
+
+   ins_en            <= '1' when addr(15 downto 2) = x"FF0" & "11" and no_igrant_active else '0';     -- FF0C
+   ins_we            <= ins_en and data_dir and data_valid;
+   ins_reg           <= addr(1 downto 0);
+
+   -- Block FF10: UART
+   uart_en           <= '1' when addr(15 downto 3) = x"FF1" & "0" and no_igrant_active else '0';      -- FF10
+   uart_we           <= uart_en and data_dir and data_valid;
+   uart_reg          <= addr(1 downto 0);
+
+   -- Block FF18: EAE
+   eae_en            <= '1' when addr(15 downto 3) = x"FF1" & "1" and no_igrant_active else '0';      -- FF18
+   eae_we            <= eae_en and data_dir and data_valid;
+   eae_reg           <= addr(2 downto 0);
+
+   -- Block FF20: SD CARD
+   sd_en             <= '1' when addr(15 downto 3) = x"FF2" & "0" and no_igrant_active else '0';      -- FF20
+   sd_we             <= sd_en and data_dir and data_valid;
+   sd_reg            <= addr(2 downto 0);
    
-   sd_control : process(addr, data_dir, data_valid)
-   begin
-      sd_en <= '0';
-      sd_we <= '0';
-      sd_reg <= "000";
-      
-      if addr = x"FF24" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "000";
-      elsif addr = x"FF25" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "001";
-      elsif addr = x"FF26" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "010";
-      elsif addr = x"FF27" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "011";
-      elsif addr = x"FF28" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "100";
-      elsif addr = x"FF29" then
-         sd_en <= '1';
-         sd_we <= data_dir and data_valid;
-         sd_reg <= "101";
-      end if;    
-   end process;
+   -- Block FF28: Timer Interrupt Generator
+   tin_en            <= '1' when addr(15 downto 3) = x"FF2" & "1" and no_igrant_active else '0';      -- FF28   
+   tin_we            <= tin_en and data_dir and data_valid;
+   tin_reg           <= addr(2 downto 0);   
+
+   -- Block FF30: VGA (double block, 16 registers)
+   vga_en            <= '1' when addr(15 downto 4) = x"FF3" and no_igrant_active else '0';            -- FF30
+   vga_we            <= vga_en and data_dir and data_valid;
+   vga_reg           <= addr(3 downto 0);
    
-   -- VGA starts at FF00
-   vga_control : process(addr, data_dir, data_valid)
-   begin
-      if addr(15 downto 4) = x"FF0" then
-         vga_en <= '1';
-         vga_we <= data_dir and data_valid;
-         vga_reg <= addr(3 downto 0);
-      else
-         vga_en <= '0';
-         vga_we <= '0';
-         vga_reg <= x"0";
-      end if;
-   end process;
-      
+   -- Block FFF0: MEGA65 block, currently only HyperRAM
+   hram_en           <= '1' when GD_HRAM and addr(15 downto 4) = x"FFF" and no_igrant_active else '0';   -- FFF0
+   hram_we           <= hram_en and data_dir and data_valid;
+   hram_reg          <= addr(3 downto 0); -- needs to be modified, as soon as there is more than just HRAM 
+            
    -- generate CPU wait signal   
    -- as long as the RAM is the only device on the bus that can make the
    -- CPU wait, this simple implementation is good enough
    -- otherwise, a "req_busy" bus could be built (replacing the ram_busy input)
    -- the block_ram's busy line is already a tri state, so it is ready for such a bus
-   cpu_wait_control : process (ram_enable_i, rom_enable_i, pore_rom_enable_i, ram_busy, rom_busy, pore_rom_busy)
+   cpu_wait_control : process (ram_enable_i, rom_enable_i, pore_rom_enable_i, ram_busy, rom_busy,
+                               pore_rom_busy, uart_cpu_ws, hram_cpu_ws, no_igrant_active)
    begin
-      if ram_enable_i = '1' and ram_busy = '1' then
-         cpu_wait_for_data <= '1';
-      elsif rom_enable_i = '1' and rom_busy = '1' then
-         cpu_wait_for_data <= '1';
-      elsif pore_rom_enable_i = '1' and pore_rom_busy = '1' then
-         cpu_wait_for_data <= '1';
-      else
-         cpu_wait_for_data <= '0';
+      cpu_wait_for_data <= '0';
+      
+      if no_igrant_active then
+         if ram_enable_i = '1' and ram_busy = '1' then
+            cpu_wait_for_data <= '1';
+         elsif rom_enable_i = '1' and rom_busy = '1' then
+            cpu_wait_for_data <= '1';
+         elsif pore_rom_enable_i = '1' and pore_rom_busy = '1' then
+            cpu_wait_for_data <= '1';
+         elsif GD_HRAM and hram_cpu_ws = '1' then
+            cpu_wait_for_data <= '1';
+         elsif uart_cpu_ws = '1' then
+            cpu_wait_for_data <= '1';
+         end if;
       end if;
    end process;
 
@@ -401,18 +309,20 @@ begin
    end process;
 
    -- PORE ROM is used in all global states other than gsRun
-   use_pore_rom_i <= '0' when (global_state = gsPostPoreReset or
+   use_pore_rom_i <= '0' when cpu_igrant_n = '0' or 
+                              (global_state = gsPostPoreReset or
                                global_state = gsPostPoreReset_execute or
                                global_state = gsRun)
                          else '1';
-   pore_rom_enable_i <= not addr(15) and not data_dir and use_pore_rom_i;
+   pore_rom_enable_i <= not addr(15) and not data_dir and use_pore_rom_i and cpu_igrant_n;
 
    -- ROM is enabled when the address is < $8000 and the CPU is reading
-   rom_enable_i <= not addr(15) and not data_dir and not use_pore_rom_i;
+   rom_enable_i <= not addr(15) and not data_dir and not use_pore_rom_i and cpu_igrant_n;
    
    -- RAM is enabled when the address is in ($8000..$FEFF)
    ram_enable_i <= addr(15)
-                   and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8));
+                   and not (addr(14) and addr(13) and addr(12) and addr(11) and addr(10) and addr(9) and addr(8))
+                   and cpu_igrant_n;
                
    -- generate external RAM/ROM/PORE enable signals
    ram_enable <= ram_enable_i;

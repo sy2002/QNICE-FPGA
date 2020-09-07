@@ -25,4 +25,4 @@ _VGA$Y                  .BLOCK  0x0001                  ; Current Y coordinate
 ;* SD Card / FAT32 support
 ;******************************************************************************************
 ;
-_SD$DEVICEHANDLE        .BLOCK  0x0012                  ; sysdef.asm: FAT32$DEV_STRUCT_SIZE
+_SD$DEVICEHANDLE        .BLOCK  FAT32$DEV_STRUCT_SIZE   ; sysdef.asm: FAT32$DEV_STRUCT_SIZE

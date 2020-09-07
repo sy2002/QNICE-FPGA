@@ -2,4 +2,15 @@
 
 vc $1 -o ${1/.c/}.bin "${@:2}"
 qniceconv 0x8000 < ${1/.c/}.bin > ${1/.c/}.out
-cat ${1/.c/}.out | pbcopy
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+source $SCRIPT_DIR/../../tools/detect.include
+
+if [ $OSTP = "LINUX" ]; then
+    if hash xclip 2>/dev/null; then
+        cat ${1/.c/}.out | xclip -selection clipboard
+    fi;
+elif [ $OSTP = "OSX" ]; then
+    cat ${1/.c/}.out | pbcopy
+fi;

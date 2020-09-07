@@ -18,9 +18,9 @@
 ; done by sy2002 in August 2015
 ; improved in January 2016, December 2016
 
-#undef OUTPUT_STDOUT
+#include "../dist_kit/sysdef.asm"
 
-IO$TIL_BASE     .EQU    0xFF10              ; Address of TIL-display
+#define OUTPUT_STDOUT
 
 ; about 10.000.000 cycles are needed to delay 1 sec
 WAIT_CYCLES1    .EQU    0x1388              ; 0x1388 = decimal 5.000
@@ -76,7 +76,7 @@ CHECK_LOOP      ADD     R10, R14            ; next bank
 
 ; output results to TIL
                 AND     0x00FF, R14         ; switch back to reg bank 0                
-                MOVE    IO$TIL_BASE, R12    ; TIL MMIO display address
+                MOVE    IO$TIL_DISPLAY, R12 ; TIL MMIO display address
 
                 ; display register R0 and the difference to the expected value
  DISPLAY_LOOP   MOVE    R0, R8              ; register = R8          

@@ -4,7 +4,7 @@
 ** 28-DEC-2016, B. Ulmann fecit
 */
 
-#define SD_BASE_ADDRESS 0xff24
+#define SD_NUMBER_OF_REGISTERS 6
 
 #define SD_ADDR_LO  0
 #define SD_ADDR_HI  1

@@ -1,7 +1,7 @@
 -- 48-bit clock cycle counter
 -- meant to be connected with the QNICE CPU as data I/O controled through MMIO
--- tristate outputs go high impedance when not enabled
--- done by sy2002 in May 2016
+-- output goes zero when not enabled
+-- done by sy2002 in May 2016 and refactored in July 2020
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -10,13 +10,15 @@ use IEEE.NUMERIC_STD.ALL;
 entity cycle_counter is
 port (
    clk      : in std_logic;         -- system clock
+   impulse  : in std_logic;         -- impulse that is counted
    reset    : in std_logic;         -- async reset
    
    -- cycle counter's registers
    en       : in std_logic;         -- enable for reading from or writing to the bus
    we       : in std_logic;         -- write to the registers via system's data bus
    reg      : in std_logic_vector(1 downto 0);     -- register selector
-   data     : inout std_logic_vector(15 downto 0)  -- system's data bus
+   data_in  : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out : out std_logic_vector(15 downto 0)    -- system's data bus
 );
 end cycle_counter;
 
@@ -24,55 +26,30 @@ architecture beh of cycle_counter is
 
 signal counter                : unsigned(47 downto 0) := (others => '0');
 signal cycle_is_counting      : std_logic;
-signal cycle_reset            : std_logic;
-signal reset_cycle_reset      : std_logic;
-signal i_reset                : std_logic;
 
 begin
 
-   count : process(clk, i_reset, counter)
+   count : process(clk, reset, en, we, reg, data_in)
    begin
-      if i_reset = '1' then
+      if reset = '1' or (en = '1' and we='1' and reg="11" and data_in(0) = '1') then
          counter <= (others => '0');
       else
          if rising_edge(clk) then
-            if cycle_is_counting = '1' then
+            if impulse = '1' and cycle_is_counting = '1' then
                counter <= counter + 1;
             end if;
          end if;
       end if;
    end process;
    
-   manage_cycle_reset : process(counter, cycle_reset)
+   write_register : process(clk, reset)
    begin
-      if cycle_reset = '1' and counter = 0 then
-         reset_cycle_reset <= '1';
-      else
-         reset_cycle_reset <= '0';
-      end if;
-   end process;
-   
-   write_reset_bit : process(clk, reset, reset_cycle_reset)
-   begin
-      if reset = '1' or reset_cycle_reset = '1' then
-         cycle_reset <= '0';
-      else
-         if falling_edge(clk) then
-            if en = '1' and we = '1' and reg = "11" then
-               cycle_reset <= data(0);
-            end if;
-         end if;
-      end if;
-   end process;
-   
-   write_is_counting_bit : process(clk, i_reset)
-   begin
-      if i_reset = '1' then
+      if reset = '1' then
          cycle_is_counting <= '1';
       else
          if falling_edge(clk) then
             if en = '1' and we = '1' and reg = "11" then
-               cycle_is_counting <= data(1);
+               cycle_is_counting <= data_in(0) or data_in(1);
             end if;
          end if;
       end if;
@@ -81,17 +58,20 @@ begin
    read_registers : process(en, we, reg, counter, cycle_is_counting)
    begin
       if en = '1' and we = '0' then
+--         data_out <= x"9ABC";
          case reg is
-            when "00" => data <= std_logic_vector(counter(15 downto 0));
-            when "01" => data <= std_logic_vector(counter(31 downto 16));
-            when "10" => data <= std_logic_vector(counter(47 downto 32));
-            when "11" => data <= "00000000000000" & cycle_is_counting & '0';
-            when others => data <= (others => '0');
+--            when "00" => data_out  <= x"9ABC"; --std_logic_vector(counter(15 downto 0));
+--            when "01" => data_out  <= x"5678"; --std_logic_vector(counter(31 downto 16));
+--            when "10" => data_out <= x"1234"; --std_logic_vector(counter(47 downto 32));
+            when "00" => data_out <= std_logic_vector(counter(15 downto 0));
+            when "01" => data_out <= std_logic_vector(counter(31 downto 16));
+            when "10" => data_out <= std_logic_vector(counter(47 downto 32));
+            when "11" => data_out <= "00000000000000" & cycle_is_counting & '0';
+            when others => data_out <= (others => '0');
          end case;
       else
-         data <= (others => 'Z');
+         data_out <= (others => '0');
       end if;
    end process;
-
-   i_reset <= cycle_reset or reset;
+   
 end beh;

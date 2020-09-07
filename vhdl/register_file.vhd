@@ -50,10 +50,9 @@ architecture beh of register_file is
 type upper_register_array is array(8 to 12) of std_logic_vector(15 downto 0);
 
 -- two dimensional array to model the lower register bank (windowed)
-type rega is array (0 to 7) of std_logic_vector(15 downto 0);
-type lower_register_window_array is array(0 to SHADOW_REGFILE_SIZE - 1) of rega;
+type rega is array (0 to 8*SHADOW_REGFILE_SIZE-1) of std_logic_vector(15 downto 0);
 
-signal LowerRegisterWindow : lower_register_window_array;
+signal LowerRegisterWindow : rega;
 signal UpperRegisters      : upper_register_array;
 
 begin
@@ -63,7 +62,7 @@ begin
       if falling_edge(clk) then            
          if write_en = '1' then
             if write_addr(3) = '0' then
-               LowerRegisterWindow(conv_integer(sel_rbank))(conv_integer(write_addr)) <= write_data;
+               LowerRegisterWindow(conv_integer(sel_rbank)*8+conv_integer(write_addr)) <= write_data;
             else
                UpperRegisters(conv_integer(write_addr)) <= write_data;
             end if;
@@ -74,7 +73,7 @@ begin
    read_register1 : process(read_addr1, LowerRegisterWindow, UpperRegisters, sel_rbank, SP, SR, PC)
    begin
       if read_addr1(3) = '0' then
-         read_data1 <= LowerRegisterWindow(conv_integer(sel_rbank))(conv_integer(read_addr1));
+         read_data1 <= LowerRegisterWindow(conv_integer(sel_rbank)*8+conv_integer(read_addr1));
       else
          case read_addr1 is
             when x"D" =>   read_data1 <= SP;
@@ -88,7 +87,7 @@ begin
    read_register2 : process(read_addr2, LowerRegisterWindow, UpperRegisters, sel_rbank, SP, SR, PC)
    begin
       if read_addr2(3) = '0' then
-         read_data2 <= LowerRegisterWindow(conv_integer(sel_rbank))(conv_integer(read_addr2));
+         read_data2 <= LowerRegisterWindow(conv_integer(sel_rbank)*8+conv_integer(read_addr2));
       else
          case read_addr2 is
             when x"D" =>   read_data2 <= SP;

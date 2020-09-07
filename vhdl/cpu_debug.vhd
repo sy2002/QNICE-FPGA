@@ -32,8 +32,9 @@ port (
       
    ADDR           : out std_logic_vector(15 downto 0);      -- 16 bit address bus
    
-   --tristate 16 bit data bus
-   DATA           : inout std_logic_vector(15 downto 0);    -- send/receive data
+   -- bidirectional 16 bit data bus
+   DATA_IN        : in std_logic_vector(15 downto 0);       -- receive data
+   DATA_OUT       : out std_logic_vector(15 downto 0);      -- send data
    DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
    DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
    
@@ -45,12 +46,11 @@ end component;
 -- ROM
 component BROM is
 generic (
-   FILE_NAME   : string;
-   ROM_LINES   : integer
+   FILE_NAME   : string
 );
 port (
    clk         : in std_logic;                        -- read and write on rising clock edge
-   ce          : in std_logic;                        -- chip enable, when low then high impedance on output
+   ce          : in std_logic;                        -- chip enable, when low then zero on output
    
    address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
    data        : out std_logic_vector(15 downto 0);   -- read data
@@ -63,7 +63,7 @@ end component;
 component BRAM is
 port (
    clk      : in std_logic;                        -- read and write on rising clock edge
-   ce       : in std_logic;                        -- chip enable, when low then high impedance
+   ce       : in std_logic;                        -- chip enable, when low then zero on output
    
    address  : in std_logic_vector(14 downto 0);    -- address is for now 16 bit hard coded
    we       : in std_logic;                        -- write enable
@@ -231,8 +231,7 @@ begin
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
    rom : BROM
       generic map (
-         FILE_NAME   => ROM_FILE,
-         ROM_LINES   => ROM_SIZE
+         FILE_NAME   => ROM_FILE
       )
       port map (
          clk         => CLK,
@@ -259,8 +258,7 @@ begin
    -- MMIO is managing the PORE process
    pore_rom : BROM
       generic map (
-         FILE_NAME   => PORE_ROM_FILE,
-         ROM_LINES   => PORE_ROM_SIZE
+         FILE_NAME   => PORE_ROM_FILE
       )
       port map (
          clk         => CLK,

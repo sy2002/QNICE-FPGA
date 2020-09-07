@@ -1,0 +1,118 @@
+## Nexys 4 DDR specific mapping of QNICE-FPGA
+## done by sy2002 in 2015, 2016
+
+## Hardware's 100 MHz clock signal (input)
+NET "CLK"                  LOC = E3  | IOSTANDARD = "LVCMOS33";
+NET "CLK" TNM_NET = sys_clk_pin;
+TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 100 MHz HIGH 50%; 
+
+## QNICE-FPGA main clock: 50 MHz
+NET "SLOW_CLOCK" TNM_NET = SLOW_CLOCK;
+TIMESPEC TS_SLOW_CLOCK = PERIOD "SLOW_CLOCK" 50 MHz HIGH 50%;
+
+## VGA pixelclock: 25 MHz
+## comment this in, if you want to be portable and are not using
+## the Xilinx specific MMCME (see also hw/README.md "General advise for porting"
+#NET "clk25MHz" TNM_NET = clk25MHz;
+#TIMESPEC TS_clk25MHz = PERIOD "clk25MHz" 25 MHz HIGH 50%;
+
+## EAE's combinatorial division networks take longer than
+## the regular clock period, so we specify a timing constraint
+## for them (see also the comments in EAE.vhd)
+INST "eae_inst/op*" TNM="EAE_OPS";
+INST "eae_inst/res*" TNM="EAE_RES";
+TIMESPEC TS_EAE=FROM "EAE_OPS" TO "EAE_RES" 34 ns;
+
+## Reset button
+NET "RESET_N"              LOC = C12 | IOSTANDARD = LVCMOS33;
+
+## 7 segment display
+NET "SSEG_CA<0>"           LOC = T10 | IOSTANDARD = LVCMOS33;
+NET "SSEG_CA<1>"           LOC = R10 | IOSTANDARD = LVCMOS33;
+NET "SSEG_CA<2>"           LOC = K16 | IOSTANDARD = LVCMOS33;
+NET "SSEG_CA<3>"           LOC = K13 | IOSTANDARD = LVCMOS33;
+NET "SSEG_CA<4>"           LOC = P15 | IOSTANDARD = LVCMOS33;
+NET "SSEG_CA<5>"           LOC = T11 | IOSTANDARD = LVCMOS33;
+NET "SSEG_CA<6>"           LOC = L18 | IOSTANDARD = LVCMOS33;
+NET "SSEG_CA<7>"           LOC = H15 | IOSTANDARD = LVCMOS33;
+
+NET "SSEG_AN<0>"           LOC = J17 | IOSTANDARD = LVCMOS33;
+NET "SSEG_AN<1>"           LOC = J18 | IOSTANDARD = LVCMOS33;
+NET "SSEG_AN<2>"           LOC = T9  | IOSTANDARD = LVCMOS33;
+NET "SSEG_AN<3>"           LOC = J14 | IOSTANDARD = LVCMOS33;
+NET "SSEG_AN<4>"           LOC = P14 | IOSTANDARD = LVCMOS33;
+NET "SSEG_AN<5>"           LOC = T14 | IOSTANDARD = LVCMOS33;
+NET "SSEG_AN<6>"           LOC = K2  | IOSTANDARD = LVCMOS33;
+NET "SSEG_AN<7>"           LOC = U13 | IOSTANDARD = LVCMOS33;
+
+## USB-RS232 Interface
+NET "UART_RXD"             LOC = C4  | IOSTANDARD = LVCMOS33;
+NET "UART_TXD"             LOC = D4  | IOSTANDARD = LVCMOS33;
+NET "UART_CTS"             LOC = D3  | IOSTANDARD = LVCMOS33;
+NET "UART_RTS"             LOC = E5  | IOSTANDARD = LVCMOS33;
+
+## Switches
+NET "SWITCHES<0>"          LOC = J15 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<1>"          LOC = L16 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<2>"          LOC = M13 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<3>"          LOC = R15 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<4>"          LOC = R17 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<5>"          LOC = T18 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<6>"          LOC = U18 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<7>"          LOC = R13 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<8>"          LOC = T8  | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<9>"          LOC = U8  | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<10>"         LOC = R16 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<11>"         LOC = T13 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<12>"         LOC = H6  | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<13>"         LOC = U12 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<14>"         LOC = U11 | IOSTANDARD = LVCMOS33;
+NET "SWITCHES<15>"         LOC = V10 | IOSTANDARD = LVCMOS33;
+
+## PS/2 keyboard
+NET "PS2_CLK"              LOC = F4  | IOSTANDARD = LVCMOS33;
+NET "PS2_DAT"              LOC = B2  | IOSTANDARD = LVCMOS33;
+
+## LEDs
+NET "LEDS<0>"              LOC = H17 | IOSTANDARD = LVCMOS33;
+NET "LEDS<1>"              LOC = K15 | IOSTANDARD = LVCMOS33;
+NET "LEDS<2>"              LOC = J13 | IOSTANDARD = LVCMOS33;
+NET "LEDS<3>"              LOC = N14 | IOSTANDARD = LVCMOS33;
+NET "LEDS<4>"              LOC = R18 | IOSTANDARD = LVCMOS33;
+NET "LEDS<5>"              LOC = V17 | IOSTANDARD = LVCMOS33;
+NET "LEDS<6>"              LOC = U17 | IOSTANDARD = LVCMOS33;
+NET "LEDS<7>"              LOC = U16 | IOSTANDARD = LVCMOS33;
+NET "LEDS<8>"              LOC = V16 | IOSTANDARD = LVCMOS33;
+NET "LEDS<9>"              LOC = T15 | IOSTANDARD = LVCMOS33;
+NET "LEDS<10>"             LOC = U14 | IOSTANDARD = LVCMOS33;
+NET "LEDS<11>"             LOC = T16 | IOSTANDARD = LVCMOS33;
+NET "LEDS<12>"             LOC = V15 | IOSTANDARD = LVCMOS33;
+NET "LEDS<13>"             LOC = V14 | IOSTANDARD = LVCMOS33;
+NET "LEDS<14>"             LOC = V12 | IOSTANDARD = LVCMOS33;
+NET "LEDS<15>"             LOC = V11 | IOSTANDARD = LVCMOS33;
+
+## VGA
+NET "vga_red[0]"           LOC = A3  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[1]"           LOC = B4  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[2]"           LOC = C5  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_red[3]"           LOC = A4  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[0]"          LOC = B7  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[1]"          LOC = C7  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[2]"          LOC = D7  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_blue[3]"          LOC = D8  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[0]"         LOC = C6  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[1]"         LOC = A5  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[2]"         LOC = B6  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_green[3]"         LOC = A6  | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_hs"               LOC = B11 | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+NET "vga_vs"               LOC = B12 | IOSTANDARD = LVCMOS33 | SLEW = FAST;
+
+##Micro SD Connector
+NET "SD_RESET"             LOC = E2  | IOSTANDARD = LVCMOS33;
+NET "SD_CLK"               LOC = B1  | IOSTANDARD = LVCMOS33;
+NET "SD_MOSI"              LOC = C1  | IOSTANDARD = LVCMOS33;
+NET "SD_MISO"              LOC = C2  | IOSTANDARD = LVCMOS33;
+NET "sd_dat<1>"            LOC = E1  | IOSTANDARD = LVCMOS33;
+NET "sd_dat<2>"            LOC = F1  | IOSTANDARD = LVCMOS33;
+NET "sd_dat<3>"            LOC = D2  | IOSTANDARD = LVCMOS33;
+#NET "sd_cd"                LOC = A1  | IOSTANDARD = LVCMOS33;

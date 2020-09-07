@@ -31,17 +31,21 @@ if [ -z "$SDL2_CFLAGS" ]; then
     exit
 fi 
 
-if [ $OSTP = "OSX" ]; then
+#Temporarily removed due to https://github.com/sy2002/QNICE-FPGA/issues/78
+#That means that for now, we revert back from static linking to dynamic linking
+#if [ $OSTP = "OSX" ]; then
     #On OSX sdl2-config is not returning the right string to build statically, so we
     #need to create it manually by finding out the path to the SDL2 library and then
     #by replacing the lSDL2 part in the output of sdl2-config
-    PATH_TO_SDL2LIB=$(sdl2-config --static-libs | perl -pe 's|(-L/.+?\s).*|\1|' | cut -c 3- | rev | cut -c 2- | rev)"/libSDL2.a"
-    SDL2_LIBS=$(sdl2-config --static-libs | sed 's|-lSDL2|'$PATH_TO_SDL2LIB'|')
-else
-    SDL2_LIBS=`sdl2-config --static-libs`
-fi
+#    PATH_TO_SDL2LIB=$(sdl2-config --static-libs | perl -pe 's|(-L/.+?\s).*|\1|' | cut -c 3- | rev | cut -c 2- | rev)"/libSDL2.a"
+#    SDL2_LIBS=$(sdl2-config --static-libs | sed 's|-lSDL2|'$PATH_TO_SDL2LIB'|')
+#else
+#    SDL2_LIBS=`sdl2-config --static-libs`
+#fi
 
-FILES="qnice.c fifo.c sd.c uart.c vga.c"
-DEF_SWITCHES="-DUSE_SD -DUSE_UART -DUSE_VGA"
+SDL2_LIBS=`sdl2-config --libs`
+
+FILES="qnice.c fifo.c sd.c uart.c vga.c timer.c"
+DEF_SWITCHES="-DUSE_SD -DUSE_UART -DUSE_VGA -DUSE_TIMER"
 UNDEF_SWITCHES="-UUSE_IDE -U__EMSCRIPTEN__"
 $COMPILER $FILES -O3 $DEF_SWITCHES $UNDEF_SWITCHES $SDL2_CFLAGS $SDL2_LIBS -o qnice-vga

@@ -1,12 +1,8 @@
-%
-% TODO:
-%  - Webseite zu QNICE erstellen!
-%
 \documentclass{beamer}
 \usepackage{beamerthemesplit, graphicx}
 \usetheme{VAXMAN}
 %
-\title{QNICE -- a nice 16 bit architecture}
+\title{QNICE -- a nice 16 bit architecture\\~\\ISA v. 1.6}
 \author{Bernd Ulmann}
 %\date{}
 \begin{document}
@@ -14,14 +10,8 @@
   \titlepage
  \end{frame}
 %
-% \section[Outline]{}
-%  \begin{frame}
-%   \frametitle{Outline}
-%   \tableofcontents
-%  \end{frame}
-%
- \section{Introduction}
-  \subsection{Goal}
+% \section{Introduction}
+%  \subsection{Goal}
    \begin{frame}
     \frametitle{Goal}
     Why a new 16 bit processor architecture? Why not stay with commodity
@@ -43,7 +33,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Basics}
+%  \subsection{Basics}
    \begin{frame}
     \frametitle{Basics}
     \begin{itemize}
@@ -62,8 +52,8 @@
     \end{itemize}
    \end{frame}
 %
- \section{Architecture}
-  \subsection{Registers}
+% \section{Architecture}
+%  \subsection{Registers}
    \begin{frame}
     \frametitle{Registers}
     \begin{itemize}
@@ -90,7 +80,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{The status register {\tt R14}}
+%  \subsection{The status register {\tt R14}}
    \begin{frame}
     \frametitle{The status register {\tt R14}}
     The status register is divided into two parts: The lower
@@ -128,34 +118,34 @@
       to be used.
      \item To switch between register pages it is only necessary to 
       change the contents of {\tt rbank} -- normally this will be 
-      accomplished by a simple {\tt ADD} or {\tt SUB} instruction.
+      accomplished by the {\tt INCRB} and {\tt DECRB} instructions.
      \item The multiple register banks are very handy in programming
       subroutines since they remove the necessity of saving lots of
       registers on entry and restoring them on exit of a subroutine.
     \end{itemize}
    \end{frame}
 %
-  \subsection{Input/Output}
+%  \subsection{Input/Output}
    \begin{frame}
     \frametitle{Input/Ouput}
     \begin{itemize}
      \item All input/output operations of QNICE take place through
       a memory mapped I/O system, so there are no special I/O instructions
       as some other processors feature.
-     \item The upper 1k word of memory is reserved for I/O controllers
+     \item The upper 256 words of memory are reserved for I/O controllers
       which can be easily accessed using normal instructions with
       addressing modes referring to memory cells.
     \end{itemize}
    \end{frame}
 %
- \section{Instruction set and addressing modes}
-  \subsection{Instruction set basics}
+% \section{Instruction set and addressing modes}
+%  \subsection{Instruction set basics}
    \begin{frame}
     \frametitle{Instruction set basics}
     \begin{itemize}
      \item QNICE utilizes 18 basic instructions, all of which (apart
-      from {\tt HALT}, which takes no operands) are two operand 
-      instructions. 
+      from the control group, which takes one optional operand) are two 
+      operand instructions. 
      \item Instructions like {\tt ADD R0, R1} will actually perform an
       operation like {\tt R1 := R1 + R0} -- the only exceptions being
       \begin{itemize}
@@ -172,7 +162,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Instruction format}
+%  \subsection{Instruction format}
    \begin{frame}
     \frametitle{Instruction format}
     \begin{itemize}
@@ -187,9 +177,21 @@
         \hline
        \end{tabular}
       \end{center}
+     \item The control instructions with opcode \texttt{E} have the 
+      following general format:
+      \begin{center}
+       \begin{tabular}{|c||c||c|c|}
+        \hline
+         4 bit&6 bit&4 bit&2 bit\\
+         {\tt opcode}&{\tt command}&{\tt dst rxx}&\texttt{dst mode}\\
+        \hline
+       \end{tabular}
+      \end{center}
      \item The four jump and branch instructions use the following instruction
-      format:
-      {\tiny
+      format with mode bits \texttt{00}, \texttt{01}, \texttt{10},
+      \texttt{11} specifying \texttt{ABRA}, \texttt{ASUB}, \texttt{RBRA}, 
+      and \texttt{RSUB}:
+      {\scriptsize
        \begin{center}
         \begin{tabular}{|c||c|c||c||c|c|}
          \hline
@@ -201,13 +203,10 @@
         \end{tabular}
        \end{center}
       }
-     \item The four jumps and branches {\tt ABRA}, {\tt ASUB}, {\tt RBRA}
-      and {\tt RSUB} have the corresponding mode bits {\tt 00}, {\tt 01},
-      {\tt 10} and {\tt 11} respectively.
     \end{itemize}
    \end{frame}
 %
-  \subsection{List of instructions}
+%  \subsection{List of instructions}
    \begin{frame}
     \frametitle{List of instructions}
     \begin{center}
@@ -230,7 +229,7 @@
    \end{frame}
 %
    \begin{frame}
-%    \frametitle{List of instructions}
+    \frametitle{List of instructions}
     \begin{center}
      \begin{tabular}{|c|ll|l|}
       \hline
@@ -241,18 +240,117 @@
        {\tt A}&{\tt OR}&{\tt src, dst}&{\tt dst := dst | src}\\
        {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
        {\tt C}&{\tt CMP}&{\tt src, dst}&compare {\tt src} with {\tt dst}\\ 
-       {\tt D}&reserved&\\
+       {\tt D}&&&reserved\\
        {\tt E}&{\tt HALT}&&Halt the processor\\
-       {\tt F}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
-       {\tt F}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
-       {\tt F}&{\tt RBRA}&{\tt dest, [!]cond}&Relative branch\\
-       {\tt F}&{\tt RSUB}&{\tt dest, [!]cond}&Relative subroutine call\\
+       {\tt E}&{\tt RTI}&&Return from interrupt\\
+       {\tt E}&{\tt INT}&\texttt{dst}&Issue software interrupt\\
+       {\tt E}&{\tt INCRB}&&Increment register bank addr.\\
+       {\tt E}&{\tt DECRB}&&Decrement register bank addr.\\
+       {\tt F}&{\tt ABRA}&{\tt dst, [!]cond}&Absolute branch\\
+       {\tt F}&{\tt ASUB}&{\tt dst, [!]cond}&Absolut subroutine call\\
+       {\tt F}&{\tt RBRA}&{\tt dst, [!]cond}&Relative branch\\
+       {\tt F}&{\tt RSUB}&{\tt dst, [!]cond}&Relative subroutine call\\
       \hline
      \end{tabular}
     \end{center}
    \end{frame}
 %
-  \subsection{Branches and subroutine calls}
+%  \subsection{Affected condition bits}
+   \begin{frame}
+    \frametitle{Affected condition bits}
+    The following table shows which instructions (R)eads, (W)rites or is 
+    (C)ontrolled by which condition bits:
+    \begin{center}
+     \begin{tabular}{|l|c|c|c|c|c|c|}
+      \hline
+       Instruction&\texttt{V}&\texttt{N}&\texttt{Z}&\texttt{C}&\texttt{X}&\texttt{1}\\
+      \hline
+       \texttt{MOVE} & &W&W& &W& \\
+       \texttt{ADD}  &W&W&W&W&W& \\
+       \texttt{ADDC} &W&W&W&R/W&W& \\
+       \texttt{SUB}  &W&W&W&W&W& \\
+       \texttt{SUBC} &W&W&W&R/W&W& \\
+       \texttt{SHL}  & &W&W&W&R& \\
+       \texttt{SHR}  & &W&W&R&W& \\
+       \texttt{SWAP} & &W&W& &W& \\
+       \texttt{NOT}  & &W&W& &W& \\
+       \texttt{AND}  & &W&W& &W& \\
+       \texttt{OR}   & &W&W& &W& \\
+       \texttt{XOR}  & &W&W& &W& \\
+      \hline
+     \end{tabular}
+    \end{center}
+   \end{frame}
+%
+%  \subsection{Affected condition bits}
+   \begin{frame}
+    \frametitle{Affected condition bits}
+    \begin{center}
+     \begin{tabular}{|l|c|c|c|c|c|c|}
+      \hline
+       Instruction&\texttt{V}&\texttt{N}&\texttt{Z}&\texttt{C}&\texttt{X}&\texttt{1}\\
+      \hline
+       \texttt{CMP}  &W&W&W& & & \\
+       \texttt{HALT} & & & & & & \\
+       \texttt{RTI}  & & & & & & \\
+       \texttt{INT}  & & & & & & \\
+       \texttt{INCRB}& & & & & & \\
+       \texttt{DECRB}& & & & & & \\
+       \texttt{ABRA} &C&C&C&C&C&C\\
+       \texttt{ASUB} &C&C&C&C&C&C\\
+       \texttt{RBRA} &C&C&C&C&C&C\\
+       \texttt{RSUB} &C&C&C&C&C&C\\
+      \hline
+     \end{tabular}
+    \end{center}
+   \end{frame}
+%blub
+%
+%  \subsection{\texttt{CMP} instruction}
+   \begin{frame}
+    \frametitle{\texttt{CMP} instruction}
+    The \texttt{CMP} instruction affects the condition flags in the 
+    status register as follows:
+~\\~\\
+    \begin{center}
+     \begin{tabular}{|l|l|l|l|l|}
+      \hline
+      Condition&\multicolumn{4}{c|}{Flags}\\
+               &\multicolumn{2}{c|}{unsigned}&\multicolumn{2}{c|}{signed}\\
+               &\texttt{Z}&\texttt{N}&\texttt{Z}&\texttt{V}\\
+      \hline
+      \hline
+      \texttt{src}$<$\texttt{dst}&\texttt{0}&\texttt{0}&\texttt{0}&\texttt{0}\\
+      \texttt{src}$=$\texttt{dst}&\texttt{1}&\texttt{0}&\texttt{1}&\texttt{0}\\
+      \texttt{src}$>$\texttt{dst}&\texttt{0}&\texttt{1}&\texttt{0}&\texttt{1}\\
+      \hline
+     \end{tabular}
+    \end{center}
+   \end{frame}
+%
+%  \subsection{Control instructions}
+   \begin{frame}
+    \frametitle{Control instructions}
+    All control instructions share the opcode \texttt{E}. The command to be
+    executed is specified by bits \texttt{5..0} of the instruction:
+    \begin{center}
+     \begin{tabular}{|l|l|l|}
+      \hline
+       Cmd bits&Command&Description\\
+      \hline
+      \hline
+       \texttt{000000}&\texttt{HALT}&Halt the processor\\
+       \texttt{000001}&\texttt{RTI}&Return from interrupt\\
+       \texttt{000010}&\texttt{INT}&Issue a software interrupt with the\\
+        &&address supplied by the source operand\\
+       \texttt{000011}&\texttt{INCRB}&Increment the register bank address\\
+       \texttt{000100}&\texttt{DECRB}&Decrement the register bank address\\
+      \hline
+     \end{tabular}
+    \end{center}
+   \end{frame}
+%
+%  \subsection{Branches and subroutine calls}
    \begin{frame}
     \frametitle{Branches and subroutine calls}
     The four branch and call instructions need some clarification:
@@ -295,7 +393,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Addressing modes}
+%  \subsection{Addressing modes}
    \begin{frame}
     \frametitle{Addressing modes}
     All {\tt src} and {\tt dst} operands may be specified using one out of 
@@ -365,7 +463,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Branches and calls}
+%  \subsection{Branches and calls}
    \begin{frame}
     \frametitle{Branches and calls}
     \begin{itemize}
@@ -389,7 +487,7 @@
     \end{itemize}
    \end{frame}
 %
-  \subsection{Examples}
+%  \subsection{Examples}
    \begin{frame}
     \frametitle{Examples}
     The following examples may help in understanding the binary representation
@@ -434,9 +532,9 @@
     }
    \end{frame}
 %
- \section{Code example}
+% \section{Code example}
   \begin{frame}[containsverbatim]
-   \frametitle{Code example: $\sum_{i=0}^{0x1000}i$}
+   \frametitle{Code example: {\scriptsize$\sum_{i=0}^{0x1000}i$}}
    \begin{verbatim}
 000001                            .ORG    0x0000
 000002  0000  B000                XOR     R0, R0
@@ -448,7 +546,7 @@
    \end{verbatim}
   \end{frame}
 %
-  \subsection{Subroutines}
+%  \subsection{Subroutines}
    \begin{frame}
     \frametitle{Subroutines}
     \begin{itemize}
@@ -475,16 +573,75 @@
       &{\tt ...}&\\
       &{\tt RSUB ROUTINE, 1}&! Unconditionally jump to the subroutine\\
       &{\tt...}&! Continue with main program\\
-      {\tt ROUTINE:}&{\tt ADD 0x0100, R14}&! Incr. the register bank pointer\\
+      {\tt ROUTINE:}&{\tt INCRB}&! Incr. the register bank pointer\\
       &{\tt ...}&! Perform subroutine operations\\
-      &{\tt SUB 0x0100, R14}&! Restore the register bank\\
+      &{\tt DECRB}&! Restore the register bank\\
       &{\tt MOVE @R13++, R15}&! Return to the calling program\\
      \end{tabular}
     \end{center}
     }
    \end{frame}
 %
- \section{Soft- and hardware}
+% \section{Interrupts}
+  \begin{frame}
+   \frametitle{Interrupts}
+   QNICE supports a simple interrupt scheme:
+   \begin{itemize}
+    \item Interrupts cannot be nested. If an interrupt occurs while another
+     interrupt is serviced, the CPU will not grant the new interrupt.
+    \item The processor has two sets of the registers \texttt{R14} (status
+     register) and \texttt{R15} (program counter). When an interrupt is 
+     issued, the current contents of these two registers are saved into two
+     invisible latches. An interrupt service routine (\emph{ISR}) can only
+     be left by the control instruction \texttt{RTI}. This effectively
+     restores the values of \texttt{R14} and \texttt{R15} and thus resumes 
+     operation at the correct location.
+    \item There is an extremely simple (optional) interrupt controller 
+     implemented as an external device which allows to mask interrupts
+     using a simple register and an \texttt{AND}-gate.
+   \end{itemize}
+  \end{frame}
+%
+  \begin{frame}
+   \frametitle{Interrupts}
+   \begin{itemize}
+    \item The CPU features two lines to deal with external interrupts:
+     \begin{description}
+      \item [\texttt{/INT}:] By setting this line to low, an 
+       external device requests an interrupt.
+      \item [\texttt{/IGRANT}:] As soon as the CPU is able to
+       service the interrupt, it will save \texttt{R14} and \texttt{R15} and
+       then signals the device by pulling \texttt{/IGRANT} low
+       that the device may now put the address of the desired ISR onto the 
+       data bus.
+      \item When the data is valid, the device pulls \texttt{/INT}
+       high again. The CPU now reads the data and pulls
+       \texttt{/IGRANT} high to notify the device that it must
+       release the data bus. The CPU then jumps to this address.
+     \end{description}
+    \item A software interrupt is triggered by \texttt{INT <dst op>}.
+     The source operand contains the address of the ISR.
+    \item To return from an interrupt the instruction \texttt{RTI} is
+     used.
+   \end{itemize}
+  \end{frame}
+%
+  \begin{frame}
+   \frametitle{Interrupts}
+   \begin{center}
+    \includegraphics[width=.8\textwidth]{interrupt_timing.jpg}
+   \end{center}
+%https://wavedrom.com/editor.html:
+%{signal: [
+%  {name: '/INT', wave: '10..1..'},
+%  {name: '/IGRANT', wave: '1.0..1.'},
+%  
+%  {name: 'D0..15', wave: 'xxx=.xx', data: ['data']},
+%  
+%]}
+  \end{frame}
+%
+% \section{Soft- and hardware}
   \begin{frame}
    \frametitle{Soft- and hardware}
    \begin{itemize}
@@ -495,10 +652,13 @@
      QNICE can be found at \texttt{https://github.com/sy2002/QNICE-FPGA}.
      This repository also contains a copy of the necessary QNICE 
      software development utilities.
+    \item Dr. \textsc{Chris Giles} currently (as of 2020) develops a
+     microprogrammed TTL-implementation of the QNICE-architecture including
+     interrupt handling.
    \end{itemize}
   \end{frame}
 %
- \section{The emulator}
+% \section{The emulator}
   \begin{frame}
    \frametitle{The emulator}
    \begin{itemize}
@@ -605,19 +765,21 @@ rx   :    12290 (42.86%)    rx   :     8194 (28.57%)
    }
   \end{frame}
 %
- \section{Future plans}
+% \section{Future plans}
   \begin{frame}
    \frametitle{Future plans}
    \begin{itemize}
-    \item As of now (AUG-2015) three QNICE implementations exist: The
-     emulator, an AVR-implementation and Mirko Holzer's 
-     FPGA-implementation.
-    \item The next step is to develop a useful monitor program, maybe
-     in conjunction with a Forth interpreter.
-    \item Next, a system controller will be designed which implements
-     an interrupt controller and a simple MMU.
-    \item With these prerequisites a UNIX-like operating system for
-     QNICE should be possible.
+    \item As of now (AUG-2020) the following QNICE implementations 
+     exist: 
+     \begin{itemize}
+      \item A software emulator (\texttt{qnice.c}),
+      \item an AVR-implementation (only of historic interest),
+      \item a \textbf{a fully fledged FPGA implementation}, and
+      \item a TTL-implementation (ongoing project).
+     \end{itemize}
+    \item We plan to port a UNIX-like operating system such as 
+     XINU to QNICE in the not too far future.
+    \item A Forth-interpreter would be great, too. :-)
    \end{itemize}
   \end{frame}
 %

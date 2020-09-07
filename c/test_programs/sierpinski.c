@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "sysdef.h"
+
 int main() 
 {
     int bitpattern, scale, generation, i, blocksize, x, y;
@@ -39,7 +41,7 @@ int main()
     }
 
 #ifdef __QNICE__
-    *((unsigned int*) 0xFF1A) |= 1; /* reset cycle counter */ 
+    *((unsigned int*) IO_CYC_STATE) |= 1; /* reset cycle counter */ 
 #endif
 
     for (i = 0; i < width * width; ++i) out[i]='#';
@@ -69,7 +71,7 @@ int main()
     }
 
 #ifdef __QNICE__
-    cycles = *((unsigned long*) 0xFF17); /* read the lower 32 bit of the cycle counter */
+    cycles = *((unsigned long*) IO_CYC_LO); /* read the lower 32 bit of the cycle counter */
     printf("\n\nCalculation duration: %lu CPU cycles, i.e. %lu ms\n", cycles, cycles / 50000);
 #endif
 

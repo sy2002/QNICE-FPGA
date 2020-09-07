@@ -39,20 +39,21 @@ END ps2_keyboard;
 ARCHITECTURE logic OF ps2_keyboard IS
   SIGNAL sync_ffs     : STD_LOGIC_VECTOR(1 DOWNTO 0);       --synchronizer flip-flops for PS/2 signals
   SIGNAL ps2_clk_int  : STD_LOGIC;                          --debounced clock signal from PS/2 keyboard
+  SIGNAL ps2_clk_int_d: STD_LOGIC;                          --delayed clock signal
   SIGNAL ps2_data_int : STD_LOGIC;                          --debounced data signal from PS/2 keyboard
   SIGNAL ps2_word     : STD_LOGIC_VECTOR(10 DOWNTO 0);      --stores the ps2 data word
   SIGNAL error        : STD_LOGIC;                          --validate parity, start, and stop bits
   SIGNAL count_idle   : INTEGER RANGE 0 TO clk_freq/18000;  --@TODO counter to determine PS/2 is idle
   
---  --declare debounce component for debouncing PS2 input signals
---  COMPONENT debounce IS
---    GENERIC(
---      counter_size : INTEGER); --debounce period (in seconds) = 2^counter_size/(clk freq in Hz)
---    PORT(
---      clk    : IN  STD_LOGIC;  --input clock
---      button : IN  STD_LOGIC;  --input signal to be debounced
---      result : OUT STD_LOGIC); --debounced signal
---  END COMPONENT;
+  --declare debounce component for debouncing PS2 input signals
+  COMPONENT debounce IS
+    GENERIC(
+      counter_size : INTEGER); --debounce period (in seconds) = 2^counter_size/(clk freq in Hz)
+    PORT(
+      clk    : IN  STD_LOGIC;  --input clock
+      button : IN  STD_LOGIC;  --input signal to be debounced
+      result : OUT STD_LOGIC); --debounced signal
+  END COMPONENT;
 BEGIN
 
   --synchronizer flip-flops
@@ -64,25 +65,22 @@ BEGIN
     END IF;
   END PROCESS;
 
-
---  --debounce PS2 input signals
---  debounce_ps2_clk: debounce
---    GENERIC MAP(counter_size => debounce_counter_size)
---    PORT MAP(clk => clk, button => sync_ffs(0), result => ps2_clk_int);
---  debounce_ps2_data: debounce
---    GENERIC MAP(counter_size => debounce_counter_size)
---    PORT MAP(clk => clk, button => sync_ffs(1), result => ps2_data_int);
-
-   -- comment this out and comment in the above-mentioned "debounce PS2 input signals" section,
-   -- and the debounce component if you want to deactivate debouncing
-  ps2_clk_int <= sync_ffs(0);
-  ps2_data_int <= sync_ffs(1);
+  --debounce PS2 input signals
+  debounce_ps2_clk: debounce
+    GENERIC MAP(counter_size => debounce_counter_size)
+    PORT MAP(clk => clk, button => sync_ffs(0), result => ps2_clk_int);
+  debounce_ps2_data: debounce
+    GENERIC MAP(counter_size => debounce_counter_size)
+    PORT MAP(clk => clk, button => sync_ffs(1), result => ps2_data_int);
 
   --input PS2 data
-  PROCESS(ps2_clk_int)
+  PROCESS(clk)
   BEGIN
-    IF(ps2_clk_int'EVENT AND ps2_clk_int = '0') THEN    --falling edge of PS2 clock
-      ps2_word <= ps2_data_int & ps2_word(10 DOWNTO 1);   --shift in PS2 data bit
+    IF(clk'EVENT AND clk = '1') THEN           --rising edge of system clock
+      ps2_clk_int_d <= ps2_clk_int;  -- Delay signal in order to detect transitions.
+        IF ps2_clk_int_d='1' and ps2_clk_int='0' THEN    --falling edge of PS2 clock
+        ps2_word <= ps2_data_int & ps2_word(10 DOWNTO 1);   --shift in PS2 data bit
+      END IF;
     END IF;
   END PROCESS;
     

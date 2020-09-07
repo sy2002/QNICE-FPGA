@@ -2,6 +2,21 @@ Minimum requirements to work with QNICE-FPGA:
 
 * bash
 * CC or GCC
-* perl
-* If you want to synthesize your own bitstream (.bit): Xilinx ISE
+* Perl
+* If you want to synthesize your own bitstream (.bit): Xilinx ISE or Vivado
 
+We tested everything on macOS and Ubuntu Linux. Other Linux distributions
+should (nearly) work out of the box. Windows (native) might need some changes
+in some of the scripts as well as source code changes in the emulator.
+
+Optional:
+
+* SDL2 for the VGA and WASM version of the emulator 
+* Emscripten for the WASM version of the emulator
+* Libserialport for tools/qtransfer.c
+* xclip on Linux so that the script assembler/asm conveniently copies the
+  .out file in the clipboard
+* gource if you want to see the visualization in tools/gource.sh
+* Python 3 if you want to use tools/mini_terminal.py
+
+Last modified by sy2002 in June 2020

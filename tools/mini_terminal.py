@@ -13,7 +13,7 @@
 
 # on macOS and Linux enter "ll -l /dev/cu*" in terminal to find out where to connect to
 # the following port is the one on sy2002's computer; you'll probabily need to adjust it to yours
-QNICE_FPGA_PORT = '/dev/cu.usbserial-2102927424241'
+QNICE_FPGA_PORT = '/dev/cu.usbserial-2102926962491'
 
 import readchar
 import serial
@@ -26,7 +26,7 @@ print("=============================================================\n")
 print("press CTRL+Q to exit\n")
 
 try:
-    ser = serial.Serial(    port='/dev/cu.usbserial-2102927424241',
+    ser = serial.Serial(    port=QNICE_FPGA_PORT,
                             baudrate=115200,
                             bytesize=8, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
                             rtscts=True,

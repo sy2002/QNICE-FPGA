@@ -118,7 +118,7 @@ Getting Started
   `R` and then `qbin/q-tris.out` to run Q-TRIS.
 
 * Go to the graphical window, press `SPACE` and start playing. The emulator
-  automatically attempts to regulate the speed to `12.9 MIPS`, which is
+  automatically attempts to regulate the speed to `13.0 MIPS`, which is
   the speed of the original QNICE-FPGA hardware running at 50 MHz. Toggle
   the MIPS and FPS display using `ALT+F`.
 
@@ -161,6 +161,16 @@ Getting Started
 * Go to the POSIX terminal window, press `CTRL+C` to leave the Monitor
   and to return back to the `Q>` prompt. Press `CTRL+D` or enter `exit` to
   end the emulator.
+  
+### How to mount FAT32 devices and files in the Emulator
+
+The Emulator is able to mount raw image files that are made from appropriate
+media and expose it to QNICE-FPGA via the SD Card interface, so that the
+Monitor "thinks" this is a FAT32/MBR formatted SD card. As devices behave like
+files on Unix-like systems, on these systems you can also directly mount a
+device.
+
+Read the file [doc/emumount.txt](../doc/emumount.txt) to learn more.
 
 WebAssembly/WebGL in a Web Browser: Emulation of the VGA Screen and the PS/2 Keyboard
 -------------------------------------------------------------------------------------
@@ -204,7 +214,7 @@ WebAssembly/WebGL in a Web Browser: Emulation of the VGA Screen and the PS/2 Key
 
 * In contrast to the native qnice-vga version of the emulator, the
   WebAssembly/WebGL version is not capable to automatically regulate the
-  speed to match the `12.9 MIPS` of the FPGA hardware that runs at 50 MHz.
+  speed to match the `13.0 MIPS` of the FPGA hardware that runs at 50 MHz.
   Probably your computer will be faster, so you will need to slow down
   the emulation speed.
 
@@ -316,7 +326,7 @@ Emulator Architecture
   `int vga_timebase_thread(...)` in `vga.c` is updating the global variable
   `gbl$sdl_ticks` every millisecond.
 
-* The original QNICE-FPGA hardware performs `12.9 MIPS` while running at
+* The original QNICE-FPGA hardware performs `13.0 MIPS` while running at
   50 MHz. Most modern systems will emulate QNICE-FPGA much faster. The
   speed regulation mechanism is implemented in the function `void run()`
   by calculating how many QNICE instructions per 10 milliseconds need to

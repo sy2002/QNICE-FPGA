@@ -25,11 +25,24 @@ fifo_t*             uart_fifo;
 bool                uart_getchar_thread_running;  //flag to safely free the FIFO's memory
 extern bool         gbl$cpu_running;              //the getchar thread stops when the CPU stops
 
-/* Needs to be as large as the maximum amount of words that can be pasted while doing
-   copy/paste in the M/L mode. Reason: The uart thread might pick up the data slower,
-   than the operating systemm is pasting the data into the window. For being on the
-   safe side, we chose double the size of the current size of 32k words */
-const unsigned int  uart_fifo_size = 2*32*1024;
+    #ifndef __EMSCRIPTEN__
+    /* In VGA but non WASM mode:
+
+       Needs to be as large as the maximum amount of words that can be pasted while doing
+       copy/paste in the M/L mode. Reason: The uart thread might pick up the data slower,
+       than the operating systemm is pasting the data into the window. For being on the
+       safe side, we chose double the size of the current size of 32k words and multiply this
+       by 16 because of the way our .out file format is structured */
+    const unsigned int  uart_fifo_size = 16*2*32*1024;
+
+    #else
+    /* In VGA WASM mode:
+
+       Data transfer is not happening via copy/paste but via the file system (disk mount)
+       and other - still to be developed - mechanisms. Therefore we by far do not need
+       such a big FIFO at Emscripten. */
+    const unsigned int  uart_fifo_size = 2*32*1024;
+    #endif
 #endif
 
 /* Ugly global variable to hold the original tty state in order to restore it during rundown */

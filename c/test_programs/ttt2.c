@@ -36,7 +36,11 @@ void putkey(char key)
 int f[4][4];
 int bi,bj;
 
-main()
+void printfield();
+int win();
+int rek();
+
+int main()
 {
     putsnl("Tic-Tac-Toe for QNICE by Volker Barthelmann in September 2016\r\n");
 
@@ -95,7 +99,8 @@ main()
         amzug=1-amzug;
     }
 }
-rek(t)
+
+int rek(t)
     int t;
 {
     int i,j,z,bw,w,s;
@@ -137,7 +142,8 @@ int win()
     if(f[0][2]==-1&&f[1][1]==-1&&f[2][0]==-1) return(-1);
     return(0);
 }
-printfield()
+
+void printfield()
 {
     static char field[]={'O',' ','X'};
     int i,j;
@@ -151,5 +157,4 @@ printfield()
         puts(" -------");
     }
     puts("  1 2 3");
-
 }
