@@ -25,6 +25,14 @@ else
     exit
 fi;
 
+if hash ld 2>/dev/null; then
+    LINKER=ld
+else
+    echo ""
+    echo "error: no linker (ld) has been found!"
+    exit
+fi;
+
 if ! hash sed 2>/dev/null; then
     echo ""
     echo "error: sed is not found!"
