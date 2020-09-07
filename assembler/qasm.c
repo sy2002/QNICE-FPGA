@@ -2,7 +2,7 @@
 **  QNICE assembler: This program reads QNICE assembler code from a file and generates, as expected from an assembler :-), 
 ** valid machine code based on this input.
 **
-** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016, JUN-2016, JUL-2020
+** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016, JUN-2016, JUL-2020, SEP-2020
 **
 ** Known bugs:
 **
@@ -58,23 +58,23 @@
 #define PRINT_ERROR printf("assemble: %s\n", entry->error_text);
 
 typedef struct _data_entry {
-  char source[STRING_LENGTH],  /* Original source line for printout */
-    label[STRING_LENGTH],      /* Name of a label if there was one */
-    mnemonic[STRING_LENGTH],   /* Undecoded mnemonic */
-    src_op[STRING_LENGTH],     /* Source operand */
-    dest_op[STRING_LENGTH],    /* Destination operand */
-    dw_data[STRING_LENGTH],    /* Arguments of a .DW-directive */
-    error_text[STRING_LENGTH]; /* Text of error message if something went wrong during assembly */
-  int address,                 /* Memory address for this instruction/directive */
-    export,                    /* Is the label to be exported? */
-    number_of_words,           /* How many words of data are necessary for this line? */
-    *data,                     /* Pointer to a list of number_of_words-ints holding the resulting data */
-    opcode, opcode_type,       /* Which opcode and which type* */
-    src_op_type,               /* If the source operand is a constant, it will be stored here */
-    dest_op_type,              /* The same holds true for the destination */
-    src_op_code,               /* The six bits describing the first operand */
-    dest_op_code,              /* The six bits describing the second operand */
-    state;                     /* STATE$FINISHED, STATE$LABELS_MISSING */
+  char source[STRING_LENGTH],       /* Original source line for printout */
+    label[STRING_LENGTH],           /* Name of a label if there was one */
+    mnemonic[STRING_LENGTH],        /* Undecoded mnemonic */
+    src_op[STRING_LENGTH],          /* Source operand */
+    dest_op[STRING_LENGTH],         /* Destination operand */
+    dw_data[STRING_LENGTH],         /* Arguments of a .DW-directive */
+    error_text[2 * STRING_LENGTH];  /* Text of error message if something went wrong during assembly */
+  int address,                      /* Memory address for this instruction/directive */
+    export,                         /* Is the label to be exported? */
+    number_of_words,                /* How many words of data are necessary for this line? */
+    *data,                          /* Pointer to a list of number_of_words-ints holding the resulting data */
+    opcode, opcode_type,            /* Which opcode and which type* */
+    src_op_type,                    /* If the source operand is a constant, it will be stored here */
+    dest_op_type,                   /* The same holds true for the destination */
+    src_op_code,                    /* The six bits describing the first operand */
+    dest_op_code,                   /* The six bits describing the second operand */
+    state;                          /* STATE$FINISHED, STATE$LABELS_MISSING */
   struct _data_entry *next;
 } data_structure;
 
@@ -562,7 +562,8 @@ int assemble() {
       strcpy(entry->mnemonic, token);
     else { /* If the first token is neither a mnemonic nor an opcode, assume it is a label */
       if (entry->source[0] == ' ' || entry->source[0] == '\t') {    // Whatever it is, it did not start in column 1 and is thus not a label!
-        sprintf(entry->error_text, "Line %d: No valid mnemonic/no label (does not start in column 1)", line_counter);
+        sprintf(entry->error_text, "Line %d: No valid mnemonic/no label (does not start in column 1)\n\
+Offending line:\n%s\n", line_counter, entry->source);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -574,7 +575,7 @@ int assemble() {
       }
 
       if (find_label(label, &i) != -1) { /* Do we already have a lable of that name? */
-        sprintf(entry->error_text, "Line %d: duplicate label >>%s<<.", line_counter, label);
+        sprintf(entry->error_text, "Line %d: duplicate label >>%s<<.\nOffending line:\n%s\n", line_counter, label, entry->source);
         PRINT_ERROR;
         error_counter++;
       }
@@ -585,7 +586,7 @@ int assemble() {
         /* If the token is empty, we just found a label on a single line. If it is not empty and could not
            be converted into a valid opcode, it is just an error. */
         if (token) {
-          sprintf(entry->error_text, "Line %d: Unknown token >>%s<<.", line_counter, token);
+          sprintf(entry->error_text, "Line %d: Unknown token >>%s<<.\nOffending line:\n%s\n", line_counter, token, entry->source);
           PRINT_ERROR;
           error_counter++;
         }
@@ -611,7 +612,8 @@ int assemble() {
         entry->address = -1;
         address = str2int(token, &error) - 1; /* - 1 since the address will be incremented later */
         if (error) {
-          sprintf(entry->error_text, "Line %d: ERROR: .ORG with illegal address >>%s<<\n", line_counter, token);
+          sprintf(entry->error_text, "Line %d: ERROR: .ORG with illegal address >>%s<<\nOffending line:\n%s\n", 
+                  line_counter, token, entry->source);
           PRINT_ERROR;
           error_counter++;
         }
@@ -661,7 +663,8 @@ int assemble() {
 
         remove_leading_blanks(p);
         if (*p++ != '"') { /* No double quote found! */
-          sprintf(entry->error_text, "Line %d: Did not find opening double quote!", line_counter);
+          sprintf(entry->error_text, "Line %d: Did not find opening double quote!\nOffending line:\n%s\n", 
+                  line_counter, entry->source);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -712,7 +715,8 @@ int assemble() {
         if (search_equ_list(token, &size)) { /* Returns -1 if nothing is found */
           size = str2int(token, &error); 
           if (error) {
-            sprintf(entry->error_text, "Line %d: ERROR: .BLOCK with illegal size >>%s<<\n", line_counter, token);
+            sprintf(entry->error_text, "Line %d: ERROR: .BLOCK with illegal size >>%s<<\nOffending line:\n%s\n", 
+                    line_counter, token, entry->source);
             PRINT_ERROR;
             error_counter++;
           }
@@ -743,7 +747,8 @@ int assemble() {
 
         if ((retval = insert_into_equ_list(entry->label, str2int(token, &error)))) {
           if (error) {
-            sprintf(entry->error_text, "Line %d: ERROR: .EQU with illegal size >>%s<<\n", line_counter, token);
+            sprintf(entry->error_text, "Line %d: ERROR: .EQU with illegal size >>%s<<\nOffending line:\n%s\n", 
+                    line_counter, token, entry->source);
             PRINT_ERROR;
             error_counter++;
           }
@@ -753,16 +758,18 @@ int assemble() {
           ** error message will only printed to stdout but not occur in the resulting listing!
           */
           if (retval == 1)
-            sprintf(entry->error_text, "Line %d: Duplicate equ-entry '%s'.", line_counter, entry->label);
-
-          PRINT_ERROR;
-          error_counter++;
+            printf(entry->error_text, "Line %d: Duplicate equ-entry '%s'.\nOffending line:\n%s\n", 
+                   line_counter, entry->label, entry->source);
+//???
+//          PRINT_ERROR;
+//          error_counter++;
         }
 	    *(entry->label) = (char) 0;
         entry->state = STATE$FINISHED;
         entry->address = -1;
       } else {
-        sprintf(entry->error_text, "Line %d: Unknown directive >>%s<<. Very strange!", line_counter, entry->mnemonic);
+        sprintf(entry->error_text, "Line %d: Unknown directive >>%s<<. Very strange!\nOffending line:\n%s\n", 
+                line_counter, entry->mnemonic, entry->source);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -773,7 +780,8 @@ int assemble() {
 
       if (number_of_operands) { /* Read operands. */
         if (!(token = tokenize((char *) 0, delimiters))) {
-          sprintf(entry->error_text, "Line %d: No first operand found! (%s)", line_counter, entry->source);
+          sprintf(entry->error_text, "Line %d: No first operand found! (%s).\nOffending line:\n%s\n", 
+                  line_counter, entry->source, entry->source);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -782,7 +790,8 @@ int assemble() {
         
         /* Determine type of first operand. */
         if ((entry->src_op_type = decode_operand(entry->src_op, &entry->src_op_code)) == OPERAND$ILLEGAL) {
-          sprintf(entry->error_text, "Line %d: Illegal first operand! (%s)", line_counter, entry->source);
+          sprintf(entry->error_text, "Line %d: Illegal first operand! (%s).\nOffending line:\n%s\n", 
+                  line_counter, entry->source, entry->source);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -795,7 +804,8 @@ int assemble() {
 
         if (number_of_operands > 1) {
           if (!(token = tokenize((char *) 0, delimiters))) {
-            sprintf(entry->error_text, "Line %d: No second operand found! (%s)", line_counter, entry->source);
+            sprintf(entry->error_text, "Line %d: No second operand found! (%s).\nOffending line:\n%s\n", 
+                    line_counter, entry->source, entry->source);
             PRINT_ERROR;
             error_counter++;
             continue;
@@ -804,7 +814,8 @@ int assemble() {
           
           /* Determine the type of the second operand. */
           if ((entry->dest_op_type = decode_operand(entry->dest_op, &entry->dest_op_code)) == OPERAND$ILLEGAL) {
-            sprintf(entry->error_text, "Line %d: Illegal second operand! (%s)", line_counter, entry->source);
+            sprintf(entry->error_text, "Line %d: Illegal second operand! (%s).\nOffending line:\n%s\n", 
+                    line_counter, entry->source, entry->source);
             PRINT_ERROR;
             error_counter++;
             continue;
@@ -834,7 +845,8 @@ int assemble() {
       if (entry->src_op_type == OPERAND$CONSTANT) {
         *(entry->data + i++) = str2int(entry->src_op, &error) & 0xffff;
         if (error) {
-          sprintf(entry->error_text, "Line %d: ERROR: Illegal source operand >>%s<<\n", line_counter, token);
+          sprintf(entry->error_text, "Line %d: ERROR: Illegal source operand >>%s<<\nOffending line:\n%s\n", 
+                  line_counter, token, entry->source);
           PRINT_ERROR;
           error_counter++;
         }
@@ -843,7 +855,8 @@ int assemble() {
       if (entry->dest_op_type == OPERAND$CONSTANT) {
         *(entry->data + i) = str2int(entry->dest_op, &error) & 0xffff;
         if (error) {
-          sprintf(entry->error_text, "Line %d: ERROR: Illegal destination operand >>%s<<\n", line_counter, token);
+          sprintf(entry->error_text, "Line %d: ERROR: Illegal destination operand >>%s<<\nOffending line:\n%s\n", 
+                  line_counter, token, entry->source);
           PRINT_ERROR;
           error_counter++;
         }
@@ -853,7 +866,8 @@ int assemble() {
 
       /* A branch always has two operands! */
       if (!(token = tokenize((char *) 0, delimiters))) {
-        sprintf(entry->error_text, "Line %d: No first branch operand found! (%s)", line_counter, entry->source);
+        sprintf(entry->error_text, "Line %d: No first branch operand found! (%s).\nOffending line:\n%s\n", 
+                line_counter, entry->source, entry->source);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -861,7 +875,8 @@ int assemble() {
       strcpy(entry->src_op, token);
 
       if (!(token = tokenize((char *) 0, delimiters))) {
-        sprintf(entry->error_text, "Line %d: No second branch operand found! (%s)", line_counter, entry->source);
+        sprintf(entry->error_text, "Line %d: No second branch operand found! (%s).\nOffending line:\n%s\n", 
+                line_counter, entry->source, entry->source);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -870,7 +885,8 @@ int assemble() {
 
       /* Now we have both operands of the branch and the branch itself as well. Decode the first operand. */
       if ((entry->src_op_type = decode_operand(entry->src_op, &entry->src_op_code)) == OPERAND$ILLEGAL) {
-        sprintf(entry->error_text, "Line %d: Illegal first operand! (%s)", line_counter, entry->source);
+        sprintf(entry->error_text, "Line %d: Illegal first operand! (%s).\nOffending line:\n%s\n", 
+                line_counter, entry->source, entry->source);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -897,7 +913,8 @@ int assemble() {
       }
           
       if (flag > 7) {
-        sprintf(entry->error_text, "Line %d: Illegal condition flag! (%s)", line_counter, entry->source);
+        sprintf(entry->error_text, "Line %d: Illegal condition flag! (%s).\nOffending line:\n%s\n", 
+                line_counter, entry->source, entry->source);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -911,7 +928,8 @@ int assemble() {
       if (entry->src_op_type == OPERAND$CONSTANT) { /* Labels are no constants in this context since they are unknown in advance */
         entry->data[1] = str2int(entry->src_op, &error) & 0xffff;
         if (error) {
-          sprintf(entry->error_text, "Line %d: ERROR: [1] Illegal constant operand >>%s<<\n", line_counter, token);
+          sprintf(entry->error_text, "Line %d: ERROR: [1] Illegal constant operand >>%s<<.\nOffending line:\n%s\n", 
+                  line_counter, token, entry->source);
           PRINT_ERROR;
           error_counter++;
         }
@@ -937,7 +955,8 @@ int assemble() {
         entry->number_of_words = 1; /* At least one word is required for INT. */
 
         if (!token) { /* INT requires an additional token */
-          sprintf(entry->error_text, "Line %d: ERROR - no argument found!", line_counter);
+          sprintf(entry->error_text, "Line %d: ERROR - no argument found!\nOffending line:\n%s\n", 
+                  line_counter, entry->source);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -951,7 +970,8 @@ int assemble() {
         /* Where should the INT jump to? */
         strcpy(entry->dest_op, token);
         if ((entry->dest_op_type = decode_operand(entry->dest_op, &entry->dest_op_code)) == OPERAND$ILLEGAL) {
-          sprintf(entry->error_text, "Line %d: Illegal destination operand! (%s)", line_counter, entry->source);
+          sprintf(entry->error_text, "Line %d: Illegal destination operand!\nOffending line:\n%s\n", 
+                  line_counter, entry->source);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -971,14 +991,16 @@ int assemble() {
         if (entry->dest_op_type == OPERAND$CONSTANT) { /* Labels are no constants in this context as they are unknown in advance */
           entry->data[1] = str2int(entry->dest_op, &error) & 0xffff;
           if (error) {
-            sprintf(entry->error_text, "Line %d: ERROR: [2] Illegal constant operand >>%s<<\n", line_counter, token);
+            sprintf(entry->error_text, "Line %d: ERROR: [2] Illegal constant operand >>%s<<\nOffending line:\n%s\n", 
+                    line_counter, token, entry->source);
             PRINT_ERROR;
             error_counter++;
           }
         }
       }
     } else {
-      sprintf(entry->error_text, "Line %d: Unknown opcode type %d! Very strange error!", line_counter, entry->opcode_type);
+      sprintf(entry->error_text, "Line %d: Unknown opcode type %d! Very strange error!\nOffending line:\n%s\n", 
+              line_counter, entry->opcode_type, entry->source);
       PRINT_ERROR;
       error_counter++;
     }
@@ -995,7 +1017,8 @@ int assemble() {
       value = 0;
       if (search_equ_list(entry->src_op, &value))
         if (find_label(entry->src_op, &value)) {
-          sprintf(entry->error_text, "Line %d: Unresolved label or equ >>%s<<!", line_counter, entry->src_op);
+          sprintf(entry->error_text, "Line %d: Unresolved label or equ >>%s<<!\nOffending line:\n%s\n", 
+                  line_counter, entry->src_op, entry->source);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -1011,7 +1034,8 @@ int assemble() {
       value = 0;
       if (search_equ_list(entry->dest_op, &value))
         if (find_label(entry->dest_op, &value)) {
-          sprintf(entry->error_text, "Line %d: Unresolved label or equ >>%s<<!", line_counter, entry->dest_op);
+          sprintf(entry->error_text, "Line %d: Unresolved label or equ >>%s<<!\nOffending line:\n%s\n", 
+                  line_counter, entry->dest_op, entry->source);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -1028,7 +1052,8 @@ int assemble() {
           if (find_label(token, &value)) { /* Also returns -1 if unsuccessful */
             value = str2int(token, &error); /* Neither a EQU nor a LABEL... */
             if (error) {
-              sprintf(entry->error_text, "Line %d: Illegal argument found in .DW directive: >>%s<<!", line_counter, token);
+              sprintf(entry->error_text, "Line %d: Illegal argument found in .DW directive: >>%s<<!\nOffending line:\n%s\n", 
+                      line_counter, token, entry->source);
               PRINT_ERROR;
               error_counter++;
               continue;
