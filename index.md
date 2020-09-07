@@ -68,14 +68,15 @@ Getting Started
    pre-synthesized Bitstream that is part of our GitHub repository.
 
  * If you do not own a Nexys 4 DDR or A7 board or if you want to synthesize
-   the FPGA configuration bitstream by yourself, then go to the hardware
-   folder `hw` in our GitHub respository. It contains the FPGA, board and
+   the FPGA configuration bitstream by yourself, then go to the
+   [hardware folder](https://github.com/sy2002/QNICE-FPGA/tree/master/hw)
+   in our GitHub respository. It contains the FPGA, board and
    toolchain (IDE) specific files. QNICE-FPGA has been designed to be
    portable. Have a look at [hw/README.md](https://github.com/sy2002/QNICE-FPGA/blob/master/hw/README.md)
    to learn more.
 
- * If you are using a Mac, the optimal setup is running Xilinx ISE or Vivado
-   Windows or Linux in
+ * If you are using a Mac, the optimal setup is running Xilinx ISE or
+   Xilinx Vivado on Linux or on Windows in
    [Parallels](https://www.parallels.com/products/desktop/)
    and then working with the rest of the toolchain
    directly in the macOS Terminal. For connecting with the UART of QNICE-FPGA,
