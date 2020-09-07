@@ -2,6 +2,7 @@ _site
 assembler/*
 c/*
 demos/*
+dist_kit/*
 doc/*
 emulator/*
 hw/*
