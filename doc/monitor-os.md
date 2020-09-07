@@ -9,4 +9,6 @@ Document at least these things:
 * Interplay between PORE and MONITOR
 * Where the OS functions are documented (and link to some demos)
 * How to call OS functions (SYSCALL) and why to use SYSCALL
-* How to make new OS functions
+* How VBCC and the standard C library interact with Monitor and how
+  Monitor is a separate target (mention "machine" vs "target" in VBCC)
+* How to make and to publish new OS functions (asm, VASM, VBCC)
