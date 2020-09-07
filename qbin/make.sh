@@ -41,6 +41,9 @@ ASM_DEMOS=../demos
 export QNICE_ASM_NO_ROM=1 #do not create .rom files
 
 # build assembler demos and move them here
+echo "assembling: fancy_bg.asm"
+$ASM $ASM_TEST/fancy_bg.asm
+mv   $ASM_TEST/fancy_bg.out .
 echo "assembling: mandel.asm"
 $ASM $ASM_DEMOS/mandel.asm
 mv   $ASM_DEMOS/mandel.out .
