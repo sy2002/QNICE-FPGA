@@ -16,7 +16,7 @@ Specifications
 --------------
 
 * 16-bit QNICE CPU featuring 16 registers, 8 of them in 256 register banks
-  (learn more in [qnice_intro.pdf](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/intro/qnice_intro.pdf)
+  (learn more in [qnice_intro.pdf](https://github.com/sy2002/QNICE-FPGA/blob/master/doc/intro/qnice_intro.pdf))
 * 32k words ROM (64kB)
 * 32k words RAM (64kB)
 * UART 115,200 baud, 8-N-1, CTS
