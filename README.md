@@ -7,7 +7,7 @@ What is QNICE-FPGA?
 -------------------
 
 QNICE-FPGA is a 16-bit computer system build as a fully-fledged
-system-on-a-chip in portable VHDL on a FPGA. Specifications:
+system-on-a-chip in portable VHDL on an FPGA. Specifications:
 
 * 16-bit QNICE CPU featuring 16 registers, 8 of them in 256 register banks
   (learn more in [qnice_intro.pdf](doc/intro/qnice_intro.pdf))
@@ -198,7 +198,7 @@ Have a look at the current highscore in
 
 The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
 for the QNICE-FPGA: Just use `dist_kit/bin/QTRIS-V16.bit` instead of the
-above-mentioned `dist_kit/bin/QTRIS-V16.bit`. Or, you can run it regularly
+above-mentioned `dist_kit/bin/QNICE-V16.bit`. Or, you can run it regularly
 as an app within the Monitor environment:
 
 * If you copied the `qbin` folder on your SD Card, you can load and run it
@@ -371,6 +371,8 @@ order is recommended:
 2. [Hardware](hw/README.md): Description of supported hardware platforms, how to build, and guides for porting to other platforms
 
 3. [Overview](doc/README.md) of directory structure and available documentation
+   as well as QNICE-FPGA basics such as STDIN/STDOUT routing, file transfer
+   mechanisms and platform Specifications
 
 4. [Emulator](emulator/README.md) and [mounting FAT32 devices](doc/emumount.txt)
 
