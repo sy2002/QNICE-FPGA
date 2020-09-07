@@ -43,15 +43,15 @@ use ieee.numeric_std.all;
 entity vga_register_map is
    port (
       -- Connected to CPU
-      clk_i            : in  std_logic;
-      rst_i            : in  std_logic;
-      en_i             : in  std_logic;
-      we_i             : in  std_logic;
-      reg_i            : in  std_logic_vector(4 downto 0);
-      data_i           : in  std_logic_vector(15 downto 0);
-      data_o           : out std_logic_vector(15 downto 0);
-      int_n_o          : out std_logic;
-      grant_n_i        : in  std_logic;
+      clk_i            : in     std_logic;
+      rst_i            : in     std_logic;
+      en_i             : in     std_logic;
+      we_i             : in     std_logic;
+      reg_i            : in     std_logic_vector(4 downto 0);
+      data_i           : in     std_logic_vector(15 downto 0);
+      data_o           : out    std_logic_vector(15 downto 0);
+      int_n_o          : buffer std_logic;
+      grant_n_i        : in     std_logic;
 
       -- Connected to Video RAM
       vram_display_addr_o    : out std_logic_vector(15 downto 0);
@@ -209,10 +209,22 @@ begin
       end if;
    end process p_output;
 
-   int_n_o <= '0' when pixel_y_i = register_map(19)(9 downto 0) and register_map(20) /= 0 else '1';
+   p_interrupt : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         int_n_o <= '1';
+         if pixel_y_i = register_map(19)(9 downto 0) and register_map(20) /= 0 then
+            int_n_o <= '0';
+         end if;
+
+         if int_n_o = '0' and grant_n_i = '0' then
+            int_n_o <= '1';
+         end if;
+      end if;
+   end process p_interrupt;
 
    -- Data output is combinatorial.
-   data_o <= register_map(20)                  when grant_n_i = '0'                                  else
+   data_o <= register_map(20)                  when int_n_o = '1' and grant_n_i = '0'                else
              vram_display_rd_data_i            when en_i = '1' and we_i = '0' and reg_i = "0" & X"3" else
              "000000" & pixel_y_i              when en_i = '1' and we_i = '0' and reg_i = "1" & X"2" else
              X"00" & vram_font_rd_data_i       when en_i = '1' and we_i = '0' and reg_i = "0" & X"D" else

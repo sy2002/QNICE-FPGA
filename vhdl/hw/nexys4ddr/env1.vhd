@@ -254,10 +254,8 @@ begin
          cpu_reg_i     => vga_reg,
          cpu_data_i    => cpu_data_out,
          cpu_data_o    => vga_data_out,
-         cpu_int_n_o   => vga_int_n_out,  -- Connected to the left device
-         cpu_grant_n_i => vga_grant_n_in, -- Connected to the left device
-         cpu_int_n_i   => '1',            -- Connected to the right device
-         cpu_grant_n_o => open,           -- Connected to the right device
+         cpu_int_n_o   => vga_int_n_out,
+         cpu_grant_n_i => vga_grant_n_in,
 
          vga_clk_i     => clk25MHz,
          vga_hsync_o   => VGA_HS,

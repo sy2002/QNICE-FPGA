@@ -30,10 +30,8 @@ entity vga_multicolour is
       cpu_reg_i     : in  std_logic_vector(4 downto 0);
       cpu_data_i    : in  std_logic_vector(15 downto 0);
       cpu_data_o    : out std_logic_vector(15 downto 0);
-      cpu_int_n_o   : out std_logic;            -- Connected to the left
-      cpu_grant_n_i : in  std_logic;            -- Connected to the left
-      cpu_int_n_i   : in  std_logic;            -- Connected to the right
-      cpu_grant_n_o : out std_logic;            -- Connected to the right
+      cpu_int_n_o   : out std_logic;
+      cpu_grant_n_i : in  std_logic;
 
       vga_clk_i     : in  std_logic;            -- VGA clock (25.175 MHz)
       vga_hsync_o   : out std_logic;
@@ -46,9 +44,6 @@ end vga_multicolour;
 architecture synthesis of vga_multicolour is
 
    signal cpu_clkn            : std_logic;      -- Inverted CPU clock
-
-   signal cpu_int_n           : std_logic;
-   signal cpu_grant_n         : std_logic;
 
    -- Configuration signals synchronized to CPU clock.
    signal cpu_output_enable   : std_logic;
@@ -143,23 +138,6 @@ begin
    cpu_clkn <= not cpu_clk_i;
 
 
-   -----------------------------------------------------
-   -- Interface to the Interrupt Daisy Chain Controller
-   -----------------------------------------------------
-
-   i_daisy_chain : entity work.daisy_chain
-      port map (
-         clk_i           => cpu_clkn,
-         rst_i           => cpu_rst_i,
-         this_int_n_i    => cpu_int_n,
-         this_grant_n_o  => cpu_grant_n,
-         left_int_n_o    => cpu_int_n_o,
-         left_grant_n_i  => cpu_grant_n_i,
-         right_int_n_i   => cpu_int_n_i,
-         right_grant_n_o => cpu_grant_n_o
-      ); -- i_daisy_chain
-
-
    ------------------------
    -- Interface to the CPU
    ------------------------
@@ -173,8 +151,8 @@ begin
          reg_i            => cpu_reg_i,
          data_i           => cpu_data_i,
          data_o           => cpu_data_o,
-         int_n_o          => cpu_int_n,
-         grant_n_i        => cpu_grant_n,
+         int_n_o          => cpu_int_n_o,
+         grant_n_i        => cpu_grant_n_i,
 
          vram_display_addr_o    => cpu_vram_display_addr,
          vram_display_wr_en_o   => cpu_vram_display_wr_en,
