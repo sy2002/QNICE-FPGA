@@ -372,7 +372,7 @@ order is recommended:
 
 3. [Overview](doc/README.md) of directory structure and available documentation
    as well as QNICE-FPGA basics such as STDIN/STDOUT routing, file transfer
-   mechanisms and platform Specifications
+   mechanisms and platform specifics
 
 4. [Emulator](emulator/README.md) and [mounting FAT32 devices](doc/emumount.txt)
 
