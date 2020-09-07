@@ -531,6 +531,7 @@ signal SLOW_CLOCK             : std_logic := '0';
 signal CLK1x                  : std_logic;   -- 100 MHz clock created by mmcme2 for congruent phase
 signal CLK2x                  : std_logic;   -- 4x SLOW_CLOCK = 200 MHz
 signal clk25MHz               : std_logic;   -- 25.175 MHz pixelclock for 640x480 @ 60 Hz
+signal clk25MHz_mmcm          : std_logic;
 signal pll_locked_main        : std_logic;
 signal clk_fb_main            : std_logic;
 
@@ -580,12 +581,19 @@ begin
     clkin1   => CLK,
     clkfbin  => clk_fb_main,
     clkfbout => clk_fb_main,
-    clkout0  => clk25MHz,           --  pixelclock
+    clkout0  => clk25MHz_mmcm,      --  pixelclock
     clkout1  => CLK1x,              --  100 MHz
 --    clkout2  => SLOW_CLOCK,         --  50 MHz
     clkout3  => CLK2x,              --  200 MHz
     locked   => pll_locked_main
   );
+
+   clkf_buf : BUFG
+      port map (
+         I => clk25Mhz_mmcm,
+         O => clk25MHz
+      );
+
 
    -- QNICE CPU
    cpu : QNICE_CPU
