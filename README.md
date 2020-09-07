@@ -7,7 +7,7 @@ What is QNICE-FPGA?
 -------------------
 
 QNICE-FPGA is a 16-bit computer system build as a fully-fledged
-system-on-a-chip in portable VHDL on a FPGA. Specifications:
+system-on-a-chip in portable VHDL on an FPGA. Specifications:
 
 * 16-bit QNICE CPU featuring 16 registers, 8 of them in 256 register banks
   (learn more in [qnice_intro.pdf](doc/intro/qnice_intro.pdf))
@@ -15,7 +15,6 @@ system-on-a-chip in portable VHDL on a FPGA. Specifications:
 * 32k words RAM (64kB)
 * UART 115,200 baud, 8-N-1, CTS
 * VGA 80x40 character textmode display (640x480 resolution)
-  (learn more in [VGA_Features.md](doc/VGA_Features.md))
 * PS/2 keyboard support (mapped to USB on the Nexys 4 DDR)
 * SD Card and FAT32 support (microSD card on the Nexys 4 DDR)
 * 4-digit 7-segment display
@@ -199,7 +198,7 @@ Have a look at the current highscore in
 
 The game can run stand-alone, i.e. instead of the Monitor as the "ROM"
 for the QNICE-FPGA: Just use `dist_kit/bin/QTRIS-V16.bit` instead of the
-above-mentioned `dist_kit/bin/QTRIS-V16.bit`. Or, you can run it regularly
+above-mentioned `dist_kit/bin/QNICE-V16.bit`. Or, you can run it regularly
 as an app within the Monitor environment:
 
 * If you copied the `qbin` folder on your SD Card, you can load and run it
@@ -250,7 +249,9 @@ possible I/O devices.
 | FF40 - FFEF | Reserved                                    |
 | FFF0 - FFFF | HyperRAM (MEGA65)                           |
 
-[Here](doc/IO_Devices.md) is a detailed description of I/O devices.
+
+The registers for the individual I/O devices are described in the assembler
+header file [monitor/sysdef.asm](monitor/sysdef.asm).
 
 
 Programming in Assembler
@@ -370,6 +371,8 @@ order is recommended:
 2. [Hardware](hw/README.md): Description of supported hardware platforms, how to build, and guides for porting to other platforms
 
 3. [Overview](doc/README.md) of directory structure and available documentation
+   as well as QNICE-FPGA basics such as STDIN/STDOUT routing, file transfer
+   mechanisms and platform specifics
 
 4. [Emulator](emulator/README.md) and [mounting FAT32 devices](doc/emumount.txt)
 
@@ -395,5 +398,5 @@ Acknowledgements
   QNICE specific vbcc backend incl. standard C library.
 
 * [MJoergen](http://www.github.com/MJoergen): Performance improvements and
-  bugfixes, CPU functional test suite, VGA multicolour support.
+  bugfixes, CPU functional test suite.
 
