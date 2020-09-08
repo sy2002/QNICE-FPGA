@@ -11,13 +11,14 @@ Address | Description
 `FF31`  | Cursor X
 `FF32`  | Cursor Y
 `FF33`  | Character at cursor
-`FF34`  | Display offset
-`FF35`  | Cursor offset
-`FF39`  | Font offset
-`FF3C`  | Address into Font RAM
-`FF3D`  | Data to/from Font RAM
-`FF3E`  | Address into Palette RAM
-`FF3F`  | Data to/from Palette RAM
+`FF34`  | Cursor offset
+`FF35`  | Display offset
+`FF36`  | Font offset
+`FF37`  | Address into Font RAM
+`FF38`  | Data to/from Font RAM
+`FF39`  | Palette offset
+`FF3A`  | Address into Palette RAM
+`FF3B`  | Data to/from Palette RAM
 `FF40`  | Pixels to adjust screen in X direction
 `FF41`  | Pixels to adjust screen in Y direction
 `FF42`  | Current scan line

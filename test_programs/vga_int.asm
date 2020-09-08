@@ -11,7 +11,7 @@ LINE_NEXT           .EQU    324
                     .ORG    0x8000
 
                     ; Clear screen
-                    RSUB    vga_cls,1
+                    SYSCALL(vga_cls, 1)
 
                     ; Disable hardware cursor
                     MOVE    VGA$STATE, R0
@@ -24,7 +24,8 @@ LINE_NEXT           .EQU    324
                     MOVE    LINE_START, @R0++
                     MOVE    ISR, @R0++
 
-                    RSUB    WAIT_KEY, 1
+                    ; Wait for the user to press a key
+                    SYSCALL(getc, 1)
 
                     ; Switch off interrupt
                     MOVE    VGA$SCAN_ISR, R0
@@ -157,18 +158,5 @@ _ISR_SET_BG
                     MOVE    16, @R6             ; Set address (background)
                     MOVE    R1, @R7             ; Set background colour
                     MOVE    R5, @R6             ; Restore old address
-                    RET
-
-; wait for a keypress on uart
-WAIT_KEY            INCRB                       ; next register bank
-                    MOVE    IO$UART_SRA, R0
-                    MOVE    IO$UART_RHRA, R1
-
-WAIT_FOR_CHAR       MOVE    @R0, R2
-                    AND     0x0001, R2
-                    RBRA    WAIT_FOR_CHAR, Z
-                    MOVE    @R1, R3
-
-                    DECRB                       ; previous register bank
                     RET
 
