@@ -16,7 +16,7 @@ bugs might occur.
 **Important: We strongly recommend to use the module `vhdl/daisy_chain.vhd`
 instead of implementing the Daisy chain logic from scratch.**
 
-You will find a description of you to use it below.
+You will find a description of how to use it below.
 
 Basic mechanism
 ---------------
@@ -39,7 +39,7 @@ all the details. Here is the summary:
   until the CPU is able to service the interrupt, because for example there
   might be already an ISR running and then the interrupt requests of other
   devices might be serviced first. So any device needs to be prepared to
-  wait "indefinitly" long until the interrupt request is granted.
+  wait "indefinitely" long until the interrupt request is granted.
 
 * As soon as the ISR address data that the device put on the data bus is
   valid, the device pulls `INT_N` back to `1`.
@@ -73,7 +73,7 @@ CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
   grant_n_out    : out std_logic;    -- right device's grant signal input  
   ```
   In this description, "left" is a device (or the CPU) that has the authority
-  to grant an interrupt our device. And the "right" device is a device "right"
+  to grant an interrupt to our device. And the "right" device is a device "right"
   next to our device, which is dependent on our device granting an interrupt
   to it. Ultimately this authoritry of course stems from the CPU. Due to the
   very nature of the Daisy chain mechanism, an **interrupt request** is passed
@@ -81,8 +81,8 @@ CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
   an **interrupt grant** is passed from device to device to "the right" until
   it reaches the requesting device.
 
-* There are two very important mechanisms, that need to be built into all
-  interrupt capable devices are "Pass-Through" and
+* There are two very important mechanisms that need to be built into all
+  interrupt capable devices. These are "Pass-Through" and
   "Wait-until-it-is-our-turn":
 
 
@@ -93,7 +93,8 @@ CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
      "left" device that is an output for our device). Additionally, the
      `grant_n_in` (interrupt grant output from the "left" device, that is
      an input for our device) to the `grant_n_out` (interrupt grant input
-     of the "right" device, that is an output for our device).
+     of the "right" device, that is an output for our device). Both pairs of
+     signals must be connected combinatorially.
 
   2. **Wait-until-it-is-our-turn:** This mechanism might require a more
     complex logic, so do not underestimate the subtleties: If our device needs
@@ -122,3 +123,33 @@ CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
 
 Re-useable module `vhdl/daisy_chain.vhd`
 ----------------------------------------
+
+We strongly recommend that interrupt capable devices use the module
+`vhdl/daisy_chain.vhd`. This module is responsible for handling the daisy
+chaining protocol, and by instantiating this module, the device itself need not
+be concerned with the daisy chaining protocol.
+
+This module allows the device to provide just two signals:
+
+* `int_n_o`
+* `grant_n_i`
+
+The signal `int_n_o` is edge-triggered and latched. This means that the device
+pulls the `int_n_o` signal low any time the device wishes to request an
+interrupt. This signal may be low for just a single clock cycle, or may be held
+low as long as is needed and/or convenient. The device need not wait for the
+interrupt to be granted.  The daisy chain module will remember the falling edge
+of `int_n_o` and will - eventually - grant an interrupt to the device.
+
+The signal `grant_n_i` should be used to combinatorially drive the ISR address onto
+the data bus, i.e. something like:
+
+```
+data_o <= isr_address when grant_n_i = '0' else ...
+```
+
+In the typical device there will be no connection between the signals `int_n_o`
+and `grant_n_i`. It is this separation of concerns (between the two signals) that
+makes the `daisy_chain` module convenient to use.
+
+
