@@ -43,7 +43,7 @@ int main()
    int dx=0;
    int counter=0;
    int pos=0;
-   MMIO(VGA_PALETTE_ADDR) = VGA_PALETTE_OFFS_USER + 16;           // Select background colour #0.
+   MMIO(VGA_PALETTE_ADDR) = VGA_PALETTE_OFFS_USER + 16;           // Select background color #0.
    MMIO(VGA_CR_Y) = 25;
    while (1)
    {

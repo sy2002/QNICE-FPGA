@@ -38,8 +38,8 @@ begin
    --
    -- The Display RAM is organized as 800 lines of 80 characters. Each word
    -- is interpreted as follows:
-   -- Bits 15-12 : Background colour selected from a palette of 16 colours.
-   -- Bits 11- 8 : Foreground colour selected from a palette of 16 colours.
+   -- Bits 15-12 : Background color selected from a palette of 16 colors.
+   -- Bits 11- 8 : Foreground color selected from a palette of 16 olours.
    -- Bits  7- 0 : Character index (index into Font).
    i_display_ram : entity work.true_dual_port_ram
       generic map (
@@ -79,8 +79,8 @@ begin
 
 
    -- The Palette RAM contains 64 words, i.e. addresses 0x0000 - 0x003F.
-   -- 16 words for each of the foreground colours, and another 16 words
-   -- for the background colours.
+   -- 16 words for each of the foreground colors, and another 16 words
+   -- for the background colors.
    i_palette_ram : entity work.true_dual_port_ram
       generic map (
          G_ADDR_SIZE => 6,

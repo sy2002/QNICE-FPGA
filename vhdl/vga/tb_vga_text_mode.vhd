@@ -25,7 +25,7 @@ architecture simulation of tb_vga_text_mode is
    signal font_data      : std_logic_vector(7 downto 0);
    signal palette_addr   : std_logic_vector(4 downto 0);
    signal palette_data   : std_logic_vector(14 downto 0);
-   signal colour         : std_logic_vector(14 downto 0);
+   signal color          : std_logic_vector(14 downto 0);
    signal delay          : std_logic_vector(9 downto 0);
 
 begin
@@ -131,7 +131,7 @@ begin
       font_data_i      => font_data,
       palette_addr_o   => palette_addr,
       palette_data_i   => palette_data,
-      colour_o         => colour,
+      color_o          => color,
       delay_o          => delay
    ); -- i_vga_text_mode;
 

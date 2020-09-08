@@ -6,7 +6,7 @@
  *  by continuously modifying the font (the 256 character
  *  bitmaps) while drawing the circle.
  *
- *  When the circle is completed, the colours will gradually
+ *  When the circle is completed, the colors will gradually
  *  blend. This is done using the palette. Synchronization
  *  is achieved by continuously monitoring the current scan line.
  *
@@ -47,7 +47,7 @@ static void initialize()
    // Enable User Font
    MMIO(VGA_FONT_OFFS) = VGA_FONT_OFFS_USER;
 
-   // Set User Background Colour
+   // Set User Background Color
    MMIO(VGA_PALETTE_ADDR) = VGA_PALETTE_OFFS_USER + 16;
    MMIO(VGA_PALETTE_DATA) = VGA_COLOR_TAN;
 
@@ -127,7 +127,7 @@ static void draw_circle(unsigned int centre_x, unsigned int centre_y, unsigned i
    }
 } // draw_circle
 
-static void blend_colours()
+static void blend_colors()
 {
    int r=0;
    int g=0;
@@ -140,7 +140,7 @@ static void blend_colours()
       while (MMIO(VGA_SCAN_LINE) < 480)
          ;
 
-      // Calculate next colour
+      // Calculate next color
       if (g+dg>=0 && g+dg<32)
       {
          g += dg;
@@ -166,7 +166,7 @@ static void blend_colours()
       while (MMIO(VGA_SCAN_LINE) >= 480)
          ;
    }
-} // blend_colours
+} // blend_colors
 
 int main()
 {
@@ -174,7 +174,7 @@ int main()
 
    draw_circle(300, 240, 75); // x, y, r
 
-   blend_colours();
+   blend_colors();
 
    return 0;
 } // int main()

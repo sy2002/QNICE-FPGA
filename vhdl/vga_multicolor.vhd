@@ -21,7 +21,7 @@ use ieee.numeric_std.all;
 -- The only communication between the CPU and VGA clock domains is via the
 -- Video RAM module.
 
-entity vga_multicolour is
+entity vga_multicolor is
    port (
       cpu_clk_i     : in  std_logic;            -- CPU clock (currently at 50 MHz)
       cpu_rst_i     : in  std_logic;
@@ -38,12 +38,12 @@ entity vga_multicolour is
       vga_clk_i     : in  std_logic;            -- VGA clock (25.175 MHz)
       vga_hsync_o   : out std_logic;
       vga_vsync_o   : out std_logic;
-      vga_colour_o  : out std_logic_vector(14 downto 0);
+      vga_color_o   : out std_logic_vector(14 downto 0);
       vga_data_en_o : out std_logic             -- Data Enable
    );
-end vga_multicolour;
+end vga_multicolor;
 
-architecture synthesis of vga_multicolour is
+architecture synthesis of vga_multicolor is
 
    signal cpu_clkn            : std_logic;      -- Inverted CPU clock
 
@@ -312,7 +312,7 @@ begin
          -- VGA output signals
          hsync_o          => vga_hsync_o,
          vsync_o          => vga_vsync_o,
-         colour_o         => vga_colour_o,
+         color_o          => vga_color_o,
          data_en_o        => vga_data_en_o
       ); -- i_vga_output
 

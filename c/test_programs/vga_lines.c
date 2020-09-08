@@ -3,7 +3,7 @@
  *  This program generates a mesmerizing pattern.
  *
  *  It makes use of the Scan Line register. Specifically, the program
- *  continuously (in a tight loop) updates the background colour based
+ *  continuously (in a tight loop) updates the background color based
  *  on the current scan line.
  *
  *  How to compile: qvc vga_lines.c -O3 -c99
@@ -29,7 +29,7 @@ int main()
    MMIO(VGA_PALETTE_OFFS) = VGA_PALETTE_OFFS_USER;
 
    // Infinite loop
-   MMIO(VGA_PALETTE_ADDR) = VGA_PALETTE_OFFS_USER + 16;           // Select background colour #0.
+   MMIO(VGA_PALETTE_ADDR) = VGA_PALETTE_OFFS_USER + 16;           // Select background color #0.
    int j=0;
    while (1)
    {
