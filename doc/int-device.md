@@ -118,9 +118,6 @@ CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
 * All of this means also: The "closer" a device is to the "left" (i.e. near
   to the CPU), the higher is the priority of its interrupts.
 
-* There is a well-commented reference implementation of the Daisy chain
-  handling in `vhdl/timer.vhd` in the process `fsm_output_decode`.
-
 Re-useable module `vhdl/daisy_chain.vhd`
 ----------------------------------------
 
