@@ -16,7 +16,7 @@ Folder Structure
 | pore          | Power On & Reset Execution ROM. This code is executed on power on and on each reset of the system, even before any standard operating system like the Monitor is being executed from ROM address 0. PORE is mainly responsible for printing the boot message. Use `compile_pore.sh` to compile it.
 | qbin          | Compiled binaries (`.out` format) that can be put on an SD Card. You can load them directly when the Monitor is running using the File/Run command via `F` and `R`.
 | test_programs | Experiments, development testbeds, and simple tests written in QNICE assembler.
-| tools         | Various tools. Use `make_toolchain.sh` to compile the QNICE toolchain and `qtransfer.c` to transfer data from your Mac or PC to QNICE-FPGA while `qtransfer.asm` is running on QNICE-FGA.
+| tools         | Various tools. Use `make_toolchain.sh` to compile the QNICE toolchain and `qtransfer.c` to transfer data from your Mac or PC to QNICE-FPGA.
 | vhdl          | Portable QNICE-FPGA implementation. Subfolder `hw` contains hardware specific VHDL code. [vhdl/hw/MEGA65/README.md](../vhdl/hw/MEGA65/README.md) contains information about MEGA65 specific sources.
 
 ### Documentation Folder
@@ -124,20 +124,12 @@ transfer it:
    `assembler/asm` automatically copies the `.out` file to the clipboard:
    On macOS using `pbcopy` and on Linux using `xclip` (if available).
 
-3. Use `qtransfer`: Load `qtransfer.out` on the QNICE-FPGA, e.g. by using the
-   mechanism from above-mentioned step (2) or by loading it from the SD Card.
-   If you copied the folder `qbin` onto your SD Card then you can start it
-   using `F` and then `R` and then entering `qbin/qtransfer.out`. The tool
-   loads to address `FB00` so that it leaves plenty of space for the
-   to-be-transferred software. If `FB00` is not overwritten by your running
-   software (e.g. by the stack) then you can run it again when you want to
-   transfer the next software using `C` then `R` and then `FB00`.
-   As Monitor is not deleting RAM on reset, you can also use it after a reset
-   of the machine. `qtransfer` checks the data integrity using CRC16, so you
-   should prefer it over the `M` `L` method described in step (2). It is also
-   more convenient (once loaded) for VGA/keyboard users, because you do not
-   need to switch STDIN back to serial for transferring data. On the host
-   computer, run `tools/qtransfer` to send the data.
+3. Use `tools/qtransfer`: Open the qtransfer client on QNICE-FPGA by
+   entering the Monitor commands `M` `Q`. On the host computer, run
+   `tools/qtransfer` to send the data. `qtransfer` checks the data integrity
+   using CRC16, so you should prefer it over the `M` `L` method described
+   in step (2). It is also more convenient for VGA/keyboard users, because
+   you do not need to switch STDIN back to serial for transferring data.
 
 Calibrating your VGA monitor
 ----------------------------

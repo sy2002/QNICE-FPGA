@@ -19,6 +19,7 @@
 ;;  DEC-2016:    Completely redone string input: gets, gets_s, gets_slf, gets_core (by sy2002)
 ;;               Added file system support: mount, browse, load/run (by sy2002)
 ;;  AUG-2020:    Support for new ISA, improved disassembly of relative branches (by vaxman)
+;;  SEP-2020:    qtransfer client (by sy2002)
 ;;
 ;;
 ;; Bits and pieces:
@@ -281,7 +282,7 @@ QMON$M_MAYBE_M  CMP     'M', R8
                 RSUB    IO$PUT_CRLF, 1
                 RBRA    QMON$MAIN_LOOP, 1
 QMON$M_MAYBE_S  CMP     'S', R8
-                RBRA    QMON$M_ILLEGAL, !Z
+                RBRA    QMON$M_MAYBE_Q, !Z
 ; MEMORY/DISASSEMBLE:
                 MOVE    QMON$CG_M_S, R8         ; Print prompt for start address
                 RSUB    IO$PUTS, 1
@@ -298,6 +299,11 @@ _QMON$MS_LOOP   RSUB    DBG$DISASM, 1           ; Disassemble one instruction at
                 CMP     R8, R9                  ; End reached?
                 RBRA    _QMON$MS_LOOP, !N       ; No, next instruction
                 RBRA    QMON$MAIN_LOOP, 1
+QMON$M_MAYBE_Q  CMP     'Q', R8
+                RBRA    QMON$M_ILLEGAL, !Z
+; MEMORY/QTRANSFER
+                RBRA    QTRANSFER$START, 1      ; we must not use RSUB here
+                                                ; why? see qtransfer.asm
 QMON$M_ILLEGAL  MOVE    QMON$ILLCMD, R8
                 RSUB    IO$PUTS, 1
                 RBRA    QMON$MAIN_LOOP, 1
@@ -596,7 +602,7 @@ QMON$LOAD_E1C   SUB     IO$HEX_NIBBLES, R10     ; get numeric representation of 
 ;* Strings
 ;***************************************************************************************
                 
-QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 1.6 (Bernd Ulmann, sy2002, August 2020)\n"
+QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 1.7 (Bernd Ulmann, sy2002, September 2020)\n"
 #ifdef RAM_MONITOR
                 .ASCII_P    "Running in RAM!\n"
 #endif
@@ -610,7 +616,7 @@ QMON$HELP       .ASCII_P    "ELP:\n\n"
                 .ASCII_P    "    H(elp)\n"
                 .ASCII_P    "    M(emory group):\n"
                 .ASCII_P    "        C(hange) D(ump) E(xamine) F(ill) L(oad) M(ove)\n"
-                .ASCII_P    "        di(S)assemble\n"
+                .ASCII_P    "        di(S)assemble (Q)transfer\n"
                 .ASCII_P    "    F(ile group):\n"
                 .ASCII_P    "        List (D)irectory C(hange directory) L(oad) R(un)\n"
                 .ASCII_P    "\n    General: CTRL-E performs a warm start whenever an\n"

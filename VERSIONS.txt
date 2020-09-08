@@ -7,6 +7,8 @@ Version 1.7     xxxxxxxx, yy zzzz
   to V1.6 and a new peak performance of 14.67 MIPS which is an improvement
   of 8% compared to V1.6.
 
+* MONITOR: qtransfer is now part of the Monitor.
+
 * EMULATOR: Adjusted the standard emulation speed to 13.21 MIPS because this
   is the average Q-TRIS performance. 
 

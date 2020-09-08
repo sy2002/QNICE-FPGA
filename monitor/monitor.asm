@@ -26,6 +26,7 @@
 #include "math_library.asm"
 #include "sd_library.asm"
 #include "fat32_library.asm"
+#include "qtransfer.asm"
 ;
 ;#include "test_library.asm"
 ;

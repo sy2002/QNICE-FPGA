@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
     check(sp_drain(port));
     if (check(sp_blocking_read(port, buf, 4, std_timeout)) != 4 || strcmp(buf, "ACK") != 0)
     {
-        printf("Protocol error. (Are you running qtransfer.asm on QNICE?)\n");
+        printf("Protocol error. (Are you running qtransfer on QNICE?)\n");
         return 1;
     }
 

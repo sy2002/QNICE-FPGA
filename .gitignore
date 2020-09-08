@@ -71,6 +71,7 @@ c/vasm/vobjdump
 c/vbcc/bin
 c/vlink/vlink
 c/test_programs/mapfile
+c/test_programs/filecrc
 c/qnice/qniceconv
 c/qnice/mapfile
 c/test_programs/wolfram
