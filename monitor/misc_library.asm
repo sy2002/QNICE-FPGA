@@ -33,4 +33,5 @@ _MISC$WAIT_END  DECRB
 ;***************************************************************************************
 ;
 MISC$EXIT       ADD     0x0001, SP              ; Just out of paranoia
+                RSUB    _VGA$INIT_PAL, 1        ; classic green/black look
                 RBRA    QMON$WARMSTART, 1

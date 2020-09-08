@@ -30,8 +30,20 @@ VGA$INIT                INCRB
                         MOVE    R0, @R1
                         MOVE    VGA$FONT_OFFS, R1       ; Reset the font offset reg.
                         MOVE    R0, @R1
+                        RSUB    _VGA$INIT_PAL, 1        ; classic green/black look
                         DECRB
                         RET
+
+_VGA$INIT_PAL           INCRB
+                        MOVE    VGA$PALETTE_OFFS, R1    ; set the foreground font ..
+                        MOVE    VGA$PALETTE_OFFS_USER, @R1++ ; .. color to very green ..
+                        MOVE    32, @R1++               ; index 32 = foreground font
+                        MOVE    0x03E0, @R1             ; 0x03E0 = very green
+                        SUB     1, R1                   ; .. and the background color ..
+                        MOVE    48, @R1++               ; .. to black
+                        MOVE    VGA$COLOR_BLACK, @R1
+                        DECRB
+                        RET                        
 
 ;
 ;***************************************************************************************
