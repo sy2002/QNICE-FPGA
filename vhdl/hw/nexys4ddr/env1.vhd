@@ -71,8 +71,8 @@ signal cpu_halt               : std_logic;
 signal cpu_ins_cnt_strobe     : std_logic;
 signal cpu_int_n              : std_logic;
 signal cpu_igrant_n           : std_logic;
-signal vga_int_n_out          : std_logic;
-signal vga_grant_n_in         : std_logic;
+signal vga_int_n              : std_logic;
+signal vga_igrant_n           : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
@@ -254,10 +254,10 @@ begin
          cpu_reg_i     => vga_reg,
          cpu_data_i    => cpu_data_out,
          cpu_data_o    => vga_data_out,
-         cpu_int_n_o   => vga_int_n_out,  -- Connected to the left device
-         cpu_grant_n_i => vga_grant_n_in, -- Connected to the left device
-         cpu_int_n_i   => '1',            -- Connected to the right device
-         cpu_grant_n_o => open,           -- Connected to the right device
+         cpu_int_n_o   => cpu_int_n,
+         cpu_grant_n_i => cpu_igrant_n,
+         cpu_int_n_i   => vga_int_n,
+         cpu_grant_n_o => vga_igrant_n,
 
          vga_clk_i     => clk25MHz,
          vga_hsync_o   => VGA_HS,
@@ -328,10 +328,10 @@ begin
       port map (
          clk => SLOW_CLOCK,
          reset => reset_ctl,
-         int_n_out => cpu_int_n,
-         grant_n_in => cpu_igrant_n,
-         int_n_in => vga_int_n_out,
-         grant_n_out => vga_grant_n_in,
+         int_n_out => vga_int_n,
+         grant_n_in => vga_igrant_n,
+         int_n_in => '1',
+         grant_n_out => open,
          en => tin_en,
          we => tin_we,
          reg => tin_reg,
