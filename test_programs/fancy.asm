@@ -8,7 +8,14 @@
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 
-                .ORG    0xE000                  ; start E000 to install
+                .ORG    0xFA00                  ; start with FA00 
+
+                MOVE    TITLE_STR, R8           ; let the user choose:
+                MOVE    VAR_MODE, R9            ; fancy font or background?
+                SYSCALL(puts, 1)
+                SYSCALL(getc, 1)
+                SYSCALL(chr2upper, 1)
+                MOVE    R8, @R9
 
                 MOVE    VGA$PALETTE_OFFS, R0    ; switch to user-defined pal.
                 MOVE    VGA$PALETTE_OFFS_USER, @R0 
@@ -24,11 +31,11 @@
                 MOVE    0x00C8, @R0++           ; 0xC8 = 200ms = 5 Hz
                 MOVE    T_ISR, @R0
 
-                MOVE    TITLE_STR, R8
+                MOVE    UNINSTALL_STR, R8
                 SYSCALL(puts, 1)
                 SYSCALL(exit, 1)                ; back to monitor
 
-                .ORG    0xE020                  ; call E020 to uninstall
+                .ORG    0xFA30                  ; run FA30 to uninstall
 
                 MOVE    VGA$SCAN_ISR, R0        ; uninstall VGA scanline ISR
                 MOVE    0, @R0
@@ -39,8 +46,11 @@
 
                 SYSCALL(exit, 1)
 
+TITLE_STR       .ASCII_P "Press F for a fancy font or "
+                .ASCII_W "press B for a fancy background.\n\n"
+UNINSTALL_STR   .ASCII_W "Run FA30 to uninstall the fanciness."
 
-TITLE_STR       .ASCII_W "Fancy background installed. Call E020 to uninstall."
+VAR_MODE        .BLOCK 1
 
 ; ----------------------------------------------------------------------------
 ; Timer ISR
@@ -51,10 +61,21 @@ TITLE_STR       .ASCII_W "Fancy background installed. Call E020 to uninstall."
 T_ISR           INCRB
 
                 MOVE    VGA$PALETTE_ADDR, R0
-                MOVE    32, @R0++
-                MOVE    0xFFFF, @R0
+                MOVE    VAR_MODE, R1
 
-                DECRB
+                CMP     'F', @R1
+                RBRA    _TISR_FONT, Z
+
+                ; fancy background is active: set font to white
+                MOVE    32, @R0++               ; 32 = foreground col. of font
+                MOVE    VGA$COLOR_WHITE, @R0
+                RBRA    _TISR_END, 1
+
+                ; fancy font is active: set background to light gray
+_TISR_FONT      MOVE    48, @R0++               ; 48 = background col. of font
+                MOVE    VGA$COLOR_WHITE, @R0
+                    
+_TISR_END       DECRB
                 RTI
 
 ; ----------------------------------------------------------------------------
@@ -76,6 +97,7 @@ S_ISR           INCRB                           ; make sure, R8..R11 are not
 
                 MOVE    S_ISR_LINE, R0          ; scanline where ISR happens 
                 MOVE    VGA$PALETTE_ADDR, R1    ; palette offset register
+                MOVE    VAR_MODE, R2
                 MOVE    S_ISR_J, R3             ; variable "j"
                 MOVE    S_ISR_DELAY, R4         ; loop var. for slowing down
 
@@ -85,8 +107,15 @@ S_ISR           INCRB                           ; make sure, R8..R11 are not
                 MOVE    @R9, R9
                 SYSCALL(mulu, 1)
 
+                CMP     'F', @R2                ; check mode
+                RBRA    _SISR_FONT, Z
+
                 MOVE    48, @R1++               ; pal. addr choose backg. col.
-                MOVE    R10, @R1                ; set palette to new color
+                RBRA    _SISR_BG, 1
+
+_SISR_FONT      MOVE    32, @R1++               ; pal. addr choose foreg. col.
+
+_SISR_BG        MOVE    R10, @R1                ; set palette to new color
 
                 ADD     1, @R4                  ; delay the "scrolling effect"
                 CMP     600, @R4
