@@ -10,6 +10,9 @@
 
                 .ORG    0xE000                  ; start E000 to install
 
+                MOVE    VGA$PALETTE_OFFS, R0    ; switch to user-defined pal.
+                MOVE    VGA$PALETTE_OFFS_USER, @R0 
+
                 ; install the scanline ISR
                 MOVE    VGA$SCAN_INT, R0
                 MOVE    0, @R0++
@@ -30,13 +33,9 @@
                 MOVE    VGA$SCAN_ISR, R0        ; uninstall VGA scanline ISR
                 MOVE    0, @R0
                 MOVE    IO$TIMER_0_INT, R0      ; uninstall timer ISR
-                MOVE    0, @R0
-                MOVE    VGA$PALETTE_ADDR, R0
-                MOVE    VGA$PALETTE_DATA, R1
-                MOVE    0, @R0                  ; foregr. col. back to green
-                MOVE    0x03E0, @R1             
-                MOVE    16, @R0                 ; backgr. col. back to black
-                MOVE    0, @R1
+                MOVE    0, @R0                
+                MOVE    VGA$PALETTE_OFFS, R0    ; back to default palette
+                MOVE    VGA$PALETTE_OFFS_DEFAULT, @R0
 
                 SYSCALL(exit, 1)
 
@@ -52,7 +51,7 @@ TITLE_STR       .ASCII_W "Fancy background installed. Call E020 to uninstall."
 T_ISR           INCRB
 
                 MOVE    VGA$PALETTE_ADDR, R0
-                MOVE    0, @R0++
+                MOVE    32, @R0++
                 MOVE    0xFFFF, @R0
 
                 DECRB
@@ -76,8 +75,7 @@ S_ISR           INCRB                           ; make sure, R8..R11 are not
                 INCRB
 
                 MOVE    S_ISR_LINE, R0          ; scanline where ISR happens 
-                MOVE    VGA$PALETTE_ADDR, R1    ; palette address register
-                MOVE    VGA$PALETTE_DATA, R2    ; palette data register
+                MOVE    VGA$PALETTE_ADDR, R1    ; palette offset register
                 MOVE    S_ISR_J, R3             ; variable "j"
                 MOVE    S_ISR_DELAY, R4         ; loop var. for slowing down
 
@@ -87,8 +85,8 @@ S_ISR           INCRB                           ; make sure, R8..R11 are not
                 MOVE    @R9, R9
                 SYSCALL(mulu, 1)
 
-                MOVE    16, @R1                 ; pal. addr choose backg. col.
-                MOVE    R10, @R2                ; set palette to new color
+                MOVE    48, @R1++               ; pal. addr choose backg. col.
+                MOVE    R10, @R1                ; set palette to new color
 
                 ADD     1, @R4                  ; delay the "scrolling effect"
                 CMP     600, @R4

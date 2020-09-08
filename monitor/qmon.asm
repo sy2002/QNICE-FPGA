@@ -606,7 +606,7 @@ QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 1.7 (Bernd Ulman
 #ifdef RAM_MONITOR
                 .ASCII_P    "Running in RAM!\n"
 #endif
-                .ASCII_W    "----------------------------------------------------------------------\n\n"
+                .ASCII_W    "-------------------------------------------------------------------------\n\n"
 QMON$PROMPT     .ASCII_W    "QMON> "
 QMON$ILLCMDGRP  .ASCII_W    " *** Illegal command group ***\n"
 QMON$ILLCMD     .ASCII_W    " *** Illegal command ***\n"

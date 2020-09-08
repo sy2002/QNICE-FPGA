@@ -239,12 +239,12 @@ VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling ena
 VGA$CLR_SCRN            .EQU    0x0100                  ; Clear screen
 VGA$BUSY                .EQU    0x0200                  ; VGA is currently performing a task
 
-VGA$FONT_OFFS_DEFAULT    .EQU    0x0000                  ; Address in Font RAM for default fonts
-VGA$FONT_OFFS_USER       .EQU    0x1000                  ; Address in Font RAM for user fonts
-VGA$FONT_OFFS_MAX        .EQU    0x1FFF                  ; Largest address in Font RAM
-VGA$PALETTE_OFFS_DEFAULT .EQU    0x0000                  ; Address in Palette RAM for default palette
-VGA$PALETTE_OFFS_USER    .EQU    0x0020                  ; Address in Palette RAM for user palette
-VGA$PALETTE_OFFS_MAX     .EQU    0x003F                  ; Largest address in Palette RAM
+VGA$FONT_OFFS_DEFAULT    .EQU   0x0000                  ; Address in Font RAM for default fonts
+VGA$FONT_OFFS_USER       .EQU   0x1000                  ; Address in Font RAM for user fonts
+VGA$FONT_OFFS_MAX        .EQU   0x1FFF                  ; Largest address in Font RAM
+VGA$PALETTE_OFFS_DEFAULT .EQU   0x0000                  ; Address in Palette RAM for default palette
+VGA$PALETTE_OFFS_USER    .EQU   0x0020                  ; Address in Palette RAM for user palette
+VGA$PALETTE_OFFS_MAX     .EQU   0x003F                  ; Largest address in Palette RAM
 
 VGA$COLOR_BLACK         .EQU    0x0000
 VGA$COLOR_DARK_GRAY     .EQU    0x294A
