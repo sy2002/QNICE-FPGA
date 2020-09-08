@@ -48,17 +48,17 @@ architecture synthesis of daisy_chain is
    signal left_int_n    : std_logic;
    signal right_grant_n : std_logic;
 
-   attribute mark_debug                     : boolean;
-   attribute mark_debug of this_int_n_i     : signal is true;
-   attribute mark_debug of this_grant_n_o   : signal is true;
-   attribute mark_debug of left_int_n_o     : signal is true;
-   attribute mark_debug of left_grant_n_i   : signal is true;
-   attribute mark_debug of right_int_n_i    : signal is true;
-   attribute mark_debug of right_grant_n_o  : signal is true;
-   attribute mark_debug of this_int_n_d     : signal is true;
-   attribute mark_debug of this_int_n       : signal is true;
-   attribute mark_debug of this_int_n_latch : signal is true;
-   attribute mark_debug of state            : signal is true;
+--   attribute mark_debug                     : boolean;
+--   attribute mark_debug of this_int_n_i     : signal is true;
+--   attribute mark_debug of this_grant_n_o   : signal is true;
+--   attribute mark_debug of left_int_n_o     : signal is true;
+--   attribute mark_debug of left_grant_n_i   : signal is true;
+--   attribute mark_debug of right_int_n_i    : signal is true;
+--   attribute mark_debug of right_grant_n_o  : signal is true;
+--   attribute mark_debug of this_int_n_d     : signal is true;
+--   attribute mark_debug of this_int_n       : signal is true;
+--   attribute mark_debug of this_int_n_latch : signal is true;
+--   attribute mark_debug of state            : signal is true;
 
 begin
 
