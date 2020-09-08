@@ -13,7 +13,7 @@
 #define QNICE_FONT_CHARS            256
 #define QNICE_FONT_SIZE             (QNICE_FONT_CHAR_DY_BYTES * 256)
 
-static unsigned char qnice_font[QNICE_FONT_SIZE] =
+static unsigned char qnice_font[VGA_FONT_OFFS_MAX+1] =
 {
     0x7E,
     0xC3,

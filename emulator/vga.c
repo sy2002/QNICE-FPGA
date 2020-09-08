@@ -36,7 +36,9 @@ static Uint16   vga_y;
 static Uint16   vga_offs_display;
 static Uint16   vga_offs_rw;
 static Uint16   font_addr;
+static Uint16   font_offset;
 static Uint16   palette_addr;
+static Uint16   palette_offset;
 
 
 static Uint16   kbd_state;
@@ -325,7 +327,7 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
     }
 }
 
-static Uint32 palette[32] = {
+static Uint32 palette[VGA_PALETTE_OFFS_MAX+1] = {
 
    0x0080C078, 0x0098A8F8, 0x0028D0D0, 0x00F89030, // Foreground colors
    0x00F8E830, 0x00E8D8B8, 0x00F8C8F0, 0x00F8F8F8,
@@ -367,10 +369,12 @@ unsigned int vga_read_register(unsigned int address)
         case VGA_CR_Y:          return vga_y & 0x007F;
         case VGA_CHAR:          return vram[((vga_y * screen_dx + vga_x) & 0x0FFF) + vga_offs_rw];
 
+        case VGA_FONT_OFFS:     return font_offset;
         case VGA_FONT_ADDR:     return font_addr;
-        case VGA_FONT_DATA:     return qnice_font[font_addr & 0x0FFF];
+        case VGA_FONT_DATA:     return qnice_font[font_addr & VGA_FONT_OFFS_MAX];
+        case VGA_PALETTE_OFFS:  return palette_offset;
         case VGA_PALETTE_ADDR:  return palette_addr;
-        case VGA_PALETTE_DATA:  return palette_convert_24_to_15(palette[palette_addr & 0x001F]);
+        case VGA_PALETTE_DATA:  return palette_convert_24_to_15(palette[palette_addr & VGA_PALETTE_OFFS_MAX]);
     }
 
     return 0;
@@ -416,12 +420,25 @@ void vga_write_register(unsigned int address, unsigned int value)
                 vga_render_to_pixelbuffer(vga_x, vga_y, value);
             break;
 
+        case VGA_FONT_OFFS:
+            font_offset = value;
+            vga_refresh_rendering();
+            break;
+
         case VGA_FONT_ADDR:
             font_addr = value;
             break;
 
         case VGA_FONT_DATA:
-            qnice_font[font_addr & 0x0FFF] = value;
+            if (font_addr >= VGA_FONT_OFFS_USER && font_addr <= VGA_FONT_OFFS_MAX)
+            {
+               qnice_font[font_addr] = value;
+               vga_refresh_rendering();
+            }
+            break;
+
+        case VGA_PALETTE_OFFS:
+            palette_offset = value;
             vga_refresh_rendering();
             break;
 
@@ -430,8 +447,11 @@ void vga_write_register(unsigned int address, unsigned int value)
             break;
 
         case VGA_PALETTE_DATA:
-            palette[palette_addr & 0x001F] = palette_convert_15_to_24(value);
-            vga_refresh_rendering();
+            if (palette_addr >= VGA_PALETTE_OFFS_USER && palette_addr <= VGA_PALETTE_OFFS_MAX)
+            {
+               palette[palette_addr] = palette_convert_15_to_24(value);
+               vga_refresh_rendering();
+            }
             break;
     }
 }
@@ -455,6 +475,7 @@ int vga_init()
 #endif
 
     vga_state = vga_x = vga_y = vga_offs_display = vga_offs_rw = 0;
+    font_addr = font_offset = palette_addr = palette_offset = 0;
 
     kbd_state = KBD_LOCALE_DE; //for now, we hardcode german keyboard layout
     kbd_data = 0;
@@ -576,9 +597,9 @@ void vga_render_to_pixelbuffer(int x, int y, Uint16 c)
         return;
 
     unsigned long scr_offs = y * font_dy * render_dx + x * font_dx;
-    unsigned long fnt_offs = font_dy * (c & 0xFF);
-    Uint32 fg_col = palette[(c >> 8) & 0xF];
-    Uint32 bg_col = palette[16 + ((c >> 12) & 0xF)];
+    unsigned long fnt_offs = (font_dy * (c & 0xFF) + font_offset) & VGA_FONT_OFFS_MAX;
+    Uint32 fg_col = palette[(palette_offset +      ((c >>  8) & 0xF)) & VGA_PALETTE_OFFS_MAX];
+    Uint32 bg_col = palette[(palette_offset + 16 + ((c >> 12) & 0xF)) & VGA_PALETTE_OFFS_MAX];
     for (int char_y = 0; char_y < font_dy; char_y++)
     {
         unsigned int bitmap_row = qnice_font[fnt_offs];
