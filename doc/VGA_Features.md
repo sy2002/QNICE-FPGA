@@ -26,8 +26,8 @@ Address | Description
 `FF44`  | Interrupt Service Routine Address
 
 The Command and Status Register is decoded as follows
-* Bit 11 : Cursor offset enable (`FF35`)
-* Bit 10 : Display offset enable (`FF34`)
+* Bit 11 : Cursor offset enable (`FF34`)
+* Bit 10 : Display offset enable (`FF35`)
 * Bit  9 (R/O) : Busy
 * Bit  8 : Clear screen (this bit autoclears)
 * Bit  7 : VGA output enable
@@ -75,9 +75,10 @@ The QNICE project supports the following display modes:
   palette.
 
 ## Default palette
-The QNICE supports two palettes of 16 different colors. The initial colors are
-from [here](http://alumni.media.mit.edu/~wad/color/palette.html), scaled down
-to 15 bits.
+The QNICE supports separate foreground and background palettes each with 16
+different colors. The default colors are from
+[here](http://alumni.media.mit.edu/~wad/color/palette.html), scaled down to 15
+bits.
 
 Index | Color       | RGB (5,5,5 bits) | 15-bit value | 24-bit value
 ----- | ----------- | ---------------- | ------------ | ------------
@@ -142,33 +143,39 @@ When in 16-color text mode, the data in the Display RAM is interpreted as follow
 * Bits  7- 0 : Character value. Selects one of 256 possible characters (see Font RAM).
 
 Clearing of the entire Display RAM can be done by setting bit 8 of the `Command
-and Status Register`. This bit auto-clears when the clearing has completed (in
-64000/25.2 MHz = approximately 3 milliseconds).
+and Status Register`. This writes the value 0x0020 to all words in the display
+RAM, corresponding to a space character with default foreground and background.
+
+This bit auto-clears when the clearing has completed (in 64000/25.2 MHz =
+approximately 3 milliseconds).
 
 ## Font RAM
 The Font RAM is used when operating in text mode. Each of the 256 characters
-has an associated 8x12 bitmap, i.e. 8 pixels wide and 12 pixels high.
+has an associated 8x12 bitmap, i.e. 8 pixels wide and 12 pixels high. The font
+is represented by 12 words (corresponding to each row of the bitmap) where in
+each word only bits 7-0 are used.
 
-The Font RAM has a size of 8 kB, addressed one byte at a time, i.e.
-addresses allowed in the range 0x0000 - 0x1FFF.
+The Font RAM has a size of 8 kW, i.e. addresses allowed are in the range
+0x0000 - 0x1FFF.
 
 The first half of the Font RAM is read-only. This means it is not possible to
-clear/change the contents at addresses 0x0000 - 0x0FFF. If the user wants to
-make modifications to the default font, the software must copy the default font
-to addresses 0x1000 - 0x1FFF, and then edit the font there.
+clear/change the contents in the address range 0x0000 - 0x0FFF. If the user
+wants to make modifications to the default font, the software must copy the
+default font to addresses 0x1000 - 0x1FFF, and then edit the font there.
 
 The current Font used is controlled by the `Font offset` register.
 
 ## Palette RAM
-The Palette RAM is used when operating in 16-color modes (both text and hi-res graphics).
+The Palette RAM is used when operating in 16-color modes (both text and hi-res
+graphics).
 
-The Palette RAM has a size of 64 words, addressed one word at a time, i.e.
-address allowed in the range 0x00 - 0x3F.
+The Palette RAM has a size of 64 words, i.e. addresses allowed are in the
+range 0x0000 - 0x003F.
 
 The first half of the Palette RAM is read-only. This means it is not possible
-to clear/change the contents at address 0x00 - 0x1F. If the user wants to
-make modifications to the default palette, the software must copy the default
-palette to addresses 0x20 - 0x3F, and the edit the palette there.
+to clear/change the contents in the address range 0x0000 - 0x001F. If the user
+wants to make modifications to the default palette, the software must copy the
+default palette to addresses 0x0020 - 0x003F, and the edit the palette there.
 
 The current Palette used is controlled by the `Palette offset` register.
 
