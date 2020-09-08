@@ -1,5 +1,8 @@
-;; VGA interrupt test
-;; done by MJoergen in September 2020
+;; VGA interrupt test.
+;; This program shows a smooth scrolling text, controlled by
+;; the Scan Line Interrupt feature of the VGA module.
+;; Furthermore, it makes use of a Custom Palette.
+;; done by MJoergen in September 2020.
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -15,9 +18,22 @@ LINE_NEXT           .EQU    324
 
                     ; Disable hardware cursor
                     MOVE    VGA$STATE, R0
-                    MOVE    VGA$EN_HW_CURSOR, R1
-                    NOT     R1, R1
+                    NOT     VGA$EN_HW_CURSOR, R1
                     AND     R1, @R0
+
+                    ; Set user background color
+                    MOVE    VGA$COLOR_BLACK, R1
+                    MOVE    48, R2
+                    RSUB    _ISR_SET_PALETTE_COLOR, 1
+
+                    ; Set user foreground color
+                    MOVE    VGA$COLOR_LIGHT_GREEN, R1
+                    MOVE    32, R2
+                    RSUB    _ISR_SET_PALETTE_COLOR, 1
+
+                    ; Enable User Palette
+                    MOVE    VGA$PALETTE_OFFS, R1
+                    MOVE    VGA$PALETTE_OFFS_USER, @R1
 
                     ; Enable scan line interrupt
                     MOVE    VGA$SCAN_INT, R0
@@ -26,6 +42,10 @@ LINE_NEXT           .EQU    324
 
                     ; Wait for the user to press a key
                     SYSCALL(getc, 1)
+
+                    ; Enable Default Palette
+                    MOVE    VGA$PALETTE_OFFS, R1
+                    MOVE    VGA$PALETTE_OFFS_DEFAULT, @R1
 
                     ; Switch off interrupt
                     MOVE    VGA$SCAN_ISR, R0
@@ -58,9 +78,10 @@ _ISR_RET            DECRB
 _ISR_START          ; Prepare for next interrupt
                     MOVE    LINE_END, @R0
 
-                    ; Set background colour
+                    ; Set background color
                     MOVE    VGA$COLOR_RED, R1
-                    RSUB    _ISR_SET_BG, 1
+                    MOVE    48, R2
+                    RSUB    _ISR_SET_PALETTE_COLOR, 1
 
                     ; Set adjust X
                     MOVE    _VAR_DX, R1
@@ -72,9 +93,10 @@ _ISR_START          ; Prepare for next interrupt
 _ISR_END            ; Prepare for next interrupt
                     MOVE    LINE_NEXT, @R0
 
-                    ; Set backgroud colour
+                    ; Set backgroud color
                     MOVE    VGA$COLOR_DARK_GRAY, R1
-                    RSUB    _ISR_SET_BG, 1
+                    MOVE    48, R2
+                    RSUB    _ISR_SET_PALETTE_COLOR, 1
 
                     ; Set adjust X
                     MOVE    8, R1
@@ -150,13 +172,13 @@ _ISR_SET_ADJUST_X   MOVE    VGA$ADJUST_X, R7
                     MOVE    R1, @R7
                     RET
 
-; Set background palette colour to R1
-_ISR_SET_BG
+; Set Palette Color R2 to R1
+_ISR_SET_PALETTE_COLOR
                     MOVE    VGA$PALETTE_ADDR, R6
                     MOVE    VGA$PALETTE_DATA, R7
-                    MOVE    @R6, R5             ; Store address
-                    MOVE    16, @R6             ; Set address (background)
-                    MOVE    R1, @R7             ; Set background colour
+                    MOVE    @R6, R5             ; Save old address
+                    MOVE    R2, @R6             ; Set Palette Address
+                    MOVE    R1, @R7             ; Set Palette Color
                     MOVE    R5, @R6             ; Restore old address
                     RET
 

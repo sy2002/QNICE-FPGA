@@ -195,9 +195,9 @@ VGA$OFFS_DISPLAY    .EQU 0xFF35 ; Offset in bytes that is used when displaying
                                 ; the video RAM. Scrolling forward one line
                                 ; means adding 0x50 to this register.
                                 ; Only works, if bit #10 in VGA$STATE is set.
-;VGA$HDMI_H_MIN      .EQU 0xFF36 ; HDMI Data Enable: X: minimum valid column
-;VGA$HDMI_H_MAX      .EQU 0xFF37 ; HDMI Data Enable: X: maximum valid column
-;VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)
+VGA$HDMI_H_MIN      .EQU 0xFF36 ; HDMI Data Enable: X: minimum valid column
+VGA$HDMI_H_MAX      .EQU 0xFF37 ; HDMI Data Enable: X: maximum valid column
+VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)
 VGA$FONT_OFFS       .EQU 0xFF36 ; Offset in words into the Font RAM used for display
 VGA$FONT_ADDR       .EQU 0xFF37 ; Font Address
 VGA$FONT_DATA       .EQU 0xFF38 ; Font Data
