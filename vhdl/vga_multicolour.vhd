@@ -54,6 +54,7 @@ architecture synthesis of vga_multicolour is
    signal cpu_output_enable   : std_logic;
    signal cpu_display_offset  : std_logic_vector(15 downto 0);
    signal cpu_font_offset     : std_logic_vector(15 downto 0);
+   signal cpu_palette_offset  : std_logic_vector(15 downto 0);
    signal cpu_cursor_enable   : std_logic;
    signal cpu_cursor_blink    : std_logic;
    signal cpu_cursor_size     : std_logic;
@@ -70,7 +71,7 @@ architecture synthesis of vga_multicolour is
    signal cpu_vram_font_addr       : std_logic_vector(12 downto 0);
    signal cpu_vram_font_wr_en      : std_logic;
    signal cpu_vram_font_rd_data    : std_logic_vector(7 downto 0);
-   signal cpu_vram_palette_addr    : std_logic_vector(4 downto 0);
+   signal cpu_vram_palette_addr    : std_logic_vector(5 downto 0);
    signal cpu_vram_palette_wr_en   : std_logic;
    signal cpu_vram_palette_rd_data : std_logic_vector(14 downto 0);
    signal cpu_vram_wr_data         : std_logic_vector(15 downto 0);
@@ -79,6 +80,7 @@ architecture synthesis of vga_multicolour is
    signal meta_output_enable  : std_logic;
    signal meta_display_offset : std_logic_vector(15 downto 0);
    signal meta_font_offset    : std_logic_vector(15 downto 0);
+   signal meta_palette_offset : std_logic_vector(15 downto 0);
    signal meta_cursor_enable  : std_logic;
    signal meta_cursor_blink   : std_logic;
    signal meta_cursor_size    : std_logic;
@@ -92,6 +94,7 @@ architecture synthesis of vga_multicolour is
    signal vga_output_enable   : std_logic;
    signal vga_display_offset  : std_logic_vector(15 downto 0);
    signal vga_font_offset     : std_logic_vector(15 downto 0);
+   signal vga_palette_offset  : std_logic_vector(15 downto 0);
    signal vga_cursor_enable   : std_logic;
    signal vga_cursor_blink    : std_logic;
    signal vga_cursor_size     : std_logic;
@@ -106,7 +109,7 @@ architecture synthesis of vga_multicolour is
    signal vga_display_data    : std_logic_vector(15 downto 0);
    signal vga_font_addr       : std_logic_vector(12 downto 0);
    signal vga_font_data       : std_logic_vector(7 downto 0);
-   signal vga_palette_addr    : std_logic_vector(4 downto 0);
+   signal vga_palette_addr    : std_logic_vector(5 downto 0);
    signal vga_palette_data    : std_logic_vector(14 downto 0);
 
    -- Instruct synthesis tool that these registers are used for CDC.
@@ -114,6 +117,7 @@ architecture synthesis of vga_multicolour is
    attribute ASYNC_REG of meta_output_enable  : signal is true;
    attribute ASYNC_REG of meta_display_offset : signal is true;
    attribute ASYNC_REG of meta_font_offset    : signal is true;
+   attribute ASYNC_REG of meta_palette_offset : signal is true;
    attribute ASYNC_REG of meta_cursor_enable  : signal is true;
    attribute ASYNC_REG of meta_cursor_blink   : signal is true;
    attribute ASYNC_REG of meta_cursor_size    : signal is true;
@@ -125,6 +129,7 @@ architecture synthesis of vga_multicolour is
    attribute ASYNC_REG of vga_output_enable   : signal is true;
    attribute ASYNC_REG of vga_display_offset  : signal is true;
    attribute ASYNC_REG of vga_font_offset     : signal is true;
+   attribute ASYNC_REG of vga_palette_offset  : signal is true;
    attribute ASYNC_REG of vga_cursor_enable   : signal is true;
    attribute ASYNC_REG of vga_cursor_blink    : signal is true;
    attribute ASYNC_REG of vga_cursor_size     : signal is true;
@@ -193,11 +198,12 @@ begin
          cursor_size_o    => cpu_cursor_size,      -- Reg 0 bit 4
          cursor_x_o       => cpu_cursor_x,         -- Reg 1
          cursor_y_o       => cpu_cursor_y,         -- Reg 2
-         display_offset_o => cpu_display_offset,   -- Reg 4
-         font_offset_o    => cpu_font_offset,      -- Reg 9
+         display_offset_o => cpu_display_offset,   -- Reg 5
+         font_offset_o    => cpu_font_offset,      -- Reg 6
+         palette_offset_o => cpu_palette_offset,   -- Reg 9
          adjust_x_o       => cpu_adjust_x,         -- Reg 16
          adjust_y_o       => cpu_adjust_y,         -- Reg 17
-         pixel_y_i        => cpu_pixel_y           -- Reg 11
+         pixel_y_i        => cpu_pixel_y           -- Reg 18
       ); -- i_vga_register_map
 
 
@@ -241,6 +247,7 @@ begin
          meta_output_enable  <= cpu_output_enable;
          meta_display_offset <= cpu_display_offset;
          meta_font_offset    <= cpu_font_offset;
+         meta_palette_offset <= cpu_palette_offset;
          meta_cursor_enable  <= cpu_cursor_enable;
          meta_cursor_blink   <= cpu_cursor_blink;
          meta_cursor_size    <= cpu_cursor_size;
@@ -252,6 +259,7 @@ begin
          vga_output_enable   <= meta_output_enable;
          vga_display_offset  <= meta_display_offset;
          vga_font_offset     <= meta_font_offset;
+         vga_palette_offset  <= meta_palette_offset;
          vga_cursor_enable   <= meta_cursor_enable;
          vga_cursor_blink    <= meta_cursor_blink;
          vga_cursor_size     <= meta_cursor_size;
@@ -283,6 +291,7 @@ begin
          output_enable_i  => vga_output_enable,
          display_offset_i => vga_display_offset,
          font_offset_i    => vga_font_offset,
+         palette_offset_i => vga_palette_offset,
          cursor_enable_i  => vga_cursor_enable,
          cursor_blink_i   => vga_cursor_blink,
          cursor_size_i    => vga_cursor_size,

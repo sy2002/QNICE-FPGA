@@ -28,7 +28,7 @@ VGA$INIT                INCRB
                         MOVE    R0, @R1
                         MOVE    VGA$OFFS_RW, R1         ; Reset the rw offset reg.
                         MOVE    R0, @R1
-                        MOVE    VGA$OFFS_FONT, R1       ; Reset the font offset reg.
+                        MOVE    VGA$FONT_OFFS, R1       ; Reset the font offset reg.
                         MOVE    R0, @R1
                         RBRA    _VGA$INIT_PALETTE, 1    ; Initialize palettes
                         DECRB

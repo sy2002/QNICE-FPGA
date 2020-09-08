@@ -20,6 +20,7 @@ entity vga_text_mode is
       -- Interface to Register Map
       display_offset_i : in  std_logic_vector(15 downto 0);
       font_offset_i    : in  std_logic_vector(15 downto 0);
+      palette_offset_i : in  std_logic_vector(15 downto 0);
       cursor_enable_i  : in  std_logic;
       cursor_blink_i   : in  std_logic;
       cursor_size_i    : in  std_logic;
@@ -34,7 +35,7 @@ entity vga_text_mode is
       display_data_i   : in  std_logic_vector(15 downto 0);
       font_addr_o      : out std_logic_vector(12 downto 0);
       font_data_i      : in  std_logic_vector(7 downto 0);
-      palette_addr_o   : out std_logic_vector(4 downto 0);
+      palette_addr_o   : out std_logic_vector(5 downto 0);
       palette_data_i   : in  std_logic_vector(14 downto 0);
       -- Current pixel colour
       colour_o         : out std_logic_vector(14 downto 0);
@@ -78,6 +79,7 @@ architecture synthesis of vga_text_mode is
       cursor_pixel  : std_logic;
       cursor_here   : std_logic;
       pixel         : std_logic;
+      palette_addr  : std_logic_vector(4 downto 0);
    end record t_stage2;
 
    signal stage0 : t_stage0;
@@ -85,6 +87,8 @@ architecture synthesis of vga_text_mode is
    signal stage2 : t_stage2;
 
 --   attribute mark_debug                   : boolean;
+--   attribute mark_debug of cursor_x_i     : signal is true;
+--   attribute mark_debug of cursor_y_i     : signal is true;
 --   attribute mark_debug of pixel_x_i      : signal is true;
 --   attribute mark_debug of pixel_y_i      : signal is true;
 --   attribute mark_debug of frame_i        : signal is true;
@@ -129,7 +133,7 @@ begin
    stage1.char_offset_y <= stage0.char_offset_y;
 
    -- Calculate address in Font RAM
-   stage1.font_addr <= std_logic_vector(unsigned(stage1.tile)*12)
+   stage1.font_addr <= std_logic_vector(unsigned(stage1.tile)*C_CHAR_HEIGHT)
                        + stage1.char_offset_y + font_offset_i;
    font_addr_o <= stage1.font_addr(12 downto 0);
 
@@ -186,8 +190,10 @@ begin
               else stage2.bitmap(stage2.bitmap_index);
 
    -- Read colour from Palette RAM
-   palette_addr_o <= "0" & stage2.colour_fg when stage2.pixel = '1'   -- Foreground colour
-                else "1" & stage2.colour_bg;                          -- Background colouur
+   stage2.palette_addr <= "0" & stage2.colour_fg when stage2.pixel = '1'   -- Foreground colour
+                     else "1" & stage2.colour_bg;                          -- Background colouur
+
+   palette_addr_o <= ("0" & stage2.palette_addr) + palette_offset_i(5 downto 0);
 
 
    -----------------------------------------------------

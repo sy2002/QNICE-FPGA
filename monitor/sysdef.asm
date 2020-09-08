@@ -187,22 +187,23 @@ VGA$CR_X            .EQU 0xFF31 ; VGA cursor X position
 VGA$CR_Y            .EQU 0xFF32 ; VGA cursor Y position
 VGA$CHAR            .EQU 0xFF33 ; write: VGA character to be displayed
                                 ; read: character "under" the cursor
-VGA$OFFS_DISPLAY    .EQU 0xFF34 ; Offset in bytes that is used when displaying
-                                ; the video RAM. Scrolling forward one line
-                                ; means adding 0x50 to this register.
-                                ; Only works, if bit #10 in VGA$STATE is set.
-VGA$OFFS_RW         .EQU 0xFF35 ; Offset in bytes that is used, when you read
+VGA$OFFS_RW         .EQU 0xFF34 ; Offset in bytes that is used, when you read
                                 ; or write to the video RAM using VGA$CHAR.
                                 ; Works independently from VGA$OFFS_DISPLAY.
                                 ; Active, when bit #11 in VGA$STATE is set.
+VGA$OFFS_DISPLAY    .EQU 0xFF35 ; Offset in bytes that is used when displaying
+                                ; the video RAM. Scrolling forward one line
+                                ; means adding 0x50 to this register.
+                                ; Only works, if bit #10 in VGA$STATE is set.
 VGA$HDMI_H_MIN      .EQU 0xFF36 ; HDMI Data Enable: X: minimum valid column
 VGA$HDMI_H_MAX      .EQU 0xFF37 ; HDMI Data Enable: X: maximum valid column
 VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)                                
-VGA$OFFS_FONT       .EQU 0xFF39 ; Offset in words into the Font RAM
-VGA$FONT_ADDR       .EQU 0xFF3C ; Font Address
-VGA$FONT_DATA       .EQU 0xFF3D ; Font Data
-VGA$PALETTE_ADDR    .EQU 0xFF3E ; Palette Address
-VGA$PALETTE_DATA    .EQU 0xFF3F ; Palette Data
+VGA$FONT_OFFS       .EQU 0xFF36 ; Offset in words into the Font RAM
+VGA$FONT_ADDR       .EQU 0xFF37 ; Font Address
+VGA$FONT_DATA       .EQU 0xFF38 ; Font Data
+VGA$PALETTE_OFFS    .EQU 0xFF39 ; Palette Address
+VGA$PALETTE_ADDR    .EQU 0xFF3A ; Palette Address
+VGA$PALETTE_DATA    .EQU 0xFF3B ; Palette Data
 VGA$ADJUST_X        .EQU 0xFF40 ; Pixels to adjust screen in X direction
 VGA$ADJUST_Y        .EQU 0xFF41 ; Pixels to adjust screen in Y direction
 VGA$SCAN_LINE       .EQU 0xFF42 ; Current scan line
