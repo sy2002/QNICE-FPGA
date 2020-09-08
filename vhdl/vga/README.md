@@ -1,19 +1,19 @@
-# VGA Multicolour Design
+# VGA Multicolor Design
 
 This file contains a brief description of the features supported by the VGA
 module, and now they are implemented.
 
 ## Features
-### Colours and palettes
-The QNICE project uses 15-bit colours, with 5 bits for each colour channel
-(RGB).  On some platforms (e.g. the Nexys4DDR) with lower colour resolution,
+### Colors and palettes
+The QNICE project uses 15-bit colors, with 5 bits for each color channel
+(RGB).  On some platforms (e.g. the Nexys4DDR) with lower color resolution,
 the LSBs are discarded.
 
-The QNICE supports a palette of 16 different colours. The initial colours are
+The QNICE supports a palette of 16 different colors. The initial colors are
 from [here](http://alumni.media.mit.edu/~wad/color/palette.html), scaled down
 to 15 bits.
 
-Index | Colour      | RGB (5,5,5 bits) | 15-bit value | 24-bit value
+Index | Color       | RGB (5,5,5 bits) | 15-bit value | 24-bit value
 ----- | ----------- | ---------------- | ------------ | ------------
   0   | Black       | 0, 0, 0          | 0x0000       | 000000
   1   | Dark Gray   | 10, 10, 10       | 0x294A       | 505050
@@ -39,21 +39,21 @@ pixel clock freqeuncy is 25.2 MHz.
 
 ### Display modes
 The QNICE project supports the following display modes:
-* Colour text mode: 80x40 characters. Foreground and Background colours selected
-individually from two different 16-colour palettes.
-* Lo-res graphics mode: 320x200 pixels, with 15-bit colours for each pixel.
-* Hi-res graphics mode: 640x400 pixels, with colour selected from a 16-colour palette.
+* Color text mode: 80x40 characters. Foreground and Background colors selected
+individually from two different 16-color palettes.
+* Lo-res graphics mode: 320x200 pixels, with 15-bit colors for each pixel.
+* Hi-res graphics mode: 640x400 pixels, with color selected from a 16-color palette.
 
 ## Implementation
-The VGA Multicolour block connects directly to the CPU and to the VGA output
+The VGA Multicolor block connects directly to the CPU and to the VGA output
 port on the FPGA.
 
 Since the CPU runs at 50 MHz and the VGA output port runs at 25 MHz we have two
 different clock domains. To avoid timing problems it is convenient to split the
-VGA multicolour module into separate blocks each using only a single clock
+VGA multicolor module into separate blocks each using only a single clock
 signal.
 
-The file [vga_multicolour.vhd](vga_multicolour.vhd) therefore instantiates three
+The file [vga_multicolor.vhd](vga_multicolor.vhd) therefore instantiates three
 blocks:
 * `vga_register_map`
 * `vga_output`
@@ -97,7 +97,7 @@ blinking cursor.
 This is the most complex part of the module. This block receives the
 configuration signals from the `vga_register_map` and the pixel counters from
 the block `vga_pixel_counters` and it reads data from the Display RAM, the Font
-RAM, and the Palette RAM. It then generates an output stream of pixel colours
+RAM, and the Palette RAM. It then generates an output stream of pixel colors
 in RGB format.
 
 The operation is divided into three steps:
@@ -111,7 +111,7 @@ calculated from the values read from the Font RAM and the Display RAM.
 ### `vga_sync`
 This small module generates the Horizontal and Vertical synchronization signals
 needed for the VGA output. Furthermore, it blanks the screen (i.e. sets the
-colour output to black), when the current pixel is outside the screen area.
+color output to black), when the current pixel is outside the screen area.
 
 ## `vga_video_ram`
 This block makes use of True Dual Port (TDP) memory, which is a builtin part of
@@ -121,6 +121,6 @@ their own address and data signals and even clock signals.
 This block actually instantiates the block `true_dual_port_ram` three times,
 one for each of:
 * Display RAM  (64 kW)
-* Font RAM     ( 4 kB)
-* Palette RAM  (32 words)
+* Font RAM     ( 8 kW)
+* Palette RAM  (64 words)
 

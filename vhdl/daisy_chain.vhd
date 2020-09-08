@@ -48,17 +48,17 @@ architecture synthesis of daisy_chain is
    signal left_int_n    : std_logic;
    signal right_grant_n : std_logic;
 
-   attribute mark_debug                     : boolean;
-   attribute mark_debug of this_int_n_i     : signal is true;
-   attribute mark_debug of this_grant_n_o   : signal is true;
-   attribute mark_debug of left_int_n_o     : signal is true;
-   attribute mark_debug of left_grant_n_i   : signal is true;
-   attribute mark_debug of right_int_n_i    : signal is true;
-   attribute mark_debug of right_grant_n_o  : signal is true;
-   attribute mark_debug of this_int_n_d     : signal is true;
-   attribute mark_debug of this_int_n       : signal is true;
-   attribute mark_debug of this_int_n_latch : signal is true;
-   attribute mark_debug of state            : signal is true;
+--   attribute mark_debug                     : boolean;
+--   attribute mark_debug of this_int_n_i     : signal is true;
+--   attribute mark_debug of this_grant_n_o   : signal is true;
+--   attribute mark_debug of left_int_n_o     : signal is true;
+--   attribute mark_debug of left_grant_n_i   : signal is true;
+--   attribute mark_debug of right_int_n_i    : signal is true;
+--   attribute mark_debug of right_grant_n_o  : signal is true;
+--   attribute mark_debug of this_int_n_d     : signal is true;
+--   attribute mark_debug of this_int_n       : signal is true;
+--   attribute mark_debug of this_int_n_latch : signal is true;
+--   attribute mark_debug of state            : signal is true;
 
 begin
 
@@ -81,8 +81,8 @@ begin
             this_int_n_latch <= '0';
          end if;
 
-         -- Clear latch, when we start to process the interrupt.
-         if state = THIS_GRANT_ST and this_grant_n = '1' then
+         -- Clear latch, when the CPU has begun executing the ISR handler.
+         if state = THIS_GRANT_ST and left_grant_n_i = '1' then
             this_int_n_latch <= '1';
          end if;
 
@@ -94,12 +94,10 @@ begin
    end process p_int_latch;
 
 
-   -- There is a one-cycle delay when requesting interrupt.
-   left_int_n <= '0' when state = THIS_REQ_ST or state = RIGHT_REQ_ST else '1';
-   -- TBD. Perhaps this delay can be removed by something like this (not tried yet):
-   -- left_int_n <= this_int_n and this_int_n_latch and right_int_n_i when state = IDLE_ST else
-   --               '0' when state = THIS_REQ_ST or state = RIGHT_REQ_ST else
-   --               '1';
+   -- Combinatorially forward interrupt request to CPU.
+   left_int_n <= this_int_n and this_int_n_latch and right_int_n_i when state = IDLE_ST else
+                 '0' when state = THIS_REQ_ST or state = RIGHT_REQ_ST else
+                 '1';
 
 
    -- Make sure grant signal is connected combinatorially through the daisy chain.
@@ -112,14 +110,15 @@ begin
       if rising_edge(clk_i) then
          case state is
             when IDLE_ST =>
-               -- Are we requesting an interrupt?
-               if this_int_n = '0' or this_int_n_latch = '0' then
-                  state <= THIS_REQ_ST;
-               end if;
-
+               -- This device has priority over the device to the right.
                -- Is the next in chain requesting an interrupt?
                if right_int_n_i = '0' then
                   state <= RIGHT_REQ_ST;
+               end if;
+
+               -- Are we requesting an interrupt?
+               if this_int_n = '0' or this_int_n_latch = '0' then
+                  state <= THIS_REQ_ST;
                end if;
 
             when THIS_REQ_ST =>

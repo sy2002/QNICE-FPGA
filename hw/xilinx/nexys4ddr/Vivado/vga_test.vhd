@@ -11,7 +11,7 @@ entity vga_test is
 
       vga_hsync_o  : out std_logic;
       vga_vsync_o  : out std_logic;
-      vga_colour_o : out std_logic_vector(11 downto 0)
+      vga_color_o  : out std_logic_vector(11 downto 0)
    );
 end vga_test;
 
@@ -116,7 +116,7 @@ begin
    );
 
 
-   i_vga_multicolour : entity work.vga_multicolour
+   i_vga_multicolor : entity work.vga_multicolor
       port map (
          cpu_clk_i     => cpu_clk,
          cpu_rst_i     => '1',
@@ -128,9 +128,9 @@ begin
          vga_clk_i     => vga_clk,
          vga_hsync_o   => vga_hsync_o,
          vga_vsync_o   => vga_vsync_o,
-         vga_colour_o  => vga_colour_o,
+         vga_color_o   => vga_color_o,
          vga_data_en_o => open
-      ); -- i_vga_multicolour
+      ); -- i_vga_multicolor
 
 end synthesis;
 

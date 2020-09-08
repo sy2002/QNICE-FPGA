@@ -1,9 +1,9 @@
-/*  VGA Multicolour demonstration
+/*  VGA Multicolor demonstration
  *
  *  This program draws a box full of X's with different foreground and
- *  background colours.
+ *  background colors.
  *
- *  How to compile: qvc vga_multicolour.c -O3 -c99
+ *  How to compile: qvc vga_multicolor.c -O3 -c99
  *
  *  done by MJoergen in August 2020
 */

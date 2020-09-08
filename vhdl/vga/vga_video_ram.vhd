@@ -14,7 +14,7 @@ entity vga_video_ram is
       cpu_font_addr_i       : in  std_logic_vector(12 downto 0);
       cpu_font_wr_en_i      : in  std_logic;
       cpu_font_rd_data_o    : out std_logic_vector(7 downto 0);
-      cpu_palette_addr_i    : in  std_logic_vector(4 downto 0);
+      cpu_palette_addr_i    : in  std_logic_vector(5 downto 0);
       cpu_palette_wr_en_i   : in  std_logic;
       cpu_palette_rd_data_o : out std_logic_vector(14 downto 0);
       cpu_wr_data_i         : in  std_logic_vector(15 downto 0);
@@ -24,7 +24,7 @@ entity vga_video_ram is
       vga_display_data_o : out std_logic_vector(15 downto 0);
       vga_font_addr_i    : in  std_logic_vector(12 downto 0);
       vga_font_data_o    : out std_logic_vector(7 downto 0);
-      vga_palette_addr_i : in  std_logic_vector(4 downto 0);
+      vga_palette_addr_i : in  std_logic_vector(5 downto 0);
       vga_palette_data_o : out std_logic_vector(14 downto 0)
    );
 end vga_video_ram;
@@ -38,8 +38,8 @@ begin
    --
    -- The Display RAM is organized as 800 lines of 80 characters. Each word
    -- is interpreted as follows:
-   -- Bits 15-12 : Background colour selected from a palette of 16 colours.
-   -- Bits 11- 8 : Foreground colour selected from a palette of 16 colours.
+   -- Bits 15-12 : Background color selected from a palette of 16 colors.
+   -- Bits 11- 8 : Foreground color selected from a palette of 16 olours.
    -- Bits  7- 0 : Character index (index into Font).
    i_display_ram : entity work.true_dual_port_ram
       generic map (
@@ -78,13 +78,14 @@ begin
       ); -- i_font_ram
 
 
-   -- The Palette RAM contains 32 words, i.e. addresses 0x0000 - 0x001F.
-   -- 16 words for each of the foreground colours, and another 16 words
-   -- for the background colours.
+   -- The Palette RAM contains 64 words, i.e. addresses 0x0000 - 0x003F.
+   -- 16 words for each of the foreground colors, and another 16 words
+   -- for the background colors.
    i_palette_ram : entity work.true_dual_port_ram
       generic map (
-         G_ADDR_SIZE => 5,
-         G_DATA_SIZE => 15
+         G_ADDR_SIZE => 6,
+         G_DATA_SIZE => 15,
+         G_FILE_NAME => "palette.rom"
       )
       port map (
          a_clk_i     => cpu_clk_i,

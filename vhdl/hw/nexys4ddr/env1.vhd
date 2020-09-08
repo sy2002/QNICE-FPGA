@@ -71,8 +71,8 @@ signal cpu_halt               : std_logic;
 signal cpu_ins_cnt_strobe     : std_logic;
 signal cpu_int_n              : std_logic;
 signal cpu_igrant_n           : std_logic;
-signal vga_int_n_out          : std_logic;
-signal vga_grant_n_in         : std_logic;
+signal vga_int_n              : std_logic;
+signal vga_igrant_n           : std_logic;
 
 -- MMIO control signals
 signal rom_enable             : std_logic;
@@ -125,8 +125,8 @@ signal sd_data_out            : std_logic_vector(15 downto 0);
 signal reset_pre_pore         : std_logic;
 signal reset_post_pore        : std_logic;
 
--- VGA colour output
-signal vga_colour             : std_logic_vector(14 downto 0);
+-- VGA color output
+signal vga_color              : std_logic_vector(14 downto 0);
 
 -- 50 MHz as long as we did not solve the timing issues of the register file
 signal SLOW_CLOCK             : std_logic := '0';
@@ -245,7 +245,7 @@ begin
       );
                  
    -- VGA: 80x40 textmode VGA adaptor   
-   i_vga_multicolour : entity work.vga_multicolour
+   i_vga_multicolor : entity work.vga_multicolor
       port map (
          cpu_clk_i     => SLOW_CLOCK,
          cpu_rst_i     => reset_ctl,
@@ -254,21 +254,23 @@ begin
          cpu_reg_i     => vga_reg,
          cpu_data_i    => cpu_data_out,
          cpu_data_o    => vga_data_out,
-         cpu_int_n_o   => vga_int_n_out,
-         cpu_grant_n_i => vga_grant_n_in,
+         cpu_int_n_o   => cpu_int_n,
+         cpu_grant_n_i => cpu_igrant_n,
+         cpu_int_n_i   => vga_int_n,
+         cpu_grant_n_o => vga_igrant_n,
 
          vga_clk_i     => clk25MHz,
          vga_hsync_o   => VGA_HS,
          vga_vsync_o   => VGA_VS,
-         vga_colour_o  => vga_colour,
+         vga_color_o   => vga_color,
          vga_data_en_o => open
-      ); -- i_vga_multicolour
+      ); -- i_vga_multicolor
 
    -- wire the simplified color system of the VGA component to the VGA outputs.
-   -- Convert from 15-bit to 12-bit by discarding the LSB of each colour channel.
-   VGA_RED   <= vga_colour(14 downto 11);
-   VGA_GREEN <= vga_colour(9 downto 6);
-   VGA_BLUE  <= vga_colour(4 downto 1);
+   -- Convert from 15-bit to 12-bit by discarding the LSB of each color channel.
+   VGA_RED   <= vga_color(14 downto 11);
+   VGA_GREEN <= vga_color(9 downto 6);
+   VGA_BLUE  <= vga_color(4 downto 1);
 
    -- TIL display emulation (4 digits)
    til_leds : entity work.til_display
@@ -326,10 +328,10 @@ begin
       port map (
          clk => SLOW_CLOCK,
          reset => reset_ctl,
-         int_n_out => cpu_int_n,
-         grant_n_in => cpu_igrant_n,
-         int_n_in => vga_int_n_out,
-         grant_n_out => vga_grant_n_in,
+         int_n_out => vga_int_n,
+         grant_n_in => vga_igrant_n,
+         int_n_in => '1',
+         grant_n_out => open,
          en => tin_en,
          we => tin_we,
          reg => tin_reg,

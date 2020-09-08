@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 -- This module generates the VGA synchronization signals.
 
 -- The module ensures that the mutual relative timing between the
--- synchronization signals and colour signal adheres to the VESA standard.
+-- synchronization signals and color signal adheres to the VESA standard.
 
 entity vga_sync is
    port (
@@ -14,12 +14,12 @@ entity vga_sync is
       output_en_i : in  std_logic;
       pixel_x_i   : in  std_logic_vector( 9 downto 0);
       pixel_y_i   : in  std_logic_vector( 9 downto 0);
-      colour_i    : in  std_logic_vector(14 downto 0);
+      color_i     : in  std_logic_vector(14 downto 0);
       delay_i     : in  std_logic_vector( 9 downto 0);
 
       hsync_o     : out std_logic;
       vsync_o     : out std_logic;
-      colour_o    : out std_logic_vector(14 downto 0);
+      color_o     : out std_logic_vector(14 downto 0);
       data_en_o   : out std_logic
    );
 end vga_sync;
@@ -62,20 +62,20 @@ begin
          end if;
 
          -- Default is black
-         colour_o  <= (others => '0');
+         color_o  <= (others => '0');
          data_en_o <= '0';
 
-         -- Only show colour when inside visible screen area
+         -- Only show color when inside visible screen area
          if pixel_x_i >= delay_i and pixel_x_i < std_logic_vector(H_PIXELS+unsigned(delay_i))
             and unsigned(pixel_y_i) < V_PIXELS then
-            colour_o  <= colour_i;
+            color_o   <= color_i;
             data_en_o <= '1';
          end if;
 
          if output_en_i = '0' then
             hsync_o   <= '0';
             vsync_o   <= '0';
-            colour_o  <= (others => '0');
+            color_o   <= (others => '0');
             data_en_o <= '0';
          end if;
       end if;

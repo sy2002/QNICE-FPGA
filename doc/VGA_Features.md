@@ -11,13 +11,14 @@ Address | Description
 `FF31`  | Cursor X
 `FF32`  | Cursor Y
 `FF33`  | Character at cursor
-`FF34`  | Display offset
-`FF35`  | Cursor offset
-`FF39`  | Font offset
-`FF3C`  | Address into Font RAM
-`FF3D`  | Data to/from Font RAM
-`FF3E`  | Address into Palette RAM
-`FF3F`  | Data to/from Palette RAM
+`FF34`  | Cursor offset
+`FF35`  | Display offset
+`FF36`  | Font offset
+`FF37`  | Address into Font RAM
+`FF38`  | Data to/from Font RAM
+`FF39`  | Palette offset
+`FF3A`  | Address into Palette RAM
+`FF3B`  | Data to/from Palette RAM
 `FF40`  | Pixels to adjust screen in X direction
 `FF41`  | Pixels to adjust screen in Y direction
 `FF42`  | Current scan line
@@ -25,8 +26,8 @@ Address | Description
 `FF44`  | Interrupt Service Routine Address
 
 The Command and Status Register is decoded as follows
-* Bit 11 : Cursor offset enable (`FF35`)
-* Bit 10 : Display offset enable (`FF34`)
+* Bit 11 : Cursor offset enable (`FF34`)
+* Bit 10 : Display offset enable (`FF35`)
 * Bit  9 (R/O) : Busy
 * Bit  8 : Clear screen (this bit autoclears)
 * Bit  7 : VGA output enable
@@ -74,9 +75,10 @@ The QNICE project supports the following display modes:
   palette.
 
 ## Default palette
-The QNICE supports two palettes of 16 different colors. The initial colors are
-from [here](http://alumni.media.mit.edu/~wad/color/palette.html), scaled down
-to 15 bits.
+The QNICE supports separate foreground and background palettes each with 16
+different colors. The default colors are from
+[here](http://alumni.media.mit.edu/~wad/color/palette.html), scaled down to 15
+bits.
 
 Index | Color       | RGB (5,5,5 bits) | 15-bit value | 24-bit value
 ----- | ----------- | ---------------- | ------------ | ------------
@@ -101,11 +103,22 @@ Index | Color       | RGB (5,5,5 bits) | 15-bit value | 24-bit value
 When in text mode, the hardware optionally generates a blinking cursor.
 
 ## Hardware scrolling
-When in text mode, the hardware supports of to 20 screens (= 800 lines) of text.
+When in text mode, the hardware supports up to 20 screens (= 800 lines) of text.
 
-## Video RAM
-The VGA module contains a (separate from the CPU) Video RAM. This memory is
-divided into three different blocks:
+## Pixel scrolling
+The screen contents may be shifted any number of pixels in either direction.
+This is controlled by the two registers `VGA_ADJUST_X` and `VGA_ADJUST_Y`.
+
+## Scan line interrupt
+The VGA module allows the processor to read the horizontal scan line currently
+being displayed. Furthermore, the VGA module can be programmed to generate an
+interrupt when a specific scan line is reached.
+
+-------------------------
+
+# Video RAM
+The VGA module contains its own Video RAM separate from the main memory. This
+Video RAM is divided into three different blocks:
 * Display RAM: Contains the characters and color (when in text mode) or the
   bitmap (when in graphics mode).
 * Font RAM: Contains the bitmaps of the individual characters.
@@ -114,7 +127,7 @@ divided into three different blocks:
 All three memory blocks are accessed by first setting up the address and then
 reading/writing the data at the specified address.
 
-### Display RAM
+## Display RAM
 The Display RAM has a size of 64 kW. This corresponds to 20 screens (= 800
 lines) of text when in 16-color text mode.
 
@@ -124,47 +137,49 @@ offset. In other words:
 
 address = 80 * `Cursor Y` + `Cursor X` + `Cursor offset`.
 
-Clearing of the entire Display RAM can be done by setting bit 8 of the `Command
-and Status Register`. This bit auto-clears when the clearing has completed (in
-65536/25.2 MHz = approximately 3 milliseconds).
-
 When in 16-color text mode, the data in the Display RAM is interpreted as follows:
-* Bits 15-12 : Background color selected from background palette.
-* Bits 11- 8 : Foreground color selected from foreground palette.
-* Bits  7- 0 : Character value. Selects one of 256 possible characters.
+* Bits 15-12 : Background color selected from background palette (see Palette RAM).
+* Bits 11- 8 : Foreground color selected from foreground palette (see Palette RAM).
+* Bits  7- 0 : Character value. Selects one of 256 possible characters (see Font RAM).
 
-### Font RAM
-The Font RAM is used when in 16-color text mode. Each of the 256 characters
-has an associated 8x12 bitmap, i.e. 8 pixels wide and 12 pixels high.
+Clearing of the entire Display RAM can be done by setting bit 8 of the `Command
+and Status Register`. This writes the value 0x0020 to all words in the display
+RAM, corresponding to a space character with default foreground and background.
 
-The Font RAM has a size of 8 kB, addressed one byte at a time (i.e. 0x0000 -
-0x1FFF). The expected use case is to have two different fonts, one located at
-address 0x0000 - 0x0BFF, and the other at address 0x1000 - 0x1BFF.
+This bit auto-clears when the clearing has completed (in 64000/25.2 MHz =
+approximately 3 milliseconds).
+
+## Font RAM
+The Font RAM is used when operating in text mode. Each of the 256 characters
+has an associated 8x12 bitmap, i.e. 8 pixels wide and 12 pixels high. The font
+is represented by 12 words (corresponding to each row of the bitmap) where in
+each word only bits 7-0 are used.
+
+The Font RAM has a size of 8 kW, i.e. addresses allowed are in the range
+0x0000 - 0x1FFF.
+
+The first half of the Font RAM is read-only. This means it is not possible to
+clear/change the contents in the address range 0x0000 - 0x0FFF. If the user
+wants to make modifications to the default font, the software must copy the
+default font to addresses 0x1000 - 0x1FFF, and then edit the font there.
 
 The current Font used is controlled by the `Font offset` register.
 
-The first half of the Font RAM is read-only. This means it is not possible to
-clear/change the contents at address 0x0000 - 0x0FFF. If the user wants to make
-modifications to the default font, it is necessary to copy the default font to
-address 0x1000 - 0x1FFF, and to edit the font there.
+## Palette RAM
+The Palette RAM is used when operating in 16-color modes (both text and hi-res
+graphics).
 
-### Palette RAM
-The Palette RAM is used when in 16-color modes (both text and hi-res graphics).
-The Palette RAM has a size of 32 words. This corresponds to two different palettes.
+The Palette RAM has a size of 64 words, i.e. addresses allowed are in the
+range 0x0000 - 0x003F.
+
+The first half of the Palette RAM is read-only. This means it is not possible
+to clear/change the contents in the address range 0x0000 - 0x001F. If the user
+wants to make modifications to the default palette, the software must copy the
+default palette to addresses 0x0020 - 0x003F, and the edit the palette there.
+
+The current Palette used is controlled by the `Palette offset` register.
 
 * The addresses 0x00 - 0x0F are used for the foreground palette (when in text mode
 and in hi-res graphics mode).
 * The addresses 0x10 - 0x1F are used for the background palette (when in text mode).
-
-The Palette RAM must be initialized in software.
-
-## Pixel scrolling
-When in text mode the screen contents may be shifted any number of pixels in
-either direction.  This is controlled by the two registers `VGA_ADJUST_X` and
-`VGA_ADJUST_Y`.
-
-## Scan line interrupt
-The VGA module allows the processor to read the horizontal scan line being
-currently being displayed. Furthermore, the VGA module can be programmed to
-generate an interrupt when a specific scan line is reached.
 

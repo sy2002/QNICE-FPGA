@@ -60,7 +60,7 @@ IO$KBD_DATA     .EQU 0xFF05 ; Data register of USB keyboard
 ;  Block FF08: SYSTEM COUNTERS
 ;---------------------------------------------------------------------------------------
 ;
-;  CYCLE-COUNT-registers       
+;  CYCLE-COUNT-registers
 ;
 IO$CYC_LO       .EQU 0xFF08     ; low word of 48-bit counter
 IO$CYC_MID      .EQU 0xFF09     ; middle word of 48-bit counter
@@ -70,7 +70,7 @@ IO$CYC_STATE    .EQU 0xFF0B     ; status register
 ;                             bit 1 is automatically set to 1 when resetting
 ;    Bit  1 (read/write):     Start/stop counter
 ;
-;  INSTRUCTION-COUNT-registers       
+;  INSTRUCTION-COUNT-registers
 ;
 IO$INS_LO       .EQU 0xFF0C     ; low word of 48-bit counter
 IO$INS_MID      .EQU 0xFF0D     ; middle word of 48-bit counter
@@ -84,7 +84,7 @@ IO$INS_STATE    .EQU 0xFF0F     ; status register
 ;  Block FF10: UART
 ;---------------------------------------------------------------------------------------
 ;
-;  QNICE-FPGA supports: IO$UART_SRA, IO$UART_RHRA and IO$UART_THRA 
+;  QNICE-FPGA supports: IO$UART_SRA, IO$UART_RHRA and IO$UART_THRA
 ;  The other registers are mentioned for completeness to map real hardware (16550)
 ;
 IO$UART_BASE_ADDRESS    .EQU    0xFF10
@@ -133,7 +133,7 @@ IO$SD_CSR       .EQU 0xFF25 ; Command and Status Register (write to execute comm
 ;  Bits 13 .. 12 return the card type: 00 = no card / unknown card
 ;                                      01 = SD V1
 ;                                      10 = SD V2
-;                                      11 = SDHC                       
+;                                      11 = SDHC
 ;  Bit 14 of the CSR is the error bit: 1, if the last operation failed. In such
 ;                                      a case, the error code is in IO$SD_ERROR and
 ;                                      you need to reset the controller to go on
@@ -150,11 +150,11 @@ IO$SD_CSR       .EQU 0xFF25 ; Command and Status Register (write to execute comm
 ;                  this device register. 100 (which corresponds to 0x0064 in
 ;                  the prescaler register) yields a 1 millisecond pulse which
 ;                  in turn is fed to the actual counter.
-;  IO$TIMER_x_CNT: When the number of output pulses from the prescaler circuit 
+;  IO$TIMER_x_CNT: When the number of output pulses from the prescaler circuit
 ;                  equals the number stored in this register, an interrupt will
 ;                  be generated (if the interrupt address is 0x0000, the
 ;                  interrupt will be suppressed).
-;  IO$TIMER_x_INT: This register contains the address of the desired interrupt 
+;  IO$TIMER_x_INT: This register contains the address of the desired interrupt
 ;                  service routine.
 ;
 IO$TIMER_BASE_ADDRESS   .EQU    0xFF28
@@ -187,27 +187,28 @@ VGA$CR_X            .EQU 0xFF31 ; VGA cursor X position
 VGA$CR_Y            .EQU 0xFF32 ; VGA cursor Y position
 VGA$CHAR            .EQU 0xFF33 ; write: VGA character to be displayed
                                 ; read: character "under" the cursor
-VGA$OFFS_DISPLAY    .EQU 0xFF34 ; Offset in bytes that is used when displaying
-                                ; the video RAM. Scrolling forward one line
-                                ; means adding 0x50 to this register.
-                                ; Only works, if bit #10 in VGA$STATE is set.
-VGA$OFFS_RW         .EQU 0xFF35 ; Offset in bytes that is used, when you read
+VGA$OFFS_RW         .EQU 0xFF34 ; Offset in bytes that is used, when you read
                                 ; or write to the video RAM using VGA$CHAR.
                                 ; Works independently from VGA$OFFS_DISPLAY.
                                 ; Active, when bit #11 in VGA$STATE is set.
+VGA$OFFS_DISPLAY    .EQU 0xFF35 ; Offset in bytes that is used when displaying
+                                ; the video RAM. Scrolling forward one line
+                                ; means adding 0x50 to this register.
+                                ; Only works, if bit #10 in VGA$STATE is set.
 VGA$HDMI_H_MIN      .EQU 0xFF36 ; HDMI Data Enable: X: minimum valid column
 VGA$HDMI_H_MAX      .EQU 0xFF37 ; HDMI Data Enable: X: maximum valid column
-VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)                                
-VGA$OFFS_FONT       .EQU 0xFF39 ; Offset in words into the Font RAM
-VGA$FONT_ADDR       .EQU 0xFF3C ; Font Address
-VGA$FONT_DATA       .EQU 0xFF3D ; Font Data
-VGA$PALETTE_ADDR    .EQU 0xFF3E ; Palette Address
-VGA$PALETTE_DATA    .EQU 0xFF3F ; Palette Data
+VGA$HDMI_V_MAX      .EQU 0xFF38 ; HDMI Data Enable: Y: maximum row (line)
+VGA$FONT_OFFS       .EQU 0xFF36 ; Offset in words into the Font RAM used for display
+VGA$FONT_ADDR       .EQU 0xFF37 ; Font Address
+VGA$FONT_DATA       .EQU 0xFF38 ; Font Data
+VGA$PALETTE_OFFS    .EQU 0xFF39 ; Offset in words into the Palette RAM used for display
+VGA$PALETTE_ADDR    .EQU 0xFF3A ; Palette Address
+VGA$PALETTE_DATA    .EQU 0xFF3B ; Palette Data
 VGA$ADJUST_X        .EQU 0xFF40 ; Pixels to adjust screen in X direction
 VGA$ADJUST_Y        .EQU 0xFF41 ; Pixels to adjust screen in Y direction
 VGA$SCAN_LINE       .EQU 0xFF42 ; Current scan line
 VGA$SCAN_INT        .EQU 0xFF43 ; Scan line to generate interrupt on
-VGA$SCAN_ISR        .EQU 0xFF44 ; Inserrupt Service Routine Address
+VGA$SCAN_ISR        .EQU 0xFF44 ; Interrupt Service Routine Address
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FFF0: MEGA65 (double block, 16 registers)
@@ -231,12 +232,19 @@ IO$M65HRAM_DATA16   .EQU 0xFFF3 ; HyperRAM 16-bit data in/out
 VGA$MAX_X               .EQU    79                      ; Max. X-coordinate in decimal!
 VGA$MAX_Y               .EQU    39                      ; Max. Y-coordinate in decimal!
 VGA$MAX_CHARS           .EQU    3200                    ; 80 * 40 chars
-VGA$CHARS_PER_LINE      .EQU    80  
+VGA$CHARS_PER_LINE      .EQU    80
 
 VGA$EN_HW_CURSOR        .EQU    0x0040                  ; Show hardware cursor
 VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling enable
 VGA$CLR_SCRN            .EQU    0x0100                  ; Clear screen
 VGA$BUSY                .EQU    0x0200                  ; VGA is currently performing a task
+
+VGA$FONT_OFFS_DEFAULT    .EQU    0x0000                  ; Address in Font RAM for default fonts
+VGA$FONT_OFFS_USER       .EQU    0x1000                  ; Address in Font RAM for user fonts
+VGA$FONT_OFFS_MAX        .EQU    0x1FFF                  ; Largest address in Font RAM
+VGA$PALETTE_OFFS_DEFAULT .EQU    0x0000                  ; Address in Palette RAM for default palette
+VGA$PALETTE_OFFS_USER    .EQU    0x0020                  ; Address in Palette RAM for user palette
+VGA$PALETTE_OFFS_MAX     .EQU    0x003F                  ; Largest address in Palette RAM
 
 VGA$COLOR_BLACK         .EQU    0x0000
 VGA$COLOR_DARK_GRAY     .EQU    0x294A
@@ -283,7 +291,7 @@ SD$BIT_ERROR            .EQU    0x4000                  ; Error flag: 1, if last
 SD$BIT_BUSY             .EQU    0x8000                  ; Busy flag: 1, if current op. is still running
 SD$TIMEOUT_MID          .EQU    0x0479                  ; equals ~75.000.000 cycles, i.e. 1.5sec @ 50 MHz
 
-SD$ERR_MASK             .EQU    0x00FF                  ; AND mask for errors: HI byte = state machine info, so mask it for error checks 
+SD$ERR_MASK             .EQU    0x00FF                  ; AND mask for errors: HI byte = state machine info, so mask it for error checks
 SD$ERR_R1_ERROR         .EQU    0x0001                  ; SD Card R1 error (R1 bit 6-0)
 SD$ERR_CRC_OR_TIMEOUT   .EQU    0x0002                  ; Read CRC error or Write Timeout error
 SD$ERR_RESPONSE_TOKEN   .EQU    0x0003                  ; Data Response Token error (Token bit 3)
@@ -402,7 +410,7 @@ FAT32$PRINT_ALL         .EQU    0x001F                  ; print all details
 
 KBD$NEW_ASCII           .EQU    0x0001                  ; new ascii character available
 KBD$NEW_SPECIAL         .EQU    0x0002                  ; new special key available
-KBD$NEW_ANY             .EQU    0x0003                  ; any new key available 
+KBD$NEW_ANY             .EQU    0x0003                  ; any new key available
 
 KBD$ASCII               .EQU    0x00FF                  ; mask the special keys
 KBD$SPECIAL             .EQU    0xFF00                  ; mask the ascii keys
@@ -452,32 +460,32 @@ KBD$DEL                 .EQU    0x1900
 
 ; READ REGISTER: CTRL + character is also mapped to an ASCII code
 
-KBD$CTRL_A              .EQU    0x0001 
-KBD$CTRL_B              .EQU    0x0002 
-KBD$CTRL_C              .EQU    0x0003 
-KBD$CTRL_D              .EQU    0x0004 
-KBD$CTRL_E              .EQU    0x0005 
-KBD$CTRL_F              .EQU    0x0006 
-KBD$CTRL_G              .EQU    0x0007 
-KBD$CTRL_H              .EQU    0x0008 
-KBD$CTRL_I              .EQU    0x0009 
-KBD$CTRL_J              .EQU    0x000A 
-KBD$CTRL_K              .EQU    0x000B 
-KBD$CTRL_L              .EQU    0x000C 
-KBD$CTRL_M              .EQU    0x000D 
-KBD$CTRL_N              .EQU    0x000E 
-KBD$CTRL_O              .EQU    0x000F 
-KBD$CTRL_P              .EQU    0x0010 
-KBD$CTRL_Q              .EQU    0x0011 
-KBD$CTRL_R              .EQU    0x0012 
-KBD$CTRL_S              .EQU    0x0013 
-KBD$CTRL_T              .EQU    0x0014 
-KBD$CTRL_U              .EQU    0x0015 
-KBD$CTRL_V              .EQU    0x0016 
-KBD$CTRL_W              .EQU    0x0017 
-KBD$CTRL_X              .EQU    0x0018 
-KBD$CTRL_Y              .EQU    0x0019 
-KBD$CTRL_Z              .EQU    0x001A 
+KBD$CTRL_A              .EQU    0x0001
+KBD$CTRL_B              .EQU    0x0002
+KBD$CTRL_C              .EQU    0x0003
+KBD$CTRL_D              .EQU    0x0004
+KBD$CTRL_E              .EQU    0x0005
+KBD$CTRL_F              .EQU    0x0006
+KBD$CTRL_G              .EQU    0x0007
+KBD$CTRL_H              .EQU    0x0008
+KBD$CTRL_I              .EQU    0x0009
+KBD$CTRL_J              .EQU    0x000A
+KBD$CTRL_K              .EQU    0x000B
+KBD$CTRL_L              .EQU    0x000C
+KBD$CTRL_M              .EQU    0x000D
+KBD$CTRL_N              .EQU    0x000E
+KBD$CTRL_O              .EQU    0x000F
+KBD$CTRL_P              .EQU    0x0010
+KBD$CTRL_Q              .EQU    0x0011
+KBD$CTRL_R              .EQU    0x0012
+KBD$CTRL_S              .EQU    0x0013
+KBD$CTRL_T              .EQU    0x0014
+KBD$CTRL_U              .EQU    0x0015
+KBD$CTRL_V              .EQU    0x0016
+KBD$CTRL_W              .EQU    0x0017
+KBD$CTRL_X              .EQU    0x0018
+KBD$CTRL_Y              .EQU    0x0019
+KBD$CTRL_Z              .EQU    0x001A
 
 ;
 ;  Useful ASCII constants:

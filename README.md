@@ -15,6 +15,7 @@ system-on-a-chip in portable VHDL on an FPGA. Specifications:
 * 32k words RAM (64kB)
 * UART 115,200 baud, 8-N-1, CTS
 * VGA 80x40 character textmode display (640x480 resolution)
+  (learn more in [VGA_Features.md](doc/VGA_Features.md))
 * PS/2 keyboard support (mapped to USB on the Nexys 4 DDR)
 * SD Card and FAT32 support (microSD card on the Nexys 4 DDR)
 * 4-digit 7-segment display
@@ -249,9 +250,7 @@ possible I/O devices.
 | FF40 - FFEF | Reserved                                    |
 | FFF0 - FFFF | HyperRAM (MEGA65)                           |
 
-
-The registers for the individual I/O devices are described in the assembler
-header file [monitor/sysdef.asm](monitor/sysdef.asm).
+[Here](doc/IO_Devices.md) is a detailed description of I/O devices.
 
 
 Programming in Assembler
@@ -398,5 +397,5 @@ Acknowledgements
   QNICE specific vbcc backend incl. standard C library.
 
 * [MJoergen](http://www.github.com/MJoergen): Performance improvements and
-  bugfixes, CPU functional test suite.
+  bugfixes, CPU functional test suite, VGA multicolor support.
 

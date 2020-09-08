@@ -7,7 +7,7 @@ read_vhdl { \
    ../../../../vhdl/vga/vga_pixel_counters.vhd \
    ../../../../vhdl/vga/vga_output.vhd \
    ../../../../vhdl/vga/vga_register_map.vhd \
-   ../../../../vhdl/vga_multicolour.vhd \
+   ../../../../vhdl/vga_multicolor.vhd \
    vga_test.vhd \
 }
 read_xdc vga_test.xdc

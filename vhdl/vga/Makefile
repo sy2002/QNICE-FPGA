@@ -5,7 +5,7 @@ SOURCES += vga_sync.vhd
 SOURCES += vga_output.vhd
 SOURCES += vga_text_mode.vhd
 SOURCES += vga_video_ram.vhd
-SOURCES += ../vga_multicolour.vhd
+SOURCES += ../vga_multicolor.vhd
 
 TB         = tb_vga_text_mode
 TB_SOURCES = tb_vga_text_mode.vhd

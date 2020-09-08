@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "sysdef.h"
+#include "qmon.h"
 
 //convenient mechanism to access QNICE's Memory Mapped IO registers
 #define MMIO( __x ) *((unsigned int volatile *) __x )
@@ -34,16 +35,15 @@ life pushes around.  The real, deep down you is the whole universe. \
 int main()
 {
    MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // Disable hardware cursor.
-   MMIO(VGA_STATE) |= VGA_CLR_SCRN;       // Initiate hardware screen clearing.
+   qmon_vga_cls();                        // Clear screen.
 
-   // Wait until hardware screen clearing is done.
-   while (MMIO(VGA_STATE) & (VGA_CLR_SCRN | VGA_BUSY))
-      ;
+   // Enable User Palette
+   MMIO(VGA_PALETTE_OFFS) = VGA_PALETTE_OFFS_USER;
 
    int dx=0;
    int counter=0;
    int pos=0;
-   MMIO(VGA_PALETTE_ADDR) = 16;  // Background colour
+   MMIO(VGA_PALETTE_ADDR) = VGA_PALETTE_OFFS_USER + 16;           // Select background color #0.
    MMIO(VGA_CR_Y) = 25;
    while (1)
    {

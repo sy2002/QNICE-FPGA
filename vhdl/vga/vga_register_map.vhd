@@ -4,54 +4,19 @@ use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 
 -- This file contains the Register Map as seen by the CPU.
---
--- Register Map:
--- 0x00 : Control
--- 0x01 : Cursor X
--- 0x02 : Cursor Y
--- 0x03 : Character and Colour at Cursor
--- 0x04 : Display offset
--- 0x05 : Cursor offset
--- 0x06 : TBD: hctr_min
--- 0x07 : TBD: hctr_max
--- 0x08 : TBD: vctr_max
--- 0x09 : Font offset
--- 0x0A : Reserved
--- 0x0B : Reserved
--- 0x0C : Font RAM address
--- 0x0D : Font RAM data
--- 0x0E : Palette RAM address
--- 0x0F : Palette RAM data
--- 0x10 : Adjust X
--- 0x11 : Adjust Y
--- 0x12 : Current scan line
--- 0x13 : Scan line to generate interrupt on
--- 0x14 : Interrupt Service Routine Address
---
--- Interpretation of Control Register:
--- bit  4 : R/W : Cursor Size
--- bit  5 : R/W : Cursor Blinking
--- bit  6 : R/W : Cursor Enabled
--- bit  7 : R/W : VGA output enabled
--- bit  8 : R/W : Clear screen
--- bit  9 : R/O : VGA controller busy
--- bit 10 : R/W : Display offset enable
--- bit 11 : R/W : Cursor offset enable
---
--- The Font RAM is 8 kW. The first 4 kW is read-only.
 
 entity vga_register_map is
    port (
       -- Connected to CPU
-      clk_i            : in     std_logic;
-      rst_i            : in     std_logic;
-      en_i             : in     std_logic;
-      we_i             : in     std_logic;
-      reg_i            : in     std_logic_vector(4 downto 0);
-      data_i           : in     std_logic_vector(15 downto 0);
-      data_o           : out    std_logic_vector(15 downto 0);
-      int_n_o          : buffer std_logic;
-      grant_n_i        : in     std_logic;
+      clk_i            : in  std_logic;
+      rst_i            : in  std_logic;
+      en_i             : in  std_logic;
+      we_i             : in  std_logic;
+      reg_i            : in  std_logic_vector(4 downto 0);
+      data_i           : in  std_logic_vector(15 downto 0);
+      data_o           : out std_logic_vector(15 downto 0);
+      int_n_o          : out std_logic;
+      grant_n_i        : in  std_logic;
 
       -- Connected to Video RAM
       vram_display_addr_o    : out std_logic_vector(15 downto 0);
@@ -60,7 +25,7 @@ entity vga_register_map is
       vram_font_addr_o       : out std_logic_vector(12 downto 0);
       vram_font_wr_en_o      : out std_logic;
       vram_font_rd_data_i    : in  std_logic_vector(7 downto 0);
-      vram_palette_addr_o    : out std_logic_vector(4 downto 0);
+      vram_palette_addr_o    : out std_logic_vector(5 downto 0);
       vram_palette_wr_en_o   : out std_logic;
       vram_palette_rd_data_i : in  std_logic_vector(14 downto 0);
       vram_wr_data_o         : out std_logic_vector(15 downto 0);
@@ -74,6 +39,7 @@ entity vga_register_map is
       cursor_y_o       : out std_logic_vector(5 downto 0);
       display_offset_o : out std_logic_vector(15 downto 0);
       font_offset_o    : out std_logic_vector(15 downto 0);
+      palette_offset_o : out std_logic_vector(15 downto 0);
       adjust_x_o       : out std_logic_vector(9 downto 0);
       adjust_y_o       : out std_logic_vector(9 downto 0);
       pixel_y_i        : in  std_logic_vector(9 downto 0)
@@ -81,6 +47,35 @@ entity vga_register_map is
 end vga_register_map;
 
 architecture synthesis of vga_register_map is
+
+   -- Register Map:
+   constant C_REG_CONTROL          : integer := 0;
+   constant C_REG_CURSOR_X         : integer := 1;
+   constant C_REG_CURSOR_Y         : integer := 2;
+   constant C_REG_CURSOR_CHAR      : integer := 3;
+   constant C_REG_CURSOR_OFFSET    : integer := 4;
+   constant C_REG_DISPLAY_OFFSET   : integer := 5;
+   constant C_REG_FONT_OFFSET      : integer := 6;
+   constant C_REG_FONT_ADDRESS     : integer := 7;
+   constant C_REG_FONT_DATA        : integer := 8;
+   constant C_REG_PALETTE_OFFSET   : integer := 9;
+   constant C_REG_PALETTE_ADDRESS  : integer := 10;
+   constant C_REG_PALETTE_DATA     : integer := 11;
+   constant C_REG_ADJUST_X         : integer := 16;
+   constant C_REG_ADJUST_Y         : integer := 17;
+   constant C_REG_SCAN_CURRENT     : integer := 18;
+   constant C_REG_SCAN_INTERRUPT   : integer := 19;
+   constant C_REG_SCAN_ISR_ADDRESS : integer := 20;
+
+   -- Interpretation of Control Register:
+   constant C_CONTROL_CURSOR_SIZE       : integer := 4;
+   constant C_CONTROL_CURSOR_BLINK      : integer := 5;
+   constant C_CONTROL_CURSOR_ENABLED    : integer := 6;
+   constant C_CONTROL_VGA_ENABLED       : integer := 7;
+   constant C_CONTROL_CLEAR_SCREEN      : integer := 8;
+   constant C_CONTROL_BUSY              : integer := 9;
+   constant C_CONTROL_DISPLAY_OFFSET_EN : integer := 10;
+   constant C_CONTROL_CURSOR_OFFSET_EN  : integer := 11;
 
    type register_map_t is array (0 to 31) of std_logic_vector(15 downto 0);
 
@@ -127,8 +122,9 @@ architecture synthesis of vga_register_map is
 
 begin
 
-   clrscr_old <= register_map(0)(8);
-   clrscr_new <= data_i(8) when en_i = '1' and we_i = '1' and reg_i = "00000"
+   clrscr_old <= register_map(C_REG_CONTROL)(C_CONTROL_CLEAR_SCREEN);
+   clrscr_new <= data_i(C_CONTROL_CLEAR_SCREEN) when
+                 en_i = '1' and we_i = '1' and conv_integer(reg_i) = C_REG_CONTROL
             else clrscr_old;
 
    p_register_map : process (clk_i)
@@ -138,24 +134,26 @@ begin
             register_map(conv_integer(reg_i)) <= data_i;
          end if;
 
-         -- Special handling for reg 0 bits 8 and 9.
-         -- Bit 8 is the CLRSCR bit, and it autoclears.
-         -- Bit 9 is the BUSY bit.
+         -- Special handling for Control register bits CLEAR_SCREEN and BUSY.
          if clrscr_old = '0' and clrscr_new = '1' then
             clrscr_addr <= (others => '0');
-            register_map(0)(9) <= '1'; -- Set BUSY bit
+            register_map(C_REG_CONTROL)(C_CONTROL_BUSY) <= '1';
          elsif clrscr_old = '1' then
             clrscr_addr <= std_logic_vector(unsigned(clrscr_addr)+1);
             if conv_integer(clrscr_addr) = 63999 then
-               register_map(0)(8) <= '0'; -- Clear CLRSCR bit
-               register_map(0)(9) <= '0'; -- Clear BUSY bit
+               register_map(C_REG_CONTROL)(C_CONTROL_CLEAR_SCREEN) <= '0';
+               register_map(C_REG_CONTROL)(C_CONTROL_BUSY)         <= '0';
             end if;
+         end if;
+
+         if rst_i = '1' then
+            register_map <= (others => (others => '0'));
          end if;
       end if;
    end process p_register_map;
 
-   cursor_x    <= register_map(1)(6 downto 0);
-   cursor_y    <= register_map(2)(5 downto 0);
+   cursor_x    <= register_map(C_REG_CURSOR_X)(6 downto 0);
+   cursor_y    <= register_map(C_REG_CURSOR_Y)(5 downto 0);
 
    -- Manually calculate: addr = y*80 + x.
    -- For some reason, Vivado was unable to correctly synthesize the multiplication.
@@ -163,9 +161,11 @@ begin
                   ("000000" & cursor_y & "0000") +
                   ("000000000" & cursor_x);
 
-   display_offset <= register_map(4) when register_map(0)(10) = '1' else
+   display_offset <= register_map(C_REG_DISPLAY_OFFSET) when
+                     register_map(C_REG_CONTROL)(C_CONTROL_DISPLAY_OFFSET_EN) = '1' else
                      (others => '0');
-   cursor_offset  <= register_map(5) when register_map(0)(11) = '1' else
+   cursor_offset  <= register_map(C_REG_CURSOR_OFFSET) when
+                     register_map(C_REG_CONTROL)(C_CONTROL_CURSOR_OFFSET_EN) = '1' else
                      (others => '0');
 
 
@@ -173,31 +173,32 @@ begin
    p_output : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         vga_en_o         <= register_map(0)(7);
-         cursor_enable_o  <= register_map(0)(6);
-         cursor_blink_o   <= register_map(0)(5);
-         cursor_size_o    <= register_map(0)(4);
+         vga_en_o         <= register_map(C_REG_CONTROL)(C_CONTROL_VGA_ENABLED);
+         cursor_enable_o  <= register_map(C_REG_CONTROL)(C_CONTROL_CURSOR_ENABLED);
+         cursor_blink_o   <= register_map(C_REG_CONTROL)(C_CONTROL_CURSOR_BLINK);
+         cursor_size_o    <= register_map(C_REG_CONTROL)(C_CONTROL_CURSOR_SIZE);
          cursor_x_o       <= cursor_x;
          cursor_y_o       <= cursor_y;
-         adjust_x_o       <= register_map(16)(9 downto 0);
-         adjust_y_o       <= register_map(17)(9 downto 0);
+         adjust_x_o       <= register_map(C_REG_ADJUST_X)(9 downto 0);
+         adjust_y_o       <= register_map(C_REG_ADJUST_Y)(9 downto 0);
 
          display_offset_o <= display_offset;
-         font_offset_o    <= register_map(9);
+         font_offset_o    <= register_map(C_REG_FONT_OFFSET);
+         palette_offset_o <= register_map(C_REG_PALETTE_OFFSET);
 
          vram_display_addr_o  <= cursor_addr + cursor_offset;
-         vram_font_addr_o     <= register_map(12)(12 downto 0);
-         vram_palette_addr_o  <= register_map(14)(4 downto 0);
+         vram_font_addr_o     <= register_map(C_REG_FONT_ADDRESS)(12 downto 0);     -- 8k words
+         vram_palette_addr_o  <= register_map(C_REG_PALETTE_ADDRESS)(5 downto 0);   -- 64 words
 
          vram_display_wr_en_o <= '0';
          vram_font_wr_en_o    <= '0';
          vram_palette_wr_en_o <= '0';
          vram_wr_data_o       <= data_i;
 
-         case reg_i is
-            when "0" & X"3" => vram_display_wr_en_o <= en_i and we_i;
-            when "0" & X"D" => vram_font_wr_en_o    <= en_i and we_i and register_map(12)(12);
-            when "0" & X"F" => vram_palette_wr_en_o <= en_i and we_i;
+         case conv_integer(reg_i) is
+            when C_REG_CURSOR_CHAR  => vram_display_wr_en_o <= en_i and we_i;
+            when C_REG_FONT_DATA    => vram_font_wr_en_o    <= en_i and we_i and register_map(C_REG_FONT_ADDRESS)(12);
+            when C_REG_PALETTE_DATA => vram_palette_wr_en_o <= en_i and we_i and register_map(C_REG_PALETTE_ADDRESS)(5);
             when others => null;
          end case;
 
@@ -209,27 +210,16 @@ begin
       end if;
    end process p_output;
 
-   p_interrupt : process (clk_i)
-   begin
-      if rising_edge(clk_i) then
-         int_n_o <= '1';
-         if pixel_y_i = register_map(19)(9 downto 0) and register_map(20) /= 0 then
-            int_n_o <= '0';
-         end if;
-
-         if int_n_o = '0' and grant_n_i = '0' then
-            int_n_o <= '1';
-         end if;
-      end if;
-   end process p_interrupt;
+   int_n_o <= '0' when pixel_y_i = register_map(C_REG_SCAN_INTERRUPT)(9 downto 0)
+              and register_map(C_REG_SCAN_ISR_ADDRESS) /= 0 else '1';
 
    -- Data output is combinatorial.
-   data_o <= register_map(20)                  when int_n_o = '1' and grant_n_i = '0'                else
-             vram_display_rd_data_i            when en_i = '1' and we_i = '0' and reg_i = "0" & X"3" else
-             "000000" & pixel_y_i              when en_i = '1' and we_i = '0' and reg_i = "1" & X"2" else
-             X"00" & vram_font_rd_data_i       when en_i = '1' and we_i = '0' and reg_i = "0" & X"D" else
-             "0" & vram_palette_rd_data_i      when en_i = '1' and we_i = '0' and reg_i = "0" & X"F" else
-             register_map(conv_integer(reg_i)) when en_i = '1' and we_i = '0'                        else
+   data_o <= register_map(20)                  when grant_n_i = '0'                                                        else
+             vram_display_rd_data_i            when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_CURSOR_CHAR  else
+             "000000" & pixel_y_i              when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_SCAN_CURRENT else
+             X"00" & vram_font_rd_data_i       when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_FONT_DATA    else
+             "0" & vram_palette_rd_data_i      when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_PALETTE_DATA else
+             register_map(conv_integer(reg_i)) when en_i = '1' and we_i = '0'                                              else
              (others => '0');
 
 end synthesis;

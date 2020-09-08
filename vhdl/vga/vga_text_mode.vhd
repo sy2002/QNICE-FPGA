@@ -20,6 +20,7 @@ entity vga_text_mode is
       -- Interface to Register Map
       display_offset_i : in  std_logic_vector(15 downto 0);
       font_offset_i    : in  std_logic_vector(15 downto 0);
+      palette_offset_i : in  std_logic_vector(15 downto 0);
       cursor_enable_i  : in  std_logic;
       cursor_blink_i   : in  std_logic;
       cursor_size_i    : in  std_logic;
@@ -34,10 +35,10 @@ entity vga_text_mode is
       display_data_i   : in  std_logic_vector(15 downto 0);
       font_addr_o      : out std_logic_vector(12 downto 0);
       font_data_i      : in  std_logic_vector(7 downto 0);
-      palette_addr_o   : out std_logic_vector(4 downto 0);
+      palette_addr_o   : out std_logic_vector(5 downto 0);
       palette_data_i   : in  std_logic_vector(14 downto 0);
-      -- Current pixel colour
-      colour_o         : out std_logic_vector(14 downto 0);
+      -- Current pixel color
+      color_o          : out std_logic_vector(14 downto 0);
       delay_o          : out std_logic_vector(9 downto 0)
    );
 end vga_text_mode;
@@ -57,8 +58,8 @@ architecture synthesis of vga_text_mode is
    end record t_stage0;
 
    type t_stage1 is record
-      colour_bg     : std_logic_vector(3 downto 0);
-      colour_fg     : std_logic_vector(3 downto 0);
+      color_bg      : std_logic_vector(3 downto 0);
+      color_fg      : std_logic_vector(3 downto 0);
       tile          : std_logic_vector(7 downto 0);
       char_offset_y : natural range 0 to C_CHAR_HEIGHT-1;
       font_addr     : std_logic_vector(15 downto 0);
@@ -66,8 +67,8 @@ architecture synthesis of vga_text_mode is
 
    type t_stage2 is record
       bitmap        : std_logic_vector(C_CHAR_WIDTH-1 downto 0);
-      colour_bg     : std_logic_vector(3 downto 0);
-      colour_fg     : std_logic_vector(3 downto 0);
+      color_bg      : std_logic_vector(3 downto 0);
+      color_fg      : std_logic_vector(3 downto 0);
       pixel_x       : std_logic_vector(9 downto 0);
       char_column   : std_logic_vector(9 downto 0);
       char_row      : std_logic_vector(9 downto 0);
@@ -78,6 +79,7 @@ architecture synthesis of vga_text_mode is
       cursor_pixel  : std_logic;
       cursor_here   : std_logic;
       pixel         : std_logic;
+      palette_addr  : std_logic_vector(4 downto 0);
    end record t_stage2;
 
    signal stage0 : t_stage0;
@@ -85,6 +87,8 @@ architecture synthesis of vga_text_mode is
    signal stage2 : t_stage2;
 
 --   attribute mark_debug                   : boolean;
+--   attribute mark_debug of cursor_x_i     : signal is true;
+--   attribute mark_debug of cursor_y_i     : signal is true;
 --   attribute mark_debug of pixel_x_i      : signal is true;
 --   attribute mark_debug of pixel_y_i      : signal is true;
 --   attribute mark_debug of frame_i        : signal is true;
@@ -94,7 +98,7 @@ architecture synthesis of vga_text_mode is
 --   attribute mark_debug of font_data_i    : signal is true;
 --   attribute mark_debug of palette_addr_o : signal is true;
 --   attribute mark_debug of palette_data_i : signal is true;
---   attribute mark_debug of colour_o       : signal is true;
+--   attribute mark_debug of color_o        : signal is true;
 
 begin
 
@@ -121,15 +125,15 @@ begin
    -----------------------------------------------------
 
    -- Decode value read from Display RAM
-   stage1.colour_bg <= display_data_i(15 downto 12);
-   stage1.colour_fg <= display_data_i(11 downto 8);
+   stage1.color_bg <= display_data_i(15 downto 12);
+   stage1.color_fg <= display_data_i(11 downto 8);
    stage1.tile      <= display_data_i(7 downto 0);
 
    -- Just copy char_offset_y because it is constant during a raster line.
    stage1.char_offset_y <= stage0.char_offset_y;
 
    -- Calculate address in Font RAM
-   stage1.font_addr <= std_logic_vector(unsigned(stage1.tile)*12)
+   stage1.font_addr <= std_logic_vector(unsigned(stage1.tile)*C_CHAR_HEIGHT)
                        + stage1.char_offset_y + font_offset_i;
    font_addr_o <= stage1.font_addr(12 downto 0);
 
@@ -142,12 +146,12 @@ begin
    -- Store bitmap from Font RAM
    stage2.bitmap <= font_data_i;
 
-   -- Colour information from Stage 1 must be delayed one clock cycle.
+   -- Color information from Stage 1 must be delayed one clock cycle.
    p_stage2 : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         stage2.colour_bg <= stage1.colour_bg;
-         stage2.colour_fg <= stage1.colour_fg;
+         stage2.color_bg <= stage1.color_bg;
+         stage2.color_fg <= stage1.color_fg;
       end if;
    end process p_stage2;
 
@@ -185,17 +189,19 @@ begin
    stage2.pixel <= stage2.cursor_pixel when cursor_enable_i = '1' and stage2.cursor_here = '1'
               else stage2.bitmap(stage2.bitmap_index);
 
-   -- Read colour from Palette RAM
-   palette_addr_o <= "0" & stage2.colour_fg when stage2.pixel = '1'   -- Foreground colour
-                else "1" & stage2.colour_bg;                          -- Background colouur
+   -- Read color from Palette RAM
+   stage2.palette_addr <= "0" & stage2.color_fg when stage2.pixel = '1'   -- Foreground color
+                     else "1" & stage2.color_bg;                          -- Background color
+
+   palette_addr_o <= ("0" & stage2.palette_addr) + palette_offset_i(5 downto 0);
 
 
    -----------------------------------------------------
    -- Stage 3 : Generate output
    -----------------------------------------------------
 
-   colour_o <= palette_data_i;
-   delay_o  <= std_logic_vector(to_unsigned(3, 10));
+   color_o <= palette_data_i;
+   delay_o <= std_logic_vector(to_unsigned(3, 10));
 
 end architecture synthesis;
 

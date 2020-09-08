@@ -21,11 +21,11 @@ architecture simulation of tb_vga_text_mode is
    signal frame          : std_logic_vector(5 downto 0);
    signal display_addr   : std_logic_vector(15 downto 0);
    signal display_data   : std_logic_vector(15 downto 0);
-   signal font_addr      : std_logic_vector(11 downto 0);
+   signal font_addr      : std_logic_vector(12 downto 0);
    signal font_data      : std_logic_vector(7 downto 0);
    signal palette_addr   : std_logic_vector(4 downto 0);
-   signal palette_data   : std_logic_vector(11 downto 0);
-   signal colour         : std_logic_vector(11 downto 0);
+   signal palette_data   : std_logic_vector(14 downto 0);
+   signal color          : std_logic_vector(14 downto 0);
    signal delay          : std_logic_vector(9 downto 0);
 
 begin
@@ -100,9 +100,9 @@ begin
    begin
       if rising_edge(clk) then
          case palette_addr(0) is
-            when '0' => palette_data <= X"123";
-            when '1' => palette_data <= X"321";
-            when others => palette_data <= X"000";
+            when '0' => palette_data <= "010101010101010";
+            when '1' => palette_data <= "101010101010101";
+            when others => palette_data <= (others => '0');
          end case;
       end if;
    end process p_palette_data;
@@ -116,7 +116,7 @@ begin
    port map (
       clk_i            => clk,
       display_offset_i => display_offset,
-      tile_offset_i    => tile_offset,
+      font_offset_i    => tile_offset,
       cursor_enable_i  => cursor_enable,
       cursor_blink_i   => cursor_blink,
       cursor_size_i    => cursor_size,
@@ -131,7 +131,7 @@ begin
       font_data_i      => font_data,
       palette_addr_o   => palette_addr,
       palette_data_i   => palette_data,
-      colour_o         => colour,
+      color_o          => color,
       delay_o          => delay
    ); -- i_vga_text_mode;
 

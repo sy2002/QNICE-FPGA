@@ -16,6 +16,7 @@ entity vga_output is
       output_enable_i  : in  std_logic;
       display_offset_i : in  std_logic_vector(15 downto 0);
       font_offset_i    : in  std_logic_vector(15 downto 0);
+      palette_offset_i : in  std_logic_vector(15 downto 0);
       cursor_enable_i  : in  std_logic;
       cursor_blink_i   : in  std_logic;
       cursor_size_i    : in  std_logic;
@@ -30,13 +31,13 @@ entity vga_output is
       display_data_i   : in  std_logic_vector(15 downto 0);
       font_addr_o      : out std_logic_vector(12 downto 0);
       font_data_i      : in  std_logic_vector(7 downto 0);
-      palette_addr_o   : out std_logic_vector(4 downto 0);
+      palette_addr_o   : out std_logic_vector(5 downto 0);
       palette_data_i   : in  std_logic_vector(14 downto 0);
 
       -- VGA output
       hsync_o          : out std_logic;
       vsync_o          : out std_logic;
-      colour_o         : out std_logic_vector(14 downto 0);
+      color_o          : out std_logic_vector(14 downto 0);
       data_en_o        : out std_logic
    );
 end vga_output;
@@ -50,7 +51,7 @@ architecture synthesis of vga_output is
    signal pixel_x : std_logic_vector(9 downto 0);  -- 0 to 799
    signal pixel_y : std_logic_vector(9 downto 0);  -- 0 to 524
    signal frame   : std_logic_vector(5 downto 0);  -- 0 to 59
-   signal colour  : std_logic_vector(14 downto 0);
+   signal color   : std_logic_vector(14 downto 0);
    signal delay   : std_logic_vector(9 downto 0);
    signal pixel_adj_x : std_logic_vector(9 downto 0);
    signal pixel_adj_y : std_logic_vector(9 downto 0);
@@ -77,6 +78,7 @@ begin
    pixel_adj_x <= pixel_x + adjust_x_i;
    pixel_adj_y <= pixel_y + adjust_y_i;
 
+
    -------------------------
    -- Instantiate Text Mode
    -------------------------
@@ -87,6 +89,7 @@ begin
          -- Configuration from Register Map
          display_offset_i => display_offset_i,
          font_offset_i    => font_offset_i,
+         palette_offset_i => palette_offset_i,
          cursor_enable_i  => cursor_enable_i,
          cursor_blink_i   => cursor_blink_i,
          cursor_size_i    => cursor_size_i,
@@ -103,8 +106,8 @@ begin
          font_data_i      => font_data_i,
          palette_addr_o   => palette_addr_o,
          palette_data_i   => palette_data_i,
-         -- Current pixel colour
-         colour_o         => colour,
+         -- Current pixel color
+         color_o          => color,
          delay_o          => delay
       ); -- i_vga_text_mode
 
@@ -119,11 +122,11 @@ begin
          output_en_i => output_enable_i,
          pixel_x_i   => pixel_x,
          pixel_y_i   => pixel_y,
-         colour_i    => colour,
+         color_i     => color,
          delay_i     => delay,
          hsync_o     => hsync_o,
          vsync_o     => vsync_o,
-         colour_o    => colour_o,
+         color_o     => color_o,
          data_en_o   => data_en_o
       ); -- i_vga_sync
 
