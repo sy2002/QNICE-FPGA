@@ -27,7 +27,6 @@ static int next_char = 0x21;
 
 static const int font_height = 12;
 static const int font_width = 8;
-static const int font_offset = 4096;
 static const int char_space = 0x20;
 
 static void initialize()
@@ -41,12 +40,19 @@ static void initialize()
    // Clear bitmap of space character in secondary font.
    for (int i=0; i<font_height; ++i)
    {
-      MMIO(VGA_FONT_ADDR) = char_space*font_height+i + font_offset;
+      MMIO(VGA_FONT_ADDR) = char_space*font_height+i + VGA_FONT_OFFS_USER;
       MMIO(VGA_FONT_DATA) = 0;
    }
 
-   // Select secondary font.
-   MMIO(VGA_OFFS_FONT) = font_offset;
+   // Enable User Font
+   MMIO(VGA_FONT_OFFS) = VGA_FONT_OFFS_USER;
+
+   // Set User Background Colour
+   MMIO(VGA_PALETTE_ADDR) = VGA_PALETTE_OFFS_USER + 16;
+   MMIO(VGA_PALETTE_DATA) = VGA_COLOR_TAN;
+
+   // Enable User Palette
+   MMIO(VGA_PALETTE_OFFS) = VGA_PALETTE_OFFS_USER;
 
 } // initialize
 
@@ -71,7 +77,7 @@ static void plot(unsigned int x, unsigned int y)
       // Clear bitmap of new character.
       for (int i=0; i<font_height; ++i)
       {
-         MMIO(VGA_FONT_ADDR) = ch*font_height+i + font_offset;
+         MMIO(VGA_FONT_ADDR) = ch*font_height+i + VGA_FONT_OFFS_USER;
          MMIO(VGA_FONT_DATA) = 0;
       }
 
@@ -81,7 +87,7 @@ static void plot(unsigned int x, unsigned int y)
    // Set pixel
    unsigned int offset_x = x % font_width;
    unsigned int offset_y = y % font_height;
-   MMIO(VGA_FONT_ADDR) = ch*font_height+offset_y + font_offset;
+   MMIO(VGA_FONT_ADDR) = ch*font_height+offset_y + VGA_FONT_OFFS_USER;
    MMIO(VGA_FONT_DATA) |= 128 >> offset_x;
 } // plot
 
@@ -153,7 +159,7 @@ static void blend_colours()
          }
       }
 
-      MMIO(VGA_PALETTE_ADDR) = 0;
+      MMIO(VGA_PALETTE_ADDR) = VGA_PALETTE_OFFS_USER;
       MMIO(VGA_PALETTE_DATA) = 32*32*r+32*g;
 
       // Wait until inside visible screen

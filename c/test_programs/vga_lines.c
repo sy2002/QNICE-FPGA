@@ -25,8 +25,11 @@ int main()
 
    qmon_vga_cls();                        // Clear screen.
 
+   // Enable User Palette
+   MMIO(VGA_PALETTE_OFFS) = VGA_PALETTE_OFFS_USER;
+
    // Infinite loop
-   MMIO(VGA_PALETTE_ADDR) = 16;           // Select background colour #0.
+   MMIO(VGA_PALETTE_ADDR) = VGA_PALETTE_OFFS_USER + 16;           // Select background colour #0.
    int j=0;
    while (1)
    {
