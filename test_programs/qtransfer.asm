@@ -1,3 +1,5 @@
+; Development testbed for the QTransfer feature of the Monitor
+;
 ; QNICE CRC16 safeguarded data transfer tool
 ;
 ; Use case: If you do not have a RTS/CTS protected serial line on your
@@ -5,12 +7,13 @@
 ;
 ; qtransfer.c contains more details
 ;
-; done by sy2002 in May 2020
+; initially done as a stand-alone tool by sy2002 in May 2020
+; converted into a part of the Monitor by sy2002 in September 2020
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 
-                .ORG 0xFB00
+                .ORG 0xF000
 
                 MOVE    STR_TITLE, R8
                 SYSCALL(puts, 1)
@@ -66,10 +69,12 @@ _RX_BURST       MOVE    R1, R8                  ; READ_UART reads to this..
                 RBRA    _RX_BURST, 1            ; next element of burst
 
                 ; receive CRC of current burst and check it
-_RX_CRC         MOVE    CRC_BUFFER, R8
-                RSUB    READ_UART, 1
-                RSUB    HEXSTR2I, 1
+_RX_CRC         SUB     CRC_BUF_WORDS, SP       ; reserve stack memory for CRC
+                MOVE    SP, R8                  ; R8 = buffer for READ_UART
+                RSUB    READ_UART, 1            ; receive CRC from host
+                RSUB    HEXSTR2I, 1             ; convert to number
                 MOVE    R9, R3                  ; R3 = received CRC
+                ADD     CRC_BUF_WORDS, SP       ; free stack memory
 
                 MOVE    R2, R8                  ; CRC is calculated over a..
                 MOVE    8, R9                   ; ..buffer of size R2*8
@@ -288,6 +293,7 @@ _WUA_NEXT_CHAR  MOVE    @R0++, R8
 ;=============================================================================
 
 BURST_WORDS     .EQU 241                        ; 8 * BURST_SIZE + 1
+CRC_BUF_WORDS   .EQU 5
 
 STR_TITLE       .ASCII_W "QTransfer:\n  Waiting for serial connection   "
 STR_OK          .ASCII_W "OK!\n"
@@ -309,5 +315,4 @@ STR_CRCERR      .ASCII_W "CRCERR"
 
 STR_HEX_NIBBLES .ASCII_W "0123456789ABCDEF"
 
-CRC_BUFFER      .BLOCK 5
 VAR_BUFFER      .BLOCK 9
