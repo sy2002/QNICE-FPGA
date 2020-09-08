@@ -48,6 +48,11 @@ MONITOR:
 
 * Get rid of the hardcoded keyboard locale
 
+* qtransfer: Allow to cancel via USB keyboard (CTRL+E). Make it more resilient
+  to rogue serial input by refactoring QREAD_UART in a way that it knows
+  up-front the maximum amount of characters that it is "allowed" to receive
+  in a certain situation.
+
 
 ASSEMBLER STANDARD LIBs (WITHIN MONITOR):
 
