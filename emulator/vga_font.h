@@ -7,6 +7,8 @@
 #ifndef _QEMU_VGA_FONT
 #define _QEMU_VGA_FONT
 
+#include "../dist_kit/sysdef.h"
+
 // 8x12 font with 256 characters
 #define QNICE_FONT_CHAR_DX_BITS     8
 #define QNICE_FONT_CHAR_DY_BYTES    12
