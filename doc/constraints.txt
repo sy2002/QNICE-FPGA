@@ -58,6 +58,10 @@ keyboards are tested and work:
     EMULATOR
 ==============================================================================    
 
+TODO RELEASE V1.7: REVISIT THIS SECTION, AS THE EMULATOR IS RECEIVING
+QUITE SOME CHANGES IN V1.7. ALSO CHECK, IF THE EMULATOR IS ABLE TO EMULATE
+SCANLINE INTERRUPTS OR NOT AND DOCUMENT IT HERE.
+
 * The WebAssembly (WASM) emulator does not support the timer interrupt module.
 
 * The emulator does not support the following bits in VGA$STATE:
@@ -128,6 +132,7 @@ keyboards are tested and work:
     VBCC
 ==============================================================================    
 
+TODO RELEASE V1.7: REVISIT THIS SECTION DUE TO ISSUE #100
 * We are currently on a rather old version of VBCC
 
 ==============================================================================

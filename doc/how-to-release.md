@@ -202,6 +202,9 @@ Step 4: Update VERSIONS.txt and the documentation
   monitor changes (re-run `monitor/create_documentation.pl`); platforms? (`hw`
   folder); general programming topics?; getting started topics?; etc.
 
+* Are there new constraints (e.g. things that are not "fully" working) or
+  did you solve constraints? Update `doc/constraints.txt`.
+
 * Update the documentation and re-run LaTeX for the respective documentations
   and check-in the PDF versions of those documents.
 
