@@ -13,17 +13,22 @@
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
 
-                .ORG 0xF000
+                .ORG 0xE000
 
                 MOVE    STR_TITLE, R8
                 SYSCALL(puts, 1)
 
-                ; create space on the stack
-                SUB     BURST_WORDS, SP         ; burst buffer on stack
-                MOVE    SP, R4                  ; R4 = start of burst buf.
+                ; R12 = receive buffer: create space on the stack
+                ; (we cannot use R11, because mulu changes R11)
+                SUB     VAR_BUF_WORDS, SP
+                MOVE    SP, R12                  
+
+                ; R4 = burst buffer: create space on the stack
+                SUB     BURST_WORDS, SP
+                MOVE    SP, R4
 
                 ; wait until START is received
-                MOVE    VAR_BUFFER, R8
+                MOVE    R12, R8                 ; R12 = addr. of recv. buf.
                 RSUB    READ_UART, 1
                 MOVE    STR_START, R9
                 SYSCALL(strcmp, 1)
@@ -44,11 +49,10 @@ _SENDACK        MOVE    STR_OK, R8
                 ; (<burst> x (<address><data>\n))<crc>\n
                 ; all values are 16bit hex values where each one is
                 ; transmitted as a 4 character ASCII string
-_RX_LOOP        MOVE    VAR_BUFFER, R8
+_RX_LOOP        MOVE    R12, R8                 ; R12 = addr. of recv. buf.
                 RSUB    READ_UART, 1
 
                 ; "END" ends the transmission
-                MOVE    VAR_BUFFER, R8                
                 MOVE    STR_END, R9
                 SYSCALL(strcmp, 1)
                 CMP     0, R10
@@ -60,7 +64,7 @@ _RX_LOOP        MOVE    VAR_BUFFER, R8
                 MOVE    R0, R2                  ; R2 = backup burst length
                 MOVE    R4, R1                  ; R1 = start of burst buf.
 
-                ; receive one burst and store it at VAR_BUFFER
+                ; receive one burst
 _RX_BURST       MOVE    R1, R8                  ; READ_UART reads to this..
                 RSUB    READ_UART, 1            ; ..gliding address
                 SUB     1, R0                   ; one less element in burst
@@ -124,7 +128,7 @@ _RX_DONE        MOVE    STR_DONE, R8
                 SYSCALL(puts, 1)
                 MOVE    STR_16SPACES, R8
                 SYSCALL(puts, 1)
-                MOVE    VAR_BUFFER, R8
+                MOVE    R12, R8                 ; R12 = addr. of recv. buf.
                 RSUB    READ_UART, 1
                 RSUB    HEXSTR2I, 1
                 MOVE    R9, R8
@@ -137,7 +141,7 @@ _RX_DONE        MOVE    STR_DONE, R8
                 SYSCALL(puts, 1)
                 MOVE    STR_16SPACES, R8
                 SYSCALL(puts, 1)
-                MOVE    VAR_BUFFER, R8
+                MOVE    R12, R8                 ; R12 = addr. of recv. buf.
                 RSUB    READ_UART, 1
                 RSUB    HEXSTR2I, 1
                 MOVE    R9, R8
@@ -148,16 +152,19 @@ _RX_DONE        MOVE    STR_DONE, R8
                 MOVE    STR_RUN, R8
                 SYSCALL(puts, 1)
                 SYSCALL(getc, 1)
-                CMP     'r', R8
+                SYSCALL(chr2upper, 1)
+                CMP     'R', R8
                 RBRA    _END, !Z
 
                 ; run the program
                 SYSCALL(crlf, 1)
                 SYSCALL(crlf, 1)
                 ADD     BURST_WORDS, SP         ; free memory on the stack
+                ADD     VAR_BUF_WORDS, SP
                 ABRA    R6, 1                   ; run the program
 
 _END            ADD     BURST_WORDS, SP         ; free memory on the stack
+                ADD     VAR_BUF_WORDS, SP
                 SYSCALL(exit, 1)
 
 ;=============================================================================
@@ -293,6 +300,7 @@ _WUA_NEXT_CHAR  MOVE    @R0++, R8
 ;=============================================================================
 
 BURST_WORDS     .EQU 241                        ; 8 * BURST_SIZE + 1
+VAR_BUF_WORDS   .EQU 9
 CRC_BUF_WORDS   .EQU 5
 
 STR_TITLE       .ASCII_W "QTransfer:\n  Waiting for serial connection   "
@@ -302,7 +310,7 @@ STR_DONE        .ASCII_W "Done!\n"
 STR_START_ADDR  .ASCII_W "  Start address:  "
 STR_LENGTH      .ASCII_W "  Length in words:"
 STR_16SPACES    .ASCII_W "                "
-STR_RUN         .ASCII_W "Press r to run and any other key to exit"
+STR_RUN         .ASCII_W "Press R to run and any other key to exit"
 
 STR_ERR_NOSTART .ASCII_P "\nError: Wrong protocol. (Are you running "
                 .ASCII_W "qtransfer.c on your host?)\n"
@@ -314,5 +322,3 @@ STR_ACK         .ASCII_W "ACK"
 STR_CRCERR      .ASCII_W "CRCERR"
 
 STR_HEX_NIBBLES .ASCII_W "0123456789ABCDEF"
-
-VAR_BUFFER      .BLOCK 9
