@@ -121,6 +121,6 @@ their own address and data signals and even clock signals.
 This block actually instantiates the block `true_dual_port_ram` three times,
 one for each of:
 * Display RAM  (64 kW)
-* Font RAM     ( 4 kB)
-* Palette RAM  (32 words)
+* Font RAM     ( 8 kW)
+* Palette RAM  (64 words)
 
