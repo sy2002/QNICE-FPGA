@@ -757,12 +757,12 @@ Offending line:\n%s\n", line_counter, entry->source);
           **  Design bug: Since an EQU does not get a corresponding code entry, the following
           ** error message will only printed to stdout but not occur in the resulting listing!
           */
-          if (retval == 1)
-            printf(entry->error_text, "Line %d: Duplicate equ-entry '%s'.\nOffending line:\n%s\n", 
+          if (retval == 1) {
+            sprintf(entry->error_text, "Line %d: Duplicate equ-entry '%s'.\nOffending line:\n%s\n", 
                    line_counter, entry->label, entry->source);
-//???
-//          PRINT_ERROR;
+            PRINT_ERROR;
 //          error_counter++;
+          }
         }
 	    *(entry->label) = (char) 0;
         entry->state = STATE$FINISHED;
