@@ -84,7 +84,8 @@ begin
    i_palette_ram : entity work.true_dual_port_ram
       generic map (
          G_ADDR_SIZE => 6,
-         G_DATA_SIZE => 15
+         G_DATA_SIZE => 15,
+         G_FILE_NAME => "palette.rom"
       )
       port map (
          a_clk_i     => cpu_clk_i,

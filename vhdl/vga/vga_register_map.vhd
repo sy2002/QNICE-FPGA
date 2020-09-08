@@ -198,7 +198,7 @@ begin
          case conv_integer(reg_i) is
             when C_REG_CURSOR_CHAR  => vram_display_wr_en_o <= en_i and we_i;
             when C_REG_FONT_DATA    => vram_font_wr_en_o    <= en_i and we_i and register_map(C_REG_FONT_ADDRESS)(12);
-            when C_REG_PALETTE_DATA => vram_palette_wr_en_o <= en_i and we_i;
+            when C_REG_PALETTE_DATA => vram_palette_wr_en_o <= en_i and we_i and register_map(C_REG_PALETTE_ADDRESS)(5);
             when others => null;
          end case;
 
