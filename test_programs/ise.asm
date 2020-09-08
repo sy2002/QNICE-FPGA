@@ -84,4 +84,4 @@
                 SYSCALL(exit, 1)
 
 STR_CYC        .ASCII_W "Amount of cycles used:            "
-STR_INS        .ASCII_W "Amount if instructions performed: "
+STR_INS        .ASCII_W "Amount of instructions performed: "
