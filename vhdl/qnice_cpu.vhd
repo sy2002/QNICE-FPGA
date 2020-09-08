@@ -162,6 +162,19 @@ signal FastPath            : boolean;
 signal Src_Value_Fast      : std_logic_vector(15 downto 0);
 signal Dst_Value_Fast      : std_logic_vector(15 downto 0);
 
+-- attribute mark_debug                   : boolean;
+-- attribute mark_debug of WAIT_FOR_DATA  : signal is true;
+-- attribute mark_debug of ADDR           : signal is true;
+-- attribute mark_debug of DATA_IN        : signal is true;
+-- attribute mark_debug of DATA_OUT       : signal is true;
+-- attribute mark_debug of DATA_DIR       : signal is true;
+-- attribute mark_debug of DATA_VALID     : signal is true;
+-- attribute mark_debug of HALT           : signal is true;
+-- attribute mark_debug of INT_N          : signal is true;
+-- attribute mark_debug of IGRANT_N       : signal is true;
+-- attribute mark_debug of Instruction    : signal is true;
+-- attribute mark_debug of PC             : signal is true;
+-- attribute mark_debug of cpu_state      : signal is true;
 
 begin
    -- internal signals
