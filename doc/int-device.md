@@ -13,6 +13,11 @@ Each interrupt capable device needs to follow the protocol specified in this
 file, otherwise the chain might break and/or very difficult to reproduce
 bugs might occur.
 
+**Important: We strongly recommend to use the module `vhdl/daisy_chain.vhd`
+instead of implementing the Daisy chain logic from scratch.**
+
+You will find a description of you to use it below.
+
 Basic mechanism
 ---------------
 
@@ -40,8 +45,10 @@ all the details. Here is the summary:
   valid, the device pulls `INT_N` back to `1`.
 
 * The CPU now reads the data and pulls `IGRANT_N` to `1` to notify the device
-  that it must release the data bus. The CPU then jumps to this address and
-  executes the ISR.
+  that it must release the data bus. This release must happen immediatelly
+  (use combinatorial logic).
+
+* The CPU then jumps to this address and executes the ISR.
 
 ![Interrupt_Timing](intro/interrupt_timing.jpg)
 
@@ -112,3 +119,6 @@ CPU <=> Device 1 <=> Device 2 <=> ... <=> Device n
 
 * There is a well-commented reference implementation of the Daisy chain
   handling in `vhdl/timer.vhd` in the process `fsm_output_decode`.
+
+Re-useable module `vhdl/daisy_chain.vhd`
+----------------------------------------
