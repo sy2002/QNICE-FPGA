@@ -6,8 +6,8 @@
 ;  Can be rolled back to the version in commit e9d4f3d if and when this
 ;  edge case is fixed.
 ;
-;  Until then, the expected memory layout at DATA is:
-;  1, 2, 3, CCCC, 4, CCCC, 5, DD00, DD01, DD02, DD03, DD03, DD04, 6, 7
+;  The expected memory layout at DATA is still the same:
+;  1, 2, 3, CCCC, CCCC, 4, 5, DD00, DD01, DD02, DD03, DD03, DD04, 6, 7
 
 
 

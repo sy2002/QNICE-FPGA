@@ -13,15 +13,19 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="19849112fs"></ZoomStartTime>
-      <ZoomEndTime time="20030178fs"></ZoomEndTime>
-      <Cursor1Time time="20000000fs"></Cursor1Time>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="237001fs"></ZoomEndTime>
+      <Cursor1Time time="0fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="135"></NameColumnWidth>
+      <NameColumnWidth column_width="131"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="43" />
+   <WVObjectSize size="44" />
+   <wvobject type="logic" fp_name="/dev_int/cpu/RESET">
+      <obj_property name="ElementShortName">RESET</obj_property>
+      <obj_property name="ObjectShortName">RESET</obj_property>
+   </wvobject>
    <wvobject type="logic" fp_name="/dev_int/CLK">
       <obj_property name="ElementShortName">CLK</obj_property>
       <obj_property name="ObjectShortName">CLK</obj_property>

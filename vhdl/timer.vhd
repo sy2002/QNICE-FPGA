@@ -98,6 +98,7 @@ begin
       right_grant_n_o => grant_n_out
    );
    
+   int_n_o <= '0' when has_fired and reset = '0' else '1';
    int_n_out <= int_n_out_i;
    
    -- writing anything to any register resets the timer and loads the new value
@@ -111,11 +112,9 @@ begin
    begin
       -- DATA is often only valid at the falling edge of the system clock
       if falling_edge(clk) then
-         int_n_o <= '1';  -- default: no interrupt request
                  
          -- system reset: stop everything
          if reset = '1' then
-            int_n_o <= '1';  -- for some reason we need to explicitly do this even though we have the default value above
             has_fired <= false;            
             counter_pre <= (others => '0');
             counter_cnt <= (others => '0');
@@ -133,7 +132,6 @@ begin
                
          -- timer has elapsed and fired: request the interrupt and reset the values
          elsif has_fired then
-            int_n_o <= '0';         -- request the interrupt (will be latched in daisy_chain_handler)
             has_fired <= false;
             counter_pre <= reg_pre;
             counter_cnt <= reg_cnt;
