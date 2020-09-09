@@ -115,6 +115,7 @@ begin
                  
          -- system reset: stop everything
          if reset = '1' then
+            int_n_o <= '1';  -- for some reason we need to explicitly do this even though we have the default value above
             has_fired <= false;            
             counter_pre <= (others => '0');
             counter_cnt <= (others => '0');
