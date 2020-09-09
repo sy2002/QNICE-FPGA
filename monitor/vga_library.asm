@@ -46,7 +46,7 @@ _VGA$INIT_PAL           INCRB
                         RET
 
 _VGA$FACTORY_PAL        INCRB
-                        MOVE    VGA$PALETTE_OFFS, R1    ; back to the factory default
+                        MOVE    VGA$PALETTE_OFFS, R0    ; back to the factory default
                         MOVE    VGA$PALETTE_OFFS_DEFAULT, @R0
                         DECRB
                         RET                     
