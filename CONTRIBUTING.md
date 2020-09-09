@@ -93,8 +93,18 @@ of a bunch of separate tests on real hardware.
 
 * Run the following test programs. They are all located in the folder
   `test_programs` and you find the expected output described in the comments
-  of the program's header: `cpu_test.asm`, `eae.asm`, `ise.asm` and 
-  `regbank.asm`. If you develop for the MEGA65, please additionally run
+  of the program's header:
+
+  - `cpu_test.asm`: CPU including edge cases
+  - `eae.asm`: Extended arithmetic element
+  - `ise.asm`: Instruction counter and cycle counter
+  - `regbank.asm`: All 256 register banks
+  - `int_test.asm`: Software interrupts
+  - `timer_test.asm`: Timer interrupt test. Enhance this test by routing
+    STDOUT to UART while the test runs and then play Q-TRIS.
+  - `fancy.asm`: VGA scanline interrupt test
+
+* If you develop for the MEGA65, please additionally run
   `test_programs/MEGA65/hyperram.asm`.
 
 * Test the SD Card, VGA and PS/2 keyboard by copying the folder `qbin` on
