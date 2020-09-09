@@ -1,3 +1,17 @@
+;  September, 9 2020:
+;
+;  WORK AROUND VERSION DUE TO THIS EDGE CASE:
+;  https://github.com/sy2002/QNICE-FPGA/issues/123#issuecomment-689586438
+; 
+;  Can be rolled back to the version in commit e9d4f3d if and when this
+;  edge case is fixed.
+;
+;  Until then, the expected memory layout at DATA is:
+;  1, 2, 3, CCCC, 4, CCCC, 5, DD00, DD01, DD02, DD03, DD03, DD04, 6, 7
+
+
+
+
 ;  Development testbed for the simulation environment "dev_int.vhd"
 ;
 ;  This is a simple test program for QNICE interrupts. The idea is as follows:
@@ -19,11 +33,15 @@
 ;  hardware version: The simulated one ticks with the clock speed of the CPU
 ;  and in contrast, the real one divides it down to be 100 kHz.
 ;
-;  done by vaxman and sy2002 in July/August 2020
+;  done by vaxman and sy2002 in July, August & September 2020
 
 #include "../../dist_kit/sysdef.asm"
 
         .ORG    0x0000
+
+        ; WORKAROUND
+        MOVE    WFLAG, R0
+        MOVE    0, @R0
 
         ; register test of the timer interrupt device
         MOVE    IO$TIMER_0_PRE, R0
@@ -108,11 +126,14 @@ A_HALT  HALT
         ; also "MOVE    4, @R12++" is interrupted
         ; Second iteration: Deactivate further hardware timer interrupts
 H_ISR   MOVE    0xCCCC, @R12++
+        MOVE    WFLAG, R6
         MOVE    0, @R11      ; temporarily stop the timer
-        CMP     1, @R10
+        ; WORKAROUND: COMMENT OUT CMP     1, @R10
+        CMP     1, @R6      ; WORKAROUND
         RBRA    H_I1, !Z    ; 1st iteration: set timer counter to 1 cycle                            
         RTI                 ; 2nd iteration: keep hardware timer deactivated
-H_I1    MOVE    1, @R10
+H_I1    ; WORKAROUND: COMMENT OUT: MOVE    1, @R10
+        MOVE    1, @R6      ; WORKAROUND
         MOVE    H_ISR, @R11 ; reactivate the timer
         RTI
 
@@ -141,3 +162,6 @@ DATA    .DW     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 A_RIND  .DW     I_RIND
 A_RIPD0 .DW     I_RIPD    
 A_RIPD1 .DW     I_RIPI
+
+WFLAG   .DW     0
+
