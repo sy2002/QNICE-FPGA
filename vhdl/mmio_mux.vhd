@@ -8,7 +8,7 @@
 -- also implements the global state and reset management
 -- 
 -- done in 2015, 2016 by sy2002
--- enhanced in July/August 2020 by Michael Jørgensen and sy2002 
+-- enhanced in July/August/September 2020 by Michael Jørgensen and sy2002 
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -20,6 +20,7 @@ use work.qnice_tools.all;
 
 entity mmio_mux is
 generic (
+   GD_PORE           : boolean := true;   -- the PORE system is part of the module by default
    GD_TIL            : boolean := true;   -- support TIL leds (e.g. as available on the Nexys 4 DDR)
    GD_SWITCHES       : boolean := true;   -- support SWITCHES (e.g. as available on the Nexys 4 DDR)
    GD_HRAM           : boolean := false   -- support HyperRAM (e.g. as available on the MEGA65)
@@ -107,8 +108,9 @@ port (
    hram_cpu_ws       : in std_logic; -- insert CPU wait states (aka WAIT_FOR_DATA)   
  
    -- global state and reset management
-   reset_pre_pore    : out std_logic;
-   reset_post_pore   : out std_logic
+   reset_pre_pore    : buffer std_logic;
+   reset_post_pore   : buffer std_logic;
+   reset_ctl         : out std_logic  
 );
 end mmio_mux;
 
@@ -138,7 +140,6 @@ constant RESET_COUNTER_BTS    : natural := f_log2(RESET_DURATION);
 signal global_state           : global_state_type := gsPowerOn;
 
 signal debounced_hw_reset     : std_logic;
-signal reset_ctl              : std_logic;
 signal boot_msg_char          : std_logic_vector(7 downto 0);
 signal reset_counter          : unsigned(RESET_COUNTER_BTS downto 0);
 
@@ -270,8 +271,11 @@ begin
             
          when gsReset_execute =>
             if reset_counter = RESET_DURATION then
---               fsm_next_global_state <= gsRun; -- use for simulation instead of PORE
-               fsm_next_global_state <= gsPORE;
+               if GD_PORE then
+                  fsm_next_global_state <= gsPORE;
+               else
+                  fsm_next_global_state <= gsRun;
+               end if;            
             else
                fsm_reset_counter <= reset_counter + 1;
                fsm_next_global_state <= gsReset_execute;               
@@ -299,7 +303,7 @@ begin
    end process;
 
    -- PORE ROM is used in all global states other than gsRun
-   use_pore_rom_i <= '0' when cpu_igrant_n = '0' or 
+   use_pore_rom_i <= '0' when cpu_igrant_n = '0' or (GD_PORE = false) or
                               (global_state = gsPostPoreReset or
                                global_state = gsPostPoreReset_execute or
                                global_state = gsRun)
@@ -321,6 +325,7 @@ begin
    
    -- generate external reset signals
    reset_pre_pore <= '1' when (global_state = gsPowerOn or global_state = gsReset or global_state = gsReset_execute) else '0';
-   reset_post_pore <= '1' when (global_state = gsPostPoreReset or global_state = gsPostPoreReset_execute) else '0';
+   reset_post_pore <= '1' when (global_state = gsPostPoreReset or global_state = gsPostPoreReset_execute) else '0';   
+   reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';
    
 end Behavioral;

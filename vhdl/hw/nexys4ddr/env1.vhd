@@ -121,9 +121,7 @@ signal sd_en                  : std_logic;
 signal sd_we                  : std_logic;
 signal sd_reg                 : std_logic_vector(2 downto 0); 
 signal sd_data_out            : std_logic_vector(15 downto 0);
-
-signal reset_pre_pore         : std_logic;
-signal reset_post_pore        : std_logic;
+signal reset_ctl              : std_logic;
 
 -- VGA color output
 signal vga_color              : std_logic_vector(14 downto 0);
@@ -140,9 +138,6 @@ signal clk25MHz               : std_logic := '0';
 -- MMCME related signals
 signal clk_fb_main            : std_logic;
 signal pll_locked_main        : std_logic;
-
--- combined pre- and post pore reset
-signal reset_ctl              : std_logic;
 
 -- enable displaying of address bus on system halt, if switch 2 is on
 signal i_til_reg0_enable      : std_logic;
@@ -396,6 +391,7 @@ begin
    -- memory mapped i/o controller
    mmio_controller : entity work.mmio_mux
       generic map (
+         GD_PORE     => true,                -- yes, use PORE system
          GD_TIL      => true,                -- yes, support TIL leds
          GD_SWITCHES => true,                -- yes, support SWITCHES
          GD_HRAM     => false                -- no, do not support HyperRAM
@@ -443,8 +439,9 @@ begin
          sd_en => sd_en,
          sd_we => sd_we,
          sd_reg => sd_reg,
-         reset_pre_pore => reset_pre_pore,
-         reset_post_pore => reset_post_pore,
+         reset_ctl => reset_ctl, 
+         reset_pre_pore => open,
+         reset_post_pore => open,
          
          -- no HyperRAM available
          hram_en => open,
@@ -498,10 +495,7 @@ begin
          end if;
       end if;
    end process;
-       
-   -- generate the general reset signal
-   reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1') else '0';
-   
+          
    -- pull DAT1, DAT2 and DAT3 to GND (Nexys' pull-ups by default pull to VDD)
    SD_DAT <= "000";
 end beh;

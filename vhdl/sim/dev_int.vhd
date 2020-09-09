@@ -14,160 +14,6 @@ end dev_int;
 
 architecture beh of dev_int is
 
--- QNICE CPU
-component QNICE_CPU
-port (
-   -- clock
-   CLK            : in std_logic;
-   RESET          : in std_logic;
-   
-   WAIT_FOR_DATA  : in std_logic;                            -- 1=CPU adds wait cycles while re-reading from bus
-      
-   ADDR           : out std_logic_vector(15 downto 0);      -- 16 bit address bus
-   
-   -- bidirectional 16 bit data bus
-   DATA_IN        : in std_logic_vector(15 downto 0);       -- receive data
-   DATA_OUT       : out std_logic_vector(15 downto 0);      -- send data
-   DATA_DIR       : out std_logic;                          -- 1=DATA is sending, 0=DATA is receiving
-   DATA_VALID     : out std_logic;                          -- while DATA_DIR = 1: DATA contains valid data
-   
-   -- signals about the CPU state
-   HALT           : out std_logic;                          -- 1=CPU halted due to the HALT command, 0=running
-   INS_CNT_STROBE : out std_logic;                          -- goes high for one clock cycle for each new instruction
-   
-   -- interrupt system                                      -- refer to doc/intro/qnice_intro.pdf to learn how this works
-   INT_N          : in std_logic;
-   IGRANT_N       : out std_logic    
-);
-end component;
-
-component dev_int_source is
-generic (
-   fire_1         : natural;
-   fire_2         : natural;
-   ISR_ADDR       : natural   
-);
-port (
-   CLK            : in std_logic;
-   RESET          : in std_logic;
-   DATA_IN        : in std_logic_vector(15 downto 0);   
-   DATA_OUT       : out std_logic_vector(15 downto 0);   
-  
-   INT_N          : out std_logic;
-   IGRANT_N       : in std_logic   
-);
-end component;
-
--- ROM
-component BROM is
-generic (
-   FILE_NAME   : string
-);
-port (
-   clk         : in std_logic;                        -- read and write on rising clock edge
-   ce          : in std_logic;                        -- chip enable, when low then zero on output
-   
-   address     : in std_logic_vector(14 downto 0);    -- address is for now 15 bit hard coded
-   data        : out std_logic_vector(15 downto 0);   -- read data
-   
-   busy        : out std_logic                        -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA               
-);
-end component;
-
--- BLOCK RAM
-component BRAM is
-port (
-   clk      : in std_logic;                        -- read and write on rising clock edge
-   ce       : in std_logic;                        -- chip enable, when low then zero on output
-   
-   address  : in std_logic_vector(14 downto 0);    -- address is for now 16 bit hard coded
-   we       : in std_logic;                        -- write enable
-   data_i   : in std_logic_vector(15 downto 0);    -- write data
-   data_o   : out std_logic_vector(15 downto 0);   -- read data
-   
-   busy     : out std_logic                        -- 1=still executing, i.e. can drive CPU's WAIT_FOR_DATA   
-);
-end component;
-
-component timer_module is
-generic (
-   CLK_FREQ       : natural;                             -- system clock in Hertz
-   IS_SIMULATION  : boolean := false                     -- is the module running in simulation?
-);
-port (
-   clk            : in std_logic;                        -- system clock
-   reset          : in std_logic;                        -- async reset
-   
-   -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
-   int_n_out      : out std_logic;                        -- left device's interrupt signal input
-   grant_n_in     : in std_logic;                         -- left device's grant signal output
-   int_n_in       : in std_logic;                         -- right device's interrupt signal output
-   grant_n_out    : out std_logic;                        -- right device's grant signal input
-      
-   -- Registers
-   en             : in std_logic;                        -- enable for reading from or writing to the bus
-   we             : in std_logic;                        -- write to the registers via system's data bus
-   reg            : in std_logic_vector(2 downto 0);     -- register selector
-   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
-   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus   
-);
-end component;
-
--- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
-component EAE is
-port (
-   clk      : in std_logic;                              -- system clock
-   reset    : in std_logic;                              -- system reset
-   
-   -- EAE registers
-   en       : in std_logic;                              -- chip enable
-   we       : in std_logic;                              -- write enable
-   reg      : in std_logic_vector(2 downto 0);           -- register selector
-   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
-   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus   
-);
-end component;
-
--- multiplexer to control the data bus (enable/disable the different parties)
-component mmio_mux is
-port (
-   -- input from hardware
-   HW_RESET          : in std_logic;
-   CLK               : in std_logic;
-
-   -- input from CPU
-   addr              : in std_logic_vector(15 downto 0);
-   data_dir          : in std_logic;
-   data_valid        : in std_logic;
-   cpu_halt          : in std_logic;
-   cpu_igrant_n      : in std_logic;
-   
-   -- let the CPU wait for data from the bus
-   cpu_wait_for_data : out std_logic;
-   
-   -- ROM is enabled when the address is < $8000 and the CPU is reading
-   rom_enable        : out std_logic;
-   rom_busy          : in std_logic;
-   
-   -- RAM is enabled when the address is in ($8000..$FEFF)
-   ram_enable        : out std_logic;
-   ram_busy          : in std_logic;
-      
-   -- SWITCHES is $FF12
-   switch_reg_enable : out std_logic;
-   
-   -- Timer Interrupt Generator range $FF30 .. $FF35
-   tin_en            : out std_logic;
-   tin_we            : out std_logic;
-   tin_reg           : out std_logic_vector(2 downto 0);
-      
-   -- Extended Arithmetic Element register range $FF1B..$FF1F
-   eae_en            : out std_logic;
-   eae_we            : out std_logic;
-   eae_reg           : out std_logic_vector(2 downto 0)   
-);
-end component;
-
 -- CPU control signals
 signal cpu_addr               : std_logic_vector(15 downto 0);
 signal cpu_data_in            : std_logic_vector(15 downto 0);
@@ -198,13 +44,11 @@ signal tin_we                 : std_logic;
 signal tin_reg                : std_logic_vector(2 downto 0);
 signal tin_data_out           : std_logic_vector(15 downto 0);
 signal hig_data_out           : std_logic_vector(15 downto 0);
+signal reset_ctl              : std_logic;
 
 -- clock for simulation
 signal CLK                    : std_logic;
 
--- reset signal and reset counter for simulation
-signal reset_counter          : unsigned(5 downto 0) := (others => '0');
-signal gbl_reset              : std_logic;
 
 -- emulate the switches on the Nexys4 dev board to toggle VGA and PS/2
 signal SWITCHES               : std_logic_vector(15 downto 0);
@@ -219,10 +63,10 @@ begin
                   hig_data_out;
 
    -- QNICE CPU
-   cpu : QNICE_CPU
+   cpu : entity work.QNICE_CPU
       port map (
          CLK => CLK,
-         RESET => gbl_reset,
+         RESET => reset_ctl,
          WAIT_FOR_DATA => cpu_wait_for_data,
          ADDR => cpu_addr,
          DATA_IN => cpu_data_in,
@@ -236,7 +80,7 @@ begin
       );
 
    -- ROM: up to 64kB consisting of up to 32.000 16 bit words
-   rom : BROM
+   rom : entity work.BROM
       generic map (
          FILE_NAME   => ROM_FILE
       )
@@ -249,7 +93,7 @@ begin
       );
      
    -- RAM: up to 64kB consisting of up to 32.000 16 bit words
-   ram : BRAM
+   ram : entity work.BRAM
       port map (
          clk         => CLK,
          ce          => ram_enable,
@@ -261,49 +105,106 @@ begin
       );
             
    -- EAE - Extended Arithmetic Element (32-bit multiplication, division, modulo)
-   eae_inst : eae
+   eae_inst : entity work.eae
       port map (
          clk => CLK,
-         reset => gbl_reset,
+         reset => reset_ctl,
          en => eae_en,
          we => eae_we,
          reg => eae_reg,
          data_in => cpu_data_out,
          data_out => eae_data_out       
       );
-
+      
    -- memory mapped i/o controller
-   mmio_controller : mmio_mux
+   mmio_controller : entity work.mmio_mux
+      generic map (
+         GD_PORE     => false,               -- no PORE system
+         GD_TIL      => false,               -- no TIL leds
+         GD_SWITCHES => true,                -- support SWITCHES register
+         GD_HRAM     => false                -- no support for HyperRAM
+      )
       port map (
+         -- input from hardware
          CLK => CLK,
-         HW_RESET => gbl_reset,          
+         HW_RESET => '0',
+      
+         -- input from CPU
          addr => cpu_addr,
          data_dir => cpu_data_dir,
          data_valid => cpu_data_valid,
-         cpu_wait_for_data => cpu_wait_for_data,
          cpu_halt => cpu_halt,
          cpu_igrant_n => cpu_igrant_n,
+      
+         -- let the CPU wait for data from the bus
+         cpu_wait_for_data => cpu_wait_for_data,
+         
+         -- ROM is enabled when the address is < $8000 and the CPU is reading
          rom_enable => rom_enable,
          rom_busy => rom_busy,
+         
+         -- RAM is enabled when the address is in ($8000..$FEFF)
          ram_enable => ram_enable,
          ram_busy => ram_busy,
+         
+         -- PORE is disabled
+         pore_rom_enable => open,
+         pore_rom_busy => '0',
+         
+         -- SWITCHES is $FF00
          switch_reg_enable => switch_reg_enable,
+                  
+         -- Extended Arithmetic Element register range $FF18..$FF1F
          eae_en => eae_en,
          eae_we => eae_we,
          eae_reg => eae_reg,
+         
+         -- Timer Interrupt Generator range $FF28 .. $FF2F
          tin_en => tin_en,
          tin_we => tin_we,
-         tin_reg => tin_reg         
+         tin_reg => tin_reg,
+                  
+         -- devices that are not used
+         til_reg0_enable => open,
+         til_reg1_enable => open,
+         kbd_en => open,
+         kbd_we => open,
+         kbd_reg => open,
+         cyc_en => open,
+         cyc_we => open,
+         cyc_reg => open,
+         ins_en => open,
+         ins_we => open,
+         ins_reg => open,      
+         uart_en => open,
+         uart_we => open,
+         uart_reg => open,
+         uart_cpu_ws => '0',
+         sd_en => open,
+         sd_we => open,
+         sd_reg => open,
+         vga_en => open,
+         vga_we => open,
+         vga_reg => open,      
+         hram_en => open,
+         hram_we => open,
+         hram_reg => open, 
+         hram_cpu_ws => '0',   
+    
+         -- global state and reset management
+         reset_pre_pore => open,
+         reset_post_pore => open,
+         reset_ctl => reset_ctl      
       );
-      
-   timer_interrupt : timer_module   
+
+   timer_interrupt : entity work.timer_module   
       generic map (
          CLK_FREQ => 50000000,
          IS_SIMULATION => true
       )
       port map (
          clk => CLK,
-         reset => gbl_reset,
+         reset => reset_ctl,
          int_n_out => cpu_int_n,
          grant_n_in => cpu_igrant_n,
          int_n_in => '1',              -- Daisy Chain: no more devices: 1=never request an interrupt
@@ -316,7 +217,7 @@ begin
       );
       
    hig_data_out <= (others => '0');      
---   hardcoded_interrupt_generator : dev_int_source
+--   hardcoded_interrupt_generator : entity work.dev_int_source
 --      generic map (
 --         fire_1 => 17,           -- interrupt in the mid of the execution of MOVE 3, @R12++
 --         fire_2 => 23,           -- try to interrupt the interrupt
@@ -324,7 +225,7 @@ begin
 --      )
 --      port map (
 --         CLK => CLK,
---         RESET => gbl_reset,
+--         RESET => reset_ctl,
 --         DATA_IN => cpu_data_out,
 --         DATA_OUT => hig_data_out,
 --         INT_N => cpu_int_n,
@@ -338,19 +239,7 @@ begin
       CLK <= '1';
       wait for 10 ns;
    end process;      
-      
-   startup_reset_handler : process(CLK)
-   begin
-      if rising_edge(CLK) then
-         if reset_counter < x"20" then
-            reset_counter <= reset_counter + 1;
-         end if;
-      end if;
-   end process;
-  
-   -- emulate the reset of the real system and keep the reset line active for 32 cycles
-   gbl_reset <= '1' when reset_counter < x"20" else '0';    
-         
-   -- handle the toggle switches
+               
+   -- handle the toggle switches: always zero means STDIN=STDOUT=UART
    switch_data_out <= (others => '0');   
 end beh;
