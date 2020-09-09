@@ -159,6 +159,7 @@ _QRX_DONE       MOVE    QSTR_DONE, R8
                 SYSCALL(crlf, 1)
                 ADD     QBURST_WORDS, SP        ; free memory on the stack
                 ADD     QVAR_BUF_WORDS, SP
+                RSUB    _VGA$FACTORY_PAL, 1     ; factory default vga palette                
                 ABRA    R6, 1                   ; run the program
 
 _QTRANSFER_END  ADD     QBURST_WORDS, SP        ; free memory on the stack
