@@ -108,14 +108,13 @@ begin
       
    -- nested counting loop: "count PRE times to CNT" 
    count : process(clk)
-   begin
-      int_n_o <= '1'; -- default is: no interrupt
-   
+   begin   
       -- DATA is often only valid at the falling edge of the system clock
       if falling_edge(clk) then     
          -- system reset: stop everything
          if reset = '1' then
-            has_fired <= false;
+            int_n_o <= '1';
+            has_fired <= false;            
             counter_pre <= (others => '0');
             counter_cnt <= (others => '0');
             freq_div_cnt <= to_unsigned(FREQ_DIV_SYS_TARGET, CNT_WIDTH);

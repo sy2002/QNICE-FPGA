@@ -162,19 +162,32 @@ signal FastPath            : boolean;
 signal Src_Value_Fast      : std_logic_vector(15 downto 0);
 signal Dst_Value_Fast      : std_logic_vector(15 downto 0);
 
--- attribute mark_debug                   : boolean;
--- attribute mark_debug of WAIT_FOR_DATA  : signal is true;
--- attribute mark_debug of ADDR           : signal is true;
--- attribute mark_debug of DATA_IN        : signal is true;
--- attribute mark_debug of DATA_OUT       : signal is true;
--- attribute mark_debug of DATA_DIR       : signal is true;
--- attribute mark_debug of DATA_VALID     : signal is true;
--- attribute mark_debug of HALT           : signal is true;
--- attribute mark_debug of INT_N          : signal is true;
--- attribute mark_debug of IGRANT_N       : signal is true;
--- attribute mark_debug of Instruction    : signal is true;
--- attribute mark_debug of PC             : signal is true;
--- attribute mark_debug of cpu_state      : signal is true;
+--attribute mark_debug                   : boolean;
+--attribute mark_debug of CLK            : signal is true;
+--attribute mark_debug of WAIT_FOR_DATA  : signal is true;
+--attribute mark_debug of ADDR           : signal is true;
+--attribute mark_debug of DATA_IN        : signal is true;
+--attribute mark_debug of DATA_OUT       : signal is true;
+--attribute mark_debug of DATA_DIR       : signal is true;
+--attribute mark_debug of DATA_VALID     : signal is true;
+--attribute mark_debug of HALT           : signal is true;
+--attribute mark_debug of INT_N          : signal is true;
+--attribute mark_debug of IGRANT_N       : signal is true;
+--attribute mark_debug of Instruction    : signal is true;
+--attribute mark_debug of PC             : signal is true;
+--attribute mark_debug of SR             : signal is true;
+--attribute mark_debug of SP             : signal is true;
+--attribute mark_debug of cpu_state      : signal is true;
+--attribute mark_debug of Int_Active     : signal is true;
+--attribute mark_debug of Opcode         : signal is true;
+--attribute mark_debug of Src_RegNo      : signal is true;
+--attribute mark_debug of Src_Mode       : signal is true;
+--attribute mark_debug of Dst_RegNo      : signal is true;
+--attribute mark_debug of Dst_Mode       : signal is true;
+--attribute mark_debug of Bra_Mode       : signal is true;
+--attribute mark_debug of Bra_Neg        : signal is true;
+--attribute mark_debug of Bra_Condition  : signal is true;
+--attribute mark_debug of Ctrl_Cmd       : signal is true;
 
 begin
    -- internal signals
