@@ -108,12 +108,13 @@ begin
       
    -- nested counting loop: "count PRE times to CNT" 
    count : process(clk)
-   begin   
+   begin
       -- DATA is often only valid at the falling edge of the system clock
-      if falling_edge(clk) then     
+      if falling_edge(clk) then
+         int_n_o <= '1';  -- default: no interrupt request
+                 
          -- system reset: stop everything
          if reset = '1' then
-            int_n_o <= '1';
             has_fired <= false;            
             counter_pre <= (others => '0');
             counter_cnt <= (others => '0');
@@ -163,7 +164,7 @@ begin
    end process;
 
    -- MMIO: read/write registers: PRE, CNT, INT and handle grant_n_i and ISR
-   handle_registers : process(clk, en, we, reset, grant_n_i, reg_pre, reg_cnt, reg_int)
+   handle_registers : process(clk, en, we, reg, reset, grant_n_i, reg_pre, reg_cnt, reg_int)
    begin
       data_out <= (others => '0');
 
