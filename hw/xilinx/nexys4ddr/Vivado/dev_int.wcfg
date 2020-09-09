@@ -13,12 +13,12 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="81401fs"></ZoomEndTime>
-      <Cursor1Time time="0fs"></Cursor1Time>
+      <ZoomStartTime time="19849112fs"></ZoomStartTime>
+      <ZoomEndTime time="20030178fs"></ZoomEndTime>
+      <Cursor1Time time="20000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="139"></NameColumnWidth>
+      <NameColumnWidth column_width="135"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="43" />
@@ -174,13 +174,13 @@
       <obj_property name="ElementShortName">reg[1:0]</obj_property>
       <obj_property name="ObjectShortName">reg[1:0]</obj_property>
    </wvobject>
-   <wvobject type="other" fp_name="/dev_int/timer_interrupt/timer0/State">
-      <obj_property name="ElementShortName">State</obj_property>
-      <obj_property name="ObjectShortName">State</obj_property>
-   </wvobject>
    <wvobject type="other" fp_name="/dev_int/timer_interrupt/timer0/is_counting">
       <obj_property name="ElementShortName">is_counting</obj_property>
       <obj_property name="ObjectShortName">is_counting</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/dev_int/timer_interrupt/timer0/int_n_o">
+      <obj_property name="ElementShortName">int_n_o</obj_property>
+      <obj_property name="ObjectShortName">int_n_o</obj_property>
    </wvobject>
    <wvobject type="other" fp_name="/dev_int/timer_interrupt/timer0/has_fired">
       <obj_property name="ElementShortName">has_fired</obj_property>
