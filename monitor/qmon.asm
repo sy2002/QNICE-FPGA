@@ -167,6 +167,7 @@ QMON$C_MAYBE_R  CMP     'R', R8                 ; Run?
                 RSUB    IO$PUTS, 1
                 RSUB    IO$GET_W_HEX, 1         ; Get address
                 RSUB    IO$PUT_CRLF, 1
+                RSUB    _VGA$FACTORY_PAL, 1     ; factory default vga palette
                 ABRA    R8, 1                   ; Jump to address specified
 ; CONTROL/CLEAR SCREEN:
 QMON$C_MAYBE_S  CMP     'S', R8                 ; Clear screen?
@@ -345,6 +346,7 @@ QMON$F_MAYBE_R  CMP     'R', R8                 ; Is it a 'R'?
                 RBRA    QMON$MAIN_LOOP, Z       ; no: next command
                 MOVE    QMON$CG_F_R_MSG, R8     ; yes: print "Running..." status message
                 RSUB    IO$PUTS, 1
+                RSUB    _VGA$FACTORY_PAL, 1     ; factory default vga palette                
                 ABRA    R6, 1                   ; run program
 QMON$MAYBE_H    CMP     'H', R8
                 RBRA    QMON$NOT_H, !Z          ; No H, try next...

@@ -43,8 +43,13 @@ _VGA$INIT_PAL           INCRB
                         MOVE    48, @R1++               ; .. to black
                         MOVE    VGA$COLOR_BLACK, @R1
                         DECRB
-                        RET                        
+                        RET
 
+_VGA$FACTORY_PAL        INCRB
+                        MOVE    VGA$PALETTE_OFFS, R1    ; back to the factory default
+                        MOVE    VGA$PALETTE_OFFS_DEFAULT, @R0
+                        DECRB
+                        RET                     
 ;
 ;***************************************************************************************
 ;* VGA$CHAR_AT_XY
