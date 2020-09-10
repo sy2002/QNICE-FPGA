@@ -1025,6 +1025,14 @@ L_PC_R15_10
 ; ---------------------------------------------------------------------------
 ; Test the instructions RSUB and ASUB, and the use of the Stack Pointer and R13.
 L_RSUB_00       MOVE    L_STACK_TOP, R13
+                MOVE    L_STACK_BOT, R9
+                MOVE    0x0123, @R9++           ; Fill stack with magic numbers
+                MOVE    0x1234, @R9++           ; Fill stack with magic numbers
+                MOVE    0x2345, @R9++           ; Fill stack with magic numbers
+                MOVE    0x3456, @R9++           ; Fill stack with magic numbers
+                MOVE    0x4567, @R9++           ; Fill stack with magic numbers
+                MOVE    0x5678, @R9++           ; Fill stack with magic numbers
+
                 RSUB    L_RSUB_01, 1            ; Test RSUB
 L_RSUB_RET_01   HALT                            ; We will never return here!
 
@@ -1050,8 +1058,8 @@ E_RSUB_02       HALT
 E_RSUB_03       HALT
 E_RSUB_04       HALT
 
-L_STACK_BOT     .DW     0x0123, 0x1234, 0x2345, 0x3456, 0x4567
-L_STACK_TOP     .DW     0x5678
+L_STACK_BOT     .DW     0, 0, 0, 0, 0
+L_STACK_TOP     .DW     0
 
 L_RSUB_10
 
