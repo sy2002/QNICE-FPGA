@@ -75,6 +75,7 @@ architecture synthesis of vga_text_mode is
       char_offset_x : natural range 0 to C_CHAR_WIDTH-1;
       char_offset_y : natural range 0 to C_CHAR_HEIGHT-1;
       bitmap_index  : natural range 0 to C_CHAR_WIDTH-1;
+      font_pixel    : std_logic;
       cursor_blink  : std_logic_vector(5 downto 0);
       cursor_pixel  : std_logic;
       cursor_here   : std_logic;
@@ -173,6 +174,9 @@ begin
    -- Calculate index into bitmap
    stage2.bitmap_index <= C_CHAR_WIDTH-1 - stage2.char_offset_x;
 
+   -- Get pixel from font bitmap
+   stage2.font_pixel <= stage2.bitmap(stage2.bitmap_index);
+
    -- Generate cursor blink frequency (2 Hz).
    stage2.cursor_blink <= std_logic_vector(unsigned(frame_i) / 15);
 
@@ -186,8 +190,8 @@ begin
                     else '0';
 
    -- Read pixel from cursor or from bitmap.
-   stage2.pixel <= stage2.cursor_pixel when cursor_enable_i = '1' and stage2.cursor_here = '1'
-              else stage2.bitmap(stage2.bitmap_index);
+   stage2.pixel <= stage2.font_pixel xor stage2.cursor_pixel when cursor_enable_i = '1' and stage2.cursor_here = '1'
+              else stage2.font_pixel;
 
    -- Read color from Palette RAM
    stage2.palette_addr <= "0" & stage2.color_fg when stage2.pixel = '1'   -- Foreground color
