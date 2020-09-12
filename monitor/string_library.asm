@@ -134,14 +134,12 @@ _STR$CMP_EXIT   DECRB                       ; Restore previous register page
 STR$STRCHR          INCRB
                     MOVE    R9, R0
                     XOR     R10, R10
-_STR$STRCHR_LOOP    CMP     0x0000, @R0         ; while (*string)
+_STR$STRCHR_LOOP    CMP     R10, @R0            ; while (*string)
                     RBRA    _STR$STRCHR_EXIT, Z
-                    CMP     R8, @R0             ; if (*string == R8)
-                    RBRA    _STR$STRCHR_NEXT, !Z
+                    CMP     R8, @R0++           ; if (*string == R8)
+                    RBRA    _STR$STRCHR_LOOP, !Z
                     MOVE    R0, R10
-                    RBRA    _STR$STRCHR_EXIT, 1
-_STR$STRCHR_NEXT    ADD     0x0001, R0          ; string++
-                    RBRA    _STR$STRCHR_LOOP, 1
+                    SUB     0x0001, R10
 _STR$STRCHR_EXIT    DECRB
                     RET
 ;
