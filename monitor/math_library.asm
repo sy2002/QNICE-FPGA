@@ -303,11 +303,12 @@ _MTH$GTEQALT_C  CMP     R8, R10                 ; is R8 < R10?
                 RBRA    _MTH$GTEQALT_0, Z       ; equals R10: C=0 and return                
 
 _MTH$GTEQALT_1  OR      4, SR                   ; set C flag to 1 and return
-_MTH$GTEQALT_X  DECRB
+                DECRB
                 RET
 
 _MTH$GTEQALT_0  AND     0xFFFB, SR              ; clear C flag and return
-                RBRA    _MTH$GTEQALT_X, 1
+                DECRB
+                RET 
 ;
 ;******************************************************************************
 ;*
