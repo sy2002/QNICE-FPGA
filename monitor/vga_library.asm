@@ -31,6 +31,7 @@ VGA$INIT                INCRB
                         MOVE    VGA$FONT_OFFS, R1       ; Reset the font offset reg.
                         MOVE    R0, @R1
                         RSUB    _VGA$INIT_PAL, 1        ; classic green/black look
+                        RSUB    _VGA$DEFAULT_FONT, 1    ; activate default font
                         DECRB
                         RET
 
@@ -44,6 +45,12 @@ _VGA$INIT_PAL           INCRB
                         MOVE    VGA$COLOR_BLACK, @R1
                         DECRB
                         RET
+
+_VGA$DEFAULT_FONT       INCRB
+                        MOVE    VGA$FONT_OFFS, R0
+                        MOVE    VGA$FONT_OFFS_DEFAULT, @R0
+                        DECRB
+                        RET                        
 
 _VGA$FACTORY_PAL        INCRB
                         MOVE    VGA$PALETTE_OFFS, R0    ; back to the factory default

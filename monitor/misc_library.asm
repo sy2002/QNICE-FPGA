@@ -34,4 +34,5 @@ _MISC$WAIT_END  DECRB
 ;
 MISC$EXIT       ADD     0x0001, SP              ; Just out of paranoia
                 RSUB    _VGA$INIT_PAL, 1        ; classic green/black look
+                RSUB    _VGA$DEFAULT_FONT, 1    ; activate default font
                 RBRA    QMON$WARMSTART, 1
