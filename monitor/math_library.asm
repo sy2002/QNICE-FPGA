@@ -287,7 +287,7 @@ _MTH$DIVU32_END MOVE    R1, R9                  ; hi Q
 ;
 ;******************************************************************************
 ;*
-;* MTH$IN_RANGE_U    returns C=1 if R8 >= R9 and < R10 else C=0
+;* MTH$IN_RANGE_U    returns C=1 if R9 <= R8 < R10 else C=0
 ;*                   R8, R9, R10 treated as unsigned
 ;*
 ;******************************************************************************
