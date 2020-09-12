@@ -112,6 +112,17 @@ LRU_INIT_LOOP   MOVE    0, @R0++
                 SUB     1, R1
                 RBRA    LRU_INIT_LOOP, !Z
 
+                MOVE    FONT_MODE, R0
+                MOVE    0, @R0
+
+                ; font ed cursor positions
+                MOVE    FONT_ED_CX, R0
+                MOVE    CHAR_ED_X, @R0
+                ADD     1, @R0
+                MOVE    FONT_ED_CY, R0
+                MOVE    CHAR_ED_Y, @R0
+                ADD     1, @R0
+
                 ; set up the screen and calculate the *_WS_* variables
 TILE_ED_RESET   SYSCALL(vga_cls, 1)             ; clear screen
                 RSUB    DRAW_PALETTE, 1         ; character palette
@@ -132,18 +143,21 @@ TILE_ED_KEEP    MOVE    VGA$CR_X, R0            ; R0: hw cursor X
                 MOVE    TILE_WS_Y, R8
                 MOVE    @R8, R7                 ; R7: tile y pos
 
-               ; print currently selected char
-MAIN_LOOP       MOVE    R4, @R0
+                ; print currently selected char
+MAIN_LOOP       MOVE    SELECTED_X, @R0
+                MOVE    SELECTED_Y, @R1
+                MOVE    SELECTED_CHR, R12                
+                MOVE    FONT_MODE, R8
+                CMP     1, @R8                  ; 0=standard, 1=inside font ed
+                RBRA    SET_CRS, Z
+                MOVE    R4, @R0
                 MOVE    R5, @R1
                 MOVE    @R2, R8
-                MOVE    SELECTED_X, @R0
-                MOVE    SELECTED_Y, @R1
                 MOVE    R8, @R2
-                MOVE    SELECTED_CHR, R12
                 MOVE    R8, @R12
 
                 ; set cursor depending on mode
-                CMP     0, R3                   
+SET_CRS         CMP     0, R3                   
                 RBRA    CRS_MODE_0, Z
                 MOVE    R6, @R0
                 MOVE    R7, @R1
@@ -160,8 +174,16 @@ WAIT_FOR_KEY    RSUB    KBD_GETCHAR, 1
                 CMP     KBD$F5, R8              ; F5 = clear
                 RBRA    CLEAR, Z
                 CMP     KBD$F7, R8              ; F7 = toggle font mode
-                RSUB    FONT_ED, Z
-                CMP     KBD$F12, R8             ; F12 = quit
+                RBRA    _WFK_CHK_F12, !Z
+_WFK_FONTED     RSUB    FONT_ED, Z
+                MOVE    R8, R3                  ; remember mode
+                CMP     1, R3                   ; sprite mode?
+                RBRA    MAIN_LOOP, Z
+                RSUB    DRAW_PALETTE, 1         ; character palette
+                MOVE    0, R8                   ; R8=0: default workspace
+                RSUB    DRAW_WORKSPACE, 1       ; the rest of the workspace                
+                RBRA    MAIN_LOOP, 1
+_WFK_CHK_F12    CMP     KBD$F12, R8             ; F12 = quit
                 RBRA    SAVE_DATA, Z
                 CMP     KBD$SPACE, R8           ; SPACE = draw character
                 RBRA    DRAW_CHAR, Z
@@ -280,14 +302,20 @@ NAV_TILE_E      MOVE    TILE_WS_X_MAX, R8       ; bottom right position
 
                 ; switch mode between palette and tile
 SWITCH_MODE     XOR     1, R3
-                RBRA    MAIN_LOOP, 1
+                MOVE    FONT_MODE, R8           ; running inside font ed?
+                MOVE    @R8, R8                
+                RBRA    MAIN_LOOP, Z            ; no: standard mode
+
+                XOR     R8, R8                  ; CPU BUG: if you comment
+                                                ; this out, nothing works
+
+                RBRA    _WFK_FONTED, 1          ; yes: back to fond ed
 
                 ; draw the currently active character of the palette
                 ; (aka "SELECTED") to the current cursor position within
                 ; the tile window
-DRAW_CHAR       MOVE    R4, @R0
-                MOVE    R5, @R1
-                MOVE    @R2, R8                 ; retrieve the character
+DRAW_CHAR       MOVE    SELECTED_CHR, R8
+                MOVE    @R8, R8
                 MOVE    R6, @R0
                 MOVE    R7, @R1
                 MOVE    R8, @R2                 ; print the character
@@ -416,7 +444,7 @@ _CS_ODX_NDX     MOVE    TILE_DY, R12
                 MOVE    39, R10
                 MOVE    STR_CLR_LINE, R8
                 RSUB    PRINT_STR_AT, 1
-                MOVE    STR_HELP, R8
+                MOVE    STR_HELP_MAIN, R8
                 RSUB    PRINT_STR_AT, 1
                 RBRA    TILE_ED_KEEP, 1         ; ...and preserve the work
 
@@ -439,7 +467,10 @@ HEX_DIGITS      .ASCII_P "0123456789ABCDEF"
 
 STR_HELLO       .ASCII_W "TileEd - Textmode Sprite Editor  V2.0  by sy2002 in September 2020"
 STR_NOSTART     .ASCII_W "Either TILE_DX or TILE_DY is larger than the allowed maximum. TileEd halted.\n"
-STR_HELP        .ASCII_W "F1: Sprite F3: Size F5: Clr F7: Font F9: Pal F12: Output SPACE: Paint CRSR: Nav"
+STR_HELP_MAIN   .ASCII_P "F1: Sprite F3: Size F5: Clr F7: Font F9: Pal F12: Output SPACE: Paint CRSR: Nav`"
+                .ASCII_W "XX         XX       XX      XX       XX      XXX         XXXXX        XXXX"
+STR_HELP_FONT   .ASCII_P "F1: Char/Sprite F5: Clear F7: Back SPACE: Paint CRSR: Nav a..p & A..P: Color   `"
+                .ASCII_W "XX              XX        XX       XXXXX        XXXX      X  X   X  X"
 STR_CLR_LEFT    .ASCII_W "                                 "
 STR_CLR_LINE    .ASCII_W "                                                                                "
 STR_CHG_SIZE_X  .ASCII_W "Enter new width (1..44): "
@@ -451,14 +482,18 @@ STR_BACKGROUND  .ASCII_W "Background color:"
 ; ****************************************************************************
 ; FONT_ED
 ;    Main routine for color selection and font editing
+;    Returns mode in R8: 0 = standard font palette, 1 = sprite editing
 ; ****************************************************************************
 
 FONT_ED         INCRB
-                MOVE    R8, R0
                 MOVE    R9, R1
                 MOVE    R10, R2
                 MOVE    R11, R3
-                MOVE    R12, R4                
+                MOVE    R12, R4
+                MOVE    VGA$CR_X, R5
+                MOVE    @R5, R5
+                MOVE    VGA$CR_Y, R6
+                MOVE    @R6, R6
 
                 ; save the dimensions of the sprite, because we are reusing
                 ; the workspace drawing routine here
@@ -472,13 +507,7 @@ FONT_ED         INCRB
                 ; draw the font ed workspace by clearing the character
                 ; selection palette and showing the font editing window
                 ; and the color selection palette instead
-_FONTED_START   MOVE    STR_CLR_LEFT, R8        ; string contains spaces
-                XOR     R9, R9                  ; R9:  column
-                MOVE    3, R10                  ; R10: line
-_FONTED_CLR     RSUB    PRINT_STR_AT, 1
-                ADD     1, R10
-                CMP     37, R10                 ; clear until line 36
-                RBRA    _FONTED_CLR, !Z             
+_FONTED_START   RSUB    _FONTED_CLR, 1
                 MOVE    TILE_DX, R0             ; font size is 8x12
                 MOVE    8, @R0
                 MOVE    TILE_DY, R0
@@ -492,6 +521,7 @@ _FONTED_CLR     RSUB    PRINT_STR_AT, 1
                 MOVE    VGA$CHAR, R2            ; R2: print at hw cursor pos                
                 MOVE    SELECTED_CHR, R3
                 MOVE    @R3, R3                 ; R3: char being edited
+                AND     0x00FF, R3              ; drop color information
                 MOVE    LRU_FGBG, R12           ; R12: fg/bg color combination
                 ADD     R3, R12
                 MOVE    @R12, R12
@@ -499,14 +529,15 @@ _FONTED_CLR     RSUB    PRINT_STR_AT, 1
                 MOVE    SELECTED_X, @R0         ; print the small char at ..
                 MOVE    SELECTED_Y, @R1         ; .. the bottom of the screen
                 MOVE    R3, R10                 ; ASCII selected char
+                AND     0x00FF, R10             ; delete old color
                 ADD     R12, R10                ; apply fg/bg color
                 MOVE    R10, @R2                ; print
 
-                MOVE    CHAR_ED_X, @R0
-                ADD     1, @R0                  ; cursor to x start pos
-                MOVE    @R0, R4                 ; R4: X pos of each line
+                MOVE    CHAR_ED_X, R4           ; R4=start col. for each line
+                ADD     1, R4
+                MOVE    R4, @R0
                 MOVE    CHAR_ED_Y, @R1
-                ADD     1, @R1                  ; cursor to y start pos
+                ADD     1, @R1
 
                 MOVE    R3, R8                  ; calculate address of char .. 
                 MOVE    12, R9                  ; .. pattern in font ram
@@ -573,12 +604,13 @@ _FONTED_PNEXT   MOVE    R4, @R0                 ; x-coord: back to 1st column
                 MOVE    CHR_PAL_SEL_B, R12
                 RSUB    _FONTED_PALL, 1
 
-                ; font ed main loop
-                MOVE    CHAR_ED_X, @R0
-                ADD     1, @R0
-                MOVE    CHAR_ED_Y, @R1
-                ADD     1, @R1
+                ; font edit cursor
+                MOVE    FONT_ED_CX, R8
+                MOVE    @R8, @R0
+                MOVE    FONT_ED_CY, R8                
+                MOVE    @R8, @R1
 
+                ; font ed main loop
 _FONTED_MAIN    RSUB    KBD_GETCHAR, 1                
 
                 ; check for foreground color selected: >= `a` and < `q`
@@ -593,10 +625,12 @@ _FONTED_MAIN    RSUB    KBD_GETCHAR, 1
                 AND     0xFFFD, SR              ; clear X before SHL   
                 SHL     8, R8                   ; foreground color bit pos.
                 MOVE    LRU_FGBG, R9            ; index the LRU buffer with ..
-                MOVE    SELECTED_CHR, R10       ; .. the character
+                MOVE    SELECTED_CHR, R10       ; .. the character ..
+                AND     0x00FF, @R10            ; .. but without color info
                 ADD     @R10, R9
                 AND     0xF000, @R9             ; clear old foreground color 
                 ADD     R8, @R9                 ; set new foreground color
+                MOVE    @R9, @R10               ; save modified selected char                
                 RBRA    _FONTED_START, 1        ; redraw everything
 
                 ; check for background color selected: >= `A` and < `Q`
@@ -611,10 +645,12 @@ _FONTED_CHKB    MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
                 AND     0xFFFD, SR              ; clear X before SHL   
                 SHL     12, R8                  ; background color bit pos.
                 MOVE    LRU_FGBG, R9            ; index the LRU buffer with ..
-                MOVE    SELECTED_CHR, R10       ; .. the character
+                MOVE    SELECTED_CHR, R10       ; .. the character ..
+                AND     0x00FF, @R10            ; .. but without color info                
                 ADD     @R10, R9
                 AND     0x0F00, @R9             ; clear old background color
                 ADD     R8, @R9                 ; set new background color
+                MOVE    @R9, @R10               ; save modified selected char
                 RBRA    _FONTED_START, 1
 
                 ; check for cursor keys
@@ -626,6 +662,8 @@ _FONTED_CHKCSR  CMP     KBD$CUR_RIGHT, R8       ; cursor right?
                 CMP     R9, 8                   ; char width = 8
                 RBRA    _FONTED_MAIN, N         ; out of bounds: ignore key
                 ADD     1, @R0                  ; move cursor to the right
+                MOVE    FONT_ED_CX, R8          ; remember x position
+                MOVE    @R0, @R8
                 RBRA    _FONTED_MAIN, 1         ; get next key
 
 _FONTED_CC_L    CMP     KBD$CUR_LEFT, R8        ; cursor left?
@@ -635,6 +673,8 @@ _FONTED_CC_L    CMP     KBD$CUR_LEFT, R8        ; cursor left?
                 CMP     R9, CHAR_ED_X
                 RBRA    _FONTED_MAIN, !N        ; out of bounds: ignore key
                 MOVE    R9, @R0                 ; move cursor to the left
+                MOVE    FONT_ED_CX, R8          ; remember x position
+                MOVE    R9, @R8
                 RBRA    _FONTED_MAIN, 1
 
 _FONTED_CC_D    CMP     KBD$CUR_DOWN, R8        ; cursor down
@@ -645,6 +685,8 @@ _FONTED_CC_D    CMP     KBD$CUR_DOWN, R8        ; cursor down
                 CMP     R9, 12                  ; char height = 12
                 RBRA    _FONTED_MAIN, N         ; out of bounds: ignore key
                 ADD     1, @R1                  ; move cursor down
+                MOVE    FONT_ED_CY, R8          ; remember y position
+                MOVE    @R1, @R8
                 RBRA    _FONTED_MAIN, 1
 
 _FONTED_CC_U    CMP     KBD$CUR_UP, R8          ; cursor up
@@ -654,21 +696,29 @@ _FONTED_CC_U    CMP     KBD$CUR_UP, R8          ; cursor up
                 CMP     R9, CHAR_ED_Y
                 RBRA    _FONTED_MAIN, !N        ; out of bounds: ignore key
                 MOVE    R9, @R1                 ; move cursor up
+                MOVE    FONT_ED_CY, R8          ; remember y position
+                MOVE    R9, @R8
                 RBRA    _FONTED_MAIN, 1
 
 _FONTED_SPACE   CMP     KBD$SPACE, R8           ; space
                 RBRA    _FONTED_F1, !Z
                 CMP     @R2, CHR_DRAW_1         ; is pixel is set?
                 RBRA    _FONTED_SET0, Z         ; yes: so delete it
-                MOVE    CHR_DRAW_1, @R2         ; no: so set it
+                MOVE    CHR_DRAW_1, @R2         ; no: so set it                
                 RBRA    _FONTED_MODF, 1
 _FONTED_SET0    MOVE    CHR_DRAW_0, @R2
-_FONTED_MODF    XOR     R12, R12                ; scanend bit pattern
+_FONTED_MODF    MOVE    SELECTED_CHR, R12       ; apply color
+                MOVE    @R12, R12
+                AND     0xFF00, R12
+                ADD     R12, @R2
+                XOR     R12, R12                ; scanend bit pattern
                 MOVE    8, R9                   ; char is 8 pixel wide
                 MOVE    @R0, R7                 ; save original cursor pos
                 MOVE    CHAR_ED_X, @R0          ; scan line from left to right
 _FONTED_MODF3   ADD     1, @R0
-                CMP     @R2, CHR_DRAW_1         ; pixel is set?
+                MOVE    @R2, R8                 ; discard color information
+                AND     0x00FF, R8
+                CMP     R8, CHR_DRAW_1          ; pixel is set?
                 RBRA    _FONTED_MODF1, !Z       ; no
                 OR      2, SR                   ; set X for SHL (shift in a 1)
                 RBRA    _FONTED_MODF2, 1
@@ -676,8 +726,9 @@ _FONTED_MODF1   AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)
 _FONTED_MODF2   SHL     1, R12                  
                 SUB     1, R9
                 RBRA    _FONTED_MODF3, !Z
-                MOVE    SELECTED_CHR, R8        ; change font ram:
+                MOVE    SELECTED_CHR, R8        ; change font ram:                
                 MOVE    @R8, R8                 ; offs = (ascii * 12) + line
+                AND     0x00FF, R8              ; discard color information
                 MOVE    12, R9
                 SYSCALL(mulu, 1)
                 ADD     @R1, R10                ; @R1 = line + CHAR_ED_Y + 1
@@ -690,21 +741,68 @@ _FONTED_MODF2   SHL     1, R12
                 MOVE    R7, @R0                 ; restore original cursor pos
                 RBRA    _FONTED_MAIN, 1
 
-_FONTED_F1      SYSCALL(exit, 1)
-_FONTED_F7      SYSCALL(exit, 1)
+_FONTED_F1      CMP     KBD$F1, R8              ; F1
+                RBRA    _FONTED_F5, !Z          ; no
+                MOVE    FONT_MODE, R0           ; sprite editing while in ..
+                MOVE    1, @R0                  ; .. font mode
+                MOVE    1, R8
+                RBRA    _FONTED_EXIT, 1
+
+_FONTED_F5      CMP     KBD$F5, R8              ; F5
+                RBRA    _FONTED_F7, !Z          ; no
+                SYSCALL(exit, 1)
+
+_FONTED_F7      CMP     KBD$F7, R8              ; F7
+                RBRA    _FONTED_MAIN, !Z        ; no
+                RSUB    _FONTED_CLR, 1          ; clear left part of workspace
+                MOVE    FONT_MODE, R0           ; back to normal main mode
+                MOVE    0, @R0
+                MOVE    0, R8
+                RBRA    _FONTED_EXIT, 1
 
                 ; restore registers and sprite size
-                DECRB
+_FONTED_EXIT    MOVE    R8, R0
+                MOVE    STR_HELP_MAIN, R8
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
+
                 MOVE    R0, R8
-                MOVE    R1, R9
-                MOVE    R2, R10
-                MOVE    R3, R11
-                MOVE    R4, R12
                 DECRB
                 MOVE    TILE_DX, R2
                 MOVE    R0, @R2
                 MOVE    TILE_DY, R2
                 MOVE    R1, @R2
+                DECRB
+                MOVE    R1, R9
+                MOVE    R2, R10
+                MOVE    R3, R11
+                MOVE    R4, R12
+                MOVE    VGA$CR_X, R7
+                MOVE    R5, @R7++
+                MOVE    R6, @R7
+                DECRB
+                RET
+
+                ; clears left part of workspace
+_FONTED_CLR     INCRB
+                MOVE    R8, R0
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+                INCRB
+                MOVE    STR_CLR_LEFT, R8        ; string contains spaces
+                XOR     R9, R9                  ; R9:  column
+                MOVE    2, R10                  ; R10: line
+_FONTED_CLR1    RSUB    PRINT_STR_AT, 1
+                ADD     1, R10
+                CMP     37, R10                 ; clear until line 36
+                RBRA    _FONTED_CLR1, !Z
+                DECRB
+                MOVE    R0, R8
+                MOVE    R1, R9
+                MOVE    R2, R10
+                MOVE    R3, R11
                 DECRB
                 RET
 
@@ -856,9 +954,13 @@ DRAW_WORKSPACE  INCRB
                 MOVE    STR_CURCHAR, R8         ; selected character string
                 MOVE    SELECTED_Y, R10
                 RSUB    PRINT_STR_AT, 1
-                MOVE    STR_HELP, R8            ; help string: Bottom line
-                MOVE    39, R10
-                RSUB    PRINT_STR_AT, 1
+                CMP     1, R7                   ; font help or std. help?
+                RBRA    _DRAW_WS_HM, !Z
+                MOVE    STR_HELP_FONT, R8
+                RBRA    _DRAW_WS_PH, 1
+_DRAW_WS_HM     MOVE    STR_HELP_MAIN, R8       
+_DRAW_WS_PH     MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1         ; help string: Bottom line
 
                 ; VGA registers
                 MOVE    VGA$CR_X, R0          
@@ -956,6 +1058,7 @@ _DRAW_WS_NX_LR  MOVE    0x0085, @R2             ; draw left "|"
 ; PRINT_STR_AT
 ;   print a zero terminated string at x/y pos
 ;   only one-liners are allowed
+;   a tab char \t designates that now a mask for inverting is following
 ;   R8: pointer to string
 ;   R9/R10: x/y pos
 ;   R11 (output): x-pos of last printed character plus one
@@ -969,16 +1072,29 @@ PRINT_STR_AT    INCRB
                 MOVE    VGA$CHAR, R1
                 MOVE    R8, R3
                 MOVE    R9, R4
+                MOVE    R4, R5
 
 _PRINT_STR_LOOP MOVE    R4, @R0                 ; set x-pos
+                CMP     '`', @R3               ; inverting mask mode?
+                RBRA    _PRINT_STR_INV, Z       ; yes
                 MOVE    @R3, @R1                ; print character
                 ADD     1, R4                   ; increase x-pos
                 ADD     1, R3                   ; increase character pointer
                 CMP     0, @R3                  ; string end?
                 RBRA    _PRINT_STR_LOOP, !Z     ; no: continue printing
+                RBRA    _PRINT_STR_END, 1
 
-                MOVE    R4, R11
+_PRINT_STR_INV  ADD     1, R3                   ; skip the backtick
+_PRINT_STR_INV1 MOVE    R5, @R0
+                CMP     'X', @R3                ; invert current position?
+                RBRA    _PRINT_STR_INV2, !Z     ; no
+                ADD     0x8800, @R1
+_PRINT_STR_INV2 ADD     1, R3
+                ADD     1, R5
+                CMP     0, @R3
+                RBRA    _PRINT_STR_INV1, !Z
 
+_PRINT_STR_END  MOVE R4, R11
                 DECRB
                 RET
 
@@ -988,6 +1104,8 @@ _PRINT_STR_LOOP MOVE    R4, @R0                 ; set x-pos
 ; ****************************************************************************
 
 DRAW_PALETTE    INCRB
+
+                MOVE    LRU_FGBG, R7
 
                 ; draw y axis legend
                 MOVE    VGA$CR_Y, R0            
@@ -1017,6 +1135,10 @@ _DRAW_P_LY      MOVE    START_X, R3             ; x-starting pos. of each row
 _DRAW_P_LX      MOVE    R3, @R0                 ; cursor x-pos to hardware
                 MOVE    R4, @R1                 ; dito cursor y-pos
                 MOVE    R8, @R2                 ; print character on VGA
+                MOVE    R7, R6
+                ADD     R8, R6
+                AND     0x00FF, @R2             ; delete old color
+                ADD     @R6, @R2                ; apply LRU color
 
                 ADD     2, R3                   ; skip one column
                 ADD     1, R8                   ; next character
@@ -1085,6 +1207,9 @@ TILE_DX         .BLOCK 1
 TILE_DY         .BLOCK 1
 
 SELECTED_CHR    .BLOCK 1
+FONT_MODE       .BLOCK 1
+FONT_ED_CX      .BLOCK 1                        
+FONT_ED_CY      .BLOCK 1
 
 ; workspace boundaries in absolute screen coordinates: palette and tile
 PAL_WS_X        .BLOCK 1
