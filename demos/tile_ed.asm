@@ -4,17 +4,21 @@
 ; Uses VGA to display all 256 characters of the font (based on font.asm) on
 ; the left side of the screen. On the right side of the screen, there is a
 ; box of the size TILE_DX_INIT and TILE_DY_INIT (size can be changed during
-; runtime using F2 on the PS2/USB keyboard).
+; runtime using F3 on the PS2/USB keyboard).
 ;
 ; Using F1 on the USB keyboard, you can jump between the character palette
 ; and the tile and using SPACE on the USB keyboard, you can "paint" characters
 ; into the tile box. As soon as you press F12, the program outputs .DW
 ; statements via UART that can be copy/pasted into QNICE assmebler code.
 ;
+; You can also work in multicolor and edit the font itself using F7 and change
+; the palette using F9.
+;
 ; TileEd ignores STDIN and STDOUT settings of the monitor: the .DW statements
 ; always go to the UART and the other input/ouput is done via keyboard/VGA.
 ;
 ; done by sy2002 in January 2016
+; enhanced by sy2002 to support font graphics and color in September 2020
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -33,7 +37,19 @@ TILE_DX_MAX     .EQU 44                         ; if this is changed, then ...
 TILE_DY_MAX     .EQU 36                         ; change STR_CHG_SIZE_*, too
 SELECTED_X      .EQU 10
 SELECTED_Y      .EQU 37
-                
+
+CHR_DRAW_1      .EQU 0x0010                     ; font editing char
+CHR_DRAW_0      .EQU 0x0020
+CHAR_ED_X       .EQU 12                         ; start coords. char ed. win.
+CHAR_ED_Y       .EQU 2
+
+CHR_PAL_F       .EQU 0x0011                     ; foregr. col. pal. disp. char
+CHR_PAL_B       .EQU 0x0020                     ; backgr. col. pal. disp. char
+CHR_PAL_SEL_F   .EQU 'a'                        ; foreground col selector
+CHR_PAL_SEL_B   .EQU 'A'                        ; background col selector
+PAL_ED_X        .EQU 2
+PAL_ED_Y        .EQU 17
+
                 .ORG 0x8000
 
                 ; check external interface "variables" TILE_DX_INIT and
@@ -55,9 +71,51 @@ TILE_ED_START   MOVE    TILE_DX, R0
                 MOVE    TILE_DY, R0
                 MOVE    TILE_DY_INIT, @R0
 
+                ; copy font to custom font and switch to custom font
+                MOVE    VGA$FONT_OFFS, R0
+                MOVE    VGA$FONT_ADDR, R1
+                MOVE    VGA$FONT_DATA, R2
+                MOVE    VGA$FONT_OFFS_DEFAULT, @R0
+                XOR     R3, R3                  ; source pattern
+                MOVE    VGA$FONT_OFFS_USER, R4  ; destination pattern
+COPY_FONT_LOOP  MOVE    R3, @R1                 ; read source pattern
+                MOVE    @R2, R5                 ; R5: bit pattern                
+                MOVE    R4, @R1                 ; copy source to destination
+                MOVE    R5, @R2
+                ADD     1, R3                   ; next char bit pattern
+                ADD     1, R4
+                CMP     3072, R3                ; 256 chars x 12 lines
+                RBRA    COPY_FONT_LOOP, !Z      ; done?
+                MOVE    VGA$FONT_OFFS_USER, @R0
+
+                ; copy palette to custom palette and switch to custom pal.
+                MOVE    VGA$PALETTE_OFFS, R0
+                MOVE    VGA$PALETTE_ADDR, R1
+                MOVE    VGA$PALETTE_DATA, R2
+                MOVE    VGA$PALETTE_OFFS_DEFAULT, @R0
+                XOR     R3, R3
+                MOVE    VGA$PALETTE_OFFS_USER, R4
+COPY_PAL_LOOP   MOVE    R3, @R1
+                MOVE    @R2, R5
+                MOVE    R4, @R1
+                MOVE    R5, @R2
+                ADD     1, R3
+                ADD     1, R4
+                CMP     32, R3
+                RBRA    COPY_PAL_LOOP, !Z
+                MOVE    VGA$PALETTE_OFFS_USER, @R0
+
+                ; clear the foreground/background color LRU buffer
+                MOVE    LRU_FGBG, R0
+                MOVE    256, R1
+LRU_INIT_LOOP   MOVE    0, @R0++
+                SUB     1, R1
+                RBRA    LRU_INIT_LOOP, !Z
+
                 ; set up the screen and calculate the *_WS_* variables
-TILE_ED_RESET   RSUB    CLRSCR, 1               ; clear screen
+TILE_ED_RESET   SYSCALL(vga_cls, 1)             ; clear screen
                 RSUB    DRAW_PALETTE, 1         ; character palette
+                MOVE    0, R8                   ; R8=0: default workspace
                 RSUB    DRAW_WORKSPACE, 1       ; the rest of the workspace
 
                 ; global registers
@@ -81,6 +139,8 @@ MAIN_LOOP       MOVE    R4, @R0
                 MOVE    SELECTED_X, @R0
                 MOVE    SELECTED_Y, @R1
                 MOVE    R8, @R2
+                MOVE    SELECTED_CHR, R12
+                MOVE    R8, @R12
 
                 ; set cursor depending on mode
                 CMP     0, R3                   
@@ -93,12 +153,14 @@ CRS_MODE_0      MOVE    R4, @R0
 
                 ; keyboard handler
 WAIT_FOR_KEY    RSUB    KBD_GETCHAR, 1
-                CMP     KBD$F1, R8              ; F1 = switch mode
+                CMP     KBD$F1, R8              ; F1 = toggle sprite mode
                 RBRA    SWITCH_MODE, Z
-                CMP     KBD$F2, R8              ; F2 = change size (and clear)
+                CMP     KBD$F3, R8              ; F3 = change size (and clear)
                 RBRA    CHANGE_SIZE, Z
-                CMP     KBD$F3, R8              ; F3 = clear
+                CMP     KBD$F5, R8              ; F5 = clear
                 RBRA    CLEAR, Z
+                CMP     KBD$F7, R8              ; F7 = toggle font mode
+                RSUB    FONT_ED, Z
                 CMP     KBD$F12, R8             ; F12 = quit
                 RBRA    SAVE_DATA, Z
                 CMP     KBD$SPACE, R8           ; SPACE = draw character
@@ -229,7 +291,6 @@ DRAW_CHAR       MOVE    R4, @R0
                 MOVE    R6, @R0
                 MOVE    R7, @R1
                 MOVE    R8, @R2                 ; print the character
-                RSUB    WAIT_FOR_VGA, 1
                 RBRA    MAIN_LOOP, 1
 
                 ; clear tile
@@ -366,8 +427,8 @@ _CS_STORE_NEW   MOVE    TILE_DX, R12
                 RBRA    TILE_ED_RESET, 1        ; reset TileEd with new DX, DY
 
                 ; return to the system by clearing the screen and resetting
-END             SYSCALL(vga_init, 1)
-                SYSCALL(vga_cls, 1)
+END             SYSCALL(vga_init, 1)            ; also activates default font
+                SYSCALL(vga_cls, 1)                
                 SYSCALL(exit, 1)
 
 ; ****************************************************************************
@@ -376,14 +437,219 @@ END             SYSCALL(vga_init, 1)
 
 HEX_DIGITS      .ASCII_P "0123456789ABCDEF"
 
-STR_HELLO       .ASCII_W "TileEd - Textmode Sprite Editor  V1.0  by sy2002 in January 2016"
-STR_HELP        .ASCII_W "F1: Toggle F2: Size F3: Clear F12: Output & Quit SPACE: Paint CURSOR: Navigate"
+STR_HELLO       .ASCII_W "TileEd - Textmode Sprite Editor  V2.0  by sy2002 in September 2020"
+STR_NOSTART     .ASCII_W "Either TILE_DX or TILE_DY is larger than the allowed maximum. TileEd halted.\n"
+STR_HELP        .ASCII_W "F1: Sprite F3: Size F5: Clr F7: Font F9: Pal F12: Output SPACE: Paint CRSR: Nav"
+STR_CLR_LEFT    .ASCII_W "                                 "
 STR_CLR_LINE    .ASCII_W "                                                                                "
 STR_CHG_SIZE_X  .ASCII_W "Enter new width (1..44): "
 STR_CHG_SIZE_Y  .ASCII_W "Enter new height (1..36): "
 STR_CURCHAR     .ASCII_W "SELECTED:"
-STR_NOSTART     .ASCII_W "Either TILE_DX or TILE_DY is larger than the allowed maximum. TileEd halted.\n"
+STR_FOREGROUND  .ASCII_W "Foreground color:"
+STR_BACKGROUND  .ASCII_W "Background color:"
 
+; ****************************************************************************
+; FONT_ED
+;    Main routine for color selection and font editing
+; ****************************************************************************
+
+FONT_ED         INCRB
+                MOVE    R8, R0
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+                MOVE    R12, R4                
+
+                ; save the dimensions of the sprite, because we are reusing
+                ; the workspace drawing routine here
+                INCRB
+                MOVE    TILE_DX, R0
+                MOVE    @R0, R0
+                MOVE    TILE_DY, R1
+                MOVE    @R1, R1
+                INCRB
+
+                ; draw the font ed workspace by clearing the character
+                ; selection palette and showing the font editing window
+                ; and the color selection palette instead
+_FONTED_START   MOVE    STR_CLR_LEFT, R8        ; string contains spaces
+                XOR     R9, R9                  ; R9:  column
+                MOVE    3, R10                  ; R10: line
+_FONTED_CLR     RSUB    PRINT_STR_AT, 1
+                ADD     1, R10
+                CMP     37, R10                 ; clear until line 36
+                RBRA    _FONTED_CLR, !Z             
+                MOVE    TILE_DX, R0             ; font size is 8x12
+                MOVE    8, @R0
+                MOVE    TILE_DY, R0
+                MOVE    12, @R0
+                MOVE    1, R8                   ; R8=1: font ed workspace
+                RSUB    DRAW_WORKSPACE, 1
+
+                ; draw the character that is being edited
+                MOVE    VGA$CR_X, R0            ; R0: hw cursor X
+                MOVE    VGA$CR_Y, R1            ; R1: hw cursor Y
+                MOVE    VGA$CHAR, R2            ; R2: print at hw cursor pos                
+                MOVE    SELECTED_CHR, R3
+                MOVE    @R3, R3                 ; R3: char being edited
+                MOVE    LRU_FGBG, R12           ; R12: fg/bg color combination
+                ADD     R3, R12
+                MOVE    @R12, R12
+
+                MOVE    SELECTED_X, @R0         ; print the small char at ..
+                MOVE    SELECTED_Y, @R1         ; .. the bottom of the screen
+                MOVE    R3, R10                 ; ASCII selected char
+                ADD     R12, R10                ; apply fg/bg color
+                MOVE    R10, @R2                ; print
+
+                MOVE    CHAR_ED_X, @R0
+                ADD     1, @R0                  ; cursor to x start pos
+                MOVE    @R0, R4                 ; R4: X pos of each line
+                MOVE    CHAR_ED_Y, @R1
+                ADD     1, @R1                  ; cursor to y start pos
+
+                MOVE    R3, R8                  ; calculate address of char .. 
+                MOVE    12, R9                  ; .. pattern in font ram
+                SYSCALL(mulu, 1)
+                ADD     VGA$FONT_OFFS_USER, R10
+                MOVE    VGA$FONT_ADDR, R6
+                MOVE    R10, R5
+                MOVE    R5, @R6
+                MOVE    VGA$FONT_DATA, R9
+
+                MOVE    12, R8                  ; 12 words per char
+_FONTED_PLM     MOVE    @R9, R5
+                MOVE    9, R7                   ; we are subtracting pre-loop
+                AND     0xFFFD, SR              ; clear X before SHL
+                SHL     8, R5
+_FONTED_PL      SUB     1, R7                   ; one less bit to go
+                RBRA    _FONTED_PNEXT, Z
+                AND     0xFFFD, SR              ; clear X before SHL
+                SHL     1, R5                   ; probe bitmask
+                RBRA    _FONTED_PSPACE, !C      ; zero?
+                MOVE    CHR_DRAW_1, R11         ; one!
+                ADD     R12, R11                ; apply color
+                MOVE    R11, @R2                ; print on screen
+                ADD     1, @R0                  ; x-coord on screen + 1
+                RBRA    _FONTED_PL, 1           ; next bit
+_FONTED_PSPACE  MOVE    CHR_DRAW_0, R11         ; zero!
+                ADD     R12, R11                ; apply color
+                MOVE    R11, @R2                ; print on screen
+                ADD     1, @R0                  ; x-coord on screen + 1
+                RBRA    _FONTED_PL, !Z          ; next bit
+_FONTED_PNEXT   MOVE    R4, @R0                 ; x-coord: back to 1st column
+                ADD     1, @R1                  ; y-coord + 1
+                ADD     1, @R6                  ; font ram address + 1
+                SUB     1, R8                   ; one less pattern word to go
+                RBRA    _FONTED_PLM, !Z
+
+                ; draw the color palette choosers
+                MOVE    STR_FOREGROUND, R8      ; print foreground col. string
+                MOVE    PAL_ED_X, R9
+                MOVE    PAL_ED_Y, R10
+                RSUB    PRINT_STR_AT, 1
+
+                MOVE    PAL_ED_X, @R0           ; put cursor to correct pos
+                MOVE    PAL_ED_Y, @R1
+                ADD     2, @R1
+
+                XOR     R3, R3                  ; print foreground pal
+                MOVE    16, R4
+                MOVE    CHR_PAL_F, R11
+                MOVE    CHR_PAL_SEL_F, R12
+                RSUB    _FONTED_PALL, 1
+
+                ADD     3, @R1                  ; print background col. string
+                MOVE    STR_BACKGROUND, R8
+                MOVE    PAL_ED_X, R9
+                MOVE    @R1, R10
+                RSUB    PRINT_STR_AT, 1
+
+                MOVE    PAL_ED_X, @R0           ; print background pal
+                ADD     2, @R1
+                XOR     R3, R3
+                MOVE    16, R4
+                MOVE    CHR_PAL_B, R11
+                MOVE    CHR_PAL_SEL_B, R12
+                RSUB    _FONTED_PALL, 1
+
+                ; font ed main loop
+                MOVE    CHAR_ED_X, @R0
+                ADD     1, @R0
+                MOVE    CHAR_ED_Y, @R1
+                ADD     1, @R1
+
+_FONTED_MAIN    RSUB    KBD_GETCHAR, 1
+
+                ; check for foreground color selected: >= `a` and < `q`
+                MOVE    CHR_PAL_SEL_F, R9
+                CMP     R8, R9
+                RBRA    _FONTED_CSEL_F, N       ; greater than `a`
+                RBRA    _FONTED_CSEL_F, Z       ; equal to `a`
+                RBRA    _FONTED_CHKB, 1         ; not >= `a`
+_FONTED_CSEL_F  ADD     16, R9                  ; less then `q`
+                CMP     R8, R9
+                RBRA    _FONTED_CHKB, Z         ; equals `q`
+                RBRA    _FONTED_CHKB, N         ; greater than  `q` 
+
+                ; modify fg/bg col. LRU buffer to paint in the right color
+_FONTED_SEL_F   SUB     CHR_PAL_SEL_F, R8       ; foreground color selected
+                AND     0xFFFD, SR              ; clear X before SHL   
+                SHL     8, R8                   ; foreground color bit pos.
+                MOVE    LRU_FGBG, R9            ; index the LRU buffer with ..
+                MOVE    SELECTED_CHR, R10       ; .. the character
+                ADD     @R10, R9
+                AND     0xF000, @R9             ; clear old foreground color 
+                ADD     R8, @R9                 ; set new foreground color
+                RBRA    _FONTED_START, 1        ; redraw everything
+
+_FONTED_CHKB    SYSCALL(puthex, 1)
+                SYSCALL(exit, 1)
+                
+                ; restore registers and sprite size
+                DECRB
+                MOVE    R0, R8
+                MOVE    R1, R9
+                MOVE    R2, R10
+                MOVE    R3, R11
+                MOVE    R4, R12
+                DECRB
+                MOVE    TILE_DX, R2
+                MOVE    R0, @R2
+                MOVE    TILE_DY, R2
+                MOVE    R1, @R2
+                DECRB
+                RET
+
+                ; prints the color palette
+                ; (deliberately does not save the lower register bank)
+                ;
+                ; the hardware cursor needs to be set
+                ; R3 is a predefined color counter
+                ; R4 is the amount
+                ; R11 is the color palette display character
+                ; R12 is a predefined ASCII code to count up from for
+                ; displaying the color selector
+_FONTED_PALL    MOVE    R12, R5                 ; print selector char
+                MOVE    R5, @R2                
+                MOVE    R11, R5                 ; char used to print the pal
+                AND     0xFFFD, SR              ; clear X before SHL
+                MOVE    R3, R7                  
+                CMP     CHR_PAL_F, R11          ; foreground or background?
+                RBRA    _FONTED_PALL_F, Z
+                SHL     12, R7                  ; background color
+                RBRA    _FONTED_PALL_B, 1
+_FONTED_PALL_F  SHL     8, R7                   ; foreground color     
+_FONTED_PALL_B  ADD     R7, R5
+                ADD     1, @R1                  ; print color one line below
+                MOVE    R5, @R2
+                SUB     1, @R1
+                ADD     1, R12                  ; next selector char
+                ADD     2, @R0                  ; x-coord + 2
+                ADD     1, R3                   ; next color
+                SUB     1, R4                   ; one less color to go
+                RBRA    _FONTED_PALL, !Z
+                RET                
 
 ; ****************************************************************************
 ; KBD_GETCHAR
@@ -405,7 +671,7 @@ _KBD_GETC_LOOP  MOVE    @R0, R2                 ; Read status register
 ; KBD_GET2DGN
 ;    Read a two digit number from the PS2/USB keyboard
 ;    R8: (write) default in case ESC is pressed; (read): number entered
-;    R9: start x for cursor and output
+;    R9: start x for cursor and outputs
 ;    R10: start y for cursor and output
 ;    (currently hardcoded to 2 digits, but can be easily extended to up to
 ;    4 digits by adjusting the "CMP 2, R3" command and the BASE10 constants)
@@ -488,10 +754,15 @@ _UART_PUTC_WAIT MOVE @R0, R2                ; read status register
 ;    * Prints the whole workspace (palette, strings, editing window)
 ;    * Sets up the following variables:
 ;      TILE_WS_X, TILE_WS_Y, TILE_WS_X_MAX, TILE_WS_Y_MAX
+;    R8: 0 = default mode; 1 = font ed mode
 ; ****************************************************************************
 
+DRAW_WORKSPACE  INCRB
+
+                MOVE    R8, R7                  ; R7: mode selector
+
                 ; print workspace strings
-DRAW_WORKSPACE  MOVE    STR_HELLO, R8           ; welcome string: Top line
+                MOVE    STR_HELLO, R8           ; welcome string: Top line
                 XOR     R9, R9
                 XOR     R10, R10
                 RSUB    PRINT_STR_AT, 1
@@ -507,9 +778,15 @@ DRAW_WORKSPACE  MOVE    STR_HELLO, R8           ; welcome string: Top line
                 MOVE    VGA$CR_Y, R1
                 MOVE    VGA$CHAR, R2
 
+                CMP     0, R7                   
+                RBRA    _DRAW_WS_STD, Z
+                MOVE    CHAR_ED_X, @R0
+                MOVE    CHAR_ED_Y, @R1
+                RBRA    _DRAW_WS_START, 1
+
                 ; center tile editing box on the right side of workspace
                 ; by setting the hardware cursor to the correct coordinate
-                MOVE    TILE_DX, R12
+_DRAW_WS_STD    MOVE    TILE_DX, R12
                 MOVE    @R12, R3             
                 SHR     1, R3                   ; divide TILE_DX by 2 ...
                 MOVE    TILE_CENTER_X, R4
@@ -538,16 +815,14 @@ DRAW_WORKSPACE  MOVE    STR_HELLO, R8           ; welcome string: Top line
                 MOVE    R4, @R5
                 SUB     1, @R1
 
-                MOVE    TILE_DY, R12
+_DRAW_WS_START  MOVE    TILE_DY, R12
                 MOVE    @R12, R3                ; distance top to bottom
                 ADD     1, R3
 
                 ; draw upper and lower left corners
                 MOVE    0x0086, @R2             ; draw upper-left corner
-                RSUB    WAIT_FOR_VGA, 1
                 ADD     R3, @R1
                 MOVE    0x0083, @R2             ; draw lower-left corner
-                RSUB    WAIT_FOR_VGA, 1
 
                 ; draw upper and lower lines
                 MOVE    TILE_DX, R12
@@ -555,10 +830,8 @@ DRAW_WORKSPACE  MOVE    STR_HELLO, R8           ; welcome string: Top line
 _DRAW_WS_NX_TB  ADD     1, @R0
                 SUB     R3, @R1
                 MOVE    0x008A, @R2             ; draw upper "-"
-                RSUB    WAIT_FOR_VGA, 1                
                 ADD     R3, @R1
                 MOVE    0x008A, @R2
-                RSUB    WAIT_FOR_VGA, 1         ; draw lower "-"
 
                 SUB     1, R5
                 RBRA    _DRAW_WS_NX_TB, !Z
@@ -568,7 +841,6 @@ _DRAW_WS_NX_TB  ADD     1, @R0
                 MOVE    0x0089, @R2             ; lower-right corner
                 SUB     R3, @R1
                 MOVE    0x008C, @R2             ; upper-right corner
-                RSUB    WAIT_FOR_VGA, 1
 
                 ; draw left and right lines
                 MOVE    TILE_DX, R12
@@ -579,18 +851,19 @@ _DRAW_WS_NX_TB  ADD     1, @R0
                 MOVE    TILE_DY, R12
                 MOVE    @R12, R5
 _DRAW_WS_NX_LR  MOVE    0x0085, @R2             ; draw left "|"
-                RSUB    WAIT_FOR_VGA, 1
                 MOVE    TILE_DX, R12
                 ADD     @R12, @R0
                 ADD     1, @R0
                 MOVE    0x0085, @R2             ; draw right "|"
-                RSUB    WAIT_FOR_VGA, 1
                 MOVE    TILE_DX, R12
                 SUB     @R12, @R0
                 SUB     1, @R0
                 ADD     1, @R1
                 SUB     1, R5
                 RBRA    _DRAW_WS_NX_LR, !Z
+
+                DECRB
+                RET
 
 ; ****************************************************************************
 ; PRINT_STR_AT
@@ -612,7 +885,6 @@ PRINT_STR_AT    INCRB
 
 _PRINT_STR_LOOP MOVE    R4, @R0                 ; set x-pos
                 MOVE    @R3, @R1                ; print character
-                RSUB    WAIT_FOR_VGA, 1         ; VGA is slower than CPU   
                 ADD     1, R4                   ; increase x-pos
                 ADD     1, R3                   ; increase character pointer
                 CMP     0, @R3                  ; string end?
@@ -628,8 +900,10 @@ _PRINT_STR_LOOP MOVE    R4, @R0                 ; set x-pos
 ;   draw the whole character palette
 ; ****************************************************************************
 
+DRAW_PALETTE    INCRB
+
                 ; draw y axis legend
-DRAW_PALETTE    MOVE    VGA$CR_Y, R0            
+                MOVE    VGA$CR_Y, R0            
                 MOVE    VGA$CR_X, R1
                 MOVE    VGA$CHAR, R2
                 MOVE    START_Y, R3
@@ -656,7 +930,6 @@ _DRAW_P_LY      MOVE    START_X, R3             ; x-starting pos. of each row
 _DRAW_P_LX      MOVE    R3, @R0                 ; cursor x-pos to hardware
                 MOVE    R4, @R1                 ; dito cursor y-pos
                 MOVE    R8, @R2                 ; print character on VGA
-                RSUB    WAIT_FOR_VGA, 1         ; wait for print being done
 
                 ADD     2, R3                   ; skip one column
                 ADD     1, R8                   ; next character
@@ -682,6 +955,7 @@ _DRAW_P_LX      MOVE    R3, @R0                 ; cursor x-pos to hardware
                 ADD     START_Y, R1
                 MOVE    R1, @R0
 
+                DECRB
                 RET
 
                 ; draw one legend axis
@@ -696,7 +970,6 @@ _DRAW_LEG_LOOP  RSUB    MAKE_ASCII, 1
                 MOVE    R3, @R0                 ; hardware cursor variable
                 MOVE    R4, @R1                 ; hardware cursor constant
                 MOVE    R9, @R2                 ; draw char
-                RSUB    WAIT_FOR_VGA, 1         ; CPU is too fast for VGA
                 ADD     1, R8                   ; increase character
                 ADD     2, R3                   ; increase variable dimension
                 CMP     16, R8                  ; 0 .. F printed?
@@ -718,38 +991,13 @@ _MASCII_LESS10  MOVE    48, R9                  ; 0 = ASCII 48
                 RET
 
 ; ****************************************************************************
-; WAIT_FOR_VGA
-;    VGA is much slower than CPU, so for example between
-;    drawing multiple characters, CPU needs to wait until
-;    the drawing of the old character finished
-; ****************************************************************************
-
-WAIT_FOR_VGA    INCRB
-                MOVE    VGA$STATE, R0
-_WAIT_FOR_VGAL  MOVE    @R0, R1
-                AND     VGA$BUSY, R1
-                RBRA    _WAIT_FOR_VGAL, !Z
-                DECRB
-                RET
-
-; ****************************************************************************
-; CLRSCR
-;   Clear the screen
-; ****************************************************************************
-
-CLRSCR          INCRB
-                MOVE    VGA$STATE, R0
-                OR      VGA$CLR_SCRN, @R0
-                RSUB    WAIT_FOR_VGA, 1
-                DECRB
-                RET
-
-; ****************************************************************************
 ; VARIABLES
 ; ****************************************************************************
 
 TILE_DX         .BLOCK 1
 TILE_DY         .BLOCK 1
+
+SELECTED_CHR    .BLOCK 1
 
 ; workspace boundaries in absolute screen coordinates: palette and tile
 PAL_WS_X        .BLOCK 1
@@ -760,3 +1008,6 @@ TILE_WS_X       .BLOCK 1
 TILE_WS_Y       .BLOCK 1
 TILE_WS_X_MAX   .BLOCK 1
 TILE_WS_Y_MAX   .BLOCK 1
+
+; table to store the last recently used fg/bg color combination per character
+LRU_FGBG        .BLOCK 256
