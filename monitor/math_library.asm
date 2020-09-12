@@ -293,23 +293,18 @@ _MTH$DIVU32_END MOVE    R1, R9                  ; hi Q
 ;******************************************************************************
 ;
 MTH$IN_RANGE_U  INCRB
-
-                CMP     R8, R9                  ; is R8 >= R9?
-                RBRA    _MTH$GTEQALT_C, N       ; R8 greater than R9
-                RBRA    _MTH$GTEQALT_1, Z       ; R8 equal to R9: C=1 & return
-                RBRA    _MTH$GTEQALT_0, 1       ; R8 < R9: C=0 and return
-_MTH$GTEQALT_C  CMP     R8, R10                 ; is R8 < R10?                
-                RBRA    _MTH$GTEQALT_0, N       ; greater than R10: C=0 & ret. 
-                RBRA    _MTH$GTEQALT_0, Z       ; equals R10: C=0 and return                
-
-_MTH$GTEQALT_1  OR      4, SR                   ; set C flag to 1 and return
+                AND     0xFFFB, SR              ; Clear carry bit
+                CMP     R8, R9
+                RBRA    _MTH$IRU_1, Z
+                RBRA    _MTH$IRU_1, N
+                RET                             ; Not in range
+_MTH$IRU_1      CMP     R10, R8
+                RBRA    _MTH$IRU_2, N
+                RET
+_MTH$IRU_2      OR      0x0004, SR              ; Set carry bit
                 DECRB
                 RET
 
-_MTH$GTEQALT_0  AND     0xFFFB, SR              ; clear C flag and return
-                DECRB
-                RET 
-;
 ;******************************************************************************
 ;*
 ;* MTH$IN_RANGE_S    returns C=1 if R8 >= R9 and < R10 else C=0
