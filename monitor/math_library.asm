@@ -284,3 +284,36 @@ _MTH$DIVU32_END MOVE    R1, R9                  ; hi Q
 
                 DECRB
                 RET
+;
+;******************************************************************************
+;*
+;* MTH$IN_RANGE_U    returns C=1 if R8 >= R9 and < R10 else C=0
+;*                   R8, R9, R10 treated as unsigned
+;*
+;******************************************************************************
+;
+MTH$IN_RANGE_U  INCRB
+
+                CMP     R8, R9                  ; is R8 >= R9?
+                RBRA    _MTH$GTEQALT_C, N       ; R8 greater than R9
+                RBRA    _MTH$GTEQALT_1, Z       ; R8 equal to R9: C=1 & return
+                RBRA    _MTH$GTEQALT_0, 1       ; R8 < R9: C=0 and return
+_MTH$GTEQALT_C  CMP     R8, R10                 ; is R8 < R10?                
+                RBRA    _MTH$GTEQALT_0, N       ; greater than R10: C=0 & ret. 
+                RBRA    _MTH$GTEQALT_0, Z       ; equals R10: C=0 and return                
+
+_MTH$GTEQALT_1  OR      4, SR                   ; set C flag to 1 and return
+_MTH$GTEQALT_X  DECRB
+                RET
+
+_MTH$GTEQALT_0  AND     0xFFFB, SR              ; clear C flag and return
+                RBRA    _MTH$GTEQALT_X, 1
+;
+;******************************************************************************
+;*
+;* MTH$IN_RANGE_S    returns C=1 if R8 >= R9 and < R10 else C=0
+;*                   R8, R9, R10 treated as signed
+;*
+;******************************************************************************
+;
+MTH$IN_RANGE_S  HALT

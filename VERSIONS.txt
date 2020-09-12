@@ -9,6 +9,10 @@ Version 1.7     xxxxxxxx, yy zzzz
 
 * MONITOR: qtransfer is now part of the Monitor.
 
+WIP MONITOR: New SYSCALLs: in_range_u and in_range_s: checks if the parameter
+  is within a given range (unsigned or signed)
+  WIP/TODO: signed is still missing
+
 * EMULATOR: Adjusted the standard emulation speed to 13.21 MIPS because this
   is the average Q-TRIS performance. 
 
