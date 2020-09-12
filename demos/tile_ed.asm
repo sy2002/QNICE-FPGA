@@ -618,8 +618,81 @@ _FONTED_CHKB    MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
                 RBRA    _FONTED_START, 1
 
                 ; check for cursor keys
-_FONTED_CHKCSR  SYSCALL(exit, 1)
-                
+_FONTED_CHKCSR  CMP     KBD$CUR_RIGHT, R8       ; cursor right?
+                RBRA    _FONTED_CC_L, !Z        ; no
+                MOVE    @R0, R9                 ; check right boundary
+                ADD     1, R9
+                SUB     CHAR_ED_X, R9
+                CMP     R9, 8                   ; char width = 8
+                RBRA    _FONTED_MAIN, N         ; out of bounds: ignore key
+                ADD     1, @R0                  ; move cursor to the right
+                RBRA    _FONTED_MAIN, 1         ; get next key
+
+_FONTED_CC_L    CMP     KBD$CUR_LEFT, R8        ; cursor left?
+                RBRA    _FONTED_CC_D, !Z        ; no
+                MOVE    @R0, R9                 ; check left boundary
+                SUB     1, R9
+                CMP     R9, CHAR_ED_X
+                RBRA    _FONTED_MAIN, !N        ; out of bounds: ignore key
+                MOVE    R9, @R0                 ; move cursor to the left
+                RBRA    _FONTED_MAIN, 1
+
+_FONTED_CC_D    CMP     KBD$CUR_DOWN, R8        ; cursor down
+                RBRA    _FONTED_CC_U, !Z        ; no
+                MOVE    @R1, R9                 ; check lower boundary
+                ADD     1, R9
+                SUB     CHAR_ED_Y, R9
+                CMP     R9, 12                  ; char height = 12
+                RBRA    _FONTED_MAIN, N         ; out of bounds: ignore key
+                ADD     1, @R1                  ; move cursor down
+                RBRA    _FONTED_MAIN, 1
+
+_FONTED_CC_U    CMP     KBD$CUR_UP, R8          ; cursor up
+                RBRA    _FONTED_SPACE, !Z       ; no
+                MOVE    @R1, R9                 ; check upper boundary
+                SUB     1, R9
+                CMP     R9, CHAR_ED_Y
+                RBRA    _FONTED_MAIN, !N        ; out of bounds: ignore key
+                MOVE    R9, @R1                 ; move cursor up
+                RBRA    _FONTED_MAIN, 1
+
+_FONTED_SPACE   CMP     KBD$SPACE, R8           ; space
+                RBRA    _FONTED_F1, !Z
+                CMP     @R2, CHR_DRAW_1         ; is pixel is set?
+                RBRA    _FONTED_SET0, Z         ; yes: so delete it
+                MOVE    CHR_DRAW_1, @R2         ; no: so set it
+                RBRA    _FONTED_MODF, 1
+_FONTED_SET0    MOVE    CHR_DRAW_0, @R2
+_FONTED_MODF    XOR     R12, R12                ; scanend bit pattern
+                MOVE    8, R9                   ; char is 8 pixel wide
+                MOVE    @R0, R7                 ; save original cursor pos
+                MOVE    CHAR_ED_X, @R0          ; scan line from left to right
+_FONTED_MODF3   ADD     1, @R0
+                CMP     @R2, CHR_DRAW_1         ; pixel is set?
+                RBRA    _FONTED_MODF1, !Z       ; no
+                OR      2, SR                   ; set X for SHL (shift in a 1)
+                RBRA    _FONTED_MODF2, 1
+_FONTED_MODF1   AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)
+_FONTED_MODF2   SHL     1, R12                  
+                SUB     1, R9
+                RBRA    _FONTED_MODF3, !Z
+                MOVE    SELECTED_CHR, R8        ; change font ram:
+                MOVE    @R8, R8                 ; offs = (ascii * 12) + line
+                MOVE    12, R9
+                SYSCALL(mulu, 1)
+                ADD     @R1, R10                ; @R1 = line + CHAR_ED_Y + 1
+                SUB     CHAR_ED_Y, R10
+                SUB     1, R10
+                ADD     VGA$FONT_OFFS_USER, R10
+                MOVE    VGA$FONT_ADDR, R8
+                MOVE    R10, @R8++              ; set address
+                MOVE    R12, @R8                ; write pixel pattern
+                MOVE    R7, @R0                 ; restore original cursor pos
+                RBRA    _FONTED_MAIN, 1
+
+_FONTED_F1      SYSCALL(exit, 1)
+_FONTED_F7      SYSCALL(exit, 1)
+
                 ; restore registers and sprite size
                 DECRB
                 MOVE    R0, R8
