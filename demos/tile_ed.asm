@@ -579,21 +579,17 @@ _FONTED_PNEXT   MOVE    R4, @R0                 ; x-coord: back to 1st column
                 MOVE    CHAR_ED_Y, @R1
                 ADD     1, @R1
 
-_FONTED_MAIN    RSUB    KBD_GETCHAR, 1
+_FONTED_MAIN    RSUB    KBD_GETCHAR, 1                
 
                 ; check for foreground color selected: >= `a` and < `q`
-                MOVE    CHR_PAL_SEL_F, R9
-                CMP     R8, R9
-                RBRA    _FONTED_CSEL_F, N       ; greater than `a`
-                RBRA    _FONTED_CSEL_F, Z       ; equal to `a`
-                RBRA    _FONTED_CHKB, 1         ; not >= `a`
-_FONTED_CSEL_F  ADD     16, R9                  ; less then `q`
-                CMP     R8, R9
-                RBRA    _FONTED_CHKB, Z         ; equals `q`
-                RBRA    _FONTED_CHKB, N         ; greater than  `q` 
+                MOVE    CHR_PAL_SEL_F, R9       ; R9 = `a`
+                MOVE    R9, R10
+                ADD     16, R10                 ; R10 = `q`
+                SYSCALL(in_range_u, 1)          ; is R8 in the fg col. range?
+                RBRA    _FONTED_CHKB, !C        ; no: check for bg col. range
 
-                ; modify fg/bg col. LRU buffer to paint in the right color
-_FONTED_SEL_F   SUB     CHR_PAL_SEL_F, R8       ; foreground color selected
+                ; add correct foreground color to fg/bg col. LRU buffer
+                SUB     CHR_PAL_SEL_F, R8       ; foreground color selected
                 AND     0xFFFD, SR              ; clear X before SHL   
                 SHL     8, R8                   ; foreground color bit pos.
                 MOVE    LRU_FGBG, R9            ; index the LRU buffer with ..
@@ -603,8 +599,26 @@ _FONTED_SEL_F   SUB     CHR_PAL_SEL_F, R8       ; foreground color selected
                 ADD     R8, @R9                 ; set new foreground color
                 RBRA    _FONTED_START, 1        ; redraw everything
 
-_FONTED_CHKB    SYSCALL(puthex, 1)
-                SYSCALL(exit, 1)
+                ; check for background color selected: >= `A` and < `Q`
+_FONTED_CHKB    MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
+                MOVE    R9, R10
+                ADD     16, R10                 ; R10 = `Q`
+                SYSCALL(in_range_u, 1)          ; is R8 is the bg col. range?
+                RBRA    _FONTED_CHKCSR, !C      ; no: check for cursor keys
+
+                ; add correct background color to fg/bg col. LRU buffer
+                SUB     CHR_PAL_SEL_B, R8       ; background color selected
+                AND     0xFFFD, SR              ; clear X before SHL   
+                SHL     12, R8                  ; background color bit pos.
+                MOVE    LRU_FGBG, R9            ; index the LRU buffer with ..
+                MOVE    SELECTED_CHR, R10       ; .. the character
+                ADD     @R10, R9
+                AND     0x0F00, @R9             ; clear old background color
+                ADD     R8, @R9                 ; set new background color
+                RBRA    _FONTED_START, 1
+
+                ; check for cursor keys
+_FONTED_CHKCSR  SYSCALL(exit, 1)
                 
                 ; restore registers and sprite size
                 DECRB
