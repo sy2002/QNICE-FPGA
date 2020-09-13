@@ -4,6 +4,7 @@
 ; As of now (12.09.2020) this is only a stub. 
 ;
 #include "../dist_kit/sysdef.asm"
+#include "../dist_kit/monitor.def"
 
         .ORG    0x8000
 ; Test MTH$IN_RANGE_U: R9 and R10 define the limits against which R8 is tested:
@@ -17,7 +18,7 @@
 IRU_1   MOVE    0x1000, R8
         MOVE    0x1000, R9
         MOVE    0x1001, R10
-        RSUB    MTH$IN_RANGE_U, 1   ; This should set C as R8 >= R9 and R8 < R10
+        RSUB    MTH$IN_RANGE_U, 1   ; This should set C as R8 = R9 and R8 < R10
         RBRA    IRU_2, C
         HALT
 IRU_2   MOVE    0x1000, R8
@@ -26,6 +27,16 @@ IRU_2   MOVE    0x1000, R8
         RSUB    MTH$IN_RANGE_U, 1   ; This should clear C
         RBRA    IRU_3, !C
         HALT
-IRU_3   HALT
+IRU_3   MOVE    0x1001, R8
+        MOVE    0x1000, R9
+        MOVE    0x1002, R10
+        RSUB    MTH$IN_RANGE_U, 1  ; This should set C as R8 > R9 and R8 < R10
+        RBRA    IRU_4, C
+        HALT
+IRU_4   MOVE    STR_OK, R8
+        SYSCALL(puts, 1)
+        SYSCALL(exit, 1)
+
+STR_OK  .ASCII_W "OK" 
         
 #include "../monitor/math_library.asm"
