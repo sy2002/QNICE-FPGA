@@ -175,7 +175,7 @@ WAIT_FOR_KEY    RSUB    KBD_GETCHAR, 1
                 RBRA    CLEAR, Z
                 CMP     KBD$F7, R8              ; F7 = toggle font mode
                 RBRA    _WFK_CHK_F12, !Z
-_WFK_FONTED     RSUB    FONT_ED, Z
+_WFK_FONTED     RSUB    FONT_ED, 1              ; switch to font editor
                 MOVE    R8, R3                  ; remember mode
                 CMP     1, R3                   ; sprite mode?
                 RBRA    MAIN_LOOP, Z
@@ -305,10 +305,6 @@ SWITCH_MODE     XOR     1, R3
                 MOVE    FONT_MODE, R8           ; running inside font ed?
                 MOVE    @R8, R8                
                 RBRA    MAIN_LOOP, Z            ; no: standard mode
-
-                XOR     R8, R8                  ; CPU BUG: if you comment
-                                                ; this out, nothing works
-
                 RBRA    _WFK_FONTED, 1          ; yes: back to fond ed
 
                 ; draw the currently active character of the palette
