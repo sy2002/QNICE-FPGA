@@ -1,3 +1,55 @@
+QNICE-FPGA Documentation
+========================
+
+Quickstart
+----------
+
+Follow this path in exactly this order is the fastest, most convenient and
+didactically most reasonable way to get started with QNICE-FPGA.
+
+### Step 1: Work through the following sections of the [main README.md](../README.md):
+
+1. Getting Started
+2. Using the File System
+3. Q-TRIS
+4. Memory map
+5. I/O devices
+6. Programming in Assembler
+7. Programming in C
+
+### Step 2: Read the following background information:
+
+1. [QNICE Instruction Set Architecture](intro/qnice_intro.pdf)
+2. Learn about [constraints](constraints.txt): What kind of SD card types can
+   you use? Which USB keyboards are known to work? What do you need to
+   consider, when choosing a serial terminal program? What C features are
+   not working, yet?
+3. [Programming Best Practices](best-practices.md)
+
+Full documentation in alphabetical order
+----------------------------------------
+
+* [Basics](#basics)
+* [Constraints](constraints.txt)
+* [Emulator](../emulator/README.md)
+* [Folder structure explained](#folder-structure)
+* [Interrupt capable devices (requirements & how-to)](int-device.md)
+* [Instruction Set Architecture (ISA)](intro/qnice_intro.pdf)
+* [Hardware platforms](../hw/README.md)
+* [MEGA 65 Drivers](../vhdl/hw/MEGA65/README.md)
+* [MEGA 65 Hardware](../hw/README.md#mega65)
+* [MEGA 65 Overview]
+* [CPU speed in MIPS](MIPS.md)
+* [Nexys 4 DDR]
+* [Nexys A7]
+* [Mounting FAT32 devices](emumount.txt)
+* [Programming Best Practices](doc/best-practices.md)
+* [Programming Card](doc/programming_card/programming_card_screen.pdf)
+* [Releasing (how-to)](how-to-release.md)
+* [Software requirements](requirements.txt)
+* [Transferring software to QNICE-FPGA](#transferring-software-to-qnice-fpga)
+
+
 Folder Structure
 ----------------
 
@@ -29,17 +81,6 @@ Folder Structure
 | intro             | LaTeX source and [PDF version](intro/qnice_intro.pdf) of the QNICE introduction presentation.
 | monitor           | The script [create_documentation.pl](../monitor/create_documentation.pl) uses LaTeX to generate the basic Monitor library function documentation in the PDF file [doc.pdf](monitor/doc.pdf).
 | programming_card  | LaTeX source and [PDF version](programming_card/programming_card_screen.pdf) of a convenient QNICE Assembler programming card (quick guide).
-
-| File name         | Description
-|-------------------|----------------------------------------------------------
-| best-practices.md | Best practices and programming conventions for assembly and C.
-| constraints.txt   | Known constraints of the QNICE-FPGA design: SD Cards and keyboards that are working, VGA monitor requirements, character encoding, languages, fonts, and standard C library.
-| emumount.txt      | Hints about creating and mounting FAT32 devices in the emulator.
-| how-to-release.md | Checklist for making a new release.
-| int-device.md     | Description of how any interrupt capable device needs to be implemented.
-| MIPS.md           | Performance measurements and QNICE-FPGA performance characteristics.
-| requirements.txt  | Minimum requirements to work with QNICE-FPGA.
-| vbcc.txt          | Hints for improving performance while using the vbcc compiler system.
 
 Basics
 ------
