@@ -73,6 +73,7 @@ Full documentation in alphabetical order
 * [Website (how-to update)](how-to-release.md#step-7-update-the-website-qnice-fpgacom)
 * [Website via GitHub Pages](https://github.com/sy2002/QNICE-FPGA/blob/gh-pages/README.md)
 * [Version history](../VERSIONS.txt)
+* [VBCC how-to update](vbcc.md#updating-to-newer-compiler-versions)
 * [VGA architecture](../vhdl/vga/README.md)
 * [VGA display calibration](#calibrating-your-vga-monitor)
 * [VGA features and registers](VGA_Features.md)
