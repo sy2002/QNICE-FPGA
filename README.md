@@ -282,7 +282,7 @@ Programming in Assembler
     ```
 
   * You can use any other address greater or equal to `0x8000` for your
-    program. `test_programs/mandel.asm` for example uses `0xA000`. Make sure
+    program. `demos/mandel.asm` for example uses `0xA000`. Make sure
     that you leave enough room for the stack, which grows from top to bottom.
 
   * The folder `test_programs` contains a wealth of examples. You might want
