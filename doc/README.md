@@ -37,7 +37,7 @@ Full documentation in alphabetical order
 * [C specifics](vbcc.md)
 * [Constraints](constraints.txt)
 * [Contributing (how-to)](../CONTRIBUTING.md)
-* [Contributing (ideas)](../CONTRIBUTING.md)
+* [Contributing (ideas)](../TODO.txt)
 * [CPU debug mode](#switch-register-bit-2-cpu-debug-mode)
 * [CPU speed in MIPS](MIPS.md)
 * [Distribution kit](../dist_kit/README.md)
