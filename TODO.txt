@@ -119,6 +119,8 @@ EMULATOR:
 
 NATIVE TOOLCHAIN: ASSEMBLER:
 
+* Support running the native toolchain under windows
+
 * Get rid of hardcoded gcc in the assembler/asm script for precompiling.
   Use tools/detect.include. But this needs thorough testing, if for example
   the precompiler invokation works the same in clang vs. gcc.
@@ -169,19 +171,22 @@ DEMOS:
 
 * Forth Interpreter
 
-* VGA Textmode games: BreakOut, Snake, Pac Man, 2048
-
-* VGA games: Q-Chess
+* Games:
+  - 2048
+  - BreakOut
+  - Chess
+  - Micro Machines à like simple car racer
+  - Pac Man
+  - Shooter
+  - Snake
 
 * HyperRAM: Finalize "The Matrix Demo" or create something similar
 
 
 DOCUMENTATION:
 
-* Improve the overall documentation. Start with improving doc/README.md:
-  Nearly each bullet point in the "Basics" section would deserve one or
-  more own chapters. Then we need more documentation on how to program in
-  Assembler and in C. Possibly also the dist_kit folder needs some explanation
-  of how to use the folder, how to use the include files, etc.
+* Upgrade all .txt based documentation to .md
 
-* Add the PDF or HTML documentation version of the VBCC toolchain.
+* VBCC toolchain: Add the PDF or HTML documentation version
+
+* Write tutorials and HOW-TOs
