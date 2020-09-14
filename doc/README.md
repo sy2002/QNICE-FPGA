@@ -7,15 +7,15 @@ Quickstart
 Follow this path in exactly this order is the fastest, most convenient and
 didactically most reasonable way to get started with QNICE-FPGA.
 
-### Step 1: Work through the following sections of the [main README.md](../README.md):
+### Step 1: Work through the following sections of the main README.md:
 
-1. Getting Started
-2. Using the File System
-3. Q-TRIS
-4. Memory map
-5. I/O devices
-6. Programming in Assembler
-7. Programming in C
+1. [Getting Started](../README.md#getting-started)
+2. [Using the File System](../README.md#using-the-file-system)
+3. [Q-TRIS](../README.md#q-tris)
+4. [Memory map](../README.md#memory-map)
+5. [I/O devices](../README.md#io-devices)
+6. [Programming in Assembler](../README.md#programming-in-assembler)
+7. [Programming in C](../README.md#programming-in-c)
 
 ### Step 2: Read the following background information:
 
@@ -29,58 +29,48 @@ didactically most reasonable way to get started with QNICE-FPGA.
 Full documentation in alphabetical order
 ----------------------------------------
 
+* [Assembler (how-to)](../README.md#programming-in-assembler)
+* [Assembler programming best practiecs](best-practices.md#native-qnice-assembler)
 * [Basics](#basics)
+* [C (how-to)](../README.md#programming-in-c)
+* [C programming best practices](best-practices.md#c)
+* [C specifics](vbcc.md)
 * [Constraints](constraints.txt)
+* [CPU debug mode](#switch-register-bit-2-cpu-debug-mode)
+* [CPU speed in MIPS](MIPS.md)
+* [Distribution kit](../dist_kit/README.md)
 * [Emulator](../emulator/README.md)
-* [Folder structure explained](#folder-structure)
+* [File System (how-to)](../README.md#using-the-file-system)
+* [Folder structure explained](folders.md)
+* [Getting Started](../README.md#getting-started)
 * [Interrupt capable devices (requirements & how-to)](int-device.md)
 * [Instruction Set Architecture (ISA)](intro/qnice_intro.pdf)
+* [I/O devices](../README.md#io-devices)
 * [Hardware platforms](../hw/README.md)
+* [Memory map](../README.md#memory-map)
 * [MEGA 65 Drivers](../vhdl/hw/MEGA65/README.md)
 * [MEGA 65 Hardware](../hw/README.md#mega65)
-* [MEGA 65 Overview]
-* [CPU speed in MIPS](MIPS.md)
-* [Nexys 4 DDR]
-* [Nexys A7]
+* [MEGA 65 Specifics](#specifics-of-the-mega65-hardware)
+* [Nexys 4 DDR Hardware](../hw/README.md#nexys-4-ddr-and-nexys-a7)
+* [Nexys 4 DDR Specifics](#specifics-of-the-nexys-4-ddr-and-nexys-a7-hardware)
+* [Nexys A7 Hardware](../hw/README.md#nexys-4-ddr-and-nexys-a7)
+* [Nexys A7 Specifics](#specifics-of-the-nexys-4-ddr-and-nexys-a7-hardware)
+* [Monitor as QNICE-FPGA operating system (OS)](monitor-os.md)
+* [Monitor functions](doc/monitor/doc.pdf)
 * [Mounting FAT32 devices](emumount.txt)
 * [Programming Best Practices](doc/best-practices.md)
 * [Programming Card](doc/programming_card/programming_card_screen.pdf)
+* [Q-TRIS](../README.md#q-tris)
 * [Releasing (how-to)](how-to-release.md)
 * [Software requirements](requirements.txt)
+* [STDIN/STDOUT](#details-on-the-switch-register-that-controls-stdinstdout)
 * [Transferring software to QNICE-FPGA](#transferring-software-to-qnice-fpga)
-
-
-Folder Structure
-----------------
-
-### QNICE-FPGA Root Folder
-
-| Folder name   | Description
-|---------------|-------------------------------------------------------------
-| assembler     | Native QNICE assembler: Main file is `qasm.c`. You usually call it via the script `asm`, which utilizes the C preprocessor (mainly for `#include`, `#define`, `#ifdef`, etc).
-| c             | C programming environment based on the [vbcc](http://www.compilers.de/vbcc.html) compiler system. You need to activate `setenv.source` (e.g. via `source`) to use it and then use `qvc <sources> <options>` to compile and link. The subfolder `c/test_programs` contains experiments and demos written in C.
-| demos         | QNICE demos written in assembler. Most noteworthy is `q-tris.asm`.
-| dist_kit      | Distribution Kit: Contains standard include files for assembler and C as well as ready-made bitstreams and MEGA Core files in the folder `dist_kit/bin`. You might want to set this folder as your default folder for includes. Learn more via [dist_kit/README.md](../dist_kit/README.md)
-| doc           | Documentation: See explanation of file and folder structure below.
-| emulator      | QNICE Emulator: Learn more via [emulator/README.md](../emulator/README.md)
-| hw            | Project files for IDEs to synthesize QNICE-FPGA: Learn more via [hw/README.md](../hw/README.md)
-| monitor       | Monitor is the "operating system" of QNICE. Use `compile_and_distribute.sh` to compile it and to update `dist_kit`.
-| pore          | Power On & Reset Execution ROM. This code is executed on power on and on each reset of the system, even before any standard operating system like the Monitor is being executed from ROM address 0. PORE is mainly responsible for printing the boot message. Use `compile_pore.sh` to compile it.
-| qbin          | Compiled binaries (`.out` format) that can be put on an SD Card. You can load them directly when the Monitor is running using the File/Run command via `F` and `R`.
-| test_programs | Experiments, development testbeds, and simple tests written in QNICE assembler.
-| tools         | Various tools. Use `make_toolchain.sh` to compile the QNICE toolchain and `qtransfer.c` to transfer data from your Mac or PC to QNICE-FPGA.
-| vhdl          | Portable QNICE-FPGA implementation. Subfolder `hw` contains hardware specific VHDL code. [vhdl/hw/MEGA65/README.md](../vhdl/hw/MEGA65/README.md) contains information about MEGA65 specific sources.
-
-### Documentation Folder
-
-| Folder name       | Description
-|-------------------|----------------------------------------------------------
-| demos             | Screenshots for the web site and for the main README.md showing the demos. Additionally, this folder contains the all-time high-scores for Q-TRIS in [demos/q-tris-highscore.txt](demos/q-tris-highscore.txt).
-| github            | Images used for the presentation of the project on GitHub.
-| history           | Right now, this folder only contains an old paper (`nice_can.pdf`) about the predecessor of QNICE: The NICE architecture. QNICE - albeit a 16-bit architecture - was created later than the 32-bit NICE architecture.
-| intro             | LaTeX source and [PDF version](intro/qnice_intro.pdf) of the QNICE introduction presentation.
-| monitor           | The script [create_documentation.pl](../monitor/create_documentation.pl) uses LaTeX to generate the basic Monitor library function documentation in the PDF file [doc.pdf](monitor/doc.pdf).
-| programming_card  | LaTeX source and [PDF version](programming_card/programming_card_screen.pdf) of a convenient QNICE Assembler programming card (quick guide).
+* [Website (how-to update)](how-to-release.md#step-7-update-the-website-qnice-fpgacom)
+* [Website via GitHub Pages](https://github.com/sy2002/QNICE-FPGA/blob/gh-pages/README.md)
+* [VGA architecture](../vhdl/vga/README.md)
+* [VGA display calibration](#calibrating-your-vga-monitor)
+* [VGA features and registers](VGA_Features.md)
+* [VGA fonts (how-to make own)](vhdl/vga/font-howto.txt)
 
 Basics
 ------
