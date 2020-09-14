@@ -1,8 +1,9 @@
 #
 # Simple Perl program to generate a monitor function documentation using pdflatex.
-# This should be executed every time something is changed on the monitor.
+# This should be executed every time something is changed in the monitor.
 #
-# 29-DEC-2015, B. Ulmann.
+# 29-DEC-2015, B. Ulmann
+# 14-SEP-2020, B. Ulmann    Fixed a problem with '<' and '>'.
 #
 
 use strict;
@@ -51,6 +52,8 @@ for my $group (sort(keys(%description)))
 {
     $group =~ s/_/\\_/g;
     $group =~ s/\$/\\\$/g;
+    $group =~ s/</\$<\$ /g;
+    $group =~ s/>/\$>\$ /g;
     print $latex "\\chapter{$group}\n";
     my $functions = $description{$group};
     for my $function (sort(keys(%$functions)))
@@ -58,9 +61,13 @@ for my $group (sort(keys(%description)))
         my $text = $functions->{$function};
         $function =~ s/_/\\_/g;
         $function =~ s/\$/\\\$/g;
+        $function =~ s/</\$<\$ /g;
+        $function =~ s/>/\$>\$ /g;
 
         $text =~ s/_/\\_/g;
         $text =~ s/\$/\\\$/g;
+        $text =~ s/</\$<\$ /g;
+        $text =~ s/>/\$>\$ /g;
         print $latex " \\section{$group\\\$$function}\n$text\n";
     }
 }
