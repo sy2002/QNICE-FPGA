@@ -57,6 +57,7 @@ signal fifo_rd_valid          : std_logic;
 signal fifo_rd_data           : std_logic_vector(7 downto 0);
 signal fifo_empty             : std_logic;
 signal fifo_full              : std_logic;
+signal fifo_fill_count        : integer range UART_FIFO_SIZE - 1 downto 0;
 
 signal reading                : std_logic := '0';
 signal reset_reading          : std_logic;
@@ -65,6 +66,27 @@ signal reset_reading          : std_logic;
 signal byte_tx_ready          : std_logic := '0';
 signal reset_byte_tx_ready    : std_logic;
 signal byte_tx_data           : std_logic_vector(7 downto 0);
+
+--attribute mark_debug                    : boolean;
+--attribute mark_debug of cts             : signal is true;
+--attribute mark_debug of rx              : signal is true;
+--attribute mark_debug of tx              : signal is true;
+--attribute mark_debug of uart_en         : signal is true;
+--attribute mark_debug of uart_we         : signal is true;
+--attribute mark_debug of uart_reg        : signal is true;
+--attribute mark_debug of uart_cpu_ws     : signal is true;
+--attribute mark_debug of cpu_data_in     : signal is true;
+--attribute mark_debug of cpu_data_out    : signal is true;
+--attribute mark_debug of reading         : signal is true;
+--attribute mark_debug of reset_reading   : signal is true;
+--attribute mark_debug of fifo_rd_en      : signal is true;
+--attribute mark_debug of fifo_rd_valid   : signal is true;
+--attribute mark_debug of fifo_rd_data    : signal is true;
+--attribute mark_debug of fifo_empty      : signal is true;
+--attribute mark_debug of fifo_full       : signal is true;
+--attribute mark_debug of fifo_fill_count : signal is true;
+--attribute mark_debug of uart_rx_enable  : signal is true;
+--attribute mark_debug of uart_rx_data    : signal is true;
 
 begin
 
@@ -104,9 +126,11 @@ begin
          rd_valid => fifo_rd_valid,
          rd_data => fifo_rd_data,
          empty => fifo_empty,
-         full => fifo_full
+         full => fifo_full,
+         fill_count => fifo_fill_count
       );
-         
+
+
    send_byte : process(uart_tx_ready, byte_tx_ready, byte_tx_data)
    begin
       uart_tx_enable <= '0';
@@ -183,7 +207,7 @@ begin
    
    
    uart_cpu_ws <= reading;
-   fifo_rd_en <= reading;
+   fifo_rd_en <= reading and not reset_reading;
    reset_reading <= fifo_rd_valid;
-   cts <= fifo_full;
+   cts <= '1' when fifo_fill_count >= UART_FIFO_SIZE-5 else '0';
 end beh;
