@@ -91,23 +91,23 @@ signal byte_tx_data           : std_logic_vector(7 downto 0);
 begin
 
    -- UART
-   uart : entity work.basic_uart
+   basic_uart : entity work.basic_uart
       generic map
       (
          DIVISOR => DIVISOR
       )
       port map
       (
-         clk => CLK,
-         reset => reset,
-         rx_data => uart_rx_data,
-         rx_enable => uart_rx_enable,
-         tx_data => uart_tx_data,
-         tx_enable => uart_tx_enable,
-         tx_ready => uart_tx_ready,
-         rx => rx,
-         tx => tx
-      );
+         clk_i       => clk,
+         reset_i     => reset,
+         rx_data_o   => uart_rx_data,
+         rx_enable_o => uart_rx_enable,
+         tx_data_i   => uart_tx_data,
+         tx_enable_i => uart_tx_enable,
+         tx_ready_o  => uart_tx_ready,
+         uart_rx_i   => rx,
+         uart_tx_o   => tx
+      ); -- basic_uart
       
    -- FIFO
    fifo : entity work.ring_buffer
