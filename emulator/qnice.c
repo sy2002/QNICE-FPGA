@@ -1,3 +1,8 @@
+// TODO: 
+//  - Make all register bank addressing relative to the register bank shadow register!
+//  - Extend disassembler to take of RSR/WSR-instructions.
+//  - Implement RSR/WSR-instructions.
+
 /* 
 **  QNICE emulator -- this emulator was written as a proof of concept for the QNICE processor.
 **
@@ -11,6 +16,7 @@
 ** B. Ulmann, 25-JUL-2020   Disassembler can take care of control mnemonics
 **            26-JUL-2020   Control instructions added, started adding timers
 **            xx-AUG-2020   Lots of corrections, INCRB, DECRB added, new update_status_bits() etc.
+**            xx-SEP-2020   Introduction of shadow registers
 **
 ** The following defines are available:
 **
@@ -103,6 +109,8 @@
 #define INT_INSTRUCTION        0x2
 #define INCRB_INSTRUCTION      0x3
 #define DECRB_INSTRUCTION      0x4
+#define RSR_INSTRUCTION        0x5
+#define WSR_INSTRUCTION        0x6
 
 #define NO_ADD_SUB_INSTRUCTION 0x0
 #define ADD_INSTRUCTION        0x1
@@ -111,6 +119,12 @@
 #define PC  15  // Program counter
 #define SR  14  // Status register
 #define SP  13  // Stack pointer
+
+#define NUMBER_OF_SHADOW_REGISTERS  4   // Overall number of shadow registers
+#define SR_PC   0                       // Shadow register for PC
+#define SR_SR   1                       // Shadow register for SR
+#define SR_SP   2                       // Shadow register for SP
+#define SR_RB   3                       // Shadow register for register bank base address
 
 #define MAX_LAST_ADDRESSES     16
 
@@ -134,7 +148,7 @@ unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively 
 
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                                 "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "ctrl"},
-     *gbl$control_mnemonics[] = {"HALT", "RTI", "INT", "INCRB", "DECRB"}, 
+     *gbl$control_mnemonics[] = {"HALT", "RTI", "INT", "INCRB", "DECRB", "RSR", "WSR"}, 
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNV--",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
@@ -142,8 +156,7 @@ char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SH
 unsigned int gbl$interrupt_address,                 // Interrupt address as set by the interrupting "device"
              gbl$interrupt_request = FALSE,         // This flag denotes an interrupt request.
              gbl$interrupt_active = FALSE,          // true if an interrupt is currently being serviced.
-             gbl$interrupt_R14,                     // Shadow registers for R14 / R15.
-             gbl$interrupt_R15,
+             gbl$shadow_register[NUMBER_OF_SHADOW_REGISTERS],
              gbl$last_addresses[MAX_LAST_ADDRESSES],// List of last addresses executed 
              gbl$last_addresses_pointer = 0,        // Pointer into the aforementioned list
              gbl$last_address;                      // Just the last address to save accessing the ring buffer for this info
@@ -535,6 +548,7 @@ void reset_machine() {
   /* Reset main memory and registers */
   for (i = 0; i < IO_AREA_START; access_memory(i++, WRITE_MEMORY, 0));
   for (i = 0; i < REGMEM_SIZE; gbl$registers[i++] = 0);
+  for (i = 0; i < NUMBER_OF_SHADOW_REGISTERS; gbl$shadow_register[i++] = 0);
 
   /* Reset statistics counters */
   for (i = 0; i < NO_OF_INSTRUCTIONS; gbl$stat.instruction_frequency[i++] = 0);
@@ -626,6 +640,8 @@ void disassemble(unsigned int start, unsigned int stop) {
         if ((skip_addresses = decode_operand(instruction & 0x3f, scratch))) /* Constant as operand */
           sprintf(scratch, "0x%04X", access_memory(i + 1, READ_MEMORY, 0));
         strcpy(operands, scratch);
+      } else if (j == RSR_INSTRUCTION || j == WSR_INSTRUCTION) { // Both instructions have just two regular operands
+        // TODO
       }
     } else if (opcode == GENERIC_BRANCH_OPCODE) { /* Branch or Subroutine call */
       strcpy(mnemonic, gbl$branch_mnemonics[(instruction >> 4) & 0x3]);
@@ -797,10 +813,11 @@ int execute() {
 
   // Take care of interrupts
   if (gbl$interrupt_request && !gbl$interrupt_active) { // Interrupts cannot be nested!
-    gbl$interrupt_active  = TRUE;               // Remember that we are currently servicing an interrupt
+    gbl$interrupt_active  = TRUE;                   // Remember that we are currently servicing an interrupt
     gbl$interrupt_request = FALSE;
-    gbl$interrupt_R14 = read_register(SR);      // Save status register 
-    gbl$interrupt_R15 = read_register(PC);      // and program counter
+    gbl$shadow_register[SR_PC] = read_register(PC); // Save PC
+    gbl$shadow_register[SR_SR] = read_register(SR); // Save status register 
+    gbl$shadow_register[SR_SP] = read_register(SP); // Save stack pointer
     write_register(PC, gbl$interrupt_address);  // Jump to interrupt service routine
 
     if (gbl$debug) {
@@ -979,8 +996,9 @@ int execute() {
             return TRUE;
           }
           gbl$interrupt_active = FALSE;
-          write_register(SR, gbl$interrupt_R14);
-          write_register(PC, gbl$interrupt_R15);
+          write_register(SP, gbl$shadow_register[SR_SP]);
+          write_register(SR, gbl$shadow_register[SR_SR]);
+          write_register(PC, gbl$shadow_register[SR_PC]);
           break;
         case INT_INSTRUCTION:
           if (gbl$interrupt_active) {
@@ -1000,6 +1018,12 @@ int execute() {
           sr_bits = read_register(SR);
           rb = (((sr_bits >> 8) & 0xff) - 1) & 0xff;
           write_register(SR, ((sr_bits & 0x00ff) | (rb << 8)) & 0xffff);
+          break;
+        case RSR_INSTRUCTION:
+          // TODO
+          break;
+        case WSR_INSTRUCTION:
+          // TODO
           break;
         default:
           fprintf(stderr, "Illegal control instruction found: %02X\n", command);
@@ -1160,9 +1184,17 @@ void dump_registers() {
   printf("\n");
   for (i = 0; i < 0x10; i++) {
     if (!(i % 4)) /* New row */
-      printf("\n\tR%02d-R%02d: ", i, i + 3);
+      printf("\n\tR%02d-R%02d:   ", i, i + 3);
 
     printf("%04x ", read_register(i));
+  }
+  printf("\n\nShadow registers (PC, SR, SP, RB):\n");
+ 
+  for (i = 0; i < NUMBER_OF_SHADOW_REGISTERS; i++) {
+    if (!(i % 4)) /* New row */
+      printf("\n\tSH%02d-SH%02d: ", i, i + 3);
+
+    printf("%04x ", gbl$shadow_register[i]);
   }
   printf("\n\n");
 }
