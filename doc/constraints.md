@@ -1,9 +1,40 @@
-This file contains constraints of the QNICE-FPGA design.
+Constraints of the QNICE-FPGA design
+====================================
 
-Written by sy2002 / Last modified in September 2020.
+Today's hardware landscape is extremely diverse. As a relaxed hobbyist project
+QNICE-FPGA is at this time not able to offer a robust support of all
+peripheral devices such as USB keyboards and SD cards on the market.
 
+Furthermore, there are also still constraints in our software stack.
 
-# SD Card
+We are working to resolve as many constraints as possible over time.
+
+**Constraint categories:**
+
+HARDWARE:
+
+* [SD card](#sd-card)
+* [USB keyboard](#usb-keyboard)
+* [VGA](#vga)
+* [MEGA65](#mega65)
+
+TOOLCHAIN:
+
+* [Windows](#windows)
+* [Serial port software](#serial-port)
+* [ISE](#ise)
+* [Emulator](#emulator)
+* [C programming via VBCC](#VBCC)
+
+QNICE-FPGA SYSTEM:
+
+* [Encoding / Languages / Fonts](#encoding--languages--fonts)
+
+Hardware
+--------
+
+### SD Card
+
 
 * We tested microSD and microSDHC cards in the built-in card slot using a
   Nexys 4 DDR board. Presumably everything also works fine with normal sized
@@ -34,11 +65,10 @@ Written by sy2002 / Last modified in September 2020.
   Find out <devicename> using "diskutil list". <name> can be chosen
   arbitrarily.
 
-
-# USB Keyboard
+### USB Keyboard
 
 When attaching an USB keyboard, be sure to use one that supports the old
-USB boot mode standard. Not all newer keyboards are compatible. These
+**USB boot mode standard**. Not all newer keyboards are compatible. These
 keyboards are tested and work:
 
 * Cherry KC 1000
@@ -46,8 +76,52 @@ keyboards are tested and work:
 * Tacens Scriba
 * VIVANCO 36641 IT-KB USB PS2
 
+### VGA
 
-# Serial port
+* The display needs to support 640x480 and 640x400 in 60 Hz.
+
+### MEGA65
+
+* The HyperRAM is currently not stable, yet. See the following issues:
+  - https://github.com/sy2002/QNICE-FPGA/issues/90
+  - https://github.com/sy2002/QNICE-FPGA/issues/91
+
+* HyperRAM does not synthesize on ISE due to the following not yet fixed
+  warning. This is why HyperRAM is deactivated on ISE:
+  ```
+  [Synth 8-5787] Register current_cache_line_update_flags_reg in module
+  hyperram is clocked by two different clocks in the same process. This may
+  cause simulation mismatches and synthesis errors. Consider using different
+  process statements ["QNICE-FPGA/vhdl/hw/MEGA65/drivers/hyperram.vhdl":491]
+  ```
+
+* For the QNICE @ MEGA65 release at hand, we used the very first MEGA65
+  prototype computer, which has the board revision 2 (MEGA65R2). There were
+  only a couple of those prototypes produced, so you will probably have a
+  newer board revision: The first publicly available MEGA65 computer will be
+  the MEGA65 DevKit with board revision 3 (MEGA65R3). Acording to our current
+  knowledge R3 will have a different way of producing HDMI output so we
+  expect that the R2 HDMI output will not work on R3.
+
+Toolchain
+---------
+
+### Windows
+
+Currently, we do support **macOS** and **Linux** when it comes to compiling
+and running the QNICE-FPGA toolchain. This does not mean, that you could not
+get it running under Windows: There are multiple ways what you can do, ranging
+from Windows-Subsystem for Linux over things like MinGW to investing some
+work to port the build-, data-transformation and run-scripts themselves to
+Windows.
+
+Currently, none of the maintainers of QNICE-FPGA uses Windows.
+[Contributions](../CONTRIBUTE.md) to facilitate using QNICE-FPGA on Windows,
+are very welcome and might range from smaller things like "how-to"
+documentation and tutorials to ports of the toolchain. 
+
+### Serial port
+
 On Linux, the serial (UART) connection has been tested using the terminal
 program `picocom`.  However, the packaged version of this program (at least in
 Ubuntu) is version 2.2, which is buggy and occasionally drops characters (the
@@ -62,13 +136,19 @@ program. With `picocom` the relevant command line parameter is `--flow h`.
 
 On MAC, there are no known problems with the serial port connection.
 
+### ISE
 
-# VGA
+* Using ISE is deprecated. We are still supporting it while accepting
+  certain constraints.
 
-* The monitor needs to support 640x480 and 640x400 in 60 Hz.
+* The ROMs are too large and waste FPGA resources. When the FPGA is large
+  enough (such as the Artix-7 used on the Nexys 4 DDR and in the MEGA65),
+  this is not a problem. On Vivado this was solvable by introducing
+  dynamic ROM sizes depending on the ROM file that is being loaded,
+  but on ISE this did not work, so we needed to use `vhdl/block_rom_ise.vhd`
+  which has a constant ROM size of 8k words (16kB) per ROM.
 
-
-# EMULATOR
+### Emulator
 
 TODO RELEASE V1.7: REVISIT THIS SECTION, AS THE EMULATOR IS RECEIVING
 QUITE SOME CHANGES IN V1.7. ALSO CHECK, IF THE EMULATOR IS ABLE TO EMULATE
@@ -81,71 +161,12 @@ SCANLINE INTERRUPTS OR NOT AND DOCUMENT IT HERE.
   - Bit 5: right now, if the HW cursor is on, then it always blinks
   - Bit 4: right now, the cursor is always large (i.e. a block)
 
-
-# Encoding / Languages / Fonts
-
-* No support for UTF-8.
-
-* All monitor library functions, including gets and puts, are assuming, that
-  one character is one byte in size. That means, for example, that if you use
-  gets to enter the German character "ä" (Umlaut for ae) or
-  "ß" (Umlaut for ss), the following is happening:
-
-  a) On a modern OS like Mac OS or Windows, the default encoding is UTF-8.
-     So, if you press the "ä" key, while using STDIN=UART on real hardware
-     using terminal software or on the emulator using the command line of
-     the OS, the operating system will send the UTF-8 encoded "ä", which are
-     the following *TWO* bytes: C3 A4.
-
-     Obviously, this means that QNICE will store these two bytes within the
-     string. If you use puts to print this string on a UTF-8 enabled system,
-     you will see the right character "ä" again, so it kind of feels seamless
-     for the end user and nearly everything works.
-
-     But: If you enter e.g. "ä" and then press Backspace (BS) - as gets is
-     not aware of UTF-8 - the remaining character in the string is C3, which
-     will lead to funny effects.
-
-     Also, if you entered an "ä" using gets via STDIN=UART/STDOUT=UART, then
-     everything looks good, as your OS and the resulting terminal emulation
-     will be aware of UTF-8. But if you then output exactly this string on
-     STDOUT=VGA, then you will see the two charactes "Ã€", because this is
-     how the modified "lat9w-12_sy2002" font is encoded in Q-NICE currently.
-
-  b) If you entered an "ä" using STDIN=USB, then a German keyboard would
-     send the code E4, which would be displayed correctly on the STDOUT=VGA
-     screen as "ä".
-
-     But if you used STDIN=USB and STDOUT=UART, then pressing an "ä" or any
-     other non standard ASCII key will result to displaying wrong characters.
-
-* As a summary, and with the exception of some funny, but not really
-  dangerous, effects when using Backspace (BS) or DEL, you can already
-  currently, where no UTF-8 support is there, use non standard characters on
-  QNICE, as long as you stick either to (STDIN=STDOUT=UART) or to
-  (STDIN=USB and STDOUT=VGA). As soon as you stard mixing, it is not working
-  correctly, any more.
-
-* PS/2 (USB) keyboard: Currently, the monitor switches hardcoded to the
-  German keyboard layout. Though, the hardware is capable to handle an English
-  layout also (hw register `IO$KBD_STATE`, bits 2 .. 4). If you have a non-german
-  keyboard, you might want to change this in monitor/qasm.asm (search for
-  the string `KBD$LOCALE_DE`).
-
-* The VGA display uses a slightly modified version of "lat9w"
-  which is mostly compatible with ISO/IEC 8859-15 as described here:
-  [https://en.wikipedia.org/wiki/ISO/IEC_8859-15](https://en.wikipedia.org/wiki/ISO/IEC_8859-15).
-  You can look at the font by browsing this textfile:
-  vhdl/vga/lat9w-12.txt
-
-
-# VBCC
+### VBCC
 
 TODO RELEASE V1.7: REVISIT THIS SECTION DUE TO ISSUE #100
 * We are currently on a rather old version of VBCC
 
-
-# Standard C Library
+#### Standard C Library
 
 * No support for float and double, yet.
 
@@ -199,39 +220,63 @@ TODO RELEASE V1.7: REVISIT THIS SECTION DUE TO ISSUE #100
   The result, i.e. the binary standard library and the startup code are then
   copied to `c/vbcc/targets/qnice-mon/lib`: `libvc.a` and `startup.o`.
 
+Encoding / Languages / Fonts
+----------------------------
 
-# MEGA65
+* Hardcoded German keyboard locale in Monitor
 
-* The HyperRAM is currently not stable, yet. See the following issues:
-  - https://github.com/sy2002/QNICE-FPGA/issues/90
-  - https://github.com/sy2002/QNICE-FPGA/issues/91
+* No support for UTF-8
 
-* HyperRAM does not synthesize on ISE due to the following not yet fixed
-  warning. This is why HyperRAM is deactivated on ISE:
-  ```
-  [Synth 8-5787] Register current_cache_line_update_flags_reg in module
-  hyperram is clocked by two different clocks in the same process. This may
-  cause simulation mismatches and synthesis errors. Consider using different
-  process statements ["QNICE-FPGA/vhdl/hw/MEGA65/drivers/hyperram.vhdl":491]
-  ```
+* All monitor library functions, including gets and puts, are assuming, that
+  one character is one byte in size. That means, for example, that if you use
+  gets to enter the German character "ä" (Umlaut for ae) or
+  "ß" (Umlaut for ss), the following is happening:
 
-* For the QNICE @ MEGA65 release at hand, we used the very first MEGA65
-  prototype computer, which has the board revision 2 (MEGA65R2). There were
-  only a couple of those prototypes produced, so you will probably have a
-  newer board revision: The first publicly available MEGA65 computer will be
-  the MEGA65 DevKit with board revision 3 (MEGA65R3). Acording to our current
-  knowledge R3 will have a different way of producing HDMI output so we
-  expect that the R2 HDMI output will not work on R3.
+  a) On a modern OS like Mac OS or Windows, the default encoding is UTF-8.
+     So, if you press the "ä" key, while using STDIN=UART on real hardware
+     using terminal software or on the emulator using the command line of
+     the OS, the operating system will send the UTF-8 encoded "ä", which are
+     the following *TWO* bytes: C3 A4.
 
+     Obviously, this means that QNICE will store these two bytes within the
+     string. If you use puts to print this string on a UTF-8 enabled system,
+     you will see the right character "ä" again, so it kind of feels seamless
+     for the end user and nearly everything works.
 
-# ISE
+     But: If you enter e.g. "ä" and then press Backspace (BS) - as gets is
+     not aware of UTF-8 - the remaining character in the string is C3, which
+     will lead to funny effects.
 
-* Using ISE is deprecated. We still support it with Version 1.6.
+     Also, if you entered an "ä" using gets via STDIN=UART/STDOUT=UART, then
+     everything looks good, as your OS and the resulting terminal emulation
+     will be aware of UTF-8. But if you then output exactly this string on
+     STDOUT=VGA, then you will see the two charactes "Ã€", because this is
+     how the modified "lat9w-12_sy2002" font is encoded in Q-NICE currently.
 
-* The ROMs are too large and waste FPGA resources. When the FPGA is large
-  enough (such as the Artix-7 used on the Nexys 4 DDR and in the MEGA65),
-  this is not a problem. On Vivado this was solvable by introducing
-  dynamic ROM sizes depending on the ROM file that is being loaded,
-  but on ISE this did not work, so we needed to use `vhdl/block_rom_ise.vhd`
-  which has a constant ROM size of 8k words (16kB) per ROM.
+  b) If you entered an "ä" using STDIN=USB, then a German keyboard would
+     send the code E4, which would be displayed correctly on the STDOUT=VGA
+     screen as "ä".
+
+     But if you used STDIN=USB and STDOUT=UART, then pressing an "ä" or any
+     other non standard ASCII key will result to displaying wrong characters.
+
+* As a summary, and with the exception of some funny, but not really
+  dangerous, effects when using Backspace (BS) or DEL, you can already
+  currently, where no UTF-8 support is there, use non standard characters on
+  QNICE, as long as you stick either to (STDIN=STDOUT=UART) or to
+  (STDIN=USB and STDOUT=VGA). As soon as you stard mixing, it is not working
+  correctly, any more.
+
+* PS/2 (USB) keyboard: Currently, the monitor switches hardcoded to the
+  German keyboard layout. Though, the hardware is capable to handle an English
+  layout also (hw register `IO$KBD_STATE`, bits 2 .. 4). If you have a non-german
+  keyboard, you might want to change this in monitor/qasm.asm (search for
+  the string `KBD$LOCALE_DE`).
+
+* The VGA display uses a slightly modified version of "lat9w"
+  which is mostly compatible with ISO/IEC 8859-15 as described here:
+  [https://en.wikipedia.org/wiki/ISO/IEC_8859-15](https://en.wikipedia.org/wiki/ISO/IEC_8859-15).
+  You can look at the font by browsing this textfile:
+  vhdl/vga/lat9w-12.txt
+
 
