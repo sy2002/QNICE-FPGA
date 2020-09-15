@@ -32,6 +32,7 @@ Full documentation in alphabetical order
 * [Assembler (how-to)](../README.md#programming-in-assembler)
 * [Assembler programming best practiecs](best-practices.md#native-qnice-assembler)
 * [Basics](#basics)
+* [Baud rate](TODO @MJoergen link to the section within IO_Devices.md)
 * [C (how-to)](../README.md#programming-in-c)
 * [C programming best practices](best-practices.md#c)
 * [C specifics](vbcc.md)
@@ -48,7 +49,7 @@ Full documentation in alphabetical order
 * [Getting Started](../README.md#getting-started)
 * [Interrupt capable devices (requirements & how-to)](int-device.md)
 * [Instruction Set Architecture (ISA)](intro/qnice_intro.pdf)
-* [I/O devices](../README.md#io-devices)
+* [I/O devices](IO_Devices.md)
 * [Hardware platforms](../hw/README.md)
 * [License](../LICENSE.md)
 * [MEGA 65 Drivers](../vhdl/hw/MEGA65/README.md)
@@ -116,7 +117,9 @@ Basics
   using hardware mechanisms such as switches and key combinations; you cannot
   route them using software.
 
-### Details on the "Switch Register" that controls STDIN/STDOUT
+* The baud rate for serial communication (UART) is flexible... TODO @MJoergen
+
+### Details on the Switch Register that controls STDIN/STDOUT
 
 The initial Nexys 4 DDR version of QNICE-FPGA supports 16 switches that are
 directly linked with the "Switch Register" `0xFF00`
@@ -133,7 +136,7 @@ switch is Bit #0.
 The below-mentioned `RESTORE` key combinations of the MEGA65 are toggling
 the bits #0 and #1 of the Switch Register.
 
-### "Switch Register" Bit #2: CPU Debug Mode
+### Switch Register Bit #2: CPU Debug Mode
 
 On the Nexys 4 DDR board, the third switch (counted from the right) aka `SW2`
 triggers bit #2 of the "Switch Register". There is no equivalent of this
@@ -142,6 +145,12 @@ key on the MEGA65. If bit #2 is `1`, then the CPU Debug Mode is activated.
 When in CPU Debug Mode the 7-segment display of the Nexys 4 DDR board will show the
 CPU address (program counter) when a `HALT` command was executed. This
 is very valuable when running a CPU test such as `test_programs/cpu_test.asm`.
+
+### Switch Register Bit #3: TODO @MJoergen
+
+Explain the details here XYZ ABC CDE FGH
+
+And link to a more detailed description in IO_Devices.md
 
 Transferring software to QNICE-FPGA
 -----------------------------------
