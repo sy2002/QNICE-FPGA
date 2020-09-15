@@ -75,6 +75,7 @@ keyboards are tested and work:
 * Logitech Ultra-Flat Y-BP62a
 * Tacens Scriba
 * VIVANCO 36641 IT-KB USB PS2
+* ASUS KU-0902
 
 ### VGA
 
