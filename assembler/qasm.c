@@ -682,9 +682,14 @@ Offending line:\n%s\n", line_counter, entry->source);
             *(entry->data + i - 1) = (char) 13;
             *(entry->data + i)     = (char) 10;
             special_char = 0;
-          } else if (special_char && *(p + i) == 't') {
+          }  else if (special_char && *(p + i) == 't') {
             *(entry->data + i - 1) = (char) 9;
-            *(entry->data + i) = ' ';
+
+            char scratch[STRING_LENGTH];    //  This is ugly as hell but solves the problem of 
+            strcpy(scratch, p + i + 1);     // replacing a two character control string '\t'
+            strcpy(p + i, scratch);         // with only one destination character.
+            i--;                            // Do not forget to decrement i so that is no gap in entry->data!
+
             special_char = 0;
           } else if (special_char && *(p + i) != 'n' && special_char && *(p + i) != 't') {
             *(entry->data + i - 1) = *(p + i - 1);
