@@ -11,9 +11,9 @@ we are supporting these vendor/board/toolchain combinations:
 * Xilinx: **Nexys4 DDR** and **Nexys A7** using Vivado or ISE
 * Xilinx: **MEGA65** using Vivado or ISE
 
-Scroll down to the respective section to learn more about a particular supported
-combination. And if your hardware is not included here, please read on
-at the section "General advice for porting".
+Scroll down to the respective section to learn more about a particular
+supported combination. And if your hardware is not included here, please
+read on at the section "General advice for porting".
 
 The structure of this folder is:
 
@@ -111,23 +111,25 @@ Open the project `hw/xilinx/nexys4ddr/ISE/env1.xise` to synthesize using ISE.
 ### Vivado 2019.2 (or newer)
 
 Vivado is the successor of ISE. Even though ISE can still be downloaded for
-free from Xilinx as the time of writing, Vivado is the way to go when developing
-for Xilinx FPGAs. So we made a port of QNICE-FPGA to Vivado, which you can
-[download here](https://www.xilinx.com/support/download.html); we recommend
-to use the "HLx Editions" with the free Vivado WebPACK license.
+free from Xilinx as the time of writing, Vivado is the way to go when
+developing for Xilinx FPGAs. So we made a port of QNICE-FPGA to Vivado,
+which you can 
+[download here](https://www.xilinx.com/support/download.html);
+we recommend to use the "HLx Editions" with the free Vivado WebPACK license.
 Open the project `hw/xilinx/nexys4ddr/Vivado/qnice_nexys.xpr`
 to synthesize using Vivado.
 
-## Specifics of the Nexys 4 DDR and Nexys A7 hardware
+Specifics of the Nexys 4 DDR and Nexys A7 hardware
+--------------------------------------------------
 
 * The CPU Reset button works as expected.
 
 * STDIN: You can use serial in or an USB keyboard. Use the rightmost switch
   `SW0` to toggle: `off` equals serial in and `on` means keyboard. Have a look
-  at [constraints.md](constraints.md) to learn which keyboards are working.
-  When switching between one STDIN to another STDIN you need to press a key
-  one more time on the "old" STDIN after you switch, before the new STDIN
-  starts working.
+  at [doc/constraints.md](../doc/constraints.md) to learn which keyboards are
+  working. When switching between one STDIN to another STDIN you need to
+  press a key one more time on the "old" STDIN after you switch, before the
+  new STDIN starts working.
 
 * STDOUT: You can use serial out or a VGA monitor. Use the second switch
   counted from right `SW1` to toggle: `off` equals serial out and `on` means
@@ -135,20 +137,20 @@ to synthesize using Vivado.
 
 * Serial communication: `115,200 baud, 8-N-1, RTS/CTS ON`. Note that on
   some Linux machines the serial terminal program `picocom` is buggy. See
-  [constraints.md](constraints.md) for more details and a work-around.
+  [doc/constraints.md](../doc/constraints.md) for more details and
+  a work-around.
 
 * Debug mode: If switch `SW2` is on, then the value of the CPU's address lines
   is shown in real-time on the 7-segment-display. This means, that on `HALT`
   you will see the program counter (PC) of the `HALT` command.
 
 * The SD Card slot is supported. Use FAT32 formatted cards and have a look at
-  [constraints.md](constraints.md) to learn which SD Cards are working.
-  Use the Monitor's `F` command group to access the SD Card, e.g. use
+  [doc/constraints.md](../doc/constraints.md) to learn which SD Cards are
+  working. Use the Monitor's `F` command group to access the SD Card, e.g. use
   `F` and then `D` to show the contents of the current directory.
 
 * Not used/supported: Pushbuttons other than the CPU Reset button; ethernet
   connector; Pmod connectors; audio out
-
 
 MEGA65
 ------
@@ -213,7 +215,8 @@ have an even higher board revision.
 For learning more about how QNICE-FPGA supports the different MEGA65 hardware
 versions, have a look at [doc/README.md](../doc/README.md).
 
-## Specifics of the MEGA65 hardware
+Specifics of the MEGA65 hardware
+--------------------------------
 
 ### SD Card
 
