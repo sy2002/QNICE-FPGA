@@ -1,5 +1,5 @@
 qbin/the-matrix.html linguist-generated
-c/qnice/* linguist-vendored
-c/vasm/* linguist-vendored
-c/vbcc/* linguist-vendored
-c/vlink/* linguist-vendored
+c/qnice/** linguist-vendored
+c/vasm/** linguist-vendored
+c/vbcc/** linguist-vendored
+c/vlink/** linguist-vendored
