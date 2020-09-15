@@ -116,7 +116,7 @@ work to port the build-, data-transformation and run-scripts themselves to
 Windows.
 
 Currently, none of the maintainers of QNICE-FPGA uses Windows.
-[Contributions](../CONTRIBUTE.md) to facilitate using QNICE-FPGA on Windows,
+[Contributions](../CONTRIBUTING.md) to facilitate using QNICE-FPGA on Windows,
 are very welcome and might range from smaller things like "how-to"
 documentation and tutorials to ports of the toolchain. 
 
@@ -223,7 +223,11 @@ TODO RELEASE V1.7: REVISIT THIS SECTION DUE TO ISSUE #100
 Encoding / Languages / Fonts
 ----------------------------
 
-* Hardcoded German keyboard locale in Monitor
+* PS/2 (USB) keyboard: Currently, the monitor switches hardcoded to the
+  German keyboard layout. Though, the hardware is capable to handle an English
+  layout also (hw register `IO$KBD_STATE`, bits 2 .. 4). If you have a non-german
+  keyboard, you might want to change this in monitor/qasm.asm (search for
+  the string `KBD$LOCALE_DE`).
 
 * No support for UTF-8
 
@@ -266,12 +270,6 @@ Encoding / Languages / Fonts
   QNICE, as long as you stick either to (STDIN=STDOUT=UART) or to
   (STDIN=USB and STDOUT=VGA). As soon as you stard mixing, it is not working
   correctly, any more.
-
-* PS/2 (USB) keyboard: Currently, the monitor switches hardcoded to the
-  German keyboard layout. Though, the hardware is capable to handle an English
-  layout also (hw register `IO$KBD_STATE`, bits 2 .. 4). If you have a non-german
-  keyboard, you might want to change this in monitor/qasm.asm (search for
-  the string `KBD$LOCALE_DE`).
 
 * The VGA display uses a slightly modified version of "lat9w"
   which is mostly compatible with ISO/IEC 8859-15 as described here:
