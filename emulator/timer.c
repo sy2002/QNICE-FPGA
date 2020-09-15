@@ -10,7 +10,7 @@
 **    register TIMER_x_CNT, an interrupt will be issued.
 **  - The register TIMER_x_INT contains the address of the interrupt service routine to be called.
 **
-**  In order to activate one of the (currently) four timers all of its three registers must be different from zero!
+**  In order to activate one of the (currently) two timers its PRE and CNT registers must be different from zero!
 */
 
 #undef DEBUG
@@ -64,8 +64,7 @@ void writeTimerDeviceRegister(unsigned int address, unsigned int value) {
     i = (int) (address / REG_PER_TIMER);    // Which timer was accessed?
 
     if (timer_registers[i * REG_PER_TIMER + REG_PRE] && 
-        timer_registers[i * REG_PER_TIMER + REG_CNT] && 
-        timer_registers[i * REG_PER_TIMER + REG_INT]) {
+        timer_registers[i * REG_PER_TIMER + REG_CNT]) {
         if (thread_list[i]) {   // If the timer is being reconfigured, cancel and recreate it
             if (pthread_cancel(thread_list[i])) {
               perror("[0, 0] timer could not be removed!");
