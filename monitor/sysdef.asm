@@ -88,8 +88,7 @@ IO$INS_STATE    .EQU 0xFF0F     ; status register
 ;  The other registers are mentioned for completeness to map real hardware (16550)
 ;
 IO$UART_BASE_ADDRESS    .EQU    0xFF10
-IO$UART_MR1A    .EQU 0xFF10 ; n/a
-IO$UART_MR1B    .EQU 0xFF10 ; n/a
+IO$UART_DIVISOR .EQU 0xFF10 ; Set baudrate divisor: baudrate = 50000000 / divisor.
 IO$UART_SRA     .EQU 0xFF11 ; Status register (relative to base address)
 IO$UART_RHRA    .EQU 0xFF12 ; Receiving register (relative to base address)
 IO$UART_THRA    .EQU 0xFF13 ; Transmitting register (relative to base address)

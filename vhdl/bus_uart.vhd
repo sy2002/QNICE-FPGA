@@ -2,25 +2,19 @@
 -- meant to be connected with the QNICE CPU as data I/O is through MMIO
 -- output goes zero when not enabled
 -- 8-N-1, no error state handling, CTS flow control
--- DIVISOR assumes a 100 MHz system clock
+-- Assumes a 50 MHz input clock
 -- done by sy2002 and vaxman in August 2015
 -- improved by sy2002 in May 2020: Added a FIFO
+-- Added programmable baudrate by MJoergen in September 2020
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
 
 use work.env1_globals.all;
 
 entity bus_uart is
-generic (
-   DIVISOR: natural              -- DIVISOR = 100,000,000 / (16 x BAUD_RATE)
-   -- 2400 -> 2604
-   -- 9600 -> 651
-   -- 115200 -> 54
-   -- 1562500 -> 4
-   -- 2083333 -> 3
-);
 port (
    clk            : in std_logic;                       
    reset          : in std_logic;
@@ -66,6 +60,7 @@ signal reset_reading          : std_logic;
 signal byte_tx_ready          : std_logic := '0';
 signal reset_byte_tx_ready    : std_logic;
 signal byte_tx_data           : std_logic_vector(7 downto 0);
+signal uart_divisor           : std_logic_vector(15 downto 0);
 
 --attribute mark_debug                    : boolean;
 --attribute mark_debug of cts             : signal is true;
@@ -87,6 +82,7 @@ signal byte_tx_data           : std_logic_vector(7 downto 0);
 --attribute mark_debug of fifo_fill_count : signal is true;
 --attribute mark_debug of uart_rx_enable  : signal is true;
 --attribute mark_debug of uart_rx_data    : signal is true;
+--attribute mark_debug of uart_divisor    : signal is true;
 
 begin
 
@@ -96,7 +92,7 @@ begin
       (
          clk_i       => clk,
          reset_i     => reset,
-         divisor_i   => X"1B2",           -- 434 -> 115200 bits/s.
+         divisor_i   => uart_divisor(11 downto 0),
          rx_data_o   => uart_rx_data,
          rx_enable_o => uart_rx_enable,
          tx_data_i   => uart_tx_data,
@@ -160,13 +156,17 @@ begin
       if uart_en = '1' and uart_we = '0' then
          case uart_reg is
          
+            -- register 0: UART baudrate divisor
+            when "00" =>
+               cpu_data_out <= uart_divisor;
+
             -- register 1: status register
             when "01" => cpu_data_out <= x"000" & "00" & uart_tx_ready & (not fifo_empty);
 
             -- register 2: receive (aka read) register
             when "10" =>
                cpu_data_out <= x"00" & fifo_rd_data;
-            
+
             when others => cpu_data_out <= (others => '0');
          end case;
       else
@@ -177,13 +177,23 @@ begin
    write_registers : process(clk)
    begin
       if rising_edge(clk) then
-            -- register 3: send (aka write) register
+         -- register 0: UART baudrate divisor
+         if uart_en = '1' and uart_we = '1' and uart_reg = "00" then
+            -- Only store values within range of allowed values
+            if conv_integer(cpu_data_in) >= 16 and conv_integer(cpu_data_in) <= 4095 then
+               uart_divisor <= cpu_data_in;
+            end if;
+         end if;
+
+         -- register 3: send (aka write) register
          if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
             byte_tx_data <= cpu_data_in(7 downto 0);
          end if;
 
          if reset = '1' then
             byte_tx_data <= (others => '0');
+            -- Set default divisor to 434, i.e. baudrate 115200.
+            uart_divisor <= X"01B2";
          end if;
       end if;
    end process;
@@ -191,7 +201,7 @@ begin
    handle_tx_ready : process(clk)
    begin
       if rising_edge(clk) then
-            -- tx_ready listens to write operations to register 3
+         -- tx_ready listens to write operations to register 3
          if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
             byte_tx_ready <= '1';
          end if;

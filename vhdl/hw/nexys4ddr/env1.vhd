@@ -281,9 +281,6 @@ begin
 
    -- special UART with FIFO that can be directly connected to the CPU bus
    uart : entity work.bus_uart
-      generic map (
-         DIVISOR => UART_DIVISOR
-      )
       port map (
          clk => SLOW_CLOCK,
          reset => reset_ctl,
