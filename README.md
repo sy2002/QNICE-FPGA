@@ -113,11 +113,13 @@ Get started using actual FPGA hardware:
   `0xA000 0x0F80`. Alternatively, you can manually copy the file
   `demos/mandel.out` into your clipboard/pasteboard.
 
-* Open a serial terminal program, configure it as 115,200 baud, 8-N-1, CTS ON,
+* Open a serial terminal program, configure it as `115,200 baud, 8-N-1, CTS ON`,
   attach the QNICE-FPGA, turn it on, after the bitstream loaded from the SD
   card, connect the terminal program to the serial interface of the FPGA and
   press the reset button. You should see a welcome message and the `QMON>`
-  prompt in your terminal program's window.
+  prompt in your terminal program's window. Note: Older versions of the
+  terminal program `picocom` were buggy. See
+  [doc/constraints.md](doc/constraints.md) for more details and a work-around.
 
 * Enter `M` then `L` there. You should see something like "Memory/Load".
 
