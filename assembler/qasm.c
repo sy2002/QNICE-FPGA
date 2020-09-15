@@ -689,6 +689,7 @@ Offending line:\n%s\n", line_counter, entry->source);
             strcpy(scratch, p + i + 1);     // replacing a two character control string '\t'
             strcpy(p + i, scratch);         // with only one destination character.
             i--;                            // Do not forget to decrement i so that is no gap in entry->data!
+            address--;
 
             special_char = 0;
           } else if (special_char && *(p + i) != 'n' && special_char && *(p + i) != 't') {
