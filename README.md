@@ -87,7 +87,7 @@ Get started using actual FPGA hardware:
 * Attach an "old" USB keyboard supporting boot mode to the board and attach
   a VGA monitor. Attach the USB cable to your desktop computer, so that you
   can setup a serial (terminal) connection between the desktop and the FPGA.
-  (The file `doc/constraints.txt` contains a list of known-to-work USB
+  (The file `doc/constraints.md` contains a list of known-to-work USB
   keyboards.)
 
 * On your host computer: Open a command line and head to the root folder of
@@ -149,7 +149,7 @@ Using the File System
 
 * QNICE-FPGA supports SD Cards (microSD Cards on the Nexys 4 DDR), that are
   formatted using FAT32. Make sure that you read the file
-  [doc/constraints.txt](doc/constraints.txt) to understand what works and what
+  [doc/constraints.md](doc/constraints.md) to understand what works and what
   does not.
 
 * Copy the folder `qbin` from the QNICE-FPGA root folder to your SD Card. It
@@ -375,7 +375,7 @@ order is recommended:
 
 4. [Emulator](emulator/README.md) and [mounting FAT32 devices](doc/emumount.txt)
 
-5. [Constraints](doc/constraints.txt)
+5. [Constraints](doc/constraints.md)
 
 6. [Programming Best Practices](doc/best-practices.md)
 

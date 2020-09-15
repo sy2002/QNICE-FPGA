@@ -1,10 +1,9 @@
-This file contains constraints of the QNICE-FPGA design
+This file contains constraints of the QNICE-FPGA design.
 
-Written by sy2002 / Last modified in September 2020
+Written by sy2002 / Last modified in September 2020.
 
-==============================================================================
-    SD Card
-==============================================================================
+
+# SD Card
 
 * We tested microSD and microSDHC cards in the built-in card slot using a
   Nexys 4 DDR board. Presumably everything also works fine with normal sized
@@ -18,26 +17,25 @@ Written by sy2002 / Last modified in September 2020
 * NOT WORKING are cards like SanDisk "Ultra" Class 10 cards (80 MB/sec) or
   Kingston Class 10 cards. Use slower cards instead, like
   SanDisk's 32 GB Class 4 card. So for summing it up: If you want to be on the
-  safe side, then use cards SD cards (no SDHC, no SDXC) with a capacity of a
+  safe side, then use SD cards (no SDHC, no SDXC) with a capacity of a
   maximum of 2 GB.
-* MBR partition table
+* MBR partition table.
 * FAT32 with a 512 byte sector size.
-  ATTENTION: FAT16 and others are not supported, you probably need to 
-  manually format the SD Card to be sure, that you are running with FAT32.
+  ATTENTION: FAT16 and others are not supported, you probably need to
+  manually format the SD Card to be sure that you are running with FAT32.
 * Maximum 65.535 files per folder.
 * File names are ASCII only (no Unicode).
 * MAC USERS: Do not use the GUI version of the disk utility, as you cannot
   control, if the tool creates FAT16 or FAT32. Use the command line
   version of diskutil instead:
 
-  sudo diskutil eraseDisk FAT32 <name> MBRFormat /dev/<devicename>
+  `sudo diskutil eraseDisk FAT32 <name> MBRFormat /dev/<devicename>`
 
   Find out <devicename> using "diskutil list". <name> can be chosen
   arbitrarily.
 
-==============================================================================
-    USB Keyboard
-==============================================================================
+
+# USB Keyboard
 
 When attaching an USB keyboard, be sure to use one that supports the old
 USB boot mode standard. Not all newer keyboards are compatible. These
@@ -48,15 +46,29 @@ keyboards are tested and work:
 * Tacens Scriba
 * VIVANCO 36641 IT-KB USB PS2
 
-==============================================================================
-    VGA
-==============================================================================    
+
+# Serial port
+On Linux, the serial (UART) connection has been tested using the terminal
+program `picocom`.  However, the packaged version of this program (at least in
+Ubuntu) is version 2.2, which is buggy and occasionally drops characters (the
+bug report can be found here:
+https://bugs.launchpad.net/ubuntu/+source/picocom/+bug/1895521). The solution
+in this case is to manually download and compile the latest version (3.1) of
+`picocom` from the official source repository:
+[https://github.com/npat-efault/picocom](https://github.com/npat-efault/picocom).
+
+Remember to enable hardware flow control (RTS/CTS) when running the terminal
+program. With `picocom` the relevant command line parameter is `--flow h`.
+
+On MAC, there are no known problems with the serial port connection.
+
+
+# VGA
 
 * The monitor needs to support 640x480 and 640x400 in 60 Hz.
 
-==============================================================================
-    EMULATOR
-==============================================================================    
+
+# EMULATOR
 
 TODO RELEASE V1.7: REVISIT THIS SECTION, AS THE EMULATOR IS RECEIVING
 QUITE SOME CHANGES IN V1.7. ALSO CHECK, IF THE EMULATOR IS ABLE TO EMULATE
@@ -64,15 +76,13 @@ SCANLINE INTERRUPTS OR NOT AND DOCUMENT IT HERE.
 
 * The WebAssembly (WASM) emulator does not support the timer interrupt module.
 
-* The emulator does not support the following bits in VGA$STATE:
-  Bit 7: right now, VGA is always on
-  Bit 5: right now, if the HW cursor is on, then it always blinks
-  Bit 4: right now, the cursor is always large (i.e. a block)
-  Bit 2 to 0: right now, this is ignored and green is chosen as color
+* The emulator does not support the following bits in `VGA$STATE`:
+  - Bit 7: right now, VGA is always on
+  - Bit 5: right now, if the HW cursor is on, then it always blinks
+  - Bit 4: right now, the cursor is always large (i.e. a block)
 
-==============================================================================
-    Encoding / Languages / Fonts
-==============================================================================
+
+# Encoding / Languages / Fonts
 
 * No support for UTF-8.
 
@@ -109,7 +119,7 @@ SCANLINE INTERRUPTS OR NOT AND DOCUMENT IT HERE.
      But if you used STDIN=USB and STDOUT=UART, then pressing an "ä" or any
      other non standard ASCII key will result to displaying wrong characters.
 
-* As a summary, and with the exception of some funny, but not really 
+* As a summary, and with the exception of some funny, but not really
   dangerous, effects when using Backspace (BS) or DEL, you can already
   currently, where no UTF-8 support is there, use non standard characters on
   QNICE, as long as you stick either to (STDIN=STDOUT=UART) or to
@@ -118,26 +128,24 @@ SCANLINE INTERRUPTS OR NOT AND DOCUMENT IT HERE.
 
 * PS/2 (USB) keyboard: Currently, the monitor switches hardcoded to the
   German keyboard layout. Though, the hardware is capable to handle an English
-  layout also (hw register $FF13, bits 2 .. 4). If you have a non-german
+  layout also (hw register `IO$KBD_STATE`, bits 2 .. 4). If you have a non-german
   keyboard, you might want to change this in monitor/qasm.asm (search for
-  the string KBD$LOCALE_DE).
+  the string `KBD$LOCALE_DE`).
 
 * The VGA display uses a slightly modified version of "lat9w"
   which is mostly compatible with ISO/IEC 8859-15 as described here:
-  https://en.wikipedia.org/wiki/ISO/IEC_8859-15
+  [https://en.wikipedia.org/wiki/ISO/IEC_8859-15](https://en.wikipedia.org/wiki/ISO/IEC_8859-15).
   You can look at the font by browsing this textfile:
   vhdl/vga/lat9w-12.txt
 
-==============================================================================
-    VBCC
-==============================================================================    
+
+# VBCC
 
 TODO RELEASE V1.7: REVISIT THIS SECTION DUE TO ISSUE #100
 * We are currently on a rather old version of VBCC
 
-==============================================================================
-    Standard C Library
-==============================================================================    
+
+# Standard C Library
 
 * No support for float and double, yet.
 
@@ -146,14 +154,14 @@ TODO RELEASE V1.7: REVISIT THIS SECTION DUE TO ISSUE #100
   limit on the amount of characters that can be entered, the only limit is
   how "far you can go back" when pressing DEL or BS. If you want to
   enlarge the buffer, then you need to compile the standard C library while
-  defining QMON_LINEBUFFER_SIZE to the value you want it to be.
+  defining `QMON_LINEBUFFER_SIZE` to the value you want it to be.
 
 * While the C compiler, linker and assembler of the VBCC toolchain are
   open source and therefore included to our distribution package, the
   standard C library is not. Therefore you need to contact the author,
   if you need the sources. We are delivering a linkable version of the
-  standard C library, though: c/vbcc/targets/qnice-mon/lib/libvc.a
-  and of course all the header files in c/vbcc/targets/qnice-mon/include.
+  standard C library, though: `c/vbcc/targets/qnice-mon/lib/libvc.a`
+  and of course all the header files in `c/vbcc/targets/qnice-mon/include`.
   So you are able to work with the standard C library as you would expect
   it, even without having the source of the lib itself.
 
@@ -167,14 +175,14 @@ TODO RELEASE V1.7: REVISIT THIS SECTION DUE TO ISSUE #100
   files, we currently use the so called "unsafe heap" mechanism, which means,
   that the heap is basically a pointer to one word after the last word of the
   application program itself. Have a look at
-  c/qnice/vclib/targets/qnice-mon/libsrc/stdlib/_heap.c to learn more. In the
-  standard C library Makefile, which it located at
-  c/qnice/vclib/targets/qnice-mon/Makefile the heap size can be changed by
+  `c/qnice/vclib/targets/qnice-mon/libsrc/stdlib/_heap.c` to learn more. In the
+  standard C library Makefile, which is located at
+  `c/qnice/vclib/targets/qnice-mon/Makefile` the heap size can be changed by
   defining HEAPSIZE.
   Currently, we are not having any memory and/or heap
   management mechanisms on operating system level, so obtaining "core memory"
   currently just means increasing the heap pointer, as you can see here:
-  c/qnice/vclib/targets/qnice-mon/libsrc/stdlib/_core.c
+  `c/qnice/vclib/targets/qnice-mon/libsrc/stdlib/_core.c`
   That also means, we cannot free core memory and that means, for avoiding
   memory leaks, it is important, that the THRESHOLD defined in the Makefile
   is 2 words lower than HEAPSIZE / 4, so in our case as we have 4096 words
@@ -183,40 +191,40 @@ TODO RELEASE V1.7: REVISIT THIS SECTION DUE TO ISSUE #100
   implementation, which is currently not open source (see above).
 
 * If you happen to have access to the standard library source code, then
-  copy it to c/vclib and run the script c/make-vclib.sh to compile it.
+  copy it to `c/vclib` and run the script `c/make-vclib.sh` to compile it.
   (Don't forget to enter "source setenv.source" before doing so.) The script
   is merging the QNICE specific changes of the standard c library, which
-  are located at c/qnice/vclib with the vanilla version of the c library
+  are located at `c/qnice/vclib` with the vanilla version of the c library
   and then starts the compilation.
   The result, i.e. the binary standard library and the startup code are then
-  copied to c/vbcc/targets/qnice-mon/lib: libvc.a and startup.o
+  copied to `c/vbcc/targets/qnice-mon/lib`: `libvc.a` and `startup.o`.
 
-==============================================================================
-    MEGA65
-==============================================================================    
+
+# MEGA65
 
 * The HyperRAM is currently not stable, yet. See the following issues:
-  https://github.com/sy2002/QNICE-FPGA/issues/90
-  https://github.com/sy2002/QNICE-FPGA/issues/91
+  - https://github.com/sy2002/QNICE-FPGA/issues/90
+  - https://github.com/sy2002/QNICE-FPGA/issues/91
 
 * HyperRAM does not synthesize on ISE due to the following not yet fixed
   warning. This is why HyperRAM is deactivated on ISE:
-  "[Synth 8-5787] Register current_cache_line_update_flags_reg in module
+  ```
+  [Synth 8-5787] Register current_cache_line_update_flags_reg in module
   hyperram is clocked by two different clocks in the same process. This may
   cause simulation mismatches and synthesis errors. Consider using different
   process statements ["QNICE-FPGA/vhdl/hw/MEGA65/drivers/hyperram.vhdl":491]
+  ```
 
 * For the QNICE @ MEGA65 release at hand, we used the very first MEGA65
-  prototype computer, which has the board revision 2 (MEGA65R2). There where
+  prototype computer, which has the board revision 2 (MEGA65R2). There were
   only a couple of those prototypes produced, so you will probably have a
   newer board revision: The first publicly available MEGA65 computer will be
   the MEGA65 DevKit with board revision 3 (MEGA65R3). Acording to our current
-  knowledge R3 will have a different way of producing HDMI output so we 
+  knowledge R3 will have a different way of producing HDMI output so we
   expect that the R2 HDMI output will not work on R3.
 
-==============================================================================
-    ISE
-============================================================================== 
+
+# ISE
 
 * Using ISE is deprecated. We still support it with Version 1.6.
 
@@ -226,4 +234,4 @@ TODO RELEASE V1.7: REVISIT THIS SECTION DUE TO ISSUE #100
   dynamic ROM sizes depending on the ROM file that is being loaded,
   but on ISE this did not work, so we needed to use `vhdl/block_rom_ise.vhd`
   which has a constant ROM size of 8k words (16kB) per ROM.
-  
+

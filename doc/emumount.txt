@@ -3,7 +3,7 @@ How to mount FAT32 devices and files in the Emulator
 
 QNICE-FPGA is able to work with (micro)SD Cards that are formatted with the
 FAT32 file system and the MBR partition table. Please have a look at
-doc/constraints.txt to learn more about that.
+doc/constraints.md to learn more about that.
 
 IMPORTANT: FAT32 (not FAT16) and MBR is mandatory.
 

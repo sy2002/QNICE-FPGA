@@ -314,7 +314,7 @@ FAT32$ERR_MBR           .EQU    0xEE10                  ; no or illegal Master B
 FAT32$ERR_PARTITION_NO  .EQU    0xEE11                  ; the partition number needs to be in the range 1 .. 4
 FAT32$ERR_PARTTBL       .EQU    0xEE12                  ; no or illegal partition table entry found (e.g. no FAT32 partition)
 FAT32$ERR_NOTIMPL       .EQU    0xEE13                  ; functionality is not implemented
-FAT32$ERR_SIZE          .EQU    0xEE14                  ; partition size or volume size too large (see doc/constraints.txt)
+FAT32$ERR_SIZE          .EQU    0xEE14                  ; partition size or volume size too large (see doc/constraints.md)
 FAT32$ERR_NOFAT32       .EQU    0xEE15                  ; illegal volume id (either not 512 bytes per sector, or not 2 FATs or wrong magic)
 FAT32$ERR_ILLEGAL_SIC   .EQU    0xEE16                  ; trying to read/write a sector within a cluster that is out of range
 FAT32$ERR_ILLEGAL_CLUS  .EQU    0xEE17                  ; trying to access an illegal cluster number
