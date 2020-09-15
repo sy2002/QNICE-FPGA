@@ -1,8 +1,9 @@
 -- Basic UART implementation
 -- 8-N-1, no error state handling, no flow control
--- DIVISOR assumes a 100 MHz system clock
+-- divisor_i assumes a 50 MHz input clock
 -- heavily inspired by http://www.bealto.com/fpga-uart_intro.html
 -- done by sy2002 in August 2015
+-- Added programmable baud rate by MJoergen in September 2020
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -10,17 +11,13 @@ use ieee.std_logic_unsigned.all;
 use work.qnice_tools.all;
 
 entity basic_uart is
-   generic (
-      DIVISOR : natural                          -- DIVISOR = 100,000,000 / (16 x BAUD_RATE)
-                                                 -- 2400 -> 2604
-                                                 -- 9600 -> 651
-                                                 -- 115200 -> 54
-                                                 -- 1562500 -> 4
-                                                 -- 2083333 -> 3
-   );
    port (
       clk_i       : in  std_logic;
       reset_i     : in  std_logic;
+      divisor_i   : in  std_logic_vector(11 downto 0);   -- Calculate as 50000000 / BAUD_RATE
+                                                         -- 9600 -> 5208
+                                                         -- 115200 -> 434
+                                                         -- 3125000 -> 16
 
       -- client interface: receive data
       rx_data_o   : out std_logic_vector(7 downto 0); -- received byte
@@ -38,13 +35,12 @@ entity basic_uart is
 end basic_uart;
 
 architecture rtl of basic_uart is
-   constant COUNTER_BITS : natural := f_log2(DIVISOR);
    type fsm_state_t is (IDLE_ST, ACTIVE_ST);      -- common to both RX and TX FSM
 
    type rx_state_t is
       record
          fsm_state : fsm_state_t;                  -- FSM state
-         counter   : std_logic_vector(4+COUNTER_BITS-1 downto 0); -- tick count
+         counter   : std_logic_vector(11 downto 0); -- tick count
          bits      : std_logic_vector(7 downto 0); -- received bits
          nbits     : std_logic_vector(3 downto 0); -- number of received bits (includes start bit)
          enable    : std_logic;                    -- signal we received a new byte
@@ -53,7 +49,7 @@ architecture rtl of basic_uart is
    type tx_state_t is
       record
          fsm_state : fsm_state_t;                  -- FSM state
-         counter   : std_logic_vector(4+COUNTER_BITS-1 downto 0); -- tick count
+         counter   : std_logic_vector(11 downto 0); -- tick count
          bits      : std_logic_vector(8 downto 0); -- bits to emit, includes start bit
          nbits     : std_logic_vector(3 downto 0); -- number of bits left to send
          ready     : std_logic;                    -- signal we are accepting a new byte
@@ -110,7 +106,7 @@ begin
 
          when ACTIVE_ST =>
             rx_state_next <= rx_state;
-            if rx_state.counter = 8*DIVISOR then
+            if conv_integer(rx_state.counter) = conv_integer(divisor_i)/2 then
                -- sample next RX bit (at the middle of the counter cycle)
                if rx_state.nbits = 9 then
                   rx_state_next.fsm_state <= IDLE_ST;    -- back to idle state to wait for next start bit
@@ -122,7 +118,7 @@ begin
             end if;
 
             rx_state_next.counter <= rx_state.counter + 1;
-            if rx_state.counter = 16*DIVISOR-1 then
+            if conv_integer(rx_state.counter) = conv_integer(divisor_i)-1 then
                rx_state_next.counter <= (others => '0');
             end if;
 
@@ -162,7 +158,7 @@ begin
 
          when ACTIVE_ST =>
             tx_state_next <= tx_state;
-            if tx_state.counter = 16*DIVISOR-1 then
+            if conv_integer(tx_state.counter) = conv_integer(divisor_i)-1 then
                -- send next bit
                if tx_state.nbits = 0 then
                   -- turn idle
@@ -177,7 +173,7 @@ begin
                end if;
             end if;
             tx_state_next.counter <= tx_state.counter + 1;
-            if tx_state.counter = 16*DIVISOR-1 then
+            if conv_integer(tx_state.counter) = conv_integer(divisor_i)-1 then
                tx_state_next.counter <= (others => '0');
             end if;
 

@@ -92,14 +92,11 @@ begin
 
    -- UART
    basic_uart : entity work.basic_uart
-      generic map
-      (
-         DIVISOR => DIVISOR
-      )
       port map
       (
          clk_i       => clk,
          reset_i     => reset,
+         divisor_i   => X"1B2",           -- 434 -> 115200 bits/s.
          rx_data_o   => uart_rx_data,
          rx_enable_o => uart_rx_enable,
          tx_data_i   => uart_tx_data,
