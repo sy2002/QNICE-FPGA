@@ -188,6 +188,15 @@ signal Dst_Value_Fast      : std_logic_vector(15 downto 0);
 --attribute mark_debug of Bra_Neg        : signal is true;
 --attribute mark_debug of Bra_Condition  : signal is true;
 --attribute mark_debug of Ctrl_Cmd       : signal is true;
+--attribute mark_debug of FastPath       : signal is true;
+--attribute mark_debug of Src_Value      : signal is true;
+--attribute mark_debug of Dst_Value      : signal is true;
+--attribute mark_debug of Src_Value_Fast : signal is true;
+--attribute mark_debug of Dst_Value_Fast : signal is true;
+--attribute mark_debug of reg_read_addr1 : signal is true;
+--attribute mark_debug of reg_read_addr2 : signal is true;
+--attribute mark_debug of reg_read_data1 : signal is true;
+--attribute mark_debug of reg_read_data2 : signal is true;
 
 begin
    -- internal signals
