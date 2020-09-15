@@ -115,34 +115,8 @@ Address | Description
 
 ## VGA
 
-Address | Description
-------- | ------------
-`FF30`  | Command and Status (CSR)
-`FF31`  | Cursor X
-`FF32`  | Cursor Y
-`FF33`  | Character at cursor
-`FF34`  | Display offset
-`FF35`  | Cursor offset
-`FF39`  | Font offset
-`FF3C`  | Address into Font RAM
-`FF3D`  | Data to/from Font RAM
-`FF3E`  | Address into Palette RAM
-`FF3F`  | Data to/from Palette RAM
-`FF40`  | Pixels to adjust screen in X direction
-`FF41`  | Pixels to adjust screen in Y direction
-`FF42`  | Current scan line
-`FF43`  | Scan line to generate interrupt on
-`FF44`  | Interrupt Service Routine Address
-
-The Command and Status Register is decoded as follows
-* Bit 11 : Cursor offset enable (`FF35`)
-* Bit 10 : Display offset enable (`FF34`)
-* Bit  9 (R/O) : Busy
-* Bit  8 : Clear screen (this bit autoclears)
-* Bit  7 : VGA output enable
-* Bit  6 : Hardware cursor enable
-* Bit  5 : Hardware cursor blink enable
-* Bit  4 : Hardware cursor size
+As VGA is a very capable and thus complex device, we have but the
+documentation for this device in an own document: [doc/VGA_Features.md](VGA_Features.md)
 
 
 ## HyperRAM
