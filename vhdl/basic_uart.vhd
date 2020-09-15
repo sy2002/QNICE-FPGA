@@ -37,14 +37,14 @@ entity basic_uart is
    );
 end basic_uart;
 
-architecture beh of basic_uart is
+architecture rtl of basic_uart is
    constant COUNTER_BITS : natural := f_log2(DIVISOR);
    type fsm_state_t is (IDLE_ST, ACTIVE_ST);      -- common to both RX and TX FSM
 
    type rx_state_t is
       record
          fsm_state : fsm_state_t;                  -- FSM state
-         counter   : std_logic_vector(3 downto 0); -- tick count
+         counter   : std_logic_vector(4+COUNTER_BITS-1 downto 0); -- tick count
          bits      : std_logic_vector(7 downto 0); -- received bits
          nbits     : std_logic_vector(3 downto 0); -- number of received bits (includes start bit)
          enable    : std_logic;                    -- signal we received a new byte
@@ -53,7 +53,7 @@ architecture beh of basic_uart is
    type tx_state_t is
       record
          fsm_state : fsm_state_t;                  -- FSM state
-         counter   : std_logic_vector(3 downto 0); -- tick count
+         counter   : std_logic_vector(4+COUNTER_BITS-1 downto 0); -- tick count
          bits      : std_logic_vector(8 downto 0); -- bits to emit, includes start bit
          nbits     : std_logic_vector(3 downto 0); -- number of bits left to send
          ready     : std_logic;                    -- signal we are accepting a new byte
@@ -61,30 +61,12 @@ architecture beh of basic_uart is
 
    signal rx_state,rx_state_next : rx_state_t;
    signal tx_state,tx_state_next : tx_state_t;
-   signal sample         : std_logic;              -- 1 clk spike at 16x baud rate
-   signal sample_counter : std_logic_vector(COUNTER_BITS-1 downto 0); -- should fit values in 0..DIVISOR-1
+
+--   attribute mark_debug             : boolean;
+--   attribute mark_debug of rx_state : signal is true;
+--   attribute mark_debug of tx_state : signal is true;
 
 begin
-
-   -- sample signal at 16x baud rate, 1 CLK spikes
-   sample_process: process (clk) is
-   begin
-      if rising_edge(clk) then
-         if sample_counter = DIVISOR-1 then
-            sample <= '1';
-            sample_counter <= (others => '0');
-         else
-            sample <= '0';
-            sample_counter <= sample_counter + 1;
-         end if;
-
-         if reset = '1' then
-            sample_counter <= (others => '0');
-            sample <= '0';
-         end if;
-      end if;
-   end process sample_process;
-
 
    -- RX, TX state registers update at each CLK, and RESET
    reg_process: process (clk) is
@@ -109,7 +91,7 @@ begin
 
 
    -- RX FSM
-   rx_process: process (rx_state,sample,rx) is
+   rx_process: process (rx_state,rx) is
    begin
       case rx_state.fsm_state is
 
@@ -128,18 +110,20 @@ begin
 
          when ACTIVE_ST =>
             rx_state_next <= rx_state;
-            if sample = '1' then
-               if rx_state.counter = 8 then
-                  -- sample next RX bit (at the middle of the counter cycle)
-                  if rx_state.nbits = 9 then
-                     rx_state_next.fsm_state <= IDLE_ST; -- back to idle state to wait for next start bit
-                     rx_state_next.enable    <= rx;      -- OK if stop bit is '1'
-                  else
-                     rx_state_next.bits  <= rx & rx_state.bits(7 downto 1);
-                     rx_state_next.nbits <= rx_state.nbits + 1;
-                  end if;
+            if rx_state.counter = 8*DIVISOR then
+               -- sample next RX bit (at the middle of the counter cycle)
+               if rx_state.nbits = 9 then
+                  rx_state_next.fsm_state <= IDLE_ST; -- back to idle state to wait for next start bit
+                  rx_state_next.enable    <= rx;      -- OK if stop bit is '1'
+               else
+                  rx_state_next.bits  <= rx & rx_state.bits(7 downto 1);
+                  rx_state_next.nbits <= rx_state.nbits + 1;
                end if;
-               rx_state_next.counter <= rx_state.counter + 1;
+            end if;
+
+            rx_state_next.counter <= rx_state.counter + 1;
+            if rx_state.counter = 16*DIVISOR-1 then
+               rx_state_next.counter <= (others => '0');
             end if;
 
       end case;
@@ -150,12 +134,12 @@ begin
    rx_output: process (rx_state) is
    begin
       rx_enable <= rx_state.enable;
-      rx_data <= rx_state.bits;
+      rx_data   <= rx_state.bits;
    end process rx_output;
 
 
    -- TX FSM
-   tx_process: process (tx_state,sample,tx_enable,tx_data) is
+   tx_process: process (tx_state,tx_enable,tx_data) is
    begin
       case tx_state.fsm_state is
 
@@ -178,22 +162,23 @@ begin
 
          when ACTIVE_ST =>
             tx_state_next <= tx_state;
-            if sample = '1' then
-               if tx_state.counter = 15 then
-                  -- send next bit
-                  if tx_state.nbits = 0 then
-                     -- turn idle
-                     tx_state_next.bits      <= (others => '1');
-                     tx_state_next.nbits     <= (others => '0');
-                     tx_state_next.counter   <= (others => '0');
-                     tx_state_next.fsm_state <= IDLE_ST;
-                     tx_state_next.ready     <= '1';
-                  else
-                     tx_state_next.bits  <= '1' & tx_state.bits(8 downto 1);
-                     tx_state_next.nbits <= tx_state.nbits - 1;
-                  end if;
+            if tx_state.counter = 16*DIVISOR-1 then
+               -- send next bit
+               if tx_state.nbits = 0 then
+                  -- turn idle
+                  tx_state_next.bits      <= (others => '1');
+                  tx_state_next.nbits     <= (others => '0');
+                  tx_state_next.counter   <= (others => '0');
+                  tx_state_next.fsm_state <= IDLE_ST;
+                  tx_state_next.ready     <= '1';
+               else
+                  tx_state_next.bits  <= '1' & tx_state.bits(8 downto 1);
+                  tx_state_next.nbits <= tx_state.nbits - 1;
                end if;
-               tx_state_next.counter <= tx_state.counter + 1;
+            end if;
+            tx_state_next.counter <= tx_state.counter + 1;
+            if tx_state.counter = 16*DIVISOR-1 then
+               tx_state_next.counter <= (others => '0');
             end if;
 
       end case;
@@ -204,8 +189,8 @@ begin
    tx_output: process (tx_state) is
    begin
       tx_ready <= tx_state.ready;
-      tx <= tx_state.bits(0);
+      tx       <= tx_state.bits(0);
    end process tx_output;
 
-end architecture beh;
+end architecture rtl;
 
