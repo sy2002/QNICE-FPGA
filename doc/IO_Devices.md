@@ -115,8 +115,8 @@ Address | Description
 
 ## VGA
 
-As VGA is a very capable and thus complex device, we have but the
-documentation for this device in an own document: [doc/VGA_Features.md](VGA_Features.md)
+As VGA is a very capable and thus complex device, the documentation for this
+device is in an own document: [doc/VGA_Features.md](VGA_Features.md)
 
 
 ## HyperRAM
