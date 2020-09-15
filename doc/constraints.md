@@ -1,5 +1,5 @@
-Constraints of the QNICE-FPGA design
-====================================
+Constraints of QNICE-FPGA
+=========================
 
 Today's hardware landscape is extremely diverse. As a relaxed hobbyist project
 QNICE-FPGA is at this time not able to offer a robust support of all
@@ -220,8 +220,10 @@ TODO RELEASE V1.7: REVISIT THIS SECTION DUE TO ISSUE #100
   The result, i.e. the binary standard library and the startup code are then
   copied to `c/vbcc/targets/qnice-mon/lib`: `libvc.a` and `startup.o`.
 
-Encoding / Languages / Fonts
-----------------------------
+QNICE-FPGA System
+-----------------
+
+### Encoding / Languages / Fonts
 
 * PS/2 (USB) keyboard: Currently, the monitor switches hardcoded to the
   German keyboard layout. Though, the hardware is capable to handle an English
@@ -276,5 +278,3 @@ Encoding / Languages / Fonts
   [https://en.wikipedia.org/wiki/ISO/IEC_8859-15](https://en.wikipedia.org/wiki/ISO/IEC_8859-15).
   You can look at the font by browsing this textfile:
   vhdl/vga/lat9w-12.txt
-
-
