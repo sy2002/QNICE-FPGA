@@ -675,29 +675,24 @@ Offending line:\n%s\n", line_counter, entry->source);
           return -1;
         }
         
-        for (special_char = i = 0; i < strlen(p) && *(p + i) != '"'; i++, address++) {
-          if (*(p + i) == '\\')
+        for (special_char = i = j = 0; i < strlen(p) && *(p + j) != '"'; i++, j++, address++) {
+          if (*(p + j) == '\\')
             special_char = 1;
-          else if (special_char && *(p + i) == 'n') {
+          else if (special_char && *(p + j) == 'n') {
             *(entry->data + i - 1) = (char) 13;
             *(entry->data + i)     = (char) 10;
             special_char = 0;
-          }  else if (special_char && *(p + i) == 't') {
+          }  else if (special_char && *(p + j) == 't') {
             *(entry->data + i - 1) = (char) 9;
-
-            char scratch[STRING_LENGTH];    //  This is ugly as hell but solves the problem of 
-            strcpy(scratch, p + i + 1);     // replacing a two character control string '\t'
-            strcpy(p + i, scratch);         // with only one destination character.
             i--;                            // Do not forget to decrement i so that is no gap in entry->data!
             address--;
-
             special_char = 0;
-          } else if (special_char && *(p + i) != 'n' && special_char && *(p + i) != 't') {
-            *(entry->data + i - 1) = *(p + i - 1);
-            *(entry->data + i)     = *(p + i);
+          } else if (special_char && *(p + j) != 'n' && special_char && *(p + j) != 't') {
+            *(entry->data + i - 1) = *(p + j - 1);
+            *(entry->data + i)     = *(p + j);
           } else {
             special_char = 0;
-            *(entry->data + i) = 0xff & *(p + i);
+            *(entry->data + i) = 0xff & *(p + j);
           }
         }
 
@@ -706,7 +701,7 @@ Offending line:\n%s\n", line_counter, entry->source);
           address++;
         }
 
-        if (*(p + i) != '"') {
+        if (*(p + j) != '"') {
           sprintf(entry->error_text, "Line %d: WARNING - Did not find closing double quote!", line_counter);
           PRINT_ERROR;
         }
