@@ -13,7 +13,7 @@
 #define SYSCALL(x,y)    ASUB    x, y
 
 ;
-;  Some register short names:
+;  Register short names:
 ;
 #define PC  R15
 #define SR  R14

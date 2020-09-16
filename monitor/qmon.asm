@@ -106,6 +106,8 @@ gets_slf!       RBRA    IO$GETS_SLF, 1
 vga_init!       RBRA    VGA$INIT, 1
 in_range_u!     RBRA    MTH$IN_RANGE_U, 1
 in_range_s!     RBRA    MTH$IN_RANGE_S, 1
+enter!          RBRA    MISC$ENTER, 1
+leave!          RBRA    MISC$LEAVE, 1
 ;
 ;  The actual monitor code starts here:
 ;
