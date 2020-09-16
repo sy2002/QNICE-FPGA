@@ -143,31 +143,46 @@ TILE_ED_KEEP    MOVE    VGA$CR_X, R0            ; R0: hw cursor X
                 MOVE    TILE_WS_Y, R8
                 MOVE    @R8, R7                 ; R7: tile y pos
 
-                ; print currently selected char
-MAIN_LOOP       MOVE    SELECTED_X, @R0
-                MOVE    SELECTED_Y, @R1
-                MOVE    SELECTED_CHR, R12                
-                MOVE    FONT_MODE, R8
-                CMP     1, @R8                  ; 0=standard, 1=inside font ed
-                RBRA    SET_CRS, Z
-                MOVE    R4, @R0
-                MOVE    R5, @R1
-                MOVE    @R2, R8
-                MOVE    R8, @R2
-                MOVE    R8, @R12
-
                 ; set cursor depending on mode
-SET_CRS         CMP     0, R3                   
+MAIN_LOOP       CMP     0, R3                   ; 0=palette mode       
                 RBRA    CRS_MODE_0, Z
-                MOVE    R6, @R0
+                MOVE    R6, @R0                 ; 1=tile mode
                 MOVE    R7, @R1
                 RBRA    WAIT_FOR_KEY, 1
-CRS_MODE_0      MOVE    R4, @R0
+
+                ; we are in palette mode, that means guaranteed to be not
+                ; in fonted mode, so store the selected char in SELECTED_CHR
+                ; and print it at the bottom of the screen
+CRS_MODE_0      MOVE    R4, @R0                 ; cursor to recently selected
+                MOVE    R5, @R1
+                MOVE    SELECTED_CHR, R8
+                MOVE    @R2, @R8                ; store recently selected
+                MOVE    SELECTED_X, @R0
+                MOVE    SELECTED_Y, @R1
+                MOVE    @R8, @R2                ; print recently selected
+                MOVE    R4, @R0                 ; cursor back to selection
                 MOVE    R5, @R1
 
                 ; keyboard handler
 WAIT_FOR_KEY    RSUB    KBD_GETCHAR, 1
-                CMP     KBD$F1, R8              ; F1 = toggle sprite mode
+
+                ; support fg/bg color selection using `a` to `q` and
+                ; `A` to `Q` in case of active font ed mode
+                MOVE    FONT_MODE, R11
+                MOVE    @R11, R11
+                RBRA    CHECK_KEYS, Z
+                RSUB    _FONTED_FGBG, 1
+                RBRA    MAIN_LOOP, C            ; fg or bg was changed
+
+                ; ignore keys that are not allowed in font ed mode
+                CMP     KBD$F3, R8
+                RBRA    WAIT_FOR_KEY, Z
+                CMP     KBD$F9, R8
+                RBRA    WAIT_FOR_KEY, Z
+                CMP     KBD$F12, R8
+                RBRA    WAIT_FOR_KEY, Z
+
+CHECK_KEYS      CMP     KBD$F1, R8              ; F1 = toggle sprite mode
                 RBRA    SWITCH_MODE, Z
                 CMP     KBD$F3, R8              ; F3 = change size (and clear)
                 RBRA    CHANGE_SIZE, Z
@@ -175,6 +190,19 @@ WAIT_FOR_KEY    RSUB    KBD_GETCHAR, 1
                 RBRA    CLEAR, Z
                 CMP     KBD$F7, R8              ; F7 = toggle font mode
                 RBRA    _WFK_CHK_F12, !Z
+                MOVE    FONT_MODE, R11          ; are we already in font mode?
+                CMP     0, @R11
+                RBRA    _WFK_FONTED, Z          ; no: so switch to font mode!
+
+                MOVE    0, @R11                 ; reset back to normal mode
+                MOVE    STR_HELP_MAIN, R8
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
+                RSUB    _FONTED_CLR, 1
+                RSUB    DRAW_PALETTE, 1
+                RBRA    MAIN_LOOP, 1
+
 _WFK_FONTED     RSUB    FONT_ED, 1              ; switch to font editor
                 MOVE    R8, R3                  ; remember mode
                 CMP     1, R3                   ; sprite mode?
