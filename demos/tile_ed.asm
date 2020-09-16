@@ -309,11 +309,15 @@ SWITCH_MODE     XOR     1, R3
                 ; draw the currently active character of the palette
                 ; (aka "SELECTED") to the current cursor position within
                 ; the tile window
-DRAW_CHAR       MOVE    SELECTED_CHR, R8
-                MOVE    @R8, R8
-                MOVE    R6, @R0
+DRAW_CHAR       MOVE    R6, @R0
                 MOVE    R7, @R1
-                MOVE    R8, @R2                 ; print the character
+                MOVE    SELECTED_CHR, R8
+                MOVE    @R8, R8
+                CMP     R8, @R2                 ; same char already there?
+                RBRA    _DRAW_CHAR_N, !Z        ; no: overwrite with new char
+                MOVE    ' ', @R2                ; yes: delete existing char
+                RBRA    MAIN_LOOP, 1
+_DRAW_CHAR_N    MOVE    R8, @R2                 ; print the character
                 RBRA    MAIN_LOOP, 1
 
                 ; clear tile
@@ -623,7 +627,20 @@ _FONTED_F1      CMP     KBD$F1, R8              ; F1
 
 _FONTED_F5      CMP     KBD$F5, R8              ; F5
                 RBRA    _FONTED_F7, !Z          ; no
-                SYSCALL(exit, 1)
+                MOVE    SELECTED_CHR, R8        ; calculate and set address
+                MOVE    @R8, R8                 ; char index
+                MOVE    12, R9                  ; 12 words per char
+                SYSCALL(mulu, 1)                ; address = chr idx * 12
+                ADD     VGA$FONT_OFFS_USER, R10 ; R10 = address + user offset
+                MOVE    VGA$FONT_ADDR, R8
+                MOVE    R10, @R8++              ; set address
+_FONTED_F5_L    MOVE    0, @R8                  ; clear font pattern
+                SUB     1, R8                   ; back to address register
+                ADD     1, @R8++                ; set next address
+                SUB     1, R9                   ; one less word per char to go
+                RBRA    _FONTED_F5_L, !Z
+                RSUB    _FONTED_DRAW, 1         ; redraw
+                RBRA    _FONTED_MAIN, 1
 
 _FONTED_F7      CMP     KBD$F7, R8              ; F7
                 RBRA    _FONTED_MAIN, !Z        ; no
