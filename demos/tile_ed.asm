@@ -71,39 +71,10 @@ TILE_ED_START   MOVE    TILE_DX, R0
                 MOVE    TILE_DY, R0
                 MOVE    TILE_DY_INIT, @R0
 
-                ; copy font to custom font and switch to custom font
-                MOVE    VGA$FONT_OFFS, R0
-                MOVE    VGA$FONT_ADDR, R1
-                MOVE    VGA$FONT_DATA, R2
-                MOVE    VGA$FONT_OFFS_DEFAULT, @R0
-                XOR     R3, R3                  ; source pattern
-                MOVE    VGA$FONT_OFFS_USER, R4  ; destination pattern
-COPY_FONT_LOOP  MOVE    R3, @R1                 ; read source pattern
-                MOVE    @R2, R5                 ; R5: bit pattern                
-                MOVE    R4, @R1                 ; copy source to destination
-                MOVE    R5, @R2
-                ADD     1, R3                   ; next char bit pattern
-                ADD     1, R4
-                CMP     3072, R3                ; 256 chars x 12 lines
-                RBRA    COPY_FONT_LOOP, !Z      ; done?
-                MOVE    VGA$FONT_OFFS_USER, @R0
-
-                ; copy palette to custom palette and switch to custom pal.
-                MOVE    VGA$PALETTE_OFFS, R0
-                MOVE    VGA$PALETTE_ADDR, R1
-                MOVE    VGA$PALETTE_DATA, R2
-                MOVE    VGA$PALETTE_OFFS_DEFAULT, @R0
-                XOR     R3, R3
-                MOVE    VGA$PALETTE_OFFS_USER, R4
-COPY_PAL_LOOP   MOVE    R3, @R1
-                MOVE    @R2, R5
-                MOVE    R4, @R1
-                MOVE    R5, @R2
-                ADD     1, R3
-                ADD     1, R4
-                CMP     32, R3
-                RBRA    COPY_PAL_LOOP, !Z
-                MOVE    VGA$PALETTE_OFFS_USER, @R0
+                ; copy font and palette to RAM and activate the RAM
+                MOVE    1, R8
+                SYSCALL(vga_copyfont, 1)
+                SYSCALL(vga_copypal, 1)
 
                 ; clear the foreground/background color LRU buffer
                 MOVE    LRU_FGBG, R0

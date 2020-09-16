@@ -363,3 +363,59 @@ _VGA$CLS_WAIT           MOVE    @R0, R1
 
                         DECRB
                         RET
+;
+;***************************************************************************************
+;* VGA$COPYFONT
+;*
+;* Copies the font ROM to the font RAM and optionally activates the font RAM.
+;* R8 (input parameter): 1=activate font RAM after copy
+;***************************************************************************************
+;
+VGA$COPYFONT            INCRB
+                        MOVE    VGA$FONT_OFFS, R0
+                        MOVE    VGA$FONT_ADDR, R1
+                        MOVE    VGA$FONT_DATA, R2
+                        MOVE    VGA$FONT_OFFS_DEFAULT, @R0                        
+                        XOR     R3, R3                  ; source pattern
+                        MOVE    VGA$FONT_OFFS_USER, R4  ; destination pattern
+_VGA$COPYFONT_LOOP      MOVE    R3, @R1                 ; read source pattern
+                        MOVE    @R2, R5                 ; R5: bit pattern                
+                        MOVE    R4, @R1                 ; copy source to destination
+                        MOVE    R5, @R2
+                        ADD     1, R3                   ; next char bit pattern
+                        ADD     1, R4
+                        CMP     3072, R3                ; 256 chars x 12 lines
+                        RBRA    _VGA$COPYFONT_LOOP, !Z  ; done?
+                        CMP     1, R8                   ; activate font RAM?
+                        RBRA    _VGA$COPYFONT_END, !Z
+                        MOVE    VGA$FONT_OFFS_USER, @R0
+_VGA$COPYFONT_END       DECRB
+                        RET
+;
+;***************************************************************************************
+;* VGA$COPYPAL
+;*
+;* Copies the palette ROM to the palette RAM and optionally activates the palette RAM.
+;* R8 (input parameter): 1=activate palette RAM after copy
+;***************************************************************************************
+;
+VGA$COPYPAL             INCRB
+                        MOVE    VGA$PALETTE_OFFS, R0
+                        MOVE    VGA$PALETTE_ADDR, R1
+                        MOVE    VGA$PALETTE_DATA, R2
+                        MOVE    VGA$PALETTE_OFFS_DEFAULT, @R0
+                        XOR     R3, R3
+                        MOVE    VGA$PALETTE_OFFS_USER, R4
+_VGA$COPYPAL_LOOP       MOVE    R3, @R1
+                        MOVE    @R2, R5
+                        MOVE    R4, @R1
+                        MOVE    R5, @R2
+                        ADD     1, R3
+                        ADD     1, R4
+                        CMP     32, R3
+                        RBRA    _VGA$COPYPAL_LOOP, !Z
+                        CMP     1, R8
+                        RBRA    _VGA$COPYPAL_END, !Z
+                        MOVE    VGA$PALETTE_OFFS_USER, @R0
+_VGA$COPYPAL_END        DECRB
+                        RET
