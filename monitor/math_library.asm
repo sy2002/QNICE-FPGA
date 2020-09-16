@@ -297,9 +297,11 @@ MTH$IN_RANGE_U  INCRB
                 CMP     R8, R9
                 RBRA    _MTH$IRU_1, Z
                 RBRA    _MTH$IRU_1, N
+                DECRB                           ; speed optimization: no RBRA
                 RET                             ; Not in range
 _MTH$IRU_1      CMP     R10, R8
                 RBRA    _MTH$IRU_2, N
+                DECRB                           ; speed optimization: no RBRA
                 RET
 _MTH$IRU_2      OR      0x0004, SR              ; Set carry bit
                 DECRB
