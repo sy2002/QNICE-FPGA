@@ -108,8 +108,8 @@ in_range_u!     RBRA    MTH$IN_RANGE_U, 1
 in_range_s!     RBRA    MTH$IN_RANGE_S, 1
 enter!          RBRA    MISC$ENTER, 1
 leave!          RBRA    MISC$LEAVE, 1
-vga_copyfont    RBRA    VGA$COPYFONT, 1
-vga_copypal     RBRA    VGA$COPYPAL, 1
+vga_copyfont!   RBRA    VGA$COPYFONT, 1
+vga_copypal!    RBRA    VGA$COPYPAL, 1
 ;
 ;  The actual monitor code starts here:
 ;
