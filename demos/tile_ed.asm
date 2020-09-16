@@ -886,7 +886,7 @@ _FONTED_FGBG    SYSCALL(enter, 1)
                 ADD     @R10, R9
                 AND     0xF000, @R9             ; clear old foreground color 
                 ADD     R8, @R9                 ; set new foreground color
-                MOVE    @R9, @R10               ; save modified selected char                
+                ADD     @R9, @R10               ; save modified selected char 
                 RSUB    _FONTED_DRAW, 1         ; redraw everything
                 OR      0x0004, SR              ; set carry bit
                 RBRA    _FONTED_FGBG2, 1        ; return with C=1
@@ -908,7 +908,7 @@ _FONTED_FGBG1   MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
                 ADD     @R10, R9
                 AND     0x0F00, @R9             ; clear old background color
                 ADD     R8, @R9                 ; set new background color
-                MOVE    @R9, @R10               ; save modified selected char
+                ADD     @R9, @R10               ; save modified selected char
                 RSUB    _FONTED_DRAW, 1         ; redraw everything and
                 OR      0x0004, SR              ; set carry bit
 
