@@ -78,13 +78,12 @@ working in hardware by having a look at [doc/int-device.md](int-device.md).
   outside your ISR. The probability is very high, that there won't be any
   collisions. Since the CPU restores `SR` after `RTI`, you don't have to worry
   about having done the `MOVE 0xF000, SR` at the beginning.
-* Avoid using `INCRB` and `DECRB` in ISRs because there might
-  be situations, where you overwrite the register banks of the other
-  currently running software.
+* Avoid starting an ISR with `INCRB` because there might be situations, where
+  you overwrite the register banks of the other currently running software.
 * It is OK to use the stack.
 * Programming ISRs in C: It is very important that your ISR is decorated not
-  only with `__interrupt` but also with `__norbank` because you want to 
-  avoid using `INCRB` and `DECRB` in ISRs. C will use the stack instead.
+  only with `__interrupt` but also with `__norbank` because you want to avoid
+  wrapping your ISR in `INCRB` and `DECRB`. C will use the stack instead.
 * You can trust that `SYSCALL` "operating system" functions are safe for ISRs.
 * Sample ISR stub:
   ```
