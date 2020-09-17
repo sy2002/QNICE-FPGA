@@ -270,6 +270,7 @@ begin
       port map (
          clk => SLOW_CLOCK,
          reset => reset_ctl,
+         fast => SWITCHES(3),
          rx => UART_RXD,
          tx => UART_TXD,
          rts => UART_RTS,

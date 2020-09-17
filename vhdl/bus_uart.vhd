@@ -2,7 +2,6 @@
 -- meant to be connected with the QNICE CPU as data I/O is through MMIO
 -- output goes zero when not enabled
 -- 8-N-1, no error state handling, CTS flow control
--- Assumes a 50 MHz input clock
 -- done by sy2002 and vaxman in August 2015
 -- improved by sy2002 in May 2020: Added a FIFO
 -- Added programmable baudrate by MJoergen in September 2020
@@ -16,22 +15,23 @@ use work.env1_globals.all;
 
 entity bus_uart is
 port (
-   clk            : in std_logic;                       
-   reset          : in std_logic;
+   clk            : in  std_logic;
+   reset          : in  std_logic;
+   fast           : in  std_logic;
 
    -- physical interface
-   rx             : in std_logic;
+   rx             : in  std_logic;
    tx             : out std_logic;
-   rts            : in std_logic;
+   rts            : in  std_logic;
    cts            : out std_logic;
    
-   -- conntect to CPU's address and data bus (data output zero when en=0)
+   -- connect to CPU's address and data bus (data output zero when en=0)
    -- since reading takes more than one clock cycle, CPU needs wait on uart_cpu_ws
-   uart_en        : in std_logic;
-   uart_we        : in std_logic;
-   uart_reg       : in std_logic_vector(1 downto 0);
+   uart_en        : in  std_logic;
+   uart_we        : in  std_logic;
+   uart_reg       : in  std_logic_vector(1 downto 0);
    uart_cpu_ws    : out std_logic;
-   cpu_data_in    : in std_logic_vector(15 downto 0);
+   cpu_data_in    : in  std_logic_vector(15 downto 0);
    cpu_data_out   : out std_logic_vector(15 downto 0)
 );
 end bus_uart;
@@ -192,8 +192,13 @@ begin
 
          if reset = '1' then
             byte_tx_data <= (others => '0');
-            -- Set default divisor to 434, i.e. baudrate 115200.
-            uart_divisor <= X"01B2";
+
+            -- Set default baud rate depending on input switches.
+            if fast = '1' then
+               uart_divisor <= std_logic_vector(to_unsigned(SYSTEM_SPEED/UART_BAUDRATE_FAST, 16));
+            else
+               uart_divisor <= std_logic_vector(to_unsigned(SYSTEM_SPEED/UART_BAUDRATE_DEFAULT, 16));
+            end if;
          end if;
       end if;
    end process;
@@ -212,9 +217,9 @@ begin
       end if;
    end process;
    
-   
    uart_cpu_ws <= reading;
    fifo_rd_en <= reading and not reset_reading;
    reset_reading <= fifo_rd_valid;
    cts <= '1' when fifo_fill_count >= UART_FIFO_SIZE-5 else '0';
+
 end beh;
