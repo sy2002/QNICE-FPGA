@@ -74,12 +74,21 @@ begin
    -- Port B
    ----------
 
-   p_b : process (b_clk_i)
-   begin
-      if rising_edge(b_clk_i) then
-         b_rd_data_o <= mem(conv_integer(b_rd_addr_i));
-      end if;
-   end process p_b;
+   -- Use a generate statement to make it easier to reference
+   -- from the constraint file.
+   -- Since the Palette RAM gets implemented as Distributed RAM instead
+   -- of Block RAM, there will be an explicit output register, which
+   -- needs to be covered by the timing constraint.
+   gen_cdc : if true generate
+
+      p_b : process (b_clk_i)
+      begin
+         if rising_edge(b_clk_i) then
+            b_rd_data_o <= mem(conv_integer(b_rd_addr_i));
+         end if;
+      end process p_b;
+
+   end generate gen_cdc;
 
 end architecture synthesis;
 

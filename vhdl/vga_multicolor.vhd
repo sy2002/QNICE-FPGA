@@ -241,42 +241,48 @@ begin
    -- Clock Domain Crossing
    -----------------------------------------------
 
-   p_cpu_to_vga : process (vga_clk_i)
-   begin
-      if rising_edge(vga_clk_i) then
-         meta_output_enable  <= cpu_output_enable;
-         meta_display_offset <= cpu_display_offset;
-         meta_font_offset    <= cpu_font_offset;
-         meta_palette_offset <= cpu_palette_offset;
-         meta_cursor_enable  <= cpu_cursor_enable;
-         meta_cursor_blink   <= cpu_cursor_blink;
-         meta_cursor_size    <= cpu_cursor_size;
-         meta_cursor_x       <= cpu_cursor_x;
-         meta_cursor_y       <= cpu_cursor_y;
-         meta_adjust_x       <= cpu_adjust_x;
-         meta_adjust_y       <= cpu_adjust_y;
+   -- Use a generate statement to make it easier to reference
+   -- from the constraint file.
+   gen_cdc : if true generate
 
-         vga_output_enable   <= meta_output_enable;
-         vga_display_offset  <= meta_display_offset;
-         vga_font_offset     <= meta_font_offset;
-         vga_palette_offset  <= meta_palette_offset;
-         vga_cursor_enable   <= meta_cursor_enable;
-         vga_cursor_blink    <= meta_cursor_blink;
-         vga_cursor_size     <= meta_cursor_size;
-         vga_cursor_x        <= meta_cursor_x;
-         vga_cursor_y        <= meta_cursor_y;
-         vga_adjust_x        <= meta_adjust_x;
-         vga_adjust_y        <= meta_adjust_y;
-      end if;
-   end process p_cpu_to_vga;
+      p_cpu_to_vga : process (vga_clk_i)
+      begin
+         if rising_edge(vga_clk_i) then
+            meta_output_enable  <= cpu_output_enable;
+            meta_display_offset <= cpu_display_offset;
+            meta_font_offset    <= cpu_font_offset;
+            meta_palette_offset <= cpu_palette_offset;
+            meta_cursor_enable  <= cpu_cursor_enable;
+            meta_cursor_blink   <= cpu_cursor_blink;
+            meta_cursor_size    <= cpu_cursor_size;
+            meta_cursor_x       <= cpu_cursor_x;
+            meta_cursor_y       <= cpu_cursor_y;
+            meta_adjust_x       <= cpu_adjust_x;
+            meta_adjust_y       <= cpu_adjust_y;
 
-   p_vga_to_cpu : process (cpu_clk_i)
-   begin
-      if rising_edge(cpu_clk_i) then
-         meta_pixel_y        <= vga_pixel_y;
-         cpu_pixel_y         <= meta_pixel_y;
-      end if;
-   end process p_vga_to_cpu;
+            vga_output_enable   <= meta_output_enable;
+            vga_display_offset  <= meta_display_offset;
+            vga_font_offset     <= meta_font_offset;
+            vga_palette_offset  <= meta_palette_offset;
+            vga_cursor_enable   <= meta_cursor_enable;
+            vga_cursor_blink    <= meta_cursor_blink;
+            vga_cursor_size     <= meta_cursor_size;
+            vga_cursor_x        <= meta_cursor_x;
+            vga_cursor_y        <= meta_cursor_y;
+            vga_adjust_x        <= meta_adjust_x;
+            vga_adjust_y        <= meta_adjust_y;
+         end if;
+      end process p_cpu_to_vga;
+
+      p_vga_to_cpu : process (cpu_clk_i)
+      begin
+         if rising_edge(cpu_clk_i) then
+            meta_pixel_y        <= vga_pixel_y;
+            cpu_pixel_y         <= meta_pixel_y;
+         end if;
+      end process p_vga_to_cpu;
+
+   end generate gen_cdc;
 
 
    -----------------------------------------------

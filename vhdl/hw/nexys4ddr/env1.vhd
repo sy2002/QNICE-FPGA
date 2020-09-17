@@ -160,27 +160,13 @@ begin
                   eae_data_out      or
                   sd_data_out;
 
-  -- Non portable (Xilinx specific) way to generate the 25.175 MHz pixel clock
-  -- Comment out and replace by the below-mentioned process "generate_clk25MHz"
-  -- if you want to be portable and have a look at hw/README.md "General advise for porting"
-  clk_main: mmcme2_base
-  generic map
-  (
-    clkin1_period    => 10.0,       --   100 MHz (10 ns)
-    clkfbout_mult_f  => 8.0,        --   800 MHz common multiply
-    divclk_divide    => 1,          --   800 MHz /1 common divide to stay within 600MHz-1600MHz range
-    clkout0_divide_f => 31.7775571  --   25.175 MHz / 31.7775571 == pixelclock
-  )
-  port map
-  (
-    pwrdwn   => '0',
-    rst      => '0',
-    clkin1   => CLK,
-    clkfbin  => clk_fb_main,
-    clkfbout => clk_fb_main,
-    clkout0  => clk25MHz,           --  pixelclock
-    locked   => pll_locked_main
-  );
+   i_clk : entity work.clk
+   port map
+   (
+      sys_clk_i  => CLK,
+      clk25MHz_o => clk25MHz,
+      clk50MHz_o => SLOW_CLOCK
+   );
 
    -- QNICE CPU
    cpu : entity work.QNICE_CPU
@@ -457,22 +443,6 @@ begin
       end if;
    end process;
    
-   -- clock divider: create a 50 MHz clock from the 100 MHz input
-   generate_slow_clock : process(CLK)
-   begin
-      if rising_edge(CLK) then
-         SLOW_CLOCK <= not SLOW_CLOCK;
-      end if;      
-   end process;
-   
-   -- clock divider of the clock divider: create a 25 MHz clock from the 50 MHz clock
---   generate_clk25MHz : process(SLOW_CLOCK)
---   begin
---      if rising_edge(SLOW_CLOCK) then
---         clk25MHz <= not clk25MHz;
---      end if;
---   end process;
-       
    -- debug mode handling: if switch 2 is on then:
    --   show the current cpu address in realtime on the LEDs
    --   on halt show the PC of the HALT command (aka address bus value) on TIL

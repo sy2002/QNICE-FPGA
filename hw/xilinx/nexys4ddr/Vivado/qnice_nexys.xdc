@@ -5,15 +5,14 @@
 set_property -dict {PACKAGE_PIN E3 IOSTANDARD LVCMOS33} [get_ports CLK]
 create_clock -period 10.000 -name CLK [get_ports CLK]
 
-## Internal clock divider SLOW_CLOCK that creates the 50 MHz used throughout the system
-create_generated_clock -name SLOW_CLOCK -source [get_ports CLK] -divide_by 2 [get_pins SLOW_CLOCK_reg/Q]
+## Handle the Clock Domain Crossing
+## Any register wrapped inside a generate statement with the name `gen_cdc`
+## will be considered part of a Clock Domain Crossing.
+set_false_path -from [get_clocks -of_objects [get_pins i_clk/i_mmcme2_adv/CLKOUT0]] \
+               -to [get_pins -hierarchical {*gen_cdc.*/D}]
+set_false_path -from [get_clocks -of_objects [get_pins i_clk/i_mmcme2_adv/CLKOUT1]] \
+               -to [get_pins -hierarchical {*gen_cdc.*/D}]
 
-## Make the general clocks and the pixelclock unrelated to other to avoid erroneous timing
-## violations, and hopefully make everything synthesise faster
-set_clock_groups -asynchronous \
-     -group { CLK CLKFBIN SLOW_CLOCK } \
-     -group [get_clocks -of_objects [get_pins clk_main/CLKOUT0]]
-     
 ## EAE's combinatorial division networks take longer than
 ## the regular clock period, so we specify a multicycle path
 ## see also the comments in EAE.vhd and explanations in UG903/chapter 5/Multicycle Paths as well as ug911/page 25
