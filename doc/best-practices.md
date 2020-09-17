@@ -18,17 +18,87 @@ All languages
   documented in `doc/monitor/doc.pdf`. They range from IO functions over
   math and string functions to debug functions.
 * Configure your editor to convert SPACEs to TABs.
-* When using register banks make sure that the register bank
-  selector in the upper eight bits of SR is **always** pointing to the highest
-  active bank. Reason: Interrupt Service Routines might interrupt your code
-  any time and they might also use register banks to save and restore the
-  lower registers. So: If you need to reserve multiple banks, then just
-  increase the bank selector accordingly. The principle is similar to
-  reserving something on the stack, but the other way round: You
-  are *incrementing* the bank selector to reserve space but you would
-  *decrement* the stack pointer for doing so.
-* When writing an interrupt service routine (ISR), make sure that you do not
-  leave any register modified when calling `RTI`. You may use the stack.    
+
+Register Banks
+--------------
+
+Register banks are a pretty unique feature of the QNICE ISA. Not a lot of
+programmers are familiar with this concept, so please take your time and also
+read the [introduction documentation](doc/intro/qnice_intro.pdf).
+
+* There are 256 register banks for the registers R0 to R7.
+* You an change a register bank by either writing to the upper 8 bits of the
+  status register `SR` or by using the `INCRB` or `DECRB` instructions. The
+  latter one can be executed in only two CPU cycles, so they are faster than
+  for example an `ADD 0x0100, SR`.
+* The main use case for register banks is to speed up sub-routine calls by
+  having an `INCRB` at the beginning of the sub-routine to provide a clean
+  set of registers R0 to R7 and and a `DECRB` at the end of the sub-routine.
+  (More details: See best practices for [subroutines](#subroutines) below.)
+* Normally, you should treat the register bank like a stack of registers,
+  that means that you might do things like this:
+  ```
+  INCRB
+  [... your code ...]
+  INCRB
+  [... more code ...]
+  INCRB
+  [... even more code ...]
+  DECRB
+  [... clean up stuff ...]
+  DECRB
+  [... clean up some more stuff]
+  DECRB
+  ```
+* If you know what you are doing, you can also use register banks in more
+  creative ways but be warned, that you are then leaving the field of
+  best practices.
+
+Interrupt Service Routines (ISRs)
+---------------------------------
+
+ISRs are a very complex subject matter. Therefore it makes sense that you
+familiarize yourself with the way how the the interrupt mechanisms are
+working in hardware by having a look at [doc/int-device.md](int-device.md).
+
+* End your ISR with `RTI`.
+* Most important best practice: Be careful, be paranoid. ISRs "must not 
+  change anything" since they might happen at any time and "everywhere". So
+  make sure that when your ISRs ends the **CPU registers R0 to R12** as well
+  as the **registers of all devices you used** are untouched.
+* Be sensible about the run-time of the ISR. Be aware of the performance
+  impact that it might have to the system.
+* Don't worry about flags or the status register `SR`, the stack pointer `SP`
+  or the program counter `PC`: The CPU saves all three of them to shadow
+  registers when entering an ISR and restores them when leaving it.
+* If you need to work with register banks in an ISR, then the best practice
+  is to begin your ISR with `MOVE 0xF000, SR`: This gives you 16 register
+  banks to work with and leaves 240 for the other currently running software
+  outside your ISR. The probability is very high, that there won't be any
+  collisions. Since the CPU restores `SR` after `RTI`, you don't have to worry
+  about having done the `MOVE 0xF000, SR` at the beginning.
+* Avoid using `INCRB` and `DECRB` in ISRs because there might
+  be situations, where you overwrite the register banks of the other
+  currently running software.
+* It is OK to use the stack.
+* Programming ISRs in C: It is very important that your ISR is decorated not
+  only with `__interrupt` but also with `__norbank` because you want to 
+  avoid using `INCRB` and `DECRB` in ISRs. C will use the stack instead.
+* You can trust that `SYSCALL` "operating system" functions safe for ISRs.
+* Sample ISR stub:
+  ```
+  MY_ISR      MOVE 0xF000, SR
+              [your code, including INCRB/DECRB if needed]
+              RTI
+  ```
+* When programming an interrupt capable device to stop generating interrupts
+  after it had been enabled to generate interrupts before: To avoid race
+  conditions, make sure that the register that contains the ISR always either
+  points to the ISR itself or to an adress that contains an `RTI`. That means
+  that the best practice for shutting down an ISR is to write to the registers
+  that are forcing the device to stop generating ISRs, without clearing
+  the register that contains the address of the ISR or at least a memory
+  location that contains an `RTI`.
 
 Native QNICE assembler
 ----------------------
@@ -152,7 +222,7 @@ C
   ```
 * If you write an ISR in C then use `__interrupt`, as in this example
   ```
-  __interrupt __rbank void irq(void)
+  __interrupt __norbank void irq(void)
   {
     ...
   }  
