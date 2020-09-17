@@ -1187,7 +1187,7 @@ void dump_registers() {
 
     printf("%04x ", read_register(i));
   }
-  printf("\n\nShadow registers (PC, SR, SP, RB):\n");
+  printf("\n\nShadow registers (PC, SR, SP):\n");
  
   for (i = 0; i < NUMBER_OF_SHADOW_REGISTERS; i++) {
     if (!(i % 4)) /* New row */
