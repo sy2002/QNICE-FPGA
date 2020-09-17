@@ -42,6 +42,11 @@ architecture rtl of ps2_keyboard is
    constant PS2_DEBOUNCE_TIME_US  : natural := 5;                                            -- Value in microseconds
    constant PS2_CLOCK_PERIOD_US   : natural := 110;                                          -- Value in microseconds
 
+   -- The order of the factors is important: It is important to divide by 1 million BEFORE
+   -- multiplying by other factors. This is because the calculation SYSTEM_SPEED*PS2_CLOCK_PERIOD_US
+   -- leads to integer overflow, because the intermediate result can not fit into a 32 bit integer.
+   -- Furthermore, the synthesis tool does not give any warning, and just truncates the result by
+   -- discarding higher order bits (above number 32) leading to incorrect result.
    constant DEBOUNCE_COUNTER_SIZE : natural := f_log2(SYSTEM_SPEED/1_000_000*PS2_DEBOUNCE_TIME_US);
    constant IDLE_COUNTER_MAX      : natural := SYSTEM_SPEED/1_000_000*PS2_CLOCK_PERIOD_US/2; -- Half a clock period
 
