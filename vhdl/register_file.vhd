@@ -55,7 +55,37 @@ type rega is array (0 to 8*SHADOW_REGFILE_SIZE-1) of std_logic_vector(15 downto 
 signal LowerRegisterWindow : rega;
 signal UpperRegisters      : upper_register_array;
 
+-- Copy of CPU registers. Only used for debugging
+signal r0  : std_logic_vector(15 downto 0);
+signal r1  : std_logic_vector(15 downto 0);
+signal r2  : std_logic_vector(15 downto 0);
+signal r3  : std_logic_vector(15 downto 0);
+signal r8  : std_logic_vector(15 downto 0);
+signal r9  : std_logic_vector(15 downto 0);
+signal r10 : std_logic_vector(15 downto 0);
+signal r11 : std_logic_vector(15 downto 0);
+
+--attribute mark_debug        : boolean;
+--attribute mark_debug of r0  : signal is true;
+--attribute mark_debug of r1  : signal is true;
+--attribute mark_debug of r2  : signal is true;
+--attribute mark_debug of r3  : signal is true;
+--attribute mark_debug of r8  : signal is true;
+--attribute mark_debug of r9  : signal is true;
+--attribute mark_debug of r10 : signal is true;
+--attribute mark_debug of r11 : signal is true;
+
 begin
+
+   -- Copy of CPU registers. Only used for debugging
+   r0  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 0);
+   r1  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 1);
+   r2  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 2);
+   r3  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 3);
+   r8  <= UpperRegisters(8);
+   r9  <= UpperRegisters(9);
+   r10 <= UpperRegisters(10);
+   r11 <= UpperRegisters(11);
 
    write_register : process (clk)
    begin
