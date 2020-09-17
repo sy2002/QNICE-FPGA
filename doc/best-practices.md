@@ -84,7 +84,7 @@ working in hardware by having a look at [doc/int-device.md](int-device.md).
 * Programming ISRs in C: It is very important that your ISR is decorated not
   only with `__interrupt` but also with `__norbank` because you want to 
   avoid using `INCRB` and `DECRB` in ISRs. C will use the stack instead.
-* You can trust that `SYSCALL` "operating system" functions safe for ISRs.
+* You can trust that `SYSCALL` "operating system" functions are safe for ISRs.
 * Sample ISR stub:
   ```
   MY_ISR      MOVE 0xF000, SR
