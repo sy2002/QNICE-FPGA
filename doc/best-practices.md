@@ -97,8 +97,8 @@ working in hardware by having a look at [doc/int-device.md](int-device.md).
   points to the ISR itself or to an adress that contains an `RTI`. That means
   that the best practice for shutting down an ISR is to write to the registers
   that are forcing the device to stop generating ISRs, without clearing
-  the register that contains the address of the ISR or at least a memory
-  location that contains an `RTI`.
+  the register that contains the address of the ISR or at least point it to
+  a memory location that contains an `RTI`.
 
 Native QNICE assembler
 ----------------------
