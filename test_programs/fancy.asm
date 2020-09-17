@@ -107,7 +107,7 @@ S_ISR           INCRB                           ; make sure, R8..R11 are not
 
                 MOVE    R8, R10
                 SHL     5, R10
-                ADD     R8, R10
+                SUB     R8, R10
                 SHL     1, R10
 
                 CMP     'F', @R2                ; check mode
