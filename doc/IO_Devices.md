@@ -10,6 +10,12 @@ Address | Description
 `FF04`  | Status register of USB keyboard
 `FF05`  | Data register of USB keyboard
 
+The on-board switches (`FF00`) are used as follows:
+* Bit 0 (R/O) : Select STDIN (0 = UART, 1 = Keyboard)
+* Bit 1 (R/O) : Select STDOUT (0 = UART, 1 = VGA)
+* Bit 2 (R/O) : Enable CPU debug mode
+* Bit 3 (R/O) : Select default UART baudrate (0 = 115 kbit/s, 1 = 1 Mbit/s)
+
 The Status register (`FF04`) is decoded as follows
 * Bit 0 (R/O) : New ASCII character available for reading
 * Bit 1 (R/O) : New Special Key available for reading
@@ -54,9 +60,20 @@ The QNICE has a simple onboard UART controller, compatible with a 16550.
 
 Address | Description
 ------- | ------------
+`FF10`  | Baudrate\_divisor
 `FF11`  | Status register
 `FF12`  | Rx register
 `FF13`  | Tx register
+
+The value written into the `baudrate_divisor` is dependent on the system clock
+frequency. The baudrate is calculated from the equation:
+```
+baudrate = system_clock_speed / baudrate_divisor
+```
+The `baudrate_divisor` is writeable by software, and upon system reset is set to
+default value determined from bit 3 of the switch input, see address `FF00` above.
+
+The `system_clock_speed` is 50 MHz.
 
 
 ## EAE
@@ -116,7 +133,7 @@ Address | Description
 ## VGA
 
 As VGA is a very capable and thus complex device, the documentation for this
-device is in an own document: [doc/VGA_Features.md](VGA_Features.md)
+device is in a separate document: [doc/VGA_Features.md](VGA_Features.md)
 
 
 ## HyperRAM

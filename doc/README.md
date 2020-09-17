@@ -32,7 +32,7 @@ Full documentation in alphabetical order
 * [Assembler (how-to)](../README.md#programming-in-assembler)
 * [Assembler programming best practiecs](best-practices.md#native-qnice-assembler)
 * [Basics](#basics)
-* [Baud rate](TODO @MJoergen link to the section within IO_Devices.md)
+* [Baud rate](IO_Devices.md#uart)
 * [C (how-to)](../README.md#programming-in-c)
 * [C programming best practices](best-practices.md#c)
 * [C specifics](vbcc.md)
@@ -119,7 +119,11 @@ Basics
   using hardware mechanisms such as switches and key combinations; you cannot
   route them using software.
 
-* The baud rate for serial communication (UART) is flexible... TODO @MJoergen
+* The baud rate for serial communication (UART) is flexible. Upon startup a
+  default baud rate of 115 kbit/s is used. It is possible to select a faster
+  baud rate of 1 Mbit/s upon startup by sliding switch 3 to the ON position.
+  Furthermore, the baudrate can be configured from software,  see
+  [IO_Devices.md](IO_Devices.md#uart).
 
 ### Details on the Switch Register that controls STDIN/STDOUT
 
@@ -148,11 +152,17 @@ When in CPU Debug Mode the 7-segment display of the Nexys 4 DDR board will show 
 CPU address (program counter) when a `HALT` command was executed. This
 is very valuable when running a CPU test such as `test_programs/cpu_test.asm`.
 
-### Switch Register Bit #3: TODO @MJoergen
+### Switch Register Bit #3: Default UART baudrate
 
-Explain the details here XYZ ABC CDE FGH
+This switch is used to select the default baudrate. The switch setting is
+sampled during power up, and when pressing the CPU reset button.
 
-And link to a more detailed description in IO_Devices.md
+When this switch is set to OFF, the default baudrate is 115 kbit/s.
+
+When this switch is set to ON, the default baudrate is 1 Mbit/s.
+
+Regardless of this switch setting, the baudrate can be dynamically reconfigured
+at any time, see [IO_Devices.md](IO_Devices.md#uart).
 
 Transferring software to QNICE-FPGA
 -----------------------------------
