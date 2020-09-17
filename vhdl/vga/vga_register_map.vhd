@@ -17,6 +17,8 @@ entity vga_register_map is
       data_o           : out std_logic_vector(15 downto 0);
       int_n_o          : out std_logic;
       grant_n_i        : in  std_logic;
+      int_n_i          : in  std_logic;
+      grant_n_o        : out std_logic;
 
       -- Connected to Video RAM
       vram_display_addr_o    : out std_logic_vector(15 downto 0);
@@ -89,6 +91,9 @@ architecture synthesis of vga_register_map is
    signal cursor_x       : std_logic_vector(6 downto 0);
    signal cursor_y       : std_logic_vector(5 downto 0);
    signal cursor_addr    : std_logic_vector(15 downto 0);
+
+   signal this_int_n     : std_logic;
+   signal this_grant_n   : std_logic;
 
 --   attribute mark_debug                           : boolean;
 --   attribute mark_debug of rst_i                  : signal is true;
@@ -211,18 +216,35 @@ begin
       end if;
    end process p_output;
 
-   int_n_o <= '0' when pixel_y_i = register_map(C_REG_SCAN_INTERRUPT)(9 downto 0)
-                   and '0' = register_map(C_REG_SCAN_INTERRUPT)(15)
-         else '1';
+   this_int_n <= '0' when pixel_y_i = register_map(C_REG_SCAN_INTERRUPT)(9 downto 0)
+                     and '0' = register_map(C_REG_SCAN_INTERRUPT)(15)
+            else '1';
 
    -- Data output is combinatorial.
-   data_o <= register_map(C_REG_SCAN_ISR_ADDRESS) when grant_n_i = '0'                                                        else
+   data_o <= register_map(C_REG_SCAN_ISR_ADDRESS) when this_grant_n = '0'                                                     else
              vram_display_rd_data_i               when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_CURSOR_CHAR  else
              "000000" & pixel_y_i                 when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_SCAN_CURRENT else
              X"00" & vram_font_rd_data_i          when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_FONT_DATA    else
              "0" & vram_palette_rd_data_i         when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_PALETTE_DATA else
              register_map(conv_integer(reg_i))    when en_i = '1' and we_i = '0'                                              else
              (others => '0');
+
+
+   -----------------------------------------------------
+   -- Interface to the Interrupt Daisy Chain Controller
+   -----------------------------------------------------
+
+   i_daisy_chain : entity work.daisy_chain
+      port map (
+         clk_i           => clk_i,
+         rst_i           => rst_i,
+         this_int_n_i    => this_int_n,
+         this_grant_n_o  => this_grant_n,
+         left_int_n_o    => int_n_o,
+         left_grant_n_i  => grant_n_i,
+         right_int_n_i   => int_n_i,
+         right_grant_n_o => grant_n_o
+      ); -- i_daisy_chain
 
 end synthesis;
 
