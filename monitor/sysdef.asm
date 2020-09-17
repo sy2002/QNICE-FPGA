@@ -213,7 +213,7 @@ VGA$SCAN_ISR        .EQU 0xFF44 ; Interrupt Service Routine Address
 ;  Block FF50: Interrupt Controller
 ;---------------------------------------------------------------------------------------
 ;
-IC$ENABLE           .EQU 0xFF50 ; Global Interrupt Enable
+IC$CSR              .EQU 0xFF50 ; Global Interrupt Enable
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FFF0: MEGA65 (double block, 16 registers)
