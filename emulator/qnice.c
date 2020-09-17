@@ -120,11 +120,10 @@
 #define SR  14  // Status register
 #define SP  13  // Stack pointer
 
-#define NUMBER_OF_SHADOW_REGISTERS  4   // Overall number of shadow registers
+#define NUMBER_OF_SHADOW_REGISTERS  3   // Overall number of shadow registers
 #define SR_PC   0                       // Shadow register for PC
 #define SR_SR   1                       // Shadow register for SR
 #define SR_SP   2                       // Shadow register for SP
-#define SR_RB   3                       // Shadow register for register bank base address
 
 #define MAX_LAST_ADDRESSES     16
 
