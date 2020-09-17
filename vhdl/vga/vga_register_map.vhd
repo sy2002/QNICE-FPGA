@@ -148,6 +148,7 @@ begin
 
          if rst_i = '1' then
             register_map <= (others => (others => '0'));
+            register_map(C_REG_SCAN_INTERRUPT)(15) <= '1';  -- Disable scanline interrupt
          end if;
       end if;
    end process p_register_map;
@@ -211,15 +212,16 @@ begin
    end process p_output;
 
    int_n_o <= '0' when pixel_y_i = register_map(C_REG_SCAN_INTERRUPT)(9 downto 0)
-              and register_map(C_REG_SCAN_ISR_ADDRESS) /= 0 else '1';
+                   and '0' = register_map(C_REG_SCAN_INTERRUPT)(15)
+         else '1';
 
    -- Data output is combinatorial.
-   data_o <= register_map(20)                  when grant_n_i = '0'                                                        else
-             vram_display_rd_data_i            when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_CURSOR_CHAR  else
-             "000000" & pixel_y_i              when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_SCAN_CURRENT else
-             X"00" & vram_font_rd_data_i       when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_FONT_DATA    else
-             "0" & vram_palette_rd_data_i      when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_PALETTE_DATA else
-             register_map(conv_integer(reg_i)) when en_i = '1' and we_i = '0'                                              else
+   data_o <= register_map(C_REG_SCAN_ISR_ADDRESS) when grant_n_i = '0'                                                        else
+             vram_display_rd_data_i               when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_CURSOR_CHAR  else
+             "000000" & pixel_y_i                 when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_SCAN_CURRENT else
+             X"00" & vram_font_rd_data_i          when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_FONT_DATA    else
+             "0" & vram_palette_rd_data_i         when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_PALETTE_DATA else
+             register_map(conv_integer(reg_i))    when en_i = '1' and we_i = '0'                                              else
              (others => '0');
 
 end synthesis;
