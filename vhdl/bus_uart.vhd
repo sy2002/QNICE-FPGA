@@ -151,7 +151,7 @@ begin
       end if;
    end process;
    
-   read_registers : process(uart_en, uart_we, uart_reg, uart_tx_ready, fifo_empty, fifo_rd_data)
+   read_registers : process(uart_en, uart_we, uart_reg, uart_tx_ready, fifo_empty, fifo_rd_data, uart_divisor)
    begin 
       if uart_en = '1' and uart_we = '0' then
          case uart_reg is

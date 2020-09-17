@@ -87,7 +87,7 @@ begin
 
 
    -- RX FSM
-   rx_process: process (rx_state, uart_rx_i) is
+   rx_process: process (rx_state, uart_rx_i, divisor_i) is
    begin
       case rx_state.fsm_state is
 
@@ -135,7 +135,7 @@ begin
 
 
    -- TX FSM
-   tx_process: process (tx_state, tx_enable_i, tx_data_i) is
+   tx_process: process (tx_state, tx_enable_i, tx_data_i, divisor_i) is
    begin
       case tx_state.fsm_state is
 
