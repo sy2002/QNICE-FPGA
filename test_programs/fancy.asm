@@ -21,26 +21,29 @@
                 MOVE    VGA$PALETTE_OFFS_USER, @R0 
 
                 ; install the scanline ISR
-                MOVE    VGA$SCAN_INT, R0
-                MOVE    0, @R0++
-                MOVE    S_ISR, @R0   
+                MOVE    VGA$SCAN_ISR, R0        ; first the ISR address
+                MOVE    S_ISR, @R0
+                MOVE    VGA$SCAN_INT, R0        ; then the scanline
+                MOVE    0, @R0
 
                 ; install the timer ISR
-                MOVE    IO$TIMER_0_PRE, R0
+                MOVE    IO$TIMER_0_INT, R0      ; first the ISR address
+                MOVE    T_ISR, @R0
+                MOVE    IO$TIMER_0_PRE, R0      ; then the timer settings
                 MOVE    0x0064, @R0++           ; 1 ms base ...
                 MOVE    0x00C8, @R0++           ; 0xC8 = 200ms = 5 Hz
-                MOVE    T_ISR, @R0
-
+                
                 MOVE    UNINSTALL_STR, R8
                 SYSCALL(puts, 1)
                 SYSCALL(exit, 1)                ; back to monitor
 
                 .ORG    0xFA30                  ; run FA30 to uninstall
 
-                MOVE    VGA$SCAN_ISR, R0        ; uninstall VGA scanline ISR
+                MOVE    IO$TIMER_0_PRE, R0      ; uninstall timer ISR
+                MOVE    0, @R0++
                 MOVE    0, @R0
-                MOVE    IO$TIMER_0_INT, R0      ; uninstall timer ISR
-                MOVE    0, @R0                
+                MOVE    VGA$SCAN_INT, R0        ; uninstall scanline ISR
+                MOVE    0xFFFF, @R0           
                 MOVE    VGA$PALETTE_OFFS, R0    ; back to default palette
                 MOVE    VGA$PALETTE_OFFS_DEFAULT, @R0
 
