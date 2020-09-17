@@ -31,9 +31,6 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity keyboard is
-generic (
-   clk_freq      : integer                     -- system clock frequency
-);
 port (
    clk           : in std_logic;               -- system clock
    reset         : in std_logic;               -- system reset
@@ -68,10 +65,6 @@ signal modifiers           : std_logic_vector(2 downto 0);
 begin
 
    kbd : entity work.ps2_keyboard_to_ascii
-      generic map (
-         clk_freq => clk_freq,
-         ps2_debounce_counter_size => 8       -- set such that 2^size/clk_freq = 5us (size = 8 for 50MHz)
-      )
       port map (
          clk => clk,
          ps2_clk => ps2_clk,

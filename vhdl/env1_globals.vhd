@@ -7,7 +7,12 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
+use work.qnice_tools.all;
+
 package env1_globals is
+
+-- Clock frequency of CPU (in Hz)
+constant SYSTEM_SPEED          : natural  := 50_000_000;
 
 -- file name and file size (in lines) of the file that is converted to the ROM located at 0x0000
 constant ROM_FILE              : string   := "../monitor/monitor.rom";
@@ -44,9 +49,6 @@ constant UART_BAUDRATE_FAST    : natural  := 1000000; -- Set upon reset when swi
 
 -- Amount of CPU cycles, that the reset signal shall be active
 constant RESET_DURATION        : natural  := 16;
-
--- Clock frequency of CPU (in Hz)
-constant SYSTEM_SPEED          : natural  := 50000000;
 
 end env1_globals;
 

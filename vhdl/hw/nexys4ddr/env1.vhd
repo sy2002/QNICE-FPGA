@@ -285,9 +285,6 @@ begin
       
    -- PS/2 keyboard
    kbd : entity work.keyboard
-      generic map (
-         clk_freq => 50000000                -- see @TODO in keyboard.vhd and TODO.txt
-      )
       port map (
          clk => SLOW_CLOCK,
          reset => reset_ctl,

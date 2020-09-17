@@ -30,9 +30,6 @@ USE ieee.std_logic_1164.all;
 USE work.kbd_constants.all;
 
 ENTITY ps2_keyboard_to_ascii IS
-  GENERIC(
-      clk_freq                  : INTEGER := 50_000_000; --system clock frequency in Hz
-      ps2_debounce_counter_size : INTEGER := 8);         --set such that 2^size/clk_freq = 5us (size = 8 for 50MHz)
   PORT(
       clk        : IN  STD_LOGIC;                     --system clock input
       ps2_clk    : IN  STD_LOGIC;                     --clock signal from PS2 keyboard
@@ -67,25 +64,10 @@ ARCHITECTURE behavior OF ps2_keyboard_to_ascii IS
   SIGNAL ascii_ext         : STD_LOGIC := '0';
   SIGNAL spec              : STD_LOGIC_VECTOR(7 DOWNTO 0) := x"00";
   
-  --declare PS2 keyboard interface component
-  COMPONENT ps2_keyboard IS
-    GENERIC(
-      clk_freq              : INTEGER;  --system clock frequency in Hz
-      debounce_counter_size : INTEGER); --set such that 2^size/clk_freq = 5us (size = 8 for 50MHz)
-    PORT(
-      clk          : IN  STD_LOGIC;                     --system clock
-      ps2_clk      : IN  STD_LOGIC;                     --clock signal from PS2 keyboard
-      ps2_data     : IN  STD_LOGIC;                     --data signal from PS2 keyboard
-      ps2_code_new : OUT STD_LOGIC;                     --flag that new PS/2 code is available on ps2_code bus
-      ps2_code     : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)   --code received from PS/2
-    );
-  END COMPONENT;
-
 BEGIN
 
   --instantiate PS2 keyboard interface logic
-  ps2_keyboard_0:  ps2_keyboard
-    GENERIC MAP(clk_freq => clk_freq, debounce_counter_size => ps2_debounce_counter_size)
+  ps2_keyboard_0: entity work.ps2_keyboard
     PORT MAP(clk => clk, ps2_clk => ps2_clk, ps2_data => ps2_data, ps2_code_new => ps2_code_new, ps2_code => ps2_code);
   
   PROCESS(clk)

@@ -24,11 +24,10 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+use work.env1_globals.all; -- SYSTEM_SPEED
+use work.qnice_tools.all;  -- f_log2
+
 entity ps2_keyboard is
-   generic(
-      CLK_FREQ              : integer := 50_000_000; --system clock frequency in hz
-      DEBOUNCE_COUNTER_SIZE : integer := 8           --set such that (2^size)/CLK_FREQ = 5us (size = 8 for 50mhz)
-   );
    port(
       clk          : in  std_logic;                     --system clock
       ps2_clk      : in  std_logic;                     --clock signal from ps/2 keyboard
@@ -40,13 +39,24 @@ end ps2_keyboard;
 
 architecture rtl of ps2_keyboard is
 
-   signal sync_ffs     : std_logic_vector(1 downto 0);       --synchronizer flip-flops for ps/2 signals
-   signal ps2_clk_int  : std_logic;                          --debounced clock signal from ps/2 keyboard
-   signal ps2_clk_int_d: std_logic;                          --delayed clock signal
-   signal ps2_data_int : std_logic;                          --debounced data signal from ps/2 keyboard
-   signal ps2_word     : std_logic_vector(10 downto 0);      --stores the ps2 data word
-   signal error        : std_logic;                          --validate parity, start, and stop bits
-   signal count_idle   : integer range 0 to CLK_FREQ/18000;  --@todo counter to determine ps/2 is idle
+   constant PS2_DEBOUNCE_TIME_US  : natural := 5;                                            -- Value in microseconds
+   constant PS2_CLOCK_PERIOD_US   : natural := 110;                                          -- Value in microseconds
+
+   constant DEBOUNCE_COUNTER_SIZE : natural := f_log2(SYSTEM_SPEED/1_000_000*PS2_DEBOUNCE_TIME_US);
+   constant IDLE_COUNTER_MAX      : natural := SYSTEM_SPEED/1_000_000*PS2_CLOCK_PERIOD_US/2; -- Half a clock period
+
+   signal sync_ffs     : std_logic_vector(1 downto 0);         --synchronizer flip-flops for ps/2 signals
+   signal ps2_clk_int  : std_logic;                            --debounced clock signal from ps/2 keyboard
+   signal ps2_clk_int_d: std_logic;                            --delayed clock signal
+   signal ps2_data_int : std_logic;                            --debounced data signal from ps/2 keyboard
+   signal ps2_word     : std_logic_vector(10 downto 0);        --stores the ps2 data word
+   signal error        : std_logic;                            --validate parity, start, and stop bits
+   signal count_idle   : integer range 0 to IDLE_COUNTER_MAX;  --counter to determine ps/2 is idle
+
+   attribute mark_debug                 : boolean;
+   attribute mark_debug of ps2_clk_int  : signal is true;
+   attribute mark_debug of ps2_data_int : signal is true;
+   attribute mark_debug of ps2_code_new : signal is true;
 
 begin
 
@@ -103,11 +113,11 @@ begin
 
          if ps2_clk_int = '0' then                    --low ps2 clock, ps/2 is active
             count_idle <= 0;                          --reset idle counter
-         elsif count_idle /= CLK_FREQ/18000 then      --ps2 clock has been high less than a half clock period (<55us)
+         elsif count_idle /= IDLE_COUNTER_MAX then    --ps2 clock has been high less than a half clock period (<55us)
             count_idle <= count_idle + 1;             --continue counting
          end if;
 
-         if count_idle = CLK_FREQ/18000 and error = '0' then   --idle threshold reached and no errors detected
+         if count_idle = IDLE_COUNTER_MAX and error = '0' then --idle threshold reached and no errors detected
             ps2_code_new <= '1';                               --set flag that new ps/2 code is available
             ps2_code <= ps2_word(8 downto 1);                  --output new ps/2 code
          else                                                  --ps/2 port active or error detected
