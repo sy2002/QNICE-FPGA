@@ -155,6 +155,7 @@ char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SH
 unsigned int gbl$interrupt_address,                 // Interrupt address as set by the interrupting "device"
              gbl$interrupt_request = FALSE,         // This flag denotes an interrupt request.
              gbl$interrupt_active = FALSE,          // true if an interrupt is currently being serviced.
+             gbl$ic_csr = 0,                        // Interrupts are enabled when bit 0 is 1.
              gbl$shadow_register[NUMBER_OF_SHADOW_REGISTERS],
              gbl$last_addresses[MAX_LAST_ADDRESSES],// List of last addresses executed 
              gbl$last_addresses_pointer = 0,        // Pointer into the aforementioned list
@@ -443,6 +444,8 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       else if (address >= IO_TIMER_BASE_ADDRESS && address < IO_TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
         value = readTimerDeviceRegister(address - IO_TIMER_BASE_ADDRESS);
 #endif
+      else if (address == IC_CSR) // Access the interrupt controller
+        value = gbl$ic_csr & 1;
     }
   } else if (operation == WRITE_MEMORY) {
     if (address < IO_AREA_START)
@@ -529,6 +532,8 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       else if (address >= IO_TIMER_BASE_ADDRESS && address < IO_TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
         writeTimerDeviceRegister(address - IO_TIMER_BASE_ADDRESS, value);
 #endif
+      else if (address == IC_CSR) // Access the interrupt controller
+        gbl$ic_csr = value & 0xffff;
     }
   } else {
     printf("Illegal operation code in access_memory!\n");
@@ -561,7 +566,8 @@ void reset_machine() {
 #endif
 
   gbl$interrupt_request = FALSE;
-  gbl$interrupt_active = FALSE;
+  gbl$interrupt_active  = FALSE;
+  gbl$ic_csr            = 0;
 
   if (gbl$debug || gbl$verbose)
     printf("\treset_machine: done\n");
@@ -811,7 +817,7 @@ int execute() {
 #endif
 
   // Take care of interrupts
-  if (gbl$interrupt_request && !gbl$interrupt_active) { // Interrupts cannot be nested!
+  if (gbl$interrupt_request && !gbl$interrupt_active && (gbl$ic_csr & 0x0001)) { // Interrupts cannot be nested!
     gbl$interrupt_active  = TRUE;                   // Remember that we are currently servicing an interrupt
     gbl$interrupt_request = FALSE;
     gbl$shadow_register[SR_PC] = read_register(PC); // Save PC
