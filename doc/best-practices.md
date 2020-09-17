@@ -15,9 +15,10 @@ All languages
 
 * The folder `dist_kit` contains important includes.
 * The Monitor acts as "operating system" and offers convenient functions as
-  documented in `doc/monitor/doc.pdf`. They range from IO functions over
-  math and string functions to debug functions.
-* Configure your editor to convert SPACEs to TABs.
+  documented in [doc/monitor/doc.pdf](monitor/doc.pdf). They range from IO
+  functions over math and string functions to debug functions.
+* Configure your editor to convert [TABs to
+  SPACEs](https://stackoverflow.blog/2017/06/15/developers-use-spaces-make-money-use-tabs/).
 
 Register Banks
 --------------
@@ -27,13 +28,13 @@ programmers are familiar with this concept, so please take your time and also
 read the [introduction documentation](doc/intro/qnice_intro.pdf).
 
 * There are 256 register banks for the registers R0 to R7.
-* You an change a register bank by either writing to the upper 8 bits of the
+* You can change a register bank by either writing to the upper 8 bits of the
   status register `SR` or by using the `INCRB` or `DECRB` instructions. The
   latter one can be executed in only two CPU cycles, so they are faster than
   for example an `ADD 0x0100, SR`.
 * The main use case for register banks is to speed up sub-routine calls by
   having an `INCRB` at the beginning of the sub-routine to provide a clean
-  set of registers R0 to R7 and and a `DECRB` at the end of the sub-routine. 
+  set of registers R0 to R7 and a `DECRB` at the end of the sub-routine.
   (More details: See best practices for [subroutines](#subroutines) below.)
 * Normally, you should treat the register bank like a stack of registers,
   that means that you might do things like this:
@@ -62,10 +63,10 @@ familiarize yourself with the way how the the interrupt mechanisms are
 working in hardware by having a look at [doc/int-device.md](int-device.md).
 
 * End your ISR with `RTI`.
-* Most important best practice: Be careful, be paranoid. ISRs "must not 
-  change anything" since they might happen at any time and "everywhere". So
-  make sure that when your ISRs ends the **CPU registers R0 to R12** as well
-  as the **registers of all devices you used** are untouched.
+* Most important best practice: Be careful, be paranoid. ISRs "must not change
+  anything" since the interrupt might happen at any time and "everywhere". So
+  make sure that when your ISRs ends the **CPU registers R0 to R12** as well as
+  the **registers of all devices you used** are untouched.
 * Be sensible about the run-time of the ISR. Be aware of the performance
   impact that it might have to the system.
 * Don't worry about flags or the status register `SR`, the stack pointer `SP`
