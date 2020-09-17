@@ -33,7 +33,7 @@ read the [introduction documentation](doc/intro/qnice_intro.pdf).
   for example an `ADD 0x0100, SR`.
 * The main use case for register banks is to speed up sub-routine calls by
   having an `INCRB` at the beginning of the sub-routine to provide a clean
-  set of registers R0 to R7 and and a `DECRB` at the end of the sub-routine.
+  set of registers R0 to R7 and and a `DECRB` at the end of the sub-routine. 
   (More details: See best practices for [subroutines](#subroutines) below.)
 * Normally, you should treat the register bank like a stack of registers,
   that means that you might do things like this:
@@ -168,6 +168,13 @@ and includes some more best practices.
   `INCRB` and ends just before the `RET` with a `DECRB`. And if you used
   more than one bank, make sure that you decrement by the appropriate
   amount of banks.
+* Sample subroutine stub:
+  ```
+  MY_SUBROUTINE    INCRB
+                   [...]
+                   DECRB
+                   RET
+  ``
 
 VASM assembler
 --------------

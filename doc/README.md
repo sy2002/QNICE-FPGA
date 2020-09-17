@@ -48,7 +48,7 @@ Full documentation in alphabetical order
 * [Folder structure explained](folders.md)
 * [Getting started](../README.md#getting-started)
 * [Interrupt capable devices (requirements & how-to)](int-device.md)
-* [Interrupt Service Routines (ISRs) (requirements & how-to)](best-pratices.md#interrupt-service-routines--isrs)
+* [Interrupt Service Routines (ISRs) (requirements & how-to)](best-pratices.md#interrupt-service-routines-isrs)
 * [Instruction Set Architecture (ISA)](intro/qnice_intro.pdf)
 * [I/O devices](IO_Devices.md)
 * [Hardware platforms](../hw/README.md)
