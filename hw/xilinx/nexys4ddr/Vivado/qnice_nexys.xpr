@@ -327,6 +327,12 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PPRDIR/../../../../vhdl/interrupt_controller.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/../../../../vhdl/hw/nexys4ddr/clk.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>

@@ -101,6 +101,11 @@ port (
    vga_we            : out std_logic;
    vga_reg           : out std_logic_vector(4 downto 0);
 
+   -- Interrupt controller range $FF50..$FF57
+   int_en            : buffer std_logic;
+   int_we            : out std_logic;
+   int_reg           : out std_logic_vector(2 downto 0);
+
    -- HyerRAM register range $FFF0 .. $FFF3
    hram_en           : buffer std_logic;
    hram_we           : out std_logic;
@@ -195,10 +200,15 @@ begin
 
    -- Block FF30: VGA (tripple block, 24 registers)
    vga_en            <= '1' when (addr(15 downto 4) = x"FF3" or addr(15 downto 3) = x"FF4" & "0")
-                        and no_igrant_active else '0';            -- FF30
+                        and no_igrant_active else '0';                                                -- FF30
    vga_we            <= vga_en and data_dir and data_valid;
    vga_reg           <= (not addr(4)) & addr(3 downto 0);
    
+   -- Block FF50: Interrupt controller
+   int_en            <= '1' when addr(15 downto 3) = x"FF5" & "0" and no_igrant_active else '0';      -- FF50
+   int_we            <= int_en and data_dir and data_valid;
+   int_reg           <= addr(2 downto 0);
+
    -- Block FFF0: MEGA65 block, currently only HyperRAM
    hram_en           <= '1' when GD_HRAM and addr(15 downto 4) = x"FFF" and no_igrant_active else '0';   -- FFF0
    hram_we           <= hram_en and data_dir and data_valid;

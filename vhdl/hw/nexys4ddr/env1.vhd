@@ -71,6 +71,8 @@ signal cpu_halt               : std_logic;
 signal cpu_ins_cnt_strobe     : std_logic;
 signal cpu_int_n              : std_logic;
 signal cpu_igrant_n           : std_logic;
+signal daisy_int_n            : std_logic;
+signal daisy_igrant_n         : std_logic;
 signal vga_int_n              : std_logic;
 signal vga_igrant_n           : std_logic;
 
@@ -100,6 +102,10 @@ signal vga_en                 : std_logic;
 signal vga_we                 : std_logic;
 signal vga_reg                : std_logic_vector(4 downto 0);
 signal vga_data_out           : std_logic_vector(15 downto 0);
+signal int_en                 : std_logic;
+signal int_we                 : std_logic;
+signal int_reg                : std_logic_vector(2 downto 0);
+signal int_data_out           : std_logic_vector(15 downto 0);
 signal uart_en                : std_logic;
 signal uart_we                : std_logic;
 signal uart_reg               : std_logic_vector(1 downto 0);
@@ -235,8 +241,8 @@ begin
          cpu_reg_i     => vga_reg,
          cpu_data_i    => cpu_data_out,
          cpu_data_o    => vga_data_out,
-         cpu_int_n_o   => cpu_int_n,
-         cpu_grant_n_i => cpu_igrant_n,
+         cpu_int_n_o   => daisy_int_n,
+         cpu_grant_n_i => daisy_igrant_n,
          cpu_int_n_i   => vga_int_n,
          cpu_grant_n_o => vga_igrant_n,
 
@@ -368,7 +374,22 @@ begin
          sd_mosi => SD_MOSI,
          sd_miso => SD_MISO
       );
-                        
+
+   interrupt_controller : entity work.interrupt_controller
+      port map (
+         clk_i     => SLOW_CLOCK,
+         rst_i     => reset_ctl,
+         en_i      => int_en,
+         we_i      => int_we,
+         reg_i     => int_reg,
+         data_i    => cpu_data_out,
+         data_o    => int_data_out,
+         int_n_o   => cpu_int_n,
+         grant_n_i => cpu_igrant_n,
+         int_n_i   => daisy_int_n,
+         grant_n_o => daisy_igrant_n
+      );
+
    -- memory mapped i/o controller
    mmio_controller : entity work.mmio_mux
       generic map (
@@ -404,6 +425,9 @@ begin
          vga_en => vga_en,
          vga_we => vga_we,
          vga_reg => vga_reg,
+         int_en => int_en,
+         int_we => int_we,
+         int_reg => int_reg,
          uart_en => uart_en,
          uart_we => uart_we,
          uart_reg => uart_reg,
