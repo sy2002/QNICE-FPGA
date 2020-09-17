@@ -97,15 +97,18 @@ S_ISR           INCRB                           ; make sure, R8..R11 are not
 
                 MOVE    S_ISR_LINE, R0          ; scanline where ISR happens 
                 MOVE    VGA$PALETTE_ADDR, R1    ; palette offset register
+                MOVE    @R1, R5                 ; save palette offset
                 MOVE    VAR_MODE, R2
                 MOVE    S_ISR_J, R3             ; variable "j"
                 MOVE    S_ISR_DELAY, R4         ; loop var. for slowing down
 
                 MOVE    @R3, R8                 ; (scanline + j) * 62
                 ADD     @R0, R8
-                MOVE    S_ISR_MUL, R9
-                MOVE    @R9, R9
-                SYSCALL(mulu, 1)
+
+                MOVE    R8, R10
+                SHL     5, R10
+                ADD     R8, R10
+                SHL     1, R10
 
                 CMP     'F', @R2                ; check mode
                 RBRA    _SISR_FONT, Z
@@ -116,6 +119,8 @@ S_ISR           INCRB                           ; make sure, R8..R11 are not
 _SISR_FONT      MOVE    32, @R1++               ; pal. addr choose foreg. col.
 
 _SISR_BG        MOVE    R10, @R1                ; set palette to new color
+                MOVE    VGA$PALETTE_ADDR, R1    ; palette offset register
+                MOVE    R5, @R1                 ; restore palette offset
 
                 ADD     1, @R4                  ; delay the "scrolling effect"
                 CMP     600, @R4
