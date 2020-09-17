@@ -115,3 +115,8 @@ set_property -dict {PACKAGE_PIN E1  IOSTANDARD LVCMOS33} [get_ports {SD_DAT[1]}]
 set_property -dict {PACKAGE_PIN F1  IOSTANDARD LVCMOS33} [get_ports {SD_DAT[2]}]
 set_property -dict {PACKAGE_PIN D2  IOSTANDARD LVCMOS33} [get_ports {SD_DAT[3]}]
 #set_property -dict {PACKAGE_PIN A1  IOSTANDARD LVCMOS33} [get_ports SD_CD]          
+
+## Configuration Bank Voltage Select
+set_property CFGBVS VCCO [current_design]
+set_property CONFIG_VOLTAGE 3.3 [current_design]
+
