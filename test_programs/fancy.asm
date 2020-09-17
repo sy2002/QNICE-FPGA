@@ -58,7 +58,7 @@ VAR_MODE        .BLOCK 1
 ; sure, that if any program changes it, it is changed back fast enough
 ; ----------------------------------------------------------------------------
 
-T_ISR           INCRB
+T_ISR           MOVE    0xF000, SR              ; see comments in S_ISR
 
                 MOVE    VGA$PALETTE_ADDR, R0
                 MOVE    VAR_MODE, R1
@@ -75,8 +75,7 @@ T_ISR           INCRB
 _TISR_FONT      MOVE    48, @R0++               ; 48 = background col. of font
                 MOVE    VGA$COLOR_WHITE, @R0
                     
-_TISR_END       DECRB
-                RTI
+_TISR_END       RTI
 
 ; ----------------------------------------------------------------------------
 ; Scanline ISR
@@ -88,9 +87,13 @@ S_ISR_J         .DW 0x0000
 S_ISR_DELAY     .DW 0x0000
 S_ISR_MUL       .DW 0x0062
 
-S_ISR           INCRB                           ; make sure, R8..R11 are not
-                MOVE    R8, R0                  ; changed in this ISR
-                MOVE    R9, R1
+S_ISR           MOVE    0xF000, SR              ; big distance to regbanks
+                                                ; used by running programs
+                                                ; SR will be restored by CPU
+                                                ; on RTI
+
+                MOVE    R8, R0                  ; make sure, R8..R11 are not 
+                MOVE    R9, R1                  ; changed in this ISR
                 MOVE    R10, R2
                 MOVE    R11, R3                
                 INCRB
@@ -105,7 +108,7 @@ S_ISR           INCRB                           ; make sure, R8..R11 are not
                 MOVE    @R3, R8                 ; (scanline + j) * 62
                 ADD     @R0, R8
 
-                MOVE    R8, R10
+                MOVE    R8, R10                 ; this section means "* 62"
                 SHL     5, R10
                 SUB     R8, R10
                 SHL     1, R10
@@ -145,5 +148,6 @@ S_ISR_SETSL     MOVE    VGA$SCAN_INT, R1
                 MOVE    R1, R9
                 MOVE    R2, R10
                 MOVE    R3, R11
-                DECRB
-                RTI
+
+                RTI                             ; SR will be restored by CPU
+                                                ; on RTI
