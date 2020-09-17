@@ -17,7 +17,8 @@ All languages
 * The Monitor acts as "operating system" and offers convenient functions as
   documented in `doc/monitor/doc.pdf`. They range from IO functions over
   math and string functions to debug functions.
-* Configure your editor to convert SPACEs to TABs.
+* Configure your editor to convert [TABs to
+  SPACEs](https://stackoverflow.blog/2017/06/15/developers-use-spaces-make-money-use-tabs/).
 * When using register banks make sure that the register bank
   selector in the upper eight bits of SR is **always** pointing to the highest
   active bank. Reason: Interrupt Service Routines might interrupt your code
