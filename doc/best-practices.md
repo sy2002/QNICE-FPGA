@@ -91,14 +91,15 @@ working in hardware by having a look at [doc/int-device.md](int-device.md).
               [your code, including INCRB/DECRB if needed]
               RTI
   ```
-* When programming an interrupt capable device to stop generating interrupts
-  after it had been enabled to generate interrupts before: To avoid race
-  conditions, make sure that the register that contains the ISR always either
-  points to the ISR itself or to an adress that contains an `RTI`. That means
-  that the best practice for shutting down an ISR is to write to the registers
-  that are forcing the device to stop generating ISRs, without clearing
-  the register that contains the address of the ISR or at least point it to
-  a memory location that contains an `RTI`.
+* Installing ISRs: Always make sure that your first move is to write to
+  the register that contains the address of the ISR, because otherwise an
+  interrupt might occur without a valid ISR address being present.
+* Uninstalling ISRs: To avoid race conditions, make sure that the register
+  that contains the ISR always either points to the ISR itself or to an adress
+  that contains an `RTI`. That means that the best practice for shutting down
+  an ISR is to write to the registers that are forcing the device to stop
+  generating ISRs, without clearing the register that contains the address
+  of the ISR or at least point it to a memory location that contains an `RTI`.
 
 Native QNICE assembler
 ----------------------
