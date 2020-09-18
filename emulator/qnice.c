@@ -823,7 +823,7 @@ int execute() {
     gbl$shadow_register[SR_PC] = read_register(PC); // Save PC
     gbl$shadow_register[SR_SR] = read_register(SR); // Save status register 
     gbl$shadow_register[SR_SP] = read_register(SP); // Save stack pointer
-    write_register(PC, gbl$interrupt_address);  // Jump to interrupt service routine
+    write_register(PC, gbl$interrupt_address);      // Jump to interrupt service routine
 
     if (gbl$debug) {
       printf("Interrupt");
