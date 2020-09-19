@@ -30,10 +30,14 @@ entity vga_register_map is
       vram_palette_addr_o    : out std_logic_vector(5 downto 0);
       vram_palette_wr_en_o   : out std_logic;
       vram_palette_rd_data_i : in  std_logic_vector(14 downto 0);
+      vram_sprite_addr_o     : out std_logic_vector(15 downto 0);
+      vram_sprite_wr_en_o    : out std_logic;
+      vram_sprite_rd_data_i  : in  std_logic_vector(15 downto 0);
       vram_wr_data_o         : out std_logic_vector(15 downto 0);
 
       -- Connected to VGA output
-      vga_en_o         : out std_logic;
+      sprite_enable_o  : out std_logic;
+      output_enable_o  : out std_logic;
       cursor_enable_o  : out std_logic;
       cursor_blink_o   : out std_logic;
       cursor_size_o    : out std_logic;
@@ -68,6 +72,8 @@ architecture synthesis of vga_register_map is
    constant C_REG_SCAN_CURRENT     : integer := 18;
    constant C_REG_SCAN_INTERRUPT   : integer := 19;
    constant C_REG_SCAN_ISR_ADDRESS : integer := 20;
+   constant C_REG_SPRITE_ADDRESS   : integer := 21;
+   constant C_REG_SPRITE_DATA      : integer := 22;
 
    -- Interpretation of Control Register:
    constant C_CONTROL_CURSOR_SIZE       : integer := 4;
@@ -78,6 +84,7 @@ architecture synthesis of vga_register_map is
    constant C_CONTROL_BUSY              : integer := 9;
    constant C_CONTROL_DISPLAY_OFFSET_EN : integer := 10;
    constant C_CONTROL_CURSOR_OFFSET_EN  : integer := 11;
+   constant C_CONTROL_SPRITE_ENABLED    : integer := 12;
 
    type register_map_t is array (0 to 31) of std_logic_vector(15 downto 0);
 
@@ -179,7 +186,8 @@ begin
    p_output : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         vga_en_o         <= register_map(C_REG_CONTROL)(C_CONTROL_VGA_ENABLED);
+         sprite_enable_o  <= register_map(C_REG_CONTROL)(C_CONTROL_SPRITE_ENABLED);
+         output_enable_o  <= register_map(C_REG_CONTROL)(C_CONTROL_VGA_ENABLED);
          cursor_enable_o  <= register_map(C_REG_CONTROL)(C_CONTROL_CURSOR_ENABLED);
          cursor_blink_o   <= register_map(C_REG_CONTROL)(C_CONTROL_CURSOR_BLINK);
          cursor_size_o    <= register_map(C_REG_CONTROL)(C_CONTROL_CURSOR_SIZE);
@@ -195,16 +203,19 @@ begin
          vram_display_addr_o  <= cursor_addr + cursor_offset;
          vram_font_addr_o     <= register_map(C_REG_FONT_ADDRESS)(12 downto 0);     -- 8k words
          vram_palette_addr_o  <= register_map(C_REG_PALETTE_ADDRESS)(5 downto 0);   -- 64 words
+         vram_sprite_addr_o   <= register_map(C_REG_SPRITE_ADDRESS);                -- 64k words
 
          vram_display_wr_en_o <= '0';
          vram_font_wr_en_o    <= '0';
          vram_palette_wr_en_o <= '0';
+         vram_sprite_wr_en_o  <= '0';
          vram_wr_data_o       <= data_i;
 
          case conv_integer(reg_i) is
             when C_REG_CURSOR_CHAR  => vram_display_wr_en_o <= en_i and we_i;
             when C_REG_FONT_DATA    => vram_font_wr_en_o    <= en_i and we_i and register_map(C_REG_FONT_ADDRESS)(12);
             when C_REG_PALETTE_DATA => vram_palette_wr_en_o <= en_i and we_i and register_map(C_REG_PALETTE_ADDRESS)(5);
+            when C_REG_SPRITE_DATA  => vram_sprite_wr_en_o  <= en_i and we_i;
             when others => null;
          end case;
 
@@ -226,6 +237,7 @@ begin
              "000000" & pixel_y_i                 when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_SCAN_CURRENT else
              X"00" & vram_font_rd_data_i          when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_FONT_DATA    else
              "0" & vram_palette_rd_data_i         when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_PALETTE_DATA else
+             vram_sprite_rd_data_i                when en_i = '1' and we_i = '0' and conv_integer(reg_i) = C_REG_SPRITE_DATA  else
              register_map(conv_integer(reg_i))    when en_i = '1' and we_i = '0'                                              else
              (others => '0');
 

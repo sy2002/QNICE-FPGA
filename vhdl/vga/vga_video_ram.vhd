@@ -2,8 +2,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 -- This block connects the CPU clock domain with the VGA clock domain.
--- Inside this block are three True Dual Port memories: Display RAM,
--- Font RAM, and Palette RAM.
+-- Inside this block are four True Dual Port memories: Display RAM,
+-- Font RAM, Palette RAM, and Sprite RAM.
 
 entity vga_video_ram is
    port (
@@ -17,6 +17,9 @@ entity vga_video_ram is
       cpu_palette_addr_i    : in  std_logic_vector(5 downto 0);
       cpu_palette_wr_en_i   : in  std_logic;
       cpu_palette_rd_data_o : out std_logic_vector(14 downto 0);
+      cpu_sprite_addr_i     : in  std_logic_vector(15 downto 0);
+      cpu_sprite_wr_en_i    : in  std_logic;
+      cpu_sprite_rd_data_o  : out std_logic_vector(15 downto 0);
       cpu_wr_data_i         : in  std_logic_vector(15 downto 0);
 
       vga_clk_i          : in  std_logic;
@@ -25,7 +28,9 @@ entity vga_video_ram is
       vga_font_addr_i    : in  std_logic_vector(12 downto 0);
       vga_font_data_o    : out std_logic_vector(7 downto 0);
       vga_palette_addr_i : in  std_logic_vector(5 downto 0);
-      vga_palette_data_o : out std_logic_vector(14 downto 0)
+      vga_palette_data_o : out std_logic_vector(14 downto 0);
+      vga_sprite_addr_i  : in  std_logic_vector(15 downto 0);
+      vga_sprite_data_o  : out std_logic_vector(15 downto 0)
    );
 end vga_video_ram;
 
@@ -97,6 +102,24 @@ begin
          b_rd_addr_i => vga_palette_addr_i,
          b_rd_data_o => vga_palette_data_o
       ); -- i_palette_ram
+
+
+   -- The Sprite RAM contains 64k words, i.e. addresses 0x0000 - 0xFFFF.
+   i_sprite_ram : entity work.true_dual_port_ram
+      generic map (
+         G_ADDR_SIZE => 16,
+         G_DATA_SIZE => 16
+      )
+      port map (
+         a_clk_i     => cpu_clk_i,
+         a_addr_i    => cpu_sprite_addr_i,
+         a_wr_en_i   => cpu_sprite_wr_en_i,
+         a_wr_data_i => cpu_wr_data_i,
+         a_rd_data_o => cpu_sprite_rd_data_o,
+         b_clk_i     => vga_clk_i,
+         b_rd_addr_i => vga_sprite_addr_i,
+         b_rd_data_o => vga_sprite_data_o
+      ); -- i_sprite_ram
 
 end architecture synthesis;
 

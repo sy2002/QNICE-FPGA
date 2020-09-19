@@ -51,6 +51,7 @@ architecture synthesis of vga_multicolor is
    signal cpu_grant_n         : std_logic;
 
    -- Configuration signals synchronized to CPU clock.
+   signal cpu_sprite_enable   : std_logic;
    signal cpu_output_enable   : std_logic;
    signal cpu_display_offset  : std_logic_vector(15 downto 0);
    signal cpu_font_offset     : std_logic_vector(15 downto 0);
@@ -74,9 +75,13 @@ architecture synthesis of vga_multicolor is
    signal cpu_vram_palette_addr    : std_logic_vector(5 downto 0);
    signal cpu_vram_palette_wr_en   : std_logic;
    signal cpu_vram_palette_rd_data : std_logic_vector(14 downto 0);
+   signal cpu_vram_sprite_addr     : std_logic_vector(15 downto 0);
+   signal cpu_vram_sprite_wr_en    : std_logic;
+   signal cpu_vram_sprite_rd_data  : std_logic_vector(15 downto 0);
    signal cpu_vram_wr_data         : std_logic_vector(15 downto 0);
 
    -- Clock Domain Crossing
+   signal meta_sprite_enable  : std_logic;
    signal meta_output_enable  : std_logic;
    signal meta_display_offset : std_logic_vector(15 downto 0);
    signal meta_font_offset    : std_logic_vector(15 downto 0);
@@ -91,6 +96,7 @@ architecture synthesis of vga_multicolor is
    signal meta_adjust_y       : std_logic_vector(9 downto 0);
 
    -- Configuration signals synchronized to VGA clock.
+   signal vga_sprite_enable   : std_logic;
    signal vga_output_enable   : std_logic;
    signal vga_display_offset  : std_logic_vector(15 downto 0);
    signal vga_font_offset     : std_logic_vector(15 downto 0);
@@ -111,9 +117,12 @@ architecture synthesis of vga_multicolor is
    signal vga_font_data       : std_logic_vector(7 downto 0);
    signal vga_palette_addr    : std_logic_vector(5 downto 0);
    signal vga_palette_data    : std_logic_vector(14 downto 0);
+   signal vga_sprite_addr     : std_logic_vector(15 downto 0);
+   signal vga_sprite_data     : std_logic_vector(15 downto 0);
 
    -- Instruct synthesis tool that these registers are used for CDC.
    attribute ASYNC_REG                        : boolean;
+   attribute ASYNC_REG of meta_sprite_enable  : signal is true;
    attribute ASYNC_REG of meta_output_enable  : signal is true;
    attribute ASYNC_REG of meta_display_offset : signal is true;
    attribute ASYNC_REG of meta_font_offset    : signal is true;
@@ -126,6 +135,7 @@ architecture synthesis of vga_multicolor is
    attribute ASYNC_REG of meta_adjust_x       : signal is true;
    attribute ASYNC_REG of meta_adjust_y       : signal is true;
    attribute ASYNC_REG of meta_pixel_y        : signal is true;
+   attribute ASYNC_REG of vga_sprite_enable   : signal is true;
    attribute ASYNC_REG of vga_output_enable   : signal is true;
    attribute ASYNC_REG of vga_display_offset  : signal is true;
    attribute ASYNC_REG of vga_font_offset     : signal is true;
@@ -175,9 +185,13 @@ begin
          vram_palette_addr_o    => cpu_vram_palette_addr,
          vram_palette_wr_en_o   => cpu_vram_palette_wr_en,
          vram_palette_rd_data_i => cpu_vram_palette_rd_data,
+         vram_sprite_addr_o     => cpu_vram_sprite_addr,
+         vram_sprite_wr_en_o    => cpu_vram_sprite_wr_en,
+         vram_sprite_rd_data_i  => cpu_vram_sprite_rd_data,
          vram_wr_data_o         => cpu_vram_wr_data,
 
-         vga_en_o         => cpu_output_enable,    -- Reg 0 bit 7
+         sprite_enable_o  => cpu_sprite_enable,    -- Reg 0 bit 12
+         output_enable_o  => cpu_output_enable,    -- Reg 0 bit 7
          cursor_enable_o  => cpu_cursor_enable,    -- Reg 0 bit 6
          cursor_blink_o   => cpu_cursor_blink,     -- Reg 0 bit 5
          cursor_size_o    => cpu_cursor_size,      -- Reg 0 bit 4
@@ -209,6 +223,9 @@ begin
          cpu_palette_addr_i    => cpu_vram_palette_addr,
          cpu_palette_wr_en_i   => cpu_vram_palette_wr_en,
          cpu_palette_rd_data_o => cpu_vram_palette_rd_data,
+         cpu_sprite_addr_i     => cpu_vram_sprite_addr,
+         cpu_sprite_wr_en_i    => cpu_vram_sprite_wr_en,
+         cpu_sprite_rd_data_o  => cpu_vram_sprite_rd_data,
          cpu_wr_data_i         => cpu_vram_wr_data,
 
          -- VGA access
@@ -218,7 +235,9 @@ begin
          vga_font_addr_i    => vga_font_addr,
          vga_font_data_o    => vga_font_data,
          vga_palette_addr_i => vga_palette_addr,
-         vga_palette_data_o => vga_palette_data
+         vga_palette_data_o => vga_palette_data,
+         vga_sprite_addr_i  => vga_sprite_addr,
+         vga_sprite_data_o  => vga_sprite_data
       ); -- i_vga_video_ram
 
 
@@ -233,6 +252,7 @@ begin
       p_cpu_to_vga : process (vga_clk_i)
       begin
          if rising_edge(vga_clk_i) then
+            meta_sprite_enable  <= cpu_sprite_enable;
             meta_output_enable  <= cpu_output_enable;
             meta_display_offset <= cpu_display_offset;
             meta_font_offset    <= cpu_font_offset;
@@ -245,6 +265,7 @@ begin
             meta_adjust_x       <= cpu_adjust_x;
             meta_adjust_y       <= cpu_adjust_y;
 
+            vga_sprite_enable   <= meta_sprite_enable;
             vga_output_enable   <= meta_output_enable;
             vga_display_offset  <= meta_display_offset;
             vga_font_offset     <= meta_font_offset;
@@ -279,6 +300,7 @@ begin
          clk_i            => vga_clk_i,
 
          -- Configuration from Register Map
+         sprite_enable_i  => vga_sprite_enable,
          output_enable_i  => vga_output_enable,
          display_offset_i => vga_display_offset,
          font_offset_i    => vga_font_offset,
@@ -299,6 +321,8 @@ begin
          font_data_i      => vga_font_data,
          palette_addr_o   => vga_palette_addr,
          palette_data_i   => vga_palette_data,
+         sprite_addr_o    => vga_sprite_addr,
+         sprite_data_i    => vga_sprite_data,
 
          -- VGA output signals
          hsync_o          => vga_hsync_o,

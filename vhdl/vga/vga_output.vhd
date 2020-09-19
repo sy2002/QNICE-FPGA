@@ -13,6 +13,7 @@ entity vga_output is
       clk_i            : in  std_logic;
 
       -- Configuration from Register Map
+      sprite_enable_i  : in  std_logic;
       output_enable_i  : in  std_logic;
       display_offset_i : in  std_logic_vector(15 downto 0);
       font_offset_i    : in  std_logic_vector(15 downto 0);
@@ -33,6 +34,8 @@ entity vga_output is
       font_data_i      : in  std_logic_vector(7 downto 0);
       palette_addr_o   : out std_logic_vector(5 downto 0);
       palette_data_i   : in  std_logic_vector(14 downto 0);
+      sprite_addr_o    : out std_logic_vector(15 downto 0);
+      sprite_data_i    : in  std_logic_vector(15 downto 0);
 
       -- VGA output
       hsync_o          : out std_logic;
@@ -48,13 +51,14 @@ architecture synthesis of vga_output is
    constant H_PIXELS : integer := 640;
    constant V_PIXELS : integer := 480;
 
-   signal pixel_x : std_logic_vector(9 downto 0);  -- 0 to 799
-   signal pixel_y : std_logic_vector(9 downto 0);  -- 0 to 524
-   signal frame   : std_logic_vector(5 downto 0);  -- 0 to 59
-   signal color   : std_logic_vector(14 downto 0);
-   signal delay   : std_logic_vector(9 downto 0);
-   signal pixel_adj_x : std_logic_vector(9 downto 0);
-   signal pixel_adj_y : std_logic_vector(9 downto 0);
+   signal pixel_x      : std_logic_vector(9 downto 0);  -- 0 to 799
+   signal pixel_y      : std_logic_vector(9 downto 0);  -- 0 to 524
+   signal frame        : std_logic_vector(5 downto 0);  -- 0 to 59
+   signal color_text   : std_logic_vector(15 downto 0);
+   signal color_sprite : std_logic_vector(15 downto 0);
+   signal delay        : std_logic_vector(9 downto 0);
+   signal pixel_adj_x  : std_logic_vector(9 downto 0);
+   signal pixel_adj_y  : std_logic_vector(9 downto 0);
 
 begin
 
@@ -107,9 +111,31 @@ begin
          palette_addr_o   => palette_addr_o,
          palette_data_i   => palette_data_i,
          -- Current pixel color
-         color_o          => color,
+         color_o          => color_text,
          delay_o          => delay
       ); -- i_vga_text_mode
+
+
+   -----------------------
+   -- Instantiate Sprites
+   -----------------------
+
+   i_vga_spite : entity work.vga_sprite
+      port map (
+         clk_i            => clk_i,
+         -- Configuration from Register Map
+         sprite_enable_i  => sprite_enable_i,
+         -- Pixel Counters
+         pixel_x_i        => pixel_x,
+         pixel_y_i        => pixel_y,
+         color_i          => color_text,
+         -- Interface to Video RAM
+         sprite_addr_o    => sprite_addr_o,
+         sprite_data_i    => sprite_data_i,
+         -- Current pixel color
+         color_o          => color_sprite,
+         delay_o          => delay
+      ); -- i_vga_sprites
 
 
    -----------------------------------
@@ -122,7 +148,7 @@ begin
          output_en_i => output_enable_i,
          pixel_x_i   => pixel_x,
          pixel_y_i   => pixel_y,
-         color_i     => color,
+         color_i     => color_sprite(14 downto 0),
          delay_i     => delay,
          hsync_o     => hsync_o,
          vsync_o     => vsync_o,

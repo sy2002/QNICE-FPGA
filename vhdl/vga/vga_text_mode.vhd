@@ -38,7 +38,7 @@ entity vga_text_mode is
       palette_addr_o   : out std_logic_vector(5 downto 0);
       palette_data_i   : in  std_logic_vector(14 downto 0);
       -- Current pixel color
-      color_o          : out std_logic_vector(14 downto 0);
+      color_o          : out std_logic_vector(15 downto 0);
       delay_o          : out std_logic_vector(9 downto 0)
    );
 end vga_text_mode;
@@ -83,9 +83,14 @@ architecture synthesis of vga_text_mode is
       palette_addr  : std_logic_vector(4 downto 0);
    end record t_stage2;
 
+   type t_stage3 is record
+      pixel         : std_logic;
+   end record t_stage3;
+
    signal stage0 : t_stage0;
    signal stage1 : t_stage1;
    signal stage2 : t_stage2;
+   signal stage3 : t_stage3;
 
 --   attribute mark_debug                   : boolean;
 --   attribute mark_debug of cursor_x_i     : signal is true;
@@ -204,7 +209,15 @@ begin
    -- Stage 3 : Generate output
    -----------------------------------------------------
 
-   color_o <= palette_data_i;
+   -- Pixel information from Stage 2 must be delayed one clock cycle.
+   p_stage3 : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         stage3.pixel <= stage2.pixel;
+      end if;
+   end process p_stage3;
+
+   color_o <= stage3.pixel & palette_data_i;
    delay_o <= std_logic_vector(to_unsigned(3, 10));
 
 end architecture synthesis;
