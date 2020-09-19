@@ -84,7 +84,23 @@ working in hardware by having a look at [doc/int-device.md](int-device.md).
 * Programming ISRs in C: It is very important that your ISR is decorated not
   only with `__interrupt` but also with `__norbank` because you want to avoid
   wrapping your ISR in `INCRB` and `DECRB`. C will use the stack instead.
-* You can trust that `SYSCALL` "operating system" functions are safe for ISRs.
+* You **must not** trust that `SYSCALL` "operating system" functions are safe
+  for ISRs. So do not use them in general unless you know exactly what you are
+  doing *and* unless you make sure that you are saving/restoring all device
+  registers and all the device's state before finishing your ISR.
+* As an exception to the abovementioned rule, the following Monitor functions
+  are guaranteed to be safe for being used inside ISRs:
+  ```
+  mulu
+  muls
+  divu
+  divs
+  mulu32
+  divu32
+  ```
+  This makes sure that you have access to QNICE's arithmetic functions in your
+  assembler ISR and it also makes sure that the C compiler can continue to
+  use these optimized functions inside ISRs.
 * Sample ISR stub:
   ```
   MY_ISR      MOVE 0xF000, SR
@@ -228,13 +244,19 @@ C
     ...
   }
   ```
-* If you write an ISR in C then use `__interrupt`, as in this example
+* If you write an ISR in C then use `__interrupt` and `__norbank`, as in this
+  example
   ```
-  __interrupt __norbank void irq(void)
+  __interrupt __norbank void my_isr(void)
   {
     ...
   }  
   ```
+  Inside an ISR in C, make sure, that you are only calling functions (if any),
+  that are also using the `__norbank` prefix for the reasons described above
+  in the section [Interrupt Service Routines (ISRs)](#interrupt-service-routines-isrs).
+  Using the standard C library inside ISRs is not safe and can lead to very
+  nasty bugs, so do not do it unless you know exactly what you're doing.
 * The `qvc` command has all the include and library paths automatically set,
   so that you do not need to add paths to your includes. Neither do you need
   to manually link any libraries.
