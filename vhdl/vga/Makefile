@@ -5,10 +5,15 @@ SOURCES += vga_sync.vhd
 SOURCES += vga_output.vhd
 SOURCES += vga_text_mode.vhd
 SOURCES += vga_video_ram.vhd
+SOURCES += vga_blockram_with_byte_enable.vhd
+SOURCES += vga_scanline.vhd
+SOURCES += vga_sprite.vhd
 SOURCES += ../vga_multicolor.vhd
 
-TB         = tb_vga_text_mode
-TB_SOURCES = tb_vga_text_mode.vhd
+#TB         = tb_vga_text_mode
+#TB_SOURCES = tb_vga_text_mode.vhd
+TB         = tb_vga_sprite
+TB_SOURCES = tb_vga_sprite.vhd
 WAVE       = $(TB).ghw
 SAVE       = $(TB).gtkw
 
@@ -16,6 +21,6 @@ SAVE       = $(TB).gtkw
 sim: $(SOURCES)
 	ghdl -i --work=work $(SOURCES) $(TB_SOURCES)
 	ghdl -m --ieee=synopsys -fexplicit $(TB)
-	ghdl -r -fsynopsys  $(TB) --wave=$(WAVE) --stop-time=200us
+	ghdl -r -fsynopsys  $(TB) --wave=$(WAVE) --stop-time=50us
 	gtkwave $(WAVE) $(SAVE)
 
