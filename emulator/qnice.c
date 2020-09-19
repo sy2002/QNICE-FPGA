@@ -819,7 +819,7 @@ int execute() {
 
   // Take care of interrupts
   if (gbl$interrupt_request && !gbl$interrupt_active && 
-     ( (gbl$ic_csr & 0x0001) && (!(gbl$ic_csr & 0x0002)))) { // Interrupts cannot be nested!
+     ( (gbl$ic_csr & IC_ENABLE_INTERRUPTS) && (!(gbl$ic_csr & IC_BLOCK_INTERRUPTS)))) { // Interrupts cannot be nested!
     gbl$interrupt_active  = TRUE;                   // Remember that we are currently servicing an interrupt
     gbl$interrupt_request = FALSE;
     gbl$shadow_register[SR_PC] = read_register(PC); // Save PC
