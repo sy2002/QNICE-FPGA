@@ -24,8 +24,11 @@ Address | Description
 `FF42`  | Current scan line
 `FF43`  | Scan line to generate interrupt on
 `FF44`  | Interrupt Service Routine Address
+`FF45`  | Address into Sprite RAM
+`FF46`  | Data to/from Sprite RAM
 
 The Command and Status Register is decoded as follows
+* Bit 12 : Global sprite enable
 * Bit 11 : Cursor offset enable (`FF34`)
 * Bit 10 : Display offset enable (`FF35`)
 * Bit  9 (R/O) : Busy
@@ -114,6 +117,25 @@ The VGA module allows the processor to read the horizontal scan line currently
 being displayed. Furthermore, the VGA module can be programmed to generate an
 interrupt when a specific scan line is reached.
 
+## Sprites
+The QNICE project offers a total of 128 different sprites.
+
+Bit 12 in CSR provides a single bit to globally enable and disable all sprites
+simultaneously.
+
+Each sprite can have one of two resolutions:
+* 32x48 high-resolution with 4-bit color index. This 4-bit value serves as an
+  index into a 16-color palette, individual for each sprite. Color index 0
+  is hard-wired to be a transparent color.
+* 16x24 low-resolution with 16-bit color depth. This 16-bit value provides
+  a direct 15-bit color output, as well as a bit indicating transparency.
+
+### Display priority
+Lower numbered sprites appear in front of higher numbered sprites.
+
+Each sprite may be configured to be either in front of the foreground, or between
+the background and the foreground.
+
 -------------------------
 
 # Video RAM
@@ -123,6 +145,7 @@ Video RAM is divided into three different blocks:
   bitmap (when in graphics mode).
 * Font RAM: Contains the bitmaps of the individual characters.
 * Palette RAM: Contains the palette used when in 16-color mode.
+* Sprite RAM: Contains the bitmap and configuration of all sprites.
 
 All three memory blocks are accessed by first setting up the address and then
 reading/writing the data at the specified address.
@@ -182,4 +205,61 @@ The current Palette used is controlled by the `Palette offset` register.
 * The addresses 0x00 - 0x0F are used for the foreground palette (when in text mode
 and in hi-res graphics mode).
 * The addresses 0x10 - 0x1F are used for the background palette (when in text mode).
+
+## Sprite RAM memory map
+The Sprite RAM has a size of 64k words.
+
+Each sprite configuration uses 5 words for configuration. For convenience the
+address within the Sprite RAM of this configuration is simply
+`8*sprite_number`. So addresses 0x0000 to 0x03FF within the Sprite RAM are used
+for configuration.
+
+```
+offset 0 : X position
+offset 1 : Y position
+offset 2 : Pointer to bitmap
+offset 3 : Pointer to palette (only used in high-resolution mode)
+offset 4 : Control and Status Register (CSR)
+offset 5 : Reserved
+offset 6 : Reserved
+offset 7 : Reserved
+```
+
+The Control and Status register has the following information:
+
+```
+Bit 0 : Resolution. 0 = high-resolution (32x48x4), 1 = low-resolution (16x24x16).
+Bit 1 : Depth. 0 = foreground, 1 = background
+Bit 2 : Magnify X
+Bit 3 : Magnify Y
+Bit 4 : Mirror X
+Bit 5 : Mirror Y
+Bit 6 : Sprite visible? 0 = no, 1 = yes.
+```
+
+The sprite bitmap information is layed out row-by-row, with bit 15 of each word
+being part of the left-most pixel.
+
+In high-resolution (32x48x4) mode this means
+```
+offset   0 : bits 15-12 is pixel (0, 0)
+             bits 11-8 is pixel (1, 0)
+             etc.
+offset   1 : pixels (4, 0) to (7, 0).
+etc.
+offset   7 : pixels (28, 0) to (31, 0).
+offset   8 : pixels (0, 1) to (3, 1).
+etc.
+offset 383 : pixels (28, 47) to (31, 47).
+```
+
+In low-resolution (16x24x16) mode this instead means
+```
+offset   0 : pixel (0, 0)
+offset   1 : pixel (1, 0)
+offset  15 : pixel (15, 0)
+offset  16 : pixel (0, 1)
+etc.
+offset 383 : pixel (15, 23)
+```
 
