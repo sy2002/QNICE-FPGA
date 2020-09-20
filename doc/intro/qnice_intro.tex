@@ -47,7 +47,7 @@
       registers all in all
      \item moving the register window is accomplished in a single operation
       making push/pop operations virtually unnecessary
-     \item Very small instruction set (18 instructions)
+     \item Very small instruction set (23 instructions)
      \item 4 addressing modes
     \end{itemize}
    \end{frame}
@@ -223,6 +223,7 @@
        {\tt 6}&{\tt SHR}&{\tt src, dst}&{\tt dst >> src}, fill with C, shift to X\\
        {\tt 7}&{\tt SWAP}&{\tt src, dst}&{\tt dst := ((src << 8) \& 0xFF00) |}\\
               &          &              &{\tt ((src >> 8) \& 0xFF)}\\
+       {\tt 8}&{\tt NOT}&{\tt src, dst}&{\tt dst := !src}\\
       \hline
      \end{tabular}
     \end{center}
@@ -235,7 +236,6 @@
       \hline
        Opc&Instr&Operands&Effect\\
       \hline
-       {\tt 8}&{\tt NOT}&{\tt src, dst}&{\tt dst := !src}\\
        {\tt 9}&{\tt AND}&{\tt src, dst}&{\tt dst := dst \& src}\\
        {\tt A}&{\tt OR}&{\tt src, dst}&{\tt dst := dst | src}\\
        {\tt B}&{\tt XOR}&{\tt src, dst}&{\tt dst := dst \^\ src}\\
@@ -246,6 +246,7 @@
        {\tt E}&{\tt INT}&\texttt{dst}&Issue software interrupt\\
        {\tt E}&{\tt INCRB}&&Increment register bank addr.\\
        {\tt E}&{\tt DECRB}&&Decrement register bank addr.\\
+       {\tt E}&{\tt EXC}&{\tt const, dst}&Exchange shadow register\\
        {\tt F}&{\tt ABRA}&{\tt dst, [!]cond}&Absolute branch\\
        {\tt F}&{\tt ASUB}&{\tt dst, [!]cond}&Absolut subroutine call\\
        {\tt F}&{\tt RBRA}&{\tt dst, [!]cond}&Relative branch\\
