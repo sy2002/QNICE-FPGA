@@ -81,44 +81,48 @@ architecture synthesis of vga_multicolor is
    signal cpu_vram_wr_data         : std_logic_vector(15 downto 0);
 
    -- Clock Domain Crossing
-   signal meta_sprite_enable  : std_logic;
-   signal meta_output_enable  : std_logic;
-   signal meta_display_offset : std_logic_vector(15 downto 0);
-   signal meta_font_offset    : std_logic_vector(15 downto 0);
-   signal meta_palette_offset : std_logic_vector(15 downto 0);
-   signal meta_cursor_enable  : std_logic;
-   signal meta_cursor_blink   : std_logic;
-   signal meta_cursor_size    : std_logic;
-   signal meta_cursor_x       : std_logic_vector(6 downto 0);
-   signal meta_cursor_y       : std_logic_vector(5 downto 0);
-   signal meta_pixel_y        : std_logic_vector(9 downto 0);
-   signal meta_adjust_x       : std_logic_vector(9 downto 0);
-   signal meta_adjust_y       : std_logic_vector(9 downto 0);
+   signal meta_sprite_enable      : std_logic;
+   signal meta_output_enable      : std_logic;
+   signal meta_display_offset     : std_logic_vector(15 downto 0);
+   signal meta_font_offset        : std_logic_vector(15 downto 0);
+   signal meta_palette_offset     : std_logic_vector(15 downto 0);
+   signal meta_cursor_enable      : std_logic;
+   signal meta_cursor_blink       : std_logic;
+   signal meta_cursor_size        : std_logic;
+   signal meta_cursor_x           : std_logic_vector(6 downto 0);
+   signal meta_cursor_y           : std_logic_vector(5 downto 0);
+   signal meta_pixel_y            : std_logic_vector(9 downto 0);
+   signal meta_adjust_x           : std_logic_vector(9 downto 0);
+   signal meta_adjust_y           : std_logic_vector(9 downto 0);
 
    -- Configuration signals synchronized to VGA clock.
-   signal vga_sprite_enable   : std_logic;
-   signal vga_output_enable   : std_logic;
-   signal vga_display_offset  : std_logic_vector(15 downto 0);
-   signal vga_font_offset     : std_logic_vector(15 downto 0);
-   signal vga_palette_offset  : std_logic_vector(15 downto 0);
-   signal vga_cursor_enable   : std_logic;
-   signal vga_cursor_blink    : std_logic;
-   signal vga_cursor_size     : std_logic;
-   signal vga_cursor_x        : std_logic_vector(6 downto 0);
-   signal vga_cursor_y        : std_logic_vector(5 downto 0);
-   signal vga_pixel_y         : std_logic_vector(9 downto 0);
-   signal vga_adjust_x        : std_logic_vector(9 downto 0);
-   signal vga_adjust_y        : std_logic_vector(9 downto 0);
+   signal vga_sprite_enable       : std_logic;
+   signal vga_output_enable       : std_logic;
+   signal vga_display_offset      : std_logic_vector(15 downto 0);
+   signal vga_font_offset         : std_logic_vector(15 downto 0);
+   signal vga_palette_offset      : std_logic_vector(15 downto 0);
+   signal vga_cursor_enable       : std_logic;
+   signal vga_cursor_blink        : std_logic;
+   signal vga_cursor_size         : std_logic;
+   signal vga_cursor_x            : std_logic_vector(6 downto 0);
+   signal vga_cursor_y            : std_logic_vector(5 downto 0);
+   signal vga_pixel_y             : std_logic_vector(9 downto 0);
+   signal vga_adjust_x            : std_logic_vector(9 downto 0);
+   signal vga_adjust_y            : std_logic_vector(9 downto 0);
 
    -- VGA Interface to Video RAM.
-   signal vga_display_addr    : std_logic_vector(15 downto 0);
-   signal vga_display_data    : std_logic_vector(15 downto 0);
-   signal vga_font_addr       : std_logic_vector(12 downto 0);
-   signal vga_font_data       : std_logic_vector(7 downto 0);
-   signal vga_palette_addr    : std_logic_vector(5 downto 0);
-   signal vga_palette_data    : std_logic_vector(14 downto 0);
-   signal vga_sprite_addr     : std_logic_vector(15 downto 0);
-   signal vga_sprite_data     : std_logic_vector(15 downto 0);
+   signal vga_display_addr        : std_logic_vector(15 downto 0);
+   signal vga_display_data        : std_logic_vector(15 downto 0);
+   signal vga_font_addr           : std_logic_vector(12 downto 0);
+   signal vga_font_data           : std_logic_vector(7 downto 0);
+   signal vga_palette_addr        : std_logic_vector(5 downto 0);
+   signal vga_palette_data        : std_logic_vector(14 downto 0);
+   signal vga_sprite_config_addr  : std_logic_vector(6 downto 0);     -- 128 entries
+   signal vga_sprite_config_data  : std_logic_vector(63 downto 0);    -- 4 words
+   signal vga_sprite_palette_addr : std_logic_vector(6 downto 0);     -- 128 entries
+   signal vga_sprite_palette_data : std_logic_vector(255 downto 0);   -- 16 words
+   signal vga_sprite_bitmap_addr  : std_logic_vector(11 downto 0);    -- 128*32 entries
+   signal vga_sprite_bitmap_data  : std_logic_vector(127 downto 0);   -- 8 words
 
    -- Instruct synthesis tool that these registers are used for CDC.
    attribute ASYNC_REG                        : boolean;
@@ -229,15 +233,19 @@ begin
          cpu_wr_data_i         => cpu_vram_wr_data,
 
          -- VGA access
-         vga_clk_i          => vga_clk_i,
-         vga_display_addr_i => vga_display_addr,
-         vga_display_data_o => vga_display_data,
-         vga_font_addr_i    => vga_font_addr,
-         vga_font_data_o    => vga_font_data,
-         vga_palette_addr_i => vga_palette_addr,
-         vga_palette_data_o => vga_palette_data,
-         vga_sprite_addr_i  => vga_sprite_addr,
-         vga_sprite_data_o  => vga_sprite_data
+         vga_clk_i                 => vga_clk_i,
+         vga_display_addr_i        => vga_display_addr,
+         vga_display_data_o        => vga_display_data,
+         vga_font_addr_i           => vga_font_addr,
+         vga_font_data_o           => vga_font_data,
+         vga_palette_addr_i        => vga_palette_addr,
+         vga_palette_data_o        => vga_palette_data,
+         vga_sprite_config_addr_i  => vga_sprite_config_addr,
+         vga_sprite_config_data_o  => vga_sprite_config_data,
+         vga_sprite_palette_addr_i => vga_sprite_palette_addr,
+         vga_sprite_palette_data_o => vga_sprite_palette_data,
+         vga_sprite_bitmap_addr_i  => vga_sprite_bitmap_addr,
+         vga_sprite_bitmap_data_o  => vga_sprite_bitmap_data
       ); -- i_vga_video_ram
 
 
@@ -297,38 +305,42 @@ begin
 
    i_vga_output : entity work.vga_output
       port map (
-         clk_i            => vga_clk_i,
+         clk_i                 => vga_clk_i,
 
          -- Configuration from Register Map
-         sprite_enable_i  => vga_sprite_enable,
-         output_enable_i  => vga_output_enable,
-         display_offset_i => vga_display_offset,
-         font_offset_i    => vga_font_offset,
-         palette_offset_i => vga_palette_offset,
-         cursor_enable_i  => vga_cursor_enable,
-         cursor_blink_i   => vga_cursor_blink,
-         cursor_size_i    => vga_cursor_size,
-         cursor_x_i       => vga_cursor_x,
-         cursor_y_i       => vga_cursor_y,
-         pixel_y_o        => vga_pixel_y,
-         adjust_x_i       => vga_adjust_x,
-         adjust_y_i       => vga_adjust_y,
+         sprite_enable_i       => vga_sprite_enable,
+         output_enable_i       => vga_output_enable,
+         display_offset_i      => vga_display_offset,
+         font_offset_i         => vga_font_offset,
+         palette_offset_i      => vga_palette_offset,
+         cursor_enable_i       => vga_cursor_enable,
+         cursor_blink_i        => vga_cursor_blink,
+         cursor_size_i         => vga_cursor_size,
+         cursor_x_i            => vga_cursor_x,
+         cursor_y_i            => vga_cursor_y,
+         pixel_y_o             => vga_pixel_y,
+         adjust_x_i            => vga_adjust_x,
+         adjust_y_i            => vga_adjust_y,
 
          -- Interface to Video RAM
-         display_addr_o   => vga_display_addr,
-         display_data_i   => vga_display_data,
-         font_addr_o      => vga_font_addr,
-         font_data_i      => vga_font_data,
-         palette_addr_o   => vga_palette_addr,
-         palette_data_i   => vga_palette_data,
-         sprite_addr_o    => vga_sprite_addr,
-         sprite_data_i    => vga_sprite_data,
+         display_addr_o        => vga_display_addr,
+         display_data_i        => vga_display_data,
+         font_addr_o           => vga_font_addr,
+         font_data_i           => vga_font_data,
+         palette_addr_o        => vga_palette_addr,
+         palette_data_i        => vga_palette_data,
+         sprite_config_addr_o  => vga_sprite_config_addr,
+         sprite_config_data_i  => vga_sprite_config_data,
+         sprite_palette_addr_o => vga_sprite_palette_addr,
+         sprite_palette_data_i => vga_sprite_palette_data,
+         sprite_bitmap_addr_o  => vga_sprite_bitmap_addr,
+         sprite_bitmap_data_i  => vga_sprite_bitmap_data,
 
          -- VGA output signals
-         hsync_o          => vga_hsync_o,
-         vsync_o          => vga_vsync_o,
-         color_o          => vga_color_o,
-         data_en_o        => vga_data_en_o
+         hsync_o               => vga_hsync_o,
+         vsync_o               => vga_vsync_o,
+         color_o               => vga_color_o,
+         data_en_o             => vga_data_en_o
       ); -- i_vga_output
 
 end synthesis;

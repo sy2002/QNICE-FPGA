@@ -22,19 +22,35 @@ entity vga_video_ram is
       cpu_sprite_rd_data_o  : out std_logic_vector(15 downto 0);
       cpu_wr_data_i         : in  std_logic_vector(15 downto 0);
 
-      vga_clk_i          : in  std_logic;
-      vga_display_addr_i : in  std_logic_vector(15 downto 0);
-      vga_display_data_o : out std_logic_vector(15 downto 0);
-      vga_font_addr_i    : in  std_logic_vector(12 downto 0);
-      vga_font_data_o    : out std_logic_vector(7 downto 0);
-      vga_palette_addr_i : in  std_logic_vector(5 downto 0);
-      vga_palette_data_o : out std_logic_vector(14 downto 0);
-      vga_sprite_addr_i  : in  std_logic_vector(15 downto 0);
-      vga_sprite_data_o  : out std_logic_vector(15 downto 0)
+      vga_clk_i                 : in  std_logic;
+      vga_display_addr_i        : in  std_logic_vector(15 downto 0);
+      vga_display_data_o        : out std_logic_vector(15 downto 0);
+      vga_font_addr_i           : in  std_logic_vector(12 downto 0);
+      vga_font_data_o           : out std_logic_vector(7 downto 0);
+      vga_palette_addr_i        : in  std_logic_vector(5 downto 0);
+      vga_palette_data_o        : out std_logic_vector(14 downto 0);
+      vga_sprite_config_addr_i  : in  std_logic_vector(6 downto 0);
+      vga_sprite_config_data_o  : out std_logic_vector(63 downto 0);
+      vga_sprite_palette_addr_i : in  std_logic_vector(6 downto 0);
+      vga_sprite_palette_data_o : out std_logic_vector(255 downto 0);
+      vga_sprite_bitmap_addr_i  : in  std_logic_vector(11 downto 0);
+      vga_sprite_bitmap_data_o  : out std_logic_vector(127 downto 0)
    );
 end vga_video_ram;
 
 architecture synthesis of vga_video_ram is
+
+   signal cpu_sprite_config_en       : std_logic;
+   signal cpu_sprite_palette_en      : std_logic;
+   signal cpu_sprite_bitmap_en       : std_logic;
+
+   signal cpu_sprite_config_wren     : std_logic;
+   signal cpu_sprite_palette_wren    : std_logic;
+   signal cpu_sprite_bitmap_wren     : std_logic;
+
+   signal cpu_sprite_config_rd_data  : std_logic_vector(15 downto 0);
+   signal cpu_sprite_palette_rd_data : std_logic_vector(15 downto 0);
+   signal cpu_sprite_bitmap_rd_data  : std_logic_vector(15 downto 0);
 
 begin
 
@@ -104,22 +120,78 @@ begin
       ); -- i_palette_ram
 
 
-   -- The Sprite RAM contains 64k words, i.e. addresses 0x0000 - 0xFFFF.
-   i_sprite_ram : entity work.true_dual_port_ram
+   -- The Sprite RAM consists of three independent blocks of RAM,
+   -- all accessible within the same 16-bit virtual address space:
+   -- * Sprite Config RAM contains 128 entries of 4 words, i.e. addresses 0x0000 - 0x01FF
+   -- * Sprite Palette RAM contains 128 entries of 16 words, i.e. addresses 0x4000 - 0x47FF.
+   -- * Sprite Bitmap RAM contains 4k entries of 8 words, i.e. addresses 0x8000 - 0xFFFF.
+   cpu_sprite_config_en  <= '1' when cpu_sprite_addr_i(15 downto 14) = "00" else '0';
+   cpu_sprite_palette_en <= '1' when cpu_sprite_addr_i(15 downto 14) = "01" else '0';
+   cpu_sprite_bitmap_en  <= '1' when cpu_sprite_addr_i(15 downto 15) = "1"  else '0';
+
+   cpu_sprite_config_wren  <= cpu_sprite_wr_en_i and cpu_sprite_config_en;
+   cpu_sprite_palette_wren <= cpu_sprite_wr_en_i and cpu_sprite_palette_en;
+   cpu_sprite_bitmap_wren  <= cpu_sprite_wr_en_i and cpu_sprite_bitmap_en;
+
+   cpu_sprite_rd_data_o <= cpu_sprite_config_rd_data  when cpu_sprite_config_en = '1' else
+                           cpu_sprite_palette_rd_data when cpu_sprite_palette_en = '1' else
+                           cpu_sprite_bitmap_rd_data;
+
+   i_sprite_config_ram : entity work.asymmetric_true_dual_port_ram
       generic map (
-         G_ADDR_SIZE => 16,
-         G_DATA_SIZE => 16
+         G_A_ADDR_SIZE => 9,
+         G_A_DATA_SIZE => 16,
+         G_B_ADDR_SIZE => 7,
+         G_B_DATA_SIZE => 64
       )
       port map (
          a_clk_i     => cpu_clk_i,
-         a_addr_i    => cpu_sprite_addr_i,
-         a_wr_en_i   => cpu_sprite_wr_en_i,
+         a_addr_i    => cpu_sprite_addr_i(8 downto 0),
+         a_wr_en_i   => cpu_sprite_config_wren,
          a_wr_data_i => cpu_wr_data_i,
-         a_rd_data_o => cpu_sprite_rd_data_o,
+         a_rd_data_o => cpu_sprite_config_rd_data,
          b_clk_i     => vga_clk_i,
-         b_rd_addr_i => vga_sprite_addr_i,
-         b_rd_data_o => vga_sprite_data_o
-      ); -- i_sprite_ram
+         b_rd_addr_i => vga_sprite_config_addr_i,
+         b_rd_data_o => vga_sprite_config_data_o
+      ); -- i_sprite_config_ram
+
+
+   i_sprite_palette_ram : entity work.asymmetric_true_dual_port_ram
+      generic map (
+         G_A_ADDR_SIZE => 11,
+         G_A_DATA_SIZE => 16,
+         G_B_ADDR_SIZE => 7,
+         G_B_DATA_SIZE => 256
+      )
+      port map (
+         a_clk_i     => cpu_clk_i,
+         a_addr_i    => cpu_sprite_addr_i(10 downto 0),
+         a_wr_en_i   => cpu_sprite_palette_wren,
+         a_wr_data_i => cpu_wr_data_i,
+         a_rd_data_o => cpu_sprite_palette_rd_data,
+         b_clk_i     => vga_clk_i,
+         b_rd_addr_i => vga_sprite_palette_addr_i,
+         b_rd_data_o => vga_sprite_palette_data_o
+      ); -- i_sprite_palette_ram
+
+
+   i_sprite_bitmap_ram : entity work.asymmetric_true_dual_port_ram
+      generic map (
+         G_A_ADDR_SIZE => 15,
+         G_A_DATA_SIZE => 16,
+         G_B_ADDR_SIZE => 12,
+         G_B_DATA_SIZE => 128
+      )
+      port map (
+         a_clk_i     => cpu_clk_i,
+         a_addr_i    => cpu_sprite_addr_i(14 downto 0),
+         a_wr_en_i   => cpu_sprite_bitmap_wren,
+         a_wr_data_i => cpu_wr_data_i,
+         a_rd_data_o => cpu_sprite_bitmap_rd_data,
+         b_clk_i     => vga_clk_i,
+         b_rd_addr_i => vga_sprite_bitmap_addr_i,
+         b_rd_data_o => vga_sprite_bitmap_data_o
+      ); -- i_sprite_bitmap_ram
 
 end architecture synthesis;
 

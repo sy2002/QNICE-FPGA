@@ -16,8 +16,8 @@ architecture simulation of tb_vga_sprite is
    signal config_data    : std_logic_vector(63 downto 0);
    signal palette_addr   : std_logic_vector(6 downto 0);
    signal palette_data   : std_logic_vector(255 downto 0);
-   signal bitmap_addr    : std_logic_vector(12 downto 0);
-   signal bitmap_data    : std_logic_vector(255 downto 0);
+   signal bitmap_addr    : std_logic_vector(11 downto 0);
+   signal bitmap_data    : std_logic_vector(127 downto 0);
    signal color          : std_logic_vector(15 downto 0);
    signal delay          : std_logic_vector(9 downto 0);
 
@@ -93,8 +93,8 @@ begin
    begin
       if rising_edge(clk) then
          case bitmap_addr(2) is
-            when '0' => bitmap_data <= X"0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF";
-            when '1' => bitmap_data <= X"123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0";
+            when '0' => bitmap_data <= X"0123456789ABCDEF0123456789ABCDEF";
+            when '1' => bitmap_data <= X"123456789ABCDEF0123456789ABCDEF0";
             when others => bitmap_data <= (others => '0');
          end case;
       end if;

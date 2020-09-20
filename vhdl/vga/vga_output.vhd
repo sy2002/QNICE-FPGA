@@ -10,38 +10,42 @@ use ieee.numeric_std.all;
 
 entity vga_output is
    port (
-      clk_i            : in  std_logic;
+      clk_i                 : in  std_logic;
 
       -- Configuration from Register Map
-      sprite_enable_i  : in  std_logic;
-      output_enable_i  : in  std_logic;
-      display_offset_i : in  std_logic_vector(15 downto 0);
-      font_offset_i    : in  std_logic_vector(15 downto 0);
-      palette_offset_i : in  std_logic_vector(15 downto 0);
-      cursor_enable_i  : in  std_logic;
-      cursor_blink_i   : in  std_logic;
-      cursor_size_i    : in  std_logic;
-      cursor_x_i       : in  std_logic_vector(6 downto 0); -- 0 to 79
-      cursor_y_i       : in  std_logic_vector(5 downto 0); -- 0 to 39
-      pixel_y_o        : out std_logic_vector(9 downto 0); -- 0 to 524
-      adjust_x_i       : in  std_logic_vector(9 downto 0);
-      adjust_y_i       : in  std_logic_vector(9 downto 0);
+      sprite_enable_i       : in  std_logic;
+      output_enable_i       : in  std_logic;
+      display_offset_i      : in  std_logic_vector(15 downto 0);
+      font_offset_i         : in  std_logic_vector(15 downto 0);
+      palette_offset_i      : in  std_logic_vector(15 downto 0);
+      cursor_enable_i       : in  std_logic;
+      cursor_blink_i        : in  std_logic;
+      cursor_size_i         : in  std_logic;
+      cursor_x_i            : in  std_logic_vector(6 downto 0); -- 0 to 79
+      cursor_y_i            : in  std_logic_vector(5 downto 0); -- 0 to 39
+      pixel_y_o             : out std_logic_vector(9 downto 0); -- 0 to 524
+      adjust_x_i            : in  std_logic_vector(9 downto 0);
+      adjust_y_i            : in  std_logic_vector(9 downto 0);
 
       -- Interface to Video RAM
-      display_addr_o   : out std_logic_vector(15 downto 0);
-      display_data_i   : in  std_logic_vector(15 downto 0);
-      font_addr_o      : out std_logic_vector(12 downto 0);
-      font_data_i      : in  std_logic_vector(7 downto 0);
-      palette_addr_o   : out std_logic_vector(5 downto 0);
-      palette_data_i   : in  std_logic_vector(14 downto 0);
-      sprite_addr_o    : out std_logic_vector(15 downto 0);
-      sprite_data_i    : in  std_logic_vector(15 downto 0);
+      display_addr_o        : out std_logic_vector(15 downto 0);
+      display_data_i        : in  std_logic_vector(15 downto 0);
+      font_addr_o           : out std_logic_vector(12 downto 0);
+      font_data_i           : in  std_logic_vector(7 downto 0);
+      palette_addr_o        : out std_logic_vector(5 downto 0);
+      palette_data_i        : in  std_logic_vector(14 downto 0);
+      sprite_config_addr_o  : out std_logic_vector(6 downto 0);     -- 128 entries
+      sprite_config_data_i  : in  std_logic_vector(63 downto 0);    -- 4 words
+      sprite_palette_addr_o : out std_logic_vector(6 downto 0);     -- 128 entries
+      sprite_palette_data_i : in  std_logic_vector(255 downto 0);   -- 16 words
+      sprite_bitmap_addr_o  : out std_logic_vector(11 downto 0);    -- 128*32 entries
+      sprite_bitmap_data_i  : in  std_logic_vector(127 downto 0);   -- 8 words
 
       -- VGA output
-      hsync_o          : out std_logic;
-      vsync_o          : out std_logic;
-      color_o          : out std_logic_vector(14 downto 0);
-      data_en_o        : out std_logic
+      hsync_o               : out std_logic;
+      vsync_o               : out std_logic;
+      color_o               : out std_logic_vector(14 downto 0);
+      data_en_o             : out std_logic
    );
 end vga_output;
 
@@ -122,19 +126,23 @@ begin
 
    i_vga_spite : entity work.vga_sprite
       port map (
-         clk_i            => clk_i,
+         clk_i           => clk_i,
          -- Configuration from Register Map
-         sprite_enable_i  => sprite_enable_i,
+         sprite_enable_i => sprite_enable_i,
          -- Pixel Counters
-         pixel_x_i        => pixel_x,
-         pixel_y_i        => pixel_y,
-         color_i          => color_text,
+         pixel_x_i       => pixel_x,
+         pixel_y_i       => pixel_y,
+         color_i         => color_text,
          -- Interface to Video RAM
-         sprite_addr_o    => sprite_addr_o,
-         sprite_data_i    => sprite_data_i,
+         config_addr_o   => sprite_config_addr_o,
+         config_data_i   => sprite_config_data_i,
+         palette_addr_o  => sprite_palette_addr_o,
+         palette_data_i  => sprite_palette_data_i,
+         bitmap_addr_o   => sprite_bitmap_addr_o,
+         bitmap_data_i   => sprite_bitmap_data_i,
          -- Current pixel color
-         color_o          => color_sprite,
-         delay_o          => delay
+         color_o         => color_sprite,
+         delay_o         => delay
       ); -- i_vga_sprites
 
 

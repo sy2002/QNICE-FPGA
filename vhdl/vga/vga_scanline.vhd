@@ -61,15 +61,17 @@ begin
          G_NUM_COLUMNS => 32
       )
       port map (
-         clk_i        => clk_i,
-         p1_addr_i    => p1_addr,
-         p1_wr_data_i => p1_wr_data,
-         p1_wr_en_i   => p1_wr_en,
-         p1_rd_data_o => p1_rd_data,
-         p2_addr_i    => p2_addr,
-         p2_wr_data_i => p2_wr_data,
-         p2_wr_en_i   => p2_wr_en,
-         p2_rd_data_o => open
+         a_clk_i     => clk_i,
+         a_addr_i    => p1_addr,
+         a_wr_data_i => p1_wr_data,
+         a_wr_en_i   => p1_wr_en,
+         a_rd_data_o => p1_rd_data,
+
+         b_clk_i     => clk_i,
+         b_addr_i    => p2_addr,
+         b_wr_data_i => p2_wr_data,
+         b_wr_en_i   => p2_wr_en,
+         b_rd_data_o => open
       ); -- i_vga_blockram_with_byte_enable
 
    rd_data_o <= p1_rd_data(15 + rd_offset*16 downto rd_offset*16);

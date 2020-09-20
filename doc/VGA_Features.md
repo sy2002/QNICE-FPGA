@@ -207,28 +207,29 @@ and in hi-res graphics mode).
 * The addresses 0x10 - 0x1F are used for the background palette (when in text mode).
 
 ## Sprite RAM memory map
-The Sprite RAM has a size of 64k words.
+The Sprite RAM consists of three independent blocks of RAM, all accessible
+within the same 16-bit virtual address space:
+* Sprite Config RAM contains 128 entries of 4 words, i.e. addresses 0x0000 - 0x01FF
+* Sprite Palette RAM contains 128 entries of 16 words, i.e. addresses 0x4000 - 0x47FF.
+* Sprite Bitmap RAM contains 4k entries of 8 words, i.e. addresses 0x8000 - 0xFFFF.
 
-Each sprite configuration uses 5 words for configuration. For convenience the
-address within the Sprite RAM of this configuration is simply
-`8*sprite_number`. So addresses 0x0000 to 0x03FF within the Sprite RAM are used
-for configuration.
+### Sprite Config RAM
+The Sprite Config RAM contains the overall configuration of each sprite. The
+address within the Sprite RAM memory map of a given sprite is simply
+`4*sprite_number + VGA$SPRITE_CONFIG`. The four words have the following
+interpretation:
 
 ```
 offset 0 : X position
 offset 1 : Y position
 offset 2 : Pointer to bitmap
-offset 3 : Pointer to palette (only used in high-resolution mode)
-offset 4 : Control and Status Register (CSR)
-offset 5 : Reserved
-offset 6 : Reserved
-offset 7 : Reserved
+offset 3 : Control and Status Register (CSR)
 ```
 
-The Control and Status register has the following information:
+The bits in the Control and Status register have the following function:
 
 ```
-Bit 0 : Resolution. 0 = high-resolution (32x48x4), 1 = low-resolution (16x24x16).
+Bit 0 : Resolution. 0 = high-resolution (32x32x4), 1 = low-resolution (16x16x16).
 Bit 1 : Depth. 0 = foreground, 1 = background
 Bit 2 : Magnify X
 Bit 3 : Magnify Y
@@ -236,6 +237,13 @@ Bit 4 : Mirror X
 Bit 5 : Mirror Y
 Bit 6 : Sprite visible? 0 = no, 1 = yes.
 ```
+
+### Sprite Palette RAM
+The Sprite Palette RAM contains the 16-color palette of each sprite. The
+address within the Sprite RAM memory map of a given sprites palette is:
+`8*sprite_number + VGA$SPRITE_PALETTE`.
+
+### Sprite Bitmap RAM
 
 The sprite bitmap information is layed out row-by-row, with bit 15 of each word
 being part of the left-most pixel.

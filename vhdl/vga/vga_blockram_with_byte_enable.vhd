@@ -13,15 +13,16 @@ entity vga_blockram_with_byte_enable is
       G_NUM_COLUMNS : integer
    );
    port (
-      clk_i        : in  std_logic;
-      p1_addr_i    : in  std_logic_vector(G_ADDR_SIZE-1 downto 0);
-      p1_wr_data_i : in  std_logic_vector(G_NUM_COLUMNS*G_COLUMN_SIZE-1 downto 0);
-      p1_wr_en_i   : in  std_logic_vector(G_NUM_COLUMNS-1 downto 0);
-      p1_rd_data_o : out std_logic_vector(G_NUM_COLUMNS*G_COLUMN_SIZE-1 downto 0);
-      p2_addr_i    : in  std_logic_vector(G_ADDR_SIZE-1 downto 0);
-      p2_wr_data_i : in  std_logic_vector(G_NUM_COLUMNS*G_COLUMN_SIZE-1 downto 0);
-      p2_wr_en_i   : in  std_logic_vector(G_NUM_COLUMNS-1 downto 0);
-      p2_rd_data_o : out std_logic_vector(G_NUM_COLUMNS*G_COLUMN_SIZE-1 downto 0)
+      a_clk_i     : in  std_logic;
+      a_addr_i    : in  std_logic_vector(G_ADDR_SIZE-1 downto 0);
+      a_wr_data_i : in  std_logic_vector(G_NUM_COLUMNS*G_COLUMN_SIZE-1 downto 0);
+      a_wr_en_i   : in  std_logic_vector(G_NUM_COLUMNS-1 downto 0);
+      a_rd_data_o : out std_logic_vector(G_NUM_COLUMNS*G_COLUMN_SIZE-1 downto 0);
+      b_clk_i     : in  std_logic;
+      b_addr_i    : in  std_logic_vector(G_ADDR_SIZE-1 downto 0);
+      b_wr_data_i : in  std_logic_vector(G_NUM_COLUMNS*G_COLUMN_SIZE-1 downto 0);
+      b_wr_en_i   : in  std_logic_vector(G_NUM_COLUMNS-1 downto 0);
+      b_rd_data_o : out std_logic_vector(G_NUM_COLUMNS*G_COLUMN_SIZE-1 downto 0)
    );
 end vga_blockram_with_byte_enable;
 
@@ -34,33 +35,33 @@ architecture synthesis of vga_blockram_with_byte_enable is
 
 begin
 
-   p1 : process (clk_i)
+   p_a : process (a_clk_i)
    begin
-      if rising_edge(clk_i) then
+      if rising_edge(a_clk_i) then
          for i in 0 to G_NUM_COLUMNS-1 loop
-            if p1_wr_en_i(i) = '1' then
-               mem(conv_integer(p1_addr_i))((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE) <=
-                               p1_wr_data_i((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE);
+            if a_wr_en_i(i) = '1' then
+               mem(conv_integer(a_addr_i))((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE) <=
+                               a_wr_data_i((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE);
             end if;
          end loop;
 
-         p1_rd_data_o <= mem(conv_integer(p1_addr_i));
+         a_rd_data_o <= mem(conv_integer(a_addr_i));
       end if;
-   end process p1;
+   end process p_a;
 
-   p2 : process (clk_i)
+   p_b : process (b_clk_i)
    begin
-      if rising_edge(clk_i) then
+      if rising_edge(b_clk_i) then
          for i in 0 to G_NUM_COLUMNS-1 loop
-            if p2_wr_en_i(i) = '1' then
-               mem(conv_integer(p2_addr_i))((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE) <=
-                               p2_wr_data_i((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE);
+            if b_wr_en_i(i) = '1' then
+               mem(conv_integer(b_addr_i))((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE) <=
+                               b_wr_data_i((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE);
             end if;
          end loop;
 
-         p2_rd_data_o <= mem(conv_integer(p2_addr_i));
+         b_rd_data_o <= mem(conv_integer(b_addr_i));
       end if;
-   end process p2;
+   end process p_b;
 
 end architecture synthesis;
 

@@ -208,6 +208,8 @@ VGA$ADJUST_Y        .EQU 0xFF41 ; Pixels to adjust screen in Y direction
 VGA$SCAN_LINE       .EQU 0xFF42 ; Current scan line
 VGA$SCAN_INT        .EQU 0xFF43 ; Scan line to generate interrupt on
 VGA$SCAN_ISR        .EQU 0xFF44 ; Interrupt Service Routine Address
+VGA$SPRITE_ADDR     .EQU 0xFF45 ; Sprite Address
+VGA$SPRITE_DATA     .EQU 0xFF46 ; Sprite Data
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FF50: Interrupt Controller
@@ -250,6 +252,23 @@ VGA$FONT_OFFS_MAX        .EQU   0x1FFF                  ; Largest address in Fon
 VGA$PALETTE_OFFS_DEFAULT .EQU   0x0000                  ; Address in Palette RAM for default palette
 VGA$PALETTE_OFFS_USER    .EQU   0x0020                  ; Address in Palette RAM for user palette
 VGA$PALETTE_OFFS_MAX     .EQU   0x003F                  ; Largest address in Palette RAM
+
+VGA$SPRITE_CONFIG       .EQU    0x0000
+VGA$SPRITE_PALETTE      .EQU    0x4000
+VGA$SPRITE_BITMAP       .EQU    0x8000
+
+VGA$SPRITE_POS_X        .EQU    0x0000
+VGA$SPRITE_POS_Y        .EQU    0x0001
+VGA$SPRITE_BITMAP_PTR   .EQU    0x0002
+VGA$SPRITE_CSR          .EQU    0x0003
+
+VGA$SPRITE_CSR_LOWRES   .EQU    0x0001
+VGA$SPRITE_CSR_BEHIND   .EQU    0x0002
+VGA$SPRITE_CSR_MAG_X    .EQU    0x0004
+VGA$SPRITE_CSR_MAG_Y    .EQU    0x0008
+VGA$SPRITE_CSR_MIRROR_X .EQU    0x0010
+VGA$SPRITE_CSR_MIRROR_Y .EQU    0x0020
+VGA$SPRITE_CSR_VISIBLE  .EQU    0x0040
 
 VGA$COLOR_BLACK         .EQU    0x0000
 VGA$COLOR_DARK_GRAY     .EQU    0x294A
