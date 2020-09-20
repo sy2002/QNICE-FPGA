@@ -30,6 +30,6 @@ SAVE       = $(TB).gtkw
 sim: $(SOURCES)
 	ghdl -i --work=work $(SOURCES) $(TB_SOURCES)
 	ghdl -m --ieee=synopsys -fexplicit $(TB)
-	ghdl -r -fsynopsys  $(TB) --wave=$(WAVE) --max-stack-alloc=1024 --stop-time=5us
+	ghdl -r -fsynopsys  $(TB) --wave=$(WAVE) --max-stack-alloc=1024 --stop-time=55us
 	gtkwave $(WAVE) $(SAVE)
 

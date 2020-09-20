@@ -63,10 +63,43 @@ begin
    p_cpu : process (cpu_clk)
       type stimuli_t is array (natural range <>) of std_logic_vector(31 downto 0);
       constant C_STIMULI : stimuli_t := (
-         X"FF30_1CE0",                 -- Enable sprites
-         X"FF45_8000", X"FF46_F000",   -- Sprite 0 top left corner -> color index F
-         X"FF45_400F", X"FF46_5555",   -- Sprite 0 color index F -> 5555
-         X"FF45_0003", X"FF46_0040"    -- Sprite 0 enable
+         -- Enable sprites
+         X"FF30_1CE0",
+
+         -- Sprite 0 bitmap top row
+         X"FF45_8000", X"FF46_FFFF",
+         X"FF45_8001", X"FF46_FFFF",
+         X"FF45_8002", X"FF46_FFFF",
+         X"FF45_8003", X"FF46_FFFF",
+         X"FF45_8004", X"FF46_FFFF",
+         X"FF45_8005", X"FF46_FFFF",
+         X"FF45_8006", X"FF46_FFFF",
+         X"FF45_8007", X"FF46_FFFF",
+         X"FF45_8008", X"FF46_E000",
+
+         -- Sprite 0 palette
+         X"FF45_4000", X"FF46_0000",
+         X"FF45_4001", X"FF46_1111",
+         X"FF45_4002", X"FF46_2222",
+         X"FF45_4003", X"FF46_3333",
+         X"FF45_4004", X"FF46_4444",
+         X"FF45_4005", X"FF46_5555",
+         X"FF45_4006", X"FF46_6666",
+         X"FF45_4007", X"FF46_7777",
+         X"FF45_4008", X"FF46_8888",
+         X"FF45_4009", X"FF46_9999",
+         X"FF45_400A", X"FF46_AAAA",
+         X"FF45_400B", X"FF46_BBBB",
+         X"FF45_400C", X"FF46_CCCC",
+         X"FF45_400D", X"FF46_DDDD",
+         X"FF45_400E", X"FF46_EEEE",
+         X"FF45_400F", X"FF46_FFFF",
+
+         -- Sprite 0 configuration
+         X"FF45_0000", X"FF46_0128",   -- pos x
+         X"FF45_0001", X"FF46_0000",   -- pos y
+         X"FF45_0002", X"FF46_8000",   -- bitmap ptr
+         X"FF45_0003", X"FF46_0040"    -- csr
       );
       variable index : natural;
    begin

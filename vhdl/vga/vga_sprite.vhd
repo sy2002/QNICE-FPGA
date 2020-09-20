@@ -34,11 +34,13 @@ end vga_sprite;
 architecture synthesis of vga_sprite is
 
    type t_stage0 is record
+      pixel_x    : std_logic_vector(9 downto 0);
       num_temp   : std_logic_vector(9 downto 0);
       sprite_num : std_logic_vector(G_INDEX_SIZE-1 downto 0);
    end record t_stage0;
 
    type t_stage1 is record
+      pixel_x    : std_logic_vector(9 downto 0);
       sprite_num : std_logic_vector(G_INDEX_SIZE-1 downto 0);
       pos_x      : std_logic_vector(9 downto 0);
       pos_y      : std_logic_vector(9 downto 0);
@@ -50,6 +52,7 @@ architecture synthesis of vga_sprite is
    end record t_stage1;
 
    type t_stage2 is record
+      pixel_x    : std_logic_vector(9 downto 0);
       pos_x      : std_logic_vector(9 downto 0);
       pos_y      : std_logic_vector(9 downto 0);
       config     : std_logic_vector(6 downto 0);
@@ -106,7 +109,8 @@ begin
    -- Pipelined approach (one clock cycle per sprite).
 
    -- Stage 0 : Determine which sprite to process
-   stage0.num_temp   <= pixel_x_i - std_logic_vector(to_unsigned(640, 10));
+   stage0.pixel_x    <= pixel_x_i;
+   stage0.num_temp   <= stage0.pixel_x - std_logic_vector(to_unsigned(640, 10));
    stage0.sprite_num <= stage0.num_temp(G_INDEX_SIZE-1 downto 0);
 
    -- Stage 0 : Read configuration (4 words) and palette (16 words)
@@ -118,6 +122,7 @@ begin
    p_stage1 : process (clk_i)
    begin
       if rising_edge(clk_i) then
+         stage1.pixel_x    <= stage0.pixel_x;
          stage1.sprite_num <= stage0.sprite_num;
       end if;
    end process p_stage1;
@@ -141,6 +146,7 @@ begin
    p_stage2 : process (clk_i)
    begin
       if rising_edge(clk_i) then
+         stage2.pixel_x <= stage1.pixel_x;
          stage2.palette <= stage1.palette;
          stage2.pos_x   <= stage1.pos_x;
          stage2.pos_y   <= stage1.pos_y;
@@ -165,7 +171,7 @@ begin
    end generate gen_palette_lookup;
 
    -- Stage 2 : Write to scanline
-   p_scanline_wr : process (stage2, pixel_x_i, pixel_y_i, sprite_enable_i)
+   p_scanline_wr : process (stage2, sprite_enable_i)
    begin
       -- Default is to do nothing!
       scanline_wr_en   <= '0';
@@ -173,15 +179,15 @@ begin
       scanline_wr_data <= (others => '0');
 
       -- During screen display, we clear the scanline, 32 pixels at a time.
-      if conv_integer(pixel_x_i) < 640 and conv_integer(pixel_x_i(4 downto 0)) = 31 then
-         scanline_wr_addr <= pixel_x_i;
+      if conv_integer(stage2.pixel_x) < 640 and conv_integer(stage2.pixel_x(4 downto 0)) = 31 then
+         scanline_wr_addr <= stage2.pixel_x and "1111100000";
          scanline_wr_en   <= '1';
          scanline_wr_data <= (others => '0');
       end if;
 
       -- During porch, we render the sprites
-      if conv_integer(pixel_x_i) >= 640+2 and
-         conv_integer(pixel_x_i) < 640+2 + 2**G_INDEX_SIZE and
+      if conv_integer(stage2.pixel_x) >= 640 and
+         conv_integer(stage2.pixel_x) < 640 + 2**G_INDEX_SIZE and
          conv_integer(stage2.next_y) >= conv_integer(stage2.pos_y) and
          conv_integer(stage2.next_y) < conv_integer(stage2.pos_y)+32 and
          stage2.config(C_CONFIG_VISIBLE) = '1' and
@@ -229,9 +235,7 @@ begin
       end if;
    end process p_color_d2;
 
---   color_o <= color_d when scanline_rd_data(15) = '0' else
---              scanline_rd_data;
---
+--   color_o <= color_s;
 --   delay_o <= std_logic_vector(to_unsigned(1, 10));
 
 end architecture synthesis;

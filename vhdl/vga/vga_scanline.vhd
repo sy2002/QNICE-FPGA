@@ -50,10 +50,10 @@ begin
    wr_offset     <= conv_integer(wr_addr_i(4 downto 0));
 
    data_concat   <= wr_data_i & wr_data_i;
-   data_rot      <= data_concat(511 + wr_offset*16 downto wr_offset*16);
+   data_rot      <= data_concat(1023 - wr_offset*16 downto 512 - wr_offset*16);
 
    enable_concat <= C_ZEROES & C_ONES;
-   enable_rot    <= enable_concat(31 + wr_offset downto wr_offset);
+   enable_rot    <= enable_concat(63 - wr_offset downto 32 - wr_offset);
 
    a_addr        <= wr_addr_i(9 downto 5) when wr_en_i = '1' else rd_addr_i(9 downto 5);
    a_wr_data     <= data_rot;

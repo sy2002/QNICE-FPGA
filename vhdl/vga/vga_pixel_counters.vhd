@@ -25,8 +25,8 @@ end vga_pixel_counters;
 
 architecture synthesis of vga_pixel_counters is
 
-   signal pixel_x : std_logic_vector(9 downto 0) := (others => '0');
-   signal pixel_y : std_logic_vector(9 downto 0) := (others => '0');
+   signal pixel_x : std_logic_vector(9 downto 0) := std_logic_vector(to_unsigned(600, 10));
+   signal pixel_y : std_logic_vector(9 downto 0) := std_logic_vector(to_unsigned(524, 10));
    signal frame   : std_logic_vector(5 downto 0) := (others => '0');
 
 begin

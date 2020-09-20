@@ -65,13 +65,23 @@ int main()
    // Enable sprites
    MMIO(VGA_STATE) |= VGA_EN_SPRITE;
 
-   t_sprite_config sprite0 = {.pos_x=0,
-                              .pos_y=0,
+   // Set background color
+   MMIO(VGA_PALETTE_OFFS) = VGA_PALETTE_OFFS_USER;
+   MMIO(VGA_PALETTE_ADDR) = VGA_PALETTE_OFFS_USER+16;
+   MMIO(VGA_PALETTE_DATA) = 0xFFFF;
+
+   // Place sprite in the middle of the screen
+   t_sprite_config sprite0 = {.pos_x=320-16,
+                              .pos_y=240-16,
                               .bitmap_ptr=VGA_SPRITE_BITMAP,
                               .csr=VGA_SPRITE_CSR_VISIBLE};
+   // Just a random palette that is easy to recognize
    unsigned int palette[16] = {0x0000, 0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777,
                                0x8888, 0x9999, 0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF};
-   unsigned int bitmap[32*32/4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xE000};
+
+   // A sprite with a top border and a left border
+   unsigned int bitmap[32*32/4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                   0xE000};
 
    sprite_wr_config(0, sprite0);
    sprite_wr_palette(0, palette);
@@ -79,4 +89,5 @@ int main()
 
    qmon_gets();
    return 0;
-}
+} // main
+
