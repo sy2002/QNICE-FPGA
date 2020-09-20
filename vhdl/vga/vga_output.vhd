@@ -9,6 +9,9 @@ use ieee.numeric_std.all;
 -- signals.
 
 entity vga_output is
+   generic (
+      G_INDEX_SIZE : integer
+   );
    port (
       clk_i                 : in  std_logic;
 
@@ -34,11 +37,11 @@ entity vga_output is
       font_data_i           : in  std_logic_vector(7 downto 0);
       palette_addr_o        : out std_logic_vector(5 downto 0);
       palette_data_i        : in  std_logic_vector(14 downto 0);
-      sprite_config_addr_o  : out std_logic_vector(6 downto 0);     -- 128 entries
+      sprite_config_addr_o  : out std_logic_vector(G_INDEX_SIZE-1 downto 0);
       sprite_config_data_i  : in  std_logic_vector(63 downto 0);    -- 4 words
-      sprite_palette_addr_o : out std_logic_vector(6 downto 0);     -- 128 entries
+      sprite_palette_addr_o : out std_logic_vector(G_INDEX_SIZE-1 downto 0);
       sprite_palette_data_i : in  std_logic_vector(255 downto 0);   -- 16 words
-      sprite_bitmap_addr_o  : out std_logic_vector(11 downto 0);    -- 128*32 entries
+      sprite_bitmap_addr_o  : out std_logic_vector(G_INDEX_SIZE+4 downto 0);
       sprite_bitmap_data_i  : in  std_logic_vector(127 downto 0);   -- 8 words
 
       -- VGA output
@@ -125,6 +128,9 @@ begin
    -----------------------
 
    i_vga_spite : entity work.vga_sprite
+      generic map (
+         G_INDEX_SIZE    => G_INDEX_SIZE
+      )
       port map (
          clk_i           => clk_i,
          -- Configuration from Register Map

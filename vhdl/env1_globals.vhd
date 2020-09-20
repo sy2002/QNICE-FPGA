@@ -50,6 +50,10 @@ constant UART_BAUDRATE_FAST    : natural  := 1000000; -- Set upon reset when swi
 -- Amount of CPU cycles, that the reset signal shall be active
 constant RESET_DURATION        : natural  := 16;
 
+-- Number of sprites supported by the VGA module.
+-- Reduce this number to save on resources.
+constant VGA_NUM_SPRITES       : natural  := 128;
+
 end env1_globals;
 
 package body env1_globals is

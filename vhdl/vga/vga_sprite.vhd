@@ -4,6 +4,9 @@ use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 
 entity vga_sprite is
+   generic (
+      G_INDEX_SIZE    : integer
+   );
    port (
       clk_i           : in  std_logic;
 
@@ -14,13 +17,13 @@ entity vga_sprite is
       pixel_y_i       : in  std_logic_vector(9 downto 0);
       color_i         : in  std_logic_vector(15 downto 0);
       -- Interface to Sprite Config RAM
-      config_addr_o   : out std_logic_vector(6 downto 0);     -- 128 entries
+      config_addr_o   : out std_logic_vector(G_INDEX_SIZE-1 downto 0);
       config_data_i   : in  std_logic_vector(63 downto 0);    -- 4 words
       -- Interface to Sprite Palette RAM
-      palette_addr_o  : out std_logic_vector(6 downto 0);     -- 128 entries
+      palette_addr_o  : out std_logic_vector(G_INDEX_SIZE-1 downto 0);
       palette_data_i  : in  std_logic_vector(255 downto 0);   -- 16 words
       -- Interface to Sprite Bitmap RAM
-      bitmap_addr_o   : out std_logic_vector(11 downto 0);    -- 128*32 entries
+      bitmap_addr_o   : out std_logic_vector(G_INDEX_SIZE+4 downto 0);
       bitmap_data_i   : in  std_logic_vector(127 downto 0);   -- 8 words
       -- Current pixel color
       color_o         : out std_logic_vector(15 downto 0);
@@ -40,6 +43,7 @@ architecture synthesis of vga_sprite is
       bitmap_ptr : std_logic_vector(15 downto 0);
       config     : std_logic_vector(6 downto 0);
       palette    : std_logic_vector(255 downto 0);
+      addr_temp  : std_logic_vector(11 downto 0);
    end record t_stage1;
 
    type t_stage2 is record
@@ -93,8 +97,8 @@ begin
    stage0.pixel_x_offset <= pixel_x_i - std_logic_vector(to_unsigned(640, 10));
 
    -- Stage 0 : Read configuration (4 words) and palette (16 words)
-   config_addr_o     <= stage0.pixel_x_offset(6 downto 0);
-   palette_addr_o    <= stage0.pixel_x_offset(6 downto 0);
+   config_addr_o     <= stage0.pixel_x_offset(G_INDEX_SIZE-1 downto 0);
+   palette_addr_o    <= stage0.pixel_x_offset(G_INDEX_SIZE-1 downto 0);
 
 
    -- Stage 1 : Store configuration and palette
@@ -105,7 +109,8 @@ begin
    stage1.palette    <= palette_data_i;
 
    -- Stage 1 : Read sprite bitmap
-   bitmap_addr_o     <= (pixel_y_i - stage1.pos_y) & "00" + stage1.bitmap_ptr(11 downto 0);
+   stage1.addr_temp  <= (pixel_y_i - stage1.pos_y) & "00" + stage1.bitmap_ptr(11 downto 0);
+   bitmap_addr_o     <= stage1.addr_temp(G_INDEX_SIZE+4 downto 0);
 
 
    -- Stage 2 : Copy palette from Stage 1
@@ -122,7 +127,7 @@ begin
 
    -- Stage 2 : Palette lookup
    gen_palette_lookup:
-   for i in 0 to 31 generate
+   for i in 0 to 31 generate  -- Loop over each pixel
       process (stage2.bitmap, stage2.palette)
          variable color_index : integer range 0 to 15;
       begin

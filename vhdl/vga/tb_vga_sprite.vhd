@@ -7,17 +7,19 @@ end tb_vga_sprite;
 
 architecture simulation of tb_vga_sprite is
 
+   constant C_INDEX_SIZE : integer := 3;
+
    signal clk            : std_logic := '0';
 
    signal sprite_enable  : std_logic;
    signal pixel_x        : std_logic_vector(9 downto 0);
    signal pixel_y        : std_logic_vector(9 downto 0);
-   signal config_addr    : std_logic_vector(6 downto 0);
-   signal config_data    : std_logic_vector(63 downto 0);
-   signal palette_addr   : std_logic_vector(6 downto 0);
-   signal palette_data   : std_logic_vector(255 downto 0);
-   signal bitmap_addr    : std_logic_vector(11 downto 0);
-   signal bitmap_data    : std_logic_vector(127 downto 0);
+   signal config_addr    : std_logic_vector(C_INDEX_SIZE-1 downto 0);
+   signal config_data    : std_logic_vector(63 downto 0);      -- 4 words
+   signal palette_addr   : std_logic_vector(C_INDEX_SIZE-1 downto 0);
+   signal palette_data   : std_logic_vector(255 downto 0);     -- 16 words
+   signal bitmap_addr    : std_logic_vector(C_INDEX_SIZE+4 downto 0);
+   signal bitmap_data    : std_logic_vector(127 downto 0);     -- 8 words
    signal color          : std_logic_vector(15 downto 0);
    signal delay          : std_logic_vector(9 downto 0);
 
@@ -77,8 +79,10 @@ begin
    begin
       if rising_edge(clk) then
          case palette_addr(0) is
-            when '0' => palette_data <= (15 downto 0 => '1', others => '0');
-            when '1' => palette_data <= (31 downto 16 => '1', others => '0');
+            when '0' => palette_data <= X"FFFFEEEEDDDDCCCCBBBBAAAA99998888" &
+                                        X"77776666555544443333222211110000";
+            when '1' => palette_data <= X"0000FFFFEEEEDDDDCCCCBBBBAAAA9999" &
+                                        X"88887777666655554444333322221111";
             when others => palette_data <= (others => '0');
          end case;
       end if;
@@ -106,6 +110,9 @@ begin
    ------------------------------
 
    i_vga_sprite : entity work.vga_sprite
+      generic map (
+         G_INDEX_SIZE    => C_INDEX_SIZE
+      )
       port map (
          clk_i           => clk,
          sprite_enable_i => '1',

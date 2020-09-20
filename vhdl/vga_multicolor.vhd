@@ -2,6 +2,9 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use work.qnice_tools.all;     -- f_log2
+use work.env1_globals.all;    -- VGA_NUM_SPRITES
+
 -- This file is the top-level VGA controller. It connects directly to the CPU
 -- and to the output ports on the FPGA.
 --
@@ -44,6 +47,8 @@ entity vga_multicolor is
 end vga_multicolor;
 
 architecture synthesis of vga_multicolor is
+
+   constant C_INDEX_SIZE      : integer := f_log2(VGA_NUM_SPRITES);
 
    signal cpu_clkn            : std_logic;      -- Inverted CPU clock
 
@@ -117,12 +122,12 @@ architecture synthesis of vga_multicolor is
    signal vga_font_data           : std_logic_vector(7 downto 0);
    signal vga_palette_addr        : std_logic_vector(5 downto 0);
    signal vga_palette_data        : std_logic_vector(14 downto 0);
-   signal vga_sprite_config_addr  : std_logic_vector(6 downto 0);     -- 128 entries
-   signal vga_sprite_config_data  : std_logic_vector(63 downto 0);    -- 4 words
-   signal vga_sprite_palette_addr : std_logic_vector(6 downto 0);     -- 128 entries
-   signal vga_sprite_palette_data : std_logic_vector(255 downto 0);   -- 16 words
-   signal vga_sprite_bitmap_addr  : std_logic_vector(11 downto 0);    -- 128*32 entries
-   signal vga_sprite_bitmap_data  : std_logic_vector(127 downto 0);   -- 8 words
+   signal vga_sprite_config_addr  : std_logic_vector(C_INDEX_SIZE-1 downto 0);
+   signal vga_sprite_config_data  : std_logic_vector(63 downto 0);
+   signal vga_sprite_palette_addr : std_logic_vector(C_INDEX_SIZE-1 downto 0);
+   signal vga_sprite_palette_data : std_logic_vector(255 downto 0);
+   signal vga_sprite_bitmap_addr  : std_logic_vector(C_INDEX_SIZE+4 downto 0);
+   signal vga_sprite_bitmap_data  : std_logic_vector(127 downto 0);
 
    -- Instruct synthesis tool that these registers are used for CDC.
    attribute ASYNC_REG                        : boolean;
@@ -215,6 +220,9 @@ begin
    -----------------------------------------------
 
    i_vga_video_ram : entity work.vga_video_ram
+      generic map (
+         G_INDEX_SIZE => C_INDEX_SIZE
+      )
       port map (
          -- CPU access
          cpu_clk_i             => cpu_clkn,
@@ -304,6 +312,9 @@ begin
    -----------------------------------------------
 
    i_vga_output : entity work.vga_output
+      generic map (
+         G_INDEX_SIZE          => C_INDEX_SIZE
+      )
       port map (
          clk_i                 => vga_clk_i,
 
