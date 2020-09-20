@@ -1,8 +1,3 @@
-// TODO: 
-//  - Make all register bank addressing relative to the register bank shadow register!
-//  - Extend disassembler to take of RSR/WSR-instructions.
-//  - Implement RSR/WSR-instructions.
-
 /* 
 **  QNICE emulator -- this emulator was written as a proof of concept for the QNICE processor.
 **
@@ -16,7 +11,7 @@
 ** B. Ulmann, 25-JUL-2020   Disassembler can take care of control mnemonics
 **            26-JUL-2020   Control instructions added, started adding timers
 **            xx-AUG-2020   Lots of corrections, INCRB, DECRB added, new update_status_bits() etc.
-**            xx-SEP-2020   Introduction of shadow registers
+**            xx-SEP-2020   Introduction of shadow registers and EXC instruction
 **
 ** The following defines are available:
 **
@@ -109,8 +104,7 @@
 #define INT_INSTRUCTION        0x2
 #define INCRB_INSTRUCTION      0x3
 #define DECRB_INSTRUCTION      0x4
-#define RSR_INSTRUCTION        0x5
-#define WSR_INSTRUCTION        0x6
+#define EXC_INSTRUCTION        0x5
 
 #define NO_ADD_SUB_INSTRUCTION 0x0
 #define ADD_INSTRUCTION        0x1
@@ -147,7 +141,7 @@ unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively 
 
 char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                                 "NOT", "AND", "OR", "XOR", "CMP", "rsvd", "ctrl"},
-     *gbl$control_mnemonics[] = {"HALT", "RTI", "INT", "INCRB", "DECRB", "RSR", "WSR"}, 
+     *gbl$control_mnemonics[] = {"HALT", "RTI", "INT", "INCRB", "DECRB", "EXC"}, 
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNV--",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
@@ -641,13 +635,19 @@ void disassemble(unsigned int start, unsigned int stop) {
         }
       }
     } else if (opcode == GENERIC_CONTROL_OPCODE) { /* Control instruction (HALT, RTI, INT) */
-      strcpy(mnemonic, gbl$control_mnemonics[j = (instruction >> 6) & 0x3f]);
-      if (j == INT_INSTRUCTION) { /* The INT instruction has one parameter */
-        if ((skip_addresses = decode_operand(instruction & 0x3f, scratch))) /* Constant as operand */
-          sprintf(scratch, "0x%04X", access_memory(i + 1, READ_MEMORY, 0));
-        strcpy(operands, scratch);
-      } else if (j == RSR_INSTRUCTION || j == WSR_INSTRUCTION) { // Both instructions have just two regular operands
-        // TODO
+      j = (instruction >> 6) & 0x3f;
+      if (!(j & 0x20)) { // Not an EXC instruction
+        strcpy(mnemonic, gbl$control_mnemonics[j = (instruction >> 6) & 0x3f]);
+        if (j == INT_INSTRUCTION) { /* The INT instruction has one parameter */
+          if ((skip_addresses = decode_operand(instruction & 0x3f, scratch))) /* Constant as operand */
+            sprintf(scratch, "0x%04X", access_memory(i + 1, READ_MEMORY, 0));
+          strcpy(operands, scratch);
+        }
+      } else { // EXC instruction
+        strcpy(mnemonic, gbl$control_mnemonics[EXC_INSTRUCTION]);
+        sprintf(operands, "0x%02X, ", (instruction >> 6) & 0x1f); // This is the 6 bit constant
+        decode_operand(instruction & 0x3f, scratch);
+        strcat(operands, scratch);
       }
     } else if (opcode == GENERIC_BRANCH_OPCODE) { /* Branch or Subroutine call */
       strcpy(mnemonic, gbl$branch_mnemonics[(instruction >> 4) & 0x3]);
@@ -801,7 +801,7 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
 */
 int execute() {
   unsigned int instruction, address, opcode, source_mode, source_regaddr, destination_mode, destination_regaddr,
-    source_0, source_1, destination, i, debug_address, temp_flag, sr_bits, command, rb;
+    source_0, source_1, destination, i, debug_address, temp_flag, sr_bits, command, rb, shadow_address, shadow_value;
 
   int condition, cmp_0, cmp_1;
 
@@ -992,49 +992,48 @@ int execute() {
       printf("Attempt to execute a reserved instruction at %04X\n", debug_address);
       return 1;
     case 14: /* Control group */
-      switch (command = (instruction >> 6) & 0x3f) {
-        case HALT_INSTRUCTION:
-          printf("HALT instruction executed at address %04X.\n\n", debug_address);
+      command = (instruction >> 6) & 0x3f;
+      if (command == HALT_INSTRUCTION) {
+        printf("HALT instruction executed at address %04X.\n\n", debug_address);
+        return TRUE;
+      } else if (command == RTI_INSTRUCTION) {
+        if (!gbl$interrupt_active) {
+          printf("Rogue RTI instruction, not servicing an interrupt at address %04X. HALT!\n", debug_address);
           return TRUE;
-          break;    // Not really necessary but good style... :-)
-        case RTI_INSTRUCTION:
-          if (!gbl$interrupt_active) {
-            printf("Rogue RTI instruction, not servicing an interrupt at address %04X. HALT!\n", debug_address);
-            return TRUE;
-          }
-          gbl$interrupt_active = FALSE;
-          write_register(SP, gbl$shadow_register[SR_SP]);
-          write_register(SR, gbl$shadow_register[SR_SR]);
-          write_register(PC, gbl$shadow_register[SR_PC]);
-          break;
-        case INT_INSTRUCTION:
-          if (gbl$interrupt_active) {
-            printf("Rogue INT instruction with an ISR at address %04X. HALT!\n", debug_address);
-            return TRUE;
-          }
-          gbl$interrupt_address = read_source_operand(destination_mode, destination_regaddr, TRUE);
-          write_destination(destination_mode, destination_regaddr, gbl$interrupt_address, TRUE);
-          gbl$interrupt_request = TRUE;
-          break;
-        case INCRB_INSTRUCTION:
-          sr_bits = read_register(SR);
-          rb = ((sr_bits >> 8) + 1) & 0xff;
-          write_register(SR, ((sr_bits & 0x00ff) | (rb << 8)) & 0xffff);
-          break;
-        case DECRB_INSTRUCTION:
-          sr_bits = read_register(SR);
-          rb = (((sr_bits >> 8) & 0xff) - 1) & 0xff;
-          write_register(SR, ((sr_bits & 0x00ff) | (rb << 8)) & 0xffff);
-          break;
-        case RSR_INSTRUCTION:
-          // TODO
-          break;
-        case WSR_INSTRUCTION:
-          // TODO
-          break;
-        default:
+        }
+        gbl$interrupt_active = FALSE;
+        write_register(SP, gbl$shadow_register[SR_SP]);
+        write_register(SR, gbl$shadow_register[SR_SR]);
+        write_register(PC, gbl$shadow_register[SR_PC]);
+      } else if (command == INT_INSTRUCTION) {
+        if (gbl$interrupt_active) {
+          printf("Rogue INT instruction with an ISR at address %04X. HALT!\n", debug_address);
+          return TRUE;
+        }
+        gbl$interrupt_address = read_source_operand(destination_mode, destination_regaddr, TRUE);
+        write_destination(destination_mode, destination_regaddr, gbl$interrupt_address, TRUE);
+        gbl$interrupt_request = TRUE;
+      } else if (command == INCRB_INSTRUCTION) {
+        sr_bits = read_register(SR);
+        rb = ((sr_bits >> 8) + 1) & 0xff;
+        write_register(SR, ((sr_bits & 0x00ff) | (rb << 8)) & 0xffff);
+      } else if (command == DECRB_INSTRUCTION) {
+        sr_bits = read_register(SR);
+        rb = (((sr_bits >> 8) & 0xff) - 1) & 0xff;
+        write_register(SR, ((sr_bits & 0x00ff) | (rb << 8)) & 0xffff);
+      } else if (command & 0x20) { // EXC instruction!
+        if ((shadow_address = command & 0x1f) >= NUMBER_OF_SHADOW_REGISTERS) {
+          printf("EXC instruction with illegal shadow register number %02X at address %04X. HALT!\n", 
+                 shadow_address, debug_address);
+          return TRUE;
+        }
+
+        source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
+        shadow_value = gbl$shadow_register[shadow_address];
+        gbl$shadow_register[shadow_address] = source_0;
+        write_destination(destination_mode, destination_regaddr, shadow_value, FALSE);
+      } else
           fprintf(stderr, "Illegal control instruction found: %02X\n", command);
-      }
       break;
     case 15: /* Branch or subroutine call */
       /* Determine destination address in case the branch/subroutine instruction will be performed */
@@ -1084,7 +1083,6 @@ int execute() {
   if (gbl$error) // We encountered some error (division attempt by zero in EAE)
     return TRUE;
 
-/*  write_register(PC, read_register(PC) + 1); */ /* Update program counter */
   return FALSE; /* No HALT instruction executed */
 }
 
