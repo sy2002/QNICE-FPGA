@@ -58,10 +58,10 @@ architecture rtl of ps2_keyboard is
    signal error        : std_logic;                            --validate parity, start, and stop bits
    signal count_idle   : integer range 0 to IDLE_COUNTER_MAX;  --counter to determine ps/2 is idle
 
-   attribute mark_debug                 : boolean;
-   attribute mark_debug of ps2_clk_int  : signal is true;
-   attribute mark_debug of ps2_data_int : signal is true;
-   attribute mark_debug of ps2_code_new : signal is true;
+--   attribute mark_debug                 : boolean;
+--   attribute mark_debug of ps2_clk_int  : signal is true;
+--   attribute mark_debug of ps2_data_int : signal is true;
+--   attribute mark_debug of ps2_code_new : signal is true;
 
 begin
 
