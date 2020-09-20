@@ -222,7 +222,7 @@ interpretation:
 ```
 offset 0 : X position
 offset 1 : Y position
-offset 2 : Pointer to bitmap
+offset 2 : Pointer to bitmap. Must be multiple of 0x0020
 offset 3 : Control and Status Register (CSR)
 ```
 
@@ -240,8 +240,8 @@ Bit 6 : Sprite visible? 0 = no, 1 = yes.
 
 ### Sprite Palette RAM
 The Sprite Palette RAM contains the 16-color palette of each sprite. The
-address within the Sprite RAM memory map of a given sprites palette is:
-`8*sprite_number + VGA$SPRITE_PALETTE`.
+address within the Sprite RAM memory map of a given sprites palette is
+given by the Pointer to bitmap (offset 2 in the Sprite Config RAM).
 
 ### Sprite Bitmap RAM
 

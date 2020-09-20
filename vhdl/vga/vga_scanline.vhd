@@ -3,6 +3,16 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 
+-- This module is used to store a temporary rendering of the next scanline.
+-- It stores 16-bit words for each of the 640 pixels.
+--
+-- Signals:
+-- * wr_addr_i : Left-most X-coordinate of data to write
+-- * wr_data_i : 32 words for consecutive pixels
+-- * wr_en_i   : Update the 32 pixels
+-- * rd_addr_i : X-coordinate of a single pixel to read
+-- * rd_data_o : Word corresponding to this pixel
+
 entity vga_scanline is
    port (
       clk_i     : in  std_logic;
@@ -26,55 +36,69 @@ architecture synthesis of vga_scanline is
    signal enable_concat : std_logic_vector(63 downto 0);
    signal enable_rot    : std_logic_vector(31 downto 0);
 
-   signal p1_addr       : std_logic_vector(4 downto 0);
-   signal p1_wr_data    : std_logic_vector(511 downto 0);
-   signal p1_wr_en      : std_logic_vector(31 downto 0);
-   signal p1_rd_data    : std_logic_vector(511 downto 0);
-   signal p2_addr       : std_logic_vector(4 downto 0);
-   signal p2_wr_data    : std_logic_vector(511 downto 0);
-   signal p2_wr_en      : std_logic_vector(31 downto 0);
-   signal p2_rd_data    : std_logic_vector(511 downto 0);
+   signal a_addr        : std_logic_vector(4 downto 0);
+   signal a_wr_data     : std_logic_vector(511 downto 0);
+   signal a_wr_en       : std_logic_vector(31 downto 0);
+   signal a_rd_data     : std_logic_vector(511 downto 0);
+   signal b_addr        : std_logic_vector(4 downto 0);
+   signal b_wr_data     : std_logic_vector(511 downto 0);
+   signal b_wr_en       : std_logic_vector(31 downto 0);
+   signal b_rd_data     : std_logic_vector(511 downto 0);
 
 begin
 
    wr_offset     <= conv_integer(wr_addr_i(4 downto 0));
-   rd_offset     <= conv_integer(rd_addr_i(4 downto 0));
 
    data_concat   <= wr_data_i & wr_data_i;
    data_rot      <= data_concat(511 + wr_offset*16 downto wr_offset*16);
 
-   enable_concat <= C_ZEROES & C_ONES when wr_en_i = '1' else (others => '0');
+   enable_concat <= C_ZEROES & C_ONES;
    enable_rot    <= enable_concat(31 + wr_offset downto wr_offset);
 
-   p1_addr       <= wr_addr_i(9 downto 5) when wr_en_i = '1' else rd_addr_i(9 downto 5);
-   p1_wr_data    <= data_rot;
-   p1_wr_en      <= enable_rot;
+   a_addr        <= wr_addr_i(9 downto 5) when wr_en_i = '1' else rd_addr_i(9 downto 5);
+   a_wr_data     <= data_rot;
+   a_wr_en       <= enable_rot when wr_en_i = '1' else (others => '0');
 
-   p2_addr       <= std_logic_vector(unsigned(p1_addr) + 1);
-   p2_wr_data    <= data_rot;
-   p2_wr_en      <= not enable_rot;
+   b_addr        <= std_logic_vector(unsigned(a_addr) + 1);
+   b_wr_data     <= data_rot;
+   b_wr_en       <= not enable_rot when wr_en_i = '1' else (others => '0');
+
+
+   ----------------------------
+   -- Instantiate memory block
+   ----------------------------
 
    i_vga_blockram_with_byte_enable : entity work.vga_blockram_with_byte_enable
       generic map (
-         G_ADDR_SIZE   => 5,
-         G_COLUMN_SIZE => 16,
-         G_NUM_COLUMNS => 32
+         G_ADDR_SIZE   => 5,     -- 32 blocks of 32 pixels
+         G_COLUMN_SIZE => 16,    -- word size
+         G_NUM_COLUMNS => 32     -- 32 pixels
       )
       port map (
          a_clk_i     => clk_i,
-         a_addr_i    => p1_addr,
-         a_wr_data_i => p1_wr_data,
-         a_wr_en_i   => p1_wr_en,
-         a_rd_data_o => p1_rd_data,
+         a_addr_i    => a_addr,
+         a_wr_data_i => a_wr_data,
+         a_wr_en_i   => a_wr_en,
+         a_rd_data_o => a_rd_data,
 
          b_clk_i     => clk_i,
-         b_addr_i    => p2_addr,
-         b_wr_data_i => p2_wr_data,
-         b_wr_en_i   => p2_wr_en,
+         b_addr_i    => b_addr,
+         b_wr_data_i => b_wr_data,
+         b_wr_en_i   => b_wr_en,
          b_rd_data_o => open
       ); -- i_vga_blockram_with_byte_enable
 
-   rd_data_o <= p1_rd_data(15 + rd_offset*16 downto rd_offset*16);
+
+   -- rd_offset must be delayed one clock cycle, so it lines up with the value
+   -- read from the BRAM.
+   p_rd_offset : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         rd_offset <= conv_integer(rd_addr_i(4 downto 0));
+      end if;
+   end process p_rd_offset;
+
+   rd_data_o <= a_rd_data(15 + rd_offset*16 downto rd_offset*16);
 
 end architecture synthesis;
 

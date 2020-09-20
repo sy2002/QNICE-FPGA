@@ -31,7 +31,7 @@ architecture synthesis of vga_blockram_with_byte_enable is
    type mem_t is array (0 to 2**G_ADDR_SIZE-1) of
       std_logic_vector(G_NUM_COLUMNS*G_COLUMN_SIZE-1 downto 0);
 
-   signal mem : mem_t;
+   shared variable mem : mem_t := (others => (others => '0'));
 
 begin
 
@@ -40,7 +40,7 @@ begin
       if rising_edge(a_clk_i) then
          for i in 0 to G_NUM_COLUMNS-1 loop
             if a_wr_en_i(i) = '1' then
-               mem(conv_integer(a_addr_i))((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE) <=
+               mem(conv_integer(a_addr_i))((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE) :=
                                a_wr_data_i((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE);
             end if;
          end loop;
@@ -54,7 +54,7 @@ begin
       if rising_edge(b_clk_i) then
          for i in 0 to G_NUM_COLUMNS-1 loop
             if b_wr_en_i(i) = '1' then
-               mem(conv_integer(b_addr_i))((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE) <=
+               mem(conv_integer(b_addr_i))((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE) :=
                                b_wr_data_i((i + 1)*G_COLUMN_SIZE-1 downto i*G_COLUMN_SIZE);
             end if;
          end loop;

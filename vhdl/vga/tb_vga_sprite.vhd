@@ -1,5 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 
 entity tb_vga_sprite is
@@ -22,6 +23,7 @@ architecture simulation of tb_vga_sprite is
    signal bitmap_data    : std_logic_vector(127 downto 0);     -- 8 words
    signal color          : std_logic_vector(15 downto 0);
    signal delay          : std_logic_vector(9 downto 0);
+   signal color_blanked  : std_logic_vector(15 downto 0);
 
 begin
 
@@ -62,9 +64,9 @@ begin
    p_config_data : process (clk)
    begin
       if rising_edge(clk) then
-         case config_addr(0) is
-            when '0' => config_data <= X"0001" & X"0000" & X"1000" & X"0040";
-            when '1' => config_data <= X"0002" & X"0000" & X"2000" & X"0040";
+         case config_addr is     -- config    bitmap    pos_y     pos_x
+            when "000" => config_data <= X"0040" & X"0020" & X"0000" & X"0001";
+            when "001" => config_data <= X"0040" & X"0040" & X"0000" & X"0002";
             when others => config_data <= (others => '0');
          end case;
       end if;
@@ -78,11 +80,11 @@ begin
    p_palette_data : process (clk)
    begin
       if rising_edge(clk) then
-         case palette_addr(0) is
-            when '0' => palette_data <= X"FFFFEEEEDDDDCCCCBBBBAAAA99998888" &
-                                        X"77776666555544443333222211110000";
-            when '1' => palette_data <= X"0000FFFFEEEEDDDDCCCCBBBBAAAA9999" &
-                                        X"88887777666655554444333322221111";
+         case palette_addr is
+            when "000" => palette_data <= X"FFFFEEEEDDDDCCCCBBBBAAAA99998888" &
+                                          X"77776666555544443333222211110000";
+            when "001" => palette_data <= X"0000FFFFEEEEDDDDCCCCBBBBAAAA9999" &
+                                          X"88887777666655554444333322221111";
             when others => palette_data <= (others => '0');
          end case;
       end if;
@@ -96,9 +98,9 @@ begin
    p_bitmap_data : process (clk)
    begin
       if rising_edge(clk) then
-         case bitmap_addr(2) is
-            when '0' => bitmap_data <= X"0123456789ABCDEF0123456789ABCDEF";
-            when '1' => bitmap_data <= X"123456789ABCDEF0123456789ABCDEF0";
+         case bitmap_addr is
+            when X"20" => bitmap_data <= X"0123456789ABCDEF0123456789ABCDEF";
+            when X"40" => bitmap_data <= X"123456789ABCDEF0123456789ABCDEF0";
             when others => bitmap_data <= (others => '0');
          end case;
       end if;
@@ -126,8 +128,13 @@ begin
          bitmap_addr_o   => bitmap_addr,
          bitmap_data_i   => bitmap_data,
          color_o         => color,
-         delay_o         => open
+         delay_o         => delay
       ); -- i_vga_sprite
+
+   color_blanked <= color when conv_integer(pixel_x) >= conv_integer(delay) and
+                               conv_integer(pixel_x) < conv_integer(delay) + 640 and
+                               conv_integer(pixel_y) < 480 else 
+                    (others => '0');
 
 end architecture simulation;
 
