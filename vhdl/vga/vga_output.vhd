@@ -63,6 +63,8 @@ architecture synthesis of vga_output is
    signal frame        : std_logic_vector(5 downto 0);  -- 0 to 59
    signal color_text   : std_logic_vector(15 downto 0);
    signal color_sprite : std_logic_vector(15 downto 0);
+   signal delay_text   : std_logic_vector(9 downto 0);
+   signal delay_sprite : std_logic_vector(9 downto 0);
    signal delay        : std_logic_vector(9 downto 0);
    signal pixel_adj_x  : std_logic_vector(9 downto 0);
    signal pixel_adj_y  : std_logic_vector(9 downto 0);
@@ -119,7 +121,7 @@ begin
          palette_data_i   => palette_data_i,
          -- Current pixel color
          color_o          => color_text,
-         delay_o          => delay
+         delay_o          => delay_text
       ); -- i_vga_text_mode
 
 
@@ -148,13 +150,15 @@ begin
          bitmap_data_i   => sprite_bitmap_data_i,
          -- Current pixel color
          color_o         => color_sprite,
-         delay_o         => delay
+         delay_o         => delay_sprite
       ); -- i_vga_sprites
 
 
    -----------------------------------
    -- Instantiate VGA synchronization
    -----------------------------------
+
+   delay <= delay_text + delay_sprite;
 
    i_vga_sync : entity work.vga_sync
       port map (

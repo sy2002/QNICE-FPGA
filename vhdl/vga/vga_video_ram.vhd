@@ -138,7 +138,8 @@ begin
 
    cpu_sprite_rd_data_o <= cpu_sprite_config_rd_data  when cpu_sprite_config_en = '1' else
                            cpu_sprite_palette_rd_data when cpu_sprite_palette_en = '1' else
-                           cpu_sprite_bitmap_rd_data;
+                           cpu_sprite_bitmap_rd_data  when cpu_sprite_bitmap_en = '1' else
+                           (others => '0');
 
    i_sprite_config_ram : entity work.asymmetric_true_dual_port_ram
       generic map (

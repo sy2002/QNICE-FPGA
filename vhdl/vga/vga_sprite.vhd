@@ -46,6 +46,7 @@ architecture synthesis of vga_sprite is
       config     : std_logic_vector(6 downto 0);
       palette    : std_logic_vector(255 downto 0);
       addr_temp  : std_logic_vector(9 downto 0);
+      next_y     : std_logic_vector(9 downto 0);
    end record t_stage1;
 
    type t_stage2 is record
@@ -55,6 +56,7 @@ architecture synthesis of vga_sprite is
       palette    : std_logic_vector(255 downto 0);
       bitmap     : std_logic_vector(127 downto 0);
       pixels     : std_logic_vector(511 downto 0);
+      next_y     : std_logic_vector(9 downto 0);
    end record t_stage2;
 
    -- Decoding of the Config register
@@ -76,22 +78,26 @@ architecture synthesis of vga_sprite is
    signal scanline_rd_addr : std_logic_vector(9 downto 0);
    signal scanline_rd_data : std_logic_vector(15 downto 0);
 
---   attribute mark_debug                     : boolean;
---   attribute mark_debug of pixel_x_i        : signal is true;
---   attribute mark_debug of pixel_y_i        : signal is true;
---   attribute mark_debug of color_i          : signal is true;
---   attribute mark_debug of config_addr_o    : signal is true;
---   attribute mark_debug of config_data_i    : signal is true;
---   attribute mark_debug of palette_addr_o   : signal is true;
---   attribute mark_debug of palette_data_i   : signal is true;
---   attribute mark_debug of bitmap_addr_o    : signal is true;
---   attribute mark_debug of bitmap_data_i    : signal is true;
---   attribute mark_debug of color_o          : signal is true;
---   attribute mark_debug of scanline_wr_addr : signal is true;
---   attribute mark_debug of scanline_wr_data : signal is true;
---   attribute mark_debug of scanline_wr_en   : signal is true;
---   attribute mark_debug of scanline_rd_addr : signal is true;
---   attribute mark_debug of scanline_rd_data : signal is true;
+   signal color_d          : std_logic_vector(15 downto 0);
+   signal color_s          : std_logic_vector(15 downto 0);
+
+   attribute mark_debug                     : boolean;
+   attribute mark_debug of sprite_enable_i  : signal is true;
+   attribute mark_debug of pixel_x_i        : signal is true;
+   attribute mark_debug of pixel_y_i        : signal is true;
+   attribute mark_debug of color_i          : signal is true;
+   attribute mark_debug of config_addr_o    : signal is true;
+   attribute mark_debug of config_data_i    : signal is true;
+   attribute mark_debug of palette_addr_o   : signal is true;
+   attribute mark_debug of palette_data_i   : signal is true;
+   attribute mark_debug of bitmap_addr_o    : signal is true;
+   attribute mark_debug of bitmap_data_i    : signal is true;
+   attribute mark_debug of color_s          : signal is true;
+   attribute mark_debug of scanline_wr_addr : signal is true;
+   attribute mark_debug of scanline_wr_data : signal is true;
+   attribute mark_debug of scanline_wr_en   : signal is true;
+   attribute mark_debug of scanline_rd_addr : signal is true;
+   attribute mark_debug of scanline_rd_data : signal is true;
 
 begin
 
@@ -123,8 +129,11 @@ begin
    stage1.config     <= config_data_i(48+6  downto 48);
    stage1.palette    <= palette_data_i;
 
+   -- Stage 1 : Calculate value of next scan line
+   stage1.next_y     <= pixel_y_i + 1 when pixel_y_i /= 524 else (others => '0');
+
    -- Stage 1 : Read sprite bitmap
-   stage1.addr_temp  <= pixel_y_i - stage1.pos_y;
+   stage1.addr_temp  <= stage1.next_y - stage1.pos_y;
    bitmap_addr_o     <= stage1.bitmap_ptr(G_INDEX_SIZE+4 downto 5) & stage1.addr_temp(4 downto 0);
 
 
@@ -135,6 +144,7 @@ begin
          stage2.palette <= stage1.palette;
          stage2.pos_x   <= stage1.pos_x;
          stage2.pos_y   <= stage1.pos_y;
+         stage2.next_y  <= stage1.next_y;
          stage2.config  <= stage1.config;
       end if;
    end process p_stage2;
@@ -158,10 +168,12 @@ begin
    p_scanline_wr : process (stage2, pixel_x_i, pixel_y_i, sprite_enable_i)
    begin
       -- Default is to do nothing!
-      scanline_wr_en <= '0';
+      scanline_wr_en   <= '0';
+      scanline_wr_addr <= (others => '0');
+      scanline_wr_data <= (others => '0');
 
       -- During screen display, we clear the scanline, 32 pixels at a time.
-      if conv_integer(pixel_x_i) < 640 and pixel_x_i(4 downto 0) = "11111" then
+      if conv_integer(pixel_x_i) < 640 and conv_integer(pixel_x_i(4 downto 0)) = 31 then
          scanline_wr_addr <= pixel_x_i;
          scanline_wr_en   <= '1';
          scanline_wr_data <= (others => '0');
@@ -170,8 +182,8 @@ begin
       -- During porch, we render the sprites
       if conv_integer(pixel_x_i) >= 640+2 and
          conv_integer(pixel_x_i) < 640+2 + 2**G_INDEX_SIZE and
-         conv_integer(pixel_y_i) >= conv_integer(stage2.pos_y) and
-         conv_integer(pixel_y_i) < conv_integer(stage2.pos_y)+32 and
+         conv_integer(stage2.next_y) >= conv_integer(stage2.pos_y) and
+         conv_integer(stage2.next_y) < conv_integer(stage2.pos_y)+32 and
          stage2.config(C_CONFIG_VISIBLE) = '1' and
          sprite_enable_i = '1' then
 
@@ -196,10 +208,31 @@ begin
 
    -- Output scanline
    scanline_rd_addr <= pixel_x_i;
-   color_o <= color_i when scanline_rd_data(15) = '0' else
+
+   -- Delay color_i a clock cycle, so it matches scanline_rd_data.
+   p_color_d : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         color_d <= color_i;
+      end if;
+   end process p_color_d;
+
+   color_s <= color_d when scanline_rd_data(15) = '0' else
               scanline_rd_data;
 
-   delay_o <= std_logic_vector(to_unsigned(1, 10));
+   -- Put extra register on output.
+   p_color_d2 : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         color_o <= color_s;
+         delay_o <= std_logic_vector(to_unsigned(2, 10));
+      end if;
+   end process p_color_d2;
+
+--   color_o <= color_d when scanline_rd_data(15) = '0' else
+--              scanline_rd_data;
+--
+--   delay_o <= std_logic_vector(to_unsigned(1, 10));
 
 end architecture synthesis;
 

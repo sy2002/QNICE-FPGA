@@ -227,7 +227,7 @@ begin
       end if;
    end process p_output;
 
-   this_int_n <= '0' when pixel_y_i = register_map(C_REG_SCAN_INTERRUPT)(9 downto 0)
+   this_int_n <= '0' when conv_integer(pixel_y_i) = conv_integer(register_map(C_REG_SCAN_INTERRUPT)(9 downto 0))
                      and '0' = register_map(C_REG_SCAN_INTERRUPT)(15)
             else '1';
 

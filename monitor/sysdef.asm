@@ -245,6 +245,7 @@ VGA$EN_HW_CURSOR        .EQU    0x0040                  ; Show hardware cursor
 VGA$EN_HW_SCRL          .EQU    0x0C00                  ; Hardware scrolling enable
 VGA$CLR_SCRN            .EQU    0x0100                  ; Clear screen
 VGA$BUSY                .EQU    0x0200                  ; VGA is currently performing a task
+VGA$EN_SPRITE           .EQU    0x1000                  ; Enable sprites
 
 VGA$FONT_OFFS_DEFAULT    .EQU   0x0000                  ; Address in Font RAM for default fonts
 VGA$FONT_OFFS_USER       .EQU   0x1000                  ; Address in Font RAM for user fonts

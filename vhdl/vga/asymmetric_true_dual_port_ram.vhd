@@ -51,10 +51,10 @@ begin
       a_wr_data(G_A_DATA_SIZE-1 + G_A_DATA_SIZE*i downto G_A_DATA_SIZE*i) <= a_wr_data_i;
    end generate gen_a_wr_data;
 
-   p_a_wr_en : process (a_addr_i)
+   p_a_wr_en : process (a_column, a_wr_en_i)
    begin
       a_wr_en <= (others => '0');
-      a_wr_en(conv_integer(a_column)) <= '1';
+      a_wr_en(conv_integer(a_column)) <= a_wr_en_i;
    end process p_a_wr_en;
 
    i_vga_blockram_with_byte_enable : entity work.vga_blockram_with_byte_enable
