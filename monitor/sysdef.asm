@@ -19,6 +19,10 @@
 #define SR  R14
 #define SP  R13
 
+#define SHPC 0  // Shadow PC
+#define SHSR 1  // Shadow SR
+#define SHSP 2  // Shadow SP
+
 ;
 ;***************************************************************************************
 ;*  IO-page addresses: Default: 8 registers per block
