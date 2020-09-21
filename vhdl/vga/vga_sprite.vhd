@@ -112,7 +112,7 @@ begin
    -- Stage 0 : Determine which sprite to process
    stage0.pixel_x    <= pixel_x_i;
    stage0.num_temp   <= stage0.pixel_x - std_logic_vector(to_unsigned(640, 10));
-   stage0.sprite_num <= stage0.num_temp(G_INDEX_SIZE-1 downto 0);
+   stage0.sprite_num <= not stage0.num_temp(G_INDEX_SIZE-1 downto 0);   -- Invert to start from sprite number 127
 
    -- Stage 0 : Read configuration (4 words) and palette (16 words)
    config_addr_o     <= stage0.sprite_num;

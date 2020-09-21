@@ -631,7 +631,7 @@ void vga_print(int x, int y, char* s)
 
 static void vga_render_all_sprites()
 {
-   for (int i = 0; i < 128; i++) // Loop over all sprites
+   for (int i = 127; i >= 0; i--) // Loop over all sprites. Start with lowest priority
    {
       if (sprite_config[4*i+3] & VGA_SPRITE_CSR_VISIBLE)
       {
@@ -648,6 +648,9 @@ static void vga_render_all_sprites()
 
                if (!(color & VGA_COLOR_TRANSPARENT))
                {
+                  // Unsigned short is necessary to make two's complement wrap-around work:
+                  // Sprites can be moved left out of screen by setting the
+                  // x-coordinate to 0xFFFF etc.
                   unsigned short pix_x = pos_x + x;
                   unsigned short pix_y = pos_y + y;
                   if (pix_x < render_dx && pix_y < render_dy)

@@ -5,27 +5,27 @@ features supported by the VGA module.
 
 ## Register Map
 
-Address | Description
-------- | ------------
-`FF30`  | Command and Status (CSR)
-`FF31`  | Cursor X
-`FF32`  | Cursor Y
-`FF33`  | Character at cursor
-`FF34`  | Cursor offset
-`FF35`  | Display offset
-`FF36`  | Font offset
-`FF37`  | Address into Font RAM
-`FF38`  | Data to/from Font RAM
-`FF39`  | Palette offset
-`FF3A`  | Address into Palette RAM
-`FF3B`  | Data to/from Palette RAM
-`FF40`  | Pixels to adjust screen in X direction
-`FF41`  | Pixels to adjust screen in Y direction
-`FF42`  | Current scan line
-`FF43`  | Scan line to generate interrupt on
-`FF44`  | Interrupt Service Routine Address
-`FF45`  | Address into Sprite RAM
-`FF46`  | Data to/from Sprite RAM
+Address |       Name       | Description
+------- |       ----       | ------------
+`FF30`  |`VGA_STATE       `| Command and Status (CSR)
+`FF31`  |`VGA_CR_X        `| Cursor X
+`FF32`  |`VGA_CR_Y        `| Cursor Y
+`FF33`  |`VGA_CHAR        `| Character at cursor
+`FF34`  |`VGA_OFFS_RW     `| Cursor offset
+`FF35`  |`VGA_OFFS_DISPLAY`| Display offset
+`FF36`  |`VGA_FONT_OFFS   `| Font offset
+`FF37`  |`VGA_FONT_ADDR   `| Address into Font RAM
+`FF38`  |`VGA_FONT_DATA   `| Data to/from Font RAM
+`FF39`  |`VGA_PALETTE_OFFS`| Palette offset
+`FF3A`  |`VGA_PALETTE_ADDR`| Address into Palette RAM
+`FF3B`  |`VGA_PALETTE_DATA`| Data to/from Palette RAM
+`FF40`  |`VGA_ADJUST_X    `| Pixels to adjust screen in X direction
+`FF41`  |`VGA_ADJUST_Y    `| Pixels to adjust screen in Y direction
+`FF42`  |`VGA_SCAN_LINE   `| Current scan line
+`FF43`  |`VGA_SCAN_INT    `| Scan line to generate interrupt on
+`FF44`  |`VGA_SCAN_ISR    `| Interrupt Service Routine Address
+`FF45`  |`VGA_SPRITE_ADDR `| Address into Sprite RAM
+`FF46`  |`VGA_SPRITE_DATA `| Data to/from Sprite RAM
 
 The Command and Status Register is decoded as follows
 * Bit 12 : Global sprite enable
