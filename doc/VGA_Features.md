@@ -208,14 +208,14 @@ and in hi-res graphics mode).
 ## Sprite RAM memory map
 The Sprite RAM consists of three independent blocks of RAM, all accessible
 within the same 16-bit virtual address space:
-* Sprite Config RAM contains 128 entries of 4 words, i.e. addresses `0x0000` - `0x01FF`.
-* Sprite Palette RAM contains 128 entries of 16 words, i.e. addresses `0x4000` - `0x47FF`.
-* Sprite Bitmap RAM contains 4k entries of 8 words, i.e. addresses `0x8000` - `0xFFFF`.
+* Sprite Config RAM contains 128 entries of 4 words in addresses `0x0000` - `0x01FF`.
+* Sprite Palette RAM contains 128 entries of 16 words in addresses `0x4000` - `0x47FF`.
+* Sprite Bitmap RAM contains 4k entries of 8 words in addresses `0x8000` - `0xFFFF`.
 
 ### Sprite Config RAM
 The Sprite Config RAM contains the overall configuration of each sprite. The
 address within the Sprite RAM memory map of a given sprite is simply
-`VGA$SPRITE_CONFIG + 4*sprite_number`.  The four words have the following
+`VGA_SPRITE_CONFIG + 4*sprite_number`.  The four words have the following
 interpretation:
 
 ```
@@ -224,6 +224,10 @@ offset 1 : Y position (of top left-most pixel in sprite bitmap)
 offset 2 : Pointer to bitmap. Must be multiple of 0x0008 (the lower order bits are ignored).
 offset 3 : Control and Status Register (CSR)
 ```
+The X- and Y-position is the pixel number. A sprite may be moved off the left
+(or top) of the screen by setting a negative value (in two's complement) of the
+X- and Y-positions. E.g. setting the X position to `0xFFFF` moves the sprite
+one pixel left of the screen, so only the rightmost 31 columns are visible.
 
 The bits in the Control and Status register have the following function:
 
@@ -239,16 +243,16 @@ Bit 6 : Sprite visible? 0 = no, 1 = yes.
 
 ### Sprite Palette RAM
 The Sprite Palette RAM contains the 16-color palette of each sprite. The
-address within the Sprite RAM memory map of a given sprites palette is
-simply `VGA$SPRITE_PALETTE + 16*sprite_number`.
+address within the Sprite RAM memory map of a given sprite's palette is
+simply `VGA_SPRITE_PALETTE + 16*sprite_number`.
 
-Each word contains the 15-bit color of the corresponding index. Bit 15 of each
-word indicates transparency. So if the bit is set, then the corresponding color
-is completely transparent, i.e. invisible.
+Each of the 16 words contains the 15-bit color of the corresponding index. Bit
+15 of each word indicates transparency: If this bit is set the
+corresponding color is completely transparent, i.e. invisible.
 
 ### Sprite Bitmap RAM
-The sprite bitmap information is layed out row-by-row, with bit 15 of each word
-being part of the left-most pixel.
+The sprite bitmap information is layed out row-by-row, with bits 15-12 of each
+word being part of the left-most pixel.
 
 In high-resolution (32x32x4) mode this means
 ```
