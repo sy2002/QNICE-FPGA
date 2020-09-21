@@ -103,7 +103,7 @@ static unsigned int sprite_add_bitmap(const t_bitmap *pBitmap)
 
    for (int i=0; i<32*32/4; ++i)
    {
-      sprite_wr(bitmap_ptr+i, *(((const unsigned int *)pBitmap)) + i);
+      sprite_wr(bitmap_ptr+i, *(((const unsigned int *)pBitmap) + i));
    }
 
    unsigned int addr = bitmap_ptr;
@@ -116,11 +116,11 @@ static unsigned int sprite_add_bitmap(const t_bitmap *pBitmap)
 
 typedef struct
 {
-   unsigned int pos_x_scaled;    // Units of 1/64 pixels
-   unsigned int pos_y_scaled;    // Units of 1/64 pixels
-   unsigned int vel_x_scaled;    // Units of 1/64 pixels/frame
-   unsigned int vel_y_scaled;    // Units of 1/64 pixels/frame
-   unsigned int radius_scaled;   // Units of 1/64 pixels
+   int pos_x_scaled;             // Units of 1/32 pixels
+   int pos_y_scaled;             // Units of 1/32 pixels
+   int vel_x_scaled;             // Units of 1/32 pixels/frame
+   int vel_y_scaled;             // Units of 1/32 pixels/frame
+   unsigned int radius_scaled;   // Units of 1/32 pixels
    unsigned int bitmap_ptr;
    unsigned int color;
 } t_ball;
@@ -138,14 +138,33 @@ static void sprite_init(unsigned int sprite_num, const t_ball ball)
 
    // Set sprite palette index 1
    sprite_wr(VGA_SPRITE_PALETTE + 1 + sprite_num*16, ball.color);
-   
+
+   int pos_x = ball.pos_x_scaled / 32;
+   int pos_y = ball.pos_y_scaled / 32;
+
    // Configure sprite
-   sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_POS_X      + sprite_num*4, ball.pos_x_scaled >> 6);
-   sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_POS_Y      + sprite_num*4, ball.pos_y_scaled >> 6);
+   sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_POS_X      + sprite_num*4, pos_x);
+   sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_POS_Y      + sprite_num*4, pos_y);
    sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_BITMAP_PTR + sprite_num*4, ball.bitmap_ptr);
    sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_CSR        + sprite_num*4, VGA_SPRITE_CSR_VISIBLE);
 } // sprite_init
 
+static unsigned int rand()
+{
+   static unsigned long g_seed = 3;
+
+	const unsigned long A = 48271;
+
+	unsigned long low  = (g_seed & 0x7fff) * A;
+	unsigned long high = (g_seed >> 15)    * A;
+
+	unsigned long x = low + ((high & 0xffff) << 15) + (high >> 16);
+
+	x = (x & 0x7fffffff) + (x >> 31);
+   g_seed = x;
+
+   return g_seed >> 8;
+}
 
 #define NUM_ELEMENTS(x) (sizeof(x)/sizeof(*x))
 
@@ -161,10 +180,10 @@ static void init_all_sprites()
       unsigned int bitmap_ptr;
    } images[2];
 
-   images[0].radius_scaled = 8*64;
+   images[0].radius_scaled = 8*32;
    images[0].bitmap_ptr    = sprite_add_bitmap(&bitmap_r8);
 
-   images[1].radius_scaled = 16*64;
+   images[1].radius_scaled = 16*32;
    images[1].bitmap_ptr    = sprite_add_bitmap(&bitmap_r16);
 
    // Initialize colors
@@ -189,13 +208,13 @@ static void init_all_sprites()
    // Initialize each sprite
    for (unsigned int i=0; i<NUM_SPRITES; ++i)
    {
-      balls[i].pos_x_scaled  = i*12345U;
-      balls[i].pos_y_scaled  = i*54321U;
+      balls[i].pos_x_scaled  = (rand()%(640+31)-31)*32;
+      balls[i].pos_y_scaled  = (rand()%(480+31)-31)*32;
       balls[i].vel_x_scaled  = 0;
       balls[i].vel_y_scaled  = 0;
-      balls[i].radius_scaled = images[i%NUM_ELEMENTS(images)].radius_scaled;
-      balls[i].bitmap_ptr    = images[i%NUM_ELEMENTS(images)].bitmap_ptr;
-      balls[i].color         = colors[i%NUM_ELEMENTS(colors)];
+      balls[i].radius_scaled = images[rand()%NUM_ELEMENTS(images)].radius_scaled;
+      balls[i].bitmap_ptr    = images[rand()%NUM_ELEMENTS(images)].bitmap_ptr;
+      balls[i].color         = colors[rand()%NUM_ELEMENTS(colors)];
 
       sprite_init(i, balls[i]);
    }

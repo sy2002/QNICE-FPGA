@@ -34,32 +34,33 @@ end vga_sprite;
 architecture synthesis of vga_sprite is
 
    type t_stage0 is record
-      pixel_x    : std_logic_vector(9 downto 0);
-      num_temp   : std_logic_vector(9 downto 0);
-      sprite_num : std_logic_vector(G_INDEX_SIZE-1 downto 0);
+      pixel_x     : std_logic_vector(9 downto 0);
+      num_temp    : std_logic_vector(9 downto 0);
+      sprite_num  : std_logic_vector(G_INDEX_SIZE-1 downto 0);
    end record t_stage0;
 
    type t_stage1 is record
-      pixel_x    : std_logic_vector(9 downto 0);
-      sprite_num : std_logic_vector(G_INDEX_SIZE-1 downto 0);
-      pos_x      : std_logic_vector(9 downto 0);
-      pos_y      : std_logic_vector(9 downto 0);
-      bitmap_ptr : std_logic_vector(15 downto 0);
-      config     : std_logic_vector(6 downto 0);
-      palette    : std_logic_vector(255 downto 0);
-      addr_temp  : std_logic_vector(9 downto 0);
-      next_y     : std_logic_vector(9 downto 0);
+      pixel_x     : std_logic_vector(9 downto 0);
+      sprite_num  : std_logic_vector(G_INDEX_SIZE-1 downto 0);
+      pos_x       : std_logic_vector(9 downto 0);
+      pos_y       : std_logic_vector(9 downto 0);
+      bitmap_addr : integer;
+      bitmap_ptr  : std_logic_vector(15 downto 0);
+      config      : std_logic_vector(6 downto 0);
+      palette     : std_logic_vector(255 downto 0);
+      addr_temp   : std_logic_vector(9 downto 0);
+      next_y      : std_logic_vector(9 downto 0);
    end record t_stage1;
 
    type t_stage2 is record
-      pixel_x    : std_logic_vector(9 downto 0);
-      pos_x      : std_logic_vector(9 downto 0);
-      pos_y      : std_logic_vector(9 downto 0);
-      config     : std_logic_vector(6 downto 0);
-      palette    : std_logic_vector(255 downto 0);
-      bitmap     : std_logic_vector(127 downto 0);
-      pixels     : std_logic_vector(511 downto 0);
-      next_y     : std_logic_vector(9 downto 0);
+      pixel_x     : std_logic_vector(9 downto 0);
+      pos_x       : std_logic_vector(9 downto 0);
+      pos_y       : std_logic_vector(9 downto 0);
+      config      : std_logic_vector(6 downto 0);
+      palette     : std_logic_vector(255 downto 0);
+      bitmap      : std_logic_vector(127 downto 0);
+      pixels      : std_logic_vector(511 downto 0);
+      next_y      : std_logic_vector(9 downto 0);
    end record t_stage2;
 
    -- Decoding of the Config register
@@ -128,18 +129,20 @@ begin
    end process p_stage1;
 
    -- Stage 1 : Store configuration and palette
-   stage1.pos_x      <= config_data_i(9     downto 0);
-   stage1.pos_y      <= config_data_i(16+9  downto 16);
-   stage1.bitmap_ptr <= config_data_i(32+15 downto 32);
-   stage1.config     <= config_data_i(48+6  downto 48);
-   stage1.palette    <= palette_data_i;
+   stage1.pos_x       <= config_data_i(9     downto 0);
+   stage1.pos_y       <= config_data_i(16+9  downto 16);
+   stage1.bitmap_ptr  <= config_data_i(32+15 downto 32);
+   stage1.config      <= config_data_i(48+6  downto 48);
+   stage1.palette     <= palette_data_i;
 
    -- Stage 1 : Calculate value of next scan line
-   stage1.next_y     <= pixel_y_i + 1 when pixel_y_i /= 524 else (others => '0');
+   stage1.next_y      <= pixel_y_i + 1 when pixel_y_i /= 524 else (others => '0');
 
    -- Stage 1 : Read sprite bitmap
-   stage1.addr_temp  <= stage1.next_y - stage1.pos_y;
-   bitmap_addr_o     <= stage1.bitmap_ptr(G_INDEX_SIZE+4 downto 5) & stage1.addr_temp(4 downto 0);
+   stage1.addr_temp   <= stage1.next_y - stage1.pos_y;
+   stage1.bitmap_addr <= conv_integer(stage1.bitmap_ptr(G_INDEX_SIZE+7 downto 3)) +
+                         conv_integer(stage1.addr_temp(4 downto 0));
+   bitmap_addr_o      <= std_logic_vector(to_unsigned(stage1.bitmap_addr, G_INDEX_SIZE+5));
 
 
    -- Stage 2 : Copy palette from Stage 1

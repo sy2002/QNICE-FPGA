@@ -30,6 +30,9 @@
 const unsigned long stable_fps_ms = 16; 
 
 static Uint16   vram[65535];
+static Uint16   sprite_config[0x200];
+static Uint16   sprite_palette[0x800];
+static Uint16   sprite_bitmap[0x8000];
 static Uint16   vga_state;
 static Uint16   vga_x;
 static Uint16   vga_y;
@@ -39,6 +42,7 @@ static Uint16   font_addr;
 static Uint16   font_offset;
 static Uint16   palette_addr;
 static Uint16   palette_offset;
+static Uint16   sprite_addr;
 
 
 static Uint16   kbd_state;
@@ -354,6 +358,41 @@ static Uint32 palette_convert_15_to_24(unsigned int color)
         + ((color << 3) & 0x000000F8);
 }
 
+static unsigned int vga_sprite_write(unsigned int addr, unsigned int data)
+{
+   if (addr & 0x8000)
+   {
+      sprite_bitmap[addr & 0x7FFF] = data;
+   }
+   else if (addr & 0x4000)
+   {
+      sprite_palette[addr & 0x07FF] = data;
+   }
+   else
+   {
+      sprite_config[addr & 0x01FF] = data;
+   }
+
+   // TBD. This should be optimized to only re-render a single sprite if possible.
+   vga_refresh_rendering();
+}
+
+static unsigned int vga_sprite_read(unsigned int addr)
+{
+   if (addr & 0x8000)
+   {
+      return sprite_bitmap[addr & 0x7FFF];
+   }
+   else if (addr & 0x4000)
+   {
+      return sprite_palette[addr & 0x07FF];
+   }
+   else
+   {
+      return sprite_config[addr & 0x01FF];
+   }
+}
+
 unsigned int vga_read_register(unsigned int address)
 {
     switch (address)
@@ -375,6 +414,8 @@ unsigned int vga_read_register(unsigned int address)
         case VGA_PALETTE_OFFS:  return palette_offset;
         case VGA_PALETTE_ADDR:  return palette_addr;
         case VGA_PALETTE_DATA:  return palette_convert_24_to_15(palette[palette_addr & VGA_PALETTE_OFFS_MAX]);
+        case VGA_SPRITE_ADDR:   return sprite_addr;
+        case VGA_SPRITE_DATA:   return vga_sprite_read(sprite_addr);
     }
 
     return 0;
@@ -452,6 +493,14 @@ void vga_write_register(unsigned int address, unsigned int value)
                palette[palette_addr] = palette_convert_15_to_24(value);
                vga_refresh_rendering();
             }
+            break;
+
+        case VGA_SPRITE_ADDR:
+            sprite_addr = value;
+            break;
+
+        case VGA_SPRITE_DATA:
+            vga_sprite_write(sprite_addr, value);
             break;
     }
 }
@@ -580,6 +629,37 @@ void vga_print(int x, int y, char* s)
         vga_render_to_pixelbuffer(x + i, y, s[i]);
 }    
 
+static void vga_render_all_sprites()
+{
+   for (int i = 0; i < 128; i++) // Loop over all sprites
+   {
+      if (sprite_config[4*i+3] & VGA_SPRITE_CSR_VISIBLE)
+      {
+         unsigned short pos_x      = sprite_config[4*i];
+         unsigned short pos_y      = sprite_config[4*i+1];
+         unsigned short bitmap_ptr = sprite_config[4*i+2] & 0x7FFF;
+
+         for (unsigned short y = 0; y < 32; y++)
+         {
+            for (unsigned short x = 0; x < 32; x++)
+            {
+               unsigned int color_index = (sprite_bitmap[bitmap_ptr + y*8 + x/4] >> (4*(~x & 3))) & 0xF;
+               unsigned int color = sprite_palette[16*i+color_index];
+
+               if (!(color & VGA_COLOR_TRANSPARENT))
+               {
+                  unsigned short pix_x = pos_x + x;
+                  unsigned short pix_y = pos_y + y;
+                  if (pix_x < render_dx && pix_y < render_dy)
+                     screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color);
+               }
+            }
+         }
+      }
+   }
+}
+
+
 /* For performance reasons, during normal operation, the vram is not completely rendered, but only the
    region that changed while writing a char using the respective registers.
    vga_refresh_rendering is used to restore the vram on screen (inside the pixelbuffer), e.g. to restore
@@ -589,6 +669,9 @@ void vga_refresh_rendering()
     for (int y = 0; y < screen_dy; y++)
         for (int x = 0; x < screen_dx; x++)
             vga_render_to_pixelbuffer(x, y, vram[y * screen_dx + x + vga_offs_display]);
+
+    if (vga_state & VGA_EN_SPRITE)
+       vga_render_all_sprites();
 }
 
 void vga_render_to_pixelbuffer(int x, int y, Uint16 c)

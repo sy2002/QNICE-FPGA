@@ -124,11 +124,10 @@ Bit 12 in CSR provides a single bit to globally enable and disable all sprites
 simultaneously.
 
 Each sprite can have one of two resolutions:
-* 32x48 high-resolution with 4-bit color index. This 4-bit value serves as an
-  index into a 16-color palette, individual for each sprite. Color index 0
-  is hard-wired to be a transparent color.
-* 16x24 low-resolution with 16-bit color depth. This 16-bit value provides
-  a direct 15-bit color output, as well as a bit indicating transparency.
+* 32x32 high-resolution with 4-bit color index. This 4-bit value serves as an
+  index into a 16-color palette, individual for each sprite.
+* 16x16 low-resolution with 16-bit color depth. This 16-bit value provides
+  a direct 15-bit color output.
 
 ### Display priority
 Lower numbered sprites appear in front of higher numbered sprites.
@@ -209,20 +208,20 @@ and in hi-res graphics mode).
 ## Sprite RAM memory map
 The Sprite RAM consists of three independent blocks of RAM, all accessible
 within the same 16-bit virtual address space:
-* Sprite Config RAM contains 128 entries of 4 words, i.e. addresses 0x0000 - 0x01FF
-* Sprite Palette RAM contains 128 entries of 16 words, i.e. addresses 0x4000 - 0x47FF.
-* Sprite Bitmap RAM contains 4k entries of 8 words, i.e. addresses 0x8000 - 0xFFFF.
+* Sprite Config RAM contains 128 entries of 4 words, i.e. addresses `0x0000` - `0x01FF`.
+* Sprite Palette RAM contains 128 entries of 16 words, i.e. addresses `0x4000` - `0x47FF`.
+* Sprite Bitmap RAM contains 4k entries of 8 words, i.e. addresses `0x8000` - `0xFFFF`.
 
 ### Sprite Config RAM
 The Sprite Config RAM contains the overall configuration of each sprite. The
 address within the Sprite RAM memory map of a given sprite is simply
-`4*sprite_number + VGA$SPRITE_CONFIG`. The four words have the following
+`VGA$SPRITE_CONFIG + 4*sprite_number`.  The four words have the following
 interpretation:
 
 ```
-offset 0 : X position
-offset 1 : Y position
-offset 2 : Pointer to bitmap. Must be multiple of 0x0020
+offset 0 : X position (of top left-most pixel in sprite bitmap)
+offset 1 : Y position (of top left-most pixel in sprite bitmap)
+offset 2 : Pointer to bitmap. Must be multiple of 0x0008 (the lower order bits are ignored).
 offset 3 : Control and Status Register (CSR)
 ```
 
@@ -241,14 +240,17 @@ Bit 6 : Sprite visible? 0 = no, 1 = yes.
 ### Sprite Palette RAM
 The Sprite Palette RAM contains the 16-color palette of each sprite. The
 address within the Sprite RAM memory map of a given sprites palette is
-given by the Pointer to bitmap (offset 2 in the Sprite Config RAM).
+simply `VGA$SPRITE_PALETTE + 16*sprite_number`.
+
+Each word contains the 15-bit color of the corresponding index. Bit 15 of each
+word indicates transparency. So if the bit is set, then the corresponding color
+is completely transparent, i.e. invisible.
 
 ### Sprite Bitmap RAM
-
 The sprite bitmap information is layed out row-by-row, with bit 15 of each word
 being part of the left-most pixel.
 
-In high-resolution (32x48x4) mode this means
+In high-resolution (32x32x4) mode this means
 ```
 offset   0 : bits 15-12 is pixel (0, 0)
              bits 11-8 is pixel (1, 0)
@@ -258,16 +260,16 @@ etc.
 offset   7 : pixels (28, 0) to (31, 0).
 offset   8 : pixels (0, 1) to (3, 1).
 etc.
-offset 383 : pixels (28, 47) to (31, 47).
+offset 255 : pixels (28, 31) to (31, 31).
 ```
 
-In low-resolution (16x24x16) mode this instead means
+In low-resolution (16x16x16) mode this instead means
 ```
 offset   0 : pixel (0, 0)
 offset   1 : pixel (1, 0)
 offset  15 : pixel (15, 0)
 offset  16 : pixel (0, 1)
 etc.
-offset 383 : pixel (15, 23)
+offset 255 : pixel (15, 15)
 ```
 
