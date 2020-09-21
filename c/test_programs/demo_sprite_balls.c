@@ -208,13 +208,16 @@ static void init_all_sprites()
    // Initialize each sprite
    for (unsigned int i=0; i<NUM_SPRITES; ++i)
    {
+      int image_index = rand()%NUM_ELEMENTS(images);
+      int color_index = rand()%NUM_ELEMENTS(colors);
+
       balls[i].pos_x_scaled  = (rand()%(640+31)-31)*32;
       balls[i].pos_y_scaled  = (rand()%(480+31)-31)*32;
       balls[i].vel_x_scaled  = 0;
       balls[i].vel_y_scaled  = 0;
-      balls[i].radius_scaled = images[rand()%NUM_ELEMENTS(images)].radius_scaled;
-      balls[i].bitmap_ptr    = images[rand()%NUM_ELEMENTS(images)].bitmap_ptr;
-      balls[i].color         = colors[rand()%NUM_ELEMENTS(colors)];
+      balls[i].radius_scaled = images[image_index].radius_scaled;
+      balls[i].bitmap_ptr    = images[image_index].bitmap_ptr;
+      balls[i].color         = colors[color_index];
 
       sprite_init(i, balls[i]);
    }
@@ -222,6 +225,10 @@ static void init_all_sprites()
 
 int main()
 {
+   MMIO(VGA_PALETTE_OFFS) = 0x20;
+   MMIO(VGA_PALETTE_ADDR) = 0x30;
+   MMIO(VGA_PALETTE_DATA) = VGA_COLOR_YELLOW;
+
    init_all_sprites();
 
    qmon_gets();

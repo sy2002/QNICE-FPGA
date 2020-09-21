@@ -44,7 +44,6 @@ architecture synthesis of vga_sprite is
       sprite_num  : std_logic_vector(G_INDEX_SIZE-1 downto 0);
       pos_x       : std_logic_vector(9 downto 0);
       pos_y       : std_logic_vector(9 downto 0);
-      bitmap_addr : integer;
       bitmap_ptr  : std_logic_vector(15 downto 0);
       config      : std_logic_vector(6 downto 0);
       palette     : std_logic_vector(255 downto 0);
@@ -140,9 +139,8 @@ begin
 
    -- Stage 1 : Read sprite bitmap
    stage1.addr_temp   <= stage1.next_y - stage1.pos_y;
-   stage1.bitmap_addr <= conv_integer(stage1.bitmap_ptr(G_INDEX_SIZE+7 downto 3)) +
-                         conv_integer(stage1.addr_temp(4 downto 0));
-   bitmap_addr_o      <= std_logic_vector(to_unsigned(stage1.bitmap_addr, G_INDEX_SIZE+5));
+   bitmap_addr_o      <= stage1.bitmap_ptr(G_INDEX_SIZE+7 downto 3) +
+                         std_logic_vector(to_unsigned(conv_integer(stage1.addr_temp(4 downto 0)), G_INDEX_SIZE+5));
 
 
    -- Stage 2 : Copy palette from Stage 1
@@ -166,8 +164,20 @@ begin
    for i in 0 to 31 generate  -- Loop over each pixel
       process (stage2)
          variable color_index : integer range 0 to 15;
+         variable j           : integer range 0 to 31;
+
+         function swap(arg : integer) return integer is
+            variable j : integer;
+            variable k : integer;
+         begin
+            j := arg/4;
+            k := arg mod 4;
+            return j*4 + 3-k;
+         end function swap;
+
       begin
-         color_index := conv_integer(stage2.bitmap(127-4*i downto 124-4*i));
+         j := swap(i);
+         color_index := conv_integer(stage2.bitmap(127-4*j downto 124-4*j));
          stage2.pixels(15+16*i downto 16*i) <=
             stage2.palette(15+16*color_index downto 16*color_index);
       end process;
@@ -186,6 +196,9 @@ begin
          scanline_wr_addr <= stage2.pixel_x and "1111100000";
          scanline_wr_en   <= '1';
          scanline_wr_data <= (others => '0');
+         for i in 0 to 31 loop
+            scanline_wr_data(15+16*i) <= '1';   -- transparent
+         end loop;
       end if;
 
       -- During porch, we render the sprites
