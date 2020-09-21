@@ -358,7 +358,7 @@ static Uint32 palette_convert_15_to_24(unsigned int color)
         + ((color << 3) & 0x000000F8);
 }
 
-static unsigned int vga_sprite_write(unsigned int addr, unsigned int data)
+static void vga_sprite_write(unsigned int addr, unsigned int data)
 {
    if (addr & 0x8000)
    {
