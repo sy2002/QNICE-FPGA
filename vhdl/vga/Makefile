@@ -18,10 +18,10 @@ SOURCES += ../vga_multicolor.vhd
 
 #TB         = tb_vga_text_mode
 #TB_SOURCES = tb_vga_text_mode.vhd
-#TB         = tb_vga_sprite
-#TB_SOURCES = tb_vga_sprite.vhd
-TB         = tb_vga_multicolor
-TB_SOURCES = tb_vga_multicolor.vhd
+TB         = tb_vga_sprite
+TB_SOURCES = tb_vga_sprite.vhd
+#TB         = tb_vga_multicolor
+#TB_SOURCES = tb_vga_multicolor.vhd
 
 WAVE       = $(TB).ghw
 SAVE       = $(TB).gtkw

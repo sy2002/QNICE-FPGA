@@ -287,6 +287,7 @@ VGA$COLOR_YELLOW        .EQU    0x7FA6
 VGA$COLOR_TAN           .EQU    0x7777
 VGA$COLOR_PINK          .EQU    0x7F3E
 VGA$COLOR_WHITE         .EQU    0x7FFF
+VGA$COLOR_TRANSPARENT   .EQU    0x8000
 
 
 ; ========== CYCLE COUNTER ==========

@@ -52,7 +52,7 @@ begin
    data_concat   <= wr_data_i & wr_data_i;
    data_rot      <= data_concat(1023 - wr_offset*16 downto 512 - wr_offset*16);
 
-   enable_concat <= C_ZEROES & C_ONES;
+   enable_concat <= C_ONES & C_ZEROES;
    enable_rot    <= enable_concat(63 - wr_offset downto 32 - wr_offset);
 
    a_addr        <= wr_addr_i(9 downto 5) when wr_en_i = '1' else rd_addr_i(9 downto 5);

@@ -164,9 +164,9 @@ begin
       process (stage2)
          variable color_index : integer range 0 to 15;
       begin
-         color_index := conv_integer(stage2.bitmap(3+4*i downto 4*i));
+         color_index := conv_integer(stage2.bitmap(127-4*i downto 124-4*i));
          stage2.pixels(15+16*i downto 16*i) <=
-            stage2.palette(15+16*color_index downto 16*color_index) or X"8000";
+            stage2.palette(15+16*color_index downto 16*color_index);
       end process;
    end generate gen_palette_lookup;
 
@@ -223,7 +223,7 @@ begin
       end if;
    end process p_color_d;
 
-   color_s <= color_d when scanline_rd_data(15) = '0' else
+   color_s <= color_d when scanline_rd_data(15) = '1' else  -- transparent
               scanline_rd_data;
 
    -- Put extra register on output.

@@ -66,7 +66,7 @@ begin
       if rising_edge(clk) then
          case config_addr is     -- config    bitmap    pos_y     pos_x
             when "000" => config_data <= X"0040" & X"0020" & X"0000" & X"0001";
-            when "001" => config_data <= X"0040" & X"0040" & X"0000" & X"0002";
+--            when "001" => config_data <= X"0040" & X"0040" & X"0000" & X"0002";
             when others => config_data <= (others => '0');
          end case;
       end if;
