@@ -58,7 +58,7 @@ architecture synthesis of vga_sprite is
       bitmap_ptr       : std_logic_vector(15 downto 0);
       config           : std_logic_vector(6 downto 0);
       palette          : std_logic_vector(255 downto 0);
-      addr_temp        : std_logic_vector(9 downto 0);
+      diff_y           : std_logic_vector(9 downto 0);
       next_y           : std_logic_vector(9 downto 0);
    end record t_stage1;
 
@@ -72,6 +72,7 @@ architecture synthesis of vga_sprite is
       bitmap           : std_logic_vector(127 downto 0);
       pixels           : std_logic_vector(511 downto 0);
       next_y           : std_logic_vector(9 downto 0);
+      diff_y           : std_logic_vector(9 downto 0);
    end record t_stage2;
 
    type t_stage3 is record
@@ -157,9 +158,9 @@ begin
    stage1.next_y     <= pixel_y_i + 1 when pixel_y_i /= 524 else (others => '0');
 
    -- Read sprite bitmap
-   stage1.addr_temp  <= stage1.next_y - stage1.pos_y;
+   stage1.diff_y     <= stage1.next_y - stage1.pos_y;
    bitmap_addr_o     <= stage1.bitmap_ptr(G_INDEX_SIZE+7 downto 3) +
-                        std_logic_vector(to_unsigned(conv_integer(stage1.addr_temp(4 downto 0)), G_INDEX_SIZE+5));
+                        std_logic_vector(to_unsigned(conv_integer(stage1.diff_y(4 downto 0)), G_INDEX_SIZE+5));
 
 
    ----------------------------------------------
@@ -176,6 +177,7 @@ begin
          stage2.pos_x   <= stage1.pos_x;
          stage2.pos_y   <= stage1.pos_y;
          stage2.next_y  <= stage1.next_y;
+         stage2.diff_y  <= stage1.diff_y;
          stage2.config  <= stage1.config;
       end if;
    end process p_stage2;
@@ -236,8 +238,7 @@ begin
 
             when C_START_RENDER to C_STOP_RENDER =>
                -- Render scanline
-               if conv_integer(stage2.next_y) >= conv_integer(stage2.pos_y) and
-                  conv_integer(stage2.next_y) < conv_integer(stage2.pos_y)+32 and
+               if conv_integer(stage2.diff_y) < 32 and
                   stage2.config(C_CONFIG_VISIBLE) = '1' and
                   sprite_enable_i = '1' then
 
