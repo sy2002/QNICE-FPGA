@@ -33,15 +33,6 @@ end vga_sprite;
 
 architecture synthesis of vga_sprite is
 
-   constant C_START_READ   : integer := 0;
-   constant C_STOP_READ    : integer := 639;
-
-   constant C_START_CLEAR  : integer := C_STOP_READ + 1;
-   constant C_STOP_CLEAR   : integer := C_STOP_READ + C_START_CLEAR/32;
-
-   constant C_START_RENDER : integer := C_STOP_CLEAR + 1;
-   constant C_STOP_RENDER  : integer := C_STOP_CLEAR + 2**G_INDEX_SIZE;
-
    type t_stage0 is record
       color            : std_logic_vector(15 downto 0);
       pixel_x          : std_logic_vector(9 downto 0);
@@ -125,7 +116,7 @@ begin
    -- Determine which sprite to process
    stage0.color      <= color_i;
    stage0.pixel_x    <= pixel_x_i;
-   stage0.num_temp   <= stage0.pixel_x - std_logic_vector(to_unsigned(C_START_RENDER, 10));
+   stage0.num_temp   <= stage0.pixel_x - std_logic_vector(to_unsigned(640, 10));
    stage0.sprite_num <= not stage0.num_temp(G_INDEX_SIZE-1 downto 0);   -- Invert to start from sprite number 127
 
    -- Read configuration (4 words) and palette (16 words)
@@ -216,6 +207,12 @@ begin
 
    -- Process scanline
    p_stage3 : process (clk_i)
+      constant C_START_READ   : integer := 0;
+      constant C_STOP_READ    : integer := 639;
+      constant C_START_CLEAR  : integer := C_STOP_READ + 1;
+      constant C_STOP_CLEAR   : integer := C_STOP_READ + C_START_CLEAR/32;
+      constant C_START_RENDER : integer := C_STOP_CLEAR + 1;
+      constant C_STOP_RENDER  : integer := C_STOP_CLEAR + 2**G_INDEX_SIZE;
    begin
       if rising_edge(clk_i) then
          stage3.color <= stage2.color;
@@ -237,6 +234,10 @@ begin
                end loop;
 
             when C_START_RENDER to C_STOP_RENDER =>
+               stage3.scanline_addr    <= (others => '0');
+               stage3.scanline_wr_en   <= (others => '0');
+               stage3.scanline_wr_data <= (others => '0');
+
                -- Render scanline
                if conv_integer(stage2.diff_y) < 32 and
                   stage2.config(C_CONFIG_VISIBLE) = '1' and
