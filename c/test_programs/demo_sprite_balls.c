@@ -41,7 +41,7 @@ typedef struct
    int                   collided;
 } t_ball;
 
-#define NUM_SPRITES 8
+#define NUM_SPRITES 24
 
 t_ball balls[NUM_SPRITES];
 
@@ -75,22 +75,21 @@ static void init_all_sprites()
 
 static t_vec calcNewVelocity(int mass1, int mass2, t_vec pos1, t_vec pos2, t_vec vel1, t_vec vel2)
 {
-   long f = 256L*2*mass2/(mass1+mass2);
-
    t_longvec delta_pos = {.x=pos1.x-pos2.x, .y=pos1.y-pos2.y};
    t_longvec delta_vel = {.x=vel1.x-vel2.x, .y=vel1.y-vel2.y};
 
-   long dvdc = delta_pos.x*delta_vel.x + delta_pos.y*delta_vel.y;
-   long dcdc = delta_pos.x*delta_pos.x + delta_pos.y*delta_pos.y;
+   long dvdc = (delta_pos.x*delta_vel.x + delta_pos.y*delta_vel.y)/32;
+   long dcdc = (delta_pos.x*delta_pos.x + delta_pos.y*delta_pos.y)/32;
 
    t_vec result = vel1;
-   result.x -= dvdc*delta_pos.x*f/dcdc/256;
-   result.y -= dvdc*delta_pos.y*f/dcdc/256;
+   if (dvdc < 0)
+   {
+      long f = 256L*2*mass2/(mass1+mass2);
 
-   if (dvdc > 0)
-      return vel1;
-   else
-      return result;
+      result.x -= dvdc*delta_pos.x*f/dcdc/256;
+      result.y -= dvdc*delta_pos.y*f/dcdc/256;
+   }
+   return result;
 }
 
 static void update()
@@ -99,6 +98,11 @@ static void update()
    {
       t_ball *pBall = &balls[i];
       pBall->collided = 0;
+   }
+
+   for (unsigned int i=0; i<NUM_SPRITES; ++i)
+   {
+      t_ball *pBall = &balls[i];
 
       pBall->pos_scaled.x += pBall->vel_scaled.x;
       pBall->pos_scaled.y += pBall->vel_scaled.y;
@@ -146,7 +150,7 @@ static void update()
             pBall->collided = 1;
             pOtherBall->collided = 1;
 
-            pBall->vel_scaled = calcNewVelocity(
+            t_vec vel_scaled = calcNewVelocity(
                   pBall->     mass,
                   pOtherBall->mass,
                   pBall->     pos_scaled,
@@ -161,6 +165,9 @@ static void update()
                   pBall->     pos_scaled,
                   pOtherBall->vel_scaled,
                   pBall->     vel_scaled);
+
+            pBall->vel_scaled = vel_scaled;
+
          }
       }
    }
@@ -195,16 +202,18 @@ static void draw()
 
 int main()
 {
+   MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR; //hide cursor
+   qmon_vga_cls();
+   printf("Bouncing balls!\n");
+   printf("Press any key to stop\n");
    my_srand(MMIO(IO_CYC_LO));
    init_all_sprites();
    while (1)
    {
+      update();
       while (MMIO(VGA_SCAN_LINE) == 480) {}
       while (MMIO(VGA_SCAN_LINE) != 480) {}
-      update();
       draw();
-      printf(".");
-      fflush(stdout);
       if (MMIO(IO_UART_SRA) & 1)
          break;
    }
