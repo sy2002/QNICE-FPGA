@@ -225,10 +225,6 @@ static void init_all_sprites()
 
 int main()
 {
-   MMIO(VGA_PALETTE_OFFS) = 0x20;
-   MMIO(VGA_PALETTE_ADDR) = 0x30;
-   MMIO(VGA_PALETTE_DATA) = VGA_COLOR_YELLOW;
-
    init_all_sprites();
 
    qmon_gets();

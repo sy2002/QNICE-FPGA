@@ -64,9 +64,9 @@ begin
    p_config_data : process (clk)
    begin
       if rising_edge(clk) then
-         case config_addr is     -- config    bitmap    pos_y     pos_x
-            when "000" => config_data <= X"0040" & X"0020" & X"0000" & X"0001";
---            when "001" => config_data <= X"0040" & X"0040" & X"0000" & X"0002";
+         case config_addr is          -- config    bitmap    pos_y     pos_x
+            when "000" => config_data <= X"0040" & X"0020" & X"0000" & X"0004";
+            when "001" => config_data <= X"0040" & X"0040" & X"0000" & X"0002";
             when others => config_data <= (others => '0');
          end case;
       end if;
@@ -81,10 +81,11 @@ begin
    begin
       if rising_edge(clk) then
          case palette_addr is
-            when "000" => palette_data <= X"FFFFEEEEDDDDCCCCBBBBAAAA99998888" &
-                                          X"77776666555544443333222211110000";
-            when "001" => palette_data <= X"0000FFFFEEEEDDDDCCCCBBBBAAAA9999" &
-                                          X"88887777666655554444333322221111";
+            -- Both sprites use same palette.
+            when "000" => palette_data <= X"0FFF0EEE0DDD0CCC0BBB0AAA09990888" &
+                                          X"07770666055504440333022201118000";
+            when "001" => palette_data <= X"0FFF0EEE0DDD0CCC0BBB0AAA09990888" &
+                                          X"07770666055504440333022201118000";
             when others => palette_data <= (others => '0');
          end case;
       end if;
@@ -99,8 +100,10 @@ begin
    begin
       if rising_edge(clk) then
          case bitmap_addr is
-            when X"20" => bitmap_data <= X"0123456789ABCDEF0123456789ABCDEF";
-            when X"40" => bitmap_data <= X"123456789ABCDEF0123456789ABCDEF0";
+            when X"04" => bitmap_data <= X"3210" & X"7654" & X"BA98" & X"FEDC" &
+                                         X"3210" & X"7654" & X"BA98" & X"FEDC";
+            when X"08" => bitmap_data <= X"FEDC" & X"3210" & X"7654" & X"BA98" &
+                                         X"FEDC" & X"3210" & X"7654" & X"BA98";
             when others => bitmap_data <= (others => '0');
          end case;
       end if;
@@ -120,7 +123,7 @@ begin
          sprite_enable_i => '1',
          pixel_x_i       => pixel_x,
          pixel_y_i       => pixel_y,
-         color_i         => (others => '0'),
+         color_i         => X"1234",   -- background color
          config_addr_o   => config_addr,
          config_data_i   => config_data,
          palette_addr_o  => palette_addr,

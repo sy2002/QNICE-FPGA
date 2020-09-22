@@ -88,7 +88,7 @@ architecture synthesis of vga_sprite is
 
    signal scanline_wr_addr : std_logic_vector(9 downto 0);
    signal scanline_wr_data : std_logic_vector(511 downto 0);
-   signal scanline_wr_en   : std_logic;
+   signal scanline_wr_en   : std_logic_vector(31 downto 0);
    signal scanline_rd_addr : std_logic_vector(9 downto 0);
    signal scanline_rd_data : std_logic_vector(15 downto 0);
 
@@ -197,7 +197,7 @@ begin
    p_scanline_wr : process (stage2, sprite_enable_i)
    begin
       -- Default is to do nothing!
-      scanline_wr_en   <= '0';
+      scanline_wr_en   <= (others => '0');
       scanline_wr_addr <= (others => '0');
       scanline_wr_data <= (others => '0');
 
@@ -205,7 +205,7 @@ begin
       if conv_integer(stage2.pixel_x) >= C_START_CLEAR and
          conv_integer(stage2.pixel_x) < C_START_RENDER then
          scanline_wr_addr <= stage2.pixel_x(4 downto 0) & "00000";
-         scanline_wr_en   <= '1';
+         scanline_wr_en   <= (others => '1');
          scanline_wr_data <= (others => '0');
          for i in 0 to 31 loop
             scanline_wr_data(15+16*i) <= '1';   -- set transparent bit in all pixels
@@ -221,7 +221,9 @@ begin
          sprite_enable_i = '1' then
 
          scanline_wr_addr <= stage2.pos_x;
-         scanline_wr_en   <= '1';
+         for i in 0 to 31 loop
+            scanline_wr_en(i) <= not stage2.pixels(15+16*i);
+         end loop;
          scanline_wr_data <= stage2.pixels;
       end if;
    end process p_scanline_wr;
@@ -246,7 +248,7 @@ begin
    p_stage3 : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         stage3.color   <= stage2.color;
+         stage3.color <= stage2.color;
       end if;
    end process p_stage3;
 

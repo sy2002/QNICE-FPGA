@@ -9,7 +9,7 @@ use ieee.numeric_std.all;
 -- Signals:
 -- * wr_addr_i : Left-most X-coordinate of data to write
 -- * wr_data_i : 32 words for consecutive pixels
--- * wr_en_i   : Update the 32 pixels
+-- * wr_en_i   : Update each of the 32 pixels
 -- * rd_addr_i : X-coordinate of a single pixel to read
 -- * rd_data_o : Word corresponding to this pixel
 
@@ -18,7 +18,7 @@ entity vga_scanline is
       clk_i     : in  std_logic;
       wr_addr_i : in  std_logic_vector(9 downto 0);
       wr_data_i : in  std_logic_vector(511 downto 0);
-      wr_en_i   : in  std_logic;
+      wr_en_i   : in  std_logic_vector(31 downto 0);
       rd_addr_i : in  std_logic_vector(9 downto 0);
       rd_data_o : out std_logic_vector(15 downto 0)
    );
@@ -33,8 +33,10 @@ architecture synthesis of vga_scanline is
    signal rd_offset     : integer range 0 to 31;
    signal data_concat   : std_logic_vector(1023 downto 0);
    signal data_rot      : std_logic_vector(511 downto 0);
-   signal enable_concat : std_logic_vector(63 downto 0);
-   signal enable_rot    : std_logic_vector(31 downto 0);
+   signal a_enable_concat : std_logic_vector(63 downto 0);
+   signal a_enable_rot    : std_logic_vector(31 downto 0);
+   signal b_enable_concat : std_logic_vector(63 downto 0);
+   signal b_enable_rot    : std_logic_vector(31 downto 0);
 
    signal a_addr        : std_logic_vector(4 downto 0);
    signal a_wr_data     : std_logic_vector(511 downto 0);
@@ -47,21 +49,24 @@ architecture synthesis of vga_scanline is
 
 begin
 
-   wr_offset     <= conv_integer(wr_addr_i(4 downto 0));
+   wr_offset       <= conv_integer(wr_addr_i(4 downto 0));
 
-   data_concat   <= wr_data_i & wr_data_i;
-   data_rot      <= data_concat(1023 - wr_offset*16 downto 512 - wr_offset*16);
+   data_concat     <= wr_data_i & wr_data_i;
+   data_rot        <= data_concat(1023 - wr_offset*16 downto 512 - wr_offset*16);
 
-   enable_concat <= C_ONES & C_ZEROES;
-   enable_rot    <= enable_concat(63 - wr_offset downto 32 - wr_offset);
+   a_enable_concat <= wr_en_i & C_ZEROES;
+   a_enable_rot    <= a_enable_concat(63 - wr_offset downto 32 - wr_offset);
 
-   a_addr        <= wr_addr_i(9 downto 5) when wr_en_i = '1' else rd_addr_i(9 downto 5);
-   a_wr_data     <= data_rot;
-   a_wr_en       <= enable_rot when wr_en_i = '1' else (others => '0');
+   b_enable_concat <= C_ZEROES & wr_en_i;
+   b_enable_rot    <= b_enable_concat(63 - wr_offset downto 32 - wr_offset);
 
-   b_addr        <= std_logic_vector(unsigned(a_addr) + 1);
-   b_wr_data     <= data_rot;
-   b_wr_en       <= not enable_rot when wr_en_i = '1' else (others => '0');
+   a_addr          <= wr_addr_i(9 downto 5) when wr_en_i /= 0 else rd_addr_i(9 downto 5);
+   a_wr_data       <= data_rot;
+   a_wr_en         <= a_enable_rot;
+
+   b_addr          <= std_logic_vector(unsigned(a_addr) + 1);
+   b_wr_data       <= data_rot;
+   b_wr_en         <= b_enable_rot;
 
 
    ----------------------------
