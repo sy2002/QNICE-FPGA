@@ -78,6 +78,10 @@ architecture synthesis of vga_sprite is
       scanline_rd_data : std_logic_vector(15 downto 0);
    end record t_stage4;
 
+   type t_stage5 is record
+      color            : std_logic_vector(15 downto 0);
+   end record t_stage5;
+
    -- Decoding of the Config register
    constant C_CONFIG_RES_LOW    : integer := 0;
    constant C_CONFIG_BACKGROUND : integer := 1;
@@ -92,11 +96,13 @@ architecture synthesis of vga_sprite is
    signal stage2 : t_stage2;
    signal stage3 : t_stage3;
    signal stage4 : t_stage4;
+   signal stage5 : t_stage5;
 
 --   attribute mark_debug                   : boolean;
 --   attribute mark_debug of pixel_x_i      : signal is true;
 --   attribute mark_debug of pixel_y_i      : signal is true;
 --   attribute mark_debug of color_i        : signal is true;
+--   attribute mark_debug of color_o        : signal is true;
 --   attribute mark_debug of config_addr_o  : signal is true;
 --   attribute mark_debug of config_data_i  : signal is true;
 --   attribute mark_debug of palette_addr_o : signal is true;
@@ -284,9 +290,23 @@ begin
       end if;
    end process p_stage4;
 
-   color_o <= stage4.color when stage4.scanline_rd_data(15) = '1' else  -- transparent
-              stage4.scanline_rd_data;                                  -- visible
-   delay_o <= std_logic_vector(to_unsigned(4, 10));
+
+   ----------------------------------------------
+   -- Stage 5
+   ----------------------------------------------
+
+   p_stage5 : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         stage5.color <= stage4.color;
+         if stage4.scanline_rd_data(15) = '0' then
+            stage5.color <= stage4.scanline_rd_data;
+         end if;
+      end if;
+   end process p_stage5;
+
+   color_o <= stage5.color;
+   delay_o <= std_logic_vector(to_unsigned(5, 10));
 
 end architecture synthesis;
 
