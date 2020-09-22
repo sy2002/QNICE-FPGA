@@ -22,6 +22,8 @@ static void sprite_wr(unsigned int addr, unsigned int data)
    MMIO(VGA_SPRITE_DATA) = data;
 } // end of sprite_wr
 
+#define NUM_SPRITES 128
+
 
 typedef unsigned int t_bitmap[32*32/4];
 
@@ -112,8 +114,6 @@ static unsigned int sprite_add_bitmap(const t_bitmap *pBitmap)
 } // sprite_add_bitmap
 
 
-#define NUM_SPRITES 128
-
 typedef struct
 {
    int pos_x_scaled;             // Units of 1/32 pixels
@@ -143,8 +143,6 @@ static void sprite_init(unsigned int sprite_num, const t_ball ball)
    int pos_y = ball.pos_y_scaled / 32;
 
    // Configure sprite
-   sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_POS_X      + sprite_num*4, pos_x);
-   sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_POS_Y      + sprite_num*4, pos_y);
    sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_BITMAP_PTR + sprite_num*4, ball.bitmap_ptr);
    sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_CSR        + sprite_num*4, VGA_SPRITE_CSR_VISIBLE);
 } // sprite_init
@@ -211,10 +209,10 @@ static void init_all_sprites()
       int image_index = rand()%NUM_ELEMENTS(images);
       int color_index = rand()%NUM_ELEMENTS(colors);
 
-      balls[i].pos_x_scaled  = (rand()%(640+31)-31)*32;
-      balls[i].pos_y_scaled  = (rand()%(480+31)-31)*32;
-      balls[i].vel_x_scaled  = 0;
-      balls[i].vel_y_scaled  = 0;
+      balls[i].pos_x_scaled  = (rand()%640)*32;
+      balls[i].pos_y_scaled  = (rand()%480)*32;
+      balls[i].vel_x_scaled  = rand()%64-32;
+      balls[i].vel_y_scaled  = rand()%64-32;
       balls[i].radius_scaled = images[image_index].radius_scaled;
       balls[i].bitmap_ptr    = images[image_index].bitmap_ptr;
       balls[i].color         = colors[color_index];
@@ -223,9 +221,86 @@ static void init_all_sprites()
    }
 } // init_all_sprites
 
+static void update()
+{
+   for (unsigned int i=0; i<NUM_SPRITES; ++i)
+   {
+      t_ball *pBall = &balls[i];
+
+      pBall->pos_x_scaled += pBall->vel_x_scaled;
+      pBall->pos_y_scaled += pBall->vel_y_scaled;
+
+      if (pBall->pos_x_scaled < pBall->radius_scaled && pBall->vel_x_scaled < 0)
+      {
+         pBall->pos_x_scaled = pBall->radius_scaled;
+         pBall->vel_x_scaled = -pBall->vel_x_scaled;
+      }
+
+      if (pBall->pos_x_scaled >= 640*32-pBall->radius_scaled && pBall->vel_x_scaled > 0)
+      {
+         pBall->pos_x_scaled = 640*32-1-pBall->radius_scaled;
+         pBall->vel_x_scaled = -pBall->vel_x_scaled;
+
+      }
+
+      if (pBall->pos_y_scaled < pBall->radius_scaled && pBall->vel_y_scaled < 0)
+      {
+         pBall->pos_y_scaled = pBall->radius_scaled;
+         pBall->vel_y_scaled = -pBall->vel_y_scaled;
+      }
+
+      if (pBall->pos_y_scaled >= 480*32-pBall->radius_scaled && pBall->vel_y_scaled > 0)
+      {
+         pBall->pos_y_scaled = 480*32-1-pBall->radius_scaled;
+         pBall->vel_y_scaled = -pBall->vel_y_scaled;
+      }
+
+//      for (unsigned int j=i+1; j<NUM_SPRITES; ++j)
+//      {
+//         t_ball *pOtherBall = &balls[j];
+//         long diff_pos_x_scaled = pOtherBall->pos_x_scaled - pBall->pos_x_scaled;
+//         long diff_pos_y_scaled = pOtherBall->pos_y_scaled - pBall->pos_y_scaled;
+//         long sum_r_scaled = pBall->radius_scaled + pOtherBall->radius_scaled;
+//
+//         if (diff_pos_x_scaled*diff_pos_x_scaled +
+//             diff_pos_y_scaled*diff_pos_y_scaled <
+//             sum_r_scaled*sum_r_scaled)
+//         {
+//            // The two balls have collided
+//         }
+//      }
+   }
+} // update
+
+static void draw()
+{
+   for (unsigned int i=0; i<NUM_SPRITES; ++i)
+   {
+      t_ball *pBall = &balls[i];
+
+      int pos_x = pBall->pos_x_scaled/32 - 16;
+      int pos_y = pBall->pos_y_scaled/32 - 16;
+
+      // Configure sprite
+      sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_POS_X + i*4, pos_x);
+      sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_POS_Y + i*4, pos_y);
+   }
+} // draw
+
 int main()
 {
    init_all_sprites();
+   while (1)
+   {
+      while (MMIO(VGA_SCAN_LINE) == 480) {}
+      while (MMIO(VGA_SCAN_LINE) != 480) {}
+      update();
+      draw();
+      printf(".");
+      fflush(stdout);
+      if (MMIO(IO_UART_SRA) & 1)
+         break;
+   }
 
    qmon_gets();
    return 0;

@@ -58,16 +58,18 @@ architecture synthesis of vga_output is
    constant H_PIXELS : integer := 640;
    constant V_PIXELS : integer := 480;
 
-   signal pixel_x      : std_logic_vector(9 downto 0);  -- 0 to 799
-   signal pixel_y      : std_logic_vector(9 downto 0);  -- 0 to 524
-   signal frame        : std_logic_vector(5 downto 0);  -- 0 to 59
-   signal color_text   : std_logic_vector(15 downto 0);
-   signal color_sprite : std_logic_vector(15 downto 0);
-   signal delay_text   : std_logic_vector(9 downto 0);
-   signal delay_sprite : std_logic_vector(9 downto 0);
-   signal delay        : std_logic_vector(9 downto 0);
-   signal pixel_adj_x  : std_logic_vector(9 downto 0);
-   signal pixel_adj_y  : std_logic_vector(9 downto 0);
+   signal pixel_x        : std_logic_vector(9 downto 0);  -- 0 to 799
+   signal pixel_y        : std_logic_vector(9 downto 0);  -- 0 to 524
+   signal frame          : std_logic_vector(5 downto 0);  -- 0 to 59
+   signal color_text     : std_logic_vector(15 downto 0);
+   signal color_sprite   : std_logic_vector(15 downto 0);
+   signal delay_text     : std_logic_vector(9 downto 0);
+   signal delay_sprite   : std_logic_vector(9 downto 0);
+   signal delay          : std_logic_vector(9 downto 0);
+   signal pixel_x_text   : std_logic_vector(9 downto 0);
+   signal pixel_y_text   : std_logic_vector(9 downto 0);
+   signal pixel_x_sprite : std_logic_vector(9 downto 0);
+   signal pixel_y_sprite : std_logic_vector(9 downto 0);
 
 begin
 
@@ -88,13 +90,13 @@ begin
          frame_o   => frame
       ); -- i_vga_pixel_counters
 
-   pixel_adj_x <= pixel_x + adjust_x_i;
-   pixel_adj_y <= pixel_y + adjust_y_i;
-
 
    -------------------------
    -- Instantiate Text Mode
    -------------------------
+
+   pixel_x_text <= pixel_x + adjust_x_i;
+   pixel_y_text <= pixel_y + adjust_y_i;
 
    i_vga_text_mode : entity work.vga_text_mode
       port map (
@@ -109,8 +111,8 @@ begin
          cursor_x_i       => cursor_x_i,
          cursor_y_i       => cursor_y_i,
          -- Pixel Counters
-         pixel_x_i        => pixel_adj_x,
-         pixel_y_i        => pixel_adj_y,
+         pixel_x_i        => pixel_x_text,
+         pixel_y_i        => pixel_y_text,
          frame_i          => frame,
          -- Interface to Video RAM
          display_addr_o   => display_addr_o,
@@ -129,6 +131,9 @@ begin
    -- Instantiate Sprites
    -----------------------
 
+   pixel_x_sprite <= pixel_x - delay_text;
+   pixel_y_sprite <= pixel_y;
+
    i_vga_spite : entity work.vga_sprite
       generic map (
          G_INDEX_SIZE    => G_INDEX_SIZE
@@ -138,8 +143,8 @@ begin
          -- Configuration from Register Map
          sprite_enable_i => sprite_enable_i,
          -- Pixel Counters
-         pixel_x_i       => pixel_x,
-         pixel_y_i       => pixel_y,
+         pixel_x_i       => pixel_x_sprite,
+         pixel_y_i       => pixel_y_sprite,
          color_i         => color_text,
          -- Interface to Video RAM
          config_addr_o   => sprite_config_addr_o,

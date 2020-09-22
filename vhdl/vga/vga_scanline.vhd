@@ -7,19 +7,17 @@ use ieee.numeric_std.all;
 -- It stores 16-bit words for each of the 640 pixels.
 --
 -- Signals:
--- * wr_addr_i : Left-most X-coordinate of data to write
+-- * addr_i    : Left-most X-coordinate of data
 -- * wr_data_i : 32 words for consecutive pixels
--- * wr_en_i   : Update each of the 32 pixels
--- * rd_addr_i : X-coordinate of a single pixel to read
+-- * wr_en_i   : Update each of the next 32 pixels
 -- * rd_data_o : Word corresponding to this pixel
 
 entity vga_scanline is
    port (
       clk_i     : in  std_logic;
-      wr_addr_i : in  std_logic_vector(9 downto 0);
+      addr_i    : in  std_logic_vector(9 downto 0);
       wr_data_i : in  std_logic_vector(511 downto 0);
       wr_en_i   : in  std_logic_vector(31 downto 0);
-      rd_addr_i : in  std_logic_vector(9 downto 0);
       rd_data_o : out std_logic_vector(15 downto 0)
    );
 end vga_scanline;
@@ -47,9 +45,15 @@ architecture synthesis of vga_scanline is
    signal b_wr_en       : std_logic_vector(31 downto 0);
    signal b_rd_data     : std_logic_vector(511 downto 0);
 
+--   attribute mark_debug              : boolean;
+--   attribute mark_debug of addr_i    : signal is true;
+--   attribute mark_debug of wr_data_i : signal is true;
+--   attribute mark_debug of wr_en_i   : signal is true;
+--   attribute mark_debug of rd_data_o : signal is true;
+
 begin
 
-   wr_offset       <= conv_integer(wr_addr_i(4 downto 0));
+   wr_offset       <= conv_integer(addr_i(4 downto 0));
 
    data_concat     <= wr_data_i & wr_data_i;
    data_rot        <= data_concat(1023 - wr_offset*16 downto 512 - wr_offset*16);
@@ -60,7 +64,7 @@ begin
    b_enable_concat <= C_ZEROES & wr_en_i;
    b_enable_rot    <= b_enable_concat(63 - wr_offset downto 32 - wr_offset);
 
-   a_addr          <= wr_addr_i(9 downto 5) when wr_en_i /= 0 else rd_addr_i(9 downto 5);
+   a_addr          <= addr_i(9 downto 5);
    a_wr_data       <= data_rot;
    a_wr_en         <= a_enable_rot;
 
@@ -99,7 +103,7 @@ begin
    p_rd_offset : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         rd_offset <= conv_integer(rd_addr_i(4 downto 0));
+         rd_offset <= conv_integer(addr_i(4 downto 0));
       end if;
    end process p_rd_offset;
 
