@@ -242,6 +242,14 @@ begin
    -- Output scanline
    scanline_rd_addr <= stage2.pixel_x;
 
+   -- Stage 3 : Copy color from Stage 2
+   p_stage3 : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         stage3.color   <= stage2.color;
+      end if;
+   end process p_stage3;
+
    color_o <= stage3.color when scanline_rd_data(15) = '1' else  -- transparent
               scanline_rd_data;                                  -- visible
    delay_o <= std_logic_vector(to_unsigned(3, 10));
