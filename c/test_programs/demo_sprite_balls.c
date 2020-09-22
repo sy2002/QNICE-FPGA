@@ -2,7 +2,7 @@
  *
  *  This program demonstrates bouncing balls using all 128 sprites.
  *
- *  How to compile: qvc demo_sprite_balls.c -O3 -c99
+ *  How to compile: qvc demo_sprite_balls.c sprite.c rand.c images.c -O3 -c99
  *
  *  done by MJoergen in September 2020
 */
@@ -11,264 +11,158 @@
 
 #include "qmon.h"
 #include "sysdef.h"
+#include "sprite.h"
+#include "rand.h"
+#include "images.h"
 
 // convenient mechanism to access QNICE's Memory Mapped IO registers
 #define MMIO( __x ) *((unsigned int volatile *) __x )
 
-// low level write to Sprite RAM
-static void sprite_wr(unsigned int addr, unsigned int data)
+typedef struct
 {
-   MMIO(VGA_SPRITE_ADDR) = addr;
-   MMIO(VGA_SPRITE_DATA) = data;
-} // end of sprite_wr
-
-#define NUM_SPRITES 128
-
-
-typedef unsigned int t_bitmap[32*32/4];
-
-static const t_bitmap bitmap_r16 = {
-   0x0000, 0x0000, 0x0000, 0x1111, 0x1111, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0111, 0x1111, 0x1111, 0x1110, 0x0000, 0x0000,
-   0x0000, 0x0001, 0x1111, 0x1111, 0x1111, 0x1111, 0x1000, 0x0000,
-   0x0000, 0x0011, 0x1111, 0x1111, 0x1111, 0x1111, 0x1100, 0x0000,
-   0x0000, 0x0111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1110, 0x0000,
-   0x0000, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x0000,
-   0x0001, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1000,
-   0x0011, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1100,
-   0x0011, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1100,
-   0x0111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1110,
-   0x0111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1110,
-   0x0111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1110,
-   0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-   0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-   0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-   0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-   0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-   0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-   0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-   0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-   0x0111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1110,
-   0x0111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1110,
-   0x0111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1110,
-   0x0011, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1100,
-   0x0011, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1100,
-   0x0001, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1000,
-   0x0000, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x0000,
-   0x0000, 0x0111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1110, 0x0000,
-   0x0000, 0x0011, 0x1111, 0x1111, 0x1111, 0x1111, 0x1100, 0x0000,
-   0x0000, 0x0001, 0x1111, 0x1111, 0x1111, 0x1111, 0x1000, 0x0000,
-   0x0000, 0x0000, 0x0111, 0x1111, 0x1111, 0x1110, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x1111, 0x1111, 0x0000, 0x0000, 0x0000
-};
-
-static const t_bitmap bitmap_r8 = {
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0111, 0x1110, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0001, 0x1111, 0x1111, 0x1000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0011, 0x1111, 0x1111, 0x1100, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0111, 0x1111, 0x1111, 0x1110, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0111, 0x1111, 0x1111, 0x1110, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x1111, 0x1111, 0x1111, 0x1111, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x1111, 0x1111, 0x1111, 0x1111, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x1111, 0x1111, 0x1111, 0x1111, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x1111, 0x1111, 0x1111, 0x1111, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x1111, 0x1111, 0x1111, 0x1111, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x1111, 0x1111, 0x1111, 0x1111, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0111, 0x1111, 0x1111, 0x1110, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0111, 0x1111, 0x1111, 0x1110, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0011, 0x1111, 0x1111, 0x1100, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0001, 0x1111, 0x1111, 0x1000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0111, 0x1110, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
-};
-
-
-// Copy bitmap to sprite bitmap memory, and return address used
-static unsigned int sprite_add_bitmap(const t_bitmap *pBitmap)
-{
-   static unsigned int bitmap_ptr = VGA_SPRITE_BITMAP;   // Initialized to first free bitmap
-
-   for (int i=0; i<32*32/4; ++i)
-   {
-      sprite_wr(bitmap_ptr+i, *(((const unsigned int *)pBitmap) + i));
-   }
-
-   unsigned int addr = bitmap_ptr;
-   bitmap_ptr += 32*32/4;                                // Update bitmap_ptr
-   return addr;
-} // sprite_add_bitmap
-
+   int x;
+   int y;
+} t_vec;
 
 typedef struct
 {
-   int pos_x_scaled;             // Units of 1/32 pixels
-   int pos_y_scaled;             // Units of 1/32 pixels
-   int vel_x_scaled;             // Units of 1/32 pixels/frame
-   int vel_y_scaled;             // Units of 1/32 pixels/frame
-   unsigned int radius_scaled;   // Units of 1/32 pixels
-   unsigned int bitmap_ptr;
-   unsigned int color;
+   long x;
+   long y;
+} t_longvec;
+
+typedef struct
+{
+   t_vec                 pos_scaled;      // Units of 1/32 pixels
+   t_vec                 vel_scaled;      // Units of 1/32 pixels
+   unsigned int          radius_scaled;   // Units of 1/32 pixels
+   unsigned int          mass;
+   const t_sprite_bitmap *sprite_bitmap;
+   unsigned int          color;
+   int                   collided;
 } t_ball;
 
+#define NUM_SPRITES 8
+
 t_ball balls[NUM_SPRITES];
-
-static void sprite_init(unsigned int sprite_num, const t_ball ball)
-{
-   // Clear sprite palette
-   unsigned int addr = VGA_SPRITE_PALETTE + sprite_num*16;
-   for (int i=0; i<16; ++i)
-   {
-      sprite_wr(addr++, VGA_COLOR_TRANSPARENT);
-   }
-
-   // Set sprite palette index 1
-   sprite_wr(VGA_SPRITE_PALETTE + 1 + sprite_num*16, ball.color);
-
-   int pos_x = ball.pos_x_scaled / 32;
-   int pos_y = ball.pos_y_scaled / 32;
-
-   // Configure sprite
-   sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_BITMAP_PTR + sprite_num*4, ball.bitmap_ptr);
-   sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_CSR        + sprite_num*4, VGA_SPRITE_CSR_VISIBLE);
-} // sprite_init
-
-static unsigned int rand()
-{
-   static unsigned long g_seed = 3;
-
-	const unsigned long A = 48271;
-
-	unsigned long low  = (g_seed & 0x7fff) * A;
-	unsigned long high = (g_seed >> 15)    * A;
-
-	unsigned long x = low + ((high & 0xffff) << 15) + (high >> 16);
-
-	x = (x & 0x7fffffff) + (x >> 31);
-   g_seed = x;
-
-   return g_seed >> 8;
-}
-
-#define NUM_ELEMENTS(x) (sizeof(x)/sizeof(*x))
 
 static void init_all_sprites()
 {
    // Enable sprites
    MMIO(VGA_STATE) |= VGA_EN_SPRITE;
 
-   // Initialize images
-   struct
-   {
-      unsigned int radius_scaled;
-      unsigned int bitmap_ptr;
-   } images[2];
-
-   images[0].radius_scaled = 8*32;
-   images[0].bitmap_ptr    = sprite_add_bitmap(&bitmap_r8);
-
-   images[1].radius_scaled = 16*32;
-   images[1].bitmap_ptr    = sprite_add_bitmap(&bitmap_r16);
-
-   // Initialize colors
-   const unsigned int colors[] = {
-      VGA_COLOR_DARK_GRAY,
-      VGA_COLOR_RED,
-      VGA_COLOR_BLUE,
-      VGA_COLOR_GREEN,
-      VGA_COLOR_BROWN,
-      VGA_COLOR_PURPLE,
-      VGA_COLOR_LIGHT_GRAY,
-      VGA_COLOR_LIGHT_GREEN,
-      VGA_COLOR_LIGHT_BLUE,
-      VGA_COLOR_CYAN,
-      VGA_COLOR_ORANGE,
-      VGA_COLOR_YELLOW,
-      VGA_COLOR_TAN,
-      VGA_COLOR_PINK,
-      VGA_COLOR_WHITE
-   };
- 
    // Initialize each sprite
    for (unsigned int i=0; i<NUM_SPRITES; ++i)
    {
-      int image_index = rand()%NUM_ELEMENTS(images);
-      int color_index = rand()%NUM_ELEMENTS(colors);
+      int image_index = my_rand()%NUM_IMAGES;
 
-      balls[i].pos_x_scaled  = (rand()%640)*32;
-      balls[i].pos_y_scaled  = (rand()%480)*32;
-      balls[i].vel_x_scaled  = rand()%64-32;
-      balls[i].vel_y_scaled  = rand()%64-32;
+      balls[i].pos_scaled.x  = (my_rand()%640)*32;
+      balls[i].pos_scaled.y  = (my_rand()%480)*32;
+      balls[i].vel_scaled.x  = my_rand()%64-32;
+      balls[i].vel_scaled.y  = my_rand()%64-32;
       balls[i].radius_scaled = images[image_index].radius_scaled;
-      balls[i].bitmap_ptr    = images[image_index].bitmap_ptr;
-      balls[i].color         = colors[color_index];
+      balls[i].mass          = images[image_index].mass;
+      balls[i].sprite_bitmap = images[image_index].sprite_bitmap;
+      balls[i].color         = my_rand()&0x7FFF;
+      balls[i].collided      = 0;
 
-      sprite_init(i, balls[i]);
+      t_sprite_palette palette = sprite_palette_transparent;
+      palette[1] = balls[i].color;
+      sprite_set_palette(i, palette);
+      sprite_set_bitmap(i, *(balls[i].sprite_bitmap));
+      sprite_set_config(i, VGA_SPRITE_CSR_VISIBLE);
    }
 } // init_all_sprites
+
+static t_vec calcNewVelocity(int mass1, int mass2, t_vec pos1, t_vec pos2, t_vec vel1, t_vec vel2)
+{
+   long f = 256L*2*mass2/(mass1+mass2);
+
+   t_longvec delta_pos = {.x=pos1.x-pos2.x, .y=pos1.y-pos2.y};
+   t_longvec delta_vel = {.x=vel1.x-vel2.x, .y=vel1.y-vel2.y};
+
+   long dvdc = delta_pos.x*delta_vel.x + delta_pos.y*delta_vel.y;
+   long dcdc = delta_pos.x*delta_pos.x + delta_pos.y*delta_pos.y;
+
+   t_vec result = vel1;
+   result.x -= dvdc*delta_pos.x*f/dcdc/256;
+   result.y -= dvdc*delta_pos.y*f/dcdc/256;
+
+   if (dvdc > 0)
+      return vel1;
+   else
+      return result;
+}
 
 static void update()
 {
    for (unsigned int i=0; i<NUM_SPRITES; ++i)
    {
       t_ball *pBall = &balls[i];
+      pBall->collided = 0;
 
-      pBall->pos_x_scaled += pBall->vel_x_scaled;
-      pBall->pos_y_scaled += pBall->vel_y_scaled;
+      pBall->pos_scaled.x += pBall->vel_scaled.x;
+      pBall->pos_scaled.y += pBall->vel_scaled.y;
 
-      if (pBall->pos_x_scaled < pBall->radius_scaled && pBall->vel_x_scaled < 0)
+      if (pBall->pos_scaled.x < pBall->radius_scaled && pBall->vel_scaled.x < 0)
       {
-         pBall->pos_x_scaled = pBall->radius_scaled;
-         pBall->vel_x_scaled = -pBall->vel_x_scaled;
+         pBall->pos_scaled.x = pBall->radius_scaled;
+         pBall->vel_scaled.x = -pBall->vel_scaled.x;
       }
 
-      if (pBall->pos_x_scaled >= 640*32-pBall->radius_scaled && pBall->vel_x_scaled > 0)
+      if (pBall->pos_scaled.x >= 640*32-pBall->radius_scaled && pBall->vel_scaled.x > 0)
       {
-         pBall->pos_x_scaled = 640*32-1-pBall->radius_scaled;
-         pBall->vel_x_scaled = -pBall->vel_x_scaled;
+         pBall->pos_scaled.x = 640*32-1-pBall->radius_scaled;
+         pBall->vel_scaled.x = -pBall->vel_scaled.x;
 
       }
 
-      if (pBall->pos_y_scaled < pBall->radius_scaled && pBall->vel_y_scaled < 0)
+      if (pBall->pos_scaled.y < pBall->radius_scaled && pBall->vel_scaled.y < 0)
       {
-         pBall->pos_y_scaled = pBall->radius_scaled;
-         pBall->vel_y_scaled = -pBall->vel_y_scaled;
+         pBall->pos_scaled.y = pBall->radius_scaled;
+         pBall->vel_scaled.y = -pBall->vel_scaled.y;
       }
 
-      if (pBall->pos_y_scaled >= 480*32-pBall->radius_scaled && pBall->vel_y_scaled > 0)
+      if (pBall->pos_scaled.y >= 480*32-pBall->radius_scaled && pBall->vel_scaled.y > 0)
       {
-         pBall->pos_y_scaled = 480*32-1-pBall->radius_scaled;
-         pBall->vel_y_scaled = -pBall->vel_y_scaled;
+         pBall->pos_scaled.y = 480*32-1-pBall->radius_scaled;
+         pBall->vel_scaled.y = -pBall->vel_scaled.y;
       }
 
-//      for (unsigned int j=i+1; j<NUM_SPRITES; ++j)
-//      {
-//         t_ball *pOtherBall = &balls[j];
-//         long diff_pos_x_scaled = pOtherBall->pos_x_scaled - pBall->pos_x_scaled;
-//         long diff_pos_y_scaled = pOtherBall->pos_y_scaled - pBall->pos_y_scaled;
-//         long sum_r_scaled = pBall->radius_scaled + pOtherBall->radius_scaled;
-//
-//         if (diff_pos_x_scaled*diff_pos_x_scaled +
-//             diff_pos_y_scaled*diff_pos_y_scaled <
-//             sum_r_scaled*sum_r_scaled)
-//         {
-//            // The two balls have collided
-//         }
-//      }
+      for (unsigned int j=i+1; j<NUM_SPRITES; ++j)
+      {
+         t_ball *pOtherBall = &balls[j];
+
+         t_longvec diff_pos_scaled;
+         diff_pos_scaled.x = pOtherBall->pos_scaled.x - pBall->pos_scaled.x;
+         diff_pos_scaled.y = pOtherBall->pos_scaled.y - pBall->pos_scaled.y;
+
+         long sum_r_scaled = pBall->radius_scaled + pOtherBall->radius_scaled;
+
+         if (diff_pos_scaled.x*diff_pos_scaled.x +
+             diff_pos_scaled.y*diff_pos_scaled.y <
+             sum_r_scaled*sum_r_scaled)
+         {
+            // The two balls have collided
+            pBall->collided = 1;
+            pOtherBall->collided = 1;
+
+            pBall->vel_scaled = calcNewVelocity(
+                  pBall->     mass,
+                  pOtherBall->mass,
+                  pBall->     pos_scaled,
+                  pOtherBall->pos_scaled,
+                  pBall->     vel_scaled,
+                  pOtherBall->vel_scaled);
+
+            pOtherBall->vel_scaled = calcNewVelocity(
+                  pOtherBall->mass,
+                  pBall->     mass,
+                  pOtherBall->pos_scaled,
+                  pBall->     pos_scaled,
+                  pOtherBall->vel_scaled,
+                  pBall->     vel_scaled);
+         }
+      }
    }
 } // update
 
@@ -278,17 +172,30 @@ static void draw()
    {
       t_ball *pBall = &balls[i];
 
-      int pos_x = pBall->pos_x_scaled/32 - 16;
-      int pos_y = pBall->pos_y_scaled/32 - 16;
+      int pos_x = pBall->pos_scaled.x/32 - 16;
+      int pos_y = pBall->pos_scaled.y/32 - 16;
 
       // Configure sprite
-      sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_POS_X + i*4, pos_x);
-      sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_POS_Y + i*4, pos_y);
+      sprite_set_position(i, pos_x, pos_y);
+
+      if (pBall->collided)
+      {
+         t_sprite_palette palette = sprite_palette_transparent;
+         palette[1] = VGA_COLOR_WHITE;
+         sprite_set_palette(i, palette);
+      }
+      else
+      {
+         t_sprite_palette palette = sprite_palette_transparent;
+         palette[1] = balls[i].color;
+         sprite_set_palette(i, palette);
+      }
    }
 } // draw
 
 int main()
 {
+   my_srand(MMIO(IO_CYC_LO));
    init_all_sprites();
    while (1)
    {
