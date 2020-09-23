@@ -61,8 +61,8 @@ static void init_all_sprites()
 
       balls[i].pos_scaled.x  = (my_rand()%(640-64)+32)*POS_SCALE;
       balls[i].pos_scaled.y  = (my_rand()%(480-64)+32)*POS_SCALE;
-      balls[i].vel_scaled.x  = (my_rand()%VEL_SCALE-VEL_SCALE/2)*4;
-      balls[i].vel_scaled.y  = (my_rand()%VEL_SCALE-VEL_SCALE/2)*4;
+      balls[i].vel_scaled.x  = my_rand()%VEL_SCALE-VEL_SCALE/2;
+      balls[i].vel_scaled.y  = my_rand()%VEL_SCALE-VEL_SCALE/2;
       balls[i].radius_scaled = images[image_index].radius_scaled*POS_SCALE;
       balls[i].mass          = images[image_index].mass;
       balls[i].sprite_bitmap = images[image_index].sprite_bitmap;
@@ -71,25 +71,27 @@ static void init_all_sprites()
 
       t_sprite_palette palette = sprite_palette_transparent;
       palette[1] = balls[i].color;
-      sprite_set_palette(4+i, palette);
-      sprite_set_bitmap(4+i, *(balls[i].sprite_bitmap));
-      sprite_set_config(4+i, VGA_SPRITE_CSR_VISIBLE);
+      sprite_set_palette(i, palette);
+      sprite_set_bitmap(i, *(balls[i].sprite_bitmap));
+      sprite_set_config(i, VGA_SPRITE_CSR_VISIBLE);
    }
 } // init_all_sprites
 
+// This function is written based on this article:
+// https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
 static t_vec calcNewVelocity(int mass1, int mass2, t_vec pos1, t_vec pos2, t_vec vel1, t_vec vel2)
 {
    t_longvec delta_pos = {.x=pos1.x-pos2.x, .y=pos1.y-pos2.y};
    t_longvec delta_vel = {.x=vel1.x-vel2.x, .y=vel1.y-vel2.y};
 
-   long dvdc = (delta_pos.x*delta_vel.x + delta_pos.y*delta_vel.y)/VEL_SCALE;
-   long dcdc = (delta_pos.x*delta_pos.x + delta_pos.y*delta_pos.y)/VEL_SCALE;
+   long dpdv = (delta_pos.x*delta_vel.x + delta_pos.y*delta_vel.y)/VEL_SCALE;
+   long dpdp = (delta_pos.x*delta_pos.x + delta_pos.y*delta_pos.y)/VEL_SCALE;
 
    t_vec result = vel1;
-   if (dvdc < 0)
+   if (dpdv < 0)
    {
-      long divisor = dcdc*(mass1+mass2);
-      long dividend = 2L*(-dvdc)*mass2;
+      long divisor = dpdp*(mass1+mass2);
+      long dividend = 2L*(-dpdv)*mass2;
 
       long dx = dividend*delta_pos.x;
       if (dx > 0)
@@ -200,19 +202,19 @@ static void draw()
       int pos_y = pBall->pos_scaled.y/POS_SCALE - 16;
 
       // Configure sprite
-      sprite_set_position(4+i, pos_x, pos_y);
+      sprite_set_position(i, pos_x, pos_y);
 
       if (pBall->collided)
       {
          t_sprite_palette palette = sprite_palette_transparent;
          palette[1] = VGA_COLOR_WHITE;
-         sprite_set_palette(4+i, palette);
+         sprite_set_palette(i, palette);
       }
       else
       {
          t_sprite_palette palette = sprite_palette_transparent;
          palette[1] = balls[i].color;
-         sprite_set_palette(4+i, palette);
+         sprite_set_palette(i, palette);
       }
    }
 } // draw
