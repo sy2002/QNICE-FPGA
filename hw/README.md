@@ -39,17 +39,16 @@ General advice for porting
   hardware's or port's name. Start modifying this top file to fit your needs.
 
 * If you are not on Xilinx hardware, then the first thing you might want to do
-  is to comment out everything related to the Xilinx `MMCME` based generation
-  of the 25.175 MHz VGA pixelclock in `env1.vhd`. Even though the 25.175 MHz
-  pixelclock generates a better and sharper image on most displays, the 25 MHz
-  version is also absolutely OK and it is more portable, as it only relies on
-  a simple clock divider to generate the pixelclock. So you might want to
-  comment out the `UNISIM` library and the `MMCME` instantiation that
-  generates the signal `clk25MHz` and comment in the clock divider process
-  `generate_clk25MHz : process(SLOW_CLOCK)` instead. Do not forget to
-  set appropriate timing constraints for the clock in the IDE or development
-  environment of your choice; `TS_clk25MHz` in `env1.ucf` might be an
-  inspiration.
+  is to rewrite the file `clk.vhd`. The idea behind this file is to gather
+  together everything related to clock generation in a single file with no
+  other responsibilities, so as to simplify porting.  Currently, this file
+  makes use of the Xilinx primitive `MMCME`, which is a PLL that generates the
+  CPU clock speed of 50 MHz, and the VGA clock speed of 25.2 MHz. If your
+  hardware does not support PLL's then you may use a 25.0 MHz clock for the VGA
+  signal, this is absolutely ok. A clock frequency of 25.0 MHz may be generated
+  using a simple clock divider.  Do not forget to set appropriate timing
+  constraints for the clock in the IDE or development environment of your
+  choice; `TS_clk25MHz` in `env1.ucf` might be an inspiration.
 
 * In the file `hw/xilinx/nexys4ddr/ISE/env1.ucf` you will find advice
   about how to do the mapping from the NETs to the hardware's pins and what
