@@ -4,6 +4,9 @@
  *
  *  How to compile:  qvc world.c sprite.c -c99
  *
+ *  The planet sprite was made by Viktor Hahn (Viktor.Hahn@web.de), who licensed
+ *  it under the Creative Commons Attribution 4.0 International License (CC BY 4.0).
+ *
  *  done by MJoergen in September 2020
 */
 
