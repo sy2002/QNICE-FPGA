@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-static unsigned int count;
+static int count;
 static long sum;
 static int min;
 static int max;
@@ -27,8 +27,8 @@ void stat_update(int data)
 
 void stat_show()
 {
+   printf("Min  = %d\n", min);
    printf("Mean = %ld\n", sum/count);
-   printf("Min = %d\n", min);
-   printf("Max = %d\n", max);
+   printf("Max  = %d\n", max);
 }
 
