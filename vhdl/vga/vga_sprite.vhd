@@ -3,9 +3,11 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 
+-- This is the main block for rendering sprites.
+
 entity vga_sprite is
    generic (
-      G_INDEX_SIZE    : integer
+      G_INDEX_SIZE    : integer     -- Number of sprites = 2^G_INDEX_SIZE
    );
    port (
       clk_i           : in  std_logic;
@@ -15,6 +17,7 @@ entity vga_sprite is
       -- Pixel Counters
       pixel_x_i       : in  std_logic_vector(9 downto 0);
       pixel_y_i       : in  std_logic_vector(9 downto 0);
+      -- Color information from text layer
       color_i         : in  std_logic_vector(15 downto 0);
       -- Interface to Sprite Config RAM
       config_addr_o   : out std_logic_vector(G_INDEX_SIZE-1 downto 0);  -- 1 entry per sprite
@@ -25,7 +28,7 @@ entity vga_sprite is
       -- Interface to Sprite Bitmap RAM
       bitmap_addr_o   : out std_logic_vector(G_INDEX_SIZE+4 downto 0);  -- 32 entries per sprite
       bitmap_data_i   : in  std_logic_vector(127 downto 0);             -- 8 words
-      -- Current pixel color
+      -- Modified pixel color
       color_o         : out std_logic_vector(15 downto 0);
       delay_o         : out std_logic_vector(9 downto 0)
    );
@@ -82,6 +85,14 @@ architecture synthesis of vga_sprite is
       color            : std_logic_vector(15 downto 0);
    end record t_stage5;
 
+   -- Pixel budget
+   constant C_START_READ   : integer := 0;
+   constant C_STOP_READ    : integer := 639;
+   constant C_START_CLEAR  : integer := C_STOP_READ + 1;
+   constant C_STOP_CLEAR   : integer := C_STOP_READ + C_START_CLEAR/32;
+   constant C_STOP_RENDER  : integer := 799;
+   constant C_START_RENDER : integer := C_STOP_RENDER + 1 - 2**G_INDEX_SIZE;
+
    -- Decoding of the Config register
    constant C_CONFIG_RES_LOW    : integer := 0;
    constant C_CONFIG_BACKGROUND : integer := 1;
@@ -122,7 +133,7 @@ begin
    -- Determine which sprite to process
    stage0.color      <= color_i;
    stage0.pixel_x    <= pixel_x_i;
-   stage0.num_temp   <= stage0.pixel_x - std_logic_vector(to_unsigned(640, 10));
+   stage0.num_temp   <= stage0.pixel_x - std_logic_vector(to_unsigned(C_START_RENDER, 10));
    stage0.sprite_num <= not stage0.num_temp(G_INDEX_SIZE-1 downto 0);   -- Invert to start from sprite number 127
 
    -- Read configuration (4 words) and palette (16 words)
@@ -189,6 +200,8 @@ begin
          variable color_index : integer range 0 to 15;
          variable j           : integer range 0 to 31;
 
+         -- This inverts the two lowest bits.
+         -- Essentially the same as "xor 3".
          function swap(arg : integer) return integer is
             variable j : integer;
             variable k : integer;
@@ -213,15 +226,9 @@ begin
 
    -- Process scanline
    p_stage3 : process (clk_i)
-      constant C_START_READ   : integer := 0;
-      constant C_STOP_READ    : integer := 639;
-      constant C_START_CLEAR  : integer := C_STOP_READ + 1;
-      constant C_STOP_CLEAR   : integer := C_STOP_READ + C_START_CLEAR/32;
-      constant C_START_RENDER : integer := C_STOP_CLEAR + 1;
-      constant C_STOP_RENDER  : integer := C_STOP_CLEAR + 2**G_INDEX_SIZE;
    begin
       if rising_edge(clk_i) then
-         stage3.color <= stage2.color;
+         stage3.color <= stage2.color;    -- Copy signals from Stage 2.
 
          case conv_integer(stage2.pixel_x) is
             when C_START_READ to C_STOP_READ =>
@@ -266,18 +273,6 @@ begin
    end process p_stage3;
 
 
-   -- This contains the colors of all pixels in the current scanline.
-   -- It is written to during the horizontal porch of the previous scanline.
-   i_vga_scanline : entity work.vga_scanline
-      port map (
-         clk_i     => clk_i,
-         addr_i    => stage3.scanline_addr,
-         wr_data_i => stage3.scanline_wr_data,
-         wr_en_i   => stage3.scanline_wr_en,
-         rd_data_o => stage4.scanline_rd_data
-      ); -- i_vga_scanline
-
-
    ----------------------------------------------
    -- Stage 4
    ----------------------------------------------
@@ -304,6 +299,21 @@ begin
          end if;
       end if;
    end process p_stage5;
+
+
+   ----------------------------------------------
+   -- Instantiate scanline memory
+   ----------------------------------------------
+
+   i_vga_scanline : entity work.vga_scanline
+      port map (
+         clk_i     => clk_i,
+         addr_i    => stage3.scanline_addr,
+         wr_data_i => stage3.scanline_wr_data,
+         wr_en_i   => stage3.scanline_wr_en,
+         rd_data_o => stage4.scanline_rd_data
+      ); -- i_vga_scanline
+
 
    color_o <= stage5.color;
    delay_o <= std_logic_vector(to_unsigned(5, 10));

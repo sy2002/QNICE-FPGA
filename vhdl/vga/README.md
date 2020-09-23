@@ -46,7 +46,7 @@ Domain Crossing".
 This block receives configuration signals from the `vga_register_map` block
 (via "Clock Domain Crossing") as well as reads from the four parts of the Video
 RAM (Display RAM, Font RAM, Palette RAM, and Sprite RAM). From these, this
-block generates the VGA output signals.  This block consists of these three sub
+block generates the VGA output signals.  This block consists of these four sub
 blocks:
 * `vga_pixel_counters`
 * `vga_text_mode`
@@ -98,20 +98,49 @@ one for each of:
 * Sprite Palette RAM (16 words for each sprite)
 * Sprite Bitmap RAM (32k words in total)
 
+----------------------------------------------------------
+
 ## `vga_sprite`
-This block works by completely rendering an entire horizontal scanline, and
-then storing it in memory.  This rendering takes place in the few pixel clock
-cycles before the scanline is to be displayed, i.e. during the horizontal porch.
+We now end this document by returning to the most complicated part of the
+design.  The `vga_sprite` block works by completely rendering an entire
+horizontal scanline, and then storing it in memory until it is to be displayed.
 
-So this block actually consists of three parts:
-* Renderer. This part is responsible for rendering and writing to the scanline memory.
-* Scanline memory. This block stores the current scanline being rendered.
-* Displayer. This part reads the pixels from the scanline memory.
+This block operates on a strict pixel budget as follows:
+* Pixels 0 to 639 : Read from a previously rendered scanline.
+* Pixels 640 to 659 : Clear the next scanline (32 pixels at a time).
+* Pixels 660 to 671 : Idle
+* Pixels 672 to 799 : Render next scanline (one sprite at a time).
 
-### Renderer
+The scanline is stored as a RAM containing the entire 16-bit color information
+about each of the 640 pixels. However, the scanline is accessed 32 pixels at a
+time; this is determined by the maximum width of a sprite.
+
+### Rendering
+The rendering process works in a pipelined fashion, where a new sprite is being
+processed on every clock cycle. The processing is broken down into a number of
+separate stages:
+1. First read the configruation and palette (this gives the bitmap pointer and
+   the sprite coordinates).
+2. Use the sprite y-coordinate to read the corresponding row of 32 pixels from
+   the bitmap memory. Then use the palette to translate all color indeces to
+   real 16-bit color.
+3. Store the row of 32 pixels into the scanline memory.
 
 ### Scanline memory
+This block is implemented in the file `vga_scanline.vhd`.  The input to this
+block is simply a data bus of 32 pixels and an address bus indicating the pixel
+number. It allows writing a block of 32 pixels.  The tricky part is that the
+address is allowed to be un-aligned, i.e.  not a multiple of 32 pixels.
 
-### Displayer
+Internally, the memory is organized as blocks of 32 pixels. Due to the
+un-aligned accesses it is necessary to do a partial write to two consecutive
+blocks. This is implemented using byte-enables, which is a built-in feature of
+the Xilinx BRAMs.
 
+The scanline memory uses 16 BRAMs. This seems way too much sine the amount of
+information is only 640\*16 bits, which easily fits inside a single BRAM.
+However, a single BRAM only supports 4 byte-enable signals, but we need 32, one
+for each pixel.  More importantly though, since we are reading a block of 32
+pixels at a time we require a data bus of 32\*16 = 512 bits, and each BRAM
+only has a 32 bit data bus.
 
