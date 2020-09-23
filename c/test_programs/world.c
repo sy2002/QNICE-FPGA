@@ -640,10 +640,17 @@ int main()
       offset_x += offset_y/256;
 
       if (MMIO(IO_UART_SRA) & 1)
+      {
+         unsigned int tmp = MMIO(IO_UART_RHRA);
          break;
+      }
+      if (MMIO(IO_KBD_STATE) & KBD_NEW_ANY)
+      {
+         unsigned int tmp = MMIO(IO_KBD_DATA);
+         break;
+      }
    }
 
-   qmon_gets();
    return 0;
 }
 
