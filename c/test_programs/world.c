@@ -617,10 +617,9 @@ int main()
 
    for (int i=0; i<16; ++i)
    {
-      sprite_set_palette(i+10,  palette);
-      sprite_set_bitmap(i+10,   bitmaps[i]);
-      sprite_set_config(i+10,   VGA_SPRITE_CSR_VISIBLE);
-      sprite_set_position(i+10, 320-64+(~i%4)*32, 240-64+(i/4)*32);
+      sprite_set_palette(i,  palette);
+      sprite_set_bitmap(i,   bitmaps[i]);
+      sprite_set_config(i,   VGA_SPRITE_CSR_VISIBLE);
    }
 
    while (1)
@@ -631,12 +630,14 @@ int main()
       int pos_y = 240 + offset_y/256;
       for (int i=0; i<16; ++i)
       {
-         sprite_set_position(i+10, pos_x-64+(~i%4)*32, pos_y-64+(i/4)*32);
+         sprite_set_position(i, pos_x-64+(~i%4)*32, pos_y-64+(i/4)*32);
       }
 
       offset_y -= offset_x/256;
       offset_x += offset_y/256;
 
+      if (MMIO(IO_UART_SRA) & 1)
+         break;
    }
 
    qmon_gets();
