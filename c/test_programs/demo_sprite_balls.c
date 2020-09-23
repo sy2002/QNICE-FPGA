@@ -14,6 +14,7 @@
 #include "sprite.h"
 #include "rand.h"
 #include "images.h"
+#include "stat.h"
 
 // convenient mechanism to access QNICE's Memory Mapped IO registers
 #define MMIO( __x ) *((unsigned int volatile *) __x )
@@ -41,7 +42,7 @@ typedef struct
    int                   collided;
 } t_ball;
 
-#define NUM_SPRITES 24
+#define NUM_SPRITES 45
 
 t_ball balls[NUM_SPRITES];
 
@@ -55,14 +56,14 @@ static void init_all_sprites()
    {
       int image_index = my_rand()%NUM_IMAGES;
 
-      balls[i].pos_scaled.x  = (my_rand()%640)*32;
-      balls[i].pos_scaled.y  = (my_rand()%480)*32;
+      balls[i].pos_scaled.x  = (my_rand()%(640-64)+32)*32;
+      balls[i].pos_scaled.y  = (my_rand()%(480-64)+32)*32;
       balls[i].vel_scaled.x  = my_rand()%64-32;
       balls[i].vel_scaled.y  = my_rand()%64-32;
       balls[i].radius_scaled = images[image_index].radius_scaled;
       balls[i].mass          = images[image_index].mass;
       balls[i].sprite_bitmap = images[image_index].sprite_bitmap;
-      balls[i].color         = my_rand()&0x7FFF;
+      balls[i].color         = (my_rand()&0x7FFF) | 0xC63; // Avoid darks colors
       balls[i].collided      = 0;
 
       t_sprite_palette palette = sprite_palette_transparent;
@@ -208,15 +209,21 @@ int main()
    printf("Press any key to stop\n");
    my_srand(MMIO(IO_CYC_LO));
    init_all_sprites();
+   stat_clear();
    while (1)
    {
-      update();
-      while (MMIO(VGA_SCAN_LINE) == 480) {}
-      while (MMIO(VGA_SCAN_LINE) != 480) {}
-      draw();
+      // Wait until outside visible screen before updating hardware.
+      while (MMIO(VGA_SCAN_LINE) < 480) {}
+      draw();     // Update hardware
+
+      update();   // Update internal state
+      stat_update(MMIO(VGA_SCAN_LINE));   // Update statistics.
       if (MMIO(IO_UART_SRA) & 1)
          break;
    }
+   printf("\nScanline statistics (which scanline have we reached before next draw)?\n");
+   printf("Should all be below 480.\n");
+   stat_show();
 
    qmon_gets();
    return 0;
