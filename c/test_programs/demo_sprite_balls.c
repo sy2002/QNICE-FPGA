@@ -205,6 +205,7 @@ int main()
 {
    MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR; //hide cursor
    qmon_vga_cls();
+   sprite_clear_all();
    printf("Bouncing balls!\n");
    printf("Press any key to stop\n");
    my_srand(MMIO(IO_CYC_LO));

@@ -15,6 +15,8 @@ typedef unsigned int t_sprite_bitmap[32*32/4];
 
 void sprite_wr(unsigned int addr, unsigned int data);
 
+void sprite_clear_all();
+
 void sprite_set_palette(unsigned int sprite_num, const t_sprite_palette palette);
 
 void sprite_set_bitmap(unsigned int sprite_num, const t_sprite_bitmap bitmap);

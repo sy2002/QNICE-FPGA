@@ -12,6 +12,14 @@ void sprite_wr(unsigned int addr, unsigned int data)
 } // end of sprite_wr
 
 
+void sprite_clear_all()
+{
+   for (int i=0; i<128; ++i)
+   {
+      sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_CSR + i*4, 0);
+   }
+}
+
 void sprite_set_palette(unsigned int sprite_num, const t_sprite_palette palette)
 {
    unsigned int addr = VGA_SPRITE_PALETTE + sprite_num*16;

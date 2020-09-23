@@ -14,7 +14,7 @@
 
 #define NUM_IMAGES 2
 
-struct
+extern struct
 {
    unsigned int radius_scaled;
    unsigned int mass;
