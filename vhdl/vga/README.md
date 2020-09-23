@@ -105,25 +105,26 @@ We now end this document by returning to the most complicated part of the
 design.  The `vga_sprite` block works by completely rendering an entire
 horizontal scanline, and then storing it in memory until it is to be displayed.
 
-This block operates on a strict pixel budget as follows:
+This block operates on a strict pixel budget as follows, where the pixel
+numbers indicate the horizontal number of the currently displayed pixel.
 * Pixels 0 to 639 : Read from a previously rendered scanline.
 * Pixels 640 to 659 : Clear the next scanline (32 pixels at a time).
 * Pixels 660 to 671 : Idle
 * Pixels 672 to 799 : Render next scanline (one sprite at a time).
 
-The scanline is stored as a RAM containing the entire 16-bit color information
-about each of the 640 pixels. However, the scanline is accessed 32 pixels at a
+The scanline is stored as a RAM containing the 15-bit RGB color information
+for each of the 640 pixels. However, the scanline is accessed 32 pixels at a
 time; this is determined by the maximum width of a sprite.
 
 ### Rendering
 The rendering process works in a pipelined fashion, where a new sprite is being
 processed on every clock cycle. The processing is broken down into a number of
 separate stages:
-1. First read the configruation and palette (this gives the bitmap pointer and
+1. First read the configuration and palette (this gives the bitmap pointer and
    the sprite coordinates).
 2. Use the sprite y-coordinate to read the corresponding row of 32 pixels from
-   the bitmap memory. Then use the palette to translate all color indeces to
-   real 16-bit color.
+   the bitmap memory. Then use the palette to translate all color indices to
+   15-bit RGB color.
 3. Store the row of 32 pixels into the scanline memory.
 
 ### Scanline memory

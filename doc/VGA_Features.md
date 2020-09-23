@@ -127,7 +127,7 @@ Each sprite can have one of two resolutions:
 * 32x32 high-resolution with 4-bit color index. This 4-bit value serves as an
   index into a 16-color palette, individual for each sprite.
 * 16x16 low-resolution with 16-bit color depth. This 16-bit value provides
-  a direct 15-bit color output.
+  a direct 15-bit RGB color output.
 
 ### Display priority
 Lower numbered sprites appear in front of higher numbered sprites.
@@ -227,7 +227,7 @@ offset 3 : Control and Status Register (CSR)
 The X- and Y-position is the pixel number. A sprite may be moved off the left
 (or top) of the screen by setting a negative value (in two's complement) of the
 X- and Y-positions. E.g. setting the X position to `0xFFFF` moves the sprite
-one pixel left of the screen, so only the rightmost 31 columns are visible.
+one pixel left of the screen, so only the rightmost 31 pixels are visible.
 
 The bits in the Control and Status register have the following function:
 
@@ -246,8 +246,8 @@ The Sprite Palette RAM contains the 16-color palette of each sprite. The
 address within the Sprite RAM memory map of a given sprite's palette is
 simply `VGA_SPRITE_PALETTE + 16*sprite_number`.
 
-Each of the 16 words contains the 15-bit color of the corresponding index. Bit
-15 of each word indicates transparency: If this bit is set the
+Each of the 16 words contains the 15-bit RGB color of the corresponding index.
+Bit 15 of each word indicates transparency: If this bit is set the
 corresponding color is completely transparent, i.e. invisible.
 
 ### Sprite Bitmap RAM
