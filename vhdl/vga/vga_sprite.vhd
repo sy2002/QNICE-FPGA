@@ -60,7 +60,6 @@ architecture synthesis of vga_sprite is
       color            : std_logic_vector(15 downto 0);
       pixel_x          : std_logic_vector(9 downto 0);
       pos_x            : std_logic_vector(9 downto 0);
-      pos_y            : std_logic_vector(9 downto 0);
       config           : std_logic_vector(6 downto 0);
       palette          : std_logic_vector(255 downto 0);
       bitmap           : std_logic_vector(127 downto 0);
@@ -166,7 +165,8 @@ begin
    stage1.next_y     <= pixel_y_i + 1 when pixel_y_i /= 524 else (others => '0');
 
    -- Read sprite bitmap
-   stage1.diff_y     <= stage1.next_y - stage1.pos_y;
+   stage1.diff_y     <= stage1.next_y - stage1.pos_y when stage1.config(C_CONFIG_MIRROR_Y) = '0' else
+                        31 + stage1.pos_y - stage1.next_y;
    bitmap_addr_o     <= stage1.bitmap_ptr(G_INDEX_SIZE+7 downto 3) +
                         std_logic_vector(to_unsigned(conv_integer(stage1.diff_y(4 downto 0)), G_INDEX_SIZE+5));
 
@@ -183,7 +183,6 @@ begin
          stage2.pixel_x <= stage1.pixel_x;
          stage2.palette <= stage1.palette;
          stage2.pos_x   <= stage1.pos_x;
-         stage2.pos_y   <= stage1.pos_y;
          stage2.next_y  <= stage1.next_y;
          stage2.diff_y  <= stage1.diff_y;
          stage2.config  <= stage1.config;
@@ -213,7 +212,11 @@ begin
 
       begin
          j := swap(i);
-         color_index := conv_integer(stage2.bitmap(127-4*j downto 124-4*j));
+         if stage1.config(C_CONFIG_MIRROR_X) = '0' then
+            color_index := conv_integer(stage2.bitmap(127-4*j downto 124-4*j));
+         else
+            color_index := conv_integer(stage2.bitmap(3+4*j downto 4*j));
+         end if;
          stage2.pixels(15+16*i downto 16*i) <=
             stage2.palette(15+16*color_index downto 16*color_index);
       end process;
