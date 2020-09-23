@@ -87,8 +87,8 @@ struct
    unsigned int mass;
    const t_sprite_bitmap *sprite_bitmap;
 } images[NUM_IMAGES] = {
-   { 8*32, 8*8,   &bitmap_r8},
-   {16*32, 16*16, &bitmap_r16}
+   { 8,  8*8,  &bitmap_r8},
+   {16, 16*16, &bitmap_r16}
 };
 
 
