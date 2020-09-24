@@ -134,7 +134,7 @@ begin
    pixel_x_sprite <= pixel_x - delay_text;
    pixel_y_sprite <= pixel_y;
 
-   i_vga_spite : entity work.vga_sprite
+   i_vga_sprite : entity work.vga_sprite
       generic map (
          G_INDEX_SIZE    => G_INDEX_SIZE
       )
@@ -156,7 +156,7 @@ begin
          -- Current pixel color
          color_o         => color_sprite,
          delay_o         => delay_sprite
-      ); -- i_vga_sprites
+      ); -- i_vga_sprite
 
 
    -----------------------------------
