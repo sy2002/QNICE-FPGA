@@ -212,7 +212,7 @@ begin
 
       begin
          j := swap(i);
-         if stage1.config(C_CONFIG_MIRROR_X) = '0' then
+         if stage2.config(C_CONFIG_MIRROR_X) = '0' then
             color_index := conv_integer(stage2.bitmap(127-4*j downto 124-4*j));
          else
             color_index := conv_integer(stage2.bitmap(3+4*j downto 4*j));
