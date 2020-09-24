@@ -1,3 +1,42 @@
+/*
+ *  decoder.c
+ *
+ *  This tool transforms the output of lvgl's image converter to a format
+ *  that can be processed in a QNICE-FPGA demo such as world.c. 24-bit RGB
+ *  to QNICE's 15-bit RGB palette conversion is included.
+ *
+ *  done by MJoergen in September 2020
+ *
+ *  Here is the workflow of how to obtain such an image:
+ *
+ *  1. Go to a site like opengameart.org and grab some content.
+ * 
+ *     We used this here:
+ *     https://opengameart.org/content/15-planet-sprites
+ *     by Viktor Hahn (Viktor.Hahn@web.de), who licensed it under CC BY 4.0
+ *
+ *  2. Use an image processing tool to shrink the image to 128 x 128 pixels.
+ *
+ *  3. Use an image processing tool such as GIMP or Photoshop and reduce the
+ *     image to the so called "indexed color mode", which means that the
+ *     image has a palette in contrast to True Color or High Color. Choose
+ *     16 colors. Make sure that you play with GIMP's or Photoshop's palette
+ *     conversion and dithering options to obtain the best quality.
+ *
+ *  4. Save as PNG.
+ * 
+ *  5. Go to https://lvgl.io/tools/imageconverter, choose "indexed 16 colors"
+ *     and make a C file by choosing "C array". Do not check any dithering
+ *     option. If this website is not there any more, here is the source
+ *     code on GitHub:
+ *     https://github.com/lvgl/lv_utils/blob/master/img_conv_core.php
+ *
+ *  6. Copy the resulting C file in the planet[] array below.
+ * 
+ *  7. Run this tool and use the output from stdout.
+ * 
+*/
+
 #include <stdint.h>
 #include <stdio.h>
 
