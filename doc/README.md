@@ -34,6 +34,7 @@ Full documentation in alphabetical order
 * [Basics](#basics)
 * [Baud rate](IO_Devices.md#uart)
 * [C (how-to)](../README.md#programming-in-c)
+* [C optimizing compiler](vbcc.md#optimization)
 * [C programming best practices](best-practices.md#c)
 * [C specifics](vbcc.md)
 * [Constraints](constraints.md)

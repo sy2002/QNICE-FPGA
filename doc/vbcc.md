@@ -6,6 +6,17 @@ standard ISO/IEC 9899:1999 (C99).
 
 This is vbcc's website: http://www.compilers.de/vbcc.html
 
+## Optimization
+
+VBCC is a highly optimizing compiler, so don't be shy to work with `-O3`.
+If you experience problems, you can still go to a lower level of optimization.
+
+Use `-maxoptpasses=15` (or higher), if you get warnings like this:
+
+```
+warning 172 in function "xyz": would need more than 10 optimizer passes for best results
+```
+
 ## QNICE specifics
 
 ### Register bank switching

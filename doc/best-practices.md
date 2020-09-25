@@ -197,6 +197,7 @@ C
   `qvc <source> -c99 -O3`; this leads to best performance.
   If the output `.out` grows too large or does not work as expected, you
   might want to decrease the optimization level to `-O2` or `-O1`.
+  Have a look at [this section](vbcc.md#optimization) to learn more.
   The C99 standard using `-c99` is recommended for QNICE-FPGA.
 * If you need the intermediary files such as the assembler file that the
   compiler generates, then use the switch `-k`.
