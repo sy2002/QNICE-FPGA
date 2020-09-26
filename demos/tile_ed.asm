@@ -174,6 +174,8 @@ CHECK_KEYS      CMP     KBD$F1, R8              ; F1 = toggle sprite mode
                 RBRA    CHANGE_SIZE, Z
                 CMP     KBD$F5, R8              ; F5 = clear
                 RBRA    CLEAR, Z
+                CMP     KBD$F9, R8              ; F9 = palette editor
+                RBRA    PAL_ED, Z
                 CMP     KBD$F7, R8              ; F7 = toggle font mode
                 RBRA    _WFK_CHK_F12, !Z
                 MOVE    FONT_MODE, R11          ; are we already in font mode?
@@ -530,6 +532,12 @@ STR_CHG_SIZE_Y  .ASCII_W "Enter new height (1..36): "
 STR_CURCHAR     .ASCII_W "SELECTED:"
 STR_FOREGROUND  .ASCII_W "Foreground color:"
 STR_BACKGROUND  .ASCII_W "Background color:"
+STR_PAL_FG      .ASCII_W "Palette for foreground colors:"
+STR_PAL_BG      .ASCII_W "Palette for background colors:"
+STR_RGB15       .ASCII_W "15-bit RGB: "
+STR_RED         .ASCII_W "Red:        "
+STR_GREEN       .ASCII_W "Green:      "
+STR_BLUE        .ASCII_W "Blue:       "
 
 ; ****************************************************************************
 ; FONT_ED
@@ -954,6 +962,182 @@ _FONTED_FGBG1   MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
                 OR      0x0004, SR              ; set carry bit
 
 _FONTED_FGBG2   SYSCALL(leave, 1)
+                RET
+
+
+; ****************************************************************************
+; PAL_ED
+;    Main routine for palette editing: Not meant to be called via RSUB.
+;    Instead, it jumps back to the main loop
+; ****************************************************************************
+
+PAL_ED          SYSCALL(enter, 1)
+
+                MOVE    VGA$STATE, R0           ; cursor off
+                MOVE    VGA$EN_HW_CURSOR, R1
+                NOT     R1, R1
+                AND     R1, @R0
+
+                RSUB    _FONTED_CLR, 1          ; clear left side of workspace
+
+                MOVE    VGA$CR_X, R0            ; R0: hw cursor X
+                MOVE    VGA$CR_Y, R1            ; R1: hw cursor Y
+                MOVE    VGA$CHAR, R2            ; R2: print at hw cursor pos                
+
+                ; draw the color palette choosers
+                MOVE    STR_PAL_FG, R8          ; print foreground col. string
+                MOVE    PAL_ED_X, R9
+                MOVE    PAL_ED_Y, R10
+                ADD     9, R10
+                RSUB    PRINT_STR_AT, 1
+
+                MOVE    PAL_ED_X, @R0           ; put cursor to correct pos
+                MOVE    PAL_ED_Y, @R1
+                ADD     11, @R1
+
+                XOR     R3, R3                  ; print foreground pal
+                MOVE    16, R4
+                MOVE    CHR_PAL_F, R11
+                MOVE    CHR_PAL_SEL_F, R12
+                RSUB    _FONTED_PALL, 1
+
+                ADD     3, @R1                  ; print background col. string
+                MOVE    STR_PAL_BG, R8
+                MOVE    PAL_ED_X, R9
+                MOVE    @R1, R10
+                RSUB    PRINT_STR_AT, 1
+
+                MOVE    PAL_ED_X, @R0           ; print background pal
+                ADD     2, @R1
+                XOR     R3, R3
+                MOVE    16, R4
+                MOVE    CHR_PAL_B, R11
+                MOVE    CHR_PAL_SEL_B, R12
+                RSUB    _FONTED_PALL, 1
+
+                ; draw the color bars
+                MOVE    CHR_PAL_F, R3
+                RSUB    _PED_DCB, 1
+
+                ; R4 contains the address of the color that is being edited
+                MOVE    VGA$PALETTE_OFFS_USER, R4
+
+                ; main loop of the palette editor
+
+_PED_KL         MOVE    VGA$PALETTE_ADDR, R8
+                MOVE    R4, @R8++
+                MOVE    @R8, R5                 ; R5 = 15bit RBG color
+
+                ; show numeric RGB info
+                MOVE    PAL_ED_X, R8
+                MOVE    11, R9
+                SYSCALL(vga_moveto, 1)
+                MOVE    STR_RGB15, R8
+                SYSCALL(puts, 1)          
+                MOVE    R5, R8
+                SYSCALL(puthex, 1)
+
+                RSUB    KBD_GETCHAR, 1
+
+                ; check for foreground color selected: >= `a` and < `q`
+                MOVE    CHR_PAL_SEL_F, R9       ; R9 = `a`
+                MOVE    R9, R10
+                ADD     16, R10                 ; R10 = `q`
+                SYSCALL(in_range_u, 1)          ; is R8 in the fg col. range?
+                RBRA    _PED_BG, !C             ; no: check for bg col. range
+
+                ; determine address of current foreground col. being edited
+                ; and store it in R4 and redraw the color bar
+                SUB     R9, R8
+                ADD     VGA$PALETTE_OFFS_USER, R8
+                MOVE    R8, R4                  ; R4 = addr of current col
+                SHL     8, R8
+                MOVE    CHR_PAL_F, R3
+                ADD     R8, R3
+                RSUB    _PED_DCB, 1             ; redraw color bar
+                RBRA    _PED_KL, 1              ; next key
+
+                ; check for foreground color selected: >= `A` and < `Q`
+_PED_BG         MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
+                MOVE    R9, R10
+                ADD     16, R10                 ; R10 = `Q`
+                SYSCALL(in_range_u, 1)          ; is R8 in the bg col. range?
+                RBRA    _PED_CK, !C             ; no: check for other keys
+
+                ; determine address of current background col. being edited
+                ; and store it in R4 and redraw the color bar
+                SUB     R9, R8
+                ADD     VGA$PALETTE_OFFS_USER, R8
+                ADD     16, R8                  ; switch to background pal
+                MOVE    R8, R4                  ; R4 = addr of current col
+                SHL     12, R8
+                MOVE    CHR_PAL_B, R3
+                ADD     R8, R3
+                RSUB    _PED_DCB, 1             ; redraw color bar
+                RBRA    _PED_KL, 1              ; next key
+
+                ; check if key is >= `1` and < `7`
+                ; 1 & 2: modify R
+                ; 3 & 4: modify G
+                ; 5 & 6: modify B
+_PED_CK         MOVE    '1', R9
+                MOVE    '7', R10
+                SYSCALL(in_range_u, 1)
+                RBRA    _PED_CKK, !C
+
+                MOVE    R5, R10                 ; R5 = 15bit RGB color
+                MOVE    VGA$PALETTE_DATA, R9
+
+RED_MASK        .EQU 0x7C00
+RED_ONE         .EQU 0x0400
+GREEN_MASK      .EQU 0x03E0
+GREEN_ONE       .EQU 0x0020
+BLUE_MASK       .EQU 0x001F
+BLUE_ONE        .EQU 0x0001
+
+                CMP     '1', R8                 ; RED minus 1
+                RBRA    _PED_CK2, !Z
+                MOVE    R10, R11                ; check for underflow
+                AND     RED_MASK, R11
+                RBRA    _PED_KL, Z              ; cannot do RED minus 1
+                SUB     RED_ONE, R10            ; reduce RED by 1
+                MOVE    R10, @R9                ; store modified pal. col.
+                RBRA    _PED_KL, 1
+                
+_PED_CK2        CMP     '2', R8                 ; RED plus 1           
+                RBRA    _PED_CK3, !Z
+                MOVE    R10, R11                ; check for overflow
+                AND     RED_MASK, R11
+                CMP     RED_MASK, R11
+                RBRA    _PED_KL, Z              ; cannot do RED plus 1
+                ADD     RED_ONE, R10            ; increase RED by 1
+                MOVE    R10, @R9                ; store modified pal. col.
+                RBRA    _PED_KL, 1
+
+_PED_CK3        NOP
+
+_PED_CKK        RBRA    _PED_KL, 1
+
+
+                MOVE    VGA$STATE, R0           ; cursor on
+                OR      VGA$EN_HW_CURSOR, @R0
+
+                SYSCALL(leave, 1)
+                RBRA    MAIN_LOOP, 1
+
+                ; draw the color bar
+                ; expects:
+                ; R0 .. R2 to contain the screen-write registers
+                ; R3 to contain the char incl. color that is used to draw
+_PED_DCB        MOVE    3, @R1                  ; start y coordinate on screen
+_PED_L1         MOVE    PAL_ED_X, @R0
+_PED_L2         MOVE    R3, @R2
+                ADD     1, @R0                  ; x coordinate on screen
+                CMP     34, @R0                 ; width = @R0 - PAL_ED_X
+                RBRA    _PED_L2, !Z
+                ADD     1, @R1
+                CMP     9, @R1                  ; height = @R1 - start y coord
+                RBRA    _PED_L1, !Z
                 RET
 
 ; ****************************************************************************
