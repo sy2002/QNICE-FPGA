@@ -139,10 +139,18 @@ WAIT_FOR_KEY    RSUB    KBD_GETCHAR, 1
 
                 ; support fg/bg color selection using `a` to `q` and
                 ; `A` to `Q` in case of active font ed mode
-                MOVE    FONT_MODE, R11
-                MOVE    @R11, R11
-                RBRA    CHECK_KEYS, Z
-                RSUB    _FONTED_FGBG, 1
+                MOVE    FONT_MODE, R11          
+                MOVE    @R11, R11               ; if FONT_MODE = 0, then ..
+                RBRA    CHECK_KEYS, Z           ; .. no font ed mode active
+                MOVE    TILE_DX, R11            ; save TILE_DX and TILE_DY
+                MOVE    @R11, @--SP
+                MOVE    TILE_DY, R11
+                MOVE    @R11, @--SP
+                RSUB    _FONTED_FGBG, 1         ; changes TILE_DX and TILE_DY
+                MOVE    TILE_DY, R11
+                MOVE    @SP++, @R11             ; restore TILE_DX and TILE_DY
+                MOVE    TILE_DX, R11
+                MOVE    @SP++, @R11
                 RBRA    MAIN_LOOP, C            ; fg or bg was changed
 
                 ; ignore keys that are not allowed in font ed mode
