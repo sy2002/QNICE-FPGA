@@ -1,7 +1,7 @@
 -- Original MEGA65 keyboard driver file by Paul Gardner-Stephen
 -- see README.md for details and license
 --
--- Modified for QNICE-FPGA by sy2002 in August 2020
+-- Modified for QNICE-FPGA by sy2002 in September 2020
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -193,7 +193,12 @@ architecture gothic of hyperram is
   -- Enabling the cache MOSTLY works, but there is some cache coherency bug(s)
   -- when writing. These are currently being investigated.
   signal cache_enabled : boolean := true;
-  signal block_read_enable : std_logic := '1'; -- enable 32 byte read block fetching
+  -- XXX There is a problem with block reads, where it causes the wrong byte to
+  -- be returned at the start of the cached block. It instead returns the most
+  -- recently WRITTEN byte.  I have no idea why as yet, so for now, we are just
+  -- disabling block reads, at some performance cost.
+  --                                                     PGS 20200923
+  signal block_read_enable : std_logic := '0'; -- disable 32 byte read block fetching
   signal flag_prefetch : std_logic := '1';  -- enable/disable prefetch of read
                                             -- blocks
   signal enable_current_cache_line : std_logic := '1';

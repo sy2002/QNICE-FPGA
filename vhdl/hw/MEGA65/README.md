@@ -100,16 +100,17 @@ yet. See issues
 
 The MEGA65 HyperRAM driver consists of the file `hyperram.vhdl`.
 
-I took it on August, 22 2020 from the
+I took it on September, 26 2020 from the
 [MEGA65 GitHub Core Repo](https://github.com/MEGA65/mega65-core)
 using branch `138-hdmi-audio-27mhz`.
-[This link points to the relevant Commit #56c61c1](https://github.com/MEGA65/mega65-core/blob/56c61c112d9e62236d5beb69c16a3605ac9723d7/src/vhdl/hyperram.vhdl),
+[This link points to the relevant Commit #70008ab](https://github.com/MEGA65/mega65-core/blob/70008abc328ffacb30e01543b5c4d53101ff3e5f/src/vhdl/hyperram.vhdl),
 in case you need to get the file from the original source.
 
 #### Modifications
 
-* Made it stand-alone by including the `debugtools` and `cputypes` 
-  dependencies into `hyperram.vhdl`: Two new packages at the top of the file:
+* Made it less dependent from files not needed in this project
+  by including the `cputypes` dependency into `hyperram.vhdl`: One new
+  packages at the top of the file: 
   `package cache_row_type` and `package `debugtools`.
 
 ### HDMI Driver
