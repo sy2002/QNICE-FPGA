@@ -86,6 +86,13 @@ LRU_INIT_LOOP   MOVE    0, @R0++
                 MOVE    FONT_MODE, R0
                 MOVE    0, @R0
 
+                ; fill the clipboard with the bitpattern of character 0
+                MOVE    SELECTED_CHR, R8
+                MOVE    0, @R8
+                MOVE    KBD$CTRL_C, R8
+                OR      0xFF00, R8              ; flag that COPYPASTE shall..
+                RSUB    COPYPASTE, 1            ; ..act like a sub routine
+
                 ; font ed cursor positions
                 MOVE    FONT_ED_CX, R0
                 MOVE    CHAR_ED_X, @R0
@@ -194,6 +201,10 @@ _WFK_CHK_F12    CMP     KBD$F12, R8             ; F12 = quit
                 RBRA    SAVE_DATA, Z
                 CMP     KBD$SPACE, R8           ; SPACE = draw character
                 RBRA    DRAW_CHAR, Z
+                CMP     KBD$CTRL_C, R8          ; CTRL+C: COPY
+                RBRA    COPYPASTE, Z
+                CMP     KBD$CTRL_V, R8          ; CTRL+V: PASTE
+                RBRA    COPYPASTE, Z                               
                 CMP     0, R3                   ; mode = palette?
                 RBRA    NAV_PAL, Z              ; yes: navigate palette
                 CMP     KBD$CUR_UP, R8          ; no: tile: up
@@ -207,8 +218,9 @@ _WFK_CHK_F12    CMP     KBD$F12, R8             ; F12 = quit
                 CMP     KBD$HOME, R8            ; tile: home = top left
                 RBRA    NAV_TILE_H, Z
                 CMP     KBD$END, R8             ; tile: end = bottom right
-                RBRA    NAV_TILE_E, Z                
+                RBRA    NAV_TILE_E, Z
                 RBRA    WAIT_FOR_KEY, 1
+
 NAV_PAL         CMP     KBD$CUR_UP, R8          ; palette: cursor up
                 RBRA    NAV_PAL_U, Z
                 CMP     KBD$CUR_DOWN, R8        ; palette: cursor down
@@ -327,6 +339,39 @@ DRAW_CHAR       MOVE    R6, @R0
                 RBRA    MAIN_LOOP, 1
 _DRAW_CHAR_N    MOVE    R8, @R2                 ; print the character
                 RBRA    MAIN_LOOP, 1
+
+                ; copy currently selected char font bit pattern to clipboard
+COPYPASTE       INCRB
+                MOVE    R8, R0                  ; R0 = copy or paste
+                AND     0x00FF, R0              ; strip RET flag from R0
+                MOVE    R8, R1 
+                AND     0xFF00, R1              ; if R1 = 0xFF00 then use RET
+                MOVE    SELECTED_CHR, R8
+                MOVE    @R8, R8
+                AND     0x00FF, R8              ; strip color information
+                MOVE    12, R9                  ; height of a char: 12
+                SYSCALL(mulu, 1)                ; R10 = R8 * 12
+                ADD     VGA$FONT_OFFS_USER, R10 ; R10 = bitpattern address
+                XOR     R8, R8
+                MOVE    VGA$FONT_ADDR, R9
+                MOVE    VGA$FONT_DATA, R11
+                MOVE    CLIPBOARD, R12
+COPYPASTE_LOOP  MOVE    R10, @R9                ; R10 = bitpattern address
+                CMP     KBD$CTRL_C, R0          ; copy?
+                RBRA    COPYPASTE_PASTE, !Z
+                MOVE    @R11, @R12++            ; bitpattern data to clipboard
+                RBRA    COPYPASTE_CONT, 1
+COPYPASTE_PASTE MOVE    @R12++, @R11            ; clipboard to bitpattern data                
+COPYPASTE_CONT  ADD     1, R10
+                ADD     1, R8
+                CMP     12, R8                  ; height of a char: 12
+                RBRA    COPYPASTE_LOOP, !Z
+                MOVE    R1, R8
+                DECRB
+                CMP     0xFF00, R8
+                RBRA    COPYPASTE_RBRA, !Z
+                RET
+COPYPASTE_RBRA  RBRA    MAIN_LOOP, 1
 
                 ; clear tile
 CLEAR           MOVE    TILE_WS_X_MAX, R9
@@ -1285,6 +1330,8 @@ SELECTED_CHR    .BLOCK 1
 FONT_MODE       .BLOCK 1
 FONT_ED_CX      .BLOCK 1                        
 FONT_ED_CY      .BLOCK 1
+
+CLIPBOARD       .BLOCK 12                       ; copy/paste CTRL+C/CTRL+V
 
 ; workspace boundaries in absolute screen coordinates: palette and tile
 PAL_WS_X        .BLOCK 1
