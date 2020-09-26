@@ -241,21 +241,50 @@ _show_err       MOVE    @SP++, R7
                 ; 16-bit test
                 ; ------------------------------------------------------------
 
-_start_16bit    MOVE    STR_16BIT, R8
+_start_16bit    MOVE    IO$M65HRAM_DATA16, R2   ; 16-bit data access
+
+                ; Play with these values according to these GitHub comments:
+                ; https://github.com/MEGA65/mega65-core/issues/280#issuecomment-699501266
+                ; https://github.com/MEGA65/mega65-core/issues/280#issuecomment-699504233
+                ;
+                ; Good values to try:
+                ;
+                ; 0x00333333 to 0x00433333: 1 MegaWord (2MB)
+                ; 0x00333333 to 0x00340000: 52429 words
+                ; 0x0033E000 to 0x00340010: 8208 words
+                ;
+                ; TODO: Write a loop that checks all these ranges in a row
+                ; (maybe this is a good moment to switch this test to C)
+
+START_HI        .EQU    0x0033
+START_LO        .EQU    0xE000
+END_HI          .EQU    0x0034
+END_LO          .EQU    0x0010
+
+                MOVE    STR_16BIT_1, R8
+                SYSCALL(puts, 1)
+                MOVE    START_HI, R8
+                SYSCALL(puthex, 1)
+                MOVE    START_LO, R8
+                SYSCALL(puthex, 1)
+                MOVE    STR_16BIT_2, R8
+                SYSCALL(puts, 1)
+                MOVE    END_HI, R8
+                SYSCALL(puthex, 1)
+                MOVE    END_LO, R8
+                SYSCALL(puthex, 1)
+                MOVE    STR_16BIT_3, R8
                 SYSCALL(puts, 1)
 
-                MOVE    IO$M65HRAM_DATA16, R2   ; 16-bit data access
-
-                ; fill 1MB starting at 0x0333333 with changing 16-bit
+                ; fill from START_HI/LO to END_HI/LO with changing 16-bit
                 ; values and then read everything back and test if correct
-                ; 0x0333333 + 1 MB = 0x4333333
-                MOVE    0x0033, @R1             ; hi-word of 0x0333333
-                MOVE    0x3333, @R0             ; lo-word
+                MOVE    START_HI, @R1           ; start hi-word
+                MOVE    START_LO, @R0           ; start lo-word
                 XOR     R5, R5                  ; repeatedly runs to 0xFFFF
 
-_16bit_loop     CMP     0x0043, @R1             ; hi-word of 1MB reached?
+_16bit_loop     CMP     END_HI, @R1             ; hi-word reached?
                 RBRA    _16bl_write, !Z         ; no: write next word
-                CMP     0x3333, @R0             ; yes: check if lo-word fits
+                CMP     END_LO, @R0             ; yes: check if lo-word fits
                 RBRA    _16bit_check, Z         ; yes: leave loop, go checking
 
 _16bl_write     MOVE    R5, @R2                 ; write test value
@@ -267,14 +296,14 @@ _16bl_write     MOVE    R5, @R2                 ; write test value
 
                 ; linearily check, if the 1MB data that was written above
                 ; is now accessible in the HRAM
-_16bit_check    MOVE    0x0033, @R1             ; hi-word of 0x0333333
-                MOVE    0x3333, @R0             ; lo-word
+_16bit_check    MOVE    START_HI, @R1           ; hi-word
+                MOVE    START_LO, @R0           ; lo-word
                 XOR     R5, R5                  ; repeatedly runs to 0xFFFF
                 XOR     R6, R6                  ; R6 = error counter
 
-_16bit_cloop    CMP     0x0043, @R1             ; hi-word of 1MB reached?
+_16bit_cloop    CMP     END_HI, @R1             ; hi-word reached?
                 RBRA    _16bl_check, !Z         ; no: check next word
-                CMP     0x3333, @R0             ; yes: check if lo-word fits
+                CMP     END_LO, @R0             ; yes: check if lo-word fits
                 RBRA    _16bit_res, Z           ; yes: leave and print result
 
 _16bl_check     MOVE    @R2, R12                ; due to caching problems that
@@ -377,7 +406,9 @@ STR_CTRL        .ASCII_W "Control Registers:     (Output should be: 0081, 000C, 
 STR_5READs      .ASCII_W "Read 5 times from 0x0011000, then write 0x23 there, then read 5 times:\n"
 STR_8BIT        .ASCII_W "8-bit test: Fill 240 bytes from 0x0020003 with increasing values, then test:\n"
 STR_8BIT_OK     .ASCII_W "8-bit test: PASSED\n"
-STR_16BIT       .ASCII_W "\n16-bit linear test: Fill 1MB from 0x0333333 with 16-bit values, then test:\n"
+STR_16BIT_1     .ASCII_W "\n16-bit linear test: Fill from "
+STR_16BIT_2     .ASCII_W " to "
+STR_16BIT_3     .ASCII_W " with increasing 16-bit values, then test:\n"
 STR_16BIT_OK    .ASCII_W "16-bit linear test: PASSED\n"
 
 STR_HEADLINE    .ASCII_W "Address   Actual  Expected\n"
