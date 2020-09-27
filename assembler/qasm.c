@@ -241,9 +241,12 @@ void expand_tabs(char *dst, char *src) {
   dst  = p;
   strcpy(scratch, dst);
 
-  if (*scratch != ' ' && *scratch != ';') { // If a line starts with a non-space character it is assumed to start with a label
+  //  Format labels etc. nicely. The following code is pretty ugly and this should have been done
+  // long before we come to expand_tabs(...) but I did not feel brave enough to change it in the 
+  // depth of the assembler, which caused this kludge:
+  if (*scratch && *scratch != ' ' && *scratch != ';') { // If a line starts with a non-space character it starts with a label
     i = 0;
-    while (scratch[i] && scratch[i] != ' ')               // Look for end of label
+    while (scratch[i] && scratch[i] != ' ')             // Look for end of label
       i++;
     scratch[i] = (char) 0;
     strcpy(label, scratch);
@@ -255,14 +258,12 @@ void expand_tabs(char *dst, char *src) {
     strcpy(rest, p + i);
 
     sprintf(dst, "%-24s    %s", label, rest);
-  } else if (*scratch == ' ') {             // Line starts with a blank, so let's expand these...
+  } else if (*scratch && *scratch == ' ') {             // Line starts with a blank, so let's expand these...
     i = 0;
     while (scratch[i] == ' ')
       i++;
     sprintf(dst, "                            %s", scratch + i);
   }
-
-  printf("%s\n", dst);
 }
 
 /*
