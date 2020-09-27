@@ -50,6 +50,16 @@ CHR_PAL_SEL_B   .EQU 'A'                        ; background col selector
 PAL_ED_X        .EQU 2
 PAL_ED_Y        .EQU 17
 
+RED_MASK        .EQU 0x7C00                     ; 15-bit RGB mask for R
+RED_ONE         .EQU 0x0400                     ; RED + 1
+RED_ONE_C       .EQU 0xFC00                     ; RED - 1 (2-complement of +1)
+GREEN_MASK      .EQU 0x03E0                     ; 15-bit RGB mask for G
+GREEN_ONE       .EQU 0x0020                     ; GREEN + 1
+GREEN_ONE_C     .EQU 0xFFE0                     ; GREEN - 1
+BLUE_MASK       .EQU 0x001F                     ; 15-bit RGB mask for B
+BLUE_ONE        .EQU 0x0001                     ; BLUE + 1
+BLUE_ONE_C      .EQU 0xFFFF                     ; BLUE - 1
+
                 .ORG 0x8000
 
                 ; check external interface "variables" TILE_DX_INIT and
@@ -535,6 +545,7 @@ STR_BACKGROUND  .ASCII_W "Background color:"
 STR_PAL_FG      .ASCII_W "Palette for foreground colors:"
 STR_PAL_BG      .ASCII_W "Palette for background colors:"
 STR_RGB15       .ASCII_W "15-bit RGB: "
+STR_RGB24       .ASCII_W "24-bit RGB: "
 STR_RED         .ASCII_W "Red:        "
 STR_GREEN       .ASCII_W "Green:      "
 STR_BLUE        .ASCII_W "Blue:       "
@@ -1028,14 +1039,21 @@ _PED_KL         MOVE    VGA$PALETTE_ADDR, R8
                 MOVE    R4, @R8++
                 MOVE    @R8, R5                 ; R5 = 15bit RBG color
 
-                ; show numeric RGB info
-                MOVE    PAL_ED_X, R8
+                ; show numeric and visual RGB info
+                MOVE    PAL_ED_X, R8            ; 15-bit RGB numeric
                 MOVE    11, R9
                 SYSCALL(vga_moveto, 1)
                 MOVE    STR_RGB15, R8
-                SYSCALL(puts, 1)          
+                SYSCALL(puts, 1)     
                 MOVE    R5, R8
                 SYSCALL(puthex, 1)
+                MOVE    PAL_ED_X, R8            ; 24-bit RGB numeric
+                MOVE    12, R9
+                SYSCALL(vga_moveto, 1)
+                MOVE    STR_RGB24, R8
+                SYSCALL(puts, 1)
+                MOVE    R5, R8
+                RSUB    PRINT_24BIT_RGB, 1
 
                 RSUB    KBD_GETCHAR, 1
 
@@ -1087,37 +1105,19 @@ _PED_CK         MOVE    '1', R9
 
                 MOVE    R5, R10                 ; R5 = 15bit RGB color
                 MOVE    VGA$PALETTE_DATA, R9
+                SUB     '1', R8                 ; 1 => 0; 2 => 1, ...
+                SHL     2, R8                   ; 4 LUT entries per row
+                MOVE    _PED_RGB, R6            ; index to look-up table
+                ADD     R8, R6 
 
-RED_MASK        .EQU 0x7C00
-RED_ONE         .EQU 0x0400
-GREEN_MASK      .EQU 0x03E0
-GREEN_ONE       .EQU 0x0020
-BLUE_MASK       .EQU 0x001F
-BLUE_ONE        .EQU 0x0001
-
-                CMP     '1', R8                 ; RED minus 1
-                RBRA    _PED_CK2, !Z
-                MOVE    R10, R11                ; check for underflow
-                AND     RED_MASK, R11
-                RBRA    _PED_KL, Z              ; cannot do RED minus 1
-                SUB     RED_ONE, R10            ; reduce RED by 1
-                MOVE    R10, @R9                ; store modified pal. col.
-                RBRA    _PED_KL, 1
-                
-_PED_CK2        CMP     '2', R8                 ; RED plus 1           
-                RBRA    _PED_CK3, !Z
-                MOVE    R10, R11                ; check for overflow
-                AND     RED_MASK, R11
-                CMP     RED_MASK, R11
-                RBRA    _PED_KL, Z              ; cannot do RED plus 1
-                ADD     RED_ONE, R10            ; increase RED by 1
-                MOVE    R10, @R9                ; store modified pal. col.
-                RBRA    _PED_KL, 1
-
-_PED_CK3        NOP
+                MOVE    R10, R11                ; R10 = 15bit RGB color
+                AND     @R6++, R11              ; check over-/underflow:
+                CMP     @R6++, R11              ; in case of yes ..
+                RBRA    _PED_KL, Z              ; .. back to pal ed main loop
+                ADD     @R6, R10                ; add or sub 1 from R, G or B
+                MOVE    R10, @R9                ; store in palette RAM
 
 _PED_CKK        RBRA    _PED_KL, 1
-
 
                 MOVE    VGA$STATE, R0           ; cursor on
                 OR      VGA$EN_HW_CURSOR, @R0
@@ -1138,6 +1138,65 @@ _PED_L2         MOVE    R3, @R2
                 ADD     1, @R1
                 CMP     9, @R1                  ; height = @R1 - start y coord
                 RBRA    _PED_L1, !Z
+                RET
+
+                ; this look up table stores, how R, G or B are modified
+                ; depending on pressing 1 .. 6
+_PED_RGB        .DW     RED_MASK,   0,          RED_ONE_C,    10 ; RED - 1
+                .DW     RED_MASK,   RED_MASK,   RED_ONE,      0  ; RED + 1
+                .DW     GREEN_MASK, 0,          GREEN_ONE_C,  5  ; GREEN - 1
+                .DW     GREEN_MASK, GREEN_MASK, GREEN_ONE,    0  ; GREEN + 1
+                .DW     BLUE_MASK,  0,          BLUE_ONE_C,   0  ; BLUE - 1
+                .DW     BLUE_MASK,  BLUE_MASK,  BLUE_ONE,     0  ; BLUE + 1
+
+
+; ****************************************************************************
+; PRINT_24BIT_RGB
+;    Print 24-bit RGB version of the 15-bit version stored in R8
+; ****************************************************************************
+
+PRINT_24BIT_RGB SYSCALL(enter, 1)
+
+                MOVE    _PED_RGB, R0            ; R0 = index to LUT
+                MOVE    3, R3
+                MOVE    R8, R4
+
+_P24B_LOOP      AND     @R0, R8
+                ADD     3, R0                   ; how much do we need to SHR?
+                SHR     @R0++, R8
+                SYSCALL(PRINT_2HEXNIBS, 1)
+                ADD     4, R0
+                MOVE    R4, R8
+                SUB     1, R3
+                RBRA    _P24B_LOOP, !Z
+
+                SYSCALL(leave, 1)
+                RET
+
+; ****************************************************************************
+; PRINT_2HEXNIBS
+;    Print the lower byte of R8 as two hex nibbles at the current cursor pos
+; ****************************************************************************
+
+PRINT_2HEXNIBS  INCRB
+
+                MOVE    R8, R0
+                AND     0x00FF, R0              ; mask upper bits
+                MOVE    R0, R1
+                SHR     4, R1                   ; hi-nibble
+                AND     0x000F, R0              ; lo-nibble
+
+                MOVE    HEX_DIGITS, R2          ; look-up chars for nibbles
+                MOVE    R2, R3
+                ADD     R1, R2                  ; char for hi-nibble
+                ADD     R0, R3                  ; char for lo-nibble
+
+                MOVE    @R2, R8
+                SYSCALL(putc, 1)
+                MOVE    @R3, R8
+                SYSCALL(putc, 1)
+
+                DECRB
                 RET
 
 ; ****************************************************************************
