@@ -30,11 +30,16 @@ int main()
 
    sprite_set_config(0, VGA_SPRITE_CSR_MIRROR_X);  // To Be Removed. This is a work-around for a hardware bug.
 
+   int offset_x = 100*256;
+   int offset_y = 0;
+
    while (1)
    {
       // Loop over all images
       for (int image=0; image<24; ++image)
       {
+         int pos_x = 320 + offset_x/256;
+         int pos_y = 240 + offset_y/256;
          for (int y=0; y<2; ++y)
          {
             for (int x=0; x<2; ++x)
@@ -42,13 +47,16 @@ int main()
                sprite_set_palette(1+2*y+x,  palette);
                sprite_set_bitmap(1+2*y+x,   bitmaps[image*2+x+48*y]);
                sprite_set_config(1+2*y+x,   VGA_SPRITE_CSR_VISIBLE | VGA_SPRITE_CSR_MIRROR_X);  // MIRROR_X is to be removed. That is a work-around for yet another hardware bug.
-               sprite_set_position(1+2*y+x, 240+x*32, 160+y*32);
+               sprite_set_position(1+2*y+x, pos_x-32+x*32, pos_y-32+y*32);
             }
          }
 
          // Wait 6 frames before updating image.
          for (int f=0; f<6; ++f)
          {
+            offset_y -= offset_x/256;
+            offset_x += offset_y/256;
+
             while (MMIO(VGA_SCAN_LINE) > 480)
             {
                if (MMIO(IO_UART_SRA) & 1)
