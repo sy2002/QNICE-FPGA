@@ -93,27 +93,6 @@ data_structure *gbl$data = 0;
 equ_structure  *gbl$equs = 0;
 
 /*
-** Expand all tabs by blanks, assuming that tab stops occur every eight columns.
-*/
-void expand_tabs(char *dst, char *src) {
-  int i;
-
-  i = 0;
-  while (*src) {
-    i++;
-    if (*src != '\t')
-      *dst++ = *src++;
-    else {
-      *dst++ = ' ';
-      for ( ; (i % 8); i++, *dst++ = ' ');
-      src++;
-    }
-  }
-
-  *dst = (char) 0;
-}
-
-/*
 ** Convert a string to uppercase.
 */
 void string2upper(char *string) {
@@ -236,6 +215,55 @@ char *tokenize(char *string, char *delimiters) {
   }
 
   return NULL;
+}
+
+/*
+** Expand all tabs by blanks, assuming that tab stops occur every eight columns.
+*/
+void expand_tabs(char *dst, char *src) {
+  int i;
+  char label[STRING_LENGTH], rest[STRING_LENGTH], scratch[STRING_LENGTH], *p;
+
+  p = dst;  // Remember the start of the destination string
+  i = 0;
+  while (*src) {
+    i++;
+    if (*src != '\t')
+      *dst++ = *src++;
+    else {
+      *dst++ = ' ';
+      for ( ; (i % 8); i++, *dst++ = ' ');
+      src++;
+    }
+  }
+
+  *dst = (char) 0;
+  dst  = p;
+  strcpy(scratch, dst);
+
+  //  Format labels etc. nicely. The following code is pretty ugly and this should have been done
+  // long before we come to expand_tabs(...) but I did not feel brave enough to change it in the 
+  // depth of the assembler, which caused this kludge:
+  if (*scratch && *scratch != ' ' && *scratch != ';') { // If a line starts with a non-space character it starts with a label
+    i = 0;
+    while (scratch[i] && scratch[i] != ' ')             // Look for end of label
+      i++;
+    scratch[i] = (char) 0;
+    strcpy(label, scratch);
+    p = scratch + i + 1;
+    
+    i = 0;
+    while (p[i] && p[i] == ' ')
+      i++;
+    strcpy(rest, p + i);
+
+    sprintf(dst, "%-24s    %s", label, rest);
+  } else if (*scratch && *scratch == ' ') {             // Line starts with a blank, so let's expand these...
+    i = 0;
+    while (scratch[i] == ' ')
+      i++;
+    sprintf(dst, "                            %s", scratch + i);
+  }
 }
 
 /*
