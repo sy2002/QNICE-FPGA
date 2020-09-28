@@ -4,6 +4,12 @@
  *
  *  How to compile:  qvc demo_atom.c sprite.c atom_sprite.c -c99 -O3 -maxoptpasses=15
  *
+ *  The atom sprite comes from the Space Shooter Art Pack 01 by Playniax:
+ *  We bought a license for it on itch.io on 2020-09-03 21:40:30. The license
+ *  allows us to use it for QNICE-FPGA and to distribute it in it's processed
+ *  form as atom.c and atom_sprite.c. The original sprite .PNG that we bought
+ *  must not be distributed, this is why you won't find it in our GitHub repo.
+ *
  *  done by MJoergen in September 2020
 */
 
