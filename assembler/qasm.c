@@ -221,7 +221,7 @@ char *tokenize(char *string, char *delimiters) {
 ** Expand all tabs by blanks, assuming that tab stops occur every eight columns.
 */
 void expand_tabs(char *dst, char *src) {
-  int i;
+  int i, non_space_found;
   char label[STRING_LENGTH], rest[STRING_LENGTH], scratch[STRING_LENGTH], *p;
 
   p = dst;  // Remember the start of the destination string
@@ -267,13 +267,15 @@ void expand_tabs(char *dst, char *src) {
 
   // Take care of comments at the end of lines...
   strcpy(scratch, dst);
-  i = 0;
-  while (scratch[i] && scratch[i] != ';')
-    i++;
-  if (i > 0 && scratch[i] == ';') { // There is a comment and it is not at the start of the line
-    strcpy(label, scratch + i);     // Remember the comment (not really a label, sorry for the variable)
+  i = non_space_found = 0;
+  while (scratch[i] && scratch[i] != ';') 
+    if (scratch[i++] != ' ')
+      non_space_found = 1;
+
+  if (i > 0 && scratch[i] == ';' && non_space_found) {  // There is a comment and it is not at the start of the line
+    strcpy(label, scratch + i);                         // Remember the comment (not really a label, sorry for the variable)
     scratch[i - 1] = (char) 0;
-    sprintf(dst, "%-70s %s", scratch, label);
+    sprintf(dst, "%-60s %s", scratch, label);
   }
 }
 
