@@ -28,8 +28,6 @@ int main()
 
    MMIO(VGA_STATE) |= VGA_EN_SPRITE;      // Enable sprites
 
-   sprite_set_config(0, VGA_SPRITE_CSR_MIRROR_X);  // To Be Removed. This is a work-around for a hardware bug.
-
    int offset_x = 100*256;
    int offset_y = 0;
 
@@ -44,10 +42,10 @@ int main()
          {
             for (int x=0; x<2; ++x)
             {
-               sprite_set_palette(1+2*y+x,  palette);
-               sprite_set_bitmap(1+2*y+x,   bitmaps[image*2+x+48*y]);
-               sprite_set_config(1+2*y+x,   VGA_SPRITE_CSR_VISIBLE | VGA_SPRITE_CSR_MIRROR_X);  // MIRROR_X is to be removed. That is a work-around for yet another hardware bug.
-               sprite_set_position(1+2*y+x, pos_x-32+x*32, pos_y-32+y*32);
+               sprite_set_palette(2*y+x,  palette);
+               sprite_set_bitmap(2*y+x,   bitmaps[image*2+x+48*y]);
+               sprite_set_config(2*y+x,   VGA_SPRITE_CSR_VISIBLE);
+               sprite_set_position(+2*y+x, pos_x-32+x*32, pos_y-32+y*32);
             }
          }
 
