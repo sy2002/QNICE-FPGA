@@ -1161,6 +1161,13 @@ PRINT_24BIT_RGB SYSCALL(enter, 1)
                 MOVE    3, R3
                 MOVE    R8, R4
 
+; TODO 1: The conversion from 15bit to 24bit works like this:
+;         multiply by 0x83A and SHR 8
+;
+; TODO 2: Improve /tools/rgb2q (15-to-24 is not used there currently, so at 
+; least add a comment there about how to do it right, so that if we improve
+; the tool one day, that we do it right)
+
 _P24B_LOOP      AND     @R0, R8
                 ADD     3, R0                   ; how much do we need to SHR?
                 SHR     @R0++, R8
