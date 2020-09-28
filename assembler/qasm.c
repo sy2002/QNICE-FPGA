@@ -239,11 +239,11 @@ void expand_tabs(char *dst, char *src) {
 
   *dst = (char) 0;
   dst  = p;
-  strcpy(scratch, dst);
 
   //  Format labels etc. nicely. The following code is pretty ugly and this should have been done
   // long before we come to expand_tabs(...) but I did not feel brave enough to change it in the 
   // depth of the assembler, which caused this kludge:
+  strcpy(scratch, dst);
   if (*scratch && *scratch != ' ' && *scratch != ';') { // If a line starts with a non-space character it starts with a label
     i = 0;
     while (scratch[i] && scratch[i] != ' ')             // Look for end of label
@@ -257,12 +257,23 @@ void expand_tabs(char *dst, char *src) {
       i++;
     strcpy(rest, p + i);
 
-    sprintf(dst, "%-24s    %s", label, rest);
+    sprintf(dst, "%-24s    %s", label, rest);           // Beware of hardcoded length of labels
   } else if (*scratch && *scratch == ' ') {             // Line starts with a blank, so let's expand these...
     i = 0;
     while (scratch[i] == ' ')
       i++;
-    sprintf(dst, "                            %s", scratch + i);
+    sprintf(dst, "                            %s", scratch + i);    // Also hardcoded 24 + 4 spaces!
+  }
+
+  // Take care of comments at the end of lines...
+  strcpy(scratch, dst);
+  i = 0;
+  while (scratch[i] && scratch[i] != ';')
+    i++;
+  if (i > 0 && scratch[i] == ';') { // There is a comment and it is not at the start of the line
+    strcpy(label, scratch + i);     // Remember the comment (not really a label, sorry for the variable)
+    scratch[i - 1] = (char) 0;
+    sprintf(dst, "%-70s %s", scratch, label);
   }
 }
 
