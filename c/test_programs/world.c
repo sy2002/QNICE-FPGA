@@ -622,7 +622,7 @@ int main()
    {
       sprite_set_palette(i,  palette);
       sprite_set_bitmap(i,   bitmaps[i]);
-      sprite_set_config(i,   VGA_SPRITE_CSR_VISIBLE | VGA_SPRITE_CSR_MIRROR_X);
+      sprite_set_config(i,   VGA_SPRITE_CSR_VISIBLE);
    }
 
    while (1)

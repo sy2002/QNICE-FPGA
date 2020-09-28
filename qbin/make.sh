@@ -5,12 +5,19 @@ export PATH=$PATH:$PWD/../c/vbcc/bin:$PWD/../c/qnice
 export VBCC=$PWD/../c/vbcc
 export DIST_KIT=$PWD/../dist_kit
 C_FLAGS="-c99 -O1 -rw-threshold=0 -speed"
+C_FLAGS_MM="-c99 -O3 -rw-threshold=0 -speed -maxoptpasses=100"
 C_DEMOS=../c/test_programs
 
 # build C demos and move them here
 echo "building:   adventure.c"
 qvc  $C_DEMOS/adventure.c $C_FLAGS
 mv   $C_DEMOS/adventure.out .
+echo "building:   demo_atom.c"
+qvc  $C_DEMOS/demo_atom.c $C_DEMOS/sprite.c $C_DEMOS/atom_sprite.c $C_FLAGS_MM
+mv   $C_DEMOS/demo_atom.out .
+echo "building:   demo_sprite_balls.c"
+qvc  $C_DEMOS/demo_sprite_balls.c $C_DEMOS/sprite.c $C_DEMOS/rand.c $C_DEMOS/images.c $C_DEMOS/stat.c $C_FLAGS_MM
+mv   $C_DEMOS/demo_sprite_balls.out .
 echo "building:   hdmi_de.c"
 qvc  $C_DEMOS/hdmi_de.c $C_FLAGS
 mv   $C_DEMOS/hdmi_de.out .
@@ -32,6 +39,9 @@ mv   $C_DEMOS/vga_calibration.out .
 echo "building:   wolfram.c"
 qvc  $C_DEMOS/wolfram.c $C_FLAGS
 mv   $C_DEMOS/wolfram.out .
+echo "building:   world.c"
+qvc  $C_DEMOS/world.c $C_DEMOS/sprite.c $C_FLAGS_MM
+mv   $C_DEMOS/world.out .
 rm mapfile
 
 # setup assembler environment
@@ -68,6 +78,8 @@ mv   $ASM_TEST/timer_test.out .
 
 # .out files are excluded by .gitignore so let's add them
 git add -f adventure.out
+git add -f demo_atom.out
+git add -f demo_sprite_balls.out
 git add -f hdmi_de.out
 git add -f maze2d.out
 git add -f shell.out
@@ -75,6 +87,7 @@ git add -f sierpinski.out
 git add -f ttt2.out
 git add -f vga_calibration.out
 git add -f wolfram.out
+git add -f world.out
 git add -f fancy.out
 git add -f mandel.out
 git add -f mandel_zoom.out

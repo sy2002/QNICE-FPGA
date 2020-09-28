@@ -15,7 +15,9 @@
  *     https://opengameart.org/content/15-planet-sprites
  *     by Viktor Hahn (Viktor.Hahn@web.de), who licensed it under CC BY 4.0
  *
- *  2. Use an image processing tool to shrink the image to 128 x 128 pixels.
+ *  2. Use an image processing tool to make sure the image has a size that is
+ *     in x and y direction a multiple of the target sprite defined in 
+ *     the define "SPRITE_SIZE" below. Normally, SPRITE_SIZE is 16 or 32.
  *
  *  3. Use an image processing tool such as GIMP or Photoshop and reduce the
  *     image to the so called "indexed color mode", which means that the
