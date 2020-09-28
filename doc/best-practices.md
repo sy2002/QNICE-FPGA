@@ -17,6 +17,7 @@ All languages
 * The Monitor acts as "operating system" and offers convenient functions as
   documented in [doc/monitor/doc.pdf](monitor/doc.pdf). They range from IO
   functions over math and string functions to debug functions.
+* When your program ends, call the monitor function `exit`.
 * Configure your editor to convert [TABs to
   SPACEs](https://stackoverflow.blog/2017/06/15/developers-use-spaces-make-money-use-tabs/).
 
@@ -192,6 +193,16 @@ and includes some more best practices.
                    DECRB
                    RET
   ``
+* If you need to save R8 .. R12 (additionally to saving R0 .. R7) because your
+  subroutine is not meant to change their values, then instead of using
+  `INCRB` / `DECRB` as your sub-routine's frame and then saving these
+  registers manually, it is best practice to use the Monitor functions
+  `enter` and `leave` instead:
+  ```
+  MY_SUBROUTINE    SYSCALL(enter, 1)
+                   [...]
+                   SYSCALL(leave, 1)
+  ```
 
 VASM assembler
 --------------
