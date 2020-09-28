@@ -629,11 +629,14 @@ void vga_print(int x, int y, char* s)
         vga_render_to_pixelbuffer(x + i, y, s[i]);
 }    
 
+#define VGA_COLOR_BACKGROUND 0x01000000
+
 static void vga_render_all_sprites()
 {
    for (int i = 127; i >= 0; i--) // Loop over all sprites. Start with lowest priority
    {
-      if (sprite_config[4*i+3] & VGA_SPRITE_CSR_VISIBLE)
+      unsigned short csr = sprite_config[4*i+3];
+      if (csr & VGA_SPRITE_CSR_VISIBLE)
       {
          unsigned short pos_x      = sprite_config[4*i];
          unsigned short pos_y      = sprite_config[4*i+1];
@@ -654,7 +657,15 @@ static void vga_render_all_sprites()
                   unsigned short pix_x = pos_x + x;
                   unsigned short pix_y = pos_y + y;
                   if (pix_x < render_dx && pix_y < render_dy)
-                     screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color);
+                  {
+                     if (csr & VGA_SPRITE_CSR_BEHIND)
+                     {
+                        if (screen_pixels[render_dx*pix_y + pix_x] & VGA_COLOR_BACKGROUND)
+                           screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color) | VGA_COLOR_BACKGROUND;
+                     }
+                     else
+                        screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color);
+                  }
                }
             }
          }
@@ -685,7 +696,7 @@ void vga_render_to_pixelbuffer(int x, int y, Uint16 c)
     unsigned long scr_offs = y * font_dy * render_dx + x * font_dx;
     unsigned long fnt_offs = (font_dy * (c & 0xFF) + font_offset) & VGA_FONT_OFFS_MAX;
     Uint32 fg_col = palette[(palette_offset +      ((c >>  8) & 0xF)) & VGA_PALETTE_OFFS_MAX];
-    Uint32 bg_col = palette[(palette_offset + 16 + ((c >> 12) & 0xF)) & VGA_PALETTE_OFFS_MAX];
+    Uint32 bg_col = palette[(palette_offset + 16 + ((c >> 12) & 0xF)) & VGA_PALETTE_OFFS_MAX] | VGA_COLOR_BACKGROUND;
     for (int char_y = 0; char_y < font_dy; char_y++)
     {
         unsigned int bitmap_row = qnice_font[fnt_offs];
