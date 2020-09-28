@@ -546,9 +546,10 @@ STR_PAL_FG      .ASCII_W "Palette for foreground colors:"
 STR_PAL_BG      .ASCII_W "Palette for background colors:"
 STR_RGB15       .ASCII_W "15-bit RGB: "
 STR_RGB24       .ASCII_W "24-bit RGB: "
-STR_RED         .ASCII_W "Red:        "
-STR_GREEN       .ASCII_W "Green:      "
-STR_BLUE        .ASCII_W "Blue:       "
+STR_RED         .ASCII_W "       Red: "
+STR_GREEN       .ASCII_W "     Green: "
+STR_BLUE        .ASCII_W "      Blue: "
+STR_METER       .ASCII_W " [                ]"
 
 ; ****************************************************************************
 ; FONT_ED
@@ -1039,21 +1040,50 @@ _PED_KL         MOVE    VGA$PALETTE_ADDR, R8
                 MOVE    R4, @R8++
                 MOVE    @R8, R5                 ; R5 = 15bit RBG color
 
-                ; show numeric and visual RGB info
-                MOVE    PAL_ED_X, R8            ; 15-bit RGB numeric
+                ; show compound 24-bit and 15-bit RGB info
+                MOVE    PAL_ED_X, R8            ; 24-bit RGB numeric
                 MOVE    11, R9
+                SYSCALL(vga_moveto, 1)
+                MOVE    STR_RGB24, R8
+                SYSCALL(puts, 1)
+                MOVE    R5, R8
+                RSUB    PRINT_24BIT_RGB, 1                
+                MOVE    PAL_ED_X, R8            ; 15-bit RGB numeric
+                MOVE    13, R9
                 SYSCALL(vga_moveto, 1)
                 MOVE    STR_RGB15, R8
                 SYSCALL(puts, 1)     
                 MOVE    R5, R8
                 SYSCALL(puthex, 1)
-                MOVE    PAL_ED_X, R8            ; 24-bit RGB numeric
-                MOVE    12, R9
+
+                ; show 2 hex nibbles per color plus a visual representation
+                MOVE    _PED_STRS, R12          ; LUT for strings for R, G, B
+                MOVE    _PED_RGB, R11           ; LUT for masks and shifts
+                MOVE    3, R10                  ; 3 iterations: R, G and B
+                MOVE    15, R9                  ; y-pos for cursor                
+_PED_SHOWRGB_L  MOVE    PAL_ED_X, R8            ; x-pos for cursor
                 SYSCALL(vga_moveto, 1)
-                MOVE    STR_RGB24, R8
+                MOVE    @R12++, R8              ; print string for R, G or B
                 SYSCALL(puts, 1)
-                MOVE    R5, R8
-                RSUB    PRINT_24BIT_RGB, 1
+                MOVE    R5, R8                  ; 15-bit compound value
+                AND     @R11, R8                ; extract R, G or B
+                ADD     3, R11                  ; amount of SHR in LUT
+                SHR     @R11++, R8              ; now R8 = 2 nibbles
+                RSUB    PRINT_2HEXNIBS, 1       ; print R8
+                MOVE    R8, @--SP               ; remember R8
+                MOVE    STR_METER, R8           ; clear old meter display by
+                SYSCALL(puts, 1)                ; printing [                ]
+                MOVE    @SP++, R8               ; R8 = R, G or B in 2 nibbles
+                SHR     1, R8                   ; calculate the x-coordinate..
+                ADD     PAL_ED_X, R8            ; of the visualization ..
+                ADD     16, R8
+                SYSCALL(vga_moveto, 1)          ; .. and move the cursor ..
+                MOVE    CHR_DRAW_1, R8          ; .. and draw the visual
+                SYSCALL(putc, 1)    
+                ADD     1, R9                   ; y-pos + 1
+                ADD     4, R11                  ; LUT: skip one row
+                SUB     1, R10                  ; iteration counter
+                RBRA    _PED_SHOWRGB_L, !Z
 
                 RSUB    KBD_GETCHAR, 1
 
@@ -1133,7 +1163,7 @@ _PED_DCB        MOVE    3, @R1                  ; start y coordinate on screen
 _PED_L1         MOVE    PAL_ED_X, @R0
 _PED_L2         MOVE    R3, @R2
                 ADD     1, @R0                  ; x coordinate on screen
-                CMP     34, @R0                 ; width = @R0 - PAL_ED_X
+                CMP     35, @R0                 ; width = @R0 - PAL_ED_X
                 RBRA    _PED_L2, !Z
                 ADD     1, @R1
                 CMP     9, @R1                  ; height = @R1 - start y coord
@@ -1149,6 +1179,7 @@ _PED_RGB        .DW     RED_MASK,   0,          RED_ONE_C,    10 ; RED - 1
                 .DW     BLUE_MASK,  0,          BLUE_ONE_C,   0  ; BLUE - 1
                 .DW     BLUE_MASK,  BLUE_MASK,  BLUE_ONE,     0  ; BLUE + 1
 
+_PED_STRS       .DW STR_RED, STR_GREEN, STR_BLUE
 
 ; ****************************************************************************
 ; PRINT_24BIT_RGB
@@ -1161,16 +1192,13 @@ PRINT_24BIT_RGB SYSCALL(enter, 1)
                 MOVE    3, R3
                 MOVE    R8, R4
 
-; TODO 1: The conversion from 15bit to 24bit works like this:
-;         multiply by 0x83A and SHR 8
-;
-; TODO 2: Improve /tools/rgb2q (15-to-24 is not used there currently, so at 
-; least add a comment there about how to do it right, so that if we improve
-; the tool one day, that we do it right)
-
 _P24B_LOOP      AND     @R0, R8
                 ADD     3, R0                   ; how much do we need to SHR?
                 SHR     @R0++, R8
+                MOVE    0x083A, R9              ; conversion: 15 to 24 bit:
+                SYSCALL(mulu, 1)                ; multiply by 0x083A and ..
+                SHR     8, R10                  ; .. then SHR 8
+                MOVE    R10, R8
                 SYSCALL(PRINT_2HEXNIBS, 1)
                 ADD     4, R0
                 MOVE    R4, R8
@@ -1185,7 +1213,7 @@ _P24B_LOOP      AND     @R0, R8
 ;    Print the lower byte of R8 as two hex nibbles at the current cursor pos
 ; ****************************************************************************
 
-PRINT_2HEXNIBS  INCRB
+PRINT_2HEXNIBS  SYSCALL(enter, 1)
 
                 MOVE    R8, R0
                 AND     0x00FF, R0              ; mask upper bits
@@ -1203,7 +1231,7 @@ PRINT_2HEXNIBS  INCRB
                 MOVE    @R3, R8
                 SYSCALL(putc, 1)
 
-                DECRB
+                SYSCALL(leave, 1)
                 RET
 
 ; ****************************************************************************
