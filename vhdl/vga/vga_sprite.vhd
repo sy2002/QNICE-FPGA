@@ -63,7 +63,7 @@ architecture synthesis of vga_sprite is
       config           : std_logic_vector(6 downto 0);
       palette          : std_logic_vector(255 downto 0);
       bitmap           : std_logic_vector(127 downto 0);
-      pixels           : std_logic_vector(511 downto 0);
+      pixels           : std_logic_vector(543 downto 0);
       next_y           : std_logic_vector(9 downto 0);
       diff_y           : std_logic_vector(9 downto 0);
    end record t_stage2;
@@ -71,13 +71,13 @@ architecture synthesis of vga_sprite is
    type t_stage3 is record
       color            : std_logic_vector(15 downto 0);
       scanline_addr    : std_logic_vector(9 downto 0);
-      scanline_wr_data : std_logic_vector(511 downto 0);
+      scanline_wr_data : std_logic_vector(543 downto 0);
       scanline_wr_en   : std_logic_vector(31 downto 0);
    end record t_stage3;
 
    type t_stage4 is record
       color            : std_logic_vector(15 downto 0);
-      scanline_rd_data : std_logic_vector(15 downto 0);
+      scanline_rd_data : std_logic_vector(16 downto 0);
    end record t_stage4;
 
    type t_stage5 is record
@@ -93,13 +93,13 @@ architecture synthesis of vga_sprite is
    constant C_START_RENDER : integer := C_STOP_RENDER + 1 - 2**G_INDEX_SIZE;
 
    -- Decoding of the Config register
-   constant C_CONFIG_RES_LOW    : integer := 0;
-   constant C_CONFIG_BACKGROUND : integer := 1;
-   constant C_CONFIG_MAG_X      : integer := 2;
-   constant C_CONFIG_MAG_Y      : integer := 3;
-   constant C_CONFIG_MIRROR_X   : integer := 4;
-   constant C_CONFIG_MIRROR_Y   : integer := 5;
-   constant C_CONFIG_VISIBLE    : integer := 6;
+   constant C_CONFIG_RES_LOW  : integer := 0;
+   constant C_CONFIG_BEHIND   : integer := 1;
+   constant C_CONFIG_MAG_X    : integer := 2;
+   constant C_CONFIG_MAG_Y    : integer := 3;
+   constant C_CONFIG_MIRROR_X : integer := 4;
+   constant C_CONFIG_MIRROR_Y : integer := 5;
+   constant C_CONFIG_VISIBLE  : integer := 6;
 
    signal stage0 : t_stage0;
    signal stage1 : t_stage1;
@@ -217,7 +217,8 @@ begin
          else
             color_index := conv_integer(stage2.bitmap(3+4*j downto 4*j));
          end if;
-         stage2.pixels(15+16*i downto 16*i) <=
+         stage2.pixels(16+17*i downto 17*i) <=
+            stage2.config(C_CONFIG_BEHIND) &
             stage2.palette(15+16*color_index downto 16*color_index);
       end process;
    end generate gen_palette_lookup;
@@ -246,7 +247,7 @@ begin
                stage3.scanline_wr_en   <= (others => '1');
                stage3.scanline_wr_data <= (others => '0');
                for i in 0 to 31 loop
-                  stage3.scanline_wr_data(15+16*i) <= '1';   -- set transparent bit in all pixels
+                  stage3.scanline_wr_data(15+17*i) <= '1';   -- set transparent bit in all pixels
                end loop;
 
             when C_START_RENDER to C_STOP_RENDER =>
@@ -261,7 +262,7 @@ begin
 
                   stage3.scanline_addr <= stage2.pos_x;
                   for i in 0 to 31 loop
-                     stage3.scanline_wr_en(i) <= not stage2.pixels(15+16*i);
+                     stage3.scanline_wr_en(i) <= not stage2.pixels(15+17*i);
                   end loop;
                   stage3.scanline_wr_data <= stage2.pixels;
                end if;
@@ -298,7 +299,9 @@ begin
       if rising_edge(clk_i) then
          stage5.color <= stage4.color;
          if stage4.scanline_rd_data(15) = '0' then
-            stage5.color <= stage4.scanline_rd_data;
+            if stage4.color(15) = '0' or stage4.scanline_rd_data(16) = '0' then
+               stage5.color <= stage4.scanline_rd_data(15 downto 0);
+            end if;
          end if;
       end if;
    end process p_stage5;

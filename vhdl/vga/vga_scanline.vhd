@@ -16,9 +16,9 @@ entity vga_scanline is
    port (
       clk_i     : in  std_logic;
       addr_i    : in  std_logic_vector(9 downto 0);
-      wr_data_i : in  std_logic_vector(511 downto 0);
+      wr_data_i : in  std_logic_vector(543 downto 0);
       wr_en_i   : in  std_logic_vector(31 downto 0);
-      rd_data_o : out std_logic_vector(15 downto 0)
+      rd_data_o : out std_logic_vector(16 downto 0)
    );
 end vga_scanline;
 
@@ -29,21 +29,21 @@ architecture synthesis of vga_scanline is
 
    signal wr_offset       : integer range 0 to 31;
    signal rd_offset       : integer range 0 to 31;
-   signal data_concat     : std_logic_vector(1023 downto 0);
-   signal data_rot        : std_logic_vector(511 downto 0);
+   signal data_concat     : std_logic_vector(1087 downto 0);
+   signal data_rot        : std_logic_vector(543 downto 0);
    signal a_enable_concat : std_logic_vector(63 downto 0);
    signal a_enable_rot    : std_logic_vector(31 downto 0);
    signal b_enable_concat : std_logic_vector(63 downto 0);
    signal b_enable_rot    : std_logic_vector(31 downto 0);
 
    signal a_addr          : std_logic_vector(4 downto 0);
-   signal a_wr_data       : std_logic_vector(511 downto 0);
+   signal a_wr_data       : std_logic_vector(543 downto 0);
    signal a_wr_en         : std_logic_vector(31 downto 0);
-   signal a_rd_data       : std_logic_vector(511 downto 0);
+   signal a_rd_data       : std_logic_vector(543 downto 0);
    signal b_addr          : std_logic_vector(4 downto 0);
-   signal b_wr_data       : std_logic_vector(511 downto 0);
+   signal b_wr_data       : std_logic_vector(543 downto 0);
    signal b_wr_en         : std_logic_vector(31 downto 0);
-   signal b_rd_data       : std_logic_vector(511 downto 0);
+   signal b_rd_data       : std_logic_vector(543 downto 0);
 
 --   attribute mark_debug              : boolean;
 --   attribute mark_debug of addr_i    : signal is true;
@@ -56,7 +56,7 @@ begin
    wr_offset       <= conv_integer(addr_i(4 downto 0));
 
    data_concat     <= wr_data_i & wr_data_i;
-   data_rot        <= data_concat(1023 - wr_offset*16 downto 512 - wr_offset*16);
+   data_rot        <= data_concat(1087 - wr_offset*17 downto 544 - wr_offset*17);
 
    a_enable_concat <= wr_en_i & C_ZEROES;
    a_enable_rot    <= a_enable_concat(63 - wr_offset downto 32 - wr_offset);
@@ -80,7 +80,7 @@ begin
    i_vga_blockram_with_byte_enable : entity work.vga_blockram_with_byte_enable
       generic map (
          G_ADDR_SIZE   => 5,     -- 32 blocks of 32 pixels
-         G_COLUMN_SIZE => 16,    -- word size
+         G_COLUMN_SIZE => 17,    -- word size
          G_NUM_COLUMNS => 32     -- 32 pixels
       )
       port map (
@@ -107,7 +107,7 @@ begin
       end if;
    end process p_rd_offset;
 
-   rd_data_o <= a_rd_data(15 + rd_offset*16 downto rd_offset*16);
+   rd_data_o <= a_rd_data(16 + rd_offset*17 downto rd_offset*17);
 
 end architecture synthesis;
 
