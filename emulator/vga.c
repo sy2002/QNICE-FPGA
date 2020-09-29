@@ -642,29 +642,61 @@ static void vga_render_all_sprites()
          unsigned short pos_y      = sprite_config[4*i+1];
          unsigned short bitmap_ptr = sprite_config[4*i+2] & 0x7FFF;
 
-         for (unsigned short y = 0; y < 32; y++)
+         if (csr & VGA_SPRITE_CSR_LOWRES)
          {
-            for (unsigned short x = 0; x < 32; x++)
+            for (unsigned short y = 0; y < 16; y++)
             {
-               unsigned int color_index = (sprite_bitmap[bitmap_ptr + y*8 + x/4] >> (4*(~x & 3))) & 0xF;
-               unsigned int color = sprite_palette[16*i+color_index];
-
-               if (!(color & VGA_COLOR_TRANSPARENT))
+               for (unsigned short x = 0; x < 16; x++)
                {
-                  // Unsigned short is necessary to make two's complement wrap-around work:
-                  // Sprites can be moved left out of screen by setting the
-                  // x-coordinate to 0xFFFF etc.
-                  unsigned short pix_x = pos_x + x;
-                  unsigned short pix_y = pos_y + y;
-                  if (pix_x < render_dx && pix_y < render_dy)
+                  unsigned int color = sprite_bitmap[bitmap_ptr + y*16 + x];
+
+                  if (!(color & VGA_COLOR_TRANSPARENT))
                   {
-                     if (csr & VGA_SPRITE_CSR_BEHIND)
+                     // Unsigned short is necessary to make two's complement wrap-around work:
+                     // Sprites can be moved left out of screen by setting the
+                     // x-coordinate to 0xFFFF etc.
+                     unsigned short pix_x = pos_x + x;
+                     unsigned short pix_y = pos_y + y;
+                     if (pix_x < render_dx && pix_y < render_dy)
                      {
-                        if (screen_pixels[render_dx*pix_y + pix_x] & VGA_COLOR_BACKGROUND)
-                           screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color) | VGA_COLOR_BACKGROUND;
+                        if (csr & VGA_SPRITE_CSR_BEHIND)
+                        {
+                           if (screen_pixels[render_dx*pix_y + pix_x] & VGA_COLOR_BACKGROUND)
+                              screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color) | VGA_COLOR_BACKGROUND;
+                        }
+                        else
+                           screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color);
                      }
-                     else
-                        screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color);
+                  }
+               }
+            }
+         }
+         else
+         {
+            for (unsigned short y = 0; y < 32; y++)
+            {
+               for (unsigned short x = 0; x < 32; x++)
+               {
+                  unsigned int color_index = (sprite_bitmap[bitmap_ptr + y*8 + x/4] >> (4*(~x & 3))) & 0xF;
+                  unsigned int color = sprite_palette[16*i+color_index];
+
+                  if (!(color & VGA_COLOR_TRANSPARENT))
+                  {
+                     // Unsigned short is necessary to make two's complement wrap-around work:
+                     // Sprites can be moved left out of screen by setting the
+                     // x-coordinate to 0xFFFF etc.
+                     unsigned short pix_x = pos_x + x;
+                     unsigned short pix_y = pos_y + y;
+                     if (pix_x < render_dx && pix_y < render_dy)
+                     {
+                        if (csr & VGA_SPRITE_CSR_BEHIND)
+                        {
+                           if (screen_pixels[render_dx*pix_y + pix_x] & VGA_COLOR_BACKGROUND)
+                              screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color) | VGA_COLOR_BACKGROUND;
+                        }
+                        else
+                           screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color);
+                     }
                   }
                }
             }
