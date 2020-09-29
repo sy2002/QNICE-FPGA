@@ -358,23 +358,59 @@ static Uint32 palette_convert_15_to_24(unsigned int color)
         + ((color << 3) & 0x000000F8);
 }
 
+void vga_render_screen_area(int x_begin, int y_begin, int x_end, int y_end);
+
+static void vga_update_sprite(int sprite)
+{
+   unsigned short pos_x = sprite_config[4*sprite];
+   unsigned short pos_y = sprite_config[4*sprite+1];
+
+   // Redraw part of screen
+   vga_render_screen_area(pos_x/font_dx, pos_y/font_dy, (pos_x+32)/font_dx+1, (pos_y+32)/font_dy+1);
+}
+
 static void vga_sprite_write(unsigned int addr, unsigned int data)
 {
    if (addr & 0x8000)
    {
       sprite_bitmap[addr & 0x7FFF] = data;
+
+      // Determine which sprites are affected.
+      for (int sprite=0; sprite<128; ++sprite)
+      {
+         unsigned short bitmap_ptr = sprite_config[4*sprite+2] & 0x7FFF;
+         if ((addr & 0x7FFF) >= bitmap_ptr && (addr & 0x7FFF)+256 < bitmap_ptr)
+         {
+            vga_update_sprite(sprite);
+         }
+
+      }
    }
    else if (addr & 0x4000)
    {
       sprite_palette[addr & 0x07FF] = data;
+
+      // Determine which sprite is affected.
+      int sprite = (addr & 0x07FF)/16;
+      vga_update_sprite(sprite);
    }
    else
    {
-      sprite_config[addr & 0x01FF] = data;
-   }
+      // Determine which sprite is affected.
+      int sprite = (addr & 0x01FF)/4;
 
-   // TBD. This should be optimized to only re-render a single sprite if possible.
-   vga_refresh_rendering();
+      // Save old position (needed for redraw)
+      short old_pos_x = sprite_config[4*sprite];
+      short old_pos_y = sprite_config[4*sprite+1];
+
+      sprite_config[addr & 0x01FF] = data;
+
+      // Redraw old part of screen
+      vga_render_screen_area(old_pos_x/font_dx, old_pos_y/font_dy, (old_pos_x+32)/font_dx+1, (old_pos_y+32)/font_dy+1);
+
+      // Redraw new sprite
+      vga_update_sprite(sprite);
+   }
 }
 
 static unsigned int vga_sprite_read(unsigned int addr)
@@ -631,7 +667,7 @@ void vga_print(int x, int y, char* s)
 
 #define VGA_COLOR_BACKGROUND 0x01000000
 
-static void vga_render_all_sprites()
+static void vga_render_all_sprites(short x_begin, short y_begin, short x_end, short y_end)
 {
    for (int i = 127; i >= 0; i--) // Loop over all sprites. Start with lowest priority
    {
@@ -659,12 +695,9 @@ static void vga_render_all_sprites()
 
                   if (!(color & VGA_COLOR_TRANSPARENT))
                   {
-                     // Unsigned short is necessary to make two's complement wrap-around work:
-                     // Sprites can be moved left out of screen by setting the
-                     // x-coordinate to 0xFFFF etc.
-                     unsigned short pix_x = pos_x + x;
-                     unsigned short pix_y = pos_y + y;
-                     if (pix_x < render_dx && pix_y < render_dy)
+                     short pix_x = pos_x + x;
+                     short pix_y = pos_y + y;
+                     if (pix_x >= x_begin && pix_x < x_end && pix_y >= y_begin && pix_y < y_end)
                      {
                         if (csr & VGA_SPRITE_CSR_BEHIND)
                         {
@@ -719,6 +752,14 @@ static void vga_render_all_sprites()
    }
 }
 
+void vga_render_screen_area(int x_begin, int y_begin, int x_end, int y_end)
+{
+//    printf("vga_render_screen_area: (%d,%d) to (%d,%d)\n", x_begin, y_begin, x_end, y_end);
+    for (int y = y_begin; y < y_end; y++)
+        for (int x = x_begin; x < x_end; x++)
+            vga_render_to_pixelbuffer(x, y, vram[y * screen_dx + x + vga_offs_display]);
+    vga_render_all_sprites(x_begin, y_begin, x_end, y_end);
+}
 
 /* For performance reasons, during normal operation, the vram is not completely rendered, but only the
    region that changed while writing a char using the respective registers.
@@ -731,7 +772,7 @@ void vga_refresh_rendering()
             vga_render_to_pixelbuffer(x, y, vram[y * screen_dx + x + vga_offs_display]);
 
     if (vga_state & VGA_EN_SPRITE)
-       vga_render_all_sprites();
+       vga_render_all_sprites(0, 0, render_dx, render_dy);
 }
 
 void vga_render_to_pixelbuffer(int x, int y, Uint16 c)
