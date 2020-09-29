@@ -90,7 +90,7 @@ architecture synthesis of vga_sprite is
    constant C_START_CLEAR  : integer := C_STOP_READ + 1;
    constant C_STOP_CLEAR   : integer := C_STOP_READ + C_START_CLEAR/32;
    constant C_STOP_RENDER  : integer := 795;
-   constant C_START_RENDER : integer := C_STOP_RENDER + 1 - 2**G_INDEX_SIZE;
+   constant C_START_RENDER : integer := C_STOP_RENDER + 1 - 128;
 
    -- Decoding of the Config register
    constant C_CONFIG_RES_LOW  : integer := 0;
