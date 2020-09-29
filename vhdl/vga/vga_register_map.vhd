@@ -99,6 +99,9 @@ architecture synthesis of vga_register_map is
    signal cursor_y       : std_logic_vector(5 downto 0);
    signal cursor_addr    : std_logic_vector(15 downto 0);
 
+   signal vram_sprite_inc   : std_logic;
+   signal vram_sprite_inc_d : std_logic;
+
    signal this_int_n     : std_logic;
    signal this_grant_n   : std_logic;
 
@@ -119,6 +122,9 @@ architecture synthesis of vga_register_map is
 --   attribute mark_debug of vram_palette_addr_o    : signal is true;
 --   attribute mark_debug of vram_palette_wr_en_o   : signal is true;
 --   attribute mark_debug of vram_palette_rd_data_i : signal is true;
+--   attribute mark_debug of vram_sprite_addr_o     : signal is true;
+--   attribute mark_debug of vram_sprite_wr_en_o    : signal is true;
+--   attribute mark_debug of vram_sprite_rd_data_i  : signal is true;
 --   attribute mark_debug of vga_en_o               : signal is true;
 --   attribute mark_debug of cursor_enable_o        : signal is true;
 --   attribute mark_debug of cursor_blink_o         : signal is true;
@@ -131,6 +137,8 @@ architecture synthesis of vga_register_map is
 --   attribute mark_debug of display_offset         : signal is true;
 --   attribute mark_debug of cursor_offset          : signal is true;
 --   attribute mark_debug of cursor_addr            : signal is true;
+--   attribute mark_debug of vram_sprite_inc        : signal is true;
+--   attribute mark_debug of vram_sprite_inc_d      : signal is true;
 
 begin
 
@@ -144,6 +152,12 @@ begin
       if rising_edge(clk_i) then
          if en_i = '1' and we_i = '1' then
             register_map(conv_integer(reg_i)) <= data_i;
+         end if;
+
+         -- Autoincrement sprite address
+         vram_sprite_inc_d <= vram_sprite_inc;
+         if vram_sprite_inc = '1' and vram_sprite_inc_d = '0' then
+            register_map(C_REG_SPRITE_ADDRESS) <= register_map(C_REG_SPRITE_ADDRESS) + 1;
          end if;
 
          -- Special handling for Control register bits CLEAR_SCREEN and BUSY.
@@ -181,6 +195,7 @@ begin
                      register_map(C_REG_CONTROL)(C_CONTROL_CURSOR_OFFSET_EN) = '1' else
                      (others => '0');
 
+   vram_sprite_inc <= '1' when en_i = '1' and conv_integer(reg_i) = C_REG_SPRITE_DATA else '0';
 
    -- Put registers on output signals.
    p_output : process (clk_i)

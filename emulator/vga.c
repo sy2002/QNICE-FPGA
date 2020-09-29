@@ -415,7 +415,7 @@ unsigned int vga_read_register(unsigned int address)
         case VGA_PALETTE_ADDR:  return palette_addr;
         case VGA_PALETTE_DATA:  return palette_convert_24_to_15(palette[palette_addr & VGA_PALETTE_OFFS_MAX]);
         case VGA_SPRITE_ADDR:   return sprite_addr;
-        case VGA_SPRITE_DATA:   return vga_sprite_read(sprite_addr);
+        case VGA_SPRITE_DATA:   return vga_sprite_read(sprite_addr++);
     }
 
     return 0;
@@ -500,7 +500,7 @@ void vga_write_register(unsigned int address, unsigned int value)
             break;
 
         case VGA_SPRITE_DATA:
-            vga_sprite_write(sprite_addr, value);
+            vga_sprite_write(sprite_addr++, value);
             break;
     }
 }
