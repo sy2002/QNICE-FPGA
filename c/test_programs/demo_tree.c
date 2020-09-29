@@ -4,6 +4,9 @@
  *
  *  How to compile:  qvc demo_tree.c sprite.c tree_sprite.c -c99 -O3 -maxoptpasses=15
  *
+ *  The tree image was made by "Bleed - http://remusprites.carbonmade.com/", who licensed
+ *  it under the Creative Commons Attribution 3.0 International License (CC BY 3.0).
+ *
  *  done by MJoergen in September 2020
 */
 
