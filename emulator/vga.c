@@ -80,6 +80,7 @@ Uint32*              screen_pixels;
 SDL_Event            event;
 bool                 event_quit;
 
+volatile bool        gbl$rendering = false;
 unsigned long        gbl$sdl_ticks;
 unsigned long        sdl_ticks_prev;
 unsigned long        sdl_ticks_curr;
@@ -362,8 +363,8 @@ void vga_render_screen_area(int x_begin, int y_begin, int x_end, int y_end);
 
 static void vga_update_sprite(int sprite)
 {
-   unsigned short pos_x = sprite_config[4*sprite];
-   unsigned short pos_y = sprite_config[4*sprite+1];
+   short pos_x = sprite_config[4*sprite];
+   short pos_y = sprite_config[4*sprite+1];
 
    // Redraw part of screen
    vga_render_screen_area(pos_x/font_dx, pos_y/font_dy, (pos_x+32)/font_dx+1, (pos_y+32)/font_dy+1);
@@ -400,16 +401,20 @@ static void vga_sprite_write(unsigned int addr, unsigned int data)
       int sprite = (addr & 0x01FF)/4;
 
       // Save old position (needed for redraw)
-      short old_pos_x = sprite_config[4*sprite];
-      short old_pos_y = sprite_config[4*sprite+1];
+      short old_pos_x = sprite_config[4*sprite] / font_dx;
+      short old_pos_y = sprite_config[4*sprite+1] / font_dy;
 
       sprite_config[addr & 0x01FF] = data;
 
-      // Redraw old part of screen
-      vga_render_screen_area(old_pos_x/font_dx, old_pos_y/font_dy, (old_pos_x+32)/font_dx+1, (old_pos_y+32)/font_dy+1);
+      // Get new position
+      short pos_x = sprite_config[4*sprite] / font_dx;
+      short pos_y = sprite_config[4*sprite+1] / font_dy;
 
-      // Redraw new sprite
-      vga_update_sprite(sprite);
+      // Redraw old part of screen
+      vga_render_screen_area(old_pos_x, old_pos_y, old_pos_x+5, old_pos_y+4);
+
+      // Redraw new part of screen
+      vga_render_screen_area(pos_x, pos_y, pos_x+5, pos_y+4);
    }
 }
 
@@ -496,7 +501,7 @@ void vga_write_register(unsigned int address, unsigned int value)
             //make sure that the to-be-printed char is within the visible window
             unsigned int print_addr = vga_offs_rw + vga_y * screen_dx + vga_x;
             if (print_addr >= vga_offs_display && print_addr < vga_offs_display + screen_dy * screen_dx)
-                vga_render_to_pixelbuffer(vga_x, vga_y, value);
+                vga_render_screen_area(vga_x, vga_y, vga_x+1, vga_y+1);
             break;
 
         case VGA_FONT_OFFS:
@@ -756,6 +761,8 @@ static void vga_render_all_sprites(short x_begin, short y_begin, short x_end, sh
 
 void vga_render_screen_area(int x_begin, int y_begin, int x_end, int y_end)
 {
+    while (gbl$rendering) {}
+
 //    printf("vga_render_screen_area: (%d,%d) to (%d,%d)\n", x_begin, y_begin, x_end, y_end);
     for (int y = y_begin; y < y_end; y++)
         for (int x = x_begin; x < x_end; x++)
@@ -928,7 +935,9 @@ void vga_one_iteration_screen()
     }
 
     //high-performance way of displaying the screen using streaming textures
+    gbl$rendering = true;
     SDL_UpdateTexture(screen_texture, NULL, screen_pixels, render_dx * sizeof(Uint32));
+    gbl$rendering = false;
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     vga_render_cursor();    
     SDL_RenderPresent(renderer);
