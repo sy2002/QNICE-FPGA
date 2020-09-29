@@ -642,7 +642,7 @@ static void vga_render_all_sprites()
          unsigned short pos_y      = sprite_config[4*i+1];
          unsigned short bitmap_ptr = sprite_config[4*i+2] & 0x7FFF;
 
-         if (csr & VGA_SPRITE_CSR_LOWRES)
+         if (csr & VGA_SPRITE_CSR_HICOLOR)
          {
             for (unsigned short y = 0; y < 16; y++)
             {

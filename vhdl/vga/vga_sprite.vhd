@@ -95,13 +95,11 @@ architecture synthesis of vga_sprite is
    constant C_START_RENDER : integer := C_STOP_RENDER + 1 - 128;
 
    -- Decoding of the Config register
-   constant C_CONFIG_RES_LOW  : integer := 0;
+   constant C_CONFIG_HICOLOR  : integer := 0;
    constant C_CONFIG_BEHIND   : integer := 1;
-   constant C_CONFIG_MAG_X    : integer := 2;
-   constant C_CONFIG_MAG_Y    : integer := 3;
-   constant C_CONFIG_MIRROR_X : integer := 4;
-   constant C_CONFIG_MIRROR_Y : integer := 5;
-   constant C_CONFIG_VISIBLE  : integer := 6;
+   constant C_CONFIG_MIRROR_X : integer := 2;
+   constant C_CONFIG_MIRROR_Y : integer := 3;
+   constant C_CONFIG_VISIBLE  : integer := 4;
 
    signal stage0 : t_stage0;
    signal stage1 : t_stage1;
@@ -165,10 +163,10 @@ begin
 
    -- Calculate sprite bitmap address
    stage1.diff_y     <= stage1.next_y - stage1.pos_y when stage1.config(C_CONFIG_MIRROR_Y) = '0' else
-                        31 + stage1.pos_y - stage1.next_y when stage2.config(C_CONFIG_RES_LOW) = '0' else
-                        15 + stage1.pos_y - stage1.next_y when stage2.config(C_CONFIG_RES_LOW) = '1';
+                        31 + stage1.pos_y - stage1.next_y when stage2.config(C_CONFIG_HICOLOR) = '0' else
+                        15 + stage1.pos_y - stage1.next_y when stage2.config(C_CONFIG_HICOLOR) = '1';
 
-   stage1.bitmap_offset <= std_logic_vector(to_unsigned(conv_integer(stage1.diff_y(3 downto 0)), G_INDEX_SIZE+4)) when stage2.config(C_CONFIG_RES_LOW) = '1' else
+   stage1.bitmap_offset <= std_logic_vector(to_unsigned(conv_integer(stage1.diff_y(3 downto 0)), G_INDEX_SIZE+4)) when stage2.config(C_CONFIG_HICOLOR) = '1' else
                            std_logic_vector(to_unsigned(conv_integer(stage1.diff_y(4 downto 1)), G_INDEX_SIZE+4));
 
    -- Read sprite bitmap
@@ -227,7 +225,7 @@ begin
          else
             color_index := conv_integer(stage2.bitmap(3+4*j downto 4*j));
          end if;
-         if stage2.config(C_CONFIG_RES_LOW) = '0' then
+         if stage2.config(C_CONFIG_HICOLOR) = '0' then
             stage2.pixels(16+17*i downto 17*i) <=
                stage2.config(C_CONFIG_BEHIND) &
                stage2.palette(15+16*color_index downto 16*color_index);
@@ -253,7 +251,7 @@ begin
       if rising_edge(clk_i) then
          stage3.color <= stage2.color;    -- Copy signals from Stage 2.
 
-         if stage2.config(C_CONFIG_RES_LOW) = '1' then
+         if stage2.config(C_CONFIG_HICOLOR) = '1' then
             size := 16;
          else
             size := 32;

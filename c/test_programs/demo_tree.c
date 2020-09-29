@@ -44,7 +44,7 @@ int main()
       int x = image%8;
 
       sprite_set_position(image, 100+x*16, 100+y*16);
-      sprite_set_config(image,   VGA_SPRITE_CSR_VISIBLE | VGA_SPRITE_CSR_LOWRES);
+      sprite_set_config(image,   VGA_SPRITE_CSR_VISIBLE | VGA_SPRITE_CSR_HICOLOR);
    }
 
    qmon_gets();
