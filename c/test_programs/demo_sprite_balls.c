@@ -46,7 +46,7 @@ typedef struct
    int          collided;
 } t_ball;
 
-#define NUM_SPRITES 40
+#define NUM_SPRITES 10
 
 t_ball balls[NUM_SPRITES];
 

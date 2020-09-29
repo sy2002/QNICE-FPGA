@@ -627,7 +627,7 @@ int main()
 
    while (1)
    {
-      while (MMIO(VGA_SCAN_LINE) != 480) {}
+      while (MMIO(VGA_SCAN_LINE) < 480) {}
 
       int pos_x = 320 + offset_x/256;
       int pos_y = 240 + offset_y/256;

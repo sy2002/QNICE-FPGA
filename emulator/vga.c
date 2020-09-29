@@ -452,6 +452,8 @@ unsigned int vga_read_register(unsigned int address)
         case VGA_PALETTE_DATA:  return palette_convert_24_to_15(palette[palette_addr & VGA_PALETTE_OFFS_MAX]);
         case VGA_SPRITE_ADDR:   return sprite_addr;
         case VGA_SPRITE_DATA:   return vga_sprite_read(sprite_addr++);
+
+        case VGA_SCAN_LINE:     return (gbl$sdl_ticks * 525 * 60 / 1000) % 525;
     }
 
     return 0;
