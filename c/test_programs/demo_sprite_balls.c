@@ -15,6 +15,7 @@
 #include "rand.h"
 #include "images.h"
 #include "stat.h"
+#include "conio.h"
 
 // convenient mechanism to access QNICE's Memory Mapped IO registers
 #define MMIO( __x ) *((unsigned int volatile *) __x )
@@ -45,7 +46,7 @@ typedef struct
    int          collided;
 } t_ball;
 
-#define NUM_SPRITES 45
+#define NUM_SPRITES 40
 
 t_ball balls[NUM_SPRITES];
 
@@ -78,7 +79,10 @@ static void init_all_sprites()
       palette[1] = balls[i].color;
       sprite_set_palette(i, palette);
       sprite_set_bitmap_ptr(i, balls[i].sprite_bitmap_ptr);
-      sprite_set_config(i, VGA_SPRITE_CSR_VISIBLE);
+      if (i&1)
+         sprite_set_config(i, VGA_SPRITE_CSR_VISIBLE);
+      else
+         sprite_set_config(i, VGA_SPRITE_CSR_VISIBLE | VGA_SPRITE_CSR_BEHIND);
    }
 } // init_all_sprites
 
@@ -224,6 +228,22 @@ static void draw()
    }
 } // draw
 
+static void showStats()
+{
+   long ekin = 0;
+
+   char buffer[20];
+
+   for (unsigned int i=0; i<NUM_SPRITES; ++i)
+   {
+      t_ball *pBall = &balls[i];
+      ekin += (long) pBall->mass * ((long) pBall->vel_scaled.x * (long) pBall->vel_scaled.x + 
+                                    (long) pBall->vel_scaled.y * (long) pBall->vel_scaled.y) / 2;
+   }
+   snprintf(buffer, 20, "Ekin = %ld         ", ekin/VEL_SCALE);
+   cputsxy(20, 20, buffer);
+}
+
 int main()
 {
    MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR; //hide cursor
@@ -241,6 +261,7 @@ int main()
       draw();     // Update hardware
 
       update();   // Update internal state
+      showStats();
       stat_update(MMIO(VGA_SCAN_LINE));   // Update statistics.
       if (MMIO(IO_UART_SRA) & 1)
          break;
