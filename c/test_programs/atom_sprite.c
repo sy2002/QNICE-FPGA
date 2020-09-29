@@ -1,6 +1,6 @@
 #include "sprite.h"
 const t_sprite_palette palette = {
-   0x0421, 
+   0x8000, // 0x0421, 
    0x165b, 
    0x4905, 
    0x152b, 
