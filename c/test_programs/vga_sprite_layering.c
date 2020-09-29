@@ -39,7 +39,7 @@
  *  This shall display GREEN text on RED background, because sprite 0 takes precedence over sprite 1.
  *
  *
- *  How to compile: qvc vga_sprite_layering.c -O3 -c99
+ *  How to compile: qvc vga_sprite_layering.c sprite.c conio.c -O3 -c99
  *
  *  done by MJoergen in September 2020
 */
@@ -198,8 +198,6 @@ int main()
       cputsxy(tests[i].x, tests[i].y+12, tests[i].line4);
    }
 
-   qmon_gets();
-
    for (int i=0; i<10; ++i)
    {
       sprite_set_palette(i,  palette);
@@ -208,7 +206,6 @@ int main()
       sprite_set_position(i, sprites[i].x*8+8, sprites[i].y*12+12);
    }
 
-   qmon_gets();
    return 0;
 } // main
 
