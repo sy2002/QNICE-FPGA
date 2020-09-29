@@ -42,6 +42,13 @@ void sprite_set_bitmap(unsigned int sprite_num, const t_sprite_bitmap bitmap)
 } // sprite_set_bitmap
 
 
+void sprite_set_bitmap_ptr(unsigned int sprite_num, int sprite_num_ptr)
+{
+   unsigned int addr = VGA_SPRITE_BITMAP + sprite_num_ptr*32*32/4;
+   sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_BITMAP_PTR + sprite_num*4, addr);
+} // sprite_set_bitmap_ptr
+
+
 void sprite_set_config(unsigned int sprite_num, unsigned int config)
 {
    sprite_wr(VGA_SPRITE_CONFIG + VGA_SPRITE_CSR + sprite_num*4, config);

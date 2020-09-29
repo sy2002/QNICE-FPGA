@@ -36,13 +36,13 @@ typedef struct
 
 typedef struct
 {
-   t_vec                 pos_scaled;
-   t_vec                 vel_scaled;
-   unsigned int          radius_scaled;
-   unsigned int          mass;
-   const t_sprite_bitmap *sprite_bitmap;
-   unsigned int          color;
-   int                   collided;
+   t_vec        pos_scaled;
+   t_vec        vel_scaled;
+   unsigned int radius_scaled;
+   unsigned int mass;
+   unsigned int sprite_bitmap_ptr;
+   unsigned int color;
+   int          collided;
 } t_ball;
 
 #define NUM_SPRITES 45
@@ -54,25 +54,30 @@ static void init_all_sprites()
    // Enable sprites
    MMIO(VGA_STATE) |= VGA_EN_SPRITE;
 
+   for (unsigned int i=0; i<NUM_IMAGES; ++i)
+   {
+      sprite_set_bitmap(i, *(images[i].sprite_bitmap));
+   }
+
    // Initialize each sprite
    for (unsigned int i=0; i<NUM_SPRITES; ++i)
    {
       int image_index = my_rand()%NUM_IMAGES;
 
-      balls[i].pos_scaled.x  = (my_rand()%(640-64)+32)*POS_SCALE;
-      balls[i].pos_scaled.y  = (my_rand()%(480-64)+32)*POS_SCALE;
-      balls[i].vel_scaled.x  = my_rand()%VEL_SCALE-VEL_SCALE/2;
-      balls[i].vel_scaled.y  = my_rand()%VEL_SCALE-VEL_SCALE/2;
-      balls[i].radius_scaled = images[image_index].radius_scaled*POS_SCALE;
-      balls[i].mass          = images[image_index].mass;
-      balls[i].sprite_bitmap = images[image_index].sprite_bitmap;
-      balls[i].color         = (my_rand()&0x7FFF) | 0xC63; // Avoid darks colors
-      balls[i].collided      = 0;
+      balls[i].pos_scaled.x      = (my_rand()%(640-64)+32)*POS_SCALE;
+      balls[i].pos_scaled.y      = (my_rand()%(480-64)+32)*POS_SCALE;
+      balls[i].vel_scaled.x      = my_rand()%VEL_SCALE-VEL_SCALE/2;
+      balls[i].vel_scaled.y      = my_rand()%VEL_SCALE-VEL_SCALE/2;
+      balls[i].radius_scaled     = images[image_index].radius_scaled*POS_SCALE;
+      balls[i].mass              = images[image_index].mass;
+      balls[i].sprite_bitmap_ptr = image_index;
+      balls[i].color             = (my_rand()&0x7FFF) | 0xC63; // Avoid darks colors
+      balls[i].collided          = 0;
 
       t_sprite_palette palette = sprite_palette_transparent;
       palette[1] = balls[i].color;
       sprite_set_palette(i, palette);
-      sprite_set_bitmap(i, *(balls[i].sprite_bitmap));
+      sprite_set_bitmap_ptr(i, balls[i].sprite_bitmap_ptr);
       sprite_set_config(i, VGA_SPRITE_CSR_VISIBLE);
    }
 } // init_all_sprites
