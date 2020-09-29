@@ -38,6 +38,7 @@
 #define INT   2
 #define INCRB 3
 #define DECRB 4
+#define EXC   5
 
 #define NO_OPCODE         -1 /* No opcode found (just a label), do not emit an output line */
 
@@ -92,27 +93,6 @@ data_structure *gbl$data = 0;
 equ_structure  *gbl$equs = 0;
 
 /*
-** Expand all tabs by blanks, assuming that tab stops occur every eight columns.
-*/
-void expand_tabs(char *dst, char *src) {
-  int i;
-
-  i = 0;
-  while (*src) {
-    i++;
-    if (*src != '\t')
-      *dst++ = *src++;
-    else {
-      *dst++ = ' ';
-      for ( ; (i % 8); i++, *dst++ = ' ');
-      src++;
-    }
-  }
-
-  *dst = (char) 0;
-}
-
-/*
 ** Convert a string to uppercase.
 */
 void string2upper(char *string) {
@@ -159,7 +139,7 @@ int translate_mnemonic(char *string, int *opcode, int *type) {
   int i;
   static char *normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                               "NOT", "AND", "OR", "XOR", "CMP", 0},
-    *control_mnemonics[] = {"HALT", "RTI", "INT", "INCRB", "DECRB", 0},
+    *control_mnemonics[] = {"HALT", "RTI", "INT", "INCRB", "DECRB", "EXC", 0},
     *branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB", 0},
     *directives[] = {".ORG", ".ASCII_W", ".ASCII_P", ".EQU", ".BLOCK", ".DW", 0};
 
@@ -235,6 +215,68 @@ char *tokenize(char *string, char *delimiters) {
   }
 
   return NULL;
+}
+
+/*
+** Expand all tabs by blanks, assuming that tab stops occur every eight columns.
+*/
+void expand_tabs(char *dst, char *src) {
+  int i, non_space_found;
+  char label[STRING_LENGTH], rest[STRING_LENGTH], scratch[STRING_LENGTH], *p;
+
+  p = dst;  // Remember the start of the destination string
+  i = 0;
+  while (*src) {
+    i++;
+    if (*src != '\t')
+      *dst++ = *src++;
+    else {
+      *dst++ = ' ';
+      for ( ; (i % 8); i++, *dst++ = ' ');
+      src++;
+    }
+  }
+
+  *dst = (char) 0;
+  dst  = p;
+
+  //  Format labels etc. nicely. The following code is pretty ugly and this should have been done
+  // long before we come to expand_tabs(...) but I did not feel brave enough to change it in the 
+  // depth of the assembler, which caused this kludge:
+  strcpy(scratch, dst);
+  if (*scratch && *scratch != ' ' && *scratch != ';') { // If a line starts with a non-space character it starts with a label
+    i = 0;
+    while (scratch[i] && scratch[i] != ' ')             // Look for end of label
+      i++;
+    scratch[i] = (char) 0;
+    strcpy(label, scratch);
+    p = scratch + i + 1;
+    
+    i = 0;
+    while (p[i] && p[i] == ' ')
+      i++;
+    strcpy(rest, p + i);
+
+    sprintf(dst, "%-24s    %s", label, rest);           // Beware of hardcoded length of labels
+  } else if (*scratch && *scratch == ' ') {             // Line starts with a blank, so let's expand these...
+    i = 0;
+    while (scratch[i] == ' ')
+      i++;
+    sprintf(dst, "                            %s", scratch + i);    // Also hardcoded 24 + 4 spaces!
+  }
+
+  // Take care of comments at the end of lines...
+  strcpy(scratch, dst);
+  i = non_space_found = 0;
+  while (scratch[i] && scratch[i] != ';') 
+    if (scratch[i++] != ' ')
+      non_space_found = 1;
+
+  if (i > 0 && scratch[i] == ';' && non_space_found) {  // There is a comment and it is not at the start of the line
+    strcpy(label, scratch + i);                         // Remember the comment (not really a label, sorry for the variable)
+    scratch[i - 1] = (char) 0;
+    sprintf(dst, "%-60s %s", scratch, label);
+  }
 }
 
 /*
@@ -534,7 +576,7 @@ int decode_operand(char *operand, int *op_code) {
 */
 int assemble() {
   int opcode, type, line_counter, address = 0, i, j, error_counter = 0, number_of_operands, negate, flag, value, size,
-    special_char, org_found = 0, retval, error;
+    special_char, org_found = 0, retval, error, shadow_register;
   char line[STRING_LENGTH], label[STRING_LENGTH], *p, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
   data_structure *entry;
 
@@ -953,8 +995,6 @@ Offending line:\n%s\n", line_counter, entry->source);
 
         entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6)); /* Basic structure of the instruction */
       } else if (entry->opcode == INT) {
-        entry->number_of_words = 1; /* At least one word is required for INT. */
-
         if (!token) { /* INT requires an additional token */
           sprintf(entry->error_text, "Line %d: ERROR - no argument found!\nOffending line:\n%s\n", 
                   line_counter, entry->source);
@@ -978,6 +1018,8 @@ Offending line:\n%s\n", line_counter, entry->source);
           continue;
         }
 
+        entry->number_of_words = 1; /* At least one word is required for INT. */
+
         if (entry->dest_op_type == OPERAND$CONSTANT || entry->dest_op_type == OPERAND$LABEL_EQU) {
           entry->number_of_words++;
           address++;
@@ -988,7 +1030,7 @@ Offending line:\n%s\n", line_counter, entry->source);
           return -1;
         }
 
-        entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6) | ((entry->dest_op_code) & 0x3f)) & 0xffff; 
+        entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6) | (entry->dest_op_code & 0x3f)) & 0xffff; 
         if (entry->dest_op_type == OPERAND$CONSTANT) { /* Labels are no constants in this context as they are unknown in advance */
           entry->data[1] = str2int(entry->dest_op, &error) & 0xffff;
           if (error) {
@@ -998,6 +1040,62 @@ Offending line:\n%s\n", line_counter, entry->source);
             error_counter++;
           }
         }
+      } else if (entry->opcode == EXC) {
+        if (!token) { // The first token is a constant which deviates from all other instructions!
+          sprintf(entry->error_text, "Line %d: ERROR - no constant found for EXC!\nOffending line:\n%s\n", 
+                  line_counter, entry->source);
+          PRINT_ERROR;
+          error_counter++;
+          continue;
+        }
+
+        shadow_register = str2int(token, &error);
+        if (error) {
+          sprintf(entry->error_text, "Line %d: EXC constant could not be decoded!\nOffending line:\n%s\n", 
+                  line_counter, entry->source);
+          PRINT_ERROR;
+          continue;
+        }
+        if (shadow_register < 0 || shadow_register > 31) {
+          sprintf(entry->error_text, "Line %d: EXC constant out of range (0 .. 31)!\nOffending line:\n%s\n",
+                  line_counter, entry->source);
+          PRINT_ERROR;
+          continue;
+        }
+        strcpy(entry->src_op, token);
+        entry->src_op_code = (shadow_register & 0x1f) | 0x20;
+
+        if (!(token = tokenize((char *) 0, delimiters))) { // We need a second operands
+          sprintf(entry->error_text, "Line %d: No second operand for EXC found!\nOffending line:\n%s\n",
+                  line_counter, entry->source);
+          PRINT_ERROR;
+          continue;
+        }
+
+        strcpy(entry->dest_op, token);
+        if ((entry->dest_op_type = decode_operand(entry->dest_op, &entry->dest_op_code)) == OPERAND$ILLEGAL) {
+          sprintf(entry->error_text, "Line %d: Illegal destination operand!\nOffending line:\n%s\n", 
+                  line_counter, entry->source);
+          PRINT_ERROR;
+          error_counter++;
+          continue;
+        }
+
+        if ((entry->dest_op_type == OPERAND$CONSTANT || entry->dest_op_type == OPERAND$LABEL_EQU)) {
+          sprintf(entry->error_text, "Line %d: EXC with constant destination!\nOffending line:\n%s\n", 
+                  line_counter, entry->source);
+          PRINT_ERROR;
+          error_counter++;
+          continue;
+        }
+
+        entry->number_of_words = 1;
+        if (!(entry->data = (int *) malloc(entry->number_of_words * sizeof(int)))) {
+          printf("assemble: Out of memory, could not allocate %d words of memory!", (int) strlen(p));
+          return -1;
+        }
+
+        entry->data[0] = (0xe000 | 0x0800 | ((shadow_register & 0x1f) << 6) | (entry->dest_op_code & 0x3f)) & 0xffff;
       }
     } else {
       sprintf(entry->error_text, "Line %d: Unknown opcode type %d! Very strange error!\nOffending line:\n%s\n", 

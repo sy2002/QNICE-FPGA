@@ -93,10 +93,11 @@
       {\tt E}&{\tt INT}&dst&Issue software interrupt\\
       {\tt E}&{\tt INCRB}&&Increment register bank address\\
       {\tt E}&{\tt DECRB}&&Decrement register bank address\\
-      {\tt F}&{\tt ABRA}&{\tt dest, [!]cond}&Absolute branch\\
-      {\tt F}&{\tt ASUB}&{\tt dest, [!]cond}&Absolut subroutine call\\
-      {\tt F}&{\tt RBRA}&{\tt dest, [!]cond}&Relative branch\\
-      {\tt F}&{\tt RSUB}&{\tt dest, [!]cond}&Relative subroutine call\\
+      {\tt E}&{\tt EXC}&{\tt const, dst}&Exchange shadow register\\
+      {\tt F}&{\tt ABRA}&{\tt dst, [!]cond}&Absolute branch\\
+      {\tt F}&{\tt ASUB}&{\tt dst, [!]cond}&Absolut subroutine call\\
+      {\tt F}&{\tt RBRA}&{\tt dst, [!]cond}&Relative branch\\
+      {\tt F}&{\tt RSUB}&{\tt dst, [!]cond}&Relative subroutine call\\
      \hline
     \end{longtable}
    \end{center}

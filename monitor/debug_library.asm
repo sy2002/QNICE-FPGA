@@ -5,6 +5,7 @@
 ;; 29-AUG-2015      Bernd Ulmann    Initial version
 ;; 25-JUL-2020      Bernd Ulmann    Added support for HALT, RTI, and INT
 ;; 07-AUG-2020      Bernd Ulmann    RBRA/RSUB now displays the absolut destination addr.
+;; 20-SEP-2020      Bernd Ulmann    Take care of the new EXC instruction
 ;;=======================================================================================
 ;;
 ;
@@ -47,6 +48,21 @@ DBG$DISASM          INCRB
                     RBRA    _DBG$DISASM_EXIT, 1 ; Finished...
 ; Treat control instructions:
 _DBG$DISASM_CTRL    MOVE    R1, R2              ; Determine the type of control instruction
+                    AND     0x0800, R2          ; If bit 11 is set it is an EXC instruction
+                    RBRA    _DBG$DISASM_NO_EXC, Z
+                    MOVE    _DBG$EXC_MNEMONIC, R8
+                    RSUB    IO$PUTS, 1          ; Print the mnemonice
+                    MOVE    ' ', R8
+                    RSUB    IO$PUTCHAR, 1       ; ...and a delimiter
+                    MOVE    R1, R8              ; Refetch the instruction
+                    SHR     0x0006, R8          ; Get the constant
+                    AND     0x001F, R8
+                    RSUB    IO$PUT_W_HEX, 1
+                    MOVE    ' ', R8
+                    RSUB    IO$PUTCHAR, 1       ; Print another delimiter
+                    RSUB    _DBG$HANDLE_DEST, 1
+                    RBRA    _DBG$DISASM_EXIT, 1
+_DBG$DISASM_NO_EXC  MOVE    R1, R2
                     SHR     0x0003, R2          ; Shift only three to the right as
                     AND     0x01F8, R2          ; each mnemonic is 8 characters long
                     MOVE    _DBG$CTRL_MNEMONICS, R8
@@ -168,6 +184,7 @@ _DBG$CTRL_MNEMONICS .ASCII_W    "HALT   "
                     .ASCII_W    "INT    "
                     .ASCII_W    "INCRB  "
                     .ASCII_W    "DECRB  "
+_DBG$EXC_MNEMONIC   .ASCII_W    "EXC    "       ; EXC is pretty special
                     .ASCII_W    "BRSU   "       ; This also is not really necessary
 _DBG$BRSU_MNEMONICS .ASCII_W    "ABRA   "
                     .ASCII_W    "ASUB   "

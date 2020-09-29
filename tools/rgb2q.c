@@ -12,6 +12,10 @@ unsigned int palette_convert_24_to_15(unsigned long color)
         + ((color & 0x000000F8) >> 3);
 }
 
+
+/* This routine is not yet used and needs to be improved in case we enhance
+   this tool to convert in both directions. The formula for converting each
+   component of the 15-bit RGB to 24-bit RGB is: multiply by 0x83A and SHR 8 */
 unsigned long palette_convert_15_to_24(unsigned long color)
 {
    return ((color << 9) & 0x00F80000)

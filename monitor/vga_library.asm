@@ -59,6 +59,27 @@ _VGA$FACTORY_PAL        INCRB
                         RET                     
 ;
 ;***************************************************************************************
+;* VGA$MOVE_TO_XY
+;*
+;* R8:  X-coordinate (0 .. 79)
+;* R9:  Y-coordinate (0 .. 39)
+;*
+;* Moves the cursor to x|y and the next call to VGA$PUTCHAR will use this position
+;***************************************************************************************
+;
+VGA$MOVE_TO_XY          INCRB
+                        MOVE    VGA$CR_X, R0
+                        MOVE    R8, @R0
+                        MOVE    _VGA$X, R0
+                        MOVE    R8, @R0
+                        MOVE    VGA$CR_Y, R0
+                        MOVE    R9, @R0
+                        MOVE    _VGA$Y, R0
+                        MOVE    R9, @R0
+                        DECRB
+                        RET
+;
+;***************************************************************************************
 ;* VGA$CHAR_AT_XY
 ;*
 ;* R8:  Contains character to be printed

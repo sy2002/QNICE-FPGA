@@ -50,6 +50,16 @@ CHR_PAL_SEL_B   .EQU 'A'                        ; background col selector
 PAL_ED_X        .EQU 2
 PAL_ED_Y        .EQU 17
 
+RED_MASK        .EQU 0x7C00                     ; 15-bit RGB mask for R
+RED_ONE         .EQU 0x0400                     ; RED + 1
+RED_ONE_C       .EQU 0xFC00                     ; RED - 1 (2-complement of +1)
+GREEN_MASK      .EQU 0x03E0                     ; 15-bit RGB mask for G
+GREEN_ONE       .EQU 0x0020                     ; GREEN + 1
+GREEN_ONE_C     .EQU 0xFFE0                     ; GREEN - 1
+BLUE_MASK       .EQU 0x001F                     ; 15-bit RGB mask for B
+BLUE_ONE        .EQU 0x0001                     ; BLUE + 1
+BLUE_ONE_C      .EQU 0xFFFF                     ; BLUE - 1
+
                 .ORG 0x8000
 
                 ; check external interface "variables" TILE_DX_INIT and
@@ -85,6 +95,13 @@ LRU_INIT_LOOP   MOVE    0, @R0++
 
                 MOVE    FONT_MODE, R0
                 MOVE    0, @R0
+
+                ; fill the clipboard with the bitpattern of character 0
+                MOVE    SELECTED_CHR, R8
+                MOVE    0, @R8
+                MOVE    KBD$CTRL_C, R8
+                OR      0xFF00, R8              ; flag that COPYPASTE shall..
+                RSUB    COPYPASTE, 1            ; ..act like a sub routine
 
                 ; font ed cursor positions
                 MOVE    FONT_ED_CX, R0
@@ -139,10 +156,18 @@ WAIT_FOR_KEY    RSUB    KBD_GETCHAR, 1
 
                 ; support fg/bg color selection using `a` to `q` and
                 ; `A` to `Q` in case of active font ed mode
-                MOVE    FONT_MODE, R11
-                MOVE    @R11, R11
-                RBRA    CHECK_KEYS, Z
-                RSUB    _FONTED_FGBG, 1
+                MOVE    FONT_MODE, R11          
+                MOVE    @R11, R11               ; if FONT_MODE = 0, then ..
+                RBRA    CHECK_KEYS, Z           ; .. no font ed mode active
+                MOVE    TILE_DX, R11            ; save TILE_DX and TILE_DY
+                MOVE    @R11, @--SP
+                MOVE    TILE_DY, R11
+                MOVE    @R11, @--SP
+                RSUB    _FONTED_FGBG, 1         ; changes TILE_DX and TILE_DY
+                MOVE    TILE_DY, R11
+                MOVE    @SP++, @R11             ; restore TILE_DX and TILE_DY
+                MOVE    TILE_DX, R11
+                MOVE    @SP++, @R11
                 RBRA    MAIN_LOOP, C            ; fg or bg was changed
 
                 ; ignore keys that are not allowed in font ed mode
@@ -159,6 +184,8 @@ CHECK_KEYS      CMP     KBD$F1, R8              ; F1 = toggle sprite mode
                 RBRA    CHANGE_SIZE, Z
                 CMP     KBD$F5, R8              ; F5 = clear
                 RBRA    CLEAR, Z
+                CMP     KBD$F9, R8              ; F9 = palette editor
+                RBRA    PAL_ED, Z
                 CMP     KBD$F7, R8              ; F7 = toggle font mode
                 RBRA    _WFK_CHK_F12, !Z
                 MOVE    FONT_MODE, R11          ; are we already in font mode?
@@ -186,6 +213,10 @@ _WFK_CHK_F12    CMP     KBD$F12, R8             ; F12 = quit
                 RBRA    SAVE_DATA, Z
                 CMP     KBD$SPACE, R8           ; SPACE = draw character
                 RBRA    DRAW_CHAR, Z
+                CMP     KBD$CTRL_C, R8          ; CTRL+C: COPY
+                RBRA    COPYPASTE, Z
+                CMP     KBD$CTRL_V, R8          ; CTRL+V: PASTE
+                RBRA    COPYPASTE, Z                               
                 CMP     0, R3                   ; mode = palette?
                 RBRA    NAV_PAL, Z              ; yes: navigate palette
                 CMP     KBD$CUR_UP, R8          ; no: tile: up
@@ -199,8 +230,9 @@ _WFK_CHK_F12    CMP     KBD$F12, R8             ; F12 = quit
                 CMP     KBD$HOME, R8            ; tile: home = top left
                 RBRA    NAV_TILE_H, Z
                 CMP     KBD$END, R8             ; tile: end = bottom right
-                RBRA    NAV_TILE_E, Z                
+                RBRA    NAV_TILE_E, Z
                 RBRA    WAIT_FOR_KEY, 1
+
 NAV_PAL         CMP     KBD$CUR_UP, R8          ; palette: cursor up
                 RBRA    NAV_PAL_U, Z
                 CMP     KBD$CUR_DOWN, R8        ; palette: cursor down
@@ -319,6 +351,39 @@ DRAW_CHAR       MOVE    R6, @R0
                 RBRA    MAIN_LOOP, 1
 _DRAW_CHAR_N    MOVE    R8, @R2                 ; print the character
                 RBRA    MAIN_LOOP, 1
+
+                ; copy currently selected char font bit pattern to clipboard
+COPYPASTE       INCRB
+                MOVE    R8, R0                  ; R0 = copy or paste
+                AND     0x00FF, R0              ; strip RET flag from R0
+                MOVE    R8, R1 
+                AND     0xFF00, R1              ; if R1 = 0xFF00 then use RET
+                MOVE    SELECTED_CHR, R8
+                MOVE    @R8, R8
+                AND     0x00FF, R8              ; strip color information
+                MOVE    12, R9                  ; height of a char: 12
+                SYSCALL(mulu, 1)                ; R10 = R8 * 12
+                ADD     VGA$FONT_OFFS_USER, R10 ; R10 = bitpattern address
+                XOR     R8, R8
+                MOVE    VGA$FONT_ADDR, R9
+                MOVE    VGA$FONT_DATA, R11
+                MOVE    CLIPBOARD, R12
+COPYPASTE_LOOP  MOVE    R10, @R9                ; R10 = bitpattern address
+                CMP     KBD$CTRL_C, R0          ; copy?
+                RBRA    COPYPASTE_PASTE, !Z
+                MOVE    @R11, @R12++            ; bitpattern data to clipboard
+                RBRA    COPYPASTE_CONT, 1
+COPYPASTE_PASTE MOVE    @R12++, @R11            ; clipboard to bitpattern data                
+COPYPASTE_CONT  ADD     1, R10
+                ADD     1, R8
+                CMP     12, R8                  ; height of a char: 12
+                RBRA    COPYPASTE_LOOP, !Z
+                MOVE    R1, R8
+                DECRB
+                CMP     0xFF00, R8
+                RBRA    COPYPASTE_RBRA, !Z
+                RET
+COPYPASTE_RBRA  RBRA    MAIN_LOOP, 1
 
                 ; clear tile
 CLEAR           MOVE    TILE_WS_X_MAX, R9
@@ -477,6 +542,14 @@ STR_CHG_SIZE_Y  .ASCII_W "Enter new height (1..36): "
 STR_CURCHAR     .ASCII_W "SELECTED:"
 STR_FOREGROUND  .ASCII_W "Foreground color:"
 STR_BACKGROUND  .ASCII_W "Background color:"
+STR_PAL_FG      .ASCII_W "Palette for foreground colors:"
+STR_PAL_BG      .ASCII_W "Palette for background colors:"
+STR_RGB15       .ASCII_W "15-bit RGB: "
+STR_RGB24       .ASCII_W "24-bit RGB: "
+STR_RED         .ASCII_W "       Red: "
+STR_GREEN       .ASCII_W "     Green: "
+STR_BLUE        .ASCII_W "      Blue: "
+STR_METER       .ASCII_W " [                ]"
 
 ; ****************************************************************************
 ; FONT_ED
@@ -903,6 +976,264 @@ _FONTED_FGBG1   MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
 _FONTED_FGBG2   SYSCALL(leave, 1)
                 RET
 
+
+; ****************************************************************************
+; PAL_ED
+;    Main routine for palette editing: Not meant to be called via RSUB.
+;    Instead, it jumps back to the main loop
+; ****************************************************************************
+
+PAL_ED          SYSCALL(enter, 1)
+
+                MOVE    VGA$STATE, R0           ; cursor off
+                MOVE    VGA$EN_HW_CURSOR, R1
+                NOT     R1, R1
+                AND     R1, @R0
+
+                RSUB    _FONTED_CLR, 1          ; clear left side of workspace
+
+                MOVE    VGA$CR_X, R0            ; R0: hw cursor X
+                MOVE    VGA$CR_Y, R1            ; R1: hw cursor Y
+                MOVE    VGA$CHAR, R2            ; R2: print at hw cursor pos                
+
+                ; draw the color palette choosers
+                MOVE    STR_PAL_FG, R8          ; print foreground col. string
+                MOVE    PAL_ED_X, R9
+                MOVE    PAL_ED_Y, R10
+                ADD     9, R10
+                RSUB    PRINT_STR_AT, 1
+
+                MOVE    PAL_ED_X, @R0           ; put cursor to correct pos
+                MOVE    PAL_ED_Y, @R1
+                ADD     11, @R1
+
+                XOR     R3, R3                  ; print foreground pal
+                MOVE    16, R4
+                MOVE    CHR_PAL_F, R11
+                MOVE    CHR_PAL_SEL_F, R12
+                RSUB    _FONTED_PALL, 1
+
+                ADD     3, @R1                  ; print background col. string
+                MOVE    STR_PAL_BG, R8
+                MOVE    PAL_ED_X, R9
+                MOVE    @R1, R10
+                RSUB    PRINT_STR_AT, 1
+
+                MOVE    PAL_ED_X, @R0           ; print background pal
+                ADD     2, @R1
+                XOR     R3, R3
+                MOVE    16, R4
+                MOVE    CHR_PAL_B, R11
+                MOVE    CHR_PAL_SEL_B, R12
+                RSUB    _FONTED_PALL, 1
+
+                ; draw the color bars
+                MOVE    CHR_PAL_F, R3
+                RSUB    _PED_DCB, 1
+
+                ; R4 contains the address of the color that is being edited
+                MOVE    VGA$PALETTE_OFFS_USER, R4
+
+                ; main loop of the palette editor
+
+_PED_KL         MOVE    VGA$PALETTE_ADDR, R8
+                MOVE    R4, @R8++
+                MOVE    @R8, R5                 ; R5 = 15bit RBG color
+
+                ; show compound 24-bit and 15-bit RGB info
+                MOVE    PAL_ED_X, R8            ; 24-bit RGB numeric
+                MOVE    11, R9
+                SYSCALL(vga_moveto, 1)
+                MOVE    STR_RGB24, R8
+                SYSCALL(puts, 1)
+                MOVE    R5, R8
+                RSUB    PRINT_24BIT_RGB, 1                
+                MOVE    PAL_ED_X, R8            ; 15-bit RGB numeric
+                MOVE    13, R9
+                SYSCALL(vga_moveto, 1)
+                MOVE    STR_RGB15, R8
+                SYSCALL(puts, 1)     
+                MOVE    R5, R8
+                SYSCALL(puthex, 1)
+
+                ; show 2 hex nibbles per color plus a visual representation
+                MOVE    _PED_STRS, R12          ; LUT for strings for R, G, B
+                MOVE    _PED_RGB, R11           ; LUT for masks and shifts
+                MOVE    3, R10                  ; 3 iterations: R, G and B
+                MOVE    15, R9                  ; y-pos for cursor                
+_PED_SHOWRGB_L  MOVE    PAL_ED_X, R8            ; x-pos for cursor
+                SYSCALL(vga_moveto, 1)
+                MOVE    @R12++, R8              ; print string for R, G or B
+                SYSCALL(puts, 1)
+                MOVE    R5, R8                  ; 15-bit compound value
+                AND     @R11, R8                ; extract R, G or B
+                ADD     3, R11                  ; amount of SHR in LUT
+                SHR     @R11++, R8              ; now R8 = 2 nibbles
+                RSUB    PRINT_2HEXNIBS, 1       ; print R8
+                MOVE    R8, @--SP               ; remember R8
+                MOVE    STR_METER, R8           ; clear old meter display by
+                SYSCALL(puts, 1)                ; printing [                ]
+                MOVE    @SP++, R8               ; R8 = R, G or B in 2 nibbles
+                SHR     1, R8                   ; calculate the x-coordinate..
+                ADD     PAL_ED_X, R8            ; of the visualization ..
+                ADD     16, R8
+                SYSCALL(vga_moveto, 1)          ; .. and move the cursor ..
+                MOVE    CHR_DRAW_1, R8          ; .. and draw the visual
+                SYSCALL(putc, 1)    
+                ADD     1, R9                   ; y-pos + 1
+                ADD     4, R11                  ; LUT: skip one row
+                SUB     1, R10                  ; iteration counter
+                RBRA    _PED_SHOWRGB_L, !Z
+
+                RSUB    KBD_GETCHAR, 1
+
+                ; check for foreground color selected: >= `a` and < `q`
+                MOVE    CHR_PAL_SEL_F, R9       ; R9 = `a`
+                MOVE    R9, R10
+                ADD     16, R10                 ; R10 = `q`
+                SYSCALL(in_range_u, 1)          ; is R8 in the fg col. range?
+                RBRA    _PED_BG, !C             ; no: check for bg col. range
+
+                ; determine address of current foreground col. being edited
+                ; and store it in R4 and redraw the color bar
+                SUB     R9, R8
+                ADD     VGA$PALETTE_OFFS_USER, R8
+                MOVE    R8, R4                  ; R4 = addr of current col
+                SHL     8, R8
+                MOVE    CHR_PAL_F, R3
+                ADD     R8, R3
+                RSUB    _PED_DCB, 1             ; redraw color bar
+                RBRA    _PED_KL, 1              ; next key
+
+                ; check for foreground color selected: >= `A` and < `Q`
+_PED_BG         MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
+                MOVE    R9, R10
+                ADD     16, R10                 ; R10 = `Q`
+                SYSCALL(in_range_u, 1)          ; is R8 in the bg col. range?
+                RBRA    _PED_CK, !C             ; no: check for other keys
+
+                ; determine address of current background col. being edited
+                ; and store it in R4 and redraw the color bar
+                SUB     R9, R8
+                ADD     VGA$PALETTE_OFFS_USER, R8
+                ADD     16, R8                  ; switch to background pal
+                MOVE    R8, R4                  ; R4 = addr of current col
+                SHL     12, R8
+                MOVE    CHR_PAL_B, R3
+                ADD     R8, R3
+                RSUB    _PED_DCB, 1             ; redraw color bar
+                RBRA    _PED_KL, 1              ; next key
+
+                ; check if key is >= `1` and < `7`
+                ; 1 & 2: modify R
+                ; 3 & 4: modify G
+                ; 5 & 6: modify B
+_PED_CK         MOVE    '1', R9
+                MOVE    '7', R10
+                SYSCALL(in_range_u, 1)
+                RBRA    _PED_CKK, !C
+
+                MOVE    R5, R10                 ; R5 = 15bit RGB color
+                MOVE    VGA$PALETTE_DATA, R9
+                SUB     '1', R8                 ; 1 => 0; 2 => 1, ...
+                SHL     2, R8                   ; 4 LUT entries per row
+                MOVE    _PED_RGB, R6            ; index to look-up table
+                ADD     R8, R6 
+
+                MOVE    R10, R11                ; R10 = 15bit RGB color
+                AND     @R6++, R11              ; check over-/underflow:
+                CMP     @R6++, R11              ; in case of yes ..
+                RBRA    _PED_KL, Z              ; .. back to pal ed main loop
+                ADD     @R6, R10                ; add or sub 1 from R, G or B
+                MOVE    R10, @R9                ; store in palette RAM
+
+_PED_CKK        RBRA    _PED_KL, 1
+
+                MOVE    VGA$STATE, R0           ; cursor on
+                OR      VGA$EN_HW_CURSOR, @R0
+
+                SYSCALL(leave, 1)
+                RBRA    MAIN_LOOP, 1
+
+                ; draw the color bar
+                ; expects:
+                ; R0 .. R2 to contain the screen-write registers
+                ; R3 to contain the char incl. color that is used to draw
+_PED_DCB        MOVE    3, @R1                  ; start y coordinate on screen
+_PED_L1         MOVE    PAL_ED_X, @R0
+_PED_L2         MOVE    R3, @R2
+                ADD     1, @R0                  ; x coordinate on screen
+                CMP     35, @R0                 ; width = @R0 - PAL_ED_X
+                RBRA    _PED_L2, !Z
+                ADD     1, @R1
+                CMP     9, @R1                  ; height = @R1 - start y coord
+                RBRA    _PED_L1, !Z
+                RET
+
+                ; this look up table stores, how R, G or B are modified
+                ; depending on pressing 1 .. 6
+_PED_RGB        .DW     RED_MASK,   0,          RED_ONE_C,    10 ; RED - 1
+                .DW     RED_MASK,   RED_MASK,   RED_ONE,      0  ; RED + 1
+                .DW     GREEN_MASK, 0,          GREEN_ONE_C,  5  ; GREEN - 1
+                .DW     GREEN_MASK, GREEN_MASK, GREEN_ONE,    0  ; GREEN + 1
+                .DW     BLUE_MASK,  0,          BLUE_ONE_C,   0  ; BLUE - 1
+                .DW     BLUE_MASK,  BLUE_MASK,  BLUE_ONE,     0  ; BLUE + 1
+
+_PED_STRS       .DW STR_RED, STR_GREEN, STR_BLUE
+
+; ****************************************************************************
+; PRINT_24BIT_RGB
+;    Print 24-bit RGB version of the 15-bit version stored in R8
+; ****************************************************************************
+
+PRINT_24BIT_RGB SYSCALL(enter, 1)
+
+                MOVE    _PED_RGB, R0            ; R0 = index to LUT
+                MOVE    3, R3
+                MOVE    R8, R4
+
+_P24B_LOOP      AND     @R0, R8
+                ADD     3, R0                   ; how much do we need to SHR?
+                SHR     @R0++, R8
+                MOVE    0x083A, R9              ; conversion: 15 to 24 bit:
+                SYSCALL(mulu, 1)                ; multiply by 0x083A and ..
+                SHR     8, R10                  ; .. then SHR 8
+                MOVE    R10, R8
+                SYSCALL(PRINT_2HEXNIBS, 1)
+                ADD     4, R0
+                MOVE    R4, R8
+                SUB     1, R3
+                RBRA    _P24B_LOOP, !Z
+
+                SYSCALL(leave, 1)
+                RET
+
+; ****************************************************************************
+; PRINT_2HEXNIBS
+;    Print the lower byte of R8 as two hex nibbles at the current cursor pos
+; ****************************************************************************
+
+PRINT_2HEXNIBS  SYSCALL(enter, 1)
+
+                MOVE    R8, R0
+                AND     0x00FF, R0              ; mask upper bits
+                MOVE    R0, R1
+                SHR     4, R1                   ; hi-nibble
+                AND     0x000F, R0              ; lo-nibble
+
+                MOVE    HEX_DIGITS, R2          ; look-up chars for nibbles
+                MOVE    R2, R3
+                ADD     R1, R2                  ; char for hi-nibble
+                ADD     R0, R3                  ; char for lo-nibble
+
+                MOVE    @R2, R8
+                SYSCALL(putc, 1)
+                MOVE    @R3, R8
+                SYSCALL(putc, 1)
+
+                SYSCALL(leave, 1)
+                RET
+
 ; ****************************************************************************
 ; KBD_GETCHAR
 ;    Read a key from the PS2/USB keyboard, no matter where STDIN points to.
@@ -1277,6 +1608,8 @@ SELECTED_CHR    .BLOCK 1
 FONT_MODE       .BLOCK 1
 FONT_ED_CX      .BLOCK 1                        
 FONT_ED_CY      .BLOCK 1
+
+CLIPBOARD       .BLOCK 12                       ; copy/paste CTRL+C/CTRL+V
 
 ; workspace boundaries in absolute screen coordinates: palette and tile
 PAL_WS_X        .BLOCK 1

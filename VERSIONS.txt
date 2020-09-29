@@ -16,6 +16,10 @@ WIP MONITOR: New SYSCALLs: in_range_u and in_range_s: checks if the parameter
 * EMULATOR: Adjusted the standard emulation speed to 13.21 MIPS because this
   is the average Q-TRIS performance. 
 
+WIP * TILE_ED: Version 2.0 which supports multicolor mode, font & palette editing
+
+WIP * PaqNice: Pac-Man remake for QNICE-FPGA
+
 WIP * Q-TRIS: Color, switchable to classic, ...
   Adjusted (slowed down) to match the CPU's speedup.
 

@@ -19,6 +19,10 @@
 #define SR  R14
 #define SP  R13
 
+#define SHPC 0  // Shadow PC
+#define SHSR 1  // Shadow SR
+#define SHSP 2  // Shadow SP
+
 ;
 ;***************************************************************************************
 ;*  IO-page addresses: Default: 8 registers per block
@@ -216,6 +220,16 @@ VGA$SPRITE_DATA     .EQU 0xFF46 ; Sprite Data
 ;---------------------------------------------------------------------------------------
 ;
 IC$CSR              .EQU 0xFF50 ; Global Interrupt Enable
+    ; Bits     0: Enable interrupts. External interrupts are enabled when this 
+    ;             bit is set. Setting it to 0 disables interrupts.
+    ; Bits     1: Block interrupts. This bit does something quite similar to
+    ;             bit 0 and it is basically negated and ANDed with bit 0
+    ;             to enable interrupts. The idea is that a routine can temporarily
+    ;             disable interrupts without having to save the global setting
+    ;             of bit 0. So this bit 1 adds merely some convenience to 
+    ;             programming.
+IC$ENABLE_INTERRUPTS    .EQU 0x0001
+IC$BLOCK_INTERRUPTS     .EQU 0x0002
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FFF0: MEGA65 (double block, 16 registers)
