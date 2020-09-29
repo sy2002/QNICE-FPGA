@@ -648,7 +648,14 @@ static void vga_render_all_sprites()
             {
                for (unsigned short x = 0; x < 16; x++)
                {
-                  unsigned int color = sprite_bitmap[bitmap_ptr + y*16 + x];
+                  unsigned short tx = x;
+                  unsigned short ty = y;
+                  if (csr & VGA_SPRITE_CSR_MIRROR_X)
+                     tx = 15-x;
+                  if (csr & VGA_SPRITE_CSR_MIRROR_Y)
+                     ty = 15-y;
+
+                  unsigned int color = sprite_bitmap[bitmap_ptr + ty*16 + tx];
 
                   if (!(color & VGA_COLOR_TRANSPARENT))
                   {
@@ -677,7 +684,14 @@ static void vga_render_all_sprites()
             {
                for (unsigned short x = 0; x < 32; x++)
                {
-                  unsigned int color_index = (sprite_bitmap[bitmap_ptr + y*8 + x/4] >> (4*(~x & 3))) & 0xF;
+                  unsigned short tx = x;
+                  unsigned short ty = y;
+                  if (csr & VGA_SPRITE_CSR_MIRROR_X)
+                     tx = 31-x;
+                  if (csr & VGA_SPRITE_CSR_MIRROR_Y)
+                     ty = 31-y;
+
+                  unsigned int color_index = (sprite_bitmap[bitmap_ptr + ty*8 + tx/4] >> (4*(~tx & 3))) & 0xF;
                   unsigned int color = sprite_palette[16*i+color_index];
 
                   if (!(color & VGA_COLOR_TRANSPARENT))
