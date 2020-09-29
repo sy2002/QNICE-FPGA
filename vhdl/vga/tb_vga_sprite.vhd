@@ -19,8 +19,8 @@ architecture simulation of tb_vga_sprite is
    signal config_data    : std_logic_vector(63 downto 0);      -- 4 words
    signal palette_addr   : std_logic_vector(C_INDEX_SIZE-1 downto 0);
    signal palette_data   : std_logic_vector(255 downto 0);     -- 16 words
-   signal bitmap_addr    : std_logic_vector(C_INDEX_SIZE+4 downto 0);
-   signal bitmap_data    : std_logic_vector(127 downto 0);     -- 8 words
+   signal bitmap_addr    : std_logic_vector(C_INDEX_SIZE+3 downto 0);
+   signal bitmap_data    : std_logic_vector(255 downto 0);     -- 16 words
    signal color          : std_logic_vector(15 downto 0);
    signal delay          : std_logic_vector(9 downto 0);
    signal color_blanked  : std_logic_vector(15 downto 0);
@@ -99,11 +99,15 @@ begin
    p_bitmap_data : process (clk)
    begin
       if rising_edge(clk) then
-         case bitmap_addr is
-            when X"04" => bitmap_data <= X"3210" & X"7654" & X"BA98" & X"FEDC" &
-                                         X"3210" & X"7654" & X"BA98" & X"FEDC";
-            when X"08" => bitmap_data <= X"FEDC" & X"3210" & X"7654" & X"BA98" &
-                                         X"FEDC" & X"3210" & X"7654" & X"BA98";
+         case conv_integer(bitmap_addr) is
+            when 0 => bitmap_data <= X"0000" & X"0000" & X"0000" & X"0000" &
+                                     X"0000" & X"0000" & X"0000" & X"0000" &
+                                     X"FEDC" & X"3210" & X"7654" & X"BA98" &
+                                     X"FEDC" & X"3210" & X"7654" & X"BA98";
+            when 1 => bitmap_data <= X"3210" & X"7654" & X"BA98" & X"FEDC" &
+                                     X"3210" & X"7654" & X"BA98" & X"FEDC" &
+                                     X"0000" & X"0000" & X"0000" & X"0000" &
+                                     X"0000" & X"0000" & X"0000" & X"0000";
             when others => bitmap_data <= (others => '0');
          end case;
       end if;

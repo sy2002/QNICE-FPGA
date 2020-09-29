@@ -138,7 +138,7 @@ un-aligned accesses it is necessary to do a partial write to two consecutive
 blocks. This is implemented using byte-enables, which is a built-in feature of
 the Xilinx BRAMs.
 
-The scanline memory uses 16 BRAMs. This seems way too much sine the amount of
+The scanline memory uses 16 BRAMs. This seems way too much since the amount of
 information is only 640\*16 bits, which easily fits inside a single BRAM.
 However, a single BRAM only supports 4 byte-enable signals, but we need 32, one
 for each pixel.  More importantly though, since we are reading a block of 32

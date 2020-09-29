@@ -210,7 +210,7 @@ The Sprite RAM consists of three independent blocks of RAM, all accessible
 within the same 16-bit virtual address space:
 * Sprite Config RAM contains 128 entries of 4 words in addresses `0x0000` - `0x01FF`.
 * Sprite Palette RAM contains 128 entries of 16 words in addresses `0x4000` - `0x47FF`.
-* Sprite Bitmap RAM contains 4k entries of 8 words in addresses `0x8000` - `0xFFFF`.
+* Sprite Bitmap RAM contains 2k entries of 16 words in addresses `0x8000` - `0xFFFF`.
 
 ### Sprite Config RAM
 The Sprite Config RAM contains the overall configuration of each sprite. The
@@ -221,7 +221,7 @@ interpretation:
 ```
 offset 0 : X position (of top left-most pixel in sprite bitmap)
 offset 1 : Y position (of top left-most pixel in sprite bitmap)
-offset 2 : Pointer to bitmap. Must be multiple of 0x0008 (the lower order bits are ignored).
+offset 2 : Pointer to bitmap. Must be multiple of 0x0010 (the lower order bits are ignored).
 offset 3 : Control and Status Register (CSR)
 ```
 The X- and Y-position is the pixel number. A sprite may be moved off the left

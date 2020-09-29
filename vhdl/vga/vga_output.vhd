@@ -41,8 +41,8 @@ entity vga_output is
       sprite_config_data_i  : in  std_logic_vector(63 downto 0);    -- 4 words
       sprite_palette_addr_o : out std_logic_vector(G_INDEX_SIZE-1 downto 0);
       sprite_palette_data_i : in  std_logic_vector(255 downto 0);   -- 16 words
-      sprite_bitmap_addr_o  : out std_logic_vector(G_INDEX_SIZE+4 downto 0);
-      sprite_bitmap_data_i  : in  std_logic_vector(127 downto 0);   -- 8 words
+      sprite_bitmap_addr_o  : out std_logic_vector(G_INDEX_SIZE+3 downto 0);
+      sprite_bitmap_data_i  : in  std_logic_vector(255 downto 0);   -- 16 words
 
       -- VGA output
       hsync_o               : out std_logic;

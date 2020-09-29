@@ -126,8 +126,8 @@ architecture synthesis of vga_multicolor is
    signal vga_sprite_config_data  : std_logic_vector(63 downto 0);
    signal vga_sprite_palette_addr : std_logic_vector(C_INDEX_SIZE-1 downto 0);
    signal vga_sprite_palette_data : std_logic_vector(255 downto 0);
-   signal vga_sprite_bitmap_addr  : std_logic_vector(C_INDEX_SIZE+4 downto 0);
-   signal vga_sprite_bitmap_data  : std_logic_vector(127 downto 0);
+   signal vga_sprite_bitmap_addr  : std_logic_vector(C_INDEX_SIZE+3 downto 0);
+   signal vga_sprite_bitmap_data  : std_logic_vector(255 downto 0);
 
    -- Instruct synthesis tool that these registers are used for CDC.
    attribute ASYNC_REG                        : boolean;

@@ -36,8 +36,8 @@ entity vga_video_ram is
       vga_sprite_config_data_o  : out std_logic_vector(63 downto 0);    -- 4 words
       vga_sprite_palette_addr_i : in  std_logic_vector(G_INDEX_SIZE-1 downto 0);
       vga_sprite_palette_data_o : out std_logic_vector(255 downto 0);   -- 16 words
-      vga_sprite_bitmap_addr_i  : in  std_logic_vector(G_INDEX_SIZE+4 downto 0);
-      vga_sprite_bitmap_data_o  : out std_logic_vector(127 downto 0)    -- 8 words
+      vga_sprite_bitmap_addr_i  : in  std_logic_vector(G_INDEX_SIZE+3 downto 0);
+      vga_sprite_bitmap_data_o  : out std_logic_vector(255 downto 0)    -- 16 words
    );
 end vga_video_ram;
 
@@ -183,8 +183,8 @@ begin
       generic map (
          G_A_ADDR_SIZE => G_INDEX_SIZE+8,
          G_A_DATA_SIZE => 16,
-         G_B_ADDR_SIZE => G_INDEX_SIZE+5,
-         G_B_DATA_SIZE => 128    -- 8 words
+         G_B_ADDR_SIZE => G_INDEX_SIZE+4,
+         G_B_DATA_SIZE => 256    -- 16 words
       )
       port map (
          a_clk_i     => cpu_clk_i,

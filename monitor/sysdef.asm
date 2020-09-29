@@ -260,7 +260,7 @@ VGA$SPRITE_BITMAP       .EQU    0x8000
 
 VGA$SPRITE_POS_X        .EQU    0x0000
 VGA$SPRITE_POS_Y        .EQU    0x0001
-VGA$SPRITE_BITMAP_PTR   .EQU    0x0002                  ; Value must be multiple of 0x0008
+VGA$SPRITE_BITMAP_PTR   .EQU    0x0002                  ; Value must be multiple of 0x0010
 VGA$SPRITE_CSR          .EQU    0x0003
 
 VGA$SPRITE_CSR_LOWRES   .EQU    0x0001

@@ -26,8 +26,8 @@ entity vga_sprite is
       palette_addr_o  : out std_logic_vector(G_INDEX_SIZE-1 downto 0);  -- 1 entry per sprite
       palette_data_i  : in  std_logic_vector(255 downto 0);             -- 16 words
       -- Interface to Sprite Bitmap RAM
-      bitmap_addr_o   : out std_logic_vector(G_INDEX_SIZE+4 downto 0);  -- 32 entries per sprite
-      bitmap_data_i   : in  std_logic_vector(127 downto 0);             -- 8 words
+      bitmap_addr_o   : out std_logic_vector(G_INDEX_SIZE+3 downto 0);  -- 32/16 entries per sprite
+      bitmap_data_i   : in  std_logic_vector(255 downto 0);             -- 16 words
       -- Modified pixel color
       color_o         : out std_logic_vector(15 downto 0);
       delay_o         : out std_logic_vector(9 downto 0)
@@ -54,6 +54,7 @@ architecture synthesis of vga_sprite is
       palette          : std_logic_vector(255 downto 0);
       diff_y           : std_logic_vector(9 downto 0);
       next_y           : std_logic_vector(9 downto 0);
+      bitmap_offset    : std_logic_vector(G_INDEX_SIZE+3 downto 0);
    end record t_stage1;
 
    type t_stage2 is record
@@ -66,6 +67,7 @@ architecture synthesis of vga_sprite is
       pixels           : std_logic_vector(543 downto 0);
       next_y           : std_logic_vector(9 downto 0);
       diff_y           : std_logic_vector(9 downto 0);
+      offset           : integer range 0 to 1;
    end record t_stage2;
 
    type t_stage3 is record
@@ -122,9 +124,6 @@ architecture synthesis of vga_sprite is
 
 begin
 
-   -- TBD: For now assume sprites are 32x32x4 bits.
-
-
    ----------------------------------------------
    -- Stage 0
    ----------------------------------------------
@@ -164,11 +163,19 @@ begin
    -- Calculate value of next scan line
    stage1.next_y     <= pixel_y_i + 1 when pixel_y_i /= 524 else (others => '0');
 
-   -- Read sprite bitmap
+   -- Calculate sprite bitmap address
    stage1.diff_y     <= stage1.next_y - stage1.pos_y when stage1.config(C_CONFIG_MIRROR_Y) = '0' else
-                        31 + stage1.pos_y - stage1.next_y;
-   bitmap_addr_o     <= stage1.bitmap_ptr(G_INDEX_SIZE+7 downto 3) +
-                        std_logic_vector(to_unsigned(conv_integer(stage1.diff_y(4 downto 0)), G_INDEX_SIZE+5));
+                        31 + stage1.pos_y - stage1.next_y when stage2.config(C_CONFIG_RES_LOW) = '0' else
+                        15 + stage1.pos_y - stage1.next_y when stage2.config(C_CONFIG_RES_LOW) = '1';
+
+   stage1.bitmap_offset <= std_logic_vector(to_unsigned(conv_integer(stage1.diff_y(3 downto 0)), G_INDEX_SIZE+4)) when stage2.config(C_CONFIG_RES_LOW) = '1' else
+                           std_logic_vector(to_unsigned(conv_integer(stage1.diff_y(4 downto 1)), G_INDEX_SIZE+4));
+
+   -- Read sprite bitmap
+   bitmap_addr_o <= stage1.bitmap_ptr(G_INDEX_SIZE+7 downto 4) + stage1.bitmap_offset;
+
+   -- In low-res mode (16x16x16) bitmap_i contains 16 pixels of 16 bits each, a total of 256 bits
+   -- In high-res mode (32x32x4) bitmap_i contains 32 pixels of 4 bits each, a total of 128 bits
 
 
    ----------------------------------------------
@@ -179,23 +186,24 @@ begin
    p_stage2 : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         stage2.color   <= stage1.color;
-         stage2.pixel_x <= stage1.pixel_x;
-         stage2.palette <= stage1.palette;
-         stage2.pos_x   <= stage1.pos_x;
-         stage2.next_y  <= stage1.next_y;
-         stage2.diff_y  <= stage1.diff_y;
-         stage2.config  <= stage1.config;
+         stage2.color       <= stage1.color;
+         stage2.pixel_x     <= stage1.pixel_x;
+         stage2.palette     <= stage1.palette;
+         stage2.pos_x       <= stage1.pos_x;
+         stage2.next_y      <= stage1.next_y;
+         stage2.diff_y      <= stage1.diff_y;
+         stage2.config      <= stage1.config;
       end if;
    end process p_stage2;
 
    -- Store bitmap
-   stage2.bitmap <= bitmap_data_i;
+   stage2.offset <= conv_integer(stage2.diff_y(0 downto 0));
+   stage2.bitmap <= bitmap_data_i(127 + stage2.offset*128 downto stage2.offset*128);
 
    -- Palette lookup
    gen_palette_lookup:
    for i in 0 to 31 generate  -- Loop over each pixel
-      process (stage2)
+      process (stage2, bitmap_data_i)
          variable color_index : integer range 0 to 15;
          variable j           : integer range 0 to 31;
 
@@ -211,15 +219,25 @@ begin
          end function swap;
 
       begin
+         stage2.pixels(16+17*i downto 17*i) <= (others => '0');
+
          j := swap(i);
          if stage2.config(C_CONFIG_MIRROR_X) = '1' then
             color_index := conv_integer(stage2.bitmap(127-4*j downto 124-4*j));
          else
             color_index := conv_integer(stage2.bitmap(3+4*j downto 4*j));
          end if;
-         stage2.pixels(16+17*i downto 17*i) <=
-            stage2.config(C_CONFIG_BEHIND) &
-            stage2.palette(15+16*color_index downto 16*color_index);
+         if stage2.config(C_CONFIG_RES_LOW) = '0' then
+            stage2.pixels(16+17*i downto 17*i) <=
+               stage2.config(C_CONFIG_BEHIND) &
+               stage2.palette(15+16*color_index downto 16*color_index);
+         else
+            if i < 16 then
+               stage2.pixels(16+17*i downto 17*i) <=
+                  stage2.config(C_CONFIG_BEHIND) &
+                  bitmap_data_i(15+16*i downto 16*i);
+            end if;
+         end if;
       end process;
    end generate gen_palette_lookup;
 
@@ -230,9 +248,16 @@ begin
 
    -- Process scanline
    p_stage3 : process (clk_i)
+      variable size : integer range 0 to 32;
    begin
       if rising_edge(clk_i) then
          stage3.color <= stage2.color;    -- Copy signals from Stage 2.
+
+         if stage2.config(C_CONFIG_RES_LOW) = '1' then
+            size := 16;
+         else
+            size := 32;
+         end if;
 
          case conv_integer(stage2.pixel_x) is
             when C_START_READ to C_STOP_READ =>
@@ -256,13 +281,16 @@ begin
                stage3.scanline_wr_data <= (others => '0');
 
                -- Render scanline
-               if conv_integer(stage2.diff_y) < 32 and
+               if conv_integer(stage2.diff_y) < size and
                   stage2.config(C_CONFIG_VISIBLE) = '1' and
                   sprite_enable_i = '1' then
 
                   stage3.scanline_addr <= stage2.pos_x;
+                  stage3.scanline_wr_en <= (others => '0');
                   for i in 0 to 31 loop
-                     stage3.scanline_wr_en(i) <= not stage2.pixels(15+17*i);
+                     if i < size then
+                        stage3.scanline_wr_en(i) <= not stage2.pixels(15+17*i);
+                     end if;
                   end loop;
                   stage3.scanline_wr_data <= stage2.pixels;
                end if;
