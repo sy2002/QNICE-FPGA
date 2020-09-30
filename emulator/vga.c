@@ -38,6 +38,8 @@ static Uint16   vga_x;
 static Uint16   vga_y;
 static Uint16   vga_offs_display;
 static Uint16   vga_offs_rw;
+static Uint16   vga_adjust_x;
+static Uint16   vga_adjust_y;
 static Uint16   font_addr;
 static Uint16   font_offset;
 static Uint16   palette_addr;
@@ -448,6 +450,8 @@ unsigned int vga_read_register(unsigned int address)
         case VGA_CR_X:          return vga_x & 0x00FF;
         case VGA_CR_Y:          return vga_y & 0x007F;
         case VGA_CHAR:          return vram[((vga_y * screen_dx + vga_x) & 0x0FFF) + vga_offs_rw];
+        case VGA_ADJUST_X:      return vga_adjust_x;
+        case VGA_ADJUST_Y:      return vga_adjust_y;
 
         case VGA_FONT_OFFS:     return font_offset;
         case VGA_FONT_ADDR:     return font_addr;
@@ -506,6 +510,16 @@ void vga_write_register(unsigned int address, unsigned int value)
             unsigned int print_addr = vga_offs_rw + vga_y * screen_dx + vga_x;
             if (print_addr >= vga_offs_display && print_addr < vga_offs_display + screen_dy * screen_dx)
                 vga_render_screen_area(vga_x, vga_y, vga_x+1, vga_y+1);
+            break;
+
+        case VGA_ADJUST_X:
+            vga_adjust_x = value;
+            vga_refresh_rendering();
+            break;
+
+        case VGA_ADJUST_Y:
+            vga_adjust_y = value;
+            vga_refresh_rendering();
             break;
 
         case VGA_FONT_OFFS:
@@ -678,6 +692,7 @@ void vga_print(int x, int y, char* s)
 
 #define VGA_COLOR_BACKGROUND 0x01000000
 
+// arguments are pixel coordinates
 static void vga_render_all_sprites(short x_begin, short y_begin, short x_end, short y_end)
 {
    for (int i = 127; i >= 0; i--) // Loop over all sprites. Start with lowest priority
@@ -763,15 +778,17 @@ static void vga_render_all_sprites(short x_begin, short y_begin, short x_end, sh
    }
 }
 
+// arguments are character coordinates
 void vga_render_screen_area(int x_begin, int y_begin, int x_end, int y_end)
 {
-    while (gbl$rendering) {}
+    while (gbl$rendering) {}  // To reduce screen flickering
 
-//    printf("vga_render_screen_area: (%d,%d) to (%d,%d)\n", x_begin, y_begin, x_end, y_end);
     for (int y = y_begin; y < y_end; y++)
         for (int x = x_begin; x < x_end; x++)
             vga_render_to_pixelbuffer(x, y, vram[y * screen_dx + x + vga_offs_display]);
-    vga_render_all_sprites(x_begin, y_begin, x_end, y_end);
+
+    if (vga_state & VGA_EN_SPRITE)
+       vga_render_all_sprites(x_begin*font_dx, y_begin*font_dy, x_end*font_dx, y_end*font_dy);
 }
 
 /* For performance reasons, during normal operation, the vram is not completely rendered, but only the
@@ -780,12 +797,7 @@ void vga_render_screen_area(int x_begin, int y_begin, int x_end, int y_end)
    the background after having shown the speed change window or the speedstats */
 void vga_refresh_rendering()
 {
-    for (int y = 0; y < screen_dy; y++)
-        for (int x = 0; x < screen_dx; x++)
-            vga_render_to_pixelbuffer(x, y, vram[y * screen_dx + x + vga_offs_display]);
-
-    if (vga_state & VGA_EN_SPRITE)
-       vga_render_all_sprites(0, 0, render_dx, render_dy);
+    vga_render_screen_area(0, 0, screen_dx, screen_dy);
 }
 
 void vga_render_to_pixelbuffer(int x, int y, Uint16 c)
@@ -793,7 +805,7 @@ void vga_render_to_pixelbuffer(int x, int y, Uint16 c)
     if (x < 0 || x >= screen_dx || y < 0 || y >= screen_dy)
         return;
 
-    unsigned long scr_offs = y * font_dy * render_dx + x * font_dx;
+    unsigned long scr_offs = (y * font_dy - vga_adjust_y)* render_dx + x * font_dx - vga_adjust_x;
     unsigned long fnt_offs = (font_dy * (c & 0xFF) + font_offset) & VGA_FONT_OFFS_MAX;
     Uint32 fg_col = palette[(palette_offset +      ((c >>  8) & 0xF)) & VGA_PALETTE_OFFS_MAX];
     Uint32 bg_col = palette[(palette_offset + 16 + ((c >> 12) & 0xF)) & VGA_PALETTE_OFFS_MAX] | VGA_COLOR_BACKGROUND;
