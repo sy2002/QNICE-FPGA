@@ -46,7 +46,7 @@ typedef struct
    int          collided;
 } t_ball;
 
-#define NUM_SPRITES 10
+#define NUM_SPRITES 20
 
 t_ball balls[NUM_SPRITES];
 
@@ -123,12 +123,6 @@ static t_vec calcNewVelocity(int mass1, int mass2, t_vec pos1, t_vec pos2, t_vec
 
 static void update()
 {
-   for (unsigned int i=0; i<NUM_SPRITES; ++i)
-   {
-      t_ball *pBall = &balls[i];
-      pBall->collided = 0;
-   }
-
    for (unsigned int i=0; i<NUM_SPRITES; ++i)
    {
       t_ball *pBall = &balls[i];
@@ -260,7 +254,15 @@ int main()
       while (MMIO(VGA_SCAN_LINE) < 480) {}
       draw();     // Update hardware
 
-      update();   // Update internal state
+      for (unsigned int i=0; i<NUM_SPRITES; ++i)
+      {
+         t_ball *pBall = &balls[i];
+         pBall->collided = 0;
+      }
+
+      for (int i=0; i<6; ++i)
+         update();   // Update internal state
+
       showStats();
       stat_update(MMIO(VGA_SCAN_LINE));   // Update statistics.
       if (MMIO(IO_UART_SRA) & 1)
