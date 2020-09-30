@@ -71,7 +71,7 @@ int main()
          offset_y -= offset_x/256;
          offset_x += offset_y/256;
 
-         while (MMIO(VGA_SCAN_LINE) > 480)
+         while (MMIO(VGA_SCAN_LINE) >= 480)
          {
             if (MMIO(IO_UART_SRA) & 1)
             {
@@ -84,7 +84,7 @@ int main()
                goto end;
             }
          }
-         while (MMIO(VGA_SCAN_LINE) <= 480)
+         while (MMIO(VGA_SCAN_LINE) < 480)
          {}
       }
    }
