@@ -35,7 +35,7 @@ static const t_sprite_palette palette = {
    0x13bf,
    0x4ad2,
    0x366b,
-   0x7fff,
+   0x8000, // 0x7fff,
 };
 
 static const t_sprite_bitmap bitmaps[16] = {
@@ -600,15 +600,20 @@ static const t_sprite_bitmap bitmaps[16] = {
 }
 };
 
+const char text[] =
+"                                                                             \
+This demo program demonstrates horizontal smooth text scrolling together \
+with a moving image of the Earth. Notice how the Earth sometimes moves in \
+front of the text, and sometimes moves behind the text. This demonstrates \
+sprite layering. \
+                                                                           ";
+
 int main()
 {
-   MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR; //hide cursor
-   qmon_vga_cls();
-
-   sprite_clear_all();
-
-   // Enable sprites
-   MMIO(VGA_STATE) |= VGA_EN_SPRITE;
+   MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // Hide cursor
+   qmon_vga_cls();                        // Clearn screen
+   sprite_clear_all();                    // Clear all sprites
+   MMIO(VGA_STATE) |= VGA_EN_SPRITE;      // Enable sprites
 
    // Set background color to white
    MMIO(VGA_PALETTE_OFFS) = VGA_PALETTE_OFFS_USER;
@@ -617,27 +622,65 @@ int main()
 
    int offset_x = 100*256;
    int offset_y = 0;
+   unsigned int config = VGA_SPRITE_CSR_VISIBLE;
 
    for (int i=0; i<16; ++i)
    {
       sprite_set_palette(i,  palette);
       sprite_set_bitmap(i,   bitmaps[i]);
-      sprite_set_config(i,   VGA_SPRITE_CSR_VISIBLE);
    }
+
+   int text_counter = 0;
+   int text_dx = 0;
+   int text_pos = 0;
+
+   MMIO(VGA_CR_Y) = 20;
 
    while (1)
    {
-      while (MMIO(VGA_SCAN_LINE) < 480) {}
-
       int pos_x = 320 + offset_x/256;
       int pos_y = 240 + offset_y/256;
+
+      while (MMIO(VGA_SCAN_LINE) < 480) {}
+
       for (int i=0; i<16; ++i)
       {
          sprite_set_position(i, pos_x-64+(i%4)*32, pos_y-64+(i/4)*32);
+         sprite_set_config(i,   config);
       }
 
       offset_y -= offset_x/256;
       offset_x += offset_y/256;
+
+      if (offset_y<-85*256 && offset_x>0)
+         config = VGA_SPRITE_CSR_VISIBLE;
+
+      if (offset_y>85*256 && offset_x<0)
+         config = VGA_SPRITE_CSR_VISIBLE | VGA_SPRITE_CSR_BEHIND;
+
+      ++text_counter;
+      if ((text_counter%3) == 0)
+      {
+         ++text_dx;
+         if (text_dx == 8)
+         {
+            text_dx = 0;
+            for (int i=1; i<80; ++i)
+            {
+               MMIO(VGA_CR_X) = i;
+               MMIO(VGA_CHAR) = text[text_pos+i];
+            }
+            ++text_pos;
+            if (text_pos+80 > sizeof(text))
+            {
+               text_pos = 0;
+            }
+         }
+      }
+
+      MMIO(VGA_ADJUST_X) = text_dx;
+
+      while (MMIO(VGA_SCAN_LINE) >= 480) {}
 
       if (MMIO(IO_UART_SRA) & 1)
       {

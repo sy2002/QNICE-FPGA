@@ -458,7 +458,11 @@ unsigned int vga_read_register(unsigned int address)
         case VGA_SPRITE_ADDR:   return sprite_addr;
         case VGA_SPRITE_DATA:   return vga_sprite_read(sprite_addr++);
 
-        case VGA_SCAN_LINE:     return (gbl$sdl_ticks * 525 * 60 / 1000) % 525;
+        case VGA_SCAN_LINE:     if (gbl$rendering)
+                                   return 0;
+                                else
+                                   return 480;
+                                // return (gbl$sdl_ticks * 525 * 60 / 1000) % 525;
     }
 
     return 0;
