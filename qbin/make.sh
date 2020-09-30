@@ -16,8 +16,11 @@ echo "building:   demo_atom.c"
 qvc  $C_DEMOS/demo_atom.c $C_DEMOS/sprite.c $C_DEMOS/atom_sprite.c $C_FLAGS_MM
 mv   $C_DEMOS/demo_atom.out .
 echo "building:   demo_sprite_balls.c"
-qvc  $C_DEMOS/demo_sprite_balls.c $C_DEMOS/sprite.c $C_DEMOS/rand.c $C_DEMOS/images.c $C_DEMOS/stat.c $C_FLAGS_MM
+qvc  $C_DEMOS/demo_sprite_balls.c $C_DEMOS/sprite.c $C_DEMOS/rand.c $C_DEMOS/images.c $C_DEMOS/stat.c  $C_DEMOS/conio.c $C_FLAGS_MM
 mv   $C_DEMOS/demo_sprite_balls.out .
+echo "building:   demo_tree.c"
+qvc  $C_DEMOS/demo_tree.c $C_DEMOS/sprite.c $C_DEMOS/tree_sprite.c $C_FLAGS_MM
+mv   $C_DEMOS/demo_tree.out .
 echo "building:   hdmi_de.c"
 qvc  $C_DEMOS/hdmi_de.c $C_FLAGS
 mv   $C_DEMOS/hdmi_de.out .
@@ -80,6 +83,7 @@ mv   $ASM_TEST/timer_test.out .
 git add -f adventure.out
 git add -f demo_atom.out
 git add -f demo_sprite_balls.out
+git add -f demo_tree.out
 git add -f hdmi_de.out
 git add -f maze2d.out
 git add -f shell.out
