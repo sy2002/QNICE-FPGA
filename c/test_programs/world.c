@@ -652,29 +652,31 @@ int main()
       offset_y -= offset_x/256;
       offset_x += offset_y/256;
 
+      offset_y -= offset_x/256;
+      offset_x += offset_y/256;
+
+      offset_y -= offset_x/256;
+      offset_x += offset_y/256;
+
       if (offset_y<-85*256 && offset_x>0)
          config = VGA_SPRITE_CSR_VISIBLE;
 
       if (offset_y>85*256 && offset_x<0)
          config = VGA_SPRITE_CSR_VISIBLE | VGA_SPRITE_CSR_BEHIND;
 
-      ++text_counter;
-      if ((text_counter%3) == 0)
+      ++text_dx;
+      if (text_dx == 8)
       {
-         ++text_dx;
-         if (text_dx == 8)
+         text_dx = 0;
+         for (int i=1; i<80; ++i)
          {
-            text_dx = 0;
-            for (int i=1; i<80; ++i)
-            {
-               MMIO(VGA_CR_X) = i;
-               MMIO(VGA_CHAR) = text[text_pos+i];
-            }
-            ++text_pos;
-            if (text_pos+80 > sizeof(text))
-            {
-               text_pos = 0;
-            }
+            MMIO(VGA_CR_X) = i;
+            MMIO(VGA_CHAR) = text[text_pos+i];
+         }
+         ++text_pos;
+         if (text_pos+80 > sizeof(text))
+         {
+            text_pos = 0;
          }
       }
 
