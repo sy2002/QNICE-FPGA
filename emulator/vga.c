@@ -31,7 +31,7 @@ const unsigned long stable_fps_ms = 16;
 
 static Uint16   vram[65535];
 static Uint16   sprite_config[0x200];
-static Uint16   sprite_palette[0x800];
+static Uint32   sprite_palette[0x800];
 static Uint16   sprite_bitmap[0x8000];
 static Uint16   vga_state;
 static Uint16   vga_x;
@@ -351,14 +351,14 @@ static Uint32 palette[VGA_PALETTE_OFFS_MAX+1] = {
 
 static unsigned int palette_convert_24_to_15(Uint32 color)
 {
-   return ((color & 0x00F80000) >> 9)
+   return ((color & 0x01F80000) >> 9)
         + ((color & 0x0000F800) >> 6)
         + ((color & 0x000000F8) >> 3);
 }
 
 static Uint32 palette_convert_15_to_24(unsigned int color)
 {
-   return ((color << 9) & 0x00F80000)
+   return ((color << 9) & 0x01F80000)
         + ((color << 6) & 0x0000F800)
         + ((color << 3) & 0x000000F8);
 }
@@ -393,9 +393,9 @@ static void vga_sprite_write(unsigned int addr, unsigned int data)
    }
    else if (addr & 0x4000)
    {
-      if (sprite_palette[addr & 0x07FF] != data)
+      if (sprite_palette[addr & 0x07FF] != palette_convert_15_to_24(data))
       {
-         sprite_palette[addr & 0x07FF] = data;
+         sprite_palette[addr & 0x07FF] = palette_convert_15_to_24(data);
 
          // Determine which sprite is affected.
          int sprite = (addr & 0x07FF)/16;
@@ -441,7 +441,7 @@ static unsigned int vga_sprite_read(unsigned int addr)
    }
    else if (addr & 0x4000)
    {
-      return sprite_palette[addr & 0x07FF];
+      return palette_convert_24_to_15(sprite_palette[addr & 0x07FF]);
    }
    else
    {
@@ -738,9 +738,9 @@ static void vga_render_all_sprites(short x_begin, short y_begin, short x_end, sh
                   if (csr & VGA_SPRITE_CSR_MIRROR_Y)
                      ty = 15-y;
 
-                  unsigned int color = sprite_bitmap[bitmap_ptr + ty*16 + tx];
+                  unsigned int color = palette_convert_24_to_15(sprite_bitmap[bitmap_ptr + ty*16 + tx]);
 
-                  if (!(color & VGA_COLOR_TRANSPARENT))
+                  if (!(color & VGA_COLOR_BACKGROUND))
                   {
                      short pix_x = pos_x + x;
                      short pix_y = pos_y + y;
@@ -749,10 +749,10 @@ static void vga_render_all_sprites(short x_begin, short y_begin, short x_end, sh
                         if (csr & VGA_SPRITE_CSR_BEHIND)
                         {
                            if (screen_pixels[render_dx*pix_y + pix_x] & VGA_COLOR_BACKGROUND)
-                              screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color) | VGA_COLOR_BACKGROUND;
+                              screen_pixels[render_dx*pix_y + pix_x] = color | VGA_COLOR_BACKGROUND;
                         }
                         else
-                           screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color);
+                           screen_pixels[render_dx*pix_y + pix_x] = color;
                      }
                   }
                }
@@ -772,24 +772,21 @@ static void vga_render_all_sprites(short x_begin, short y_begin, short x_end, sh
                      ty = 31-y;
 
                   unsigned int color_index = (sprite_bitmap[bitmap_ptr + ty*8 + tx/4] >> (4*(~tx & 3))) & 0xF;
-                  unsigned int color = sprite_palette[16*i+color_index];
+                  Uint32 color = sprite_palette[16*i+color_index];
 
-                  if (!(color & VGA_COLOR_TRANSPARENT))
+                  if (!(color & VGA_COLOR_BACKGROUND))
                   {
-                     // Unsigned short is necessary to make two's complement wrap-around work:
-                     // Sprites can be moved left out of screen by setting the
-                     // x-coordinate to 0xFFFF etc.
-                     unsigned short pix_x = pos_x + x;
-                     unsigned short pix_y = pos_y + y;
-                     if (pix_x < render_dx && pix_y < render_dy)
+                     short pix_x = pos_x + x;
+                     short pix_y = pos_y + y;
+                     if (pix_x >= x_begin && pix_x < x_end && pix_y >= y_begin && pix_y < y_end)
                      {
                         if (csr & VGA_SPRITE_CSR_BEHIND)
                         {
                            if (screen_pixels[render_dx*pix_y + pix_x] & VGA_COLOR_BACKGROUND)
-                              screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color) | VGA_COLOR_BACKGROUND;
+                              screen_pixels[render_dx*pix_y + pix_x] = color | VGA_COLOR_BACKGROUND;
                         }
                         else
-                           screen_pixels[render_dx*pix_y + pix_x] = palette_convert_15_to_24(color);
+                           screen_pixels[render_dx*pix_y + pix_x] = color;
                      }
                   }
                }
