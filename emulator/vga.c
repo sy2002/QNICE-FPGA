@@ -501,6 +501,8 @@ void vga_write_register(unsigned int address, unsigned int value)
             vga_state = (value & ~VGA_BUSY); //bit #9 is read-only, so mask it
             if (value & VGA_CLR_SCRN)
                 vga_clear_screen();
+            else
+                vga_refresh_rendering();
             break;
 
         case VGA_OFFS_RW:
