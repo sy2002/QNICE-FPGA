@@ -83,6 +83,8 @@ SDL_Event            event;
 bool                 event_quit;
 
 volatile bool        gbl$rendering = false;
+volatile unsigned long gbl$render_start_time = 0;
+volatile unsigned long gbl$render_stop_time = 0;
 unsigned long        gbl$sdl_ticks;
 unsigned long        sdl_ticks_prev;
 unsigned long        sdl_ticks_curr;
@@ -391,11 +393,14 @@ static void vga_sprite_write(unsigned int addr, unsigned int data)
    }
    else if (addr & 0x4000)
    {
-      sprite_palette[addr & 0x07FF] = data;
+      if (sprite_palette[addr & 0x07FF] != data)
+      {
+         sprite_palette[addr & 0x07FF] = data;
 
-      // Determine which sprite is affected.
-      int sprite = (addr & 0x07FF)/16;
-      vga_update_sprite(sprite);
+         // Determine which sprite is affected.
+         int sprite = (addr & 0x07FF)/16;
+         vga_update_sprite(sprite);
+      }
    }
    else
    {
@@ -403,17 +408,25 @@ static void vga_sprite_write(unsigned int addr, unsigned int data)
       int sprite = (addr & 0x01FF)/4;
 
       // Save old position (needed for redraw)
-      short old_pos_x = sprite_config[4*sprite] / font_dx;
-      short old_pos_y = sprite_config[4*sprite+1] / font_dy;
+      short old_pos_x = ((short) sprite_config[4*sprite]) / font_dx;
+      short old_pos_y = ((short) sprite_config[4*sprite+1]) / font_dy;
 
       sprite_config[addr & 0x01FF] = data;
 
       // Get new position
-      short pos_x = sprite_config[4*sprite] / font_dx;
-      short pos_y = sprite_config[4*sprite+1] / font_dy;
+      short pos_x = ((short) sprite_config[4*sprite]) / font_dx;
+      short pos_y = ((short) sprite_config[4*sprite+1]) / font_dy;
 
-      // Redraw old part of screen
-      vga_render_screen_area(old_pos_x, old_pos_y, old_pos_x+5, old_pos_y+4);
+      if (old_pos_x != pos_x || old_pos_y != pos_y)
+      {
+         // The sprite position has changed, so we have to "clear" the sprite
+         // at the old position, before redrawing at the new position.
+         unsigned short old_config = sprite_config[4*sprite+3];   // Store old configuration
+         sprite_config[4*sprite+3] = 0;                           // Clear visibility
+         // Redraw old part of screen
+         vga_render_screen_area(old_pos_x, old_pos_y, old_pos_x+5, old_pos_y+4);
+         sprite_config[4*sprite+3] = old_config;                  // Restore old configuration
+      }
 
       // Redraw new part of screen
       vga_render_screen_area(pos_x, pos_y, pos_x+5, pos_y+4);
@@ -434,6 +447,14 @@ static unsigned int vga_sprite_read(unsigned int addr)
    {
       return sprite_config[addr & 0x01FF];
    }
+}
+
+static unsigned int min(unsigned int a, unsigned int b)
+{
+   if (a>b)
+      return b;
+   else
+      return a;
 }
 
 unsigned int vga_read_register(unsigned int address)
@@ -463,9 +484,9 @@ unsigned int vga_read_register(unsigned int address)
         case VGA_SPRITE_DATA:   return vga_sprite_read(sprite_addr++);
 
         case VGA_SCAN_LINE:     if (gbl$rendering)
-                                   return 0;
+                                   return min((gbl$sdl_ticks - gbl$render_start_time) * 525 * 60 / 1000, 479);
                                 else
-                                   return 480;
+                                   return 480 + min((gbl$sdl_ticks - gbl$render_stop_time) * 525 * 60 / 1000, 524-480);
                                 // return (gbl$sdl_ticks * 525 * 60 / 1000) % 525;
     }
 
@@ -952,8 +973,10 @@ void vga_one_iteration_screen()
 
     //high-performance way of displaying the screen using streaming textures
     gbl$rendering = true;
+    gbl$render_start_time = gbl$sdl_ticks;
     SDL_UpdateTexture(screen_texture, NULL, screen_pixels, render_dx * sizeof(Uint32));
     gbl$rendering = false;
+    gbl$render_stop_time = gbl$sdl_ticks;
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     vga_render_cursor();    
     SDL_RenderPresent(renderer);
