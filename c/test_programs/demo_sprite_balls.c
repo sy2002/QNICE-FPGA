@@ -20,7 +20,7 @@
 // convenient mechanism to access QNICE's Memory Mapped IO registers
 #define MMIO( __x ) *((unsigned int volatile *) __x )
 
-#define VEL_SCALE 256
+#define VEL_SCALE 512
 #define POS_SCALE 32
 
 typedef struct
@@ -98,6 +98,21 @@ static long muls(int arg1, int arg2)
    return u.l;
 }
 
+// This function calculates (arg1*arg2)/arg3
+static int muldiv(long arg1, long arg2, long arg3)
+{
+   long dividend = (arg1/VEL_SCALE) * arg2;
+   long divisor = arg3/VEL_SCALE;
+
+   int res;
+   if (dividend > 0)
+      res = (dividend + divisor/2)/divisor;
+   else
+      res = (dividend - divisor/2)/divisor;
+
+   return res;
+}
+
 // This function is written based on this article:
 // https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
 static t_vec calcNewVelocity(int mass1, int mass2, t_vec pos1, t_vec pos2, t_vec vel1, t_vec vel2)
@@ -105,29 +120,19 @@ static t_vec calcNewVelocity(int mass1, int mass2, t_vec pos1, t_vec pos2, t_vec
    t_vec delta_pos = {.x=pos1.x-pos2.x, .y=pos1.y-pos2.y};
    t_vec delta_vel = {.x=vel1.x-vel2.x, .y=vel1.y-vel2.y};
 
-   long dpdv = (muls(delta_pos.x,delta_vel.x) + muls(delta_pos.y,delta_vel.y)) / VEL_SCALE;
-   long dpdp = (muls(delta_pos.x,delta_pos.x) + muls(delta_pos.y,delta_pos.y)) / VEL_SCALE;
+   // Since the radius is at most 16, the total distance is at most 32. With a scaling factor of 32,
+   // the largest value of delta_pos.xy is 32*32 = 2^10. So the largest value of dpdp is 2^20.
+   long dpdv = muls(delta_pos.x,delta_vel.x) + muls(delta_pos.y,delta_vel.y);
+   long dpdp = muls(delta_pos.x,delta_pos.x) + muls(delta_pos.y,delta_pos.y);
 
    t_vec result = vel1;
    if (dpdv < 0)
    {
-      long divisor = dpdp*(mass1+mass2);
       long dividend = 2L*(-dpdv)*mass2;
+      long divisor = dpdp*(mass1+mass2);
 
-      long dx = dividend*delta_pos.x;
-      if (dx > 0)
-         dx += divisor/2;
-      else
-         dx -= divisor/2;
-
-      long dy = dividend*delta_pos.y;
-      if (dy > 0)
-         dy += divisor/2;
-      else
-         dy -= divisor/2;
-
-      result.x += dx/divisor;
-      result.y += dy/divisor;
+      result.x += muldiv(dividend, delta_pos.x, divisor);
+      result.y += muldiv(dividend, delta_pos.y, divisor);
    }
 
    return result;
