@@ -98,17 +98,34 @@ static long muls(int arg1, int arg2)
    return u.l;
 }
 
-// This function calculates (arg1*arg2)/arg3
-static int muldiv(long arg1, long arg2, long arg3)
+// This function calculates (x*y)/z
+static int muldiv(long x, long y, long z)
 {
-   long dividend = (arg1/VEL_SCALE) * arg2;
-   long divisor = arg3/VEL_SCALE;
+   // Since the multiplication x*y may overflow, we instead scale x and z with
+   // the constant value k.
+   const int k = VEL_SCALE;
 
-   int res;
-   if (dividend > 0)
-      res = (dividend + divisor/2)/divisor;
-   else
-      res = (dividend - divisor/2)/divisor;
+   // We write x = q*k + r, where r = x mod k.
+   const long q = x/k;
+   const long r = x - q*k;
+
+   // We write z = s*k + t, where t = z mod k.
+   const long s = z/k;
+   const long t = z - s*k;
+
+   // Now we calculate the first approximation to (x*y)/z
+   const long a = (q*y)/s;
+   const long p = q*y - a*s;
+
+   // Now we calculate the deviation u=x*y-a*z
+   const long u = k*p + r*y - a*t;
+
+   // Finally handle the rounding, based on the deviation.
+   int res = a;
+   if (u > z/2)
+      res += 1;
+   if (u < -z/2)
+      res -= 1;
 
    return res;
 }
