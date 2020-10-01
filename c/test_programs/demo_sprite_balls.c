@@ -46,7 +46,7 @@ typedef struct
    int          collided;
 } t_ball;
 
-#define NUM_SPRITES 20
+#define NUM_SPRITES 30
 
 t_ball balls[NUM_SPRITES];
 
@@ -121,14 +121,32 @@ static t_vec calcNewVelocity(int mass1, int mass2, t_vec pos1, t_vec pos2, t_vec
    return result;
 }
 
+// This is an optimized multiply routine.
+// It takes two 16-bit signed inputs and returns a 32-bit signed output.
+static long muls(int arg1, int arg2)
+{
+   // Using a union is much faster than performing explicit shifts.
+   union {
+      long l;
+      int  i[2];
+   } u;
+
+   MMIO(IO_EAE_OPERAND_0) = arg1;
+   MMIO(IO_EAE_OPERAND_1) = arg2;
+   MMIO(IO_EAE_CSR)       = EAE_MULS;
+   u.i[0] = MMIO(IO_EAE_RESULT_LO); // This implicitly assumes little-endian.
+   u.i[1] = MMIO(IO_EAE_RESULT_HI);
+   return u.l;
+}
+
 static void update()
 {
    for (unsigned int i=0; i<NUM_SPRITES; ++i)
    {
       t_ball *pBall = &balls[i];
 
-      pBall->pos_scaled.x += (long)pBall->vel_scaled.x*POS_SCALE/VEL_SCALE;
-      pBall->pos_scaled.y += (long)pBall->vel_scaled.y*POS_SCALE/VEL_SCALE;
+      pBall->pos_scaled.x += pBall->vel_scaled.x/(VEL_SCALE/POS_SCALE);
+      pBall->pos_scaled.y += pBall->vel_scaled.y/(VEL_SCALE/POS_SCALE);
 
       if (pBall->pos_scaled.x < pBall->radius_scaled && pBall->vel_scaled.x < 0)
       {
@@ -159,15 +177,17 @@ static void update()
       {
          t_ball *pOtherBall = &balls[j];
 
-         t_longvec diff_pos_scaled;
+         t_vec diff_pos_scaled;
          diff_pos_scaled.x = pOtherBall->pos_scaled.x - pBall->pos_scaled.x;
          diff_pos_scaled.y = pOtherBall->pos_scaled.y - pBall->pos_scaled.y;
 
-         long sum_r_scaled = pBall->radius_scaled + pOtherBall->radius_scaled;
+         int sum_r_scaled = pBall->radius_scaled + pOtherBall->radius_scaled;
 
-         if ((long)diff_pos_scaled.x*diff_pos_scaled.x +
-             (long)diff_pos_scaled.y*diff_pos_scaled.y <
-             (long)sum_r_scaled*sum_r_scaled)
+         long x2 = muls(diff_pos_scaled.x,diff_pos_scaled.x);
+         long y2 = muls(diff_pos_scaled.y,diff_pos_scaled.y);
+         long r2 = muls(sum_r_scaled,sum_r_scaled);
+
+         if (x2+y2 < r2)
          {
             // The two balls have collided
             pBall->collided = 1;
@@ -260,7 +280,7 @@ int main()
          pBall->collided = 0;
       }
 
-      for (int i=0; i<6; ++i)
+      for (int i=0; i<2; ++i)
          update();   // Update internal state
 
       showStats();
