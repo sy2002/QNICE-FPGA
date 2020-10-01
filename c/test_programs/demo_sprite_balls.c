@@ -31,12 +31,6 @@ typedef struct
 
 typedef struct
 {
-   long x;
-   long y;
-} t_longvec;
-
-typedef struct
-{
    t_vec        pos_scaled;
    t_vec        vel_scaled;
    unsigned int radius_scaled;
@@ -86,15 +80,33 @@ static void init_all_sprites()
    }
 } // init_all_sprites
 
+// This is an optimized multiply routine.
+// It takes two 16-bit signed inputs and returns a 32-bit signed output.
+static long muls(int arg1, int arg2)
+{
+   // Using a union is much faster than performing explicit shifts.
+   union {
+      long l;
+      int  i[2];
+   } u;
+
+   MMIO(IO_EAE_OPERAND_0) = arg1;
+   MMIO(IO_EAE_OPERAND_1) = arg2;
+   MMIO(IO_EAE_CSR)       = EAE_MULS;
+   u.i[0] = MMIO(IO_EAE_RESULT_LO); // This implicitly assumes little-endian.
+   u.i[1] = MMIO(IO_EAE_RESULT_HI);
+   return u.l;
+}
+
 // This function is written based on this article:
 // https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
 static t_vec calcNewVelocity(int mass1, int mass2, t_vec pos1, t_vec pos2, t_vec vel1, t_vec vel2)
 {
-   t_longvec delta_pos = {.x=pos1.x-pos2.x, .y=pos1.y-pos2.y};
-   t_longvec delta_vel = {.x=vel1.x-vel2.x, .y=vel1.y-vel2.y};
+   t_vec delta_pos = {.x=pos1.x-pos2.x, .y=pos1.y-pos2.y};
+   t_vec delta_vel = {.x=vel1.x-vel2.x, .y=vel1.y-vel2.y};
 
-   long dpdv = (delta_pos.x*delta_vel.x + delta_pos.y*delta_vel.y)/VEL_SCALE;
-   long dpdp = (delta_pos.x*delta_pos.x + delta_pos.y*delta_pos.y)/VEL_SCALE;
+   long dpdv = (muls(delta_pos.x,delta_vel.x) + muls(delta_pos.y,delta_vel.y)) / VEL_SCALE;
+   long dpdp = (muls(delta_pos.x,delta_pos.x) + muls(delta_pos.y,delta_pos.y)) / VEL_SCALE;
 
    t_vec result = vel1;
    if (dpdv < 0)
@@ -119,24 +131,6 @@ static t_vec calcNewVelocity(int mass1, int mass2, t_vec pos1, t_vec pos2, t_vec
    }
 
    return result;
-}
-
-// This is an optimized multiply routine.
-// It takes two 16-bit signed inputs and returns a 32-bit signed output.
-static long muls(int arg1, int arg2)
-{
-   // Using a union is much faster than performing explicit shifts.
-   union {
-      long l;
-      int  i[2];
-   } u;
-
-   MMIO(IO_EAE_OPERAND_0) = arg1;
-   MMIO(IO_EAE_OPERAND_1) = arg2;
-   MMIO(IO_EAE_CSR)       = EAE_MULS;
-   u.i[0] = MMIO(IO_EAE_RESULT_LO); // This implicitly assumes little-endian.
-   u.i[1] = MMIO(IO_EAE_RESULT_HI);
-   return u.l;
 }
 
 static void update()
