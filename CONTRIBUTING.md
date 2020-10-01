@@ -57,6 +57,21 @@ Branches
   larger features that take a while and here it might be, that parts of
   QNICE-FPGA and/or the toolchain are broken, since they are work-in-progress.
 
+### Our best practice about deleting stale branches
+
+* Our general philosophy is: Keep it simple: Delete stale branches.
+
+* As soon as a `dev-*` and `develop-*` branch has been merged into the
+  `develop` branch, we tend to keep the original branch for another few
+  days. Just in case. But then, we delete it in GitHub.
+
+* We recommend to also delete the local Git versions by using these commands
+  inside the local `QNICE-FPGA` folder:
+  ```
+  git fetch -p
+  git branch -d <name of the local branch to delete>
+  ```
+
 Pull Requests
 -------------
 
