@@ -107,18 +107,25 @@ static int muldiv(long x, long y, long z)
 
    // We write x = q*k + r, where r = x mod k.
    const long q = x/k;
-   const long r = x - q*k;
+   const long r = x - q*k;    // |r| < k
 
    // We write z = s*k + t, where t = z mod k.
    const long s = z/k;
-   const long t = z - s*k;
+   const long t = z - s*k;    // |t| < k
 
-   // Now we calculate the first approximation to (x*y)/z
+   // We write q*y = a*s + p, where p = q*y mod s.
    const long a = (q*y)/s;
-   const long p = q*y - a*s;
+   const long p = q*y - a*s;  // |p| < s
+
+   // At this stage, "a" is a first approximation to (x*y)/z.
 
    // Now we calculate the deviation u=x*y-a*z
-   const long u = k*p + r*y - a*t;
+   // = (q*k+r)*y - a*(s*k+t)
+   // = (q*y-a*s)*k + r*y - a*t
+   // This calculation won't overflow, because |p*k| < |s*k| < |z|.
+   const long u = p*k + r*y - a*t;
+
+   // A better approximation is now "a + u/z".
 
    // Finally handle the rounding, based on the deviation.
    int res = a;
