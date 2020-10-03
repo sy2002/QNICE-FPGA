@@ -860,7 +860,7 @@ the macros provided (e.g. @code{q1typ,q2typ,ztyp}) whenever possible.
 
     Set the return value of the current function. @code{q1}.
 
-    If the return value is in a register, its number will be @code{z.reg}.
+    If the return value is passed in a register, the register number will be @code{z.reg}.
     Otherwise @code{z.reg} will be 0.
     @code{SETRETURN} is immediately followed by a function exit (i.e. it is the last
     IC or followed by an unconditional branch to a label which is the last
@@ -1236,11 +1236,11 @@ representation of the data types.
   This array must contain the smallest representable number for every
     signed integer type.
 
-@item zumax t_min[MAX_TYPE+1];
+@item zumax t_max[MAX_TYPE+1];
   This array must contain the largest representable number for every
     signed integer type.
 
-@item zumax tu_min[MAX_TYPE+1];
+@item zumax tu_max[MAX_TYPE+1];
   This array must contain the largest representable number for every
     unsigned integer type.
 
@@ -1332,7 +1332,7 @@ fine-tune the register selection. Some guidelines:
         priority than registers not used for arguments. The priority
         within the argument-registers should decrease as the frequency
         of usage as argument increases (typically the register for the first
-        argument ist used most frequently, etc.).
+        argument is used most frequently, etc.).
 @end itemize
 
 @end table

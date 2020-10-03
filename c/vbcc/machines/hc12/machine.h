@@ -109,7 +109,7 @@ struct ext_ic {
 };
 
 /*  The number of registers of the target machine.                  */
-#define MAXR 4
+#define MAXR 5
 
 /*  Number of commandline-options the code-generator accepts.       */
 #define MAXGF 10
@@ -183,3 +183,5 @@ struct reg_handle {
 
 /* We prefer BNE rather than BGT. */
 #define HAVE_WANTBNE 1
+
+#define HAVE_POF2OPT 1

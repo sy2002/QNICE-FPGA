@@ -1,8 +1,9 @@
-/*  $VER: vbcc (opt.c) V0.8     */
+/*  $VER: vbcc (opt.c) $Revision: 1.26 $    */
 /*  allgemeine Routinen fuer den Optimizer und Steuerung der einzelnen  */
 /*  Laeufe                                                              */
 
 #include "opt.h"
+#include "vbc.h"
 
 static char FILE_[]=__FILE__;
 
@@ -11,13 +12,13 @@ static char FILE_[]=__FILE__;
 /*  Sind use/change-Listen initialisiert?   */
 int have_alias;
 
-int static_cse=1,dref_cse=1;
+int static_cse=1,dref_cse=1,prefer_statics;
 
 #ifdef ALEX_REG
-extern struct flowgraph *pFg;
+extern flowgraph *pFg;
 #endif
 
-void insert_IC(struct IC *p,struct IC *new)
+void insert_IC(IC *p,IC *new)
 /*  fuegt new hinter p ein; p darf 0 sein                           */
 {
   if((new->code==ADDI2P||new->code==SUBIFP||new->code==SUBPFP)&&!ISPOINTER(new->typf2))
@@ -41,17 +42,63 @@ int gchanged;   /*  Merker, ob Optimierungslauf etwas geaendert hat */
 int norek;      /*  diese Funktion wird nicht rekursiv auf          */
 int nocall;     /*  diese Funktion kehrt nicht zum Caller zurueck   */
 
+void fix_shortop(flowgraph *fg,IC *p)
+{
+  if((p->typf&NQ)<INT&&!shortcut(p->code,p->typf)){
+    static type ta;
+    type *t;
+    IC *new;
+    if(DEBUG&1024){puts("fix shortop");pric2(stdout,p);puts("to;");}
+    ta.flags=int_erw(p->typf);
+    t=arith_typ(&ta,&ta);
+    new=new_IC();
+    new->code=CONVERT;
+    new->q1=p->q1;
+    new->z.flags=VAR;
+    new->z.v=add_tmp_var(clone_typ(t));
+    new->typf2=p->typf|UNSIGNED;
+    new->typf=t->flags|UNSIGNED;
+    p->q1=new->z;
+    insert_IC_fg(fg,p->prev,new);
+    new=new_IC();
+    new->code=CONVERT;
+    new->q1=p->q2;
+    new->z.flags=VAR;
+    new->z.v=add_tmp_var(clone_typ(t));
+    new->typf2=p->typf|UNSIGNED;
+    new->typf=t->flags|UNSIGNED;
+    p->q2=new->z;
+    insert_IC_fg(fg,p->prev,new);
+    new=new_IC();
+    new->code=CONVERT;
+    new->z=p->z;
+    new->q1.flags=VAR;
+    new->q1.v=add_tmp_var(t);
+    new->typf=p->typf|UNSIGNED;
+    new->typf2=t->flags|UNSIGNED;
+    p->z=new->q1;
+    insert_IC_fg(fg,p,new);   
+    p->typf=t->flags|UNSIGNED;
+    if(DEBUG&1024){
+      pric2(stdout,p->prev->prev);
+      pric2(stdout,p->prev);
+      pric2(stdout,p);
+      pric2(stdout,p->next);
+    }
+  }
+}
+
 #if HAVE_LIBCALLS
-extern np gen_libcall(char *fname,np arg1,struct Typ *t1,np arg2,struct Typ *t2);
+extern np gen_libcall(char *fname,np arg1,type *t1,np arg2,type *t2);
 
 
 /* insert libcalls just before register allocation */
-static int insert_libcalls(struct flowgraph *fg)
+static int insert_libcalls(flowgraph *fg)
 {
-  struct IC *p,*next,*add;
+  IC *p,*next,*add;
   int replaced=0;
-  static struct node n,nl,nr;
-  static struct Typ t,tl,tr;
+  static node n,nl,nr;
+  static type t,tl,tr;
   if(DEBUG&1024) printf("insert_libcalls\n");
   while(fg){
     for(p=fg->start;p;p=next){
@@ -60,13 +107,50 @@ static int insert_libcalls(struct flowgraph *fg)
       next=p->next;
       if((c>=OR&&c<=XOR)||(c>=LSHIFT&&c<=KOMPLEMENT)||c==COMPARE||c==CONVERT||c==MINUS||c==TEST){
 	if(libname=use_libcall(c,p->typf,p->typf2)){
-	  struct IC *merk_first,*merk_last;
-	  static struct node n1,n2;
-	  static struct Typ t1,t2;
+	  IC *merk_first,*merk_last;
+	  static node n1,n2;
+	  static type t1,t2;
 	  if(DEBUG&1024){
 	    printf("converting IC to libcall:\n");
 	    pric2(stdout,p);
 	  }
+#if FIXED_SP
+	  {
+	    /* move nested pushs */
+	    IC *m;flowgraph *g=fg;int fd=0,i;
+	    for(i=0;i<p->arg_cnt;i++){
+	      m=p->arg_list[i];
+	      if(m->code==PUSH){
+		Var *v;type *t;IC *new;
+		fd=1;
+		if(DEBUG&1024){
+		  printf("moving push\n");
+		  pric2(stdout,m);
+		}
+		if((m->typf&NQ)==STRUCT) ierror(0);
+		if((m->typf&NQ)==CHAR&&!zmeqto(m->q2.val.vmax,Z1)) ierror(0);
+		t=new_typ();
+		t->flags=m->typf;
+		v=add_tmp_var(t);
+		new=new_IC();
+		new->code=PUSH;
+		new->q2.val.vmax=m->q2.val.vmax;
+		new->typf=m->typf;
+		new->q1.flags=VAR;
+		new->q1.v=v;
+		new->q1.val.vmax=Z0;
+		m->z=new->q1;
+		m->code=ASSIGN;
+		insert_IC_fg(g,p,new);
+		if(DEBUG&1024){
+		  pric2(stdout,m);
+		  pric2(stdout,new);
+		}
+		p->arg_list[i]=new;
+	      }
+	    }
+	  }
+#endif	  
 	  replaced=1;
 	  merk_last=last_ic;
 	  merk_first=first_ic;
@@ -97,10 +181,10 @@ static int insert_libcalls(struct flowgraph *fg)
 	  if(p->z.flags){
 	    remove_IC_fg(fg,p);
 	  }else{
-	    struct Typ *t=new_typ();
-	    t->flags=INT;
+	    type *t=new_typ();
+	    t->flags=LIBCALL_CMPTYPE;
 	    p->code=TEST;
-	    p->typf=INT;
+	    p->typf=LIBCALL_CMPTYPE;
 	    p->q1.flags=VAR;
 	    p->q1.v=add_tmp_var(t);
 	    p->q1.val.vmax=l2zm(0L);
@@ -120,7 +204,7 @@ static int insert_libcalls(struct flowgraph *fg)
 /*  temporary fuer verschiedene Bitvektoren */
 bvtype *tmp;
 
-int in_varlist(struct varlist *vl,int cnt,struct Var *v,int flags)
+int in_varlist(varlist *vl,int cnt,Var *v,int flags)
 {
   int i;
   /*FIXME: slow */
@@ -132,7 +216,7 @@ int in_varlist(struct varlist *vl,int cnt,struct Var *v,int flags)
 
 static void add_call_list(void)
 {
-  struct IC *p;
+  IC *p;
   for(p=first_ic;p;p=p->next){
     if(p->code==CALL&&p->call_cnt==0){
       if((p->q1.flags&(VAR|DREFOBJ))==VAR){
@@ -145,9 +229,9 @@ static void add_call_list(void)
   }
 }
 
-void calc_finfo(struct Var *v,int flags)
+void calc_finfo(Var *v,int flags)
 {
-  struct IC *p;int i,known,maxtyp,t,c;
+  IC *p;int i,known,maxtyp,t,c;
   /* 128 types should be enough for everyone :-) */
   #define TSIZE BVSIZE(128)
   static bvtype tf[TSIZE];
@@ -183,7 +267,7 @@ void calc_finfo(struct Var *v,int flags)
 	    if(p->q1.v->fi->use_list[i].v){
 	      if(!in_varlist(v->fi->use_list,v->fi->use_cnt,p->q1.v->fi->use_list[i].v,p->q1.v->fi->use_list[i].flags)){
 		v->fi->use_cnt++;
-		v->fi->use_list=myrealloc(v->fi->use_list,v->fi->use_cnt*sizeof(struct varlist));
+		v->fi->use_list=myrealloc(v->fi->use_list,v->fi->use_cnt*sizeof(varlist));
 		v->fi->use_list[v->fi->use_cnt-1]=p->q1.v->fi->use_list[i];
 	      }
 	    }else{
@@ -196,7 +280,7 @@ void calc_finfo(struct Var *v,int flags)
 	  if(p->use_list[i].v->nesting!=0) continue;
 	  if(!in_varlist(v->fi->use_list,v->fi->use_cnt,p->use_list[i].v,p->use_list[i].flags)){
 	    v->fi->use_cnt++;
-	    v->fi->use_list=myrealloc(v->fi->use_list,v->fi->use_cnt*sizeof(struct varlist));
+	    v->fi->use_list=myrealloc(v->fi->use_list,v->fi->use_cnt*sizeof(varlist));
 	    v->fi->use_list[v->fi->use_cnt-1]=p->use_list[i];
 	  }
 	}
@@ -205,7 +289,7 @@ void calc_finfo(struct Var *v,int flags)
     for(c=0;c<=maxtyp;c++){
       if(BTST(tf,c)){
 	v->fi->use_cnt++;
-	v->fi->use_list=myrealloc(v->fi->use_list,v->fi->use_cnt*sizeof(struct varlist));
+	v->fi->use_list=myrealloc(v->fi->use_list,v->fi->use_cnt*sizeof(varlist));
 	v->fi->use_list[v->fi->use_cnt-1].v=0;
 	v->fi->use_list[v->fi->use_cnt-1].flags=c;
       }
@@ -238,7 +322,7 @@ void calc_finfo(struct Var *v,int flags)
 	    if(p->q1.v->fi->change_list[i].v){
 	      if(!in_varlist(v->fi->change_list,v->fi->change_cnt,p->q1.v->fi->change_list[i].v,p->q1.v->fi->change_list[i].flags)){
 		v->fi->change_cnt++;
-		v->fi->change_list=myrealloc(v->fi->change_list,v->fi->change_cnt*sizeof(struct varlist));
+		v->fi->change_list=myrealloc(v->fi->change_list,v->fi->change_cnt*sizeof(varlist));
 		v->fi->change_list[v->fi->change_cnt-1]=p->q1.v->fi->change_list[i];
 	      }
 	    }else{
@@ -251,7 +335,7 @@ void calc_finfo(struct Var *v,int flags)
 	  if(p->change_list[i].v->nesting!=0) continue;
 	  if(!in_varlist(v->fi->change_list,v->fi->change_cnt,p->change_list[i].v,p->change_list[i].flags)){
 	    v->fi->change_cnt++;
-	    v->fi->change_list=myrealloc(v->fi->change_list,v->fi->change_cnt*sizeof(struct varlist));
+	    v->fi->change_list=myrealloc(v->fi->change_list,v->fi->change_cnt*sizeof(varlist));
 	    v->fi->change_list[v->fi->change_cnt-1]=p->change_list[i];
 	  }
 	}
@@ -260,7 +344,7 @@ void calc_finfo(struct Var *v,int flags)
     for(c=0;c<=maxtyp;c++){
       if(BTST(tf,c)){
 	v->fi->change_cnt++;
-	v->fi->change_list=myrealloc(v->fi->change_list,v->fi->change_cnt*sizeof(struct varlist));
+	v->fi->change_list=myrealloc(v->fi->change_list,v->fi->change_cnt*sizeof(varlist));
 	v->fi->change_list[v->fi->change_cnt-1].v=0;
 	v->fi->change_list[v->fi->change_cnt-1].flags=c;
       }
@@ -280,7 +364,7 @@ void calc_finfo(struct Var *v,int flags)
 	if(p->q1.flags&DREFOBJ) return;
 	if(!in_varlist(v->fi->call_list,v->fi->call_cnt,p->q1.v,0)){
 	  v->fi->call_cnt++;
-	  v->fi->call_list=myrealloc(v->fi->call_list,v->fi->call_cnt*sizeof(struct varlist));
+	  v->fi->call_list=myrealloc(v->fi->call_list,v->fi->call_cnt*sizeof(varlist));
 	  v->fi->call_list[v->fi->call_cnt-1].v=p->q1.v;
 	  v->fi->call_list[v->fi->call_cnt-1].flags=0;
 	}
@@ -290,7 +374,7 @@ void calc_finfo(struct Var *v,int flags)
   }
 }
 
-void used_clist(struct Typ *t,struct const_list *cl)
+void used_clist(type *t,const_list *cl)
 {
   int i;zmax l;
   if(ISARRAY(t->flags)){
@@ -305,7 +389,7 @@ void used_clist(struct Typ *t,struct const_list *cl)
     return;
   }
   if(ISSTRUCT(t->flags)){
-    struct Typ *st;
+    type *st;
     for(i=0;i<t->exact->count&&cl;i++){
       st=(*t->exact->sl)[i].styp;
       if(!(*t->exact->sl)[i].identifier) ierror(0);
@@ -321,13 +405,13 @@ void used_clist(struct Typ *t,struct const_list *cl)
   return;
 }
 
-void used_objects(struct Var *v)
+void used_objects(Var *v)
 {
   int i;
   if(v->flags&REFERENCED) return;
   v->flags|=REFERENCED;
   if(ISFUNC(v->vtyp->flags)){
-    struct IC *p;
+    IC *p;
     if(!(v->flags&DEFINED)) return;
     if(!v->fi) ierror(0);
     for(i=0;i<v->fi->call_cnt;i++){
@@ -347,13 +431,47 @@ void used_objects(struct Var *v)
 
 zmax recalc_start_offset;
 
-void recalc_offsets(struct flowgraph *fg)
+static void mark_na(bvtype *tmp,int r,int *eqto)
+{
+  int i;
+  if(r<0||r>=vcount-rcount||BTST(tmp,r)) return;
+  /*if(DEBUG&1024) printf("mark_na %s(%p):\n",vilist[r]->identifier,(void*)vilist[r]);*/
+  BSET(tmp,r);
+  for(i=0;i<vcount-rcount;i++){
+    if(eqto[i]!=r&&eqto[r]!=i) continue;
+    /*if((DEBUG&1024)&&!BTST(tmp,i)) printf("  mark_na %s(%p)\n",vilist[i]->identifier,(void*)vilist[i]);*/
+    mark_na(tmp,i,eqto);
+  }
+}
+
+/* TODO: fix */
+/* replace auto variables by statics if possible */
+void replace_statics(Var *v)
+{
+  if(DEBUG&1024) printf("replace_statics()\n");
+  if(v->fi&&(v->fi->flags&ALL_CALLS)){
+    int i;
+    for(i=0;i<v->fi->call_cnt;i++){
+      if(v->fi->call_list[i].v==v)
+	return;
+    }
+    if(DEBUG&1024) printf("non-recursive\n");
+    for(i=0;i<vcount-rcount;i++){
+      if(vilist[i]->storage_class==AUTO||vilist[i]->storage_class==REGISTER)
+	vilist[i]->storage_class=STATIC;
+    }
+  }
+}
+
+
+void recalc_offsets(flowgraph *g)
 /*  berechnet Offsets fuer auto-Variablen neu und versucht, fuer Variablen, */
 /*  die nicht gleichzeitig aktiv sind, den gleichen Platz zu belegen        */
 {
-  int i,b,*eqto;size_t bsize;zmax *al,*sz;
-  bvtype **used,*tmp,*empty;
-  struct IC *p;
+  int i,j,b,bcnt,r,*eqto,pass;size_t bsize,vsize;zmax *al,*sz;
+  bvtype **used,*tmp,*empty,*vtmp,*vpos;
+  IC *p;
+  flowgraph *fg;
 
   if(DEBUG&1024) printf("recalculating offsets\n");
   if(DEBUG&1024) printf("setting up arrays\n");
@@ -380,12 +498,11 @@ void recalc_offsets(struct flowgraph *fg)
     al[i]=falign(vilist[i]->vtyp);
     eqto[i]=-1;
   }
-  b=0;
+  b=0; fg=g;
   while(fg){
     if(b>=basic_blocks) ierror(0);
     for(i=0;i<vcount-rcount;i++){
       if(used[i]&&(BTST(fg->av_in,i)||BTST(fg->av_out,i))){
-	int r;
 	BSET(used[i],b);
 	for(r=1;r<=MAXR;r++)
 	  if(fg->regv[r]&&fg->regv[r]->index==i) BCLR(used[i],b);
@@ -394,7 +511,7 @@ void recalc_offsets(struct flowgraph *fg)
     for(p=fg->start;p;p=p->next){
       if((p->q1.flags&(VAR|REG))==VAR){
 	i=p->q1.v->index;
-	if(i!=-1){
+	if(i!=-1&&i<vcount-rcount){
 	  if(i<0||i>=vcount) ierror(0);
 	  if(i>=0&&used[i]){
 	    BSET(used[i],b);
@@ -403,7 +520,7 @@ void recalc_offsets(struct flowgraph *fg)
       }
       if((p->q2.flags&(VAR|REG))==VAR){
 	i=p->q2.v->index;
-	if(i!=-1){
+	if(i!=-1&&i<vcount-rcount){
 	  if(i<0||i>=vcount) ierror(0);
 	  if(i>=0&&used[i]){
 	    BSET(used[i],b);
@@ -424,6 +541,74 @@ void recalc_offsets(struct flowgraph *fg)
     fg=fg->normalout;
     b++;
   }
+  bcnt=b;
+
+  if(DEBUG&1024) printf("local recalc\n");
+  vsize=BVSIZE(vcount-rcount);
+  vtmp=mymalloc(vsize);
+  vpos=mymalloc(vsize);
+  j=0;
+  for(fg=g;fg;fg=fg->normalout){
+    bvcopy(vtmp,fg->av_in,vsize);
+    bvunite(vtmp,fg->av_out,vsize);
+    for(r=1;r<=MAXR;r++)
+      if(fg->regv[r]&&fg->regv[r]->index<vcount-rcount) BSET(vtmp,fg->regv[r]->index);
+    for(i=0;i<vcount-rcount;i++){
+      if(!BTST(vtmp,i)){
+	if(!used[i]||!BTST(used[i],j)||(vilist[i]->storage_class!=AUTO&&vilist[i]->storage_class!=REGISTER))
+	  BSET(vtmp,i);
+	else{
+	  for(r=0;r<bcnt;r++)
+	    if(r!=j&&BTST(used[i],r))
+	      BSET(vtmp,i);
+	}
+      }
+    }
+#if 1
+    if(DEBUG&1024){
+      printf("possible for local recalc block %d (%d):\n",j,fg->index);
+      for(i=0;i<vcount-rcount;i++)
+	if(!BTST(vtmp,i))
+	  printf("  %s(%p)\n",vilist[i]->identifier,(void*)vilist[i]);
+    }
+#endif
+    for(p=fg->start;p;p=p->next){
+      if((p->z.flags&(VAR|DREFOBJ))==VAR){
+	b=p->z.v->index;
+	if(b>=0&&b<vcount-rcount&&eqto[b]<0&&!BTST(vtmp,b)){
+	  /* imprecise, but should do the job */
+	  IC *m;
+	  /*if(DEBUG&1024) printf("checking %s(%p)\n",vilist[b]->identifier,(void*)vilist[b]);*/
+	  bvcopy(vpos,vtmp,vsize);
+	  for(m=p->next;m;m=m->next){
+	    if(m->q1.flags&VAR) mark_na(vpos,m->q1.v->index,eqto);
+	    if(m->q2.flags&VAR) mark_na(vpos,m->q2.v->index,eqto);
+	    if(m->z.flags&VAR){
+	      mark_na(vpos,m->z.v->index,eqto);
+	      if(m->z.v->index==b) BSET(vtmp,b);
+	    }
+	    if(m==fg->end) break;
+	  }
+	  for(i=vcount-rcount-1;i>=0;i--){
+	    if(!BTST(vpos,i)){
+	      if(DEBUG&1024) printf("local memory for %s(%p) and %s(%p) equal\n",vilist[i]->identifier,(void *)vilist[i],vilist[b]->identifier,(void *)vilist[b]);
+	      eqto[b]=i;
+	      if(!zmleq(al[b],al[i])) al[i]=al[b];
+	      if(!zmleq(sz[b],sz[i])) sz[i]=sz[b];
+	      /*bvunite(used[i],used[b],bsize);*/
+	      break;
+	    }
+	  }
+	}
+      }
+      if(p==fg->end) break;
+    }
+    j++;
+  }
+  free(vtmp);
+  free(vpos);
+
+
   /*  schauen, ob Variablen in gleichen Speicher koennen  */
   if(DEBUG&1024) printf("looking for distinct variables\n");
   for(i=0;i<vcount-rcount;i++){
@@ -445,18 +630,32 @@ void recalc_offsets(struct flowgraph *fg)
       }
     }
   }
+
+
   if(DEBUG&1024) printf("final recalculating\n");
   max_offset=recalc_start_offset;
-  for(i=0;i<vcount-rcount;i++){
-    if(!used[i]) continue;
-    free(used[i]);
-    if(DEBUG&2048) printf("adjusting offset for %s,%ld\n",vilist[i]->identifier,zm2l(vilist[i]->offset));
-    if(eqto[i]>=0){
-      vilist[i]->offset=vilist[eqto[i]]->offset;
-      continue;
+  for(pass=0;pass<3;pass++){
+    zmax a;
+    for(a=maxalign;!zmeqto(a,Z0);a=zmsub(a,Z1)){
+      for(i=0;i<vcount-rcount;i++){
+	if(!used[i]) continue;
+	if(!zmeqto(a,falign(vilist[i]->vtyp))) continue;
+	if(eqto[i]>=0&&pass<2) continue;
+	if(pass==0){
+	  zmax sz=szof(vilist[i]->vtyp);
+	  if(!zmleq(sz,sizetab[MAXINT])&&!zmleq(sz,sizetab[LDOUBLE])) continue;
+	}
+	free(used[i]);
+	used[i]=0;
+	if(DEBUG&2048) printf("adjusting offset for %s,%ld\n",vilist[i]->identifier,zm2l(vilist[i]->offset));
+	if(eqto[i]>=0){
+	  vilist[i]->offset=vilist[eqto[i]]->offset;
+	  continue;
+	}
+	vilist[i]->offset=zmmult(zmdiv(zmadd(max_offset,zmsub(al[i],l2zm(1L))),al[i]),al[i]);
+	max_offset=zmadd(vilist[i]->offset,sz[i]);
+      }
     }
-    vilist[i]->offset=zmmult(zmdiv(zmadd(max_offset,zmsub(al[i],l2zm(1L))),al[i]),al[i]);
-    max_offset=zmadd(vilist[i]->offset,sz[i]);
   }
   recalc_start_offset=l2zm(0L);
   free(used);
@@ -466,7 +665,7 @@ void recalc_offsets(struct flowgraph *fg)
   free(empty);
   free(eqto);
 }
-void remove_IC_fg(struct flowgraph *g,struct IC *p)
+void remove_IC_fg(flowgraph *g,IC *p)
 /*  Entfernt IC p und beachtet Flussgraph. Ausserdem werden             */
 /*  use/change-Listen freigegeben.                                      */
 {
@@ -484,10 +683,270 @@ void remove_IC_fg(struct flowgraph *g,struct IC *p)
   remove_IC(p);
 }
 
+/* function to decide whether a possible const memcpy shall
+   be implemented using typ t; if noptr is non-zero decide
+   if not introducing a pointer is preferable */
+int decide_const_memcpy(IC *p,int typ,int noptr)
+{
+  zmax cnt;
+
+  /* usually int is the most efficient */
+  if(typ==CHAR){
+  }else if(typ==BESTCOPYT){
+    if((p->z.flags&(VAR|DREFOBJ))!=VAR)
+      return 0;
+    if(!zmleq(align[typ],falign(p->z.v->vtyp)))
+      return 0;
+    if(!zmeqto(zmmod(p->z.val.vmax,align[typ]),Z0))
+      return 0;
+  }else
+    return 0;
+  
+  cnt=zmdiv(p->q2.val.vmax,sizetab[typ]);
+
+  if((p->z.flags&(DREFOBJ|KONST))!=DREFOBJ){
+    int sc;
+    if(p->z.flags&DREFOBJ)
+      sc=STATIC;
+    else
+      sc=p->z.v->storage_class;
+    if(sc==AUTO||sc==REGISTER){
+      /* we assume that writes on the stack can be combined */
+      if(typ==CHAR&&noptr)
+	if(zmleq(cnt,zmmult(clist_copy_pointer,sizetab[BESTCOPYT])))
+	  return 1;
+      if(zmleq(cnt,l2zm(clist_copy_stack)))
+	return 1;
+    }else{
+      if(zmleq(cnt,l2zm(clist_copy_static)))
+	return 1;
+    }
+  }
+
+  if(noptr==0&&zmleq(cnt,l2zm(clist_copy_pointer)))
+    return 1;
+
+  return 0;
+}
+
+int insert_const_memcpy(flowgraph *fg)
+{
+  int changed =0;
+  flowgraph *g;
+  for(g=fg;g;g=g->normalout){
+    IC *p;
+    for(p=g->start;p;p=p->next){
+      int c=p->code;
+      
+      /* TODO: finish support for PUSH */
+      if((c==ASSIGN/*||c==PUSH*/)&&(p->q1.flags&(VAR|VARADR|DREFOBJ))==VAR&&p->q1.v->clist&&is_const(p->q1.v->vtyp)){
+	zmax i,sz=p->q2.val.vmax;
+	zuchar zuc;
+	Var *v=p->q1.v;
+	type *t=v->vtyp;
+	int ok=1;
+	
+	for(i=Z0;zmleq(i,sz);i=zmadd(i,Z1)){
+	  if(!get_clist_byte(t,v->clist,i,&zuc))
+	    ok=0;
+	}
+	
+	if(ok==1){
+	  int typ=0,noptr=1;
+	  int a1,a2;
+	  if(DEBUG&1024) {printf("can replace const memcpy:\n");pric2(stdout,p);}
+	  
+	  if(c==ASSIGN&&(p->z.flags&(DREFOBJ|KONST))!=DREFOBJ){
+	    if(decide_const_memcpy(p,BESTCOPYT,noptr))
+	      typ=BESTCOPYT;
+	    else if(decide_const_memcpy(p,CHAR,noptr))
+	      typ=CHAR;
+	  }
+	  if(typ==0){
+	    noptr=0;
+	    if(decide_const_memcpy(p,BESTCOPYT,noptr))
+	      typ=BESTCOPYT;
+	    else if(decide_const_memcpy(p,CHAR,noptr))
+	      typ=CHAR;
+	  }
+	  
+	  if(typ){
+	    Var *ptr;
+	    IC *new;
+
+	    if(DEBUG&1024) printf("will do it (typ=%d noptr=%d)\n",typ,noptr);
+	    if(!noptr){
+	      type *pt;
+	      if(p->z.flags&VAR){
+		if(p->z.flags&DREFOBJ){
+		  pt=clone_typ(p->z.v->vtyp);
+		}else{
+		  pt=new_typ();
+		  pt->flags=POINTER_TYPE(p->z.v->vtyp);
+		  pt->next=clone_typ(p->z.v->vtyp);
+		}
+	      }else{
+		static type ct={CHAR};
+		type *new;
+		ct.flags=typ;
+		new=new_typ();
+		new->flags=POINTER_TYPE(&ct);
+		new->next=new_typ();
+		new->next->flags=typ;
+		pt=new;
+	      }
+	      ptr=add_tmp_var(pt);
+	      new=new_IC();
+	      new->z.flags=VAR;
+	      new->z.v=ptr;
+	      new->q1=p->z;
+	      if(p->z.flags&DREFOBJ){
+		new->code=ASSIGN;
+		new->q1.flags&=~DREFOBJ;
+		new->typf=ptr->vtyp->flags;
+	      }else if(p->z.v->storage_class==STATIC||p->z.v->storage_class==EXTERN){
+		new->code=ASSIGN;
+		new->q1.flags|=VARADR;
+		new->typf=ptr->vtyp->flags;
+	      }else if(p->z.v->storage_class==AUTO||p->z.v->storage_class==REGISTER){
+		new->code=ADDRESS;
+		new->typf=p->z.v->vtyp->flags;
+		new->typf2=ptr->vtyp->flags;
+	      }else
+		ierror(0);
+	      new->q2.val.vmax=sizetab[new->typf];
+	      insert_IC_fg(g,p->prev,new);
+	    }
+	    i=Z0;
+	    while(!zmleq(sz,i)){
+	      /* use CHAR for possibly remaining bytes */
+	      if(!zmleq(zmadd(sizetab[typ],i),sz))
+		typ=CHAR;
+	      new=new_IC();
+	      new->code=p->code;
+	      new->typf=typ;
+	      new->q1.flags=KONST;
+	      if(typ==CHAR){
+		if(!get_clist_byte(t,v->clist,zmadd(i,p->q1.val.vmax),&zuc))
+		  ierror(0);
+		new->q1.val.vuchar=zuc;
+	      }else{
+		gval.vmax=get_clist_int(t,v->clist,zmadd(i,p->q1.val.vmax),sizetab[typ]);
+		eval_const(&gval,MAXINT);
+		insert_const(&new->q1.val,typ);
+	      }
+	      new->q2.val.vmax=sizetab[new->typf];
+	      if(new->code==ASSIGN){
+		if(noptr){
+		  new->z=p->z;
+		  new->z.val.vmax=zmadd(new->z.val.vmax,i);
+		}else{
+		  new->z.flags=VAR|DREFOBJ;
+		  new->z.v=ptr;
+		  new->z.dtyp=ptr->vtyp->flags;
+		}
+	      }else
+		ierror(0); /* TODO: PUSH */
+	      insert_IC_fg(g,p->prev,new);
+	      if(!noptr){
+		new=new_IC();
+		new->code=ADDI2P;
+		new->q1.flags=VAR;
+		new->q1.v=ptr;
+		new->z=new->q1;
+		new->q2.flags=KONST;
+		new->q2.val.vint=zm2zi(sizetab[typ]);
+		new->typf=INT;
+		new->typf2=ptr->vtyp->flags;
+		insert_IC_fg(g,p->prev,new);
+	      }	
+	      i=zmadd(i,sizetab[typ]);
+		
+	    }
+	    remove_IC_fg(fg,p);
+	    p=new;
+	    changed=1;
+	  }
+	}
+      }
+      
+      if(p==g->end) break;
+    }
+  }
+  return changed;
+}
+
+/* combines assignments of constants into a larger type */
+void combine_const_assigns(void)
+{
+  static int ctype[BESTCOPYT],i,j;
+  IC *p=first_ic;
+
+  /* calculate table of combine types */
+  for(i=CHAR;i<BESTCOPYT;i++){
+    ctype[i]=0;
+    for(j=BESTCOPYT;j>CHAR;j--){
+      if(zmeqto(sizetab[j],zmadd(sizetab[i],sizetab[i]))){
+	if(DEBUG&1024) printf("possible combine type %s=>%s\n",typname[i],typname[j]);
+	ctype[i]=j;
+	break;
+      }
+    }
+  }
+  while(p){
+    if(p->code==ASSIGN&&(p->q1.flags&(KONST|DREFOBJ))==KONST&&(p->z.flags&(DREFOBJ|VAR))==VAR){
+      IC *p2=p->next;
+      if(p2&&p2->code==ASSIGN&&(p2->q1.flags&(KONST|DREFOBJ))==KONST&&(p2->z.flags&(DREFOBJ|VAR))==VAR&&p->z.v==p2->z.v&&p->typf==p2->typf&&zmeqto(p->q2.val.vmax,p2->q2.val.vmax)&&zmeqto(p2->z.val.vmax,zmadd(p->z.val.vmax,sizetab[p->typf&NQ]))){
+	int dt,t=p->typf&NQ,sc=p->z.v->storage_class;
+	if(t<BESTCOPYT&&(dt=ctype[t])){
+	  zmax os;
+	  /* for stack variables we can use the actual offset, for statics
+	     we rely on the type alignment */
+	  if(sc==AUTO||sc==REGISTER)
+	    os=zmadd(p->z.v->offset,p->z.val.vmax);
+	  else{
+	    if(zmeqto(zmmod(falign(p->z.v->vtyp),align[dt]),Z0))
+	      os=p->z.val.vmax;
+	    else
+	      os=Z1;
+	  }
+	  if(zmeqto(zmmod(os,align[dt]),Z0)){
+	    zumax v1,v2;
+	    if(DEBUG&1024){
+	      printf("combine const assignment:\n");
+	      pric2(stdout,p);
+	      pric2(stdout,p2);
+	    }
+	    p->typf=dt;
+	    p->q2.val.vmax=sizetab[dt];
+	    eval_const(&p->q1.val,t|UNSIGNED);
+	    v1=vmax;
+	    eval_const(&p2->q1.val,t|UNSIGNED);
+	    v2=vmax;
+	    if(BIGENDIAN)
+	      v1=zmlshift(v1,zmmult(sizetab[t],char_bit));
+	    else
+	      v2=zmlshift(v2,zmmult(sizetab[t],char_bit));
+	    gval.vmax=zmor(v1,v2);
+	    eval_const(&gval,MAXINT);
+	    insert_const(&p->q1.val,dt);
+	    if(DEBUG&1024){printf("to:\n"); pric2(stdout,p);}
+	    remove_IC(p2);
+	    if(p->prev) p=p->prev; /* retry for more combining */
+	    continue;
+	  }
+	}
+      }
+    }
+    p=p->next;
+  }
+}
+      
+
 /* allowed to create new variables */
 int early_peephole(void)
 {
-  struct IC *p;
+  IC *p;
   int changed,gchanged=0,c,t;
   do{
     changed=0;
@@ -495,17 +954,18 @@ int early_peephole(void)
     while(p){
       c=p->code;
       t=p->typf;
-      if(c==COMPARE&&(p->q2.flags&KONST)&&ISINT(p->typf)){
-	struct case_table *ct;
-	if((ct=calc_case_table(p,JUMP_TABLE_DENSITY))&&ct->num>1&&ct->density==1){
+     if(c==COMPARE&&(p->q2.flags&KONST)&&ISINT(p->typf)){
+	case_table *ct;
+	/* TODO: support multiple_ccs */
+	if(!multiple_ccs&&(ct=calc_case_table(p,JUMP_TABLE_DENSITY))&&ct->num>1&&ct->density==1){
 	  int i;
 	  for(i=0;i<ct->num;i++){
 	    if(ct->labels[i]!=ct->labels[0])
 	      break;
 	  }
 	  if(i>=ct->num){
-	    struct IC *new;
-	    static struct Typ ityp;
+	    IC *new;
+	    static type ityp;
 	    if(DEBUG&1024) printf("converting cases to range-check\n");
 	    if(multiple_ccs) ierror(0);
 	    new=new_IC();
@@ -538,7 +998,7 @@ int early_peephole(void)
 	    new->typf=ct->labels[0];
 	    insert_IC(p->prev,new);
  	    while(p!=ct->next_ic){
-	      struct IC *m=p->next;
+	      IC *m=p->next;
 	      remove_IC(p);
 	      p=m;
 	    }
@@ -557,7 +1017,7 @@ int early_peephole(void)
 int peephole()
 /*  macht alle moeglichen Vereinfachungen/Vereinheitlichungen   */
 {
-  struct IC *p;struct obj o;int t,c,null,eins,changed,done=0;
+  IC *p;obj o;int t,c,null,eins,changed,done=0;
   function_calls=0;
   do{
     if(DEBUG&1024) printf("searching for peephole optimizations\n");
@@ -567,7 +1027,7 @@ int peephole()
       c=p->code;
       t=p->typf;
       if(c==NOP&&!p->q1.flags&&!p->q2.flags&&!p->z.flags){
-	struct IC *m;
+	IC *m;
 	if(DEBUG&1024) printf("removing nop\n");
 	m=p;p=p->next;
 	remove_IC(m);
@@ -580,7 +1040,7 @@ int peephole()
       if(c==COMPARE&&(p->q2.flags&(KONST|DREFOBJ))==KONST){
 	eval_const(&p->q2.val,t);
 	if(ISINT(t)&&zmeqto(vmax,l2zm(1L))&&zumeqto(vumax,ul2zum(1UL))){
-	  struct IC *p2=p->next;
+	  IC *p2=p->next;
 	  if(p2->code==BGE){
 	    vmax=l2zm(0L);insert_const(&gval,MAXINT);
 	    p->q2.val=gval;p2->code=BGT;changed=1;
@@ -591,7 +1051,7 @@ int peephole()
 	    if(DEBUG&1024) printf("cmp #1 replaced by cmp #0(2)\n");
 	  }
 	}else if(ISINT(t)&&!(t&UNSIGNED)&&zmeqto(vmax,l2zm(-1L))){
-	  struct IC *p2=p->next;
+	  IC *p2=p->next;
 	  if(p2->code==BGT){
 	    vmax=l2zm(0L);insert_const(&gval,MAXINT);
 	    p->q2.val=gval;p2->code=BGE;changed=1;
@@ -604,7 +1064,7 @@ int peephole()
 	}
       }
       if(c>=BEQ&&c<BRA&&p->next&&p->next->code==BRA&&p->typf==p->next->typf){
-	struct IC *p2,*m;
+	IC *p2,*m;
 	if(DEBUG&1024){
 	  printf("removing bcc followed by bra\n");
 	  pric2(stdout,p);
@@ -626,7 +1086,7 @@ int peephole()
       if(c==CALL) function_calls++;
       if((p->q1.flags&(KONST|DREFOBJ))==KONST){
 	if(((p->q2.flags&(KONST|DREFOBJ))==KONST)||!p->q2.flags){
-	  struct IC *old=p->prev;
+	  IC *old=p->prev;
 	  if(fold(p)){ changed=1; p=old;continue;}
 	  p=p->next;continue;
 	}else{
@@ -634,7 +1094,7 @@ int peephole()
 	    if(DEBUG&1024){ printf("swapped commutative op:\n");pric2(stdout,p);}
 	    o=p->q1;p->q1=p->q2;p->q2=o;
 	    if(c==COMPARE){
-	      struct IC *br=p->next;
+	      IC *br=p->next;
 	      if(br->code==BLT) br->code=BGT;
 	      else if(br->code==BLE) br->code=BGE;
 	      else if(br->code==BGT) br->code=BLT;
@@ -654,7 +1114,28 @@ int peephole()
 	  p->code=c=MINUS;p->q2.flags=0;
 	  changed=1;
 	}
-
+#if HAVE_POF2OPT
+	if(((c==MULT)||((c==DIV||c==MOD)&&(t&UNSIGNED)))&&ISINT(t)){
+	  /*  ersetzt mul etc. mit Zweierpotenzen     */
+	  long ln;
+	  if(zmleq(l2zm(0L),vmax)&&zumleq(ul2zum(0UL),vumax)){
+	    if(ln=get_pof2(vumax)){
+	      if(c==MOD){
+		vmax=zmsub(vmax,l2zm(1L));
+		p->code=c=AND;
+	      }else{
+		if(c==DIV) p->code=RSHIFT; else p->code=LSHIFT;
+		vmax=l2zm(ln-1);
+	      }
+	      gval.vmax=vmax;
+	      eval_const(&gval,MAXINT);
+	      insert_const(&p->q2.val,t);
+	      p->typf2=p->typf;
+	      changed=1;
+	    }
+	  }
+	}
+#endif
 	if(c==LSHIFT||c==RSHIFT){
 	  zmax size;
 	  size=zmmult(sizetab[q1typ(p)&NQ],char_bit);
@@ -675,7 +1156,7 @@ int peephole()
 	}
 
 	if((c==SUB||c==ADD||c==ADDI2P||c==SUBIFP)&&!(q2typ(p)&UNSIGNED)&&zmleq(vmax,l2zm(0L))&&zldleq(vldouble,d2zld(0.0))){
-	  struct obj o;int ct=q2typ(p);
+	  obj o;int ct=q2typ(p);
 	  o=p->q2;
 	  calc(MINUS,ct,&o.val,0,&o.val,0);
 	  eval_const(&o.val,ct);
@@ -709,7 +1190,7 @@ int peephole()
 	}
 	if((ISINT(t)||fp_assoc)&&(c==ADD||c==SUB||c==ADDI2P||c==SUBIFP||c==MULT||c==LSHIFT||c==RSHIFT||c==OR||c==AND)){
 	  /*  assoziative Operatoren  */
-	  struct IC *n=p->next;
+	  IC *n=p->next;
 	  int nc,tp,tn;
 	  tp=q2typ(p);
 	  if(n){
@@ -720,8 +1201,8 @@ int peephole()
 	    if(c==SUB&&nc==ADD) nc=SUB;
 	    if(c==SUBIFP&&nc==ADDI2P) nc=SUBIFP;
 	  }
-	  if(n&&nc==c&&(n->q2.flags&KONST)&&tn==tp&&n->q1.flags==p->z.flags&&n->q1.v==p->z.v&&zmeqto(n->q1.val.vmax,p->z.val.vmax)){
-	    if(p->q1.flags==p->z.flags&&p->q1.v==p->z.v&&zmeqto(p->q1.val.vmax,p->z.val.vmax)){
+	  if(n&&nc==c&&(n->q2.flags&KONST)&&tn==tp&&(!(tn&VOLATILE))&&(p->z.flags&VAR)&&n->q1.flags==p->z.flags&&n->q1.v==p->z.v&&zmeqto(n->q1.val.vmax,p->z.val.vmax)&&!is_volatile_obj(&n->q1)&&!is_volatile_obj(&p->z)){
+	    if(p->q1.flags==p->z.flags&&p->q1.v==p->z.v&&zmeqto(p->q1.val.vmax,p->z.val.vmax)&&!is_volatile_obj(&p->q1)){
 	      if(n->q1.flags==n->z.flags&&n->q1.v==n->z.v&&zmeqto(n->q1.val.vmax,n->z.val.vmax)){
 		if(DEBUG&1024){ printf("using associativity(1) with:\n");pric2(stdout,p);pric2(stdout,p->next);}
 		n->q1=p->q1;
@@ -779,7 +1260,7 @@ int peephole()
 	}
 	if((c==ADD||c==SUB)&&ISINT(t)&&p->next&&p->next->next){
 	  /*FIXME: using SCRATCH is not nice */
-	  struct IC *p1=p->next,*p2=p1->next;
+	  IC *p1=p->next,*p2=p1->next;
 	  if(p1->code==MULT&&p2->code==ADDI2P&&
 	     p1->typf==t&&p2->typf==t&&
 	     (p1->q2.flags&KONST)&&(p->z.flags&(SCRATCH|DREFOBJ))==SCRATCH&&(p1->z.flags&(SCRATCH|DREFOBJ))==SCRATCH&&
@@ -829,7 +1310,7 @@ int peephole()
       }
       if(!USEQ2ASZ&&p->z.flags&&!compare_objs(&p->q2,&p->z,p->typf)){
 	if(c==ADD||c==MULT||(c>=OR&&c<=AND)){
-	  struct obj o;
+	  obj o;
 	  if(DEBUG&1024){printf("swapping objs because USEQ2ASZ\n");pric2(stdout,p);}
 	  o=p->q2;p->q2=p->q1;p->q1=o;
 	  /*  kein changed hier!  */
@@ -837,7 +1318,7 @@ int peephole()
       }
       if((c==ADD||c==SUB)&&p->next){
 	/*FIXME: using SCRATCH is not nice */
-	struct IC *p1=p->next;
+	IC *p1=p->next;
 	if(p1->code==ADDI2P&&p1->typf==t&&(p->z.flags&(SCRATCH|DREFOBJ))==SCRATCH&&!compare_objs(&p->z,&p1->q2,t)){
 	  if(DEBUG&1024){ printf("rearranging array-access(2):\n");pric2(stdout,p);pric2(stdout,p1);}
 	  p1->q2=p->q1;
@@ -858,7 +1339,7 @@ int peephole()
 	changed=1;
       }
       if(c==ASSIGN&&(p->z.flags&VAR)&&p->z.flags==p->q1.flags&&p->z.v==p->q1.v&&zmeqto(p->z.val.vmax,p->q1.val.vmax)){
-	struct IC *d;
+	IC *d;
 	if(DEBUG&1024){ printf("removing redundant move:\n");pric2(stdout,p);}
 	changed=1;
 	d=p; p=p->next;
@@ -866,11 +1347,11 @@ int peephole()
 	remove_IC(d); continue;
       }
       if(c>=BEQ&&c<=BGT){
-	struct IC *p2=p->prev;
+	IC *p2=p->prev;
 	if(p2&&p2->code==COMPARE&&!compare_objs(&p->q1,&p2->z,0)){
-	  struct IC *p3=p2->prev;
+	  IC *p3=p2->prev;
 	  if(p3&&p3->code==c){
-	    struct IC *p4=p3->prev;
+	    IC *p4=p3->prev;
 	    if(p4->code==COMPARE&&!compare_objs(&p3->q1,&p4->z,0)
 	       &&!compare_objs(&p2->q1,&p4->q1,p4->typf)&&!compare_objs(&p2->q2,&p4->q2,p4->typf)){
 	      if(DEBUG&1024){printf("removing redundant compare\n");pric2(stdout,p2);pric2(stdout,p);}
@@ -897,14 +1378,16 @@ int peephole()
 void insert_loads()
 /*  Laedt Speicher in temporaere Variablen */
 {
-  struct IC *p,*new;
-  struct Typ t={0},v={VOID};
+  IC *p,*new;
+  type t={0},v={VOID};
   int c;
   if(DEBUG&1024) printf("insert_loads()\n");
   for(p=first_ic;p;p=p->next){
     c=p->code;
+    if(p->typf&VOLATILE) continue;
+    if(p->typf2&VOLATILE) continue;
     if(p->q2.flags||c==PUSH){
-      if((dref_cse&&(p->q1.flags&DREFOBJ))||((p->q1.flags&(VAR|VARADR))==VAR&&(p->q1.v->storage_class==EXTERN||p->q1.v->storage_class==STATIC))){
+      if((dref_cse&&(p->q1.flags&DREFOBJ)&&!(p->q1.dtyp&VOLATILE))||(static_cse&&(p->q1.flags&(VAR|VARADR))==VAR&&(p->q1.v->storage_class==EXTERN||p->q1.v->storage_class==STATIC))){
         new=new_IC();
         new->code=ASSIGN;
 	new->typf=q1typ(p);
@@ -923,7 +1406,7 @@ void insert_loads()
 	}else
 	  free(new);
       }
-      if((dref_cse&&(p->q2.flags&DREFOBJ))||(static_cse&&(p->q2.flags&(VAR|VARADR))==VAR&&(p->q2.v->storage_class==EXTERN||p->q2.v->storage_class==STATIC))){
+      if((dref_cse&&(p->q2.flags&DREFOBJ)&&!(p->q2.dtyp&VOLATILE))||(static_cse&&(p->q2.flags&(VAR|VARADR))==VAR&&(p->q2.v->storage_class==EXTERN||p->q2.v->storage_class==STATIC))){
         new=new_IC();
         new->code=ASSIGN;
 	new->typf=q2typ(p);
@@ -942,7 +1425,7 @@ void insert_loads()
 	}else
 	  free(new);
       }
-      if(p->q2.flags&&((dref_cse&&(p->z.flags&DREFOBJ))||(static_cse&&(p->z.flags&(VAR|VARADR))==VAR&&(p->z.v->storage_class==EXTERN||p->z.v->storage_class==STATIC)))){
+      if(p->q2.flags&&((dref_cse&&(p->z.flags&DREFOBJ)&&!(p->z.dtyp&VOLATILE))||(static_cse&&(p->z.flags&(VAR|VARADR))==VAR&&(p->z.v->storage_class==EXTERN||p->z.v->storage_class==STATIC)))){
 	/* translate x op y -> mem to x op y -> tmp; move tmp -> mem */
         new=new_IC();
         new->code=ASSIGN;
@@ -969,7 +1452,7 @@ void insert_loads()
 void insert_ccs(void)
 /*  Fuegt Variablen fuer ccs ein.   */
 {
-    struct IC *p; struct Var *v; struct Typ *t;
+    IC *p; Var *v; type *t;
     if(DEBUG&1024) printf("insert_ccs()\n");
     for(p=first_ic;p;p=p->next){
         if(p->code==COMPARE||p->code==TEST){
@@ -994,12 +1477,14 @@ void insert_ccs(void)
     }
 }
 
-static int to_be_inlined(struct Var *v)
+static int to_be_inlined(Var *v)
 {
   /* decide whether function should be inlined */
-  int c;struct IC *p;
+  int c;IC *p;
   /* no code available */
   if(!v->fi||!v->fi->first_ic) return 0;
+  /* marked as noinline */
+  if(v->fi->flags&NO_INLINE) return 0;
   /* returns something not in a register (FIXME) */
   if(!ffreturn(v->vtyp->next)&&(v->vtyp->next->flags&NQ)!=VOID) return 0;
   /* varargs function */
@@ -1014,21 +1499,21 @@ static int to_be_inlined(struct Var *v)
   if(c>inline_size) return 0;
   /* we assume that inlining saves size if the number of arguments
      is larger than the number of ICs + CALL +SETRETURN  */
-  if(optsize&&c-2>(c=v->vtyp->exact->count)) return 0;
+  if(optsize&&c-2>(v->vtyp->exact->count)) return 0;
   return 1;
 }
 
 static void cross_module_inline(void)
 {
-  struct IC *p,*np,*new,*ip,*cp,*getreturn;
-  struct Var *v,*vp;
+  IC *p,*np,*new,*ip,*cp,*getreturn;
+  Var *v,*vp;
   int i,c,firstl,lastl;
   if(DEBUG&1024) printf("cross_module_inline()\n");
   for(p=first_ic;p;){
     np=p->next;
     if(p->code==CALL&&(p->q1.flags&(VAR|DREFOBJ))==VAR&&to_be_inlined(p->q1.v)){
       zmax pushed=p->q2.val.vmax;
-      struct IC *gr;
+      IC *gr;
       v=p->q1.v;
       if(DEBUG&1024){
 	printf("inlining call to %s\n",p->q1.v->identifier);
@@ -1067,7 +1552,7 @@ static void cross_module_inline(void)
 	ip=p->arg_list[i];
 	if(ip->code==ASSIGN){
 	  /* find and delete nop for register passing */
-	  struct IC *nop;
+	  IC *nop;
 	  if(!(ip->z.flags&VAR)||ip->z.v->reg==0) ierror(0);
 	  for(nop=ip->next;nop;nop=nop->next){
 	    if(nop->code==NOP&&(nop->q1.flags&(VAR|DREFOBJ))==VAR&&nop->q1.v==ip->z.v)
@@ -1098,7 +1583,7 @@ static void cross_module_inline(void)
 
       if(!zmeqto(pushed,l2zm(0L))){
 	/* ueberfluessige PUSHs entfernen */
-	struct IC *m;
+	IC *m;
 	ip=p->prev;
 	while(1){
 	  m=ip->prev;
@@ -1118,7 +1603,7 @@ static void cross_module_inline(void)
       /*  Code einfuegen und Labels umschreiben   */
       ip=v->fi->first_ic;
       while(ip){
-	struct Var *iv;
+	Var *iv;
 	int c;
 	new=new_IC();
 	*new=*ip;
@@ -1206,14 +1691,14 @@ static void cross_module_inline(void)
 
 #endif
 #define FREEAV free(av_globals);free(av_statics);free(av_drefs);free(av_address);
-void optimize(long flags,struct Var *function)
+void optimize(long flags,Var *function)
 /*  flags:   1=Register, 2=optimize, 4=cse/cp, 8=constant_propagation,  */
 /*          16=dead_assignments, 32=global-optimizations                */
 /*          64=blockweise Registervergabe, 128=loop_optimizations (nur  */
 /*             in Verbindung mit 32), 256=recalc_offsets                */
 {
 #ifndef NO_OPTIMIZER
-  struct flowgraph *g,*fg=0;
+  flowgraph *g,*fg=0;
   int r,i,pass=0,mustrepeat,intask;
   int lc_freed,lc_done=0;
   if(!function) ierror(0);
@@ -1221,6 +1706,9 @@ void optimize(long flags,struct Var *function)
   report_suspicious_loops=report_weird_code=1;
   if(!strcmp(function->identifier,"main")){norek=1;nocall=1;}
   /*  falls main() rekursiv aufgerufen werden kann, muss nomain==0 sein   */
+
+  intask=(function->vattr&&strstr(function->vattr,"taskprio("));
+
   
 #else
 
@@ -1228,7 +1716,6 @@ void optimize(long flags,struct Var *function)
 
 #endif
 
-  intask=(function->vattr&&strstr(function->vattr,"taskprio("));
 
   if(flags&2){
 #ifndef NO_OPTIMIZER
@@ -1292,7 +1779,7 @@ void optimize(long flags,struct Var *function)
 	    r=constant_propagation(g,(flags&32)&&!(disable&4));
 	    gchanged|=r;
 	    if(r){
-	      struct IC *p;
+	      IC *p;
 	      if(r&2) mustrepeat=1;
 	      r=0;
 	      for(p=g->start;p;p=p->next){
@@ -1428,6 +1915,14 @@ void optimize(long flags,struct Var *function)
 	}
       }
 
+      if(!gchanged){
+	int r;
+	r=insert_const_memcpy(fg);
+	if(r){
+	  gchanged|=1;
+	  pass--;
+	}
+      }      
 
 #if HAVE_LIBCALLS
       /* if no further optimizations are found, insert libcalls
@@ -1453,7 +1948,7 @@ void optimize(long flags,struct Var *function)
 	/*  default-Wert fuer inline-Entscheidung   */
 	if(!cross_module&&!varargs&&(flags&4096)&&(only_inline||ic_count<=inline_size)){
 	  /*  fuer function inlining vorbereiten   */
-	  struct IC *p,*new;
+	  IC *p,*new;
 	  if(DEBUG&1024) printf("function <%s> prepared for inlining(ic_count=%d)\n",function->identifier,ic_count);
 	  if(!function->fi) function->fi=new_fi();
 	  function->fi->first_ic=first_ic;
@@ -1484,7 +1979,7 @@ void optimize(long flags,struct Var *function)
 	  function->fi->vars=0;
 	}
 	
-	if(cross_module) calc_finfo(function,CALC_USES|CALC_CHANGES);
+	if(cross_module) calc_finfo(function,CALC_USES|CALC_CHANGES|(prefer_statics?CALC_CALLS:0));
        
 
 	if(flags&1){
@@ -1498,7 +1993,7 @@ void optimize(long flags,struct Var *function)
 	    reaching_definitions(fg);
 	    GCAssignRegs(fg,function->identifier);
 	    { 
-	      int stack_used;struct IC *p;
+	      int stack_used;IC *p;
 #if 1
 	      for(p=pFg->start;p;p=p->next){
 		if((p->q1.flags&(REG|VAR))==VAR&&zmleq(l2zm(0L),p->q1.v->offset))
@@ -1537,6 +2032,7 @@ void optimize(long flags,struct Var *function)
 #endif
 	    insert_regs(fg);
 	    insert_saves(fg);
+	    if(prefer_statics) replace_statics(function);
 	    if(flags&256) recalc_offsets(fg);
 	    free_const_vars();
 	  }
@@ -1554,6 +2050,7 @@ void optimize(long flags,struct Var *function)
     /*  nur, um nochmal ueberfluessige Labels zu entfernen  */
     fg=construct_flowgraph();
     free_flowgraph(fg);
+    combine_const_assigns();
     
 #endif
 
@@ -1562,7 +2059,10 @@ void optimize(long flags,struct Var *function)
     if(flags&1) simple_regs();
     load_simple_reg_parms();
   }
+#ifndef NO_OPTIMIZER
   add_call_list();
+#endif
+
   lastlabel=label;
 }
 

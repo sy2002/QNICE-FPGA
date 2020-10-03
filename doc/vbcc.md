@@ -76,7 +76,7 @@ or need to upgrade, then we advise to follow these instructions.
    copying the new snapshot, but make sure, that you **overwrite** the
    existing structure. The reason is, that the QNICE specific folders
    `config` and `targets` are not part of the VBCC's snapshot package and
-   without then, nothing will work.
+   without them, nothing will work.
 
 2. Run **`tools/make-toolchain.sh`**. This makes sure,
    that `monitor/compile_and_distribute.sh` is automatically being run first,

@@ -1,6 +1,7 @@
-/*  $VER: vbcc (declaration.c) V0.8     */
+/*  $VER: vbcc (declaration.c) $Revision: 1.74 $    */
 
 #include <string.h>
+#include <stdio.h>
 
 #include "vbcc_cpp.h"
 #include "vbc.h"
@@ -11,18 +12,19 @@ static char FILE_[]=__FILE__;
 #define PARAMETER 8
 #define OLDSTYLE 16
 
-void dynamic_init(struct Var *v,struct Typ *t,struct const_list *cl,zmax of,int noconst);
-int test_assignment(struct Typ *,np);
+void dynamic_init(Var *v,type *t,const_list *cl,zmax of,int noconst);
+int test_assignment(type *,np);
 int return_sc,return_reg,has_return,return_inline;
 char *return_vattr;
 static int did_return_label;
 #ifdef HAVE_TARGET_ATTRIBUTES
 unsigned long return_tattr;
 #endif
+zumax return_mask;
 zmax init_dyn_sz,init_const_sz;
 int init_dyn_cnt,init_const_cnt;
 
-void init_sl(struct struct_list *sl);
+void init_sl(struct_list *sl);
 
 #ifdef HAVE_ECPP
 /* removed */
@@ -58,15 +60,15 @@ void init_sl(struct struct_list *sl);
 /* removed */
 #endif
 
-extern np gen_libcall(char *,np,struct Typ *,np,struct Typ *);
+extern np gen_libcall(char *,np,type *,np,type *);
 extern int float_used;
-extern void optimize(long,struct Var *);
+extern void optimize(long,Var *);
 
 static void clear_main_ret(void)
 {
   if(c99&&!strcmp(cur_func,"main")&&return_typ&&ISSCALAR(return_typ->flags)){
     /* in c99, main returns 0 if it falls from back */
-    struct IC *new=new_IC();
+    IC *new=new_IC();
     new->code=SETRETURN;
     new->q1.val.vmax=l2zm(0L);
     eval_const(&new->q1.val,MAXINT);
@@ -84,7 +86,7 @@ static char *get_string(void)
 /* Liest Stringkonstante und liefert Wert als String (malloced) */
 {
   np tree;int l;char *p;
-  struct const_list *cl;
+  const_list *cl;
   killsp();
   if(ctok->type!=T_STRING) {error(74);return 0;}
   tree=string_expression();
@@ -100,7 +102,7 @@ static char *get_string(void)
   p=mymalloc(l);
   cl=tree->cl;l=0;
   while(cl){
-    p[l]=zm2l(zc2zm(cl->other->val.vchar));
+    p[l]=CHARBACK(zm2l(zc2zm(cl->other->val.vchar)));
     l++;
     cl=cl->next;
   }
@@ -149,9 +151,9 @@ int settyp(int typnew, int typold)
 /* removed */
 #endif
 
-struct Typ *declaration_specifiers(void)
+type *declaration_specifiers(void)
 /* Erzeugt neuen Typ und gibt Zeiger darauf zurueck,      */
-/* parst z.B. unsigned int, struct bla etc.               */
+/* parst z.B. unsigned int, bla etc.               */
 {
   int typ=0,type_qualifiers=0,notdone,storage_class,hard_reg,have_inline;
 #ifdef HAVE_ECPP
@@ -160,11 +162,12 @@ struct Typ *declaration_specifiers(void)
 /* removed */
 #endif
   char *imerk,sident[MAXI],sbuff[MAXI],*attr=0,*vattr=0;
-  struct Typ *new=new_typ(),*t,*ts;
-  struct struct_declaration *ssd;
-  struct struct_list (*sl)[];
+  zumax mask=ul2zum(0UL);
+  type *new=new_typ(),*t,*ts;
+  struct_declaration *ssd;
+  struct_list (*sl)[];
   size_t slsz;
-  struct Var *v;
+  Var *v;
   int dim;
 #ifdef HAVE_TARGET_ATTRIBUTES
   unsigned long tattr=0;
@@ -251,12 +254,13 @@ struct Typ *declaration_specifiers(void)
 #endif        
         if(ctok->type==LBRA){
           int bfoffset,bfsize,flex_array=0,cbfo=0;
+	  int scount;
           zmax off=l2zm(0L);
           next_token();
           killsp();
           slsz=SLSIZE;
           imerk=ident;
-            sl=mymalloc(slsz*sizeof(struct struct_list));
+            sl=mymalloc(slsz*sizeof(struct_list));
             ssd->count=0;
 #ifdef HAVE_ECPP
 /* removed */
@@ -271,6 +275,7 @@ struct Typ *declaration_specifiers(void)
 /* removed */
 /* removed */
 #endif
+	  scount=ssd->count;
           ts=declaration_specifiers();
           while(ctok->type!=RBRA&&ts){
             if(flex_array) error(231);
@@ -288,7 +293,7 @@ struct Typ *declaration_specifiers(void)
               }
               next_token();killsp();tree=assignment_expression();
 
-              if(type_expression(tree)){
+              if(type_expression(tree,0)){
                 int tsize;
                 if(tree->flags!=CEXPR) error(52);
                 if(!ISINT(tree->ntyp->flags)) error(52);
@@ -354,7 +359,7 @@ struct Typ *declaration_specifiers(void)
               }
             }
             if(*ident!=0){
-              int i=ssd->count;
+              int i=scount;
               while(--i>=0)
                 if(!strcmp((*sl)[i].identifier,ident))
                   error(16,ident);
@@ -405,21 +410,21 @@ struct Typ *declaration_specifiers(void)
 /* removed */
 /* removed */
 #endif
-	          (*sl)[ssd->count].bfoffset=bfoffset;
-            (*sl)[ssd->count].bfsize=bfsize;
-            (*sl)[ssd->count].styp=t;
-            if(!ecpp) (*sl)[ssd->count].identifier=add_identifier(ident,strlen(ident));
+	    (*sl)[scount].bfoffset=bfoffset;
+            (*sl)[scount].bfsize=bfsize;
+            (*sl)[scount].styp=t;
+            if(!ecpp) (*sl)[scount].identifier=add_identifier(ident,strlen(ident));
 #ifdef HAVE_ECPP
 /* removed */
 /* removed */
 /* removed */
 #endif
             if(pack_align>0&&pack_align<falign(t))
-              (*sl)[ssd->count].align=pack_align;
+              (*sl)[scount].align=pack_align;
             else
-              (*sl)[ssd->count].align=falign(t);
+              (*sl)[scount].align=falign(t);
             {
-              zmax m,al=(*sl)[ssd->count].align;
+              zmax m,al=(*sl)[scount].align;
               zmax sz=szof(t);
               m=off;
               if((zmeqto(al,l2zm(0L))||zmeqto(sz,l2zm(0L)))&&!flex_array){
@@ -436,10 +441,10 @@ struct Typ *declaration_specifiers(void)
                 }
               }
             }
-            ssd->count++;
-            if(ssd->count>=slsz-1){
+            scount++;
+            if(scount>=slsz-1){
               slsz+=SLSIZE;
-              sl=myrealloc(sl,slsz*sizeof(struct struct_list));
+              sl=myrealloc(sl,slsz*sizeof(struct_list));
             }
             killsp();
             if(ctok->type==COMMA) {next_token();killsp();continue;}
@@ -454,6 +459,7 @@ struct Typ *declaration_specifiers(void)
             }
           }
           if(ts) freetyp(ts);
+	  ssd->count=scount;
           if(ssd->count==0) error(55);
 #ifdef HAVE_ECPP
 /* removed */
@@ -621,7 +627,7 @@ struct Typ *declaration_specifiers(void)
         if(ctok->type!=LBRA){cpbez(buff,1);next_token();killsp();}
         if(ctok->type==LBRA){
           /* mode: 0=start 1=first was not init 2=first was init 3=more init */
-          zmax val; struct Var *v; struct Typ *t;int mode=0;
+          zmax val; Var *v; type *t;int mode=0;
           val=l2zm(0L);
           next_token();killsp();
           while(ctok->type!=RBRA){
@@ -649,6 +655,7 @@ struct Typ *declaration_specifiers(void)
               v->clist->val.vint=zm2zi(val);
               v->clist->next=v->clist->other=0;
               v->clist->tree=0;
+	      v->clist->idx=l2zm(0L);
             }
             vmax=l2zm(1L);val=zmadd(val,vmax);
             v->vtyp->flags=CONST|ENUM;
@@ -663,7 +670,7 @@ struct Typ *declaration_specifiers(void)
       }else if(!strcmp("__readsmem",ctok->name)||!strcmp("__writesmem",ctok->name)){
         enum {READS,WRITES} op;
         char *imerk,tbuf[MAXI];
-        struct Typ *tmp;
+        type *tmp;
         if(!strcmp("__readsmem",ctok->name))
           op=READS;
         else
@@ -840,6 +847,23 @@ struct Typ *declaration_specifiers(void)
         killsp();
         if(ctok->type==RPAR) next_token(); else error(59);
         killsp();
+      }else if(!strcmp("__mask",ctok->name)){
+	np tree;
+	next_token();killsp();
+        if(ctok->type==LPAR) next_token(); else error(151);
+	tree=expression();
+	if(tree&&type_expression(tree,0)){
+	  if(tree->flags==CEXPR&&ISINT(tree->ntyp->flags)){
+	    eval_const(&tree->val,tree->ntyp->flags);
+	    mask=vumax;
+	  }else
+	    error(18);
+	  free_expression(tree);
+	}else
+	  error(18);
+        killsp();
+        if(ctok->type==RPAR) next_token(); else error(59);
+        killsp();
       }else if(/*!(c_flags[7]&USEDFLAG)&&*/!strcmp("__attr",ctok->name)){
         char *d;
         next_token();killsp(); 
@@ -969,6 +993,7 @@ struct Typ *declaration_specifiers(void)
   return_sc=storage_class;
   return_reg=hard_reg;
   return_vattr=vattr;
+  return_mask=mask;
   return_inline=have_inline;
 #ifdef HAVE_ECPP
 /* removed */
@@ -997,11 +1022,11 @@ struct Typ *declaration_specifiers(void)
   return new;
 }
 
-struct Typ *declarator(struct Typ *a)
+type *declarator(type *a)
 /* Erzeugt einen neuen Typ, auf Basis des Typs a.           */
 /* a wird hiermit verkettet.                                */
 {
-  struct Typ *t;
+  type *t;
   killsp();*ident=0;
   t=direct_declarator(pointer(a));
   if(!a)
@@ -1014,10 +1039,10 @@ struct Typ *declarator(struct Typ *a)
 #endif  
   return t;
 }
-struct Typ *pointer(struct Typ *a)
+type *pointer(type *a)
 /* Unterroutine fuer declarator(), behandelt Zeiger auf Typ.   */
 {
-  struct Typ *t;char *attr;int notdone;
+  type *t;char *attr;int notdone;
   if(!a) return(0);
   killsp();
   while(ctok->type==STAR){
@@ -1068,13 +1093,13 @@ struct Typ *pointer(struct Typ *a)
   }
   return a;
 }
-struct Typ *direct_declarator(struct Typ *a)
+type *direct_declarator(type *a)
 /*  Unterroutine zu declarator()                    */
 /*  behandelt [],(funkt),(dekl).                     */
 {
-  struct Typ *rek=0,*merk,*p,*t=0,*first,*last=0;
-  struct struct_declaration *fsd;
-  struct struct_list (*sl)[];
+  type *rek=0,*merk,*p,*t=0,*first,*last=0;
+  struct_declaration *fsd;
+  struct_list (*sl)[];
   size_t slsz;char *imerk;
   char fbuff[MAXI];
   killsp();
@@ -1094,7 +1119,7 @@ struct Typ *direct_declarator(struct Typ *a)
   }
   else if(ctok->type==LPAR&&a){
     /* Rekursion */
-    struct token mtok;
+    token mtok;
     copy_token(&mtok,ctok);
     next_token(); killsp();
     if(ctok->type!=RPAR&&*ident==0&&!declaration(0)){
@@ -1120,15 +1145,15 @@ struct Typ *direct_declarator(struct Typ *a)
       }else{
         np tree;
         tree=expression();
-        if(!type_expression(tree)){
+        if(!type_expression(tree,0)){
           /*                    error("incorrect constant expression");*/
         }else{
           if(tree->sidefx&&!c99) error(60);
           if(tree->flags!=CEXPR||!ISINT(tree->ntyp->flags)){
-	    if(!c99)
+	    if(!c99||!ALLOCVLA_INLINEASM)
 	      error(19);
 	    else{
-	      struct Typ *st;struct IC *new;
+	      type *st;IC *new;
 	      st=new_typ();
 	      st->flags=HAVE_INT_SIZET?(UNSIGNED|INT):(UNSIGNED|LONG);
 	      p->dsize=add_tmp_var(st);
@@ -1168,13 +1193,13 @@ struct Typ *direct_declarator(struct Typ *a)
 #endif
     if(ctok->type==LPAR){
       int komma,firstparm,oldstyle=0;
-#ifdef HAVE_REGPARMS
-      struct reg_handle reg_handle=empty_reg_handle;
-      struct Typ rpointer={0};
+#if 0 /*#ifdef HAVE_REGPARMS*/
+      treg_handle reg_handle=empty_reg_handle;
+      type rpointer={0};
       if(!ffreturn(a)&&(a->flags&NQ)!=VOID){
 	rpointer.flags=POINTER_TYPE(a);
         rpointer.next=a;
-        reg_parm(&reg_handle,&rpointer,0,0);
+        reg_parm(&reg_handle,&rpointer,0,a); /*TODO: a might be incomplete */
       }
 #endif
 #ifdef HAVE_MISRA
@@ -1188,7 +1213,7 @@ struct Typ *direct_declarator(struct Typ *a)
 #endif
       fsd=mymalloc(sizeof(*fsd));
       slsz=SLSIZE;
-      sl=mymalloc(sizeof(struct struct_list)*slsz);
+      sl=mymalloc(sizeof(struct_list)*slsz);
       fsd->count=0;
       imerk=ident;komma=0;
       enter_block();
@@ -1242,7 +1267,7 @@ struct Typ *direct_declarator(struct Typ *a)
             (*sl)[fsd->count].styp->flags=POINTER_TYPE((*sl)[fsd->count].styp->next);
 	  /*  Funktionen in Zeiger auf Funktionen umwandeln   */
 	  if(ISFUNC((*sl)[fsd->count].styp->flags)){
-	    struct Typ *new;
+	    type *new;
 	    new=new_typ();
 	    new->next=(*sl)[fsd->count].styp;
 	    new->flags=POINTER_TYPE(new->next);
@@ -1250,8 +1275,8 @@ struct Typ *direct_declarator(struct Typ *a)
 	  }
 	}
         if(hard_reg&&regok(hard_reg,t->flags,-1)<=0) error(217,regnames[hard_reg]);
-#ifdef HAVE_REGPARMS
-        if(t) (*sl)[fsd->count].reg=reg_parm(&reg_handle,t,0,0);
+#if 0 /*#ifdef HAVE_REGPARMS*/
+        if(t) (*sl)[fsd->count].reg=reg_parm(&reg_handle,t,0,a); /*TODO: a might be incomplete */
         if(hard_reg) (*sl)[fsd->count].reg=hard_reg;
 #else
         (*sl)[fsd->count].reg=hard_reg;
@@ -1259,7 +1284,7 @@ struct Typ *direct_declarator(struct Typ *a)
         fsd->count++;
         if(fsd->count>=slsz-2){     /*  eins Reserve fuer VOID  */
           slsz+=SLSIZE;
-          sl=myrealloc(sl,slsz*sizeof(struct struct_list));
+          sl=myrealloc(sl,slsz*sizeof(struct_list));
         }
         killsp(); /* Hier Syntaxpruefung strenger machen */
         if(ctok->type==COMMA) {next_token();komma=1; killsp();}
@@ -1298,6 +1323,30 @@ struct Typ *direct_declarator(struct Typ *a)
         free(sl);
         nesting=m;
       }
+#ifdef HAVE_REGPARMS
+      {
+	treg_handle reg_handle=empty_reg_handle;
+	int i,r;
+
+	p->next=a;
+
+	if(!ffreturn(a)&&(a->flags&NQ)!=VOID){
+	  type rpointer={0};
+
+	  rpointer.flags=POINTER_TYPE(a);
+	  rpointer.next=a;
+	  reg_parm(&reg_handle,&rpointer,0,p);
+	}
+
+	for(i=0;i<p->exact->count;i++){
+	  if((*p->exact->sl)[i].styp)
+	    r=reg_parm(&reg_handle,(*p->exact->sl)[i].styp,0,p);
+	  else
+	    r=0;
+	  if((*p->exact->sl)[i].reg==0) (*p->exact->sl)[i].reg=r;
+	}
+      }
+#endif
       killsp();
       if(komma) error(59);
       if(ctok->type!=RPAR) error(59); else next_token();
@@ -1330,7 +1379,7 @@ int declaration(int offset)
 /*  In jedem Fall zeigt s danach wieder auf dieselbe Stelle */
 /*  im Source.                                              */
 {
-  struct Var *v;struct token mtok;
+  Var *v;token mtok;
   int fl=0;
   if(offset){
     copy_token(&mtok,ctok);
@@ -1361,6 +1410,7 @@ int declaration(int offset)
     else if(/*!(c_flags[7]&USEDFLAG)&&*/!strcmp("__reg",ctok->name)) fl=1;
     else if(/*!(c_flags[7]&USEDFLAG)&&*/!strcmp("__attr",ctok->name)) fl=1;
     else if(/*!(c_flags[7]&USEDFLAG)&&*/!strcmp("__vattr",ctok->name)) fl=1;
+    else if(/*!(c_flags[7]&USEDFLAG)&&*/!strcmp("__mask",ctok->name)) fl=1;
     else if(/*!(c_flags[7]&USEDFLAG)&&*/!strcmp("__readsmem",ctok->name)) fl=1;
     else if(/*!(c_flags[7]&USEDFLAG)&&*/!strcmp("__writesmem",ctok->name)) fl=1;
     else{
@@ -1382,7 +1432,7 @@ int declaration(int offset)
   }
   return fl;
 }
-void init_sl(struct struct_list *sl){
+void init_sl(struct_list *sl){
   if(!sl){ierror(0);return;}
   sl->identifier=0;
   sl->styp=0;
@@ -1395,16 +1445,16 @@ void init_sl(struct struct_list *sl){
 /* removed */
 #endif
 }
-void add_sl(struct struct_declaration *sd,struct struct_list (*sl)[])
+void add_sl(struct_declaration *sd,struct_list (*sl)[])
 /*  Fuegt ein struct_list-Array in eine struct_declaration ein.     */
 /*  Das Array muss mind. sd->count Elements haben und wird kopiert. */
 {
-  size_t sz=sizeof(struct struct_list)*sd->count;
+  size_t sz=sizeof(struct_list)*sd->count;
   sd->sl=mymalloc(sz);
   memcpy(sd->sl,sl,sz);
 }
-struct struct_declaration *add_sd(struct struct_declaration *new,int typ)
-/*  Fuegt eine struct Declaration in Liste ein.     */
+struct_declaration *add_sd(struct_declaration *new,int typ)
+/*  Fuegt eine Declaration in Liste ein.     */
 {
   new->next=0;
   new->label=0;
@@ -1427,11 +1477,11 @@ struct struct_declaration *add_sd(struct struct_declaration *new,int typ)
   }
   return new;
 }
-void free_sd(struct struct_declaration *p)
+void free_sd(struct_declaration *p)
 /*  Gibt eine struct_declaration-List inkl. struct_lists und    */
 /*  allen Typen jeder struct_list frei, nicht aber identifier.  */
 {
-  int i;struct struct_declaration *merk;
+  int i;struct_declaration *merk;
   while(p){
     merk=p->next;
     if(p->sl){
@@ -1455,9 +1505,9 @@ char *add_identifier(char *identifier,int length)
 /*  Sollte noch einbauen, dass ueberprueft wird, ob schon       */
 /*  vorhanden und dann nicht zweimal speichern.                 */
 {
-  struct identifier_list *new;
+  identifier_list *new;
   if((*identifier==0&&length==0)||identifier==empty) return(empty);
-  new=mymalloc(sizeof(struct identifier_list));
+  new=mymalloc(sizeof(identifier_list));
   new->identifier=mymalloc(length+1);
   memcpy(new->identifier,identifier,length+1);
   new->next=0;new->length=length;
@@ -1469,11 +1519,11 @@ char *add_identifier(char *identifier,int length)
   }
   return(new->identifier);
 }
-void free_ilist(struct identifier_list *p)
+void free_ilist(identifier_list *p)
 /*  Gibt eine verkettete identifier_liste und saemtliche darin  */
 /*  gespeicherten Identifier frei.                              */
 {
-  struct identifier_list *merk;
+  identifier_list *merk;
   while(p){
     merk=p->next;
     if(p->identifier) free(p->identifier);
@@ -1481,12 +1531,12 @@ void free_ilist(struct identifier_list *p)
     p=merk;
   }
 }
-int type_uncomplete(struct Typ *p)
+int type_uncomplete(type *p)
 /*  Testet, ob Typ unvollstaendig ist. Momentan gelten nur      */
 /*  unvollstaendige Strukturen und Arrays von solchen als       */
 /*  unvollstaendig, aber keine Zeiger oder Funktionen darauf.   */
 {
-  struct struct_declaration *sd;
+  struct_declaration *sd;
   if(!p){ierror(0);return(0);}
   if(ISSTRUCT(p->flags)||ISUNION(p->flags))
     if(p->exact->count<=0) return 1;
@@ -1497,12 +1547,12 @@ if(!p->next) ierror(0);
   }
   return 0;
 }
-void add_struct_identifier(char *identifier,struct struct_declaration *sd)
+void add_struct_identifier(char *identifier,struct_declaration *sd)
 /*  Erzeugt neuen struct_identifier, fuegt ihn in Liste an und  */
 /*  vervollstaendigt unvollstaendige Typen dieser Struktur.     */
 {
-  struct struct_identifier *new;
-/*    struct Typ *t;*/
+  struct_identifier *new;
+/*    type *t;*/
   if(DEBUG&1) printf("add_si %s (nesting=%d)->%p\n",identifier,nesting,(void *)sd);
 #ifdef HAVE_MISRA
 /* removed */
@@ -1511,7 +1561,7 @@ void add_struct_identifier(char *identifier,struct struct_declaration *sd)
 /* removed */
 /* removed */
 #endif
-  new=mymalloc(sizeof(struct struct_identifier));
+  new=mymalloc(sizeof(struct_identifier));
   new->identifier=add_identifier(identifier,strlen(identifier));
   new->sd=sd;
   new->next=0; 
@@ -1522,11 +1572,11 @@ void add_struct_identifier(char *identifier,struct struct_declaration *sd)
   }
   sd->identifier=new->identifier;
 }
-void free_si(struct struct_identifier *p)
+void free_si(struct_identifier *p)
 /*  Gibt eine struct_identifier-Liste frei, aber nicht die      */
 /*  identifiers und struct_declarations.                        */
 {
-  struct struct_identifier *merk;
+  struct_identifier *merk;
   while(p){
     merk=p->next;
     p->sd->identifier="<prototype-only>";
@@ -1534,18 +1584,18 @@ void free_si(struct struct_identifier *p)
     p=merk;
   }
 }
-struct struct_declaration *find_struct(char *identifier,int endnesting)
+struct_declaration *find_struct(char *identifier,int endnesting)
 
 /*  Sucht angegebene Strukturdefinition und liefert             */
 /*  entsprechende struct_declaration.                           */
 {
-  struct struct_identifier *si; int i,l;
+  struct_identifier *si; int i,l;
   if(misracheck) l=strlen(identifier);
   for(i=nesting;i>=endnesting;i--){
     si=first_si[i];
     while(si){
       if(!strcmp(si->identifier,identifier)){
-        if(DEBUG&1) printf("found struct tag <%s> at nesting %d->%p\n",identifier,i,(void *)si->sd);
+        if(DEBUG&1) printf("found tag <%s> at nesting %d->%p\n",identifier,i,(void *)si->sd);
         return(si->sd);
       }
 #ifdef HAVE_MISRA
@@ -1557,15 +1607,15 @@ struct struct_declaration *find_struct(char *identifier,int endnesting)
 	si=si->next;
 	}
   }
-  if(DEBUG&1) printf("didn't find struct tag <%s>\n",identifier);
+  if(DEBUG&1) printf("didn't find tag <%s>\n",identifier);
   return(0);
 }
 
 /* generate code to create a variable-lenght-array */
-static void create_allocvl(struct Var *v)
+static void create_allocvl(Var *v)
 {
   np tree,ds;
-  struct IC *new;struct Var *fv;
+  IC *new;Var *fv;
 
   /* check if we got a frame-pointer */
   if(FPVLA_REG&&!regsa[FPVLA_REG]){
@@ -1579,9 +1629,9 @@ static void create_allocvl(struct Var *v)
   if(!block_vla[nesting]){
     /* declare function - may be done by the backend, if necessary */
     if(!(fv=find_ext_var("__oldvlasp"))){
-      struct Typ *t;
-      static struct Typ voidt={VOID};
-      struct struct_declaration *sd=mymalloc(sizeof(*sd));
+      type *t;
+      static type voidt={VOID};
+      struct_declaration *sd=mymalloc(sizeof(*sd));
       t=new_typ();
       t->flags=FUNKT;
 
@@ -1624,10 +1674,10 @@ static void create_allocvl(struct Var *v)
 
   if(!find_ext_var("__allocvla")){
     /* declare function */
-    struct struct_declaration *sd=mymalloc(sizeof(*sd));
-    struct Typ *t=new_typ();
+    struct_declaration *sd=mymalloc(sizeof(*sd));
+    type *t=new_typ();
     sd->count=1;
-    sd->sl=mymalloc(sizeof(struct struct_list));
+    sd->sl=mymalloc(sizeof(struct_list));
     (*sd->sl)[0].storage_class=AUTO;
     (*sd->sl)[0].styp=clone_typ(ds->dsize->vtyp);
     (*sd->sl)[0].reg=ALLOCVLA_REG;
@@ -1643,7 +1693,7 @@ static void create_allocvl(struct Var *v)
     fv->fi->inline_asm=mystrdup(ALLOCVLA_INLINEASM);
   }
 
-  if(!type_expression(ds)) ierror(0);
+  if(!type_expression(ds,0)) ierror(0);
   tree=gen_libcall("__allocvla",ds,0,0,0);
   new=new_IC();
   new->code=ASSIGN;
@@ -1663,13 +1713,13 @@ static void create_allocvl(struct Var *v)
 void freevl(void)
 {
   np tree,ds;
-  struct Var *fv;
+  Var *fv;
   dontdelete=1; /* never remove them, otherwise, fix_vla_jump get confused */
   if(!find_ext_var("__resetvlasp")){
-    struct struct_declaration *sd=mymalloc(sizeof(*sd));
-    struct Typ *t=new_typ();
+    struct_declaration *sd=mymalloc(sizeof(*sd));
+    type *t=new_typ();
     sd->count=1;
-    sd->sl=mymalloc(sizeof(struct struct_list));
+    sd->sl=mymalloc(sizeof(struct_list));
     (*sd->sl)[0].storage_class=AUTO;
     (*sd->sl)[0].styp=clone_typ(block_vla[nesting]->vtyp);
     (*sd->sl)[0].reg=FREEVLA_REG;
@@ -1697,7 +1747,7 @@ void freevl(void)
   ds->o.flags=VAR;
   ds->o.v=ds->dsize;
   ds->o.val.vmax=l2zm(0L);
-  if(!type_expression(ds)) ierror(0);
+  if(!type_expression(ds,0)) ierror(0);
   tree=gen_libcall("__resetvlasp",ds,0,0,0);
   free_expression(tree);
   dontdelete=0;
@@ -1705,13 +1755,13 @@ void freevl(void)
 
 void clearvl(void)
 {
-  struct llist *p,*n;
-  struct vlaadjust_list *vl,*vn;
+  llist *p,*n;
+  vlaadjust_list *vl,*vn;
   /* look for stack-adjusts that have to be removed */
   vl=vlaadjusts[nesting];
   while(vl){
     int ln;
-    struct IC *ic=vl->branch;
+    IC *ic=vl->branch;
     if(ic){
       ln=ic->typf;
       if(ic->code!=BRA) ierror(0);
@@ -1753,10 +1803,10 @@ void clearvl(void)
 }
 
 /* Handle a stack of stored sp variables when traversing an IC list; */
-void vla_nesting(struct IC *p,struct Var **vn,int *nest)
+void vla_nesting(IC *p,Var **vn,int *nest)
 {
   if(p->code==CALL&&(p->q1.flags&(VAR|DREFOBJ))==VAR&&!strcmp(p->q1.v->identifier,"__oldvlasp")){
-    struct IC *p2=p->next;
+    IC *p2=p->next;
     while(p2&&(p2->code==ALLOCREG||p2->code==FREEREG)) p2=p2->next;
     if(!p2||p2->code!=GETRETURN||(p2->z.flags&(VAR|DREFOBJ))!=VAR) ierror(0);
     /*printf("found save sp to %p\n",p2->z.v);*/
@@ -1775,13 +1825,13 @@ void vla_nesting(struct IC *p,struct Var **vn,int *nest)
 }
 
 static int return_vla_nest;
-static struct Var *return_last_vlasp;
+static Var *return_last_vlasp;
 
 /* Find the stack pointer that is needed when jumping to label lab */
-struct Var *vla_find_sp(int lab)
+Var *vla_find_sp(int lab)
 {
-  struct IC *p;int nest=0;
-  static struct Var *vn[MAXN];
+  IC *p;int nest=0;
+  static Var *vn[MAXN];
   for(p=first_ic;p;p=p->next){
     if(p->code==LABEL&&p->typf==lab){
       return_vla_nest=nest;
@@ -1798,8 +1848,8 @@ struct Var *vla_find_sp(int lab)
 
 void vla_jump_fix(void)
 {
-  struct IC *p;int nest=0;
-  static struct Var *vn[MAXN],*savedsp;
+  IC *p;int nest=0;
+  static Var *vn[MAXN],*savedsp;
   if(DEBUG&1) printf("searching for vla-jump-fixes\n");
   for(p=first_ic;p;p=p->next){
     /*pric2(stdout,p);*/
@@ -1820,7 +1870,7 @@ void vla_jump_fix(void)
 	    p->savedsp=return_last_vlasp;
 	  }else{
 	    int ndiff=nest-return_vla_nest-1;
-	    struct IC *p2;
+	    IC *p2;
 	    /*printf("have to search oldsp ndiff=%d\n",ndiff);*/
 	    for(p2=p->prev;p2;p2=p2->prev){
 	      if(p2->code==CALL&&(p2->q1.flags&(VAR|DREFOBJ))==VAR&&!strcmp(p2->q1.v->identifier,"__oldvlasp")){
@@ -1852,7 +1902,7 @@ void vla_jump_fix(void)
   for(p=first_ic;p;p=p->next){
     if(p->code>=BEQ&&p->code<=BRA){  
       if(p->savedsp){
-	struct IC *merkfic,*merklic,*newcode,*m,*new,*setr=0;
+	IC *merkfic,*merklic,*newcode,*m,*new,*setr=0;
 	np ds,tree;
 	if(DEBUG&1) printf("generating sp-adjust\n");
         merkfic=first_ic;merklic=last_ic;
@@ -1867,14 +1917,14 @@ void vla_jump_fix(void)
 	ds->o.flags=VAR;
 	ds->o.v=ds->dsize;
 	ds->o.val.vmax=l2zm(0L);
-	if(!type_expression(ds)) ierror(0);
+	if(!type_expression(ds,0)) ierror(0);
 	tree=gen_libcall("__resetvlasp",ds,0,0,0);
 	free_expression(tree);
 	newcode=first_ic;
 	first_ic=merkfic;last_ic=merklic;
 	if(p->code==BRA){
 	  /* check if the branch was preceded by a SETRETURN */
-	  struct IC *p2=p->prev;
+	  IC *p2=p->prev;
 	  while(p2&&(p2->code==FREEREG||p2->code==ALLOCREG))
 	    p2=p2->prev;
 	  if(p2->code==SETRETURN&&p2->z.reg)
@@ -1905,9 +1955,9 @@ void vla_jump_fix(void)
 	if(setr){
 	  /* save the return value to save it from being overwritten */
 	  /* could be optimized further */
-	  struct Var *v;
+	  Var *v;
 	  if(ISSCALAR(setr->typf)){
-	    static struct Typ t={0};
+	    static type t={0};
 	    t.flags=setr->typf;
 	    v=add_tmp_var(clone_typ(&t));
 	  }else ierror(0);
@@ -1926,22 +1976,25 @@ void vla_jump_fix(void)
 }  
   
 
-struct Var *add_tmp_var(struct Typ *t)
+Var *add_tmp_var(type *t)
 {
   t->flags&=NU;
   return add_var(empty,t,AUTO,0);
 }
-struct Var *add_var(char *identifier, struct Typ *t, int storage_class,struct const_list *clist)
+Var *add_var(char *identifier, type *t, int storage_class,const_list *clist)
 /*  Fuegt eine Variable mit Typ in die var_list ein.            */
 /*  In der storage_class werden die Flags PARAMETER und evtl.   */
 /*  OLDSTYLE und REGPARM erkannt.                               */
 {
-  struct Var *new;int f;
-  struct struct_declaration *sd;
+  Var *new;int f;
+  struct_declaration *sd;
   static zmax paroffset;
   zmax al;
   /*if(*identifier==0) return;*/ /* sollte woanders bemaekelt werden */
   if(DEBUG&2) printf("add_var(): %s\n",identifier);
+#ifdef HAVE_TARGET_VARHOOK_PRE
+  add_var_hook_pre(identifier,t,storage_class,clist);
+#endif
 #ifdef HAVE_MISRA
 /* removed */
 /* removed */
@@ -1952,7 +2005,7 @@ struct Var *add_var(char *identifier, struct Typ *t, int storage_class,struct co
 #endif
   if(ISFUNC(t->flags&NQ)&&(ISARRAY(t->next->flags)||ISFUNC(t->next->flags)))
     error(25);
-  new=mymalloc(sizeof(struct Var));
+  new=mymalloc(sizeof(Var));
   if(!*identifier&&identifier!=empty) ierror(0);
   new->clist=clist;
   new->vtyp=t;
@@ -2001,6 +2054,7 @@ struct Var *add_var(char *identifier, struct Typ *t, int storage_class,struct co
       first_ext=last_ext=new;
       vl0=first_ext;
     }
+    if(hash_ext) add_hashentry(hash_ext,new->identifier,new);
   }else{
     new->identifier=add_identifier(identifier,strlen(identifier));
     if(last_var[nesting]){
@@ -2069,9 +2123,9 @@ struct Var *add_var(char *identifier, struct Typ *t, int storage_class,struct co
       /*  Bei alten Funktionen werden DOUBLE nach FLOAT konvertiert   */
       if(!(storage_class&REGPARM)){
 #if HAVE_LIBCALLS
-	static struct Typ dt={DOUBLE},ft={FLOAT};
-	static struct node n,nn;
-	struct IC *conv=new_IC();
+	static type dt={DOUBLE},ft={FLOAT};
+	static node n,nn;
+	IC *conv=new_IC();
 	n.flags=REINTERPRET;
 	n.left=&nn;
 	n.ntyp=&dt;
@@ -2095,7 +2149,7 @@ struct Var *add_var(char *identifier, struct Typ *t, int storage_class,struct co
 	conv->z.v=new;
 	add_IC(conv);	
 #else
-	struct IC *conv=new_IC();
+	IC *conv=new_IC();
 	conv->code=CONVERT;
 	conv->typf=FLOAT;
 	conv->typf2=DOUBLE;
@@ -2121,12 +2175,15 @@ struct Var *add_var(char *identifier, struct Typ *t, int storage_class,struct co
   }
   if(is_vlength(new->vtyp))
     create_allocvl(new);
+#ifdef HAVE_TARGET_VARHOOK_POST
+  add_var_hook_post(new);
+#endif
   return(new);
 }
-void free_var(struct Var *p)
+void free_var(Var *p)
 /*  Gibt Variablenliste inkl. Typ, aber ohne Identifier frei.   */
 {
-  struct Var *merk;
+  Var *merk;
   while(p){
     if(!*p->identifier&&p->identifier!=empty) ierror(0);
     free(p->description);
@@ -2148,10 +2205,11 @@ void free_var(struct Var *p)
     p=merk;
   }
 }
-struct Var *find_ext_var(char *identifier)
+Var *find_ext_var(char *identifier)
 {
-  struct Var *v;int l;
+  Var *v;int l;
   if(misracheck) l=strlen(identifier);
+  if(hash_ext) return find_name(hash_ext,identifier);
   for(v=first_ext;v;v=v->next){
     if(!strcmp(v->identifier,identifier)) return v;
 #ifdef HAVE_MISRA
@@ -2164,12 +2222,12 @@ struct Var *find_ext_var(char *identifier)
   }
   return 0;
 }
-struct Var *find_var(char *identifier,int endnesting)
+Var *find_var(char *identifier,int endnesting)
 /*  Sucht Variable mit Bezeichner und liefert Zeiger zurueck    */
 /*  es werden nur Variablen der Bloecke endnesting-nesting      */
 /*  durchsucht.                                                 */
 {
-  int i,l;struct Var *v;
+  int i,l;Var *v;
   if(identifier==0||*identifier==0) return 0;
   if(misracheck) l=strlen(identifier);
   for(i=nesting;i>=endnesting;i--){
@@ -2202,7 +2260,7 @@ struct Var *find_var(char *identifier,int endnesting)
 
 
 
-int check_zero_initialisation(struct const_list* cl, int typ) 
+int check_zero_initialisation(const_list* cl, int typ) 
 {
   
   if (cl->next) return 0;
@@ -2222,7 +2280,7 @@ int check_zero_initialisation(struct const_list* cl, int typ)
    or if a table copy should be used first */
 int use_only_dyn_init(zmax sz,zmax dyn_sz,zmax const_sz,int dyn_cnt,int const_cnt)
 {
-  if(zmleq(sz,l2zm(32L)))
+  if(zmleq(sz,l2zm(clist_copy_stack)))
     return 1;
   if(zmeqto(dyn_sz,l2zm(0L)))
     return 0;
@@ -2232,10 +2290,10 @@ int use_only_dyn_init(zmax sz,zmax dyn_sz,zmax const_sz,int dyn_cnt,int const_cn
     return 1;
 }
 
-void init_local_compound(struct Var *v)
+void init_local_compound(Var *v)
 {
   if(v->storage_class==AUTO||v->storage_class==REGISTER){
-    struct IC *new;
+    IC *new;
     /*  Initialisierung von auto-Variablen  */
     new=new_IC();
     new->code=ASSIGN;
@@ -2254,7 +2312,7 @@ void init_local_compound(struct Var *v)
       /*                        v->clist=0;*/
     }else{
       /*  Array etc.  */
-      struct Var *nv;
+      Var *nv;
       if(!use_only_dyn_init(szof(v->vtyp),init_dyn_sz,init_const_sz,init_dyn_cnt,init_const_cnt)){
 	nv=add_var(empty,clone_typ(v->vtyp),STATIC,v->clist);
 	nv->flags|=DEFINED;
@@ -2265,7 +2323,7 @@ void init_local_compound(struct Var *v)
 	new->q1.flags=VAR;
 	new->q1.v=nv;
 	new->q1.val.vmax=l2zm(0L);
-	
+
 	add_IC(new);
 	
 	dynamic_init(v,v->vtyp,v->clist,0,1);
@@ -2286,11 +2344,12 @@ void var_declaration(void)
 /*  Bearbeitet eine Variablendeklaration und erzeugt alle       */
 /*  noetigen Strukturen.                                        */
 {
-  struct Typ *ts,*t,*old=0,*om=0;char *imerk,vident[MAXI];
+  type *ts,*t,*old=0,*om=0;char *imerk,vident[MAXI];
   int mdef=0,makeint=0,notdone,storage_class,msc,extern_flag,isfunc,
     had_decl,hard_reg,mhr,diffunit=0,inline_flag;
-  struct Var *v;
+  Var *v;
   char *vattr;
+  zumax mask;
   int base_type;
 #ifdef HAVE_TARGET_ATTRIBUTES
   unsigned long tattr;
@@ -2303,7 +2362,7 @@ void var_declaration(void)
 #endif
   ts=declaration_specifiers();notdone=1;
 
-  storage_class=return_sc;hard_reg=return_reg;vattr=return_vattr;
+  storage_class=return_sc;hard_reg=return_reg;vattr=return_vattr;mask=return_mask;
   inline_flag=return_inline;
 #ifdef HAVE_ECPP
 /* removed */
@@ -2339,7 +2398,7 @@ void var_declaration(void)
 #endif
       error(67);
     }else{
-      ierror(0);return;
+      error(365);
     }
   }
   if(storage_class==0){
@@ -2428,13 +2487,10 @@ void var_declaration(void)
         }
 #endif
         if(vattr){
-          if(v->vattr){
-            v->vattr=myrealloc(v->vattr,strlen(v->vattr)+strlen(vattr)+2);
-            strcat(v->vattr,";");
-            strcat(v->vattr,vattr);
-          }else v->vattr=vattr;
+	  add_attr(&v->vattr,vattr);
           if(ISFUNC(v->vtyp->flags)) fi_from_attr(v);
         }
+
         if(!isfunc){
           if(!ISARRAY(t->flags)||!zmeqto(t->size,l2zm(0L))){
             free(v->vtyp);
@@ -2466,7 +2522,16 @@ void var_declaration(void)
 /* removed */
 #endif
       v->reg=hard_reg;
-      v->vattr=vattr;
+      if(vattr)
+	add_attr(&v->vattr,vattr);
+      if(!zumeqto(mask,ul2zum(0UL))){
+	char *new=mymalloc(strlen(v->identifier)+16);
+	strcpy(new,v->identifier);
+	strcat(new,".");
+	sprintf(new+strlen(new),"%lu",zum2ul(mask));
+	v->identifier=add_identifier(new,strlen(new));
+	free(new);
+      }
       if(ISFUNC(v->vtyp->flags))
         fi_from_attr(v);
 #ifdef HAVE_TARGET_ATTRIBUTES
@@ -2523,6 +2588,7 @@ void var_declaration(void)
       if(v->fi){free(v->fi->inline_asm);v->fi->inline_asm=0;}
       if(!v->fi) v->fi=new_fi();
       v->fi->inline_asm=get_string();
+      /*STRBACK(v->fi->inline_asm);*/
       mdef=1;
     }else{
       /*if(v->fi){free(v->fi->inline_asm);v->fi->inline_asm=0;}*/
@@ -2575,7 +2641,7 @@ void var_declaration(void)
 #endif
       if(v->clist){
         if(ISARRAY(v->vtyp->flags)&&zmeqto(v->vtyp->size,l2zm(0L))){
-          struct const_list *p=v->clist;
+          const_list *p=v->clist;
           while(p){v->vtyp->size=zmadd(p->idx,l2zm(1L));p=p->next;}
           if(v->storage_class==AUTO||v->storage_class==REGISTER){
             local_offset[nesting]=zmadd(local_offset[nesting],szof(v->vtyp));
@@ -2590,7 +2656,7 @@ void var_declaration(void)
           /*  Ohne Optimierung gleich erzeugen; das ist noch  */
           /*  etwas von der genauen Implementierung der Liste */
           /*  der Variablen abhaengig.                        */
-          struct Var *merk=v->next;
+          Var *merk=v->next;
           v->next=0;
           gen_vars(v);
           v->next=merk;
@@ -2618,7 +2684,7 @@ void var_declaration(void)
 /* removed */
 #endif
 #ifdef HAVE_REGPARMS
-    struct reg_handle reg_handle;
+    treg_handle reg_handle;
 #endif
     if(DEBUG&1) printf("Funktionsdefinition! %s %p\n",v->identifier,(void *)v);
     {
@@ -2626,6 +2692,7 @@ void var_declaration(void)
       for(i=1;i<=MAXR;i++) {regs[i]=regused[i]=regsa[i];regsbuf[i]=0;}
     }
     cur_func=v->identifier;
+    cur_funcv=v;
     if(only_inline==2) only_inline=0;
     if(nesting<1) enter_block();
     if(nesting>1) error(32);
@@ -2657,7 +2724,7 @@ void var_declaration(void)
       error(168,v->identifier);
     while(!ecpp&&ctok->type!=LBRA){
       /*  alter Stil  */
-      struct Typ *nt=declaration_specifiers();notdone=1;oldstyle=OLDSTYLE;
+      type *nt=declaration_specifiers();notdone=1;oldstyle=OLDSTYLE;
       if(!ts) {error(35);}
       while(notdone){
         int found=0;
@@ -2677,7 +2744,7 @@ void var_declaration(void)
               if(ISARRAY(ts->flags)) ts->flags=POINTER_TYPE(ts);
               /*  typ() in *typ() */
               if(ISFUNC(ts->flags)){
-                struct Typ *new=new_typ();
+                type *new=new_typ();
                 new->flags=POINTER_TYPE(ts);
                 new->next=ts;
                 ts=new;
@@ -2705,7 +2772,7 @@ void var_declaration(void)
       }
     }
     if(!ecpp&&t->exact->count==0){
-      struct struct_list sl[1];
+      struct_list sl[1];
       if(DEBUG&1) printf("prototype converted to (void)\n");
       t->exact->count=1;
       sl[0].identifier=empty;
@@ -2738,7 +2805,7 @@ void var_declaration(void)
       if(!ffreturn(return_typ)&&(return_typ->flags&NQ)!=VOID){
         /*  Parameter fuer die Rueckgabe von Werten, die nicht in einem */
         /*  Register sind.                                              */
-        struct Typ *rt=new_typ();int reg;
+        type *rt=new_typ();int reg;
         rt->flags=POINTER_TYPE(return_typ);rt->next=return_typ;
 #ifdef HAVE_REGPARMS
         reg=reg_parm(&reg_handle,rt,0,v->vtyp);
@@ -2758,7 +2825,9 @@ void var_declaration(void)
       }
     }
     first_ic=last_ic=0;ic_count=0;max_offset=l2zm(0L);
+    if(!zmleq(local_offset[1],Z0)) max_offset=local_offset[1];
     for(i=0;i<t->exact->count;i++){
+      /* TODO: missing pointer for struct return */
 #ifdef HAVE_REGPARMS
       int didrp=0;
       if((*t->exact->sl)[i].styp){
@@ -2769,7 +2838,7 @@ void var_declaration(void)
       }
 #endif
       if(!(*t->exact->sl)[i].styp&&*(*t->exact->sl)[i].identifier){
-        struct Typ *nt;
+        type *nt;
 #ifdef HAVE_MISRA
 /* removed */
 #endif
@@ -2781,7 +2850,7 @@ void var_declaration(void)
         error(124);
       }
       if(*(*t->exact->sl)[i].identifier){
-        struct Var *tmp;int sc,tr;
+        Var *tmp;int sc,tr;
         sc=((*t->exact->sl)[i].storage_class|PARAMETER|oldstyle);
 #ifdef HAVE_REGPARMS
         if(!didrp){
@@ -2832,8 +2901,8 @@ void var_declaration(void)
 
     if(c99){
       /* c99 predefined __func__ */
-      struct Typ *ft=new_typ();
-      struct Var *fnc;
+      type *ft=new_typ();
+      Var *fnc;
 
       /* create type */
       ft->flags=ARRAY;
@@ -2861,6 +2930,7 @@ void var_declaration(void)
 /* removed */
 /* removed */
 #endif
+    cur_funcv=0;
     disallow_statics=0;
     if(block_vla[nesting]) clearvl();
     if((v->vtyp->next->flags&NQ)!=VOID&&!has_return){
@@ -2926,7 +2996,7 @@ void var_declaration(void)
       first_ic=last_ic=0;
     }
     if(v->fi&&v->fi->first_ic){
-      struct Var *vp;
+      Var *vp;
       if(DEBUG&1) printf("leave block %d (inline-version)\n",nesting);
       if(block_vla[nesting]) clearvl();
       if(nesting!=1) ierror(0);
@@ -2979,7 +3049,7 @@ void var_declaration(void)
     if(makeint) error(125);
     if(ctok->type==SEMIC) next_token(); else error(54);
     if(ISFUNC(t->flags)&&t->exact){
-      struct struct_declaration *sd=t->exact;int i,f;
+      struct_declaration *sd=t->exact;int i,f;
       for(f=0,i=0;i<sd->count;i++)
         if(!(*sd->sl)[i].styp){error(126);f=1;}
       if(f){
@@ -2990,11 +3060,11 @@ void var_declaration(void)
   }
   if(old) freetyp(old);
 }
-int compatible_types(struct Typ *a,struct Typ *b,int qual)
+int compatible_types(type *a,type *b,int qual)
 /*  Vergleicht, ob Typ beider Typen gleich ist, const/volatile      */
 /*  werden laut ANSI nicht beruecksichtigt.                         */
 {
-  struct struct_declaration *sd;
+  struct_declaration *sd;
   int af=a->flags&qual,bf=b->flags&qual;
   if(af!=bf) return(0);
   af&=NQ;bf&=NQ;
@@ -3014,7 +3084,7 @@ int compatible_types(struct Typ *a,struct Typ *b,int qual)
   if(qual!=NQ) qual=(NU|CONST|VOLATILE);
   return(compatible_types(a->next,b->next,qual));
 }
-int compare_sd(struct struct_declaration *a,struct struct_declaration *b)
+int compare_sd(struct_declaration *a,struct_declaration *b)
 /*  Vergleicht, ob zwei struct_declarations identisch sind          */
 /*  Wird nur nur fuer Prototypen benutzt, leere Liste immer gleich. */
 {
@@ -3030,10 +3100,10 @@ int compare_sd(struct struct_declaration *a,struct struct_declaration *b)
   }
   return(1);
 }
-void free_clist(struct const_list *p)
+void free_clist(const_list *p)
 /*  Gibt clist frei.                                        */
 {
-  struct const_list *merk;
+  const_list *merk;
   return;
   while(p){
     merk=p->next;
@@ -3043,12 +3113,12 @@ void free_clist(struct const_list *p)
     p=merk;
   }
 }
-void gen_clist(FILE *,struct Typ *,struct const_list *);
+void gen_clist(FILE *,type *,const_list *);
 
-void gen_vars(struct Var *v)
+void gen_vars(Var *v)
 /*  Generiert Variablen.                                    */
 {
-  int mode,al;struct Var *p;
+  int mode,al;Var *p;
   if(errors!=0||(c_flags[5]&USEDFLAG)) return;
   if(optsize)
     al=zm2l(maxalign);
@@ -3070,7 +3140,7 @@ void gen_vars(struct Var *v)
             if(mode==0){
               if(!p->clist) continue;
               if(!(p->vtyp->flags&(CONST|STRINGCONST))){
-                struct Typ *t=p->vtyp;int f=0;
+                type *t=p->vtyp;int f=0;
                 do{
                   if(t->flags&(CONST|STRINGCONST)) break;
                   if(!ISARRAY(t->flags)){f=1;break;}
@@ -3091,7 +3161,7 @@ void gen_vars(struct Var *v)
             }else{
               /*gen_align(out,falign(p->vtyp));*/
             }
-            if(!(p->vtyp->flags&NQ)==FUNKT||!p->fi||!p->fi->inline_asm)
+            if(!((p->vtyp->flags&NQ)==FUNKT)||!p->fi||!p->fi->inline_asm)
               gen_var_head(out,p);
             if(!p->clist){
               if(type_uncomplete(p->vtyp)) error(202,p->identifier);
@@ -3117,7 +3187,7 @@ void gen_vars(struct Var *v)
 }
 
 /* creates code that dynamically initializes a variable */
-void dynamic_init(struct Var *v,struct Typ *t,struct const_list *cl,zmax of,int noconst)
+void dynamic_init(Var *v,type *t,const_list *cl,zmax of,int noconst)
 {
   int f=t->flags;
   if(ISARRAY(f)){
@@ -3134,10 +3204,14 @@ void dynamic_init(struct Var *v,struct Typ *t,struct const_list *cl,zmax of,int 
   }else if(ISUNION(f)&&(!cl||!cl->tree)){
     dynamic_init(v,(*t->exact->sl)[cl?zm2l(cl->idx):0].styp,cl?cl->other:0,of,noconst);
   }else if(ISSTRUCT(f)&&(!cl||!cl->tree)){
-    zmax al;int fl;struct Typ *st;
+    zmax al;int fl;type *st;
     int bfo,i;
     for(i=0;i<t->exact->count&&cl;i++){
-      if(!cl->other){ierror(0);return;}
+      if(!cl->other){
+	if(errors==0)
+	  ierror(0);
+	return;
+      }
       st=(*t->exact->sl)[i].styp;
       al=(*t->exact->sl)[i].align;
       if(!(*t->exact->sl)[i].identifier) ierror(0);
@@ -3147,7 +3221,7 @@ void dynamic_init(struct Var *v,struct Typ *t,struct const_list *cl,zmax of,int 
       }
       if(bfo>=0){
 	int bfs=(*t->exact->sl)[i].bfsize;
-	static struct obj dest = {0};
+	static obj dest = {0};
 	  
 	dest.flags=VAR;
 	dest.v=v;
@@ -3155,7 +3229,7 @@ void dynamic_init(struct Var *v,struct Typ *t,struct const_list *cl,zmax of,int 
 
 	if(bfo==0){
 	  /* first clear entire bitfield */
-	  struct IC *new=new_IC();
+	  IC *new=new_IC();
 	  new->code=ASSIGN;
 	  new->z=dest;
 	  new->typf=st->flags;
@@ -3171,13 +3245,13 @@ void dynamic_init(struct Var *v,struct Typ *t,struct const_list *cl,zmax of,int 
 	if(!zmeqto(cl->idx,l2zm(i))||!cl->other){
 	  /* nothing to do, initialized before */
 	}else if(cl->other->tree){
-	  struct obj dummy;
+	  obj dummy;
 	  gen_IC(cl->other->tree,0,0);
 	  convert(cl->other->tree,st->flags);
 	  insert_bitfield(&dest,&cl->other->tree->o,&cl->other->tree->o,bfs,bfo,st->flags,1);
 	  cl=cl->next;
 	}else{
-	  static struct obj val = {0};
+	  static obj val = {0};
 	  val.flags=KONST;
 	  val.val=cl->other->val;
 	  insert_bitfield(&dest,&val,&val,bfs,bfo,st->flags,1);
@@ -3207,7 +3281,7 @@ void dynamic_init(struct Var *v,struct Typ *t,struct const_list *cl,zmax of,int 
       of=zmadd(of,szof(st));
     }
   }else{
-    struct IC *new;
+    IC *new;
     if(noconst&&(!cl||!cl->tree))
       return;
     new=new_IC();
@@ -3236,10 +3310,20 @@ void dynamic_init(struct Var *v,struct Typ *t,struct const_list *cl,zmax of,int 
 }
 
 
-void gen_clist(FILE *f,struct Typ *t,struct const_list *cl)
+void gen_clist(FILE *f,type *t,const_list *cl)
 /*  Generiert dc fuer const_list.                           */
 {
   int i,bfo,bfs;zmax sz;zumax bfval=ul2zum(0UL);
+
+#if 0
+  for(i=0;i<(int)szof(t);i++){
+    zuchar c;int s;
+    s=get_clist_byte(t,cl,i,&c);
+    printf("%03d: 0x%02x (%d)\n",i,(int)c,s);
+  }
+#endif
+
+
   if(ISARRAY(t->flags)){
     for(sz=l2zm(0L);!zmleq(t->size,sz)&&cl;cl=cl->next){
       if(!cl->other){ierror(0);return;}
@@ -3265,10 +3349,10 @@ void gen_clist(FILE *f,struct Typ *t,struct const_list *cl)
     return;
   }
   if(ISSTRUCT(t->flags)){
-    zmax al;int fl;struct Typ *st;
+    zmax al;int fl;type *st;
     sz=l2zm(0L);
     if(cl&&cl->tree){
-      /* struct initialized by another struct */
+      /* initialized by another */
       gen_ds(f,szof(t),t);
       sz=zmadd(sz,szof(t));
     }else{
@@ -3297,7 +3381,7 @@ void gen_clist(FILE *f,struct Typ *t,struct const_list *cl)
 	  }          
 	  if(i+1>=t->exact->count||(*t->exact->sl)[i+1].bfoffset<=0||!cl){
 	    /* last bitfield in integer */
-	    struct const_list bfcl;
+	    const_list bfcl;
 	    gval.vumax=bfval;
 	    eval_const(&gval,UNSIGNED|MAXINT);
 	    insert_const(&bfcl.val,st->flags&NU);
@@ -3343,9 +3427,9 @@ void gen_clist(FILE *f,struct Typ *t,struct const_list *cl)
 }
 
 /* finds the correct place in a const list to insert new initializer */
-struct const_list *insert_cl(struct const_list *old,zmax idx)
+const_list *insert_cl(const_list *old,zmax idx)
 {
-  struct const_list *p,*cl=0;
+  const_list *p,*cl=0;
   if(old&&zmleq(old->idx,idx)){
     p=old;
     do{
@@ -3375,7 +3459,7 @@ struct const_list *insert_cl(struct const_list *old,zmax idx)
   return cl;
 }
 
-struct const_list *designator(struct Typ *t,struct const_list *cl)
+const_list *designator(type *t,const_list *cl)
 {
   int f=t->flags&NQ;
   np tree;
@@ -3388,7 +3472,7 @@ struct const_list *designator(struct Typ *t,struct const_list *cl)
       error(62);
     else
       {next_token();killsp();}
-    if(!type_expression(tree)){
+    if(!type_expression(tree,0)){
       /*                    error("incorrect constant expression");*/
     }else{
       if(tree->sidefx) error(60);
@@ -3431,19 +3515,19 @@ struct const_list *designator(struct Typ *t,struct const_list *cl)
 }
 
 /* declare a builtin function with up to two scalar arguments */
-struct Var *declare_builtin(char *name,int ztyp,int q1typ,int q1reg,int q2typ,int q2reg,int nosidefx,char *asm)
+Var *declare_builtin(char *name,int ztyp,int q1typ,int q1reg,int q2typ,int q2reg,int nosidefx,char *asm)
 {
-  struct struct_declaration *sd;
-  struct Typ *t;
-  struct Var *v;
+  struct_declaration *sd;
+  type *t;
+  Var *v;
   int args;
   if(!(v=find_ext_var(name))){
     sd=mymalloc(sizeof(*sd));
     if(q1typ==0) args=1;
     else if(q2typ!=0) args=3;
     else args=2;
-    sd->sl=mymalloc(args*sizeof(struct struct_list));
-    memset(sd->sl,0,args*sizeof(struct struct_list));
+    sd->sl=mymalloc(args*sizeof(struct_list));
+    memset(sd->sl,0,args*sizeof(struct_list));
     sd->count=args;
     if(q1typ){
       (*sd->sl)[0].styp=new_typ();
@@ -3477,14 +3561,14 @@ struct Var *declare_builtin(char *name,int ztyp,int q1typ,int q1reg,int q2typ,in
 }
 
 
-struct const_list *initialization(struct Typ *t,int noconst,int level,int desi,struct struct_declaration *fstruct,struct const_list *first)
+const_list *initialization(type *t,int noconst,int level,int desi,struct_declaration *fstruct,const_list *first)
 /*  Traegt eine Initialisierung in eine const_list ein.         */
 {
-  struct const_list *cl,**prev;
+  const_list *cl,**prev;
   np tree,tree2;
   int bracket,desi_follows=0;
   zmax i;
-  struct token mtok;
+  token mtok;
   
   int f=t->flags&NQ;
   if(ISFUNC(f)){error(42);return(0);}
@@ -3503,7 +3587,7 @@ struct const_list *initialization(struct Typ *t,int noconst,int level,int desi,s
       first=tree->cl;
       free_expression(tree);
     }else{
-      struct const_list *last=first;
+      const_list *last=first;
       if(level==0&&!bracket) error(157);
       for(i=l2zm(0L);desi_follows||((zmeqto(t->size,l2zm(0L))||!zmleq(t->size,i)||ctok->type==LBRK)&&ctok->type!=RBRA);i=zmadd(i,l2zm(1L))){
         if(!zmleq(i,0)){
@@ -3675,12 +3759,12 @@ struct const_list *initialization(struct Typ *t,int noconst,int level,int desi,s
 
     if(!tree){error(45);return(0);}
     if(!noconst) const_expr=1;
-    if(!type_expression(tree)){free_expression(tree); const_expr=oldconst;return 0;}
+    if(!type_expression(tree,t)){free_expression(tree); const_expr=oldconst;return 0;}
     const_expr=oldconst;
 
     tree=makepointer(tree);
 
-    /* check for complete struct assignment in dynamic initialization */
+    /* check for complete assignment in dynamic initialization */
     if(noconst&&(ISSTRUCT(tree->ntyp->flags)||ISUNION(tree->ntyp->flags))&&fstruct==tree->ntyp->exact){
       first=mymalloc(CLS);
       first->tree=tree;
@@ -3748,6 +3832,7 @@ struct const_list *initialization(struct Typ *t,int noconst,int level,int desi,s
 	  init_dyn_cnt++;
 	}
       }else{
+	first->idx=l2zm(-1L);
 	init_dyn_sz=zmadd(init_dyn_sz,szof(tree->ntyp));
 	init_dyn_cnt++;
       }

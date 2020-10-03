@@ -1,4 +1,4 @@
-/*  $VER: vbcc (flow.c) V0.8     */
+/*  $VER: vbcc (flow.c) $Revision: 1.9 $    */
 /*  Generierung des FLussgraphs und Optimierungen des Kontrollflusses   */
 
 #include "opt.h"
@@ -46,9 +46,9 @@ void bvdiff(bvtype *dest,bvtype *src,size_t len)
 
 unsigned int basic_blocks;
 
-struct flowgraph *new_flowgraph(void)
+flowgraph *new_flowgraph(void)
 {
-  struct flowgraph *new;
+  flowgraph *new;
   new=mymalloc(sizeof(*new));
   new->av_in=new->av_out=new->av_gen=new->av_kill=0;
   new->rd_in=new->rd_out=new->rd_gen=new->rd_kill=0;
@@ -65,13 +65,13 @@ struct flowgraph *new_flowgraph(void)
   return new;
 }
 
-struct flowgraph *construct_flowgraph(void)
+flowgraph *construct_flowgraph(void)
 /*  entfernt ueberfluessige Labels und erzeugt Flussgraph   */
 {
-    struct IC *p,*cl;
+    IC *p,*cl;
     int firstl,lcnt,currentl,i,code,l;
     int *iseq,*used;
-    struct flowgraph **lg,*g,*fg;
+    flowgraph **lg,*g,*fg;
     if(cross_module){
       int lastl;
       firstl=0;lastl=0;lcnt=0;
@@ -88,7 +88,7 @@ struct flowgraph *construct_flowgraph(void)
     }
     iseq=mymalloc(lcnt*sizeof(int));
     used=mymalloc(lcnt*sizeof(int));
-    lg=mymalloc(lcnt*sizeof(struct flowgraph *));
+    lg=mymalloc(lcnt*sizeof(flowgraph *));
     g=new_flowgraph();
     fg=g;
     g->start=first_ic;g->in=0;g->branchout=0;g->loopend=0;
@@ -112,7 +112,7 @@ struct flowgraph *construct_flowgraph(void)
             g->end=p;
             if(p->next){
 	      g->normalout=new_flowgraph();
-	      g->normalout->in=mymalloc(sizeof(struct flowlist));
+	      g->normalout->in=mymalloc(sizeof(flowlist));
 	      g->normalout->in->next=0;
 	      g->normalout->in->graph=g;
 	      g=g->normalout;
@@ -129,7 +129,7 @@ struct flowgraph *construct_flowgraph(void)
         /*  ist ein Label   */
         l=p->typf;
         if(currentl){
-	    struct IC *m;
+	    IC *m;
             iseq[l-firstl]=currentl;
 	    if(l==return_label) return_label=currentl;
             if(used[l-firstl]) used[currentl-firstl]=1;
@@ -143,7 +143,7 @@ struct flowgraph *construct_flowgraph(void)
             if(g->start!=p){
                 g->end=p->prev;
                 g->normalout=new_flowgraph();
-                g->normalout->in=mymalloc(sizeof(struct flowlist));
+                g->normalout->in=mymalloc(sizeof(flowlist));
                 g->normalout->in->next=0;
                 g->normalout->in->graph=g;
                 g=g->normalout;
@@ -166,7 +166,7 @@ struct flowgraph *construct_flowgraph(void)
     if(DEBUG&1024) {puts("construct_flowgraph(): loop2");/*scanf("%d",&i);*/}
     g=fg;
     while(g){
-        int flag=0;struct flowlist *lp;
+        int flag=0;flowlist *lp;
 /*        printf("g=%p\n",(void *)g);*/
         g->av_in=g->av_out=g->av_gen=g->av_kill=0;
         g->rd_in=g->rd_out=g->rd_gen=g->rd_kill=0;
@@ -186,12 +186,12 @@ struct flowgraph *construct_flowgraph(void)
                 lp=lg[l-firstl]->in;
                 /*  das hier sollte man noch schoener machen    */
                 if(!lp){
-                    lg[l-firstl]->in=mymalloc(sizeof(struct flowlist));
+                    lg[l-firstl]->in=mymalloc(sizeof(flowlist));
                     lg[l-firstl]->in->next=0;
                     lg[l-firstl]->in->graph=g;
                 }else{
                     while(lp&&lp->next) lp=lp->next;
-                    lp->next=mymalloc(sizeof(struct flowlist));
+                    lp->next=mymalloc(sizeof(flowlist));
                     lp->next->next=0;
                     lp->next->graph=g;
                 }
@@ -206,7 +206,7 @@ struct flowgraph *construct_flowgraph(void)
     if(DEBUG&1024) {puts("construct_flowgraph(): loop3");/*scanf("%d",&i);*/}
     for(g=fg;g;g=g->normalout){
         if(g->end&&(g->end->code<BEQ||g->end->code>BRA)){
-            struct flowgraph *next=g->normalout;struct flowlist *lp;
+            flowgraph *next=g->normalout;flowlist *lp;
             if(next&&next->start&&next->start->code==LABEL&&!used[next->start->typf-firstl]){
                 if(next->end!=next->start) g->end=next->end;
                 g->normalout=next->normalout;
@@ -236,11 +236,11 @@ struct flowgraph *construct_flowgraph(void)
     return(fg);
 }
 
-void print_flowgraph(struct flowgraph *g)
+void print_flowgraph(flowgraph *g)
 /*  Gibt Flussgraph auf Bildschirm aus  */
 {
     static int dontprint=0;
-    int flag,i;struct flowlist *lp;struct IC *ip;
+    int flag,i;flowlist *lp;IC *ip;
     if(dontprint>0) {dontprint--;return;}
     if(dontprint!=-1){
       puts("print_flowgraph()");scanf("%d",&i);
@@ -310,10 +310,10 @@ void print_flowgraph(struct flowgraph *g)
         g=g->normalout;
     }
 }
-void free_flowgraph(struct flowgraph *g)
+void free_flowgraph(flowgraph *g)
 /*  Gibt Flussgraph frei    */
 {
-    struct flowgraph *pm;struct flowlist *lp,*lpm;
+    flowgraph *pm;flowlist *lp,*lpm;
     if(DEBUG&(16384|1024)) puts("free_flowgraph()");
     while(g){
         lp=g->in;
@@ -345,7 +345,7 @@ void free_flowgraph(struct flowgraph *g)
         g=pm;
     }
 }
-static void mark_reachable(struct flowgraph *fg)
+static void mark_reachable(flowgraph *fg)
 /* negiert den index aller Bloecke, die reachable sind */
 {
   fg->index=-fg->index;
@@ -354,11 +354,11 @@ static void mark_reachable(struct flowgraph *fg)
   if(fg->normalout&&(!fg->end||fg->end->code!=BRA)&&fg->normalout->index>=0)
     mark_reachable(fg->normalout);
 }
-struct flowgraph *jump_optimization(void)
+flowgraph *jump_optimization(void)
 /*  entfernt ueberfluessige Spruenge etc.                           */
 {
-    struct flowgraph *fg,*g;struct IC *p;int changed,i;
-    struct flowlist *lp;
+    flowgraph *fg,*g;IC *p;int changed,i;
+    flowlist *lp;
     do{
         changed=0;
         fg=construct_flowgraph();
@@ -370,7 +370,7 @@ struct flowgraph *jump_optimization(void)
 	    if(g->index<0){
 	        g->index=-g->index;
 	    }else{
-                struct IC *m;
+                IC *m;
                 if(DEBUG&1024) printf("deleting dead block %d\n",g->index);
 #ifdef HAVE_MISRA
 /* removed */
@@ -437,16 +437,16 @@ struct flowgraph *jump_optimization(void)
             i=0;p=0;
             for(lp=g->in;lp;lp=lp->next){
                 if(lp->graph){
-                    struct IC *np;
-                    struct flowgraph *ng=lp->graph;
-                    struct flowlist *l2;
+                    IC *np;
+                    flowgraph *ng=lp->graph;
+                    flowlist *l2;
                     /*  doppelte Bloecke loeschen und ueberspringen */
                     for(l2=g->in;l2;l2=l2->next)
                         if(l2!=lp&&l2->graph==ng) break;
                     if(l2){ lp->graph=0;continue;}
                     np=ng->end;
                     if(!np){ i=-1;break;}
-                    if(ng->branchout&&np->code!=BRA){i=-1;break;}
+                    if(ng->branchout&&(np->code!=BRA||ng->branchout!=g)){i=-1;break;}
                     if(np->code==BRA) np=np->prev;
                     if(!np){ i=-1;break;}
                     if(!p){
@@ -467,7 +467,7 @@ struct flowgraph *jump_optimization(void)
                 }
             }
             if(i>1&&g->start){
-                struct IC *new=new_IC();
+                IC *new=new_IC();
                 if(DEBUG&1024){ printf("moving instruction from preceding blocks to successor:\n");pric2(stdout,p);}
                 changed=gchanged=1;
                 memcpy(new,p,ICS);
@@ -479,7 +479,7 @@ struct flowgraph *jump_optimization(void)
                     insert_IC_fg(g,g->start->prev,new);
                 }
                 for(lp=g->in;lp;lp=lp->next){
-                    struct flowgraph *ng=lp->graph;
+                    flowgraph *ng=lp->graph;
                     if(ng){
                         if(!ng->end) ierror(0);
                         if(ng->end->code==BRA){
@@ -494,8 +494,8 @@ struct flowgraph *jump_optimization(void)
             /*  Blockbeginn und keinen weiteren Vorgaenger, dann kann die   */
             /*  Anweisung in den Vorgaengerblock geschoben werden           */
             if(g->branchout&&g->normalout&&g->branchout!=g->normalout&&g->end&&g->end->code!=BRA){
-                struct flowgraph *a=g->normalout,*b=g->branchout;
-                struct IC *as=a->start,*bs=b->start,*tp;
+                flowgraph *a=g->normalout,*b=g->branchout;
+                IC *as=a->start,*bs=b->start,*tp;
                 int destroys;
                 if(as&&as->code==LABEL&&as!=a->end) as=as->next;
                 if(bs&&bs->code==LABEL&&bs!=b->end) bs=bs->next;
@@ -589,7 +589,7 @@ struct flowgraph *jump_optimization(void)
     return fg;
 }
 
-void insert_IC_fg(struct flowgraph *fg,struct IC *p,struct IC *new)
+void insert_IC_fg(flowgraph *fg,IC *p,IC *new)
 /*  fuegt ein IC hinter p ein unter Beibehaltung des Flussgraphen   */
 {
     if(fg->start){

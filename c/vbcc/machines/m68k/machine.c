@@ -1,6 +1,8 @@
+/*  $VER: vbcc (m68k/machine.c) $Revision: 1.113 $     */
 /*  Code generator for Motorola 680x0 CPUs. Supports 68000-68060+68881/2    */
 /*  and ColdFire.                                                           */
 /*  vasm, PhxAss and the GNU assembler is supported.                        */
+
 
 #include "supp.h"
 
@@ -13,7 +15,7 @@ static char FILE_[]=__FILE__;
 /*  Public data that MUST be there.                             */
 
 /* Name and copyright. */
-char cg_copyright[]="vbcc code-generator for m68k/ColdFire V1.10 (c) in 1995-2014 by Volker Barthelmann";
+char cg_copyright[]="vbcc code-generator for m68k/ColdFire V1.13 (c) in 1995-2019 by Volker Barthelmann";
 
 /*  Commandline-flags the code-generator accepts                */
 int g_flags[MAXGF]={VALFLAG,VALFLAG,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -22,7 +24,8 @@ char *g_flags_name[MAXGF]={
     "use-framepointer","no-peephole","no-delayed-popping",
     "gas","branch-opt","no-fp-return","no-mreg-return","hunkdebug",
     "no-intz","old-peephole","conservative-sr","elf","use-commons",
-    "a2scratch","old-softfloat","amiga-softfloat","fastcall","fp2scratch"
+    "a2scratch","old-softfloat","amiga-softfloat","fastcall","fp2scratch",
+    "no-reserve-regs","phxass","clean-fattr"
 };
 
 union ppi g_flags_val[MAXGF];
@@ -62,7 +65,7 @@ static char *mregnames[MAXR+1];
 zmax regsize[MAXR+1];
 
 /*  Type which can store each register. */
-struct Typ *regtype[MAXR+1];
+type *regtype[MAXR+1];
 
 /*  regsa[reg]!=0 if a certain register is allocated and should */
 /*  not be used by the compiler pass.                           */
@@ -74,11 +77,11 @@ int regscratch[MAXR+1]={0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,
 
 int reg_prio[MAXR+1]={0,4,4,3,3,3,3,3,0,2,2,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0};
 
-struct reg_handle empty_reg_handle={0,0,0};
+treg_handle empty_reg_handle={0,0,0};
 
 /* Names of target-specific variable attributes.                */
 char *g_attr_name[]={"__far","__near","__chip","__saveds",
-                     "__interrupt","__amigainterrupt","__stdargs",0};
+                     "__interrupt","__amigainterrupt",0};
 #define FAR 1
 #define NEAR 2
 #define CHIP 4
@@ -118,7 +121,9 @@ int MINADDI2P=SHORT;
 #define AMI_SOFTFLOAT   (g_flags[23]&USEDFLAG)
 #define FASTCALL        (g_flags[24]&USEDFLAG)
 #define FP2SCRATCH      (g_flags[25]&USEDFLAG)
-
+#define RESERVEREGS     (g_flags[26]&USEDFLAG)
+#define PHXASS          (g_flags[27]&USEDFLAG)
+#define CLEANFATTR      (g_flags[28]&USEDFLAG)
 
 static int use_sd;
 
@@ -130,9 +135,9 @@ static long malign[MAX_TYPE+1]=  {1,1,2,2,2,2,2,2,2,1,2,1,1,1,2,1};
 static long msizetab[MAX_TYPE+1]={0,1,2,4,4,8,4,8,8,0,4,0,0,0,4,0};
 #endif
 
-static struct Typ ltyp={LONG},larray={ARRAY,&ltyp},lltyp={LLONG};
+static type ltyp={LONG},larray={ARRAY,&ltyp},lltyp={LLONG};
 
-static char cpu_macro[16],fpu_macro[16],*marray[6];
+static char cpu_macro[16],fpu_macro[16],*marray[16];
 
 static char pushreglist[200],popreglist[200];
 
@@ -156,21 +161,21 @@ static char *codename,*bssname,*dataname;
 static char *m_bssname,*m_dataname;
 static char *rprefix;
 
-static void emit_obj(FILE *,struct obj *,int);
-static struct IC *do_refs(FILE *,struct IC *);
-static void pr(FILE *,struct IC *);
-static int get_reg(FILE *,int,struct IC *);
+static void emit_obj(FILE *,obj *,int);
+static IC *do_refs(FILE *,IC *);
+static void pr(FILE *,IC *);
+static int get_reg(FILE *,int,IC *,int);
 static long pof2(zumax);
-static void function_top(FILE *,struct Var *,long);
-static void function_bottom(FILE *f,struct Var *,long);
+static void function_top(FILE *,Var *,long);
+static void function_bottom(FILE *f,Var *,long);
 
 #define saveregs(x,y) saveregswfp(x,y,0)
-static void saveregswfp(FILE *,struct IC *,int);
-static void restoreregsa(FILE *,struct IC *);
-static void restoreregsd(FILE *,struct IC *);
+static void saveregswfp(FILE *,IC *,int);
+static void restoreregsa(FILE *,IC *);
+static void restoreregsd(FILE *,IC *);
 
-static void assign(FILE *,struct IC *,struct obj *,struct obj *,int,long,int);
-static int compare_objects(struct obj *o1,struct obj *o2);
+static void assign(FILE *,IC *,obj *,obj *,int,long,int);
+static int compare_objects(obj *o1,obj *o2);
 
 static char x_s[]={'0','b','w','3','l'};
 #ifdef M68K_16BIT_INT
@@ -196,13 +201,14 @@ static int dscratch=1,ascratch=1,fscratch=1;
 static int newobj=0;   /*  um zu erkennen, ob neue section erlaubt ist */
 
 static int cf;
+static int add_stdargs;
 
 static int isquickkonst(union atyps *,int),isquickkonst2(union atyps *,int),regavailable(int);
-static void move(FILE *,struct obj *,int,struct obj *,int,int);
-static void loadext(FILE *,int,struct obj *,int);
-static void add(FILE *,struct obj *,int,struct obj *,int,int);
-static void sub(FILE *,struct obj *,int,struct obj *,int,int);
-static void mult(FILE *,struct obj *,int,struct obj *,int,int,int,struct IC *);
+static void move(FILE *,obj *,int,obj *,int,int);
+static void loadext(FILE *,int,obj *,int);
+static void add(FILE *,obj *,int,obj *,int,int);
+static void sub(FILE *,obj *,int,obj *,int,int);
+static void mult(FILE *,obj *,int,obj *,int,int,int,IC *);
 
 extern int static_cse;
 
@@ -246,18 +252,20 @@ static long pof2(zumax x)
 #define PEA -1
 #define LEA -2
 
-static void emit_lword(FILE *,struct obj *);
-static void emit_hword(FILE *,struct obj *);
-static int addressing(struct IC *);
+#define FUNCPREFIX(t) (stdargs(t)?idprefix:"@")
+
+static void emit_lword(FILE *,obj *);
+static void emit_hword(FILE *,obj *);
+static int addressing(IC *);
 static long notpopped,dontpop,stackoffset,loff,maxpushed,stack;
 static int offlabel,regoffset;
 /*  For keeping track of condition codes.   */
-static struct obj *cc_set,*cc_set_tst;
+static obj *cc_set,*cc_set_tst;
 static int cc_typ,cc_typ_tst;
 static int missing,savedemit,savedalloc;
 static int lastpush,unorderedpush,pushoff[MAXR+1];
 
-static int special_section(FILE *f,struct Var *v)
+static int special_section(FILE *f,Var *v)
 {
   char *sec;
   if(!v->vattr) return 0;
@@ -272,6 +280,20 @@ static int special_section(FILE *f,struct Var *v)
   emit(f,"\n");
   if(f) section=SPECIAL;
   return 1;
+}
+
+static int stdargs(type *t)
+{
+  type *p;
+
+  for(p=t->next;p;p=p->next){
+    if(p->attr&&strstr(p->attr,"__stdargs")) return 1;
+    if(p->attr&&strstr(p->attr,"__regargs")) return 0;
+    if(CLEANFATTR) break;
+  }
+  if(!FASTCALL||add_stdargs) return 1;
+  if(t->flags==FUNKT&&is_varargs(t)) return 1;
+  return 0;
 }
 
 /* pushed on the stack by a callee, no pop needed */
@@ -306,9 +328,9 @@ void title(FILE *f)
   }
 }      
 
-static int is_arg_reg(struct IC *p,int r)
+static int is_arg_reg(IC *p,int r)
 {
-  int i,u;struct IC *a;
+  int i,u;IC *a;
   for(i=0;i<p->arg_cnt;i++){
     a=p->arg_list[i];
     u=0;
@@ -325,18 +347,45 @@ static int is_arg_reg(struct IC *p,int r)
   return 0;
 }
 
-static int pget_reg(FILE *f,int flag,struct IC *p)
+/* check if register can be scratched */
+static int scratchreg(int r,IC *p)
+{
+  int c;
+  while(1){
+    p=p->next;
+    if(!p||((c=p->code)==FREEREG&&p->q1.reg==r)) return 1;
+    if(c==CALL||(c>=BEQ&&c<=BRA)) return 0;
+    if((p->q1.flags&REG)&&p->q1.reg==r) return 0;
+    if((p->q2.flags&REG)&&p->q2.reg==r) return 0;
+    if((p->z.flags&REG)&&p->z.reg==r) return 0;
+  }
+}
+
+static int am_uses_reg(IC *p,int i)
+{
+  if((p->q1.am&&((p->q1.am->dreg&127)==i||p->q1.am->basereg==i))
+     ||(p->q2.am&&((p->q2.am->dreg&127)==i||p->q2.am->basereg==i))
+     ||(p->z.am&&((p->z.am->dreg&127)==i||p->z.am->basereg==i)))
+    return 1;
+  return 0;
+}
+
+static int pget_reg(FILE *f,int flag,IC *p,int useq1)
 {
   int i;
+
   flag=1+flag*8;
+
+  if(useq1){
+    if(isreg(q1)&&p->q1.reg>=flag&&p->q1.reg<=flag+7&&scratchreg(p->q1.reg,p)&&!am_uses_reg(p,p->q1.reg))
+      return p->q1.reg;
+  }
+
   for(i=flag;i<flag+8;i++){
     if(regs[i]==1&&(!p||(i!=p->q1.reg&&i!=p->q2.reg&&i!=p->z.reg))){
       if(p){
-	if((p->q1.am&&(p->q1.am->dreg==i||p->q1.am->basereg==i))
-	   ||(p->q2.am&&(p->q2.am->dreg==i||p->q2.am->basereg==i))
-	   ||(p->z.am&&(p->z.am->dreg==i||p->z.am->basereg==i))){
+	if(am_uses_reg(p,i))
 	  continue;
-	}
 	if(p->code==CALL&&is_arg_reg(p,i))
 	  continue;
       }
@@ -355,19 +404,24 @@ static int pget_reg(FILE *f,int flag,struct IC *p)
   }
   ierror(0);
 }
-static int get_reg(FILE *f,int flag,struct IC *p)
+
+static int get_reg(FILE *f,int flag,IC *p,int useq1)
 /*  Gets a register: flag=0=areg, 1=dreg, 2=fpreg           */
 {
   int i;
+
   flag=1+flag*8;
+
+  if(useq1){
+    if(isreg(q1)&&p->q1.reg>=flag&&p->q1.reg<=flag+7&&scratchreg(p->q1.reg,p)&&!am_uses_reg(p,p->q1.reg))
+      return p->q1.reg;
+  }
+
   for(i=flag;i<flag+8;i++){
     if(regs[i]==0){
       if(p){
-	if((p->q1.am&&(p->q1.am->dreg==i||p->q1.am->basereg==i))
-	   ||(p->q2.am&&(p->q2.am->dreg==i||p->q2.am->basereg==i))
-	   ||(p->z.am&&(p->z.am->dreg==i||p->z.am->basereg==i))){
+	if(am_uses_reg(p,i))
 	  continue;
-	}
 	if(p->code==CALL&&is_arg_reg(p,i))
 	  continue;
       }
@@ -378,12 +432,12 @@ static int get_reg(FILE *f,int flag,struct IC *p)
     }
   }
   for(i=flag;i<flag+8;i++){
-    static struct rpair rp;
+    static rpair rp;
     if(regs[i]==1){
       if(p){
-	if((p->q1.am&&(p->q1.am->dreg==i||p->q1.am->basereg==i))
-	   ||(p->q2.am&&(p->q2.am->dreg==i||p->q2.am->basereg==i))
-	   ||(p->z.am&&(p->z.am->dreg==i||p->z.am->basereg==i))){
+	if((p->q1.am&&((p->q1.am->dreg&127)==i||p->q1.am->basereg==i))
+	   ||(p->q2.am&&((p->q2.am->dreg&127)==i||p->q2.am->basereg==i))
+	   ||(p->z.am&&((p->z.am->dreg&127)==i||p->z.am->basereg==i))){
 	  continue;
 	}
 	if(p->code==CALL&&is_arg_reg(p,i))
@@ -463,7 +517,7 @@ static int isquickkonst2(union atyps *p,int t)
     }
 }
 
-static int pregavailable(struct IC *p,int art)
+static int pregavailable(IC *p,int art)
 /*  Returns true if matching register is available. Handles arglist*/
 {
     int i;
@@ -482,12 +536,12 @@ static int regavailable(int art)
         if(regs[i]==0) return(1);
     return 0;
 }
-static int compare_objects(struct obj *o1,struct obj *o2)
+static int compare_objects(obj *o1,obj *o2)
 /*  Tests if two objects are equal.     */
 {
   if((o1->flags&(REG|DREFOBJ))==REG&&(o2->flags&(REG|DREFOBJ))==REG&&o1->reg==o2->reg)
     return 1;
-  if(o1->flags==o2->flags&&o1->am==o2->am){
+  if((o1->flags&(KONST|VAR|DREFOBJ|REG|VARADR))==(o2->flags&(KONST|VAR|DREFOBJ|REG|VARADR))&&o1->am==o2->am){
     if(!(o1->flags&VAR)||(o1->v==o2->v&&zmeqto(o1->val.vmax,o2->val.vmax))){
       if(!(o1->flags&REG)||o1->reg==o2->reg){
 	return 1;
@@ -496,7 +550,7 @@ static int compare_objects(struct obj *o1,struct obj *o2)
   }
   return 0;
 }
-static struct IC *do_refs(FILE *f,struct IC *p)
+static IC *do_refs(FILE *f,IC *p)
 /*  Loads DREFOBJs into address registers, if necessary.    */
 /*  Small constants are loaded into data registers if this  */
 /*  improves code.                                          */
@@ -507,9 +561,9 @@ static struct IC *do_refs(FILE *f,struct IC *p)
         if(compare_objects(&p->q1,&p->q2)) equal|=1;
         if(compare_objects(&p->q1,&p->z)) equal|=2;
 	if((p->code==CALL||p->code==PUSH)&&!pregavailable(p,0))
-	  reg=pget_reg(f,0,p);
+	  reg=pget_reg(f,0,p,0);
 	else
-	  reg=get_reg(f,0,p);
+	  reg=get_reg(f,0,p,0);
         p->q1.flags&=~DREFOBJ;
         emit(f,"\tmove.l\t");emit_obj(f,&p->q1,POINTER);
         p->q1.flags=REG|DREFOBJ;
@@ -521,7 +575,7 @@ static struct IC *do_refs(FILE *f,struct IC *p)
     }
     if((p->q2.flags&DREFOBJ)&&!(p->q2.flags&KONST)&&(!(p->q2.flags&REG)||p->q2.reg<1||p->q2.reg>8)){
         if(compare_objects(&p->q2,&p->z)) equal=1; else equal=0;
-        reg=get_reg(f,0,p);
+        reg=get_reg(f,0,p,0);
         p->q2.flags&=~DREFOBJ;
         emit(f,"\tmove.l\t");emit_obj(f,&p->q2,POINTER);
         p->q2.flags=REG|DREFOBJ;
@@ -530,7 +584,7 @@ static struct IC *do_refs(FILE *f,struct IC *p)
         if(equal) p->z=p->q2;
     }
     if((p->z.flags&DREFOBJ)&&!(p->z.flags&KONST)&&(!(p->z.flags&REG)||p->z.reg<1||p->z.reg>8)){
-        reg=get_reg(f,0,p);
+      reg=get_reg(f,0,p,0);
         p->z.flags&=~DREFOBJ;
         emit(f,"\tmove.l\t");emit_obj(f,&p->z,POINTER);
         p->z.flags=REG|DREFOBJ;
@@ -546,33 +600,33 @@ static struct IC *do_refs(FILE *f,struct IC *p)
             if(isconst(q1)&&isquickkonst(&p->q1.val,t)&&((c!=ADD&&c!=SUB&&c!=ADDI2P&&c!=SUBIFP)||!isquickkonst2(&p->q1.val,t))){
                 eval_const(&p->q1.val,t);
                 if((!zldeqto(d2zld(0.0),vldouble)||!zmeqto(l2zm(0L),vmax)||!zumeqto(ul2zum(0UL),vumax))&&regavailable(1)){
-                    reg=get_reg(f,1,p);
-                    move(f,&p->q1,0,0,reg,t);
-                    p->q1.flags=REG;p->q1.reg=reg;
-                    p->q1.val.vmax=l2zm(0L);
+		  reg=get_reg(f,1,p,0);
+		  move(f,&p->q1,0,0,reg,t);
+		  p->q1.flags=REG;p->q1.reg=reg;
+		  p->q1.val.vmax=l2zm(0L);
                 }
             }
             if(isconst(q2)&&isquickkonst(&p->q2.val,t)&&((c!=ADD&&c!=SUB&&c!=ADDI2P&&c!=SUBIFP)||!isquickkonst2(&p->q2.val,t))){
                 eval_const(&p->q2.val,t);
                 if((!zldeqto(d2zld(0.0),vldouble)||!zmeqto(l2zm(0L),vmax)||!zumeqto(ul2zum(0UL),vumax))&&regavailable(1)){
-                    reg=get_reg(f,1,p);
-                    move(f,&p->q2,0,0,reg,t);
-                    p->q2.flags=REG;p->q2.reg=reg;
-                    p->q2.val.vmax=l2zm(0L);
+		  reg=get_reg(f,1,p,0);
+		  move(f,&p->q2,0,0,reg,t);
+		  p->q2.flags=REG;p->q2.reg=reg;
+		  p->q2.val.vmax=l2zm(0L);
                 }
             }
         }
     }
     return p;
 }
-static void pr(FILE *f,struct IC *p)
+static void pr(FILE *f,IC *p)
 /*  Release registers and pop them from stack if necessary. */
 {
   int i,size=0;char *s="";
     /*  To keep track of condition codes.   */
 #if 0
   if((pushedreg&12)&&(p->code==TEST||p->code==COMPARE)){
-    char *fp;struct IC *branch;
+    char *fp;IC *branch;
     if(FPU>68000&&ISFLOAT(p->typf)) fp="f"; else fp="";
     branch=p;
     while(branch->code<BEQ||branch->code>=BRA) branch=branch->next;
@@ -585,8 +639,10 @@ static void pr(FILE *f,struct IC *p)
     stored_cc=1;
   }
 #endif
-  if((pushedreg&12)&&(p->code==TEST||p->code==COMPARE||p->code==SETRETURN))
+  if((pushedreg&12)&&(p->code==TEST||p->code==COMPARE||p->code==SETRETURN)){
     s="m";
+    if(!GAS&&!PHXASS) emit(f,"\topt\tom-\n");
+  }
   for(i=MAXR;i>0;i--){
     if(regs[i]==2) regs[i]=0;
     if(regs[i]&8){
@@ -635,6 +691,7 @@ static void pr(FILE *f,struct IC *p)
       missing++;
     }
   }
+  if(*s=='m'&&!GAS&&!PHXASS) emit(f,"\topt\tom+\n");
 #if 0
   if((pushedreg&12)&&(p->code==TEST||p->code==COMPARE))
     emit(f,"\ttst.b\t-%d(%s)\n",size+2,mregnames[sp]);
@@ -644,7 +701,7 @@ static void pr(FILE *f,struct IC *p)
   lastpush=0;
   unorderedpush=0;
 }
-static void emit_obj(FILE *f,struct obj *p,int t)
+static void emit_obj(FILE *f,obj *p,int t)
 /*  Write object.   */
 {
   if(p->am){
@@ -723,7 +780,10 @@ static void emit_obj(FILE *f,struct obj *p,int t)
       if(p->v->storage_class==STATIC){
 	emit(f,"%s%ld",labprefix,zm2l(p->v->offset));
       }else{
-	emit(f,"%s%s",idprefix,p->v->identifier);
+	if(ISFUNC(p->v->vtyp->flags))
+	  emit(f,"%s%s",FUNCPREFIX(p->v->vtyp),p->v->identifier);
+	else
+	  emit(f,"%s%s",idprefix,p->v->identifier);
       }
       if(use_sd&&!(p->flags&VARADR)&&!ISFUNC(p->v->vtyp->flags)
 	 &&!(p->v->tattr&(CHIP|FAR))&&(CONSTINDATA||!is_const(p->v->vtyp))
@@ -749,10 +809,10 @@ static void emit_obj(FILE *f,struct obj *p,int t)
   }
   if(p->flags&DREFOBJ) emit(f,")");
 }
-static void dwarf2_print_frame_location(FILE *f,struct Var *v)
+static void dwarf2_print_frame_location(FILE *f,Var *v)
 {
   /*FIXME: needs a location list and correct register trabslation */
-  struct obj o;
+  obj o;
   o.flags=REG;
   if(USEFRAMEPOINTER||vlas)
     o.reg=fbp;
@@ -773,7 +833,7 @@ static int dwarf2_regnumber(int r)
   else
     ierror(0);
 }
-static zmax dwarf2_fboffset(struct Var *v)
+static zmax dwarf2_fboffset(Var *v)
 {
   long os;
   if(!v||(v->storage_class!=AUTO&&v->storage_class!=REGISTER)) ierror(0);
@@ -793,7 +853,7 @@ static zmax dwarf2_fboffset(struct Var *v)
 
 static char tsh[]={'w','l'};
 static int proflabel,stacksizelabel;
-static void function_top(FILE *f,struct Var *v,long offset)
+static void function_top(FILE *f,Var *v,long offset)
 /*  Writes function header. */
 {
     geta4=0;
@@ -805,10 +865,16 @@ static void function_top(FILE *f,struct Var *v,long offset)
         if(FPU>68000) emit(f,"\tfpu\t1\n");
         if(SMALLCODE) emit(f,"\tnear\tcode\n");
         if(use_sd) emit(f,"\tnear\ta4,-2\n");
-        emit(f,"\topt\t0\n\topt\tNQLPSM");
-        if(CPU!=68040) emit(f,"R");
-        if(1/*BRANCHOPT||(optflags&2)*/) emit(f,"BT");
-        emit(f,"\n");
+	if(PHXASS){
+	  emit(f,"\topt\t0\n\topt\tNQLPSM");
+	  if(CPU!=68040) emit(f,"R");
+	  if(1/*BRANCHOPT||(optflags&2)*/) emit(f,"BT");
+	  emit(f,"\n");
+	}else{
+	  emit(f,"\topt o+,ol+,op+,oc+,ot+,oj+,ob+,om+");
+	  if(CPU==68040) emit(f,",a-");
+	  emit(f,"\n");
+	}
     }
     if(!special_section(f,v)&&section!=CODE){emit(f,codename);if(f) section=CODE;}
     if(PROFILER){
@@ -822,17 +888,17 @@ static void function_top(FILE *f,struct Var *v,long offset)
     if(v->storage_class==EXTERN){
       if((v->flags&(INLINEFUNC|INLINEEXT))!=INLINEFUNC){
         if(GAS){
-	  emit(f,"\t.global\t%s%s\n",idprefix,v->identifier);
+	  emit(f,"\t.global\t%s%s\n",FUNCPREFIX(v->vtyp),v->identifier);
         }else{
-            emit(f,"\tpublic\t%s%s\n",idprefix,v->identifier);
+	  emit(f,"\tpublic\t%s%s\n",FUNCPREFIX(v->vtyp),v->identifier);
         }
       }
     }
     if(v->storage_class==EXTERN){
       if(GAS){
-        emit(f,"\t.align\t4\n%s%s:\n",idprefix,v->identifier);
+        emit(f,"\t.align\t4\n%s%s:\n",FUNCPREFIX(v->vtyp),v->identifier);
       }else{
-        emit(f,"\tcnop\t0,4\n%s%s\n",idprefix,v->identifier);
+        emit(f,"\tcnop\t0,4\n%s%s\n",FUNCPREFIX(v->vtyp),v->identifier);
       }
     }else{
       if(GAS){
@@ -893,7 +959,7 @@ static void function_top(FILE *f,struct Var *v,long offset)
     stack_valid=1;
     stack=0;
 }
-static void function_bottom(FILE *f,struct Var *v,long offset)
+static void function_bottom(FILE *f,Var *v,long offset)
 /*  Writes function footer. */
 {
     int i,size=0;unsigned int pushval,popval;
@@ -1008,7 +1074,7 @@ static void function_bottom(FILE *f,struct Var *v,long offset)
       emit(f,"%c stacksize=%ld\n",GAS?'#':';',size+loff+stack);
     }
 }
-static void move(FILE *f,struct obj *q,int qreg,struct obj *z,int zreg,int t)
+static void move(FILE *f,obj *q,int qreg,obj *z,int zreg,int t)
 /*  erzeugt eine move Anweisung...Da sollen mal Optimierungen rein  */
 {
     if(!zreg&&(z->flags&(REG|DREFOBJ))==REG) zreg=z->reg;
@@ -1033,13 +1099,13 @@ static void move(FILE *f,struct obj *q,int qreg,struct obj *z,int zreg,int t)
         }
     }
     if(cf&&!qreg&&!zreg){
-        static struct IC dummy;
+        static IC dummy;
         dummy.code=ASSIGN;
         dummy.typf=t;
         dummy.q1=*q;
         dummy.q2.flags=0;
         dummy.z=*z;
-        qreg=get_reg(f,1,&dummy);
+        qreg=get_reg(f,1,&dummy,0);
 	emit(f,"\tmove.%c\t",x_s[msizetab[t&NQ]]);
         emit_obj(f,q,t);
         emit(f,",%s\n\tmove.%c\t%s,",mregnames[qreg],x_s[msizetab[t&NQ]],mregnames[qreg]);
@@ -1053,7 +1119,7 @@ static void move(FILE *f,struct obj *q,int qreg,struct obj *z,int zreg,int t)
       if(zreg) BSET(regs_modified,zreg);
     }
 }
-static void loadext(FILE *f,int r,struct obj *q,int t)
+static void loadext(FILE *f,int r,obj *q,int t)
 /*  laedt Objekt q vom Typ t in Register r und erweitert auf long   */
 {
     if(t&UNSIGNED){
@@ -1076,7 +1142,7 @@ static void loadext(FILE *f,int r,struct obj *q,int t)
     }
 }
 
-static void add(FILE *f,struct obj *q,int qreg,struct obj *z,int zreg,int t)
+static void add(FILE *f,obj *q,int qreg,obj *z,int zreg,int t)
 /*  erzeugt eine add Anweisung...Da sollen mal Optimierungen rein   */
 {
     if(!qreg&&!q) ierror(0);
@@ -1094,7 +1160,7 @@ static void add(FILE *f,struct obj *q,int qreg,struct obj *z,int zreg,int t)
     if(zreg) emit(f,"%s",mregnames[zreg]); else emit_obj(f,z,t);
     emit(f,"\n");
 }
-static void sub(FILE *f,struct obj *q,int qreg,struct obj *z,int zreg,int t)
+static void sub(FILE *f,obj *q,int qreg,obj *z,int zreg,int t)
 /*  erzeugt eine sub Anweisung...Da sollen mal Optimierungen rein   */
 {
     if(cf&&x_t[t&NQ]!='l'&&(qreg||(q->flags&(KONST|DREFOBJ))!=KONST)) ierror(0);
@@ -1110,33 +1176,33 @@ static void sub(FILE *f,struct obj *q,int qreg,struct obj *z,int zreg,int t)
     if(zreg) emit(f,"%s",mregnames[zreg]); else emit_obj(f,z,t);
     emit(f,"\n");
 }
-static void mult(FILE *f,struct obj *q,int qreg,struct obj *z,int zreg, int t,int c,struct IC *p)
+static void mult(FILE *f,obj *q,int qreg,obj *z,int zreg, int t,int c,IC *p)
 /*  erzeugt eine mult Anweisung...Da sollen mal Optimierungen rein  */
 /*  erzeugt auch div/mod etc.                                       */
 {
   int modreg;
   if(!qreg&&(q->flags&(REG|DREFOBJ))==REG) qreg=q->reg;
   if(!zreg&&(z->flags&(REG|DREFOBJ))==REG) zreg=z->reg;
-  if(cf&&!qreg) {qreg=get_reg(f,1,p);move(f,q,0,0,qreg,t);}
+  if(cf&&!qreg) {qreg=get_reg(f,1,p,0);move(f,q,0,0,qreg,t);}
   if((c==MULT||c==DIV||c==MOD)&&CPU<68020&&!cf&&msizetab[t&NQ]==4){
     if(c==MULT){
       /*  ist das mit get_reg(.,.,0) ok? nochmal ueberdenken...   */
       /*  ...die ganze Routine am besten...                       */
       /*  ...es war nicht, deshalb ist es jetzt geaendert         */
       int dx,dy,t1,t2;
-      if(zreg>=d0&&zreg<fp0){
+      if(zreg>=d0&&zreg<=d7){
 	dx=zreg;
       }else{
-	dx=get_reg(f,1,p);
+	dx=get_reg(f,1,p,0);
 	move(f,z,0,0,dx,t);
       }
-      if(qreg>d0&&qreg<fp0&&qreg!=dx){
+      if(qreg>=d0&&qreg<=d7&&qreg!=dx){
 	dy=qreg;
       }else{
-	dy=get_reg(f,1,p);
+	dy=get_reg(f,1,p,0);
 	move(f,q,0,0,dy,t);
       }
-      t1=get_reg(f,1,p);t2=get_reg(f,1,p);
+      t1=get_reg(f,1,p,0);t2=get_reg(f,1,p,0);
       if(t1==dx||t2==dx||t1==dy||t2==dy) ierror(0);
       emit(f,"\tmove.l\t%s,%s\n",mregnames[dx],mregnames[t1]);
       emit(f,"\tmove.l\t%s,%s\n",mregnames[dy],mregnames[t2]);
@@ -1159,6 +1225,7 @@ static void mult(FILE *f,struct obj *q,int qreg,struct obj *z,int zreg, int t,in
       emit(f,"\tmulu.%c\t",x_t[t&NQ]);
     else 
       emit(f,"\tmuls.%c\t",x_t[t&NQ]);
+    if((t&NQ)<=SHORT) cc_set=0;
   }
   if(c==DIV||(c==MOD&&ISHWORD(t))){
     if(t&UNSIGNED){
@@ -1185,13 +1252,13 @@ static void mult(FILE *f,struct obj *q,int qreg,struct obj *z,int zreg, int t,in
     cc_set=0;
   }
 }
-static struct IC *am_freedreg[9],*am_shiftdreg[9];
-static struct IC *am_dist_ic[9],*am_dreg_ic[9],*am_use[9];
+static IC *am_freedreg[9],*am_shiftdreg[9];
+static IC *am_dist_ic[9],*am_dreg_ic[9],*am_use[9];
 /*  am_dist_ic und am_dreg_ic werden auch fuer (ax)+ benutzt    */
 static long am_dist[9],am_dreg[9],am_base[9],am_inc[9],am_skal[9],am_dbase[9];
-#define AMS sizeof(struct AddressingMode)
+#define AMS sizeof(AddressingMode)
 
-static int mopsize(struct IC *p,int reg)
+static int mopsize(IC *p,int reg)
 /*  Liefert die Groesse in Bytes, mit der im IC auf (reg) zugegriffen wird. */
 {
     int c=p->code;
@@ -1239,7 +1306,7 @@ static void mod_reg(int r)
 #endif
 }
 /* return non-zero if IC is implemented by a function call */
-static int islibcall(struct IC *p)
+static int islibcall(IC *p)
 {
   int c=p->code,t=p->typf/NQ;
   if((c==DIV||c==MOD)&&CPU<68020)
@@ -1258,11 +1325,11 @@ static int islibcall(struct IC *p)
   return 0;
 }
 
-static int new_peephole(struct IC *first)
+static int new_peephole(IC *first)
 {
   int localused=0,c,r,t,c2;long sz;
-  struct IC *p,*p2;
-  struct AddressingMode *am;
+  IC *p,*p2;
+  AddressingMode *am;
   for(p=first;p;p=p->next){
     int c=p->code;
     if(!localused){
@@ -1336,7 +1403,7 @@ static int new_peephole(struct IC *first)
       t=(q1typ(p)&NQ);
       sz=zm2l(sizetab[t]);
       r=p->q1.reg;
-      if((sz==1||sz==2||sz==4||sz==8)&&(ISINT(t)||ISPOINTER(t))&&t!=LLONG&&(!(p->q2.flags&REG)||p->q2.reg!=r)&&(!(p->z.flags&REG)||p->z.reg!=r)){
+      if((sz==1||sz==2||sz==4||sz==8)&&(ISINT(t)||ISPOINTER(t))&&t!=LLONG&&(!(p->q2.flags&REG)||p->q2.reg!=r)&&(!(p->z.flags&REG)||p->z.reg!=r)&&(!p->q2.am||p->q2.am->basereg!=r)&&(!p->z.am||p->z.am->basereg!=r)){
 	for(p2=p->next;p2;p2=p2->next){
 	  c2=p2->code;
 	  if(c2==ADDI2P&&(p2->q1.flags&(REG|DREFOBJ))==REG&&p2->q1.reg==r&&(p2->z.flags&(REG|DREFOBJ))==REG&&p2->z.reg==r&&(p2->q2.flags&(KONST|DREFOBJ))==KONST&&!islibcall(p)){
@@ -1357,6 +1424,9 @@ static int new_peephole(struct IC *first)
 	  if((p2->q1.flags&REG)&&p2->q1.reg==r) break;
 	  if((p2->q2.flags&REG)&&p2->q2.reg==r) break;
 	  if((p2->z.flags&REG)&&p2->z.reg==r) break;
+	  if(p2->q1.am&&p2->q1.am->basereg==r) break;
+	  if(p2->q2.am&&p2->q2.am->basereg==r) break;
+	  if(p2->z.am&&p2->z.am->basereg==r) break;
 	}
       }
     }
@@ -1365,7 +1435,7 @@ static int new_peephole(struct IC *first)
       t=(q2typ(p)&NQ);
       sz=zm2l(sizetab[t]);
       r=p->q2.reg;
-      if((sz==1||sz==2||sz==4||sz==8)&&(ISINT(t)||ISPOINTER(t))&&t!=LLONG&&(!(p->q1.flags&REG)||p->q1.reg!=r)&&(!(p->z.flags&REG)||p->z.reg!=r)){
+      if((sz==1||sz==2||sz==4||sz==8)&&(ISINT(t)||ISPOINTER(t))&&t!=LLONG&&(!(p->q1.flags&REG)||p->q1.reg!=r)&&(!(p->z.flags&REG)||p->z.reg!=r)&&(!p->q1.am||p->q1.am->basereg!=r)&&(!p->z.am||p->z.am->basereg!=r)){
 	for(p2=p->next;p2;p2=p2->next){
 	  c2=p2->code;
 	  if(c2==ADDI2P&&(p2->q1.flags&(REG|DREFOBJ))==REG&&p2->q1.reg==r&&(p2->z.flags&(REG|DREFOBJ))==REG&&p2->z.reg==r&&(p2->q2.flags&(KONST|DREFOBJ))==KONST&&!islibcall(p)){
@@ -1386,6 +1456,9 @@ static int new_peephole(struct IC *first)
 	  if((p2->q1.flags&REG)&&p2->q1.reg==r) break;
 	  if((p2->q2.flags&REG)&&p2->q2.reg==r) break;
 	  if((p2->z.flags&REG)&&p2->z.reg==r) break;
+	  if(p2->q1.am&&p2->q1.am->basereg==r) break;
+	  if(p2->q2.am&&p2->q2.am->basereg==r) break;
+	  if(p2->z.am&&p2->z.am->basereg==r) break;
 	}
       }
     }
@@ -1394,7 +1467,7 @@ static int new_peephole(struct IC *first)
       t=(ztyp(p)&NQ);
       sz=zm2l(sizetab[t]);
       r=p->z.reg;
-      if((sz==1||sz==2||sz==4||sz==8)&&(ISINT(t)||ISPOINTER(t))&&t!=LLONG&&(!(p->q1.flags&REG)||p->q1.reg!=r)&&(!(p->q2.flags&REG)||p->q2.reg!=r)){
+      if((sz==1||sz==2||sz==4||sz==8)&&(ISINT(t)||ISPOINTER(t))&&t!=LLONG&&(!(p->q1.flags&REG)||p->q1.reg!=r)&&(!(p->q2.flags&REG)||p->q2.reg!=r)&&(!p->q2.am||p->q2.am->basereg!=r)&&(!p->q1.am||p->q1.am->basereg!=r)){
 	for(p2=p->next;p2;p2=p2->next){
 	  c2=p2->code;
 	  if(c2==ADDI2P&&(p2->q1.flags&(REG|DREFOBJ))==REG&&p2->q1.reg==r&&(p2->z.flags&(REG|DREFOBJ))==REG&&p2->z.reg==r&&(p2->q2.flags&(KONST|DREFOBJ))==KONST&&!islibcall(p)){
@@ -1415,13 +1488,16 @@ static int new_peephole(struct IC *first)
 	  if((p2->q1.flags&REG)&&p2->q1.reg==r) break;
 	  if((p2->q2.flags&REG)&&p2->q2.reg==r) break;
 	  if((p2->z.flags&REG)&&p2->z.reg==r) break;
+	  if(p2->q1.am&&p2->q1.am->basereg==r) break;
+	  if(p2->q2.am&&p2->q2.am->basereg==r) break;
+	  if(p2->z.am&&p2->z.am->basereg==r) break;
 	}
       }
     }
     /* d(ax) (+d(ax,dy)) */
     if((c==ADDI2P||c==SUBIFP)&&isreg(z)&&p->z.reg<=8&&(p->q2.flags&(KONST|DREFOBJ))==KONST){
-      int base,idx;zmax of;struct obj *o;
-      struct IC *idx_ic=0,*free_idx=0,*free_base=0,*use=0;
+      int base,idx=-1;zmax of;obj *o;
+      IC *idx_ic=0,*free_idx=0,*free_base=0,*use=0;
       eval_const(&p->q2.val,p->typf);
       if(c==SUBIFP) of=zmsub(l2zm(0L),vmax); else of=vmax;
       if(CPU>=68020||(zmleq(l2zm(-32768L),vmax)&&zmleq(vmax,l2zm(32767L)))){
@@ -1450,9 +1526,9 @@ static int new_peephole(struct IC *first)
 	    if((p2->q1.flags&REG)&&p2->q1.reg==idx) break;
 	    if((p2->q2.flags&REG)&&p2->q2.reg==idx) break;
 	    if((p2->z.flags&REG)&&p2->z.reg==idx) break;
-	    if(p2->q1.am&&p2->q1.am->dreg==idx) break;
-	    if(p2->q2.am&&p2->q2.am->dreg==idx) break;
-	    if(p2->z.am&&p2->z.am->dreg==idx) break;
+	    if(p2->q1.am&&(p2->q1.am->dreg&127)==idx) break;
+	    if(p2->q2.am&&(p2->q2.am->dreg&127)==idx) break;
+	    if(p2->z.am&&(p2->z.am->dreg&127)==idx) break;
 	    if(c2==ALLOCREG&&p2->q1.reg==idx) break;
 	  }
 
@@ -1532,9 +1608,9 @@ static int new_peephole(struct IC *first)
     }
     /* (ax,dy) (+d(ax,dy)) */
     if(c==ADDI2P&&isreg(q2)&&p->q2.reg>=d0&&isreg(z)&&p->z.reg<=8&&(isreg(q1)||p->q2.reg!=p->z.reg)){
-      int base,idx;struct obj *o;
+      int base,idx;obj *o;
       long dist=0;
-      struct IC *free_idx=0,*free_base=0,*use=0,*off=0;
+      IC *free_idx=0,*free_base=0,*use=0,*off=0;
       r=p->z.reg;idx=p->q2.reg;
       if(isreg(q1)&&p->q1.reg<=8) base=p->q1.reg; else base=r;
       o=0;
@@ -1651,22 +1727,22 @@ static int new_peephole(struct IC *first)
 	eval_const(&p->q2.val,t);
 	ul=zum2ul(vumax);
 	if(ul==2||ul==4||ul==8){
-	  struct AddressingMode *amuse=0;
-	  struct IC *free_src=0,*free_rsrc=0,*use=0;
+	  AddressingMode *amuse=0;
+	  IC *free_src=0,*free_rsrc=0,*use=0;
 	  int src_mod=0;
 	  for(p2=p->next;p2;p2=p2->next){
 	    c2=p2->code;
-	    if(!use&&p2->q1.am&&p2->q1.am->skal==0&&p2->q1.am->dreg==r&&(!p2->q2.am||p2->q2.am->dreg!=r)&&(!p2->z.am||p2->z.am->dreg!=r)&&(!(p2->q2.flags&REG)||p2->q2.flags!=r)&&(!(p2->z.flags&REG)||p2->z.flags!=r)){
+	    if(!use&&p2->q1.am&&p2->q1.am->skal==0&&(p2->q1.am->dreg&127)==r&&(!p2->q2.am||(p2->q2.am->dreg&127)!=r)&&(!p2->z.am||(p2->z.am->dreg&127)!=r)&&(!(p2->q2.flags&REG)||p2->q2.flags!=r)&&(!(p2->z.flags&REG)||p2->z.flags!=r)){
 	      amuse=p2->q1.am;
 	      use=p2;
 	      continue;
 	    }
-	    if(!use&&p2->q2.am&&p2->q2.am->skal==0&&p2->q2.am->dreg==r&&(!p2->q1.am||p2->q1.am->dreg!=r)&&(!p2->z.am||p2->z.am->dreg!=r)&&(!(p2->q1.flags&REG)||p2->q1.flags!=r)&&(!(p2->z.flags&REG)||p2->z.flags!=r)){
+	    if(!use&&p2->q2.am&&p2->q2.am->skal==0&&(p2->q2.am->dreg&127)==r&&(!p2->q1.am||(p2->q1.am->dreg&127)!=r)&&(!p2->z.am||(p2->z.am->dreg&127)!=r)&&(!(p2->q1.flags&REG)||p2->q1.flags!=r)&&(!(p2->z.flags&REG)||p2->z.flags!=r)){
 	      amuse=p2->q2.am;
 	      use=p2;
 	      continue;
 	    }
-	    if(!use&&p2->z.am&&p2->z.am->skal==0&&p2->z.am->dreg==r&&(!p2->q2.am||p2->q2.am->dreg!=r)&&(!p2->q1.am||p2->q1.am->dreg!=r)&&(!(p2->q2.flags&REG)||p2->q2.flags!=r)&&(!(p2->z.flags&REG)||p2->z.flags!=r)){
+	    if(!use&&p2->z.am&&p2->z.am->skal==0&&(p2->z.am->dreg&127)==r&&(!p2->q2.am||(p2->q2.am->dreg&127)!=r)&&(!p2->q1.am||(p2->q1.am->dreg&127)!=r)&&(!(p2->q2.flags&REG)||p2->q2.flags!=r)&&(!(p2->z.flags&REG)||p2->z.flags!=r)){
 	      amuse=p2->z.am;
 	      use=p2;
 	      continue;
@@ -1698,9 +1774,9 @@ static int new_peephole(struct IC *first)
 	    if((p2->q1.flags&REG)&&p2->q1.reg==r) break;
 	    if((p2->q2.flags&REG)&&p2->q2.reg==r) break;
 	    if((p2->z.flags&REG)&&p2->z.reg==r) break;
-	    if(p2->q1.am&&p2->q1.am->dreg==r) break;
-	    if(p2->q2.am&&p2->q2.am->dreg==r) break;
-	    if(p2->z.am&&p2->z.am->dreg==r) break;
+	    if(p2->q1.am&&(p2->q1.am->dreg&127)==r) break;
+	    if(p2->q2.am&&(p2->q2.am->dreg&127)==r) break;
+	    if(p2->z.am&&(p2->z.am->dreg&127)==r) break;
 	    if((p2->z.flags&(REG|DREFOBJ))==REG&&(p->q1.flags&(REG|DREFOBJ))&&p2->z.reg==p->q1.reg)
 	      src_mod=1;
 	  }
@@ -1728,16 +1804,16 @@ static int new_peephole(struct IC *first)
 	if((p2->q1.flags&REG)&&p2->q1.reg==r) break;
 	if((p2->q2.flags&REG)&&p2->q2.reg==r) break;
 	if((p2->z.flags&REG)&&p2->z.reg==r) break;
-	if((am=p2->q1.am)&&(am->basereg==r||am->dreg==r)) break;
-	if((am=p2->q2.am)&&(am->basereg==r||am->dreg==r)) break;
-	if((am=p2->z.am)&&(am->basereg==r||am->dreg==r)) break;
+	if((am=p2->q1.am)&&(am->basereg==r||(am->dreg&127)==r)) break;
+	if((am=p2->q2.am)&&(am->basereg==r||(am->dreg&127)==r)) break;
+	if((am=p2->z.am)&&(am->basereg==r||(am->dreg&127)==r)) break;
       }
     }
   }
 
   return localused;
 }
-static int addressing(struct IC *p)
+static int addressing(IC *p)
 /*  Untersucht ICs auf erweiterte Addresierungsarten    */
 {
     int count,localused=0;
@@ -1803,8 +1879,8 @@ static int addressing(struct IC *p)
 	    mod_reg(zreg);
             if(q1reg==zreg&&isreg(q1)&&am_use[zreg]&&(l==1||l==2||l==4)){
                 if(l==mopsize(am_use[zreg],zreg)&&(am_use[zreg]->code!=CONVERT||zmleq(sizetab[am_use[zreg]->typf2&NQ],sizetab[am_use[zreg]->typf&NQ]))){
-                    struct IC *op=am_use[zreg];
-                    struct obj *o=0;
+                    IC *op=am_use[zreg];
+                    obj *o=0;
                     if(DEBUG&32){ printf("found postincrement:\n");pric2(stdout,op);pric2(stdout,p);}
                     if((op->q1.flags&(REG|DREFOBJ))==(REG|DREFOBJ)&&op->q1.reg==zreg){
                         if(DEBUG&32) printf("q1\n");
@@ -1883,7 +1959,7 @@ static int addressing(struct IC *p)
         }
         if(c==FREEREG){
         /*  wir koennen den Modus tatsaechlich benutzen */
-            struct AddressingMode *am;struct IC *p1,*p2;int dreg,i;
+            AddressingMode *am;IC *p1,*p2;int dreg,i;
             if(DEBUG&32) printf("freereg %s found\n",mregnames[p->q1.reg]);
             if(q1reg>=d0&&q1reg<=d7) {am_freedreg[q1reg-8]=p;if(DEBUG&32) printf("freedreg[%d]=%lx\n",q1reg-8,(long)p);}
             if(q1reg>8) continue;
@@ -2038,12 +2114,18 @@ static int addressing(struct IC *p)
     if(DEBUG&1) printf("%d addressingmodes used, localused=%d\n",count,localused);
     return localused;
 }
-static int alignment(struct obj *o)
+static int alignment(obj *o)
 /*  versucht rauszufinden, wie ein Objekt alignet ist   */
 {
     /*  wenn es keine Variable ist, kann man nichts aussagen    */
     long os;
-    if((o->flags&(DREFOBJ|VAR))!=VAR||o->am) return -1;
+    if(o->am||!(o->flags&VAR)) return -1;
+    if((o->flags&DREFOBJ)){
+      if(!(o->v->flags&NOTTYPESAFE)||!ISPOINTER(o->v->vtyp->flags)||zmeqto(falign(o->v->vtyp->next),l2zm(1L)))
+	return -1;
+      else
+	return 0;
+    }
     if(!o->v) ierror(0);
     os=zm2l(o->val.vmax);
     if(o->v->storage_class==AUTO||o->v->storage_class==REGISTER){
@@ -2054,10 +2136,14 @@ static int alignment(struct obj *o)
             if(!zmleq(l2zm(0L),o->v->offset)) os=os-zm2l(o->v->offset);
              else              os=os-(zm2l(o->v->offset)+zm2l(szof(o->v->vtyp)));
         }
+    }else{
+      if(!(o->v->flags&(TENTATIVE|DEFINED))&&zmeqto(falign(o->v->vtyp),l2zm(1L)))
+	return -1;
     }
+    
     return os&3;
 }
-static void stored0d1(FILE *f,struct obj *o,int t)
+static void stored0d1(FILE *f,obj *o,int t)
 {
   if((o->flags&(REG|DREFOBJ))==REG){
     if(!reg_pair(o->reg,&rp)) ierror(0);
@@ -2081,7 +2167,7 @@ static void stored0d1(FILE *f,struct obj *o,int t)
     }
   }
 }
-static void loadd0d1(FILE *f,struct obj *o,int t)
+static void loadd0d1(FILE *f,obj *o,int t)
 {
   if((o->flags&(REG|DREFOBJ))==REG){
     if(!reg_pair(o->reg,&rp)) 
@@ -2106,7 +2192,7 @@ static void loadd0d1(FILE *f,struct obj *o,int t)
     }
   }
 }
-static void assign(FILE *f,struct IC *p,struct obj *q,struct obj *z,int c,long size,int t)
+static void assign(FILE *f,IC *p,obj *q,obj *z,int c,long size,int t)
 /*  Generiert Code fuer Zuweisungen und PUSH.   */
 {
     /*  auch noch sehr fpu-spezifisch   */
@@ -2123,7 +2209,7 @@ static void assign(FILE *f,struct IC *p,struct obj *q,struct obj *z,int c,long s
 	/*  FP-Konstante->Speicher (evtl. auf zweimal)  */
 	int m,r;unsigned char *ip=(unsigned char *)&q->val.vfloat; /* nicht sehr schoen  */
 	char *s;
-	if(cf&&c==ASSIGN) r=get_reg(f,1,p);
+	if(cf&&c==ASSIGN) r=get_reg(f,1,p,0);
 	if(GAS) s="0x"; else s="$";
 	if(c==PUSH&&(t&NQ)!=FLOAT){
 	  emit(f,"\tmove.l\t#%s%02x%02x%02x%02x,-(%s)\n",s,ip[4],ip[5],ip[6],ip[7],mregnames[sp]);
@@ -2189,7 +2275,7 @@ static void assign(FILE *f,struct IC *p,struct obj *q,struct obj *z,int c,long s
 	    if(!reg_pair(q->reg,&rp)) ierror(0);
 	    r=rp.r2;
 	  }else{
-	    r=get_reg(f,1,p);
+	    r=get_reg(f,1,p,0);
 	    emit(f,"\tmove.l\t");
 	    emit_lword(f,q);
 	    emit(f,",%s\n",mregnames[r]);
@@ -2292,8 +2378,9 @@ static void assign(FILE *f,struct IC *p,struct obj *q,struct obj *z,int c,long s
       emit_obj(f,z,t);
     emit(f,"\n");return;
   }else{
-    int a1,a2,qreg,zreg,dreg,s=size,loops,scratch=0;char *cpstr;
-    struct IC *m;
+    int a1,a2,qreg,zreg,dreg,loops,scratch=0,down=0;char *cpstr;
+    long s=size,osize=size;
+    IC *m;
     for(m=p->next;m&&m->code==FREEREG;m=m->next){
       if(q&&m->q1.reg==q->reg) scratch|=1;
       if(z&&m->q1.reg==z->reg) scratch|=2;
@@ -2301,15 +2388,16 @@ static void assign(FILE *f,struct IC *p,struct obj *q,struct obj *z,int c,long s
     a1=alignment(q);
     if(c!=PUSH)  a2=alignment(z); else a2=0;
     if(a1<0||a2<0) {a1=1;a2=2;}
+    if(p->typf2==2||p->typf2==4) {a1=a2=0;}
     if((c==PUSH||(scratch&1))&&(q->flags&(REG|DREFOBJ))==(REG|DREFOBJ)&&q->reg>=1&&q->reg<=8&&!q->am){
       qreg=q->reg;
       if(c==PUSH&&(a1&1)==0&&(a2&1)==0)
 	emit(f,"\tadd%s.%s\t#%ld,%s\n",quick[s<=8],strshort[s<=32767],(long)s,mregnames[q->reg]);
     }else{
       if(c!=ASSIGN&&!regavailable(0))
-	qreg=pget_reg(f,0,p);
+	qreg=pget_reg(f,0,p,0);
       else
-	qreg=get_reg(f,0,p);
+	qreg=get_reg(f,0,p,0);
       if(c==PUSH&&(a1&1)==0&&(a2&1)==0){
 	q->flags|=D16OFF; 
 	q->val.vmax=zmadd(q->val.vmax,l2zm((long)s));
@@ -2326,36 +2414,39 @@ static void assign(FILE *f,struct IC *p,struct obj *q,struct obj *z,int c,long s
 	zreg=8;
       }else{
 	emit(f,"\tsub%s.%s\t#%ld,%s\n",quick[s<=8],strshort[s<=32767],(long)s,mregnames[sp]);
+	push(size);
+	size=0;
 	if(!regavailable(0))
-	  zreg=pget_reg(f,0,p);
+	  zreg=pget_reg(f,0,p,0);
 	else
-	  zreg=get_reg(f,0,p);
+	  zreg=get_reg(f,0,p,0);
 	emit(f,"\tmove.l\t%s,%s\n",mregnames[sp],mregnames[zreg]);
       }
     }else{
       if((scratch&2)&&(z->flags&(REG|DREFOBJ))==(REG|DREFOBJ)&&z->reg>=1&&z->reg<=8&&!z->am){
 	zreg=z->reg;
       }else{
-	zreg=get_reg(f,0,p);
+	zreg=get_reg(f,0,p,0);
 	emit(f,"\tlea\t");emit_obj(f,z,POINTER);
 	emit(f,",%s\n",mregnames[zreg]);
       }
     }
     /*  wenn Typ==CHAR, dann ist das ein inline_memcpy und wir nehmen   */
     /*  das unguenstigste Alignment an                                  */
-    if((t&NQ)==CHAR){ a1=1;a2=2;}
+    /*if((t&NQ)==CHAR){ a1=1;a2=2;}*/
     
-    if(c==PUSH&&(a1&1)==0&&(a2&1)==0)
+    if(c==PUSH&&(a1&1)==0&&(a2&1)==0){
       cpstr="\tmove.%c\t-(%s),-(%s)\n";
-    else
+      down=1;
+    }else
       cpstr="\tmove.%c\t(%s)+,(%s)+\n";
     
     if((a1&1)&&(a2&1)){emit(f,cpstr,'b',mregnames[qreg],mregnames[zreg]);s--;a1&=~1;a2&=~1;}
     if((a1&2)&&(a2&2)){emit(f,cpstr,'w',mregnames[qreg],mregnames[zreg]);s-=2;a1&=~2;a2&=~2;}
     if(!(a1&1)&&!(a2&1)) loops=s/16-1; else loops=s/4-1;
     if(loops>0){
-      if(c!=ASSIGN&&!regavailable(1)) dreg=pget_reg(f,1,p);
-      else dreg=get_reg(f,1,p);
+      if(c!=ASSIGN&&!regavailable(1)) dreg=pget_reg(f,1,p,0);
+      else dreg=get_reg(f,1,p,0);
       emit(f,"\tmove%s.l\t#%d,%s\n%s%d:\n",quick[loops>=-128&&loops<=127],loops,mregnames[dreg],labprefix,++label);
     }
     if(loops>=0){
@@ -2385,11 +2476,13 @@ static void assign(FILE *f,struct IC *p,struct obj *q,struct obj *z,int c,long s
       s&=3;
       while(s){emit(f,cpstr,'b',mregnames[qreg],mregnames[zreg]);s--;}
     }
+    if(c==PUSH&&qreg==q->reg&&(!(scratch&1))&&!down)
+      emit(f,"\tsub%s.%s\t#%ld,%s\n",quick[osize<=8],strshort[osize<=32767],osize,regnames[qreg]);
     if(c==PUSH) push(size);
   }
   return;
 }
-static int muststore(struct IC *p,int r)
+static int muststore(IC *p,int r)
 {
   if(!regs[r])
     return 0;
@@ -2400,13 +2493,13 @@ static int muststore(struct IC *p,int r)
       return 0;
     if((p->q1.flags&REG)&&p->q1.reg==r)
       return 1;
-    if(p->q1.am&&(p->q1.am->basereg==r||p->q1.am->dreg==r))
+    if(p->q1.am&&(p->q1.am->basereg==r||(p->q1.am->dreg&127)==r))
       return 1;
     if((p->q2.flags&REG)&&p->q2.reg==r)
       return 1;
-    if(p->q2.am&&(p->q2.am->basereg==r||p->q2.am->dreg==r))
+    if(p->q2.am&&(p->q2.am->basereg==r||(p->q2.am->dreg&127)==r))
       return 1;
-    if(p->z.am&&(p->z.am->basereg==r||p->z.am->dreg==r))
+    if(p->z.am&&(p->z.am->basereg==r||(p->z.am->dreg&127)==r))
       return 1;
     if((p->z.flags&REG)&&p->z.reg==r)
       return (p->z.flags&DREFOBJ)!=0;
@@ -2421,7 +2514,7 @@ static int muststore(struct IC *p,int r)
 }
 
 static int store_saveregs;
-static void saveregswfp(FILE *f,struct IC *p,int storefp)
+static void saveregswfp(FILE *f,IC *p,int storefp)
 {
     int dontsave;
     store_saveregs=0;
@@ -2434,12 +2527,12 @@ static void saveregswfp(FILE *f,struct IC *p,int storefp)
     if(dontsave!= a1&&muststore(p,a1)) {emit(f,"\tmove.l\t%s,-(%s)\n",mregnames[a1],mregnames[sp]);push(4);store_saveregs|=8;}
 
 }
-static void restoreregsa(FILE *f,struct IC *p)
+static void restoreregsa(FILE *f,IC *p)
 {
     if(store_saveregs&8) {emit(f,"\tmove.l\t(%s)+,%s\n",mregnames[sp],mregnames[a1]);pop(4);}
     if(store_saveregs&4) {emit(f,"\tmove.l\t(%s)+,%s\n",mregnames[sp],mregnames[a0]);pop(4);}
 }
-static void restoreregsd(FILE *f,struct IC *p)
+static void restoreregsd(FILE *f,IC *p)
 {
     int dontsave;
     if((p->z.flags&(REG|DREFOBJ))==REG) dontsave=p->z.reg; else dontsave=0;
@@ -2452,23 +2545,31 @@ static void restoreregsd(FILE *f,struct IC *p)
       pop(12);
     }
     if(dontsave!=10&&(store_saveregs&2)){
+      if(!GAS&&!PHXASS)
+	emit(f,"\topt\tom-\n");
       if(cf)
         emit(f,"\tmovem.l\t(%s),%s\n\taddq.l\t#4,%s\n",mregnames[sp],mregnames[d1],mregnames[sp]);
       else
 	emit(f,"\tmovem.l\t(%s)+,%s\n",mregnames[sp],mregnames[d1]);
       pop(4);
+      if(!GAS&&!PHXASS)
+	emit(f,"\topt\tom+\n");
     }
     if(dontsave!=d0 &&(store_saveregs&1)){
+      if(!GAS&&!PHXASS)
+	emit(f,"\topt\tom-\n");
       if(cf)
         emit(f,"\tmovem.l\t(%s),%s\n\taddq.l\t#4,%s\n",mregnames[sp],mregnames[d0],mregnames[sp]);
       else
 	emit(f,"\tmovem.l\t(%s)+,%s\n",mregnames[sp],mregnames[d0]);
       pop(4);
+      if(!GAS&&!PHXASS)
+	emit(f,"\topt\tom+\n");
     }
 }
 
 /* emits the low word of a long long object */
-static void emit_lword(FILE *f,struct obj *o)
+static void emit_lword(FILE *f,obj *o)
 {
   if((o->flags&(REG|DREFOBJ))==REG){
     if(!reg_pair(o->reg,&rp)) ierror(0);
@@ -2491,7 +2592,7 @@ static void emit_lword(FILE *f,struct obj *o)
   }
 }
 /* emits the high word of a long long object */
-static void emit_hword(FILE *f,struct obj *o)
+static void emit_hword(FILE *f,obj *o)
 {
   if((o->flags&(REG|DREFOBJ))==REG){
     if(!reg_pair(o->reg,&rp)) ierror(0);
@@ -2507,7 +2608,7 @@ static void emit_hword(FILE *f,struct obj *o)
   }
 }
 /* process ICs with long long; return 1 if IC has been handled */
-static int handle_llong(FILE *f,struct IC *p)
+static int handle_llong(FILE *f,IC *p)
 {
   int c=p->code,r=0,t=p->typf&NU;
   char *libfuncname;
@@ -2600,7 +2701,7 @@ static int handle_llong(FILE *f,struct IC *p)
 	  r=rp.r2;
 	  destreg=1;
 	}else{
-	  r=get_reg(f,1,p);
+	  r=get_reg(f,1,p,0);
 	}
 	loadext(f,r,&p->q1,told);
 	p->q1.flags=REG;
@@ -2626,7 +2727,7 @@ static int handle_llong(FILE *f,struct IC *p)
 	  emit(f,"\tmove.l\t%s,%s\n",mregnames[r],mregnames[rp.r1]);
 	  r=rp.r1;
 	}
-	tmp=get_reg(f,1,p);
+	tmp=get_reg(f,1,p,0);
 	emit(f,"\tmoveq\t#31,%s\n",mregnames[tmp]);
 	emit(f,"\tasr.l\t%s,%s\n",mregnames[tmp],mregnames[r]);
 	if(!destreg){
@@ -2638,8 +2739,8 @@ static int handle_llong(FILE *f,struct IC *p)
       return 1;
     }
     if((tnew&NQ)<LLONG){
-      if(ISHWORD(tnew)<INT&&!isreg(z)){
-	r=get_reg(f,1,p);
+      if((tnew&NQ)<INT&&!isreg(z)){
+	r=get_reg(f,1,p,0);
 	emit(f,"\tmove.l\t");
 	emit_lword(f,&p->q1);
 	emit(f,",%s\n",mregnames[r]);
@@ -2691,7 +2792,7 @@ static int handle_llong(FILE *f,struct IC *p)
       emit(f,"\t%s\t%s\n",sh,mregnames[rp.r1]);
       return 1;
     }
-    r=get_reg(f,1,p);
+    r=get_reg(f,1,p,0);
     emit(f,"\tmove.l\t");
     emit_lword(f,&p->q1);
     emit(f,",%s\n",mregnames[r]);
@@ -2726,11 +2827,11 @@ static int handle_llong(FILE *f,struct IC *p)
     }
     if(!isreg(z)&&compare_objects(&p->q1,&p->z)){
       if(isreg(q2)||(isconst(q2)&&(c==ADD||c==SUB)&&!cf)){
-	if(!r) r=get_reg(f,1,p);
+	if(!r) r=get_reg(f,1,p,0);
 	emit(f,"\t%s\t",sl);
 	emit_lword(f,&p->q2);
       }else{
-	if(!r) r=get_reg(f,1,p);
+	if(!r) r=get_reg(f,1,p,0);
 	emit(f,"\tmove.l\t");
 	emit_lword(f,&p->q2);
 	emit(f,",%s\n",mregnames[r]);
@@ -2747,7 +2848,7 @@ static int handle_llong(FILE *f,struct IC *p)
 	  if(!reg_pair(p->q2.reg,&rp)) ierror(0);
 	  t2=rp.r1;
 	}else{
-	  t2=get_reg(f,1,p);
+	  t2=get_reg(f,1,p,0);
 	  emit(f,"\tmove.l\t");
 	  emit_hword(f,&p->q2);
 	  emit(f,",%s\n",mregnames[t2]);
@@ -2761,7 +2862,7 @@ static int handle_llong(FILE *f,struct IC *p)
 	  emit(f,"\t%s\t",sh);
 	  emit_hword(f,&p->q2);
 	}else{
-	  if(!r) r=get_reg(f,1,p);
+	  if(!r) r=get_reg(f,1,p,0);
 	  emit(f,"\tmove.l\t");
 	  emit_hword(f,&p->q2);
 	  emit(f,",%s\n",mregnames[r]);
@@ -2777,7 +2878,7 @@ static int handle_llong(FILE *f,struct IC *p)
       if(!reg_pair(p->z.reg,&rp)) ierror(0);
       r=rp.r2;
     }else{
-      r=get_reg(f,1,p);
+      r=get_reg(f,1,p,0);
     }
     if(!compare_objects(&p->q1,&p->z)){
       emit(f,"\tmove.l\t");
@@ -2785,7 +2886,7 @@ static int handle_llong(FILE *f,struct IC *p)
       emit(f,",%s\n",mregnames[r]);
     }
     if(c==XOR){
-      t2=get_reg(f,1,p);
+      t2=get_reg(f,1,p,0);
       emit(f,"\tmove.l\t");
       emit_lword(f,&p->q2);
       emit(f,",%s\n",mregnames[t2]);
@@ -2813,7 +2914,7 @@ static int handle_llong(FILE *f,struct IC *p)
 	if(!reg_pair(p->q2.reg,&rp)) ierror(0);
 	t2=rp.r1;
       }else{
-	if(!t2) t2=get_reg(f,1,p);
+	if(!t2) t2=get_reg(f,1,p,0);
 	emit(f,"\tmove.l\t");
 	emit_hword(f,&p->q2);
 	emit(f,",%s\n",mregnames[t2]);
@@ -2844,8 +2945,8 @@ static int handle_llong(FILE *f,struct IC *p)
   if(c==COMPARE){
     int rl,rh,t2;
     comptyp=p->typf;
-    rl=get_reg(f,1,p);
-    rh=get_reg(f,1,p);
+    rl=get_reg(f,1,p,0);
+    rh=get_reg(f,1,p,0);
     emit(f,"\tmove.l\t");
     emit_lword(f,&p->q1);
     emit(f,",%s\n",mregnames[rl]);
@@ -2856,7 +2957,7 @@ static int handle_llong(FILE *f,struct IC *p)
       if(!reg_pair(p->q2.reg,&rp)) ierror(0);
       t2=rp.r1;
     }else{
-      t2=get_reg(f,1,p);
+      t2=get_reg(f,1,p,0);
       emit(f,"\tmove.l\t");
       emit_hword(f,&p->q2);
       emit(f,",%s\n",mregnames[t2]);
@@ -3019,7 +3120,6 @@ int init_cg(void)
     if(A2SCRATCH) {regscratch[a2]=1;ascratch++;}
     if(FP2SCRATCH) {regscratch[fp2]=1;fscratch++;}
 
-
     if(NOA4) regsa[5]=1;
     if(GAS){
         codename="\t.text\n";
@@ -3099,15 +3199,19 @@ int init_cg(void)
     marray[3]="__INTSIZE=32";
 #endif
 
+    marray[4]="__stdargs=__attr(\"__stdargs;\")";
+    marray[5]="__regargs=__attr(\"__regargs;\")";
+    marray[6]="__fp0ret=__attr(\"__fp0ret;\")";
+
     if(FPU==68881){
       sprintf(fpu_macro,"__M68881=1");
-      marray[4]=fpu_macro;
+      marray[7]=fpu_macro;
     }else if(FPU>68000&&FPU<69000){
       sprintf(fpu_macro,"__M68882=1");
-      marray[4]=fpu_macro;
+      marray[7]=fpu_macro;
     }else
-      marray[4]=0;
-    marray[5]=0;
+      marray[7]=0;
+    marray[8]=0;
     target_macros=marray;
 
     if(AMI_SOFTFLOAT&&!optsize){
@@ -3226,11 +3330,12 @@ int init_cg(void)
     return 1;
 }
 
-int freturn(struct Typ *t)
+int freturn(type *t)
 /*  Returns the register in which variables of type t are returned. */
 /*  If the value cannot be returned in a register returns 0.        */
 {
     long l;int tu=t->flags&NQ;
+    if(t->attr&&ISFLOAT(tu)&&FPU>68000&&strstr(t->attr,"__fp0ret;")) return fp0;
     if(tu==FLOAT){
         if(FPU>68000&&!NOFPRETURN)
             return fp0;
@@ -3268,18 +3373,61 @@ int freturn(struct Typ *t)
       return d0d1;
     if(zmleq(szof(t),l2zm(4L))) return d0; else return 0;
 }
-int cost_savings(struct IC *p,int r,struct obj *o)
+int cost_savings(IC *p,int r,obj *o)
 {
   int c=p->code;
-  if(o->flags&VKONST) return INT_MIN;
-  if(o->flags&DREFOBJ){
-    if(r>=1&&r<=8)
-      return 4;
+  if((r==a6||r==d7||r==d6d7)&&!RESERVEREGS) return -1;
+  if(c==SETRETURN&&r==p->z.reg&&!(o->flags&DREFOBJ)) return 3;
+  if(c==GETRETURN&&r==p->q1.reg&&!(o->flags&DREFOBJ)) return 3;
+  if(o->flags&VKONST){
+    int t;
+    if(CPU==68040) return 0;
+    t=o->v->ctyp&NQ;
+    if(ISFLOAT(t)) return 2;
+    if(t==CHAR&&r>=a0&&r<=a7) return INT_MIN;
+    if(t==LLONG) return 0;
+    eval_const(&o->v->cobj.val,t);
+    if(zmeqto(vmax,Z0)) return 0;
+    if(o->flags&DREFOBJ) return 0;
+    if((p->code==ASSIGN&&o==&p->q1)||p->code==PUSH||p->code==SETRETURN){
+      if(p->code==PUSH||(p->z.flags&DREFOBJ)||
+	 ((p->z.flags&VAR)&&(p->z.v->storage_class==STATIC||p->z.v->storage_class==EXTERN))){
+	if(r>=d0&&r<=d7)
+	  return 2;
+	else
+	  return 1;
+      }
+      return 0;
+    }
+    if(c==ADD||c==SUB||c==ADDI2P||c==SUBIFP||c==SUBPFP){
+      if(zmleq(vmax,l2zm(8L))&&zmleq(l2zm(-8L),vmax)) return 0;
+      if(p->flags&EFF_IC) return 0;
+      if(r>=d0&&r<=d7)
+	return 2;
+      else
+	return 1;
+    }
+    if(c==COMPARE){
+      if(r>=d0&&r<=d7)
+	return 2;
+      else
+	return 1;
+    }
+    if(r>=a0&&r<=a7) return INT_MIN;
+    /* TODO: which allocations are useful? */
+    return 0;
   }
-  if((c==ADDI2P||c==SUBIFP||c==ADDRESS)&&(o==&p->q1||o==&p->z)&&r>=1&&r<=8) return 4;
-  if(r>=1&&r<=8){
+  if(o->flags&DREFOBJ){
+    if(r>=a0&&r<=a7){
+      return 4;
+    }
+  }
+  if((c==ADDI2P||c==SUBIFP||c==ADDRESS)&&(o==&p->q1||o==&p->z)&&r>=a0&&r<=a7){
+    return 4;
+  }
+  if(r>=a0&&r<=a7){
     if(o->flags&DREFOBJ) ierror(0);
-    if(c!=GETRETURN&&c!=SETRETURN&&c!=ASSIGN&&c!=PUSH&&c!=TEST&&c!=COMPARE){
+    if(c!=GETRETURN&&c!=SETRETURN&&c!=ASSIGN&&c!=PUSH&&c!=TEST&&c!=COMPARE&&c!=CONVERT){
       if(c==ADDI2P||c==SUBIFP){
 	if(o==&p->q2)
 	  return INT_MIN;
@@ -3290,10 +3438,18 @@ int cost_savings(struct IC *p,int r,struct obj *o)
 	return INT_MIN;
       }
     }
+    if(c==CONVERT&&((p->typf&NQ)==CHAR||(p->typf2&NQ)==CHAR||ISFLOAT(p->typf)||ISFLOAT(p->typf2)))
+      return INT_MIN;
   }
-  if(c==SETRETURN&&r==p->z.reg&&!(o->flags&DREFOBJ)) return 3;
-  if(c==GETRETURN&&r==p->q1.reg&&!(o->flags&DREFOBJ)) return 3;
-  if(c==TEST&&r>=9&&r<=16) return 3;
+
+  if(c==TEST&&r>=d0&&r<=d7){
+    return 3;
+  }
+  if(o==&p->z&&(p->q1.flags&VKONST)){
+    eval_const(&p->q1.v->cobj.val,p->q1.v->ctyp&NQ);
+    if(zmleq(vmax,l2zm(127L))&&zmleq(l2zm(-128L),vmax)&&r>=d0&&r<=d7)
+      return 3;
+  }
   return 2;
 }
 
@@ -3324,7 +3480,7 @@ int regok(int r,int t,int mode)
   return 0;
 }
 
-int dangerous_IC(struct IC *p)
+int dangerous_IC(IC *p)
 /*  Returns zero if the IC p can be safely executed     */
 /*  without danger of exceptions or similar things.     */
 /*  vbcc may generate code in which non-dangerous ICs   */
@@ -3376,7 +3532,7 @@ int must_convert(int o,int t,int const_expr)
     return 1;
 }
 
-void gen_ds(FILE *f,zmax size,struct Typ *t)
+void gen_ds(FILE *f,zmax size,type *t)
 /*  This function has to create <size> bytes of storage */
 /*  initialized with zero.                              */
 {
@@ -3406,7 +3562,7 @@ void gen_align(FILE *f,zmax align)
     }
   }
 }
-void gen_var_head(FILE *f,struct Var *v)
+void gen_var_head(FILE *f,Var *v)
 /*  This function has to create the head of a variable  */
 /*  definition, i.e. the label and information for      */
 /*  linkage etc.                                        */
@@ -3430,8 +3586,8 @@ void gen_var_head(FILE *f,struct Var *v)
   if(v->storage_class==STATIC){
     if(ISFUNC(v->vtyp->flags)) return;
     if(!special_section(f,v)){
-      if(v->clist&&(!constflag||CONSTINDATA||use_sd)&&section!=DATA){emit(f,dataname);if(f) section=DATA;}
-      if(v->clist&&constflag&&!CONSTINDATA&&!use_sd&&section!=CODE){emit(f,codename);if(f) section=CODE;}
+      if(v->clist&&(!constflag||CONSTINDATA/*||use_sd*/)&&section!=DATA){emit(f,dataname);if(f) section=DATA;}
+      if(v->clist&&constflag&&!CONSTINDATA/*&&!use_sd*/&&section!=CODE){emit(f,codename);if(f) section=CODE;}
       if(!v->clist&&section!=BSS){emit(f,bssname);if(f) section=BSS;}
     }
     if(GAS){
@@ -3444,14 +3600,14 @@ void gen_var_head(FILE *f,struct Var *v)
   }
   if(v->storage_class==EXTERN){
     if(GAS){
-      emit(f,"\t.global\t%s%s\n",idprefix,v->identifier);
+      emit(f,"\t.global\t%s%s\n",ISFUNC(v->vtyp->flags)?FUNCPREFIX(v->vtyp):idprefix,v->identifier);
     }else{
-      emit(f,"\tpublic\t%s%s\n",idprefix,v->identifier);
+      emit(f,"\tpublic\t%s%s\n",ISFUNC(v->vtyp->flags)?FUNCPREFIX(v->vtyp):idprefix,v->identifier);
     }
     if(v->flags&(DEFINED|TENTATIVE)){
       if(!special_section(f,v)){
-	if(v->clist&&(!constflag||CONSTINDATA||use_sd)&&section!=DATA){emit(f,dataname);if(f) section=DATA;}
-	if(v->clist&&constflag&&!CONSTINDATA&&!use_sd&&section!=CODE){emit(f,codename);if(f) section=CODE;}
+	if(v->clist&&(!constflag||CONSTINDATA/*||use_sd*/)&&section!=DATA){emit(f,dataname);if(f) section=DATA;}
+	if(v->clist&&constflag&&!CONSTINDATA/*&&!use_sd*/&&section!=CODE){emit(f,codename);if(f) section=CODE;}
 	if(!v->clist&&section!=BSS){emit(f,bssname);if(f) section=BSS;}
       }
       if(GAS){
@@ -3467,7 +3623,7 @@ void gen_var_head(FILE *f,struct Var *v)
   }
   if(v->tattr&(FAR|CHIP)) {if(f) section=-1;newobj=0;}
 }
-void gen_dc(FILE *f,int t,struct const_list *p)
+void gen_dc(FILE *f,int t,const_list *p)
 /*  This function has to create static storage          */
 /*  initialized with const-list p.                      */
 {
@@ -3553,10 +3709,11 @@ static void freereg(int r)
 /*  offset is the size of the stackframe the function   */
 /*  needs for local variables.                          */
 
-void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
+void gen_code(FILE *f,IC *p,Var *v,zmax offset)
 {
   int c,t;char fp[2]="\0\0";
   int act_line=0;char *act_file=0;
+  int shiftisdiv;
   if(DEBUG&1) printf("gen_code()\n");
   for(c=1;c<=MAXR;c++) regs[c]=regsa[c];
   if(!NOPEEPHOLE){
@@ -3602,6 +3759,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
     if(c==NOP) continue;
     cc_set_tst=cc_set;
     cc_typ_tst=cc_typ;
+    shiftisdiv=0;
     if(cc_set_tst&&(DEBUG&512)){emit(f,"; cc_set_tst=");emit_obj(f,cc_set_tst,t);emit(f,"\n");}
     if(cc_set&&(DEBUG&512)){emit(f,"; cc_set=");emit_obj(f,cc_set,t);emit(f,"\n");}
     pushedreg&=16;if(c==RESTOREREGS) pushedreg=0;
@@ -3655,8 +3813,8 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       continue;
     }
     if(c==COMPARE&&isconst(q2)&&!cf&&(t&NQ)!=LLONG){
-      struct case_table *ct=calc_case_table(p,JUMP_TABLE_DENSITY);
-      struct IC *p2;
+      case_table *ct=calc_case_table(p,JUMP_TABLE_DENSITY);
+      IC *p2;
       if(ct&&(ct->num>=JUMP_TABLE_LENGTH||(!isreg(q1)&&ct->num>=JUMP_TABLE_LENGTH/2))){
 	int r,defl,tabl=++label,rts=0,i,ar=0;
 	if(ct->next_ic->code==BRA)
@@ -3805,7 +3963,8 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       if(!regs[p->z.am->basereg]) {pric2(stdout,p);printf("am=%p b=%s,i=%s,o=%ld,s=%d\n",(void*)p->z.am,mregnames[p->z.am->basereg],mregnames[p->z.am->dreg&127],p->z.am->dist,p->z.am->skal);ierror(0);}
       if(p->z.am->dreg&&!regs[p->z.am->dreg&127]) {printf("Register %s:\n",mregnames[p->z.am->dreg&127]);ierror(0);}
     }
-    if((p->q1.flags&REG)&&!regs[p->q1.reg]&&p->code!=MOVEFROMREG){printf("Register %s:\n",mregnames[p->q1.reg]);pric2(stdout,p);terror("illegal use of register");}
+    if((p->q1.flags&REG)&&!regs[p->q1.reg]&&p->code!=MOVEFROMREG){
+      printf("Register %s:\n",mregnames[p->q1.reg]);pric2(stdout,p);terror("illegal use of register");}
     if((p->q2.flags&REG)&&!regs[p->q2.reg]){printf("Register %s:\n",mregnames[p->q2.reg]);pric2(stdout,p);terror("illegal use of register");}
     if((p->z.flags&REG)&&!regs[p->z.reg]&&p->code!=MOVETOREG){printf("Register %s:\n",mregnames[p->z.reg]);pric2(stdout,p);terror("illegal use of register");}
     /*        if((p->q2.flags&REG)&&(p->z.flags&REG)&&p->q2.reg==p->z.reg){pric2(stdout,p);ierror(0);}*/
@@ -3820,7 +3979,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
     if(c==COMPARE&&isconst(q1)){
       eval_const(&p->q1.val,t);
       if(zmeqto(l2zm(0L),vmax)&&zumeqto(ul2zum(0UL),vumax)&&zldeqto(d2zld(0.0),vldouble)){
-	struct IC *bp=p->next;int bc;
+	IC *bp=p->next;int bc;
 	c=p->code=TEST;p->q1=p->q2;p->q2.flags=0;p->q2.am=0;
 	/*  Nachfolgenden Branch umdrehen   */
 	while(bp&&bp->code==FREEREG) bp=bp->next;
@@ -3930,10 +4089,10 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	    if(!zreg&&(t&UNSIGNED)&&!ISHWORD(t))
 	      zreg=p->q1.reg; 
 	    else 
-	      zreg=freg=get_reg(f,2,p);}
-	  if(!zreg) zreg=freg=get_reg(f,2,p);
+	      zreg=freg=get_reg(f,2,p,1);}
+	  if(!zreg) zreg=freg=get_reg(f,2,p,0);
 	  if((to&UNSIGNED)&&x_t[to&NQ]!='l'){
-	    int dreg=get_reg(f,1,p);
+	    int dreg=get_reg(f,1,p,0);
 	    emit(f,"\tmoveq\t#0,%s\n",mregnames[dreg]);
 	    move(f,&p->q1,0,0,dreg,to);
 	    move(f,0,dreg,0,zreg,LONG);
@@ -3950,12 +4109,12 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	      if(isreg(z)) 
 		dreg1=p->z.reg;
 	      else
-		dreg1=get_reg(f,1,p);
+		dreg1=get_reg(f,1,p,0);
 	      if(FPU==68040)
-		dreg2=get_reg(f,1,p);
+		dreg2=get_reg(f,1,p,0);
 	      if(!freg){
 		if(!(isreg(q1)&&p->next&&p->next->code==FREEREG&&p->next->q1.reg==zreg)){
-		  freg=get_reg(f,2,p);
+		  freg=get_reg(f,2,p,1);
 		  emit(f,"\tfmove.x\t%s,%s\n",mregnames[zreg],mregnames[freg]);
 		  zreg=freg;
 		}		
@@ -4000,15 +4159,15 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 		if(isreg(z))
 		  dreg1=p->z.reg;
 		else
-		  dreg1=get_reg(f,1,p);
-		dreg2=get_reg(f,1,p);
+		  dreg1=get_reg(f,1,p,0);
+		dreg2=get_reg(f,1,p,0);
 		emit(f,"\tfmove.l\t%sfpcr,%s\n",rprefix,mregnames[dreg2]);
 		emit(f,"\tmoveq\t#16,%s\n",mregnames[dreg1]);
 		emit(f,"\tor.l\t%s,%s\n",mregnames[dreg2],mregnames[dreg1]);
 		emit(f,"\tand.w\t#-33,%s\n",mregnames[dreg1]);
 		emit(f,"\tfmove.l\t%s,%sfpcr\n",mregnames[dreg1],rprefix);
 	      }else{
-		dreg1=get_reg(f,1,p);
+		dreg1=get_reg(f,1,p,0);
 	      }
 	      if((t&UNSIGNED)&&ISHWORD(t)){
 		emit(f,"\tfmove.l\t%s,%s\n",mregnames[zreg],mregnames[dreg1]);
@@ -4025,14 +4184,14 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 		if(!isreg(q1)||p->q1.reg!=zreg){
 		  emit(f,"\tfintrz.x\t%s\n",mregnames[zreg]);
 		}else{
-		  int nreg=get_reg(f,2,p);
+		  int nreg=get_reg(f,2,p,1);
 		  emit(f,"\tfintrz.x\t%s,%s\n",mregnames[zreg],mregnames[nreg]);
 		  zreg=nreg;
 		}
 	      }
 	      if((t&UNSIGNED)&&ISHWORD(t)){
 		int r;
-		if(isreg(z)) r=p->z.reg; else r=get_reg(f,1,p);
+		if(isreg(z)) r=p->z.reg; else r=get_reg(f,1,p,0);
 		move(f,0,zreg,0,r,LONG);
 		move(f,0,r,&p->z,0,t);
 	      }else{
@@ -4146,8 +4305,11 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       }
       if((to&NQ)<(t&NQ)){
 	int zreg;
-	if(isreg(z)&&p->z.reg>=d0&&p->z.reg<=d7)
-	  zreg=p->z.reg; else zreg=get_reg(f,1,p);
+	if(isreg(z)&&p->z.reg>=d0&&p->z.reg<=d7){
+	  zreg=p->z.reg;
+	}else{
+	  zreg=get_reg(f,1,p,0);
+	}
 	if(sizetab[t&NQ]!=sizetab[LONG]||sizetab[to&NQ]!=sizetab[LONG]){
 	  /*  aufpassen, falls unsigned und Quelle==Ziel  */
 	  if((to&UNSIGNED)&&isreg(q1)&&zreg==p->q1.reg){
@@ -4210,7 +4372,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       int zreg;
       if(ISFLOAT(t)){
 	if(FPU>68000){
-	  if(isreg(z)) zreg=p->z.reg; else zreg=get_reg(f,2,p);
+	  if(isreg(z)) zreg=p->z.reg; else zreg=get_reg(f,2,p,1);
 	  emit(f,"\tfneg.");
 	  if(isreg(q1)) emit(f,"x\t%s",mregnames[p->q1.reg]);
 	  else    {emit(f,"%c\t",x_t[t&NQ]);emit_obj(f,&p->q1,t);}
@@ -4245,7 +4407,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	continue;
       }
       if(isreg(z)&&p->z.reg>=d0/*&&p->z.reg<=d7*/)
-	zreg=p->z.reg; else zreg=get_reg(f,1,p);
+	zreg=p->z.reg; else zreg=get_reg(f,1,p,1);
       if(!isreg(q1)||p->q1.reg!=zreg){
 	move(f,&p->q1,0,0,zreg,t);
       }
@@ -4395,7 +4557,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       cc_set=&p->q1;cc_typ=t;
       comptyp=t;
       if(cc_set_tst&&t==cc_typ_tst){
-	struct IC *branch;
+	IC *branch;
 	if(t&UNSIGNED){
 	  branch=p->next;
 	  while(branch&&(branch->code<BEQ||branch->code>BGT))
@@ -4415,7 +4577,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       if(CPU<68020&&isreg(q1)&&p->q1.reg>=1&&p->q1.reg<=8){
 	/*  tst ax gibt es nicht bei <68000 :-( */
 	if(regavailable(1)){
-	  emit(f,"\tmove.%c\t%s,%s\n",x_t[t&NQ],mregnames[p->q1.reg],mregnames[get_reg(f,1,p)]);
+	  emit(f,"\tmove.%c\t%s,%s\n",x_t[t&NQ],mregnames[p->q1.reg],mregnames[get_reg(f,1,p,0)]);
 	}else{
 	  emit(f,"\tcmp.%c\t#0,%s\n",cf?'l':'w',mregnames[p->q1.reg]);
 	}
@@ -4423,7 +4585,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       }
       if(ISFLOAT(t)&&FPU<=68000){
 	/*  nicht sehr schoen   */
-	int result=get_reg(f,1,p);
+	int result=get_reg(f,1,p,0);
 	if(!OLD_SOFTFLOAT) ierror(0);
 	saveregs(f,p);
 	assign(f,p,&p->q1,0,PUSH,msizetab[t&NQ],t);
@@ -4443,7 +4605,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       if(isreg(q1)&&p->q1.reg>=fp0&&p->q1.reg<=fp7){
 	emit(f,"\tftst.x\t%s\n",mregnames[p->q1.reg]);
       }else if(p->q1.flags&(VARADR|KONST)){
-	int r=get_reg(f,1,p);
+	int r=get_reg(f,1,p,0);
 	emit(f,"\tmove.%c\t",x_t[t&NQ]);
 	emit_obj(f,&p->q1,t);
 	emit(f,",%s\n",mregnames[r]);
@@ -4462,7 +4624,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
     if(c==ADDRESS){
       int zreg;
       if(isreg(z)&&p->z.reg>=1&&p->z.reg<=8)
-	zreg=p->z.reg; else zreg=get_reg(f,0,p);
+	zreg=p->z.reg; else zreg=get_reg(f,0,p,0);
       emit(f,"\tlea\t");emit_obj(f,&p->q1,t);
       emit(f,",%s\n",mregnames[zreg]);
       if(!isreg(z)||p->z.reg!=zreg){
@@ -4475,7 +4637,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       comptyp=t;
       if(isconst(q1)||isreg(q2)){
 	/*  evtl. Argumente von cmp und nachfolgendes bcc umdrehen  */
-	struct IC *n;struct obj m;
+	IC *n;obj m;
 	n=p->next;
 	while(n){
 	  if(n->code>=BEQ&&n->code<BRA){
@@ -4501,7 +4663,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	  if(isreg(q1)&&p->q1.reg>=fp0){
 	    zreg=p->q1.reg;
 	  }else{
-	    zreg=get_reg(f,2,p);
+	    zreg=get_reg(f,2,p,0);
 	    move(f,&p->q1,0,0,zreg,t);
 	  }
 	  if(isreg(q2)){emit(f,"\tfcmp.x\t%s,%s\n",mregnames[p->q2.reg],mregnames[zreg]);continue;}
@@ -4510,7 +4672,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	  continue;
 	}else{
 	  /*  nicht sehr schoen   */
-	  int result=get_reg(f,1,p);
+	  int result=get_reg(f,1,p,0);
 	  if(!OLD_SOFTFLOAT) ierror(0);
 	  saveregs(f,p);
 	  assign(f,p,&p->q2,0,PUSH,msizetab[t&NQ],t);
@@ -4530,14 +4692,14 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	}
       }
       if(cf&&x_t[t&NQ]!='l'){
-	if(isreg(q1)) zreg=p->q1.reg; else zreg=get_reg(f,1,p);
+	if(isreg(q1)) zreg=p->q1.reg; else zreg=get_reg(f,1,p,0);
 	loadext(f,zreg,&p->q1,t);
 	if(isconst(q2)){
 	  emit(f,"\tcmp.l\t");
 	  emit_obj(f,&p->q2,t);
 	}else{
 	  int r;
-	  if(isreg(q2)) r=p->q2.reg; else r=get_reg(f,1,p);
+	  if(isreg(q2)) r=p->q2.reg; else r=get_reg(f,1,p,0);
 	  loadext(f,r,&p->q2,t);
 	  emit(f,"\tcmp.l\t%s",mregnames[r]);
 	}
@@ -4552,7 +4714,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       if(isreg(q1)){
 	zreg=p->q1.reg;
       }else{
-	zreg=get_reg(f,1,p);    /* hier evtl. auch Adressregister nehmen */
+	zreg=get_reg(f,1,p,1);    /* hier evtl. auch Adressregister nehmen */
 	move(f,&p->q1,0,0,zreg,t);
       }
       emit(f,"\tcmp.%c\t",x_t[t&NQ]);emit_obj(f,&p->q2,t);
@@ -4565,7 +4727,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       /*  hier die zweite Alternative mit isreg() schreiben?  */
       if((((p->q2.flags&REG)&&(p->z.flags&REG)&&p->q2.reg==p->z.reg&&(!(p->q1.flags&REG)||p->q1.reg!=p->z.reg))||
 	 (compare_objects(&p->q2,&p->z)&&!compare_objects(&p->q1,&p->z)))){
-	struct obj m;
+	obj m;
 	if(c==ADDI2P&&x_t[t&NQ]=='l'){
 	  m=p->q1;p->q1=p->q2;p->q2=m;
 	}else{
@@ -4575,7 +4737,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	    emit(f,"\tneg.%c\t",x_t[t&NQ]);
 	    emit_obj(f,&p->q1,t);emit(f,"\n");
 	  }else{
-	    zreg=get_reg(f,0,p);
+	    zreg=get_reg(f,0,p,0);
 	  }
 	}
       }
@@ -4618,7 +4780,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	if(isreg(q2)&&p->q2.reg>=9&&p->q2.reg<=16){
 	  r=p->q2.reg;
 	}else{
-	  r=get_reg(f,1,p);
+	  r=get_reg(f,1,p,0);
 	  move(f,&p->q2,0,0,r,t);
 	}
 	if(x_t[t&NQ]!='l'&&(!isreg(z)||p->z.reg<1||p->z.reg>8)){
@@ -4647,7 +4809,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       if(isreg(z)&&zreg==-1&&p->z.reg>=1&&p->z.reg<=d7)
 	zreg=p->z.reg; 
       else 
-	zreg=get_reg(f,0,p);
+	zreg=get_reg(f,0,p,0);
       /*  Spezialfall, falls Ziel Datenregister und short */
       /*  nicht schoen, aber auf die Schnelle...          */
       if(x_t[t&NQ]!='l'&&zreg>8){
@@ -4677,6 +4839,12 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       }
       continue;
     }
+    if((c>=OR&&c<=AND)||c==MULT||c==ADD){
+      if(!isreg(q1)&&!isreg(z)&&isreg(q2)){
+	obj o;
+	o=p->q1;p->q1=p->q2;p->q2=o;
+      }
+    }
     switch_IC(p);
     if((c>=OR&&c<=AND)||(c>=LSHIFT&&c<=MOD)){
       int zreg,q1reg,q2reg;
@@ -4684,7 +4852,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	 (!(p->q1.flags&REG)||!(p->z.flags&REG)||p->q1.reg!=p->z.reg)&&
 	 (!(p->q1.flags&VAR)||!(p->z.flags&VAR)||p->q1.v!=p->z.v)&&
 	 ((c>=OR&&c<=AND)||c==ADD||c==MULT)){
-	struct obj o;
+	obj o;
 	if(c==MULT){
 	  eval_const(&p->q2.val,t);
 	  if(zmleq(l2zm(0L),vmax)&&zumleq(ul2zum(0UL),vumax)&&!pof2(vumax)){
@@ -4699,12 +4867,12 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       if(ISFLOAT(t)){
 	if(FPU>68000){
 	  if(compare_objects(&p->q2,&p->z)&&!compare_objects(&p->q2,&p->q1)){
-	    struct obj m;
+	    obj m;
 	    if(c==ADD||c==MULT){
 	      m=p->q1;p->q1=p->q2;p->q2=m;
 	    }else{
 	      if(isreg(q2)){
-		int tmp=get_reg(f,2,p);
+		int tmp=get_reg(f,2,p,0);
 		move(f,&p->q2,0,0,tmp,t);
 		p->q2.reg=tmp;
 		p->q2.flags=REG;
@@ -4714,7 +4882,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	  if(isreg(z)&&p->z.reg>=fp0)
 	    zreg=p->z.reg;
 	  else 
-	    zreg=get_reg(f,2,p);
+	    zreg=get_reg(f,2,p,1);
 	  if(!isreg(q1)||p->q1.reg!=p->z.reg)
 	    move(f,&p->q1,0,0,zreg,t);
 	  emit(f,"\tf%s.",ename[c]);
@@ -4749,7 +4917,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	  continue;
 	}
       }
-      if((c==MULT||((c==DIV||c==MOD)&&(p->typf&UNSIGNED)))&&isconst(q2)){
+      if(((c==MULT||c==DIV)||(c==MOD&&(p->typf&UNSIGNED)))&&isconst(q2)){
 	/*  ersetzt mul etc. mit Zweierpotenzen     */
 	/*  hier evtl. noch Fehler                  */
 	long ln;
@@ -4761,7 +4929,11 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	      p->code=AND;
 	    }else{
 	      vmax=l2zm(ln-1);
-	      if(c==DIV) p->code=RSHIFT; else p->code=LSHIFT;
+	      if(c==DIV){
+		p->code=RSHIFT;
+		shiftisdiv=1;
+	      }else
+		p->code=LSHIFT;
 	    }
 	    c=p->code;
 	    gval.vmax=vmax;
@@ -4809,7 +4981,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       }
       /*  hier die zweite Alternative mit isreg() schreiben?  */
       if(compare_objects(&p->q2,&p->z)&&!compare_objects(&p->q2,&p->q1)){
-	struct obj m;
+	obj m;
 	if((c>=OR&&c<=AND)||c==ADD||c==SUB){
 	  if(c!=SUB){
 	    m=p->q1;p->q1=p->q2;p->q2=m;
@@ -4828,7 +5000,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	  int r;
 	  if(isconst(q2)&&(!cf||isreg(z)||((c==ADD||c==SUB)&&isquickkonst2(&p->q2.val,t&NQ)))){
 	    if(cf&&((t&NQ)==CHAR||ISHWORD(t))){
-	      if(isreg(q1)) r=p->q1.reg; else r=get_reg(f,1,p);
+	      if(isreg(q1)) r=p->q1.reg; else r=get_reg(f,1,p,1);
 	      loadext(f,r,&p->q1,t);
 	      emit(f,"\t%s.l\t",ename[c]);
 	      emit_obj(f,&p->q2,t);
@@ -4846,7 +5018,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	  }
 	  if(!isreg(z)&&(!cf||x_t[t&NQ]=='l')){
 	    if(isreg(q2)&&p->q2.reg>=d0&&p->q2.reg<=d7)
-	      r=p->q2.reg; else r=get_reg(f,1,p);
+	      r=p->q2.reg; else r=get_reg(f,1,p,0);
 	    if(!isreg(q2)||p->q2.reg!=r){
 	      move(f,&p->q2,0,0,r,t);
 	    }
@@ -4864,7 +5036,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	  int t2=q2typ(p)&NU;
 	  eval_const(&p->q2.val,t2);
 	  if(c==XOR||!isconst(q2)||!isquickkonst2(&p->q2.val,t2)){
-	    q2reg=get_reg(f,1,p);
+	    q2reg=get_reg(f,1,p,0);
 	    move(f,&p->q2,0,0,q2reg,t2);
 	  }else q2reg=0;
 	}else{
@@ -4873,9 +5045,10 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       }
       if(c==MOD&&!ISHWORD(t)){
 	int modreg;
-	modreg=get_reg(f,1,p);
 	if(isreg(z)&&p->z.reg>=d0&&p->z.reg<=d7&&p->z.reg!=q2reg)
-	  zreg=p->z.reg; else zreg=get_reg(f,1,p);
+	  zreg=p->z.reg; else zreg=get_reg(f,1,p,0);
+	modreg=get_reg(f,1,p,1);
+	if(modreg==zreg) modreg=get_reg(f,1,p,0);
 	move(f,&p->q1,0,0,modreg,t);
 	if(0 /*CPU==68060*/){
 	  /*  div?l.l wird da emuliert?   */
@@ -4891,7 +5064,7 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	continue;
       }
       if(isreg(z)&&p->z.reg>=d0&&p->z.reg<=d7&&(p->z.reg!=q2reg||(isreg(q1)&&p->q1.reg==q2reg)))
-	zreg=p->z.reg; else zreg=get_reg(f,1,p);
+	zreg=p->z.reg; else zreg=get_reg(f,1,p,1);
       if(isreg(q1)&&p->q1.reg>=d0&&p->q1.reg<=d7)
 	q1reg=p->q1.reg; else q1reg=0;
       if(q1reg!=zreg){
@@ -4907,6 +5080,16 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 	    emit(f,"\tand.l\t#255,%s\n",mregnames[zreg]);
 	  else if(cf&&(t&NU)==(UNSIGNED|SHORT))
 	    emit(f,"\tand.l\t#65535,%s\n",mregnames[zreg]);
+	}
+	if(shiftisdiv&&!(t&UNSIGNED)){
+	  unsigned long l;
+	  eval_const(&p->q2.val,p->typf2);
+	  l=(1<<zum2ul(vumax))-1;
+	  if(isreg(q1)&&p->q1.reg==zreg)
+	    emit(f,"\ttst.%c\t%s\n",x_t[t&NQ],mregnames[zreg]);
+	  emit(f,"\tbge\t%s%d\n",labprefix,++label);
+	  emit(f,"\tadd%s.%c\t#%ld,%s\n",(l<=7?"q":""),x_t[t&NQ],l,mregnames[zreg]);
+	  emit(f,"%s%d:\n",labprefix,label);
 	}
 	if(c==RSHIFT&&!(t&UNSIGNED))
 	  emit(f,"\tasr.%c\t",cf?'l':x_t[t&NQ]);
@@ -4945,7 +5128,9 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
 /*FIXME*/
 int shortcut(int code,int typ)
 {
-  if(!cf&&(code==COMPARE||code==ADD||code==SUB)) return(1);
+  if(!cf&&(code==COMPARE||code==ADD||code==SUB||code==AND||code==OR||code==XOR)) return(1);
+  if(!cf&&code==MULT&&(typ&NQ)!=CHAR) return 1;
+
   return 0;
 }
 void init_db(FILE *f)
@@ -4984,9 +5169,9 @@ void cleanup_cg(FILE *f)
    the optimizer should hesitate to modifz such instructions if it's not
    a definite win */
 
-static int is_single_eff_ic(struct IC *p)
+static int is_single_eff_ic(IC *p)
 {
-  struct Var *v;
+  Var *v;
   if(p->code!=ADDI2P&&p->code!=SUBIFP)
     return 0;
   if(!isconst(q2)){
@@ -5033,7 +5218,7 @@ static int is_single_eff_ic(struct IC *p)
 }
 void mark_eff_ics(void)
 {
-  struct IC *p;
+  IC *p;
   for(p=first_ic;p;p=p->next){
     if(is_single_eff_ic(p))
       p->flags|=EFF_IC;
@@ -5042,7 +5227,7 @@ void mark_eff_ics(void)
   }
 }
 
-int reg_pair(int r,struct rpair *p)
+int reg_pair(int r,rpair *p)
      /* Returns 0 if the register is no register pair. If r  */
      /* is a register pair non-zero will be returned and the */
      /* structure pointed to p will be filled with the two   */
@@ -5169,10 +5354,20 @@ char *use_libcall(int c,int t,int t2)
   return ret;
 }
 
-int reg_parm(struct reg_handle *p,struct Typ *t,int mode,struct Typ *fkt)
+
+int reg_parm(treg_handle *p,type *t,int mode,type *fkt)
 {
   int f;
-  if(!FASTCALL) return 0;
+
+  if(!fkt||fkt->flags!=FUNKT)
+    ierror(0);
+
+  if(!fkt->next)
+    ierror(0);
+
+  if(stdargs(fkt))
+     return 0;
+
   f=t->flags&NQ;
   if(mode||f==LLONG||!ISSCALAR(f))
     return 0;
@@ -5192,4 +5387,24 @@ int reg_parm(struct reg_handle *p,struct Typ *t,int mode,struct Typ *fkt)
     return 0;
   else
     return d0+p->dr++;
+}
+
+int handle_pragma(const char *s)
+{
+  if(!strncmp("stdargs-on",s,10)){
+    add_stdargs=1;
+    return 1;
+  }
+  if(!strncmp("stdargs-off",s,11)){
+    add_stdargs=0;
+    return 1;
+  }
+  return 0;
+}
+
+void add_var_hook_pre(const char *identifier, type *t, int storage_class,const_list *clist)
+{
+  if(!add_stdargs) return;
+  if(ISFUNC(t->flags))
+    add_attr(&t->next->attr,"__stdargs");
 }
