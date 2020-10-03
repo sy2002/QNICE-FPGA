@@ -4,10 +4,10 @@
  *
  * Maze is displayed on the VGA screen.
  * Keyboard controls are:
- *   UP    : w, k
- *   DOWN  : s, j
- *   LEFT  : a, h
- *   RIGHT : d, l
+ *   UP    : w
+ *   DOWN  : s
+ *   LEFT  : a
+ *   RIGHT : d
  *
  * done by MJoergen in August 2020
  */
@@ -25,13 +25,25 @@
 // east, while there are blocking walls to the south and the west.
 char grid[MAX_SQUARES];
 
+int init = 0;
+
+// Level 1 shows everything
+// Level 2 shows the squares alreay visited
+// Level 3 shows only the current square
+int level = 1;
+
+int curSq;
+int endSq;
+int hint = 0;
+
 enum
 {
    DIR_NORTH = 0,
    DIR_EAST,
    DIR_WEST,
    DIR_SOUTH,
-   MAX_DIRS
+   MAX_DIRS,
+   VISITED = 7
 };
 
 #define GetRow(sq)	(sq % MAX_ROWS)
@@ -58,16 +70,28 @@ static void DrawPos(int sq)
    char row = 1 + 2*GetRow(sq);
    char g = grid[sq];
 
-   cputcxy(col,   row,   wall);
-   cputcxy(col,   row+2, wall);
-   cputcxy(col+2, row+2, wall);
-   cputcxy(col+2, row,   wall);
-   cputcxy(col+1, row,   (g&(1<<DIR_NORTH)) ? ' ' : wall);
-   cputcxy(col+2, row+1, (g&(1<<DIR_EAST))  ? ' ' : wall);
-   cputcxy(col,   row+1, (g&(1<<DIR_WEST))  ? ' ' : wall);
-   cputcxy(col+1, row+2, (g&(1<<DIR_SOUTH)) ? ' ' : wall);
-   cputcxy(col+1, row+1, ' ');   // Place cursor at centre of square.
+   if ((level == 1) ||
+      ((level == 2) && (g&(1<<VISITED))) ||
+      ((level == 3) && (sq == curSq)) ||
+      ((hint == 1) && (sq == endSq)))
+   {
+      cputcxy(col,   row,   wall);
+      cputcxy(col,   row+2, wall);
+      cputcxy(col+2, row+2, wall);
+      cputcxy(col+2, row,   wall);
+      cputcxy(col+1, row,   (g&(1<<DIR_NORTH)) ? ' ' : wall);
+      cputcxy(col+2, row+1, (g&(1<<DIR_EAST))  ? ' ' : wall);
+      cputcxy(col,   row+1, (g&(1<<DIR_WEST))  ? ' ' : wall);
+      cputcxy(col+1, row+2, (g&(1<<DIR_SOUTH)) ? ' ' : wall);
+      if (sq == endSq)
+         cputcxy(col+1, row+1, '*');
+      else if (sq == curSq)
+         cputcxy(col+1, row+1, '@');
+      else
+         cputcxy(col+1, row+1, ' ');
+   }
 } // end of DrawPos
+
 
 static void pause()
 {
@@ -78,6 +102,7 @@ static void pause()
       my_rand();
    }
 } // end of pause
+
 
 // Generate maze
 static void InitMaze(void)
@@ -134,75 +159,108 @@ static void InitMaze(void)
          }
       }
    }
+
+   curSq = MAX_SQUARES - 1;
+   grid[curSq] |= 1<<VISITED;
+
+   do
+   {
+      endSq = GetRandomSquare();
+   } while (GetRow(endSq) >= MAX_ROWS/2 || GetCol(endSq) >= MAX_COLS/2);
 } // end of InitMaze
 
 
-static void playGame()
+static void gameInit()
 {
-   /* Set start square to lower right corner */
-   int curSq = MAX_SQUARES - 1;
+   my_srand(time());    // Seed random number generator.
+   clrscr();
+   cputsxy(1, 10, "Welcome to this aMAZEing game!\0");
+   cputsxy(1, 12, "Press 123 to change the level of the game.\0");
+   cputsxy(1, 13, "Press g to generate a new maze.\0");
+   cputsxy(1, 14, "Move around with the keys WASD.\0");
+   cputsxy(1, 15, "Press r to reset the current maze.\0");
+   cputsxy(1, 16, "Press h to get a hint.\0");
+   cputsxy(1, 17, "Press q to quit the game.\0");
+} // end of gameInit
 
-   while (curSq >= 0)
+
+static void ShowMaze()
+{
+   clrscr();
+   for (int sq=0; sq<MAX_SQUARES; ++sq)
    {
-      int dir;
+      DrawPos(sq);
+   }
+} // end of ShowMaze
 
+
+static void playerUpdate(int dir)
+{
+   if (!init)
+      return;
+
+   if (grid[curSq] & (1<<dir))   // Check if move is allowed.
+   {
+      curSq += offset[dir];
+      grid[curSq] |= 1<<VISITED;
+   }
+
+   if (curSq == endSq)
+   {
+      ShowMaze();
+      cputsxy(1, 38, "You escaped!\0");
+   }
+} // end of playerUpdate
+
+static void ResetMaze()
+{
+   for (int sq=0; sq<MAX_SQUARES; ++sq)
+   {
+      grid[sq] &= ~(1<<VISITED);
+   }
+   curSq = MAX_SQUARES - 1;
+   grid[curSq] |= 1<<VISITED;
+} // end of ResetMaze
+
+
+static int gameUpdate()
+{
+   if (init)
+   {
+      ShowMaze();
       DrawPos(curSq);
+   }
 
-      // Set cursor at current position.
-      cputcxy(2+GetCol(curSq)*2, 2+GetRow(curSq)*2, curSq ? '@' : '*');
-      gotoxy(2+GetCol(curSq)*2, 2+GetRow(curSq)*2);
+   hint = 0;
+   switch (cgetc())
+   {
+      case '1' : level = 1; break;
+      case '2' : level = 2; break;
+      case '3' : level = 3; break;
+      case 'g' : clrscr(); InitMaze(); ShowMaze(); init = 1; break;
+      case 'r' : ResetMaze(); break;
+      case 'h' : hint = 1; break;
 
-      if (!curSq)
-      {
-         cputsxy(1, 38, "You escaped!\0");
-         return;
-      }
+      case 'w' : playerUpdate(DIR_NORTH); break;
+      case 's' : playerUpdate(DIR_SOUTH); break;
+      case 'd' : playerUpdate(DIR_EAST); break;
+      case 'a' : playerUpdate(DIR_WEST); break;
 
-      // Get input direction from user.
-      dir = MAX_DIRS;
-      switch (cgetc())
-      {
-         case 'w': case 'k': dir = DIR_NORTH; break;
-         case 's': case 'j': dir = DIR_SOUTH; break;
-         case 'd': case 'l': dir = DIR_EAST; break;
-         case 'a': case 'h': dir = DIR_WEST; break;
-         case 'q': curSq = -1; break;  // Exit game
-      }
+      case 'q' : cputsxy(1, 38, "GOODBYE!.\0");
+                 return 1;    // End the game.
+   }
 
-      // Clear cursor at current position.
-      cputcxy(2+GetCol(curSq)*2, 2+GetRow(curSq)*2, ' ');
+   return 0; // Keep playing
+} // end of gameUpdate
 
-      if (dir < MAX_DIRS)
-      {
-         if (grid[curSq] & (1<<dir))   // Check if move is allowed.
-         {
-            curSq += offset[dir];
-         }
-      }
-   } // end of while (curSq >= 0)
-} // end of playGame
 
 int main()
 {
-   clrscr();
-   cputsxy(1, 10, "Welcom to this aMAZEing game!\0");
-   cputsxy(1, 12, "Press g to generate a new maze.\0");
-   cputsxy(1, 13, "Move around with the keys wasd or hjkl.\0");
-   cputsxy(1, 14, "Press r to reset the current maze.\0");
-   cputsxy(1, 15, "Press q to quit the game.\0");
-
-   switch (cgetc())
+   gameInit();
+   while (1)
    {
-      case 'g' :
-         my_srand(time());    // Seed random number generator.
-         InitMaze();          // Generate a completely new maze.
-         clrscr();            // Clear screen.
-         playGame();          // Play the game.
+      if (gameUpdate())
          break;
-
-      case 'q' :
-         cputsxy(1, 16, "GOODBYE!.\0");
-         return 0;
    }
 
    return 0;
