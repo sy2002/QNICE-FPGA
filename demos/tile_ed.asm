@@ -535,6 +535,8 @@ STR_HELP_MAIN   .ASCII_P "F1: Sprite F3: Size F5: Clr F7: Font F9: Pal F12: Outp
                 .ASCII_W "XX         XX       XX      XX       XX      XXX         XXXXX        XXXX"
 STR_HELP_FONT   .ASCII_P "F1: Char/Sprite F5: Clear F7: Back SPACE: Paint CRSR: Nav a..p & A..P: Color   `"
                 .ASCII_W "XX              XX        XX       XXXXX        XXXX      X  X   X  X"
+STR_HELP_PAL    .ASCII_P "1|2 Red 3|4 Green 5|6 Blue F1: 24-bit F2: 15-bit F3|F5|F7 R|G|B Values F9: Back `"
+                .ASCII_W "X X     X X       X X      XX         XX         XX XX XX              XX"
 STR_CLR_LEFT    .ASCII_W "                                 "
 STR_CLR_LINE    .ASCII_W "                                                                                "
 STR_CHG_SIZE_X  .ASCII_W "Enter new width (1..44): "
@@ -984,6 +986,11 @@ _FONTED_FGBG2   SYSCALL(leave, 1)
 ; ****************************************************************************
 
 PAL_ED          SYSCALL(enter, 1)
+
+                MOVE    STR_HELP_PAL, R8
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
 
                 MOVE    VGA$STATE, R0           ; cursor off
                 MOVE    VGA$EN_HW_CURSOR, R1
