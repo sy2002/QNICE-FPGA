@@ -740,7 +740,7 @@ static void vga_render_all_sprites(short x_begin, short y_begin, short x_end, sh
                   if (csr & VGA_SPRITE_CSR_MIRROR_Y)
                      ty = 15-y;
 
-                  unsigned int color = palette_convert_24_to_15(sprite_bitmap[bitmap_ptr + ty*16 + tx]);
+                  unsigned int color = palette_convert_15_to_24(sprite_bitmap[bitmap_ptr + ty*16 + tx]);
 
                   if (!(color & VGA_COLOR_BACKGROUND))
                   {
