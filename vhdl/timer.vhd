@@ -11,14 +11,15 @@
 --  0 = PRE: The 100 kHz timer clock is divided by the value stored in
 --           this device register. 100 (which corresponds to 0x0064 in
 --           the prescaler register) yields a 1 millisecond pulse which
---           in turn is fed to the actual counter.
+--           in turn is fed to the actual counter. When 0, the timer
+--           is disabled.
 --  1 = CNT: When the number of output pulses from the prescaler circuit 
 --           equals the number stored in this register, an interrupt will
 --           be generated (if the interrupt address is 0x0000, the
---           interrupt will be suppressed).
+--           interrupt will be suppressed). When 0, the timer is disabled.
 --  2 = INT: This register contains the address of the desired interrupt 
---           service routine. When 0, then the timer stops counting,
---           when being written then the timer is reset and starts counting
+--           service routine. This should always point to a valid ISR,
+--           possibly just an RTI.
 --
 -- done by sy2002 in August & September 2020
 
@@ -104,8 +105,8 @@ begin
    -- writing anything to any register resets the timer and loads the new value
    new_timer_vals <= true when en = '1' and we = '1' else false;
    
-   -- timer is only counting if no register is zero
-   is_counting <= true when reg_int /= x"0000" and reg_pre /= x"0000" and reg_cnt /= x"0000" else false;
+   -- timer is only counting if PRE and CNT are nonzero
+   is_counting <= true when reg_pre /= x"0000" and reg_cnt /= x"0000" else false;
       
    -- nested counting loop: "count PRE times to CNT" 
    count : process(clk)
@@ -163,7 +164,7 @@ begin
    end process;
 
    -- MMIO: read/write registers: PRE, CNT, INT and handle grant_n_i and ISR
-   handle_registers : process(clk, en, we, reg, reset, grant_n_i, reg_pre, reg_cnt, reg_int)
+   handle_register_read : process(en, we, reg, reset, grant_n_i, reg_pre, reg_cnt, reg_int)
    begin
       data_out <= (others => '0');
 
@@ -180,7 +181,10 @@ begin
             when others => null;
          end case;
       end if;      
+   end process;
                           
+   handle_register_write : process(clk)
+   begin
       -- write registers
       if falling_edge(clk) then
          if en = '1' and we = '1' then
@@ -199,4 +203,5 @@ begin
          end if;         
       end if;
    end process;            
+
 end beh;

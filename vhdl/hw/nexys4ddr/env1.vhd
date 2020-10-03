@@ -305,7 +305,7 @@ begin
       
    timer_interrupt : entity work.timer_module
       generic map (
-         CLK_FREQ => 50000000
+         CLK_FREQ => SYSTEM_SPEED
       )
       port map (
          clk => SLOW_CLOCK,

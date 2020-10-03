@@ -1,21 +1,23 @@
 -- Timer Interrupt Generator Module (100 kHz internal base clock)
 -- Contains two Daisy Chained timers
 --
--- meant to be connected with the QNICE CPU as data I/O controled through MMIO
+-- meant to be connected with the QNICE CPU as data I/O controlled through MMIO
 -- and meant to be connected with other interrupt capable devices via a Daisy Chain
 --
--- output goes zero when not enabled
+-- data_out goes zero when not enabled
 -- 
 -- Registers: refer to ../monitor/sysdef.asm for the MMIO addresses
 --
 --  IO$TIMER_x_PRE: The 100 kHz timer clock is divided by the value stored in
 --                  this device register. 100 (which corresponds to 0x0064 in
 --                  the prescaler register) yields a 1 millisecond pulse which
---                  in turn is fed to the actual counter.
+--                  in turn is fed to the actual counter. If zero, no interrupts
+--                  will be generated.
 --  IO$TIMER_x_CNT: When the number of output pulses from the prescaler circuit 
 --                  equals the number stored in this register, an interrupt will
 --                  be generated (if the interrupt address is 0x0000, the
---                  interrupt will be suppressed).
+--                  interrupt will be suppressed). If zero, no interrupts
+--                  will be generated.
 --  IO$TIMER_x_INT: This register contains the address of the desired interrupt 
 --                  service routine.
 --
@@ -33,25 +35,25 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity timer_module is
 generic (
-   CLK_FREQ       : natural;                             -- system clock in Hertz
-   IS_SIMULATION  : boolean := false                     -- is the module running in simulation?
+   CLK_FREQ      : natural;                             -- system clock in Hertz
+   IS_SIMULATION : boolean := false                     -- is the module running in simulation?
 );
 port (
-   clk            : in std_logic;                        -- system clock
-   reset          : in std_logic;                        -- async reset
+   clk           : in std_logic;                        -- system clock
+   reset         : in std_logic;                        -- async reset
    
    -- Daisy Chaining: "left/right" comments are meant to describe a situation, where the CPU is the leftmost device
-   int_n_out     : out std_logic;                        -- left device's interrupt signal input
-   grant_n_in    : in std_logic;                         -- left device's grant signal output
-   int_n_in      : in std_logic;                         -- right device's interrupt signal output
-   grant_n_out   : out std_logic;                        -- right device's grant signal input
+   int_n_out     : out std_logic;                       -- left device's interrupt signal input
+   grant_n_in    : in std_logic;                        -- left device's grant signal output
+   int_n_in      : in std_logic;                        -- right device's interrupt signal output
+   grant_n_out   : out std_logic;                       -- right device's grant signal input
    
    -- Registers
-   en             : in std_logic;                        -- enable for reading from or writing to the bus
-   we             : in std_logic;                        -- write to the registers via system's data bus
-   reg            : in std_logic_vector(2 downto 0);     -- register selector
-   data_in        : in std_logic_vector(15 downto 0);    -- system's data bus
-   data_out       : out std_logic_vector(15 downto 0)    -- system's data bus
+   en            : in std_logic;                        -- enable for reading from or writing to the bus
+   we            : in std_logic;                        -- write to the registers via system's data bus
+   reg           : in std_logic_vector(2 downto 0);     -- register selector
+   data_in       : in std_logic_vector(15 downto 0);    -- system's data bus
+   data_out      : out std_logic_vector(15 downto 0)    -- system's data bus
 );
 end timer_module;
 
