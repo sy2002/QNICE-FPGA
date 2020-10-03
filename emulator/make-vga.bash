@@ -45,7 +45,7 @@ fi
 
 SDL2_LIBS=`sdl2-config --libs`
 
-FILES="qnice.c fifo.c sd.c uart.c vga.c timer.c"
+FILES="qnice.c fifo.c sd.c uart.c vga.c timer.c linenoise.c"
 DEF_SWITCHES="-DUSE_SD -DUSE_UART -DUSE_VGA -DUSE_TIMER"
 UNDEF_SWITCHES="-UUSE_IDE -U__EMSCRIPTEN__"
 if [ $OSTP = "LINUX" ]; then

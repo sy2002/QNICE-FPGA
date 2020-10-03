@@ -4,6 +4,8 @@
 ** done by sy2002 in December 2016 .. January 2017
 ** emscripten/WebGL version in February and March 2020
 **
+** Font GFX, Palettes, Sprites done by MJoergen in August .. October 2020 
+**
 ** Known harmless race-conditions:
 ** In multithreaded native VGA mode, this codes contains some possibilities for
 ** harmless race-conditions: Registers are being read or written by the CPU thread

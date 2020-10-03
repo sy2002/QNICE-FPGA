@@ -13,6 +13,11 @@ WIP MONITOR: New SYSCALLs: in_range_u and in_range_s: checks if the parameter
   is within a given range (unsigned or signed)
   WIP/TODO: signed is still missing
 
+WIP EMULATOR: Supports new VGA features
+
+* EMULATOR: More convenient command line editing, which supports cursor keys,
+  command history and TAB completion of command names
+
 * EMULATOR: Adjusted the standard emulation speed to 13.21 MIPS because this
   is the average Q-TRIS performance. 
 
