@@ -1349,6 +1349,7 @@ int main_loop(char **argv) {
       print_statistics();
   }
 
+  linenoiseHistorySetMaxLen(100);
   linenoiseSetCompletionCallback(tab_completion);
 
   for (;;) {
@@ -1360,7 +1361,6 @@ int main_loop(char **argv) {
     char prompt_buf[20];
     sprintf(prompt_buf, "[%04X] Q> ", gbl$last_address);
 
-    linenoiseHistorySetMaxLen(100);
     char* ln_line = linenoise(prompt_buf);
     if (ln_line) {
         strncpy(command, ln_line, STRING_LENGTH);
