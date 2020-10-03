@@ -27,7 +27,10 @@ end interrupt_controller;
 
 architecture synthesis of interrupt_controller is
 
-   signal enable : std_logic;
+   constant IC_ENABLE : integer := 0;
+   constant IC_BLOCK  : integer := 1;
+
+   signal ic_csr : std_logic_vector(15 downto 0);
 
 begin
 
@@ -35,19 +38,21 @@ begin
    begin
       if rising_edge(clk_i) then
          if en_i = '1' and we_i = '1' and reg_i = "000" then
-            enable <= data_i(0);
+            ic_csr <= data_i;
          end if;
 
          if rst_i = '1' then
-            enable <= '0';
+            ic_csr <= (others => '0');
          end if;
       end if;
    end process p_write;
 
-   data_o <= X"000" & "000" & enable when en_i = '1' and we_i = '0' and reg_i = "000" else
+   data_o <= ic_csr when en_i = '1' and we_i = '0' and reg_i = "000" else
              (others => '0');
 
-   int_n_o <= int_n_i or not enable;
+   int_n_o <= int_n_i when ic_csr(IC_ENABLE) = '1' and ic_csr(IC_BLOCK) = '0' else
+              '1';
+
    grant_n_o <= grant_n_i;
 
 end synthesis;
