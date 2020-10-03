@@ -257,9 +257,9 @@ _start_16bit    MOVE    IO$M65HRAM_DATA16, R2   ; 16-bit data access
                 ; (maybe this is a good moment to switch this test to C)
 
 START_HI        .EQU    0x0033
-START_LO        .EQU    0xE000
-END_HI          .EQU    0x0034
-END_LO          .EQU    0x0010
+START_LO        .EQU    0x3333
+END_HI          .EQU    0x0043
+END_LO          .EQU    0x3333
 
                 MOVE    STR_16BIT_1, R8
                 SYSCALL(puts, 1)

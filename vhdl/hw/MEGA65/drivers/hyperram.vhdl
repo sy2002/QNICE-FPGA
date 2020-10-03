@@ -1,7 +1,7 @@
 -- Original MEGA65 keyboard driver file by Paul Gardner-Stephen
 -- see README.md for details and license
 --
--- Modified for QNICE-FPGA by sy2002 in September 2020
+-- Modified for QNICE-FPGA by sy2002 in October 2020
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -1600,7 +1600,7 @@ begin
         last_current_cache_line_update_all <= current_cache_line_update_all;              
         current_cache_line_address_drive <= current_cache_line_new_address;
         current_cache_line_drive <= current_cache_line_update;
-        current_cache_line_update_flags <= last_current_cache_line_update_flags;
+        last_current_cache_line_update_flags <= current_cache_line_update_flags;
       end if;
 
       -- See if slow_devices is asking for the next 8 bytes.
