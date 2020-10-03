@@ -2,19 +2,21 @@
 
 source ./detect.include
 
-$COMPILER bit2core.c -O3 -o bit2core
-$COMPILER rgb2q.c -o rgb2q -O3 -Wno-format
+C_FLAGS="-Wno-unused-result"
+
+$COMPILER bit2core.c -O3 -o bit2core $C_FLAGS
+$COMPILER rgb2q.c -o rgb2q -O3 -Wno-format $C_FLAGS
 
 TEST_FOR_LIBSERIALPORT=$($LINKER -lserialport 2>&1)
 if [ "$TEST_FOR_LIBSERIALPORT" = "ld: library not found for -lserialport" ]; then
     QTRANSFER_WARNING=1
 else
-    $COMPILER qtransfer.c -o qtransfer -O3 -lserialport
+    $COMPILER qtransfer.c -o qtransfer -O3 -lserialport $C_FLAGS
 fi
 
 cd ..
-$COMPILER assembler/qasm.c -o assembler/qasm
-$COMPILER assembler/qasm2rom.c -o assembler/qasm2rom -std=c99
+$COMPILER assembler/qasm.c -o assembler/qasm $C_FLAGS
+$COMPILER assembler/qasm2rom.c -o assembler/qasm2rom -std=c99 $C_FLAGS
 
 cd monitor
 ./compile_and_distribute.sh 

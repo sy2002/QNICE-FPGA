@@ -1,6 +1,7 @@
 
 # used to create vbcc, vc and ucpp
-CC = gcc -std=c9x -g -DHAVE_AOS4 #-fsanitize=address #-DHAVE_ECPP -DHAVE_MISRA 
+SUPPRESS_WARNINGS=-Wno-parentheses -Wno-comment -Wno-return-type -Wno-invalid-source-encoding
+CC = gcc $(SUPPRESS_WARNINGS) -std=c9x -g -DHAVE_AOS4 #-fsanitize=address #-DHAVE_ECPP -DHAVE_MISRA 
 LDFLAGS = -lm
 
 # native version; used to create dtgen
