@@ -5,6 +5,8 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
+use work.env1_globals.all;
+
 entity til_display is
 port (
    clk               : in std_logic;
