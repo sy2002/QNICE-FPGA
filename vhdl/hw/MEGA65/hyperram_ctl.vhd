@@ -287,10 +287,10 @@ begin
          case hram_reg is
             
             -- read low word of address
-            when x"0" => data_out <= std_logic_vector(hram_address(15 downto 0));
+            when x"0" => data_out <= std_logic_vector(hram_addr_lo_ff);
             
-            -- read (partial) high word of address
-            when x"1" => data_out <= std_logic_vector("00000" & hram_address(26 downto 16));
+            -- read high word of address
+            when x"1" => data_out <= std_logic_vector(hram_addr_hi_ff);
             
             -- read 8-bit data
             when x"2" =>
