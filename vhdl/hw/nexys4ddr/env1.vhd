@@ -132,7 +132,7 @@ signal reset_ctl              : std_logic;
 -- VGA color output
 signal vga_color              : std_logic_vector(14 downto 0);
 
--- 50 MHz as long as we did not solve the timing issues of the register file
+-- Main system clock (CPU & memory & I/O devices)
 signal SLOW_CLOCK             : std_logic := '0';
 
 -- 25 MHz or 25.175 MHz pixelclock for VGA

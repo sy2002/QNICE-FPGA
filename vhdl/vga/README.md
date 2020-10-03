@@ -10,7 +10,7 @@ port on the FPGA. The following is a block diagram:
 
 ![Block diagram](../../doc/VGA_Design.png "Block diagram")
 
-Since the CPU runs at 50 MHz and the VGA output port runs at 25 MHz we have two
+Since the CPU (currently) runs at 50 MHz and the VGA output port runs at 25 MHz we have two
 different clock domains. To avoid timing problems it is convenient to split the
 VGA multicolor module into separate blocks each using only a single clock
 signal. This separation between clock domains is marked in the diagram above by
@@ -23,7 +23,7 @@ blocks:
 * `vga_video_ram`
 
 The first block (`vga_register_map`) connects to the CPU using only the CPU
-clock domain (50 MHz), and the second block (`vga_output`) connects to the VGA
+clock domain (currently 50 MHz), and the second block (`vga_output`) connects to the VGA
 output port using only the VGA clock domain (25 MHz). Only the last block
 (`vga_video_ram`) uses both clock domains. Furthermore, the block named "Clock
 Domain Crossing" is responsible for copying the configuration and status

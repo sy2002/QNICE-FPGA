@@ -36,6 +36,8 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
+use work.env1_globals.all;
+
 entity sdcard is
 port (
    clk      : in std_logic;         -- system clock
@@ -158,6 +160,9 @@ begin
         
    -- SD Card Controller
    sdctl : entity work.sd_controller
+      generic map (
+         clockRate => SYSTEM_SPEED
+      )
       port map (
          -- general signals
 --         clk => Slow_Clock_25MHz,

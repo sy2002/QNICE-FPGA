@@ -1,6 +1,5 @@
 -- Basic UART implementation
 -- 8-N-1, no error state handling, no flow control
--- divisor_i assumes a 50 MHz input clock
 -- heavily inspired by http://www.bealto.com/fpga-uart_intro.html
 -- done by sy2002 in August 2015
 -- Added programmable baud rate by MJoergen in September 2020
@@ -14,10 +13,7 @@ entity basic_uart is
    port (
       clk_i       : in  std_logic;
       reset_i     : in  std_logic;
-      divisor_i   : in  std_logic_vector(11 downto 0);   -- Calculate as 50000000 / BAUD_RATE
-                                                         -- 9600 -> 5208
-                                                         -- 115200 -> 434
-                                                         -- 3125000 -> 16
+      divisor_i   : in  std_logic_vector(11 downto 0);   -- Calculate as clk_i frequency / BAUD_RATE
 
       -- client interface: receive data
       rx_data_o   : out std_logic_vector(7 downto 0); -- received byte

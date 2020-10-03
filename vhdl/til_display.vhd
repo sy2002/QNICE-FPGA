@@ -33,7 +33,7 @@ begin
    disp_7seg : entity work.drive_7digits
       generic map
       (
-         CLOCK_DIVIDER => 100000 -- we are currently @ 50 MHz; 200.000 clock cycles @ 100 MHz = 2ms per digit
+         CLOCK_DIVIDER => SYSTEM_SPEED/500   -- Update frequency of 500 Hz = 2ms per digit
       )
       port map
       (

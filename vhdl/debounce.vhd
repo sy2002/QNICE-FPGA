@@ -24,9 +24,13 @@ LIBRARY ieee;
 USE ieee.std_logic_1164.all;
 USE ieee.std_logic_unsigned.all;
 
+use work.env1_globals.all;
+use work.qnice_tools.all;
+
 ENTITY debounce IS
   GENERIC(
-    counter_size  :  INTEGER := 19); --counter size (19 bits gives 10.5ms with 50MHz clock)
+    -- Target frequency of 100 Hz gives a debounce time of 10 ms.
+    counter_size  :  INTEGER := f_log2(SYSTEM_SPEED/100));
   PORT(
     clk     : IN  STD_LOGIC;  --input clock
     button  : IN  STD_LOGIC;  --input signal to be debounced
