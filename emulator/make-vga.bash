@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ ! -f qnice-vga ]; then
+if [[ ! -f qnice-vga ]] && [[ ! "$1" = "-quiet" ]]; then
     echo "Build the QNICE Emulator with VGA and PS/2 (USB) keyboard support."
     echo ""
     echo "Some hints:"

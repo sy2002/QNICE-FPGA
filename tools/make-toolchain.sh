@@ -27,6 +27,11 @@ cd ..
 cd emulator
 ./make.bash
 
+SDL2_CFLAGS=`sdl2-config  --cflags`
+if [ ! -z "$SDL2_CFLAGS" ]; then
+    ./make-vga.bash -quiet
+fi 
+
 cd ../c
 source setenv.source
 ./make-vasm.sh
