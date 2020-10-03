@@ -44,8 +44,8 @@ Hardware
 * When it comes to SDHC cards, i.e. cards larger than 2 GB, the following are
   tested as working: SanDisk 32 GB microSDHC Class 4,
   Transcend 32 GB microSDHC Class 10, Elegant 32 GB, Verbatim Premium 8 GB,
-  Kingston 16GB SDHC Class 4
-* NOT WORKING are cards like SanDisk "Ultra" Class 10 cards (80 MB/sec) or
+  Kingston 16GB SDHC Class 4, SanDisk Ultra 32 GB microSDHC Class 10
+* NOT WORKING are some cards like SanDisk "Ultra" Class 10 cards (80 MB/sec) or
   Kingston Class 10 cards. Use slower cards instead, like
   SanDisk's 32 GB Class 4 card. So for summing it up: If you want to be on the
   safe side, then use SD cards (no SDHC, no SDXC) with a capacity of a
