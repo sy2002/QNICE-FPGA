@@ -60,8 +60,8 @@ Interrupt Service Routines (ISRs)
 ---------------------------------
 
 ISRs are a very complex subject matter. Therefore it makes sense that you
-familiarize yourself with the way how the the interrupt mechanisms are
-working in hardware by having a look at [doc/int-device.md](int-device.md).
+familiarize yourself with how the interrupt mechanisms are working in hardware
+by having a look at [doc/int-device.md](int-device.md).
 
 * End your ISR with `RTI`.
 * Most important best practice: Be careful, be paranoid. ISRs "must not change
@@ -76,7 +76,7 @@ working in hardware by having a look at [doc/int-device.md](int-device.md).
 * If you need to work with register banks in an ISR, then the best practice
   is to begin your ISR with `MOVE 0xF000, SR`: This gives you 16 register
   banks to work with and leaves 240 for the other currently running software
-  outside your ISR. The probability is very high, that there won't be any
+  outside your ISR. The probability is very high that there won't be any
   collisions. Since the CPU restores `SR` after `RTI`, you don't have to worry
   about having done the `MOVE 0xF000, SR` at the beginning.
 * Avoid starting an ISR with `INCRB` because there might be situations, where
