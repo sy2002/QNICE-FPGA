@@ -116,6 +116,12 @@ vga_moveto!     RBRA    VGA$MOVE_TO_XY, 1
 ;
 QMON$COLDSTART  AND     0x00FF, SR              ; Make sure we are in register bank 0
                 MOVE    VAR$STACK_START, SP     ; Initialize stack pointer
+
+                MOVE    IO$CYC_STATE, R0        ; start cycle counter
+                MOVE    CYC$RESET, @R0
+                MOVE    IO$INS_STATE, R0        ; start instruction counter
+                MOVE    INS$RESET, @R0
+
                 RSUB    VGA$INIT, 1             ; Does not clear the screen, so that
                                                 ; the HW boot message stays visible
                 MOVE    QMON$WELCOME, R8        ; Print welcome message
