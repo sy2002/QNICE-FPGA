@@ -2227,6 +2227,7 @@ int alg_opt(np p,type *ttyp)
 	    dontopt=0;
             return type_expression2(p,ttyp);
         }
+#if 0
 	if(f==AND&&(!ttyp||(ttyp->flags&NQ)>CHAR)&&shortcut(AND,CHAR)&&zumleq(u2,t_max[CHAR])){
 	  static type st={CHAR};
 	  return type_expression2(p,&st);
@@ -2243,7 +2244,7 @@ int alg_opt(np p,type *ttyp)
 	  static type st={UNSIGNED|SHORT};
 	  return type_expression2(p,&st);
 	}
-
+#endif
     }
     if(c==1){
         /*  0-a=-a  */
