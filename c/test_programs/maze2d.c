@@ -70,25 +70,33 @@ static void DrawPos(int sq)
    char row = 1 + 2*GetRow(sq);
    char g = grid[sq];
 
+   int color = 0x0000;
+   switch (level)
+   {
+      case 1 : color = 0x0000; break;  // COLOR_LIGHT_GREEN
+      case 2 : color = 0x0400; break;  // COLOR_YELLOW
+      case 3 : color = 0x0300; break;  // COLOR_ORANGE
+   }
+
    if ((level == 1) ||
       ((level == 2) && (g&(1<<VISITED))) ||
       ((level == 3) && (sq == curSq)) ||
       ((hint == 1) && (sq == endSq)))
    {
-      cputcxy(col,   row,   wall);
-      cputcxy(col,   row+2, wall);
-      cputcxy(col+2, row+2, wall);
-      cputcxy(col+2, row,   wall);
-      cputcxy(col+1, row,   (g&(1<<DIR_NORTH)) ? ' ' : wall);
-      cputcxy(col+2, row+1, (g&(1<<DIR_EAST))  ? ' ' : wall);
-      cputcxy(col,   row+1, (g&(1<<DIR_WEST))  ? ' ' : wall);
-      cputcxy(col+1, row+2, (g&(1<<DIR_SOUTH)) ? ' ' : wall);
+      cputcxy(col,   row,   color + wall);
+      cputcxy(col,   row+2, color + wall);
+      cputcxy(col+2, row+2, color + wall);
+      cputcxy(col+2, row,   color + wall);
+      cputcxy(col+1, row,   color + ((g&(1<<DIR_NORTH)) ? ' ' : wall));
+      cputcxy(col+2, row+1, color + ((g&(1<<DIR_EAST))  ? ' ' : wall));
+      cputcxy(col,   row+1, color + ((g&(1<<DIR_WEST))  ? ' ' : wall));
+      cputcxy(col+1, row+2, color + ((g&(1<<DIR_SOUTH)) ? ' ' : wall));
       if (sq == endSq)
-         cputcxy(col+1, row+1, '*');
+         cputcxy(col+1, row+1, color + '*');
       else if (sq == curSq)
-         cputcxy(col+1, row+1, '@');
+         cputcxy(col+1, row+1, color + '@');
       else
-         cputcxy(col+1, row+1, ' ');
+         cputcxy(col+1, row+1, color + ' ');
    }
 } // end of DrawPos
 
@@ -172,15 +180,19 @@ static void InitMaze(void)
 
 static void gameInit()
 {
-   my_srand(time());    // Seed random number generator.
+   init = 0;
+   level = 1;
+   hint = 0;
+
    clrscr();
    cputsxy(1, 10, "Welcome to this aMAZEing game!\0");
-   cputsxy(1, 12, "Press 123 to change the level of the game.\0");
-   cputsxy(1, 13, "Press g to generate a new maze.\0");
-   cputsxy(1, 14, "Move around with the keys WASD.\0");
+   cputsxy(1, 12, "Press g to generate a new maze.\0");
+   cputsxy(1, 13, "Press 123 to change the level of the game.\0");
+   cputsxy(1, 14, "Move around with the keys WASD / HJKL / arrows.\0");
    cputsxy(1, 15, "Press r to reset the current maze.\0");
-   cputsxy(1, 16, "Press h to get a hint.\0");
+   cputsxy(1, 16, "Press x to get a hint.\0");
    cputsxy(1, 17, "Press q to quit the game.\0");
+   cputsxy(1, 18, "Press m to return to this menu.\0");
 } // end of gameInit
 
 
@@ -232,19 +244,21 @@ static int gameUpdate()
    }
 
    hint = 0;
-   switch (cgetc())
+   char ch;
+   switch (ch = cgetc())
    {
-      case '1' : level = 1; break;
-      case '2' : level = 2; break;
-      case '3' : level = 3; break;
+      case '1' : if (init) {level = 1; ShowMaze();} break;
+      case '2' : if (init) {level = 2; ShowMaze();} break;
+      case '3' : if (init) {level = 3; ShowMaze();} break;
       case 'g' : clrscr(); InitMaze(); ShowMaze(); init = 1; break;
       case 'r' : ResetMaze(); break;
-      case 'h' : hint = 1; break;
+      case 'x' : hint = 1; break;
+      case 'm' : gameInit(); break;
 
-      case 'w' : playerUpdate(DIR_NORTH); break;
-      case 's' : playerUpdate(DIR_SOUTH); break;
-      case 'd' : playerUpdate(DIR_EAST); break;
-      case 'a' : playerUpdate(DIR_WEST); break;
+      case 'w' : case 'k' : playerUpdate(DIR_NORTH); break;
+      case 's' : case 'j' : playerUpdate(DIR_SOUTH); break;
+      case 'd' : case 'l' : playerUpdate(DIR_EAST); break;
+      case 'a' : case 'h' : playerUpdate(DIR_WEST); break;
 
       case 'q' : cputsxy(1, 38, "GOODBYE!.\0");
                  return 1;    // End the game.
@@ -256,6 +270,8 @@ static int gameUpdate()
 
 int main()
 {
+   my_srand(time());    // Seed random number generator.
+
    gameInit();
    while (1)
    {
