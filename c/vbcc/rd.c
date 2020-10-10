@@ -1,4 +1,4 @@
-/*  $VER: vbcc (rd.c) V0.8     */
+/*  $VER: vbcc (rd.c) $Revision: 1.9 $    */
 /*  reaching definitions and constant propagation   */
 
 #include "opt.h"
@@ -7,7 +7,7 @@ static char FILE_[]=__FILE__;
 
 unsigned int dcount;
 size_t dsize;
-struct IC **dlist;
+IC **dlist;
 bvtype *rd_defs;
 bvtype **defs_kill;    /* definitions killed */
 bvtype **defs_gen;     /* definitions undefined */
@@ -15,7 +15,7 @@ bvtype **var_defs;     /* definitions of a variable */
 bvtype **var_undefs;   /* definitions which are undefined by writing to this var */
 bvtype *rd_matrix;
 
-int def_overwrites(struct IC *new,struct IC *old);
+int def_overwrites(IC *new,IC *old);
 #define NO_OVERWRITE 0
 #define FULL_OVERWRITE 1
 #define PARTIAL_OVERWRITE 2
@@ -47,7 +47,7 @@ void print_rd(bvtype *bitvector)
 /* numbers all definitions and creates some bitvectors */
 void num_defs(void)
 {
-  int i,j;struct IC *p;
+  int i,j;IC *p;
   size_t matrix_size;
   bvtype *bp;
   unsigned long heapsize=0;
@@ -101,7 +101,7 @@ void num_defs(void)
     if(p->defindex){
       dlist[p->defindex]=p;
       if(p->z.flags&VAR){
-        struct Var *v=p->z.v;
+        Var *v=p->z.v;
         i=v->index;
         if(p->z.flags&DREFOBJ) i+=vcount-rcount;
         BSET(var_defs[i],p->defindex);
@@ -128,7 +128,7 @@ void num_defs(void)
     if(p->z.flags&VAR){
       for(j=1;j<=dcount;j++){
 	int ow;
-	struct IC *p2;
+	IC *p2;
 	if(i==j) continue;
 	p2=dlist[j];
 	if(!(p2->z.flags&VAR)||p->z.v!=p2->z.v||p->z.flags!=p2->z.flags)
@@ -172,7 +172,7 @@ void num_defs(void)
 }
 
 /* returns whether n overwrites the definition p */
-int def_overwrites(struct IC *n,struct IC *o)
+int def_overwrites(IC *n,IC *o)
 {
   zmax nstart,nend,ostart,oend,nsize,osize;
   if(!(n->z.flags&VAR)) ierror(0);
@@ -211,9 +211,9 @@ int def_overwrites(struct IC *n,struct IC *o)
 }
 
 /* performs data flow analysis for reaching definitions */
-void reaching_definitions(struct flowgraph *fg)
+void reaching_definitions(flowgraph *fg)
 {
-  struct flowgraph *g;struct IC *p;bvtype *tmp,*init;
+  flowgraph *g;IC *p;bvtype *tmp,*init;
   int changed,pass,i,j;
   unsigned long heapsize=0;
   /*  rd_gen und rd_kill fuer jeden Block berechnen   */
@@ -225,7 +225,7 @@ void reaching_definitions(struct flowgraph *fg)
   for(i=1;i<=dcount;i++){
     p=dlist[i];
     if(p->z.flags&VAR){
-      struct Var *v=p->z.v;
+      Var *v=p->z.v;
       if(v->storage_class==EXTERN||v->storage_class==STATIC||v->reg!=0||!zmleq(l2zm(0L),v->offset)){
 	BSET(init,UNDEF(i));
       }
@@ -265,7 +265,7 @@ void reaching_definitions(struct flowgraph *fg)
     changed=0;
     g=fg;
     while(g){
-      struct flowlist *lp;
+      flowlist *lp;
       /*  in(B)=U out(C) : C Vorgaenger von B */
       if(g==fg)
 	memcpy(g->rd_in,init,dsize);
@@ -294,7 +294,7 @@ void reaching_definitions(struct flowgraph *fg)
 
 /* calculates z:=q1 op q2 with constants */
 /* if p is non-zero q1typ,q2typ from p will be used */
-void calc(int c,int t,union atyps *q1,union atyps *q2,union atyps *z,struct IC *p)
+void calc(int c,int t,union atyps *q1,union atyps *q2,union atyps *z,IC *p)
 {
   zldouble d1,d2;zmax l1,l2;zumax u1,u2;
   if(p) t=q1typ(p);
@@ -309,6 +309,8 @@ void calc(int c,int t,union atyps *q1,union atyps *q2,union atyps *z,struct IC *
   }
   if(c==ADD){ vldouble=zldadd(d1,d2);vmax=zmadd(l1,l2);vumax=zumadd(u1,u2);}
   if(c==SUB){ vldouble=zldsub(d1,d2);vmax=zmsub(l1,l2);vumax=zumsub(u1,u2);}
+  if(c==ADDI2P){ vmax=zmadd(l1,l2);vumax=zumadd(u1,u2);}
+  if(c==SUBIFP){ vmax=zmsub(l1,l2);vumax=zumsub(u1,u2);}
   if(c==MULT){ vldouble=zldmult(d1,d2);vmax=zmmult(l1,l2);vumax=zummult(u1,u2);}
   if(c==DIV||c==MOD){
     if(zldeqto(d2,d2zld(0.0))&&zmeqto(l2,l2zm(0L))&&zumeqto(u2,ul2zum(0UL))){
@@ -343,21 +345,21 @@ void calc(int c,int t,union atyps *q1,union atyps *q2,union atyps *z,struct IC *
     gval.vmax=vmax;
     eval_const(&gval,MAXINT);
   }
-  /*FIXME: use this?  if(p) t=ztyp(p);*/
+  if(p) t=ztyp(p);
   insert_const(z,t);
 }
 
 /* folds constant ICs */
-int fold(struct IC *p)
+int fold(IC *p)
 {
   int c;
   if(!p) ierror(0);
   c=p->code;
-  if(c==ADDI2P||c==SUBIFP||c==SUBPFP||c==ASSIGN||c==PUSH||c==SETRETURN) return 0;
+  if(c==SUBPFP||c==ASSIGN||c==PUSH||c==SETRETURN) return 0;
   if(DEBUG&1024) {printf("folding IC:\n");pric2(stdout,p);}
   if(c==TEST||c==COMPARE){
     union atyps val;int cc; /*  condition codes */
-    struct IC *bp;
+    IC *bp;
     if(c==TEST){
       eval_const(&p->q1.val,p->typf);
       if(zmeqto(vmax,l2zm(0L))&&zumeqto(vumax,ul2zum(0UL))&&zldeqto(vldouble,d2zld(0.0)))
@@ -401,6 +403,8 @@ int fold(struct IC *p)
   }else
     calc(c,p->typf,&p->q1.val,&p->q2.val,&p->q1.val,p);
   p->q2.flags=0;
+  if(p->code==ADDI2P||p->code==SUBIFP)
+    p->typf=p->typf2;
   p->q2.val.vmax=sizetab[p->typf&NQ];
   p->code=ASSIGN;
   if(DEBUG&1024){printf("becomes\n");pric2(stdout,p);}
@@ -411,13 +415,19 @@ int fold(struct IC *p)
 /* variables; if cponly==0, address-constants will be replaced, */
 /* otherwise only real constants are replaced, sic points to the IC */
 /* containing the object pointed to by o */
-int propagate(struct IC *sic,struct obj *o,int cponly,int global)
+int propagate(IC *sic,obj *o,int cponly,int global)
 {
   unsigned int i,j,t,found;union atyps *val=0;
-  struct Var *v,*vaddr=0;struct IC *p;
+  Var *v,*vaddr=0;IC *p;
   zmax voff;
   if(!o||!o->v) ierror(0);
-  if(is_volatile_obj(o)) return 0;
+  if(cponly){
+    if(is_volatile_obj(o))
+      return 0;
+  }else{
+    if((o->flags&VAR)&&(o->v->vtyp->flags&VOLATILE))
+      return 0;
+  }
   if(disable&8) return 0;
   v=o->v;
   i=v->index;
@@ -489,14 +499,21 @@ int propagate(struct IC *sic,struct obj *o,int cponly,int global)
 
   /* found constant */
   if(val){
-    if(!cponly) return 0;
-    if(o==&sic->q1&&(q1typ(sic)&NU)!=t) return 0;
-    if(o==&sic->q2&&(q2typ(sic)&NU)!=t) return 0;
-    if(o==&sic->z&&(ztyp(sic)&NU)!=t) return 0;
-
-    if(DEBUG&1024) printf("can replace <%s> by constant\n",o->v->identifier);
-    o->val=*val;
-    o->flags=KONST;
+    if(cponly){
+      if(o==&sic->q1&&(q1typ(sic)&NU)!=t) return 0;
+      if(o==&sic->q2&&(q2typ(sic)&NU)!=t) return 0;
+      if(o==&sic->z&&(ztyp(sic)&NU)!=t) return 0;
+      
+      if(DEBUG&1024) printf("can replace <%s> by constant\n",o->v->identifier);
+      o->val=*val;
+      o->flags=KONST;
+    }else{
+      if(DEBUG&1024) printf("can replace <%s> by constant address\n",o->v->identifier);
+      o->val=*val;
+      o->flags|=KONST;
+      o->flags&=~VAR;
+      o->v=0;
+    }
     return 1;
   }
   if(vaddr&&(vaddr->storage_class==EXTERN||vaddr->storage_class==STATIC)){
@@ -510,9 +527,10 @@ int propagate(struct IC *sic,struct obj *o,int cponly,int global)
     return 2;
   }
   if(vaddr&&(o->flags&DREFOBJ)){
-    //    if(o==&sic->q1&&(q1typ(sic)&NU)!=(t&NU)) return 0;
-    //if(o==&sic->q2&&(q2typ(sic)&NU)!=(t&NU)) return 0;
-    //if(o==&sic->z&&(ztyp(sic)&NU)!=(t&NU)) return 0;
+    t=vaddr->vtyp->flags&NU;
+    if(o==&sic->q1&&(q1typ(sic)&NU)!=t) return 0;
+    if(o==&sic->q2&&(q2typ(sic)&NU)!=t) return 0;
+    if(o==&sic->z&&(ztyp(sic)&NU)!=t) return 0;
     if(DEBUG&1024) printf("can replace *<%s> by address\n",o->v->identifier);
     o->v=vaddr;
     o->val.vmax=voff;
@@ -535,9 +553,9 @@ int propagate(struct IC *sic,struct obj *o,int cponly,int global)
 /* searches for constant objects and uninitialized variables; if  */
 /* global!=0, reaching definitions are used, otherwise only local */
 /* constant propagation will be done                              */
-int constant_propagation(struct flowgraph *fg,int global)
+int constant_propagation(flowgraph *fg,int global)
 {
-  struct IC *p;int changed=0,i,t;struct flowgraph *g;
+  IC *p;int changed=0,i,t;flowgraph *g;
   rd_defs=mymalloc(dsize);
   g=fg;
   while(g){
@@ -550,18 +568,23 @@ int constant_propagation(struct flowgraph *fg,int global)
       int c=p->code;
       /* if(DEBUG&1024){print_rd(rd_defs);pric2(stdout,p);}*/
       if(c!=ADDRESS&&c!=NOP&&ISSCALAR(p->typf)&&(c<LABEL||c>BRA)){
-	if((p->q1.flags&(VAR|VARADR))==VAR&&!(q1typ(p)&VOLATILE)&&!is_volatile_obj(&p->q1)){
-	  changed|=propagate(p,&p->q1,1,global);
-	  if(p->q1.flags&DREFOBJ) changed|=propagate(p,&p->q1,0,global);
+	if((p->q1.flags&(VAR|VARADR))==VAR){
+	  if(!(q1typ(p)&VOLATILE)&&!is_volatile_obj(&p->q1))
+	    changed|=propagate(p,&p->q1,1,global);
+	  if((p->q1.flags&DREFOBJ)&&!(p->q1.v->vtyp->flags&VOLATILE))
+	    changed|=propagate(p,&p->q1,0,global);
 	}
-	if((p->q2.flags&(VAR|VARADR))==VAR&&!(q2typ(p)&VOLATILE)&&!is_volatile_obj(&p->q2)){
-	  changed|=propagate(p,&p->q2,1,global);
-	  if(p->q2.flags&DREFOBJ) changed|=propagate(p,&p->q2,0,global);
+	if((p->q2.flags&(VAR|VARADR))==VAR){
+	  if(!(q2typ(p)&VOLATILE)&&!is_volatile_obj(&p->q2))
+	    changed|=propagate(p,&p->q2,1,global);
+	  if((p->q2.flags&DREFOBJ)&&!(p->q2.v->vtyp->flags&VOLATILE))
+	    changed|=propagate(p,&p->q2,0,global);
 	}
       }
       /* only there to detect uninitialized variables */
-      if(((p->z.flags&(VAR|DREFOBJ))==(VAR|DREFOBJ))&&!(ztyp(p)&VOLATILE)&&!is_volatile_obj(&p->z)){
-	changed|=propagate(p,&p->z,0,global);
+      if(((p->z.flags&(VAR|DREFOBJ))==(VAR|DREFOBJ))){
+	if(!(p->z.v->vtyp->flags&VOLATILE))
+	  changed|=propagate(p,&p->z,0,global);
       }
       rd_change(p);
       
@@ -579,7 +602,7 @@ int constant_propagation(struct flowgraph *fg,int global)
 }
 
 /* performs changes to rd_defs which are caused by IC p */
-void rd_change(struct IC *p)
+void rd_change(IC *p)
 {
   if(DEBUG&4096) print_rd(rd_defs);
   if(p->defindex){

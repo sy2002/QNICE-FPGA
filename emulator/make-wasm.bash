@@ -42,7 +42,7 @@ if [[ ! -f qnice_disk_v16.img ]]; then
     echo "Warning: qnice_disk_v16.img not found. You can still compile the emulator."
 fi
 
-FILES="qnice.c fifo.c sd.c vga.c"
+FILES="qnice.c fifo.c sd.c vga.c linenoise.c"
 DEF_SWITCHES="-DUSE_SD -DUSE_VGA"
 UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART -UUSE_TIMER"
 PRELOAD_FILES="--preload-file monitor.out"

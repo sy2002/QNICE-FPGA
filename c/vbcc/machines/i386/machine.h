@@ -173,3 +173,4 @@ struct AddressingMode{
 
 /* do not create CONVERT_ICs from unsigned integers to floats */
 #define AVOID_UNSIGNED_TO_FLOAT 1
+

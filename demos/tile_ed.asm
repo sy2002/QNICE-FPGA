@@ -33,7 +33,7 @@ START_X         .EQU 2
 START_Y         .EQU 5
 TILE_CENTER_X   .EQU 57
 TILE_CENTER_Y   .EQU 20
-TILE_DX_MAX     .EQU 44                         ; if this is changed, then ...
+TILE_DX_MAX     .EQU 43                         ; if this is changed, then ...
 TILE_DY_MAX     .EQU 36                         ; change STR_CHG_SIZE_*, too
 SELECTED_X      .EQU 10
 SELECTED_Y      .EQU 37
@@ -531,25 +531,35 @@ HEX_DIGITS      .ASCII_P "0123456789ABCDEF"
 
 STR_HELLO       .ASCII_W "TileEd - Textmode Sprite Editor  V2.0  by sy2002 in September 2020"
 STR_NOSTART     .ASCII_W "Either TILE_DX or TILE_DY is larger than the allowed maximum. TileEd halted.\n"
-STR_HELP_MAIN   .ASCII_P "F1: Sprite F3: Size F5: Clr F7: Font F9: Pal F12: Output SPACE: Paint CRSR: Nav`"
+STR_HELP_MAIN   .ASCII_P "F1: Sprite F3: Size F5: Clr F7: Font F9: Pal F12: Output SPACE: Paint CRSR: Nav `"
                 .ASCII_W "XX         XX       XX      XX       XX      XXX         XXXXX        XXXX"
-STR_HELP_FONT   .ASCII_P "F1: Char/Sprite F5: Clear F7: Back SPACE: Paint CRSR: Nav a..p & A..P: Color   `"
+STR_HELP_FONT   .ASCII_P "F1: Char/Sprite F5: Clear F7: Back SPACE: Paint CRSR: Nav a..p & A..P: Color    `"
                 .ASCII_W "XX              XX        XX       XXXXX        XXXX      X  X   X  X"
-STR_CLR_LEFT    .ASCII_W "                                 "
+STR_HELP_PAL    .ASCII_P "1|2 Red 3|4 Green 5|6 Blue F1: 24-bit F3: 15-bit F5|F7|F9 R|G|B Values F11: Back`"
+                .ASCII_W "X X     X X       X X      XX         XX         XX XX XX              XXX"
+STR_HELP_EDIT   .ASCII_P "0..9 and a..f: Hexadecimal input ENTER: Change value ESC: Cancel                `"
+                .ASCII_W "X  X     X  X                    XXXXX               XXX"
+STR_CLR_LEFT    .ASCII_W "                                   "
 STR_CLR_LINE    .ASCII_W "                                                                                "
-STR_CHG_SIZE_X  .ASCII_W "Enter new width (1..44): "
+STR_CHG_SIZE_X  .ASCII_W "Enter new width (1..43): "
 STR_CHG_SIZE_Y  .ASCII_W "Enter new height (1..36): "
 STR_CURCHAR     .ASCII_W "SELECTED:"
 STR_FOREGROUND  .ASCII_W "Foreground color:"
 STR_BACKGROUND  .ASCII_W "Background color:"
 STR_PAL_FG      .ASCII_W "Palette for foreground colors:"
 STR_PAL_BG      .ASCII_W "Palette for background colors:"
-STR_RGB15       .ASCII_W "15-bit RGB: "
+STR_PED_ACTIVE  .ASCII_W "Active palette entry: "
 STR_RGB24       .ASCII_W "24-bit RGB: "
+STR_RGB15       .ASCII_W "15-bit RGB: "
 STR_RED         .ASCII_W "       Red: "
 STR_GREEN       .ASCII_W "     Green: "
 STR_BLUE        .ASCII_W "      Blue: "
 STR_METER       .ASCII_W " [                ]"
+STR_PED_EDIT    .ASCII_W "New value for "
+STR_PED_RED     .ASCII_W "red: "
+STR_PED_GREEN   .ASCII_W "green: "
+STR_PED_BLUE    .ASCII_W "blue: "
+
 
 ; ****************************************************************************
 ; FONT_ED
@@ -985,11 +995,12 @@ _FONTED_FGBG2   SYSCALL(leave, 1)
 
 PAL_ED          SYSCALL(enter, 1)
 
-                MOVE    VGA$STATE, R0           ; cursor off
-                MOVE    VGA$EN_HW_CURSOR, R1
-                NOT     R1, R1
-                AND     R1, @R0
+_PED_START      MOVE    STR_HELP_PAL, R8
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
 
+                RSUB    CURSOR_OFF, 1
                 RSUB    _FONTED_CLR, 1          ; clear left side of workspace
 
                 MOVE    VGA$CR_X, R0            ; R0: hw cursor X
@@ -1034,22 +1045,34 @@ PAL_ED          SYSCALL(enter, 1)
                 ; R4 contains the address of the color that is being edited
                 MOVE    VGA$PALETTE_OFFS_USER, R4
 
+                MOVE    SELECTED_PAL, R8
+                MOVE    'a', @R8
+
                 ; main loop of the palette editor
 
-_PED_KL         MOVE    VGA$PALETTE_ADDR, R8
+_PED_KL         MOVE    PAL_ED_X, R8            ; print selected pal entry
+                MOVE    11, R9
+                SYSCALL(vga_moveto, 1)
+                MOVE    STR_PED_ACTIVE, R8
+                SYSCALL(puts, 1)
+                MOVE    SELECTED_PAL, R8
+                MOVE    @R8, R8
+                SYSCALL(putc, 1)
+
+                MOVE    VGA$PALETTE_ADDR, R8
                 MOVE    R4, @R8++
                 MOVE    @R8, R5                 ; R5 = 15bit RBG color
 
                 ; show compound 24-bit and 15-bit RGB info
                 MOVE    PAL_ED_X, R8            ; 24-bit RGB numeric
-                MOVE    11, R9
+                MOVE    13, R9
                 SYSCALL(vga_moveto, 1)
                 MOVE    STR_RGB24, R8
                 SYSCALL(puts, 1)
                 MOVE    R5, R8
                 RSUB    PRINT_24BIT_RGB, 1                
                 MOVE    PAL_ED_X, R8            ; 15-bit RGB numeric
-                MOVE    13, R9
+                MOVE    15, R9
                 SYSCALL(vga_moveto, 1)
                 MOVE    STR_RGB15, R8
                 SYSCALL(puts, 1)     
@@ -1060,7 +1083,7 @@ _PED_KL         MOVE    VGA$PALETTE_ADDR, R8
                 MOVE    _PED_STRS, R12          ; LUT for strings for R, G, B
                 MOVE    _PED_RGB, R11           ; LUT for masks and shifts
                 MOVE    3, R10                  ; 3 iterations: R, G and B
-                MOVE    15, R9                  ; y-pos for cursor                
+                MOVE    17, R9                  ; y-pos for cursor                
 _PED_SHOWRGB_L  MOVE    PAL_ED_X, R8            ; x-pos for cursor
                 SYSCALL(vga_moveto, 1)
                 MOVE    @R12++, R8              ; print string for R, G or B
@@ -1094,6 +1117,9 @@ _PED_SHOWRGB_L  MOVE    PAL_ED_X, R8            ; x-pos for cursor
                 SYSCALL(in_range_u, 1)          ; is R8 in the fg col. range?
                 RBRA    _PED_BG, !C             ; no: check for bg col. range
 
+                MOVE    SELECTED_PAL, R10       ; remember selection for ..
+                MOVE    R8, @R10                ; .. displaying it
+
                 ; determine address of current foreground col. being edited
                 ; and store it in R4 and redraw the color bar
                 SUB     R9, R8
@@ -1111,6 +1137,9 @@ _PED_BG         MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
                 ADD     16, R10                 ; R10 = `Q`
                 SYSCALL(in_range_u, 1)          ; is R8 in the bg col. range?
                 RBRA    _PED_CK, !C             ; no: check for other keys
+
+                MOVE    SELECTED_PAL, R10       ; remember selection for ..
+                MOVE    R8, @R10                ; .. displaying it
 
                 ; determine address of current background col. being edited
                 ; and store it in R4 and redraw the color bar
@@ -1147,13 +1176,55 @@ _PED_CK         MOVE    '1', R9
                 ADD     @R6, R10                ; add or sub 1 from R, G or B
                 MOVE    R10, @R9                ; store in palette RAM
 
-_PED_CKK        RBRA    _PED_KL, 1
+_PED_CKK        CMP     KBD$F11, R8             ; end pal ed
+                RBRA    _PED_END, Z
 
-                MOVE    VGA$STATE, R0           ; cursor on
-                OR      VGA$EN_HW_CURSOR, @R0
+                ; numeric palette editing
+
+                MOVE    _PED_EDIT_ITEMS, R10
+                MOVE    _PED_EDIT, R12          ; LUT: find F-key and print ..
+_PED_CKF        CMP     R8, @R12                ; .. dynamic string
+                RBRA    _PED_FKF, Z
+                ADD     _PED_EDIT_LINE, R12     ; next row of LUT
+                SUB     1, R10
+                RBRA    _PED_CKF, !Z
+                RBRA    _PED_KL, 1              ; illegal key => main loop
+        
+_PED_FKF        MOVE    STR_HELP_EDIT, R8
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
+
+                MOVE    PAL_ED_X, R8            ; print static edit string
+                MOVE    22, R9
+                SYSCALL(vga_moveto, 1)
+                MOVE    STR_PED_EDIT, R8
+                SYSCALL(puts, 1)
+
+                ADD     1, R12                  ; LUT: string to be printed
+                MOVE    @R12, R8                ; print dynamic edit string
+                SYSCALL(puts, 1)
+
+                RSUB    CURSOR_ON, 1
+
+                SYSCALL(getc, 1)
+
+                RBRA    _PED_START, 1
+
+                ; end pal ed
+_PED_END        RSUB    CURSOR_ON, 1
+
+                ; restore visual apprearance of the main workspace 
+                RSUB    _FONTED_CLR, 1          ; clear left side of workspace
+                RSUB    DRAW_PALETTE, 1         ; character chooser
+                MOVE    STR_HELP_MAIN, R8       ; print main help
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
+                MOVE    STR_HELP_MAIN, R8
 
                 SYSCALL(leave, 1)
-                RBRA    MAIN_LOOP, 1
+                RBRA    MAIN_LOOP, 1            ; we came here by RBRA
 
                 ; draw the color bar
                 ; expects:
@@ -1180,6 +1251,20 @@ _PED_RGB        .DW     RED_MASK,   0,          RED_ONE_C,    10 ; RED - 1
                 .DW     BLUE_MASK,  BLUE_MASK,  BLUE_ONE,     0  ; BLUE + 1
 
 _PED_STRS       .DW STR_RED, STR_GREEN, STR_BLUE
+
+                ; this look up table stores the combination of function keys
+                ; and strings, amount of hex digits (nibbles) to be entered
+_PED_EDIT_ITEMS .EQU    5
+_PED_EDIT_LINE  .EQU    3
+_PED_EDIT       .DW     KBD$F1, STR_RGB24,      6
+                .DW     KBD$F3, STR_RGB15,      4
+                .DW     KBD$F5, STR_PED_RED,    2
+                .DW     KBD$F7, STR_PED_GREEN,  2
+                .DW     KBD$F9, STR_PED_BLUE,   2
+
+                ; scratch buffer for editing: each nibble one word, highest
+                ; nibble first (editing "from left to right")
+_PED_SCRATCH    .BLOCK  6
 
 ; ****************************************************************************
 ; PRINT_24BIT_RGB
@@ -1597,6 +1682,26 @@ _MASCII_LESS10  MOVE    48, R9                  ; 0 = ASCII 48
                 ADD     R8, R9
                 RET
 
+
+; ****************************************************************************
+; CURSOR_ON and CURSOR_OFF
+;   Convenience functions for cursor handling. Do not change any register.
+; ****************************************************************************
+
+CURSOR_ON       INCRB
+                MOVE    VGA$STATE, R0
+                OR      VGA$EN_HW_CURSOR, @R0 
+                DECRB
+                RET
+
+CURSOR_OFF      INCRB
+                MOVE    VGA$STATE, R0
+                MOVE    VGA$EN_HW_CURSOR, R1
+                NOT     R1, R1
+                AND     R1, @R0
+                DECRB
+                RET
+
 ; ****************************************************************************
 ; VARIABLES
 ; ****************************************************************************
@@ -1605,6 +1710,7 @@ TILE_DX         .BLOCK 1
 TILE_DY         .BLOCK 1
 
 SELECTED_CHR    .BLOCK 1
+SELECTED_PAL    .BLOCK 1
 FONT_MODE       .BLOCK 1
 FONT_ED_CX      .BLOCK 1                        
 FONT_ED_CY      .BLOCK 1

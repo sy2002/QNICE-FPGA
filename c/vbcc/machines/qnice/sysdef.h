@@ -10,8 +10,9 @@
 
 
 //
-//  Some register short names:
+//  Register short names:
 //
+
 
 //
 //***************************************************************************************
@@ -54,7 +55,7 @@
 //  Block FF08: SYSTEM COUNTERS
 //---------------------------------------------------------------------------------------
 //
-//  CYCLE-COUNT-registers       
+//  CYCLE-COUNT-registers
 //
 #define IO_CYC_LO      	0xFF08     // low word of 48-bit counter
 #define IO_CYC_MID     	0xFF09     // middle word of 48-bit counter
@@ -64,7 +65,7 @@
 //                             bit 1 is automatically set to 1 when resetting
 //    Bit  1 (read/write):     Start/stop counter
 //
-//  INSTRUCTION-COUNT-registers       
+//  INSTRUCTION-COUNT-registers
 //
 #define IO_INS_LO      	0xFF0C     // low word of 48-bit counter
 #define IO_INS_MID     	0xFF0D     // middle word of 48-bit counter
@@ -78,12 +79,11 @@
 //  Block FF10: UART
 //---------------------------------------------------------------------------------------
 //
-//  QNICE-FPGA supports: IO_UART_SRA, IO_UART_RHRA and IO_UART_THRA 
+//  QNICE-FPGA supports: IO_UART_SRA, IO_UART_RHRA and IO_UART_THRA
 //  The other registers are mentioned for completeness to map real hardware (16550)
 //
 #define IO_UART_BASE_ADDRESS   	0xFF10
-#define IO_UART_MR1A   	0xFF10 // n/a
-#define IO_UART_MR1B   	0xFF10 // n/a
+#define IO_UART_DIVISOR	0xFF10 // Set baudrate divisor: baudrate = 50000000 / divisor.
 #define IO_UART_SRA    	0xFF11 // Status register (relative to base address)
 #define IO_UART_RHRA   	0xFF12 // Receiving register (relative to base address)
 #define IO_UART_THRA   	0xFF13 // Transmitting register (relative to base address)
@@ -127,7 +127,7 @@
 //  Bits 13 .. 12 return the card type: 00 = no card / unknown card
 //                                      01 = SD V1
 //                                      10 = SD V2
-//                                      11 = SDHC                       
+//                                      11 = SDHC
 //  Bit 14 of the CSR is the error bit: 1, if the last operation failed. In such
 //                                      a case, the error code is in IO_SD_ERROR and
 //                                      you need to reset the controller to go on
@@ -144,11 +144,11 @@
 //                  this device register. 100 (which corresponds to 0x0064 in
 //                  the prescaler register) yields a 1 millisecond pulse which
 //                  in turn is fed to the actual counter.
-//  IO_TIMER_x_CNT: When the number of output pulses from the prescaler circuit 
+//  IO_TIMER_x_CNT: When the number of output pulses from the prescaler circuit
 //                  equals the number stored in this register, an interrupt will
 //                  be generated (if the interrupt address is 0x0000, the
 //                  interrupt will be suppressed).
-//  IO_TIMER_x_INT: This register contains the address of the desired interrupt 
+//  IO_TIMER_x_INT: This register contains the address of the desired interrupt
 //                  service routine.
 //
 #define IO_TIMER_BASE_ADDRESS  	0xFF28
@@ -177,22 +177,50 @@
     // Bit      5: Hardware cursor blink enable
     // Bit      4: Hardware cursor mode: 1 - small
     //                                   0 - large
-    // Bits   2-0: Output color for the whole screen, bits (2, 1, 0) = RGB
 #define VGA_CR_X           	0xFF31 // VGA cursor X position
 #define VGA_CR_Y           	0xFF32 // VGA cursor Y position
 #define VGA_CHAR           	0xFF33 // write: VGA character to be displayed
                                 // read: character "under" the cursor
-#define VGA_OFFS_DISPLAY   	0xFF34 // Offset in bytes that is used when displaying
-                                // the video RAM. Scrolling forward one line
-                                // means adding 0x50 to this register.
-                                // Only works, if bit #10 in VGA_STATE is set.
-#define VGA_OFFS_RW        	0xFF35 // Offset in bytes that is used, when you read
+#define VGA_OFFS_RW        	0xFF34 // Offset in bytes that is used, when you read
                                 // or write to the video RAM using VGA_CHAR.
                                 // Works independently from VGA_OFFS_DISPLAY.
                                 // Active, when bit #11 in VGA_STATE is set.
+#define VGA_OFFS_DISPLAY   	0xFF35 // Offset in bytes that is used when displaying
+                                // the video RAM. Scrolling forward one line
+                                // means adding 0x50 to this register.
+                                // Only works, if bit #10 in VGA_STATE is set.
 #define VGA_HDMI_H_MIN     	0xFF36 // HDMI Data Enable: X: minimum valid column
 #define VGA_HDMI_H_MAX     	0xFF37 // HDMI Data Enable: X: maximum valid column
-#define VGA_HDMI_V_MAX     	0xFF38 // HDMI Data Enable: Y: maximum row (line)                                
+#define VGA_HDMI_V_MAX     	0xFF38 // HDMI Data Enable: Y: maximum row (line)
+#define VGA_FONT_OFFS      	0xFF36 // Offset in words into the Font RAM used for display
+#define VGA_FONT_ADDR      	0xFF37 // Font Address
+#define VGA_FONT_DATA      	0xFF38 // Font Data
+#define VGA_PALETTE_OFFS   	0xFF39 // Offset in words into the Palette RAM used for display
+#define VGA_PALETTE_ADDR   	0xFF3A // Palette Address
+#define VGA_PALETTE_DATA   	0xFF3B // Palette Data
+#define VGA_ADJUST_X       	0xFF40 // Pixels to adjust screen in X direction
+#define VGA_ADJUST_Y       	0xFF41 // Pixels to adjust screen in Y direction
+#define VGA_SCAN_LINE      	0xFF42 // Current scan line
+#define VGA_SCAN_INT       	0xFF43 // Scan line to generate interrupt on
+#define VGA_SCAN_ISR       	0xFF44 // Interrupt Service Routine Address
+#define VGA_SPRITE_ADDR    	0xFF45 // Sprite Address
+#define VGA_SPRITE_DATA    	0xFF46 // Sprite Data
+//
+//---------------------------------------------------------------------------------------
+//  Block FF50: Interrupt Controller
+//---------------------------------------------------------------------------------------
+//
+#define IC_CSR             	0xFF50 // Global Interrupt Enable
+    // Bits     0: Enable interrupts. External interrupts are enabled when this 
+    //             bit is set. Setting it to 0 disables interrupts.
+    // Bits     1: Block interrupts. This bit does something quite similar to
+    //             bit 0 and it is basically negated and ANDed with bit 0
+    //             to enable interrupts. The idea is that a routine can temporarily
+    //             disable interrupts without having to save the global setting
+    //             of bit 0. So this bit 1 adds merely some convenience to 
+    //             programming.
+#define IC_ENABLE_INTERRUPTS   	0x0001
+#define IC_BLOCK_INTERRUPTS    	0x0002
 //
 //---------------------------------------------------------------------------------------
 //  Block FFF0: MEGA65 (double block, 16 registers)
@@ -216,17 +244,54 @@
 #define VGA_MAX_X              	79                      // Max. X-coordinate in decimal!
 #define VGA_MAX_Y              	39                      // Max. Y-coordinate in decimal!
 #define VGA_MAX_CHARS          	3200                    // 80 * 40 chars
-#define VGA_CHARS_PER_LINE     	80  
+#define VGA_CHARS_PER_LINE     	80
 
 #define VGA_EN_HW_CURSOR       	0x0040                  // Show hardware cursor
 #define VGA_EN_HW_SCRL         	0x0C00                  // Hardware scrolling enable
 #define VGA_CLR_SCRN           	0x0100                  // Clear screen
 #define VGA_BUSY               	0x0200                  // VGA is currently performing a task
+#define VGA_EN_SPRITE          	0x1000                  // Enable sprites
 
-#define VGA_COLOR_RED          	0x0004
-#define VGA_COLOR_GREEN        	0x0002
-#define VGA_COLOR_BLUE         	0x0001
-#define VGA_COLOR_WHITE        	0x0007
+#define VGA_FONT_OFFS_DEFAULT   	0x0000                  // Address in Font RAM for default fonts
+#define VGA_FONT_OFFS_USER      	0x1000                  // Address in Font RAM for user fonts
+#define VGA_FONT_OFFS_MAX       	0x1FFF                  // Largest address in Font RAM
+#define VGA_PALETTE_OFFS_DEFAULT	0x0000                  // Address in Palette RAM for default palette
+#define VGA_PALETTE_OFFS_USER   	0x0020                  // Address in Palette RAM for user palette
+#define VGA_PALETTE_OFFS_MAX    	0x003F                  // Largest address in Palette RAM
+
+#define VGA_SPRITE_CONFIG      	0x0000
+#define VGA_SPRITE_PALETTE     	0x4000
+#define VGA_SPRITE_BITMAP      	0x8000
+
+#define VGA_SPRITE_POS_X       	0x0000
+#define VGA_SPRITE_POS_Y       	0x0001
+#define VGA_SPRITE_BITMAP_PTR  	0x0002                  // Value must be multiple of 0x0010
+#define VGA_SPRITE_CSR         	0x0003
+
+#define VGA_SPRITE_CSR_HICOLOR 	0x0001
+#define VGA_SPRITE_CSR_BEHIND  	0x0002
+#define VGA_SPRITE_CSR_MIRROR_X	0x0004
+#define VGA_SPRITE_CSR_MIRROR_Y	0x0008
+#define VGA_SPRITE_CSR_VISIBLE 	0x0010
+
+#define VGA_COLOR_BLACK        	0x0000
+#define VGA_COLOR_DARK_GRAY    	0x294A
+#define VGA_COLOR_RED          	0x5484
+#define VGA_COLOR_BLUE         	0x153A
+#define VGA_COLOR_GREEN        	0x0DA2
+#define VGA_COLOR_BROWN        	0x4123
+#define VGA_COLOR_PURPLE       	0x4098
+#define VGA_COLOR_LIGHT_GRAY   	0x5294
+#define VGA_COLOR_LIGHT_GREEN  	0x430F
+#define VGA_COLOR_LIGHT_BLUE   	0x4EBF
+#define VGA_COLOR_CYAN         	0x175A
+#define VGA_COLOR_ORANGE       	0x7E46
+#define VGA_COLOR_YELLOW       	0x7FA6
+#define VGA_COLOR_TAN          	0x7777
+#define VGA_COLOR_PINK         	0x7F3E
+#define VGA_COLOR_WHITE        	0x7FFF
+#define VGA_COLOR_TRANSPARENT  	0x8000
+
 
 // ========== CYCLE COUNTER ==========
 
@@ -255,7 +320,7 @@
 #define SD_BIT_BUSY            	0x8000                  // Busy flag: 1, if current op. is still running
 #define SD_TIMEOUT_MID         	0x0479                  // equals ~75.000.000 cycles, i.e. 1.5sec @ 50 MHz
 
-#define SD_ERR_MASK            	0x00FF                  // AND mask for errors: HI byte = state machine info, so mask it for error checks 
+#define SD_ERR_MASK            	0x00FF                  // AND mask for errors: HI byte = state machine info, so mask it for error checks
 #define SD_ERR_R1_ERROR        	0x0001                  // SD Card R1 error (R1 bit 6-0)
 #define SD_ERR_CRC_OR_TIMEOUT  	0x0002                  // Read CRC error or Write Timeout error
 #define SD_ERR_RESPONSE_TOKEN  	0x0003                  // Data Response Token error (Token bit 3)
@@ -278,7 +343,7 @@
 #define FAT32_ERR_PARTITION_NO 	0xEE11                  // the partition number needs to be in the range 1 .. 4
 #define FAT32_ERR_PARTTBL      	0xEE12                  // no or illegal partition table entry found (e.g. no FAT32 partition)
 #define FAT32_ERR_NOTIMPL      	0xEE13                  // functionality is not implemented
-#define FAT32_ERR_SIZE         	0xEE14                  // partition size or volume size too large (see doc/constraints.txt)
+#define FAT32_ERR_SIZE         	0xEE14                  // partition size or volume size too large (see doc/constraints.md)
 #define FAT32_ERR_NOFAT32      	0xEE15                  // illegal volume id (either not 512 bytes per sector, or not 2 FATs or wrong magic)
 #define FAT32_ERR_ILLEGAL_SIC  	0xEE16                  // trying to read/write a sector within a cluster that is out of range
 #define FAT32_ERR_ILLEGAL_CLUS 	0xEE17                  // trying to access an illegal cluster number
@@ -374,7 +439,7 @@
 
 #define KBD_NEW_ASCII          	0x0001                  // new ascii character available
 #define KBD_NEW_SPECIAL        	0x0002                  // new special key available
-#define KBD_NEW_ANY            	0x0003                  // any new key available 
+#define KBD_NEW_ANY            	0x0003                  // any new key available
 
 #define KBD_ASCII              	0x00FF                  // mask the special keys
 #define KBD_SPECIAL            	0xFF00                  // mask the ascii keys
@@ -424,32 +489,32 @@
 
 // READ REGISTER: CTRL + character is also mapped to an ASCII code
 
-#define KBD_CTRL_A             	0x0001 
-#define KBD_CTRL_B             	0x0002 
-#define KBD_CTRL_C             	0x0003 
-#define KBD_CTRL_D             	0x0004 
-#define KBD_CTRL_E             	0x0005 
-#define KBD_CTRL_F             	0x0006 
-#define KBD_CTRL_G             	0x0007 
-#define KBD_CTRL_H             	0x0008 
-#define KBD_CTRL_I             	0x0009 
-#define KBD_CTRL_J             	0x000A 
-#define KBD_CTRL_K             	0x000B 
-#define KBD_CTRL_L             	0x000C 
-#define KBD_CTRL_M             	0x000D 
-#define KBD_CTRL_N             	0x000E 
-#define KBD_CTRL_O             	0x000F 
-#define KBD_CTRL_P             	0x0010 
-#define KBD_CTRL_Q             	0x0011 
-#define KBD_CTRL_R             	0x0012 
-#define KBD_CTRL_S             	0x0013 
-#define KBD_CTRL_T             	0x0014 
-#define KBD_CTRL_U             	0x0015 
-#define KBD_CTRL_V             	0x0016 
-#define KBD_CTRL_W             	0x0017 
-#define KBD_CTRL_X             	0x0018 
-#define KBD_CTRL_Y             	0x0019 
-#define KBD_CTRL_Z             	0x001A 
+#define KBD_CTRL_A             	0x0001
+#define KBD_CTRL_B             	0x0002
+#define KBD_CTRL_C             	0x0003
+#define KBD_CTRL_D             	0x0004
+#define KBD_CTRL_E             	0x0005
+#define KBD_CTRL_F             	0x0006
+#define KBD_CTRL_G             	0x0007
+#define KBD_CTRL_H             	0x0008
+#define KBD_CTRL_I             	0x0009
+#define KBD_CTRL_J             	0x000A
+#define KBD_CTRL_K             	0x000B
+#define KBD_CTRL_L             	0x000C
+#define KBD_CTRL_M             	0x000D
+#define KBD_CTRL_N             	0x000E
+#define KBD_CTRL_O             	0x000F
+#define KBD_CTRL_P             	0x0010
+#define KBD_CTRL_Q             	0x0011
+#define KBD_CTRL_R             	0x0012
+#define KBD_CTRL_S             	0x0013
+#define KBD_CTRL_T             	0x0014
+#define KBD_CTRL_U             	0x0015
+#define KBD_CTRL_V             	0x0016
+#define KBD_CTRL_W             	0x0017
+#define KBD_CTRL_X             	0x0018
+#define KBD_CTRL_Y             	0x0019
+#define KBD_CTRL_Z             	0x001A
 
 //
 //  Useful ASCII constants:

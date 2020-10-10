@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <wordexp.h>
 
+#include "linenoise.h"
 #include "../dist_kit/sysdef.h"
 
 #ifdef USE_IDE
@@ -145,6 +146,31 @@ char *gbl$normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SH
      *gbl$branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB"}, 
      *gbl$sr_bits = "1XCZNV--",
      *gbl$addressing_mnemonics[] = {"rx", "@rx", "@rx++", "@--rx"};
+
+char *gbl$delimiters = " ,";
+const int gbl$commands_count = 20;
+char* gbl$commands[] = {
+    "ATTACH ",
+    "CB ",
+    "DEBUG ",
+    "DETACH ",
+    "DIS ",
+    "DUMP ",
+    "EXIT ",
+    "HELP ",
+    "LOAD ",
+    "QUIT ",
+    "RESET ",
+    "RDUMP ",
+    "RUN ",
+    "SET ",
+    "SAVE ",
+    "SB ",
+    "STAT ",
+    "STEP ",
+    "SWITCH ",
+    "VERBOSE " };
+
 
 unsigned int gbl$interrupt_address,                 // Interrupt address as set by the interrupting "device"
              gbl$interrupt_request = FALSE,         // This flag denotes an interrupt request.
@@ -1291,8 +1317,26 @@ int load_binary_file(char *file_name) {
   return 0;
 }
 
+void tab_completion(const char *buf, linenoiseCompletions *lc) {
+
+    char cmd[STRING_LENGTH];
+    char* token;
+
+    strcpy(cmd, buf);
+    chomp(cmd);
+    tokenize(cmd, NULL);
+
+    if ((token = tokenize(NULL, gbl$delimiters))) {
+        upstr(token);
+        for (int i = 0; i < gbl$commands_count; i++) {
+            if (strstr(gbl$commands[i], token) == gbl$commands[i])
+                linenoiseAddCompletion(lc, gbl$commands[i]);
+        }
+    }
+}
+
 int main_loop(char **argv) {
-  char command[STRING_LENGTH], *token, *delimiters = " ,", scratch[STRING_LENGTH];
+  char command[STRING_LENGTH], *token, *delimiters = gbl$delimiters, scratch[STRING_LENGTH];
   unsigned int start, stop, i, j, address, value, last_command_was_step = 0;
   wordexp_t expanded_filename;
   FILE *handle;
@@ -1305,13 +1349,27 @@ int main_loop(char **argv) {
       print_statistics();
   }
 
+  linenoiseHistorySetMaxLen(100);
+  linenoiseSetCompletionCallback(tab_completion);
+
   for (;;) {
 #ifdef USE_VGA
     gbl$mips_inst_cnt = 0;
     gbl$mips = 0;
 #endif
-    printf("[%04X] Q> ", gbl$last_address);
-    fgets(command, STRING_LENGTH, stdin);
+
+    char prompt_buf[20];
+    sprintf(prompt_buf, "[%04X] Q> ", gbl$last_address);
+
+    char* ln_line = linenoise(prompt_buf);
+    if (ln_line) {
+        strncpy(command, ln_line, STRING_LENGTH);
+        free(ln_line);
+        linenoiseHistoryAdd(command);
+    } else {
+        continue;
+    }
+
     chomp(command);
     if (feof(stdin)) {
 #ifdef USE_SD

@@ -7,89 +7,95 @@ This backend provides the following additional options:
 
 @table @option
 
-    @item -cpu=n
-              Generate code for cpu n (e.g. -cpu=68020), default: 68000.
-
-    @item -fpu=n
-              Generate code for fpu n (e.g. -fpu=68881), default: 0.
-
-    @item -sd
-                 Use small data model (see below).
-
-    @item -sc
-                 Use small code model (see below).
-
-    @item -prof
-               Insert code for profiling.
+    @item -a2scratch
+              Allow using @code{A2} as scratch register.
 
     @item -const-in-data
+              By default constant data will be placed in the code
+              section (and therefore is accessable with faster pc-relative
+              addressing modes). Using this option it will be placed in the
+              data section.
 
-                By default constant data will be placed in the code
-                section (and therefore is accessable with faster pc-relative
-                addressing modes). Using this option it will be placed in the
-                data section.
+              This could e.g. be useful if you want to use small data and
+              small code, but your code gets too big with all the constant
+              data.
 
-                This could e.g. be useful if you want to use small data and
-                small code, but your code gets too big with all the constant
-                data.
+              Note that on operating systems with memory protection this
+              option will disable write-protection of constant data.
 
-                Note that on operating systems with memory protection this
-                option will disable write-protection of constant data.
+    @item -cpu=n
+              Generate code for cpu n (e.g. @option{-cpu=68020}),
+              defaults to 68000.
 
-    @item -use-framepointer
+    @item -d2scratch
+              Allow using @code{D2} as scratch register.
 
-                By default automatic variables are addressed through a7
-                instead of a5. This generates slightly better code, because
-                the function entry and exit overhead is reduced and a5 can be
-                used as register variable etc.
+    @item -fastcall
+              Pass function arguments in registers, when possible.
 
-                However this may be a bit confusing when debugging and you
-                can force @command{vbcc} to use a5 as a fixed framepointer.
+    @item -fp2scratch
+              Allow using @code{FP2} as scratch register.
 
-    @item -no-peephole
-
-                Do not perform peephole-optimizations.
-
-    @item -no-delayed-popping
-
-                By default arguments of function calls are not always popped
-                from the stack immediately after the call, so that the
-                arguments of several calls may be popped at once.
-                With this option @command{vbcc} can be forced to pop them after every
-                function call.
-                This may simplify debugging and reduce the
-                stack size needed by the compiled program.
+    @item -fpu=n
+              Generate code for fpu n (e.g. @option{-fpu=68881}), default: 0.
 
     @item -gas
-                Create output suitable for the GNU assembler.
+              Create output suitable for the GNU assembler.
+
+    @item -hunkdebug
+              When creating debug-output (@option{-g} option) create
+              Amiga debug hunks rather than DWARF2.
+              Does not work with @option{-gas}.
+
+    @item -no-delayed-popping
+              By default arguments of function calls are not always popped
+              from the stack immediately after the call, so that the
+              arguments of several calls may be popped at once.
+              With this option @command{vbcc} can be forced to pop them after every
+              function call.
+              This may simplify debugging and reduce the
+              stack size needed by the compiled program.
 
     @item -no-fp-return
 
-                Do not return floats and doubles in floating-point registers
-                even if code for an fpu is generated.
-
-    @item -no-mreg-return
-
-                Do not use multiple registers to return types that do not
-                fit into a single register. This is mainly for backwards
-                compatibility with certain libraries.
-
-    @item -hunkdebug
-                When creating debug-output (@option{-g} option) create Amiga
-                debug
-                hunks rather than DWARF2. Does not work with @option{-gas}.
+              Do not return floats and doubles in floating-point registers
+              even if code for an fpu is generated.
 
     @item -no-intz
-                When generating code for FPU do quick&dirty conversions
-                from floating-point to integer. The code may be somewhat
-                faster but will not correctly round to zero.
-                Only use it if you know what you are doing.
+              When generating code for FPU do quick&dirty conversions
+              from floating-point to integer. The code may be somewhat
+              faster but will not correctly round to zero.
+              Only use it if you know what you are doing.
+
+    @item -no-mreg-return
+              Do not use multiple registers to return types that do not
+              fit into a single register. This is mainly for backwards
+              compatibility with certain libraries.
+
+    @item -no-peephole
+              Do not perform peephole-optimizations.
+
+    @item -prof
+              Insert code for profiling.
+
+    @item -sc
+              Use small code model (see below).
+
+    @item -sd
+              Use small data model (see below).
 
     @item -use-commons
+              Use real common symbols instead of bss symbols for
+              non-initialized external variables.
 
-                Use real common symbols instead of bss symbols for
-                non-initialized external variables.
+    @item -use-framepointer
+              By default automatic variables are addressed through a7
+              instead of a5. This generates slightly better code, because
+              the function entry and exit overhead is reduced and a5 can be
+              used as register variable etc.
 
+              However this may be a bit confusing when debugging and you
+              can force @command{vbcc} to use a5 as a fixed framepointer.
 
 @end table
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ ! -f qnice-vga ]; then
+if [[ ! -f qnice-vga ]] && [[ ! "$1" = "-quiet" ]]; then
     echo "Build the QNICE Emulator with VGA and PS/2 (USB) keyboard support."
     echo ""
     echo "Some hints:"
@@ -45,10 +45,10 @@ fi
 
 SDL2_LIBS=`sdl2-config --libs`
 
-FILES="qnice.c fifo.c sd.c uart.c vga.c timer.c"
+FILES="qnice.c fifo.c sd.c uart.c vga.c timer.c linenoise.c"
 DEF_SWITCHES="-DUSE_SD -DUSE_UART -DUSE_VGA -DUSE_TIMER"
 UNDEF_SWITCHES="-UUSE_IDE -U__EMSCRIPTEN__"
 if [ $OSTP = "LINUX" ]; then
     MORE_SWITCHES="-lpthread"
 fi;
-$COMPILER $FILES -O3 $DEF_SWITCHES $UNDEF_SWITCHES $MORE_SWITCHES $SDL2_CFLAGS $SDL2_LIBS -o qnice-vga
+$COMPILER $FILES -O3 $DEF_SWITCHES $UNDEF_SWITCHES $MORE_SWITCHES $SDL2_CFLAGS $SDL2_LIBS -o qnice-vga -Wno-unused-result

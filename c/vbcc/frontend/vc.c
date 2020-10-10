@@ -114,6 +114,7 @@ char *cmfiles,*cmoutput,*cmname;
 FILE *cmdfile;
 #endif
 int final;
+int compressor;
 
 char *config;
 char **confp;
@@ -125,7 +126,7 @@ struct AnchorPath *ap;
 
 int linklen=10,flags=0;
 
-#if defined(_WIN32)||defined(MSDOS)||defined(ATARI)
+#if defined(MSDOS)||defined(ATARI)
 char *tmpnam(char *p)
 {
   static int c=1675;
@@ -351,7 +352,7 @@ static char *convert_path(char *path)
 
 int main(int argc,char *argv[])
 {
-    int tfl,i,len=10,pm,count,db=0,staticmode=0;
+  int tfl,i,len=10,pm,count,db=0,staticmode=0,deps=0;
     char *parm;
     long opt=1;
     int rc=EXIT_SUCCESS;
@@ -393,6 +394,7 @@ int main(int argc,char *argv[])
         if(!strncmp(parm,"-ldnodb=",8)){nodb=parm+8;*parm=0;}
         if(!strncmp(parm,"-ldstatic=",10)){staticflag=parm+10;*parm=0;}
         if(!strcmp(parm,"-g")) db=1;
+	if(!strcmp(parm,"-deps")) deps=1;
         if(!strcmp(parm,"-static")){staticmode=1;*parm=0;}
         if(!strncmp(parm,"-ml=",4)){MAXCLEN=atoi(parm+4);*parm=0;}
         if(!strncmp(parm,"-pp=",4)){ppname=parm+4;*parm=0;}
@@ -410,6 +412,9 @@ int main(int argc,char *argv[])
         if(!strncmp(parm,"-cf=",4)){cf=parm+4;*parm=0;}
         if(!strncmp(parm,"-isc=",5)){scname=parm+5;*parm=0;}
         if(!strncmp(parm,"-iscv=",6)){scv=parm+6;*parm=0;}
+	/* TODO: we re-use scheduler for compressor */
+        if(!strncmp(parm,"-cpr=",5)){scname=parm+5;*parm=0;compressor=1;}
+        if(!strncmp(parm,"-cprv=",6)){scv=parm+6;*parm=0;compressor=1;}
         if(!strcmp(parm,"-schedule")) {flags|=SCHEDULER;*parm=0;}
         if(!strcmp(parm,"-notmpfile")) {flags|=NOTMPFILE;*parm=0;}
         /*if(!strcmp(parm,"-E")) {flags|=CCSRC;*parm=0;}*/
@@ -439,11 +444,11 @@ int main(int argc,char *argv[])
           *parm=0;
         }
         if(!strcmp(parm,"-o")&&i<argc-1) {
-            *argv[i++]=0;destname=argv[i];
+            *argv[i++]=0;destname=convert_path(argv[i]);
             flags|=OUTPUTSET;argv[i]="";continue;
         }
         if(!strncmp(parm,"-o=",3)){
-            destname=parm+3;
+            destname=convert_path(parm+3);
             flags|=OUTPUTSET;*parm=0;continue;
         }
         if(parm[0]=='-'&&parm[1]=='l'){
@@ -484,7 +489,7 @@ int main(int argc,char *argv[])
       userlibs[slen]=' ';
     }
     if(flags&VERBOSE){
-      printf("vc frontend for vbcc (c) in 1995-2016 by Volker Barthelmann\n");
+      printf("vc frontend for vbcc (c) in 1995-2020 by Volker Barthelmann\n");
 #ifdef SPECIAL_COPYRIGHT
       printf("%s\n",SPECIAL_COPYRIGHT);
 #endif
@@ -537,6 +542,7 @@ int main(int argc,char *argv[])
 #ifdef AMIGA
         if(pm&&parm!=cmfiles)
             if(MatchFirst((STRPTR)convert_path(parm),ap)){
+                MatchEnd(ap);
                 printf("No match for %s\n",parm);
                 rc=RETURN_WARN;
                 continue;
@@ -663,6 +669,10 @@ int main(int argc,char *argv[])
                     }else{
                       if(tfl!=j+1) add_name(file,&first_scratch,&last_scratch);
                     }
+		    if(deps&&tfl==OBJ&&(flags&OUTPUTSET)){
+		      strcat(command," -depobj=");
+		      strcat(command,destname);
+		    }
                 }
                 if(j==ASSRC){
                     if(final) file=cmname;
@@ -681,6 +691,7 @@ int main(int argc,char *argv[])
 #endif
                     if(SystemTags(command,NP_Priority,-2,TAG_DONE)){
                         printf("%s failed\n",command);
+                        if(pm) MatchEnd(ap);
                         raus(EXIT_FAILURE);
                     }
                 }else

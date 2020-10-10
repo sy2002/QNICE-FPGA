@@ -72,11 +72,20 @@ or need to upgrade, then we advise to follow these instructions.
 
 1. Get the newest snapshot of VBCC and copy it to `c/vbcc`
 
+   **IMPORTANT:** Do not not delete the existing `c/vbcc` folder while
+   copying the new snapshot, but make sure, that you **overwrite** the
+   existing structure. The reason is, that the QNICE specific folders
+   `config` and `targets` are not part of the VBCC's snapshot package and
+   without them, nothing will work.
+
 2. Run **`tools/make-toolchain.sh`**. This makes sure,
    that `monitor/compile_and_distribute.sh` is automatically being run first,
    which is important for having the newest `sysdef.h` in `compiler-backend`.
    From there, the new compiler backend is automatically copied into the
    VBCC folder and then the toolchain is being made.
+
+   **IMPORTANT:** Answer all the questions that the script might ask you
+   by choosing the default answer, i.e. by pressing `ENTER`.
 
 ###  Recompile the libraries
 

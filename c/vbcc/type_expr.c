@@ -1,11 +1,14 @@
-/*  $VER: vbcc (type_expr.c) V0.8   */
+/*  $VER: vbcc (type_expr.c) $Revision: 1.47 $   */
 
 #include "vbc.h"
 
 static char FILE_[]=__FILE__;
 
-int alg_opt(np,struct Typ *),type_expression2(np,struct Typ *);
-int test_assignment(struct Typ *,np);
+#define CONSTADDR 256
+
+int alg_opt(np,type *);
+int test_assignment(type *,np);
+int type_expression2(np,type *);
 void make_cexpr(np);
 
 int dontopt;
@@ -354,20 +357,20 @@ void insert_constn(np p)
     if(!p||!p->ntyp) ierror(0);
     insert_const(&p->val,p->ntyp->flags);
 }
-int const_typ(struct Typ *p)
+int const_typ(type *p)
 /*  Testet, ob Typ konstant ist oder konstante Elemente enthaelt    */
 {
-    int i;struct struct_declaration *sd;
+    int i;struct_declaration *sd;
     if(p->flags&CONST) return(1);
     if(ISSTRUCT(p->flags)||ISUNION(p->flags))
         for(i=0;i<p->exact->count;i++)
             if(const_typ((*p->exact->sl)[i].styp)) return(1);
     return 0;
 }
-struct Typ *arith_typ(struct Typ *a,struct Typ *b)
+type *arith_typ(type *a,type *b)
 /*  Erzeugt Typ fuer arithmetische Umwandlung von zwei Operanden    */
 {
-  int ta,tb,va,vol;struct Typ *new;
+  int ta,tb,va,vol;type *new;
     new=new_typ();
     ta=a->flags&NU;tb=b->flags&NU;
     vol=(a->flags&VOLATILE)|(b->flags&VOLATILE);
@@ -400,7 +403,7 @@ int int_erw(int t)
 }
 #if HAVE_AOS4
 static int aos4err;
-int aos4_attr(struct Typ *p,char *s)
+int aos4_attr(type *p,char *s)
 {
   if(p->attr&&strstr(p->attr,s))
     return 1;
@@ -456,7 +459,7 @@ static np aos4_clone_tree(np p)
 /* removed */
 /* removed */
 #endif
-int type_expression(np p)
+int type_expression(np p,type *ttyp)
 /*  Art Frontend fuer type_expression2(). Setzt dontopt auf 0   */
 {
 		int ret_val;
@@ -467,7 +470,7 @@ int type_expression(np p)
 /* removed */
 /* removed */
 #endif
-   ret_val = type_expression2(p,0);
+   ret_val = type_expression2(p,ttyp);
 #ifdef HAVE_MISRA
 /* removed */
 #endif
@@ -475,14 +478,47 @@ int type_expression(np p)
 
 }
 
-int type_expression2(np p,struct Typ *ttyp)
+static void fix_addr_ptype(np op)
+{
+  np p=op;
+  while(p->flags==FIRSTELEMENT) p=p->left;
+  if(p->left->flags==CONTENT){
+    int pt=p->left->left->ntyp->flags;
+    if(!ISPOINTER(pt)) ierror(0);
+    if(!ISPOINTER(op->ntyp->flags)) ierror(0);
+    op->ntyp->flags=pt;
+  }
+}
+
+static int ptype(np op)
+{
+#ifdef POINTER_VARADR
+  Var *v=0;
+  np p=op;
+
+  while(p->flags==FIRSTELEMENT/*||p->flags==CONTENT*/) p=p->left;
+  
+  if(p->flags==IDENTIFIER)
+    v=find_var(p->identifier,0);
+  if(v) 
+    return POINTER_VARADR(v);
+  else
+    return POINTER_TYPE(op->ntyp);
+#else
+  return POINTER_TYPE(op->ntyp);
+#endif
+}
+
+int type_expression2(np p,type *ttyp)
 /*  Erzeugt Typ-Strukturen fuer jeden Knoten des Baumes und     */
 /*  liefert eins zurueck, wenn der Baum ok ist, sonst 0         */
 /*  Die Berechnung von Konstanten und andere Vereinfachungen    */
 /*  sollten vielleicht in eigene Funktion kommen                */
 {
   int ok,f=p->flags,mopt=dontopt,ttf;
-  struct Typ *shorttyp;
+  type *shorttyp;
+  static int assignop;
+  int aoflag;
 #if HAVE_AOS4
   np thisp=0;
 #endif
@@ -500,7 +536,7 @@ int type_expression2(np p,struct Typ *ttyp)
   ok=1;
   if(!ecpp&&f==CALL&&p->left->flags==IDENTIFIER&&!find_var(p->left->identifier,0)){
     /*  implizite Deklaration bei Aufruf einer Funktion     */
-    struct struct_declaration *sd;struct Typ *t;struct Var *v;
+    struct_declaration *sd;type *t;Var *v;
 #ifdef HAVE_MISRA
 /* removed */
 #endif
@@ -536,7 +572,7 @@ int type_expression2(np p,struct Typ *ttyp)
 #endif
 #if HAVE_ECPP
   if(ecpp&&f==CALL){
-    struct argument_list *al=p->alist;
+    argument_list *al=p->alist;
     if(al/*&&!al->arg->ntyp*/){
       while(al){
         if(!al->arg) ierror(0);
@@ -553,13 +589,18 @@ int type_expression2(np p,struct Typ *ttyp)
   }
 #endif
   dontopt=0;
-  if(f==ADDRESS&&p->left->flags==IDENTIFIER) {p->left->flags|=256;/*puts("&const");*/}
+  if(f==ADDRESS&&p->left->flags==IDENTIFIER) {p->left->flags|=CONSTADDR;/*puts("&const");*/}
   if(ttyp&&(f==OR||f==AND||f==XOR||f==ADD||f==SUB||f==MULT||f==PMULT||f==DIV||f==MOD||f==KOMPLEMENT||f==MINUS)&&!ISPOINTER(ttyp->flags)&&shortcut(f==PMULT?MULT:f,ttyp->flags&NU))
     shorttyp=ttyp;
   else
     shorttyp=0;
+  if(assignop){
+    aoflag=1;
+    assignop=0;
+  }else
+    aoflag=0;
   if(p->left&&p->flags!=ASSIGNOP){
-    struct struct_declaration *sd;
+    struct_declaration *sd;
     /*  bei ASSIGNOP wird der linke Zweig durch den Link bewertet  */
     if(!p->left) ierror(0);
     if(p->flags==CAST)
@@ -569,9 +610,19 @@ int type_expression2(np p,struct Typ *ttyp)
     if(p->left) p->sidefx|=p->left->sidefx;
     if(!ok) return 0;
   }
+  if(aoflag){
+    if(!p->left||!p->right) ierror(0);
+    shorttyp=p->left->ntyp;
+    ttyp=shorttyp;
+    ttf=ttyp->flags&NQ;
+  }
   if(p->right&&p->right->flags!=MEMBER){
-    struct struct_declaration *sd;
-    if(p->flags==ASSIGNOP) dontopt=1; else dontopt=0;
+    struct_declaration *sd;
+    if(p->flags==ASSIGNOP){
+      dontopt=1;
+      assignop=1;
+    }else
+      dontopt=0;
     if(p->flags==ASSIGN)
       ok&=type_expression2(p->right,p->left->ntyp);
     else
@@ -582,7 +633,7 @@ int type_expression2(np p,struct Typ *ttyp)
 #if HAVE_AOS4
   if(thisp){
     if(aos4_attr(p->left->ntyp,"libcall")){
-      struct argument_list *n=mymalloc(sizeof(*n));
+      argument_list *n=mymalloc(sizeof(*n));
       n->arg=thisp;
       n->next=p->alist;
       n->pushic=0;
@@ -601,7 +652,7 @@ int type_expression2(np p,struct Typ *ttyp)
 /*    printf("bearbeite %s\n",ename[p->flags]);*/
 /*  Erzeugung von Zeigern aus Arrays                            */
 /*  Hier muss noch einiges genauer werden (wie gehoert das?)    */
-  if(p->left&&(ISARRAY(p->left->ntyp->flags)||ISFUNC(p->left->ntyp->flags))){
+  if(p->left&&f!=PCEXPR&&(ISARRAY(p->left->ntyp->flags)||ISFUNC(p->left->ntyp->flags))){
     if(f!=ADDRESS&&f!=ADDRESSA&&f!=ADDRESSS&&f!=FIRSTELEMENT&&f!=DSTRUCT&&(f<PREINC||f>POSTDEC)&&(f<ASSIGN||f>ASSIGNOP)){
       np new=new_node();
       if((p->left->ntyp->flags&NQ)==ARRAY) new->flags=ADDRESSA;
@@ -613,7 +664,7 @@ int type_expression2(np p,struct Typ *ttyp)
       ok&=type_expression2(p->left,0);
     }
   }
-  if(p->right&&f!=FIRSTELEMENT&&f!=DSTRUCT&&f!=ADDRESSS&&(ISARRAY(p->right->ntyp->flags)||ISFUNC(p->right->ntyp->flags))){
+  if(p->right&&f!=PCEXPR&&f!=FIRSTELEMENT&&f!=DSTRUCT&&f!=ADDRESSS&&p->right->ntyp&&(ISARRAY(p->right->ntyp->flags)||ISFUNC(p->right->ntyp->flags))){
     np new=new_node();
     if(ISARRAY(p->right->ntyp->flags)) new->flags=ADDRESSA;
     else new->flags=ADDRESS;
@@ -624,8 +675,8 @@ int type_expression2(np p,struct Typ *ttyp)
     ok&=type_expression2(p->right,0);
   }
 
-  if(f==IDENTIFIER||f==(IDENTIFIER|256)){
-    int ff;struct Var *v;
+  if(f==IDENTIFIER||f==(IDENTIFIER|CONSTADDR)){
+    int ff;Var *v;
 #ifdef HAVE_ECPP
 /* removed */
 /* removed */
@@ -718,12 +769,12 @@ int type_expression2(np p,struct Typ *ttyp)
     p->ntyp=clone_typ(v->vtyp);
     /*  arithmetischen const Typ als Konstante behandeln, das muss noch
 	deutlich anders werden, bevor man es wirklich so machen kann
-        if((p->ntyp->flags&CONST)&&ISARITH(p->ntyp->flags)&&v->clist&&!(f&256)){
+        if((p->ntyp->flags&CONST)&&ISARITH(p->ntyp->flags)&&v->clist&&!(f&CONSTADDR)){
 	p->flags=CEXPR;
 	p->val=v->clist->val;
 	v->flags|=USEDASSOURCE;
         }*/
-    p->flags&=~256;
+    p->flags&=~CONSTADDR;
     if((p->ntyp->flags&NQ)==ENUM){
       /*  enumerations auch als Konstante (int) behandeln */
       p->flags=CEXPR;
@@ -834,7 +885,7 @@ int type_expression2(np p,struct Typ *ttyp)
 /* removed */
 /* removed */
 #endif
-    if(ttyp&&(ttf<=INT||ttf<(p->left->ntyp->flags&NQ)||ttf<(p->right->ntyp->flags&NQ))&&shortcut(f,ttyp->flags&NU))
+    if(ttyp&&(ttf<=INT||ttf<(p->left->ntyp->flags&NQ)||ttf<(p->right->ntyp->flags&NQ))&&shortcut(f,ttyp->flags&NU)&&(!must_convert(p->left->ntyp->flags,ttyp->flags,0)||!must_convert(p->right->ntyp->flags,ttyp->flags,0)))
       p->ntyp=clone_typ(ttyp);
     else
       p->ntyp=arith_typ(p->left->ntyp,p->right->ntyp);
@@ -849,7 +900,7 @@ int type_expression2(np p,struct Typ *ttyp)
     /*  die val.vint=0/1-Zuweisungen muessen noch an zint angepasst     */
     /*  werden                                                          */
     zmax s1,s2;zumax u1,u2;zldouble d1,d2;int c=0;
-    struct Typ *t;
+    type *t;
     if(ISVECTOR(p->left->ntyp->flags)){
       if(ISVECTOR(p->right->ntyp->flags)){
 	if((p->left->ntyp->flags&NU)!=(p->right->ntyp->flags&NU)){error(89);return 0;}
@@ -1022,9 +1073,9 @@ int type_expression2(np p,struct Typ *ttyp)
       return 0;
     }
     if(!ISARITH(p->left->ntyp->flags)||!ISARITH(p->right->ntyp->flags)){
-      np new;zmax sz; int type=0;
+      np new;zmax sz; int typf=0;
 #ifdef MAXADDI2P
-      static struct Typ pmt={MAXADDI2P};
+      static type pmt={MAXADDI2P};
 #endif
       if(f!=ADD&&f!=SUB){error(94);return 0;}
 #ifdef HAVE_MISRA
@@ -1043,7 +1094,7 @@ int type_expression2(np p,struct Typ *ttyp)
 	    error(96);
 	    return 0;
 	  }else{
-	    type=3;
+	    typf=3;
 	  }
 	}else{
 	  if(!ISINT(p->right->ntyp->flags))
@@ -1064,11 +1115,19 @@ int type_expression2(np p,struct Typ *ttyp)
 	      new->right->flags=PCEXPR;
 	      sz=szof(p->left->ntyp->next);
 	      if(zmeqto(l2zm(0L),sz)) error(78);
+#if HAVE_INT_SIZET
 	      new->right->val.vint=zm2zi(sz);
+#else
+	      new->right->val.vlong=zm2zl(sz);
+#endif
 	    }
 	    new->right->left=new->right->right=0;
 	    new->right->ntyp=new_typ();
+#if HAVE_INT_SIZET
 	    new->right->ntyp->flags=INT;
+#else
+	    new->right->ntyp->flags=LONG;
+#endif
 	    p->right=new;
 #ifdef MAXADDI2P
 	    ok&=type_expression2(new,&pmt);
@@ -1076,7 +1135,7 @@ int type_expression2(np p,struct Typ *ttyp)
 	    ok&=type_expression2(new,0);
 #endif
 	  }
-	  type=1;
+	  typf=1;
 	}
       }else{
 	np merk;
@@ -1103,11 +1162,19 @@ int type_expression2(np p,struct Typ *ttyp)
 	    new->right->flags=PCEXPR;
 	    sz=szof(p->right->ntyp->next);
 	    if(zmeqto(l2zm(0L),sz)) error(78);
+#if HAVE_INT_SIZET
 	    new->right->val.vint=zm2zi(sz);
+#else
+	    new->right->val.vlong=zm2zl(sz);
+#endif
 	  }
 	  new->right->left=new->right->right=0;
 	  new->right->ntyp=new_typ();
+#if HAVE_INT_SIZET
 	  new->right->ntyp->flags=INT;
+#else
+	  new->right->ntyp->flags=LONG;
+#endif
 	  p->left=new;
 #ifdef MAXADDI2P
 	  ok&=type_expression2(new,&pmt);
@@ -1115,28 +1182,35 @@ int type_expression2(np p,struct Typ *ttyp)
 	  ok&=type_expression2(new,0);
 #endif
 	}
-	type=2;
+	typf=2;
 	merk=p->left;p->left=p->right;p->right=merk;
       }
-      if(type==0){ierror(0);return(0);}
+      if(typf==0){ierror(0);return(0);}
       else{
-	if(type==3){
+	if(typf==3){
 	  p->ntyp=new_typ();
 	  p->ntyp->flags=PTRDIFF_T(p->left->ntyp->flags);
 	}else{
-	  /*if(type==1)*/ p->ntyp=clone_typ(p->left->ntyp);
+	  /*if(typf==1)*/ p->ntyp=clone_typ(p->left->ntyp);
 	  /* else       p->ntyp=clone_typ(p->right->ntyp);*/
 	  /*  Abfrage wegen Vertauschen der Knoten unnoetig   */
 	}
       }
     }else{
       if(f==LSHIFT||f==RSHIFT){
-	if(ttyp&&(ttf<=INT||ttf<(p->left->ntyp->flags&NQ))&&shortcut(f,ttyp->flags&NU)){
+	if(ttyp&&f==LSHIFT&&(ttf<=INT||ttf<(p->left->ntyp->flags&NQ))&&shortcut(f,ttyp->flags&NU)){
 	  p->ntyp=clone_typ(ttyp);
+	}else if(ttyp&&f==RSHIFT&&ttf<=INT&&ttf<=(p->left->ntyp->flags&NQ)&&shortcut(f,p->left->ntyp->flags&NU)){
+	  p->ntyp=clone_typ(p->left->ntyp);
 	}else{
 	  p->ntyp=arith_typ(p->left->ntyp,p->left->ntyp);
 	  p->ntyp->flags&=~NQ;
 	  p->ntyp->flags|=int_erw(p->left->ntyp->flags);
+	}
+	if(p->right->flags==CEXPR){
+	  eval_constn(p->right);
+	  if(!zmleq(l2zm(0L),vmax)) error(366);
+	  if(zmleq(zmmult(sizetab[p->ntyp->flags&NQ],char_bit),vmax)) error(367);
 	}
 #ifdef HAVE_MISRA
 /* removed */
@@ -1150,7 +1224,7 @@ int type_expression2(np p,struct Typ *ttyp)
 #endif
       }else{
 	/* ggfs. in kleinerem Zieltyp auswerten - bei float keinen shortcut (wäre evtl. double=>float unkritisch?) */
-	if(ttyp&&(ttf<=INT||ttf<(p->left->ntyp->flags&NQ)||ttf<(p->right->ntyp->flags&NQ))&&!ISFLOAT(ttf)&&!ISFLOAT(p->left->ntyp->flags)&&!ISFLOAT(p->right->ntyp->flags)&&shortcut(f==PMULT?MULT:f,ttyp->flags&NU))
+	if(ttyp&&(ttf<=INT||ttf<(p->left->ntyp->flags&NQ)||ttf<(p->right->ntyp->flags&NQ))&&!ISFLOAT(ttf)&&!ISFLOAT(p->left->ntyp->flags)&&!ISFLOAT(p->right->ntyp->flags)&&shortcut(f==PMULT?MULT:f,ttyp->flags&NU)&&(!must_convert(p->left->ntyp->flags,ttyp->flags,0)||!must_convert(p->right->ntyp->flags,ttyp->flags,0)))
 	  p->ntyp=clone_typ(ttyp);
 	else
 	  p->ntyp=arith_typ(p->left->ntyp,p->right->ntyp);
@@ -1316,8 +1390,15 @@ int type_expression2(np p,struct Typ *ttyp)
     }else{
       if(!p->left->ntyp) ierror(0);
       p->ntyp=clone_typ(p->left->ntyp);
-      if(ISINT(p->ntyp->flags)&&(!ttyp||!shortcut(f,ttyp->flags&NU)))
-	p->ntyp->flags=int_erw(p->ntyp->flags);
+      if(ISINT(p->ntyp->flags)){
+	if(!ttyp||!shortcut(f,ttyp->flags&NU)){
+	  p->ntyp->flags=int_erw(p->ntyp->flags);
+	}else{ 
+	  if((f==MINUS&&!zmleq(sizetab[ttyp->flags&NQ],sizetab[p->ntyp->flags&NQ]))||
+	     (f==KOMPLEMENT&&!zmleq(sizetab[ttyp->flags&NQ],sizetab[p->ntyp->flags&NQ])&&(p->ntyp->flags&UNSIGNED)))
+	    p->ntyp->flags=int_erw(p->ntyp->flags);
+	}
+      }
     }
     if(p->left->flags==CEXPR){
       eval_constn(p->left);
@@ -1409,7 +1490,7 @@ int type_expression2(np p,struct Typ *ttyp)
     if(!ISFUNC(p->left->ntyp->flags)&&!ISARRAY(p->left->ntyp->flags)){
       if(!p->left->lvalue){error(115);return 0;}
       if(p->left->flags==IDENTIFIER){
-	struct Var *v;
+	Var *v;
 	v=find_var(p->left->identifier,0);
 	if(!v){error(116,p->left->identifier);return 0;}
 	if(v->storage_class==REGISTER)
@@ -1417,21 +1498,23 @@ int type_expression2(np p,struct Typ *ttyp)
       }
     }
     p->ntyp=new_typ();
-    p->ntyp->flags=POINTER_TYPE(p->left->ntyp);
+    p->ntyp->flags=ptype(p->left);
     p->ntyp->next=clone_typ(p->left->ntyp);
+    fix_addr_ptype(p);
     return ok;
   }
   if(f==ADDRESSA){
     p->ntyp=clone_typ(p->left->ntyp);
-    p->ntyp->flags=POINTER_TYPE(p->left->ntyp);
+    p->ntyp->flags=ptype(p->left);
+    fix_addr_ptype(p);
     return ok;
   }
   if(f==ADDRESSS){
     int i,n=-1;
-    struct struct_list *sl=0;
+    struct_list *sl=0;
     if(!ecpp){
-    for(i=0;i<p->left->ntyp->exact->count;i++)
-      if(!strcmp((*p->left->ntyp->exact->sl)[i].identifier,p->right->identifier)) n=i;
+      for(i=0;i<p->left->ntyp->exact->count;i++)
+	if(!strcmp((*p->left->ntyp->exact->sl)[i].identifier,p->right->identifier)) n=i;
       if(n<0)
         return 0;
       else
@@ -1476,13 +1559,14 @@ int type_expression2(np p,struct Typ *ttyp)
     if(!p->left->ntyp->exact) ierror(0);
     if(!sl->styp) ierror(0);
     p->ntyp->next=clone_typ(sl->styp);
-    p->ntyp->flags=POINTER_TYPE(p->ntyp->next);
+    p->ntyp->flags=ptype(p->left);
+    fix_addr_ptype(p);
     return ok;
   }
   if(f==DSTRUCT){
-    struct struct_declaration *sd=p->left->ntyp->exact;
+    struct_declaration *sd=p->left->ntyp->exact;
     char *identifier=p->right->identifier;
-    int i=0,f,bfs=-1,bfo=-1;struct Typ *t;np new;zmax offset=l2zm(0L);
+    int i=0,f,bfs=-1,bfo=-1;type *t;np new;zmax offset=l2zm(0L);
     if(!ISSTRUCT(p->left->ntyp->flags)&&!ISUNION(p->left->ntyp->flags))
       {error(8);return 0;}
     if(type_uncomplete(p->left->ntyp)){error(11);return 0;}
@@ -1613,8 +1697,8 @@ int type_expression2(np p,struct Typ *ttyp)
     return ok;
   }
   if(f==CALL){
-    struct argument_list *al;int i,flags=0;char *s=0;
-    struct struct_declaration *sd;
+    argument_list *al;int i,flags=0;char *s=0;
+    struct_declaration *sd;
 #ifdef HAVE_ECPP
 /* removed */
 /* removed */
@@ -1669,14 +1753,15 @@ int type_expression2(np p,struct Typ *ttyp)
       if(i==sd->count-1&&(flags&(PRINTFLIKE|SCANFLIKE))){
 	if(al->arg->left&&al->arg->left->flags==STRING){
 	  /*  Argumente anhand des Formatstrings ueberpruefen */
-	  struct const_list *cl=al->arg->left->cl;
+	  const_list *cl=al->arg->left->cl;
 	  int fused=0;
 	  al=al->next;
 	  while(cl&&cl->other){
 	    int c,fflags=' ',at;
-	    struct Typ *t;
+	    type *t;
 	    enum{LL=1,HH};
 	    c=(int)zm2l(zc2zm(cl->other->val.vchar));
+	    c=CHARBACK(c);
 	    cl=cl->next;
 	    if(c==0){
 	      if(cl) error(215);
@@ -1685,6 +1770,7 @@ int type_expression2(np p,struct Typ *ttyp)
 	    if(c!='%') continue;
 	    if(!cl){error(214);return ok;}
 	    c=(int)zm2l(zc2zm(cl->other->val.vchar));
+	    c=CHARBACK(c);
 	    cl=cl->next;
 	    while(isdigit((unsigned char)c)||
 		  c=='-'||c=='+'||c==' '||c=='#'||c=='.'||
@@ -1696,7 +1782,7 @@ int type_expression2(np p,struct Typ *ttyp)
 		al=al->next;
 		if(at>INT) {error(214);return ok;}
 	      }
-	      if((fflags!='*'||(flags&PRINTFLIKE))&&(c=='h'||c=='l'||c=='L'||c=='*')){
+	      if((fflags!='*'||(flags&PRINTFLIKE))&&(c=='h'||c=='l'||c=='L'||c=='*'||c=='t'||c=='z'||c=='j')){
 		if(c=='l'&&fflags=='l')
 		  fflags=LL;
 		else if(c=='h'&&fflags=='h')
@@ -1705,6 +1791,7 @@ int type_expression2(np p,struct Typ *ttyp)
 		  fflags=c;
 	      }
 	      c=(int)zm2l(zc2zm(cl->other->val.vchar));
+	      c=CHARBACK(c);
 	      cl=cl->next;
 	      if(!cl){error(214);return ok;}
 	    }
@@ -1715,8 +1802,14 @@ int type_expression2(np p,struct Typ *ttyp)
 #else
 	    if(fflags=='z') fflags=' ';
 #endif
-	    /*FIXME: assumes ptrdiff_t==INT */
-	    if(fflags=='t') fflags=' ';
+	    if(fflags=='t'){
+	      if(PTRDIFF_T(CHAR)==LLONG)
+		fflags=LL;
+	      else if(PTRDIFF_T(CHAR)==LONG)
+		fflags='l';
+	      else
+		fflags=' ';
+	    }
 	    if(DEBUG&1) printf("format=%c%c\n",fflags,c);
 	    if(fflags=='*'&&(flags&SCANFLIKE)) continue;
 	    if(c!='%'){
@@ -1797,6 +1890,7 @@ int type_expression2(np p,struct Typ *ttyp)
 		fused|=3;
 		do{
 		  c=(int)zm2l(zc2zm(cl->other->val.vchar));
+		  c=CHARBACK(c);
 		  cl=cl->next;
 		  if(!cl){error(214);return ok;}
 		}while(c!=']');     /*  fall through    */
@@ -1849,7 +1943,7 @@ int type_expression2(np p,struct Typ *ttyp)
 	  if(fused!=7&&s){
 	    /*  Wenn kein Format benutzt wird, kann man printf, */
 	    /*  scanf etc. durch aehnliches ersetzen.           */
-	    struct Var *v;char repl[MAXI+6]="__v";
+	    Var *v;char repl[MAXI+6]="__v";
 	    if(fused==3) fused=2;
 	    repl[3]=fused+'0';repl[4]=0;
 	    strcat(repl,s);
@@ -1947,7 +2041,7 @@ np makepointer(np p)
 /*  Fuehrt automatische Zeigererzeugung fuer Baumwurzel durch   */
 /*  Durch mehrmaligen Aufruf von type_expression() ineffizient  */
 {
-    struct struct_declaration *sd;
+    struct_declaration *sd;
     if(ISARRAY(p->ntyp->flags)||ISFUNC(p->ntyp->flags)){
       np new=new_node();
         if(ISARRAY(p->ntyp->flags)){
@@ -1969,7 +2063,7 @@ np makepointer(np p)
     }else 
       return p;
 }
-int alg_opt(np p,struct Typ *ttyp)
+int alg_opt(np p,type *ttyp)
 /*  fuehrt algebraische Vereinfachungen durch                   */
 /*  hier noch genau testen, was ANSI-gemaess erlaubt ist etc.   */
 /*  v.a. Floating-Point ist evtl. kritisch                      */
@@ -2121,6 +2215,7 @@ int alg_opt(np p,struct Typ *ttyp)
             insert_constn(p);
             if(!p->left->sidefx){free_expression(p->left);p->left=0;} else make_cexpr(p->left);
             if(!p->right->sidefx){free_expression(p->right);p->right=0;} else make_cexpr(p->right);
+
 /*            return(type_expression2(p,ttyp));   */
             return 1;
         }
@@ -2132,7 +2227,24 @@ int alg_opt(np p,struct Typ *ttyp)
 	    dontopt=0;
             return type_expression2(p,ttyp);
         }
-
+#if 0
+	if(f==AND&&(!ttyp||(ttyp->flags&NQ)>CHAR)&&shortcut(AND,CHAR)&&zumleq(u2,t_max[CHAR])){
+	  static type st={CHAR};
+	  return type_expression2(p,&st);
+	}
+	if(f==AND&&(!ttyp||(ttyp->flags&NQ)>CHAR)&&(p->ntyp->flags&UNSIGNED)&&shortcut(AND,UNSIGNED|CHAR)&&zumleq(u2,tu_max[CHAR])){
+	  static type st={UNSIGNED|CHAR};
+	  return type_expression2(p,&st);
+	}
+	if(f==AND&&(!ttyp||(ttyp->flags&NQ)>SHORT)&&shortcut(AND,SHORT)&&zumleq(s2,t_max[SHORT])){
+	  static type st={SHORT};
+	  return type_expression2(p,&st);
+	}
+	if(f==AND&&(!ttyp||(ttyp->flags&NQ)>SHORT)&&(p->ntyp->flags&UNSIGNED)&&shortcut(AND,UNSIGNED|SHORT)&&zumleq(u2,tu_max[SHORT])){
+	  static type st={UNSIGNED|SHORT};
+	  return type_expression2(p,&st);
+	}
+#endif
     }
     if(c==1){
         /*  0-a=-a  */
@@ -2173,10 +2285,10 @@ void make_cexpr(np p)
         if(p->right) make_cexpr(p->right);
     }
 }
-int test_assignment(struct Typ *zt,np q)
+int test_assignment(type *zt,np q)
 /*  testet, ob q an Typ z zugewiesen werden darf    */
 {
-  struct Typ *qt=q->ntyp;
+  type *qt=q->ntyp;
   if(ISARITH(zt->flags)&&ISARITH(qt->flags)){
     if(ISINT(zt->flags)&&ISINT(qt->flags)&&
       !zmleq(sizetab[qt->flags&NQ],sizetab[zt->flags&NQ])&&q->flags!=CEXPR){
