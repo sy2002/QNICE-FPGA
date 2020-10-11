@@ -833,6 +833,14 @@ int execute() {
 
   gbl$error = FALSE;
 
+  gbl$last_address = gbl$last_addresses[gbl$last_addresses_pointer++ % MAX_LAST_ADDRESSES] 
+                   = debug_address = address = read_register(PC); /* Get PC */
+
+  if (read_register(PC) == gbl$breakpoint) {
+    printf("Breakpoint reached: %04X\n", read_register(PC));
+    return TRUE;
+  }
+
 #ifdef USE_VGA
   /* global instruction counter for MIPS calcluation; slightly different semantics than gbl$cycle_counter++ */
   gbl$mips_inst_cnt++;
@@ -865,8 +873,6 @@ int execute() {
   if (gbl$cycle_counter_state & 0x0002)
     gbl$cycle_counter++; /* Increment cycle counter which is an instruction counter in the emulator as opposed to the hardware. */
 
-  gbl$last_address = gbl$last_addresses[gbl$last_addresses_pointer++ % MAX_LAST_ADDRESSES] 
-                   = debug_address = address = read_register(PC); /* Get PC */
   opcode = ((instruction = access_memory(address++, READ_MEMORY, 0)) >> 12 & 0Xf);
   write_register(PC, address); /* Update program counter */
 
@@ -1099,11 +1105,6 @@ int execute() {
     default:
       printf("PANIK: Illegal instruction found: Opcode %0X at address %04X.\n", opcode, address);
       return TRUE;
-  }
-
-  if (read_register(PC) == gbl$breakpoint) {
-    printf("Breakpoint reached: %04X\n", read_register(PC));
-    return TRUE;
   }
 
   if (gbl$error) // We encountered some error (division attempt by zero in EAE)
