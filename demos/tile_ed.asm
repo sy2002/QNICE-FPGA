@@ -1341,9 +1341,9 @@ _PED_EDIT       .DW     KBD$F1, STR_RGB24,      6, 0xFFFF,      0
                 .DW     KBD$F7, STR_PED_GREEN,  2, GREEN_MASK,  5
                 .DW     KBD$F9, STR_PED_BLUE,   2, BLUE_MASK,   0
 
-                ; scratch buffer for editing: each nibble one word, highest
-                ; nibble first (editing "from left to right")
-_PED_SCRATCH    .BLOCK  6
+                ; 32-bit scratch buffer for editing:
+                ; highest nibble first (editing "from left to right")
+_PED_SCRATCH    .BLOCK  2
 
 ; ****************************************************************************
 ; PRINT_24BIT_RGB
