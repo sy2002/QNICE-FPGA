@@ -16,9 +16,13 @@
 ;
 ; TileEd ignores STDIN and STDOUT settings of the monitor: the .DW statements
 ; always go to the UART and the other input/ouput is done via keyboard/VGA.
+; This is also why the standard IO monitor functions such as "getc", "putc",    <======= TODO TODO TODO
+; "puts", etc. cannot be used inside this program and are replaced by local     <======= TODO TODO TODO
+; versions.
 ;
 ; done by sy2002 in January 2016
-; enhanced by sy2002 to support font graphics and color in September 2020
+; enhanced by sy2002 in September to October 2020 to support character editing
+; for font graphics and palette editing and color
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -529,7 +533,7 @@ END             SYSCALL(vga_init, 1)            ; also activates default font
 
 HEX_DIGITS      .ASCII_P "0123456789ABCDEF"
 
-STR_HELLO       .ASCII_W "TileEd - Textmode Sprite Editor  V2.0  by sy2002 in September 2020"
+STR_HELLO       .ASCII_W "TileEd - Textmode Sprite Editor  V2.0  by sy2002 in October 2020"
 STR_NOSTART     .ASCII_W "Either TILE_DX or TILE_DY is larger than the allowed maximum. TileEd halted.\n"
 STR_HELP_MAIN   .ASCII_P "F1: Sprite F3: Size F5: Clr F7: Font F9: Pal F12: Output SPACE: Paint CRSR: Nav `"
                 .ASCII_W "XX         XX       XX      XX       XX      XXX         XXXXX        XXXX"
@@ -1190,7 +1194,7 @@ _PED_CKF        CMP     R8, @R12                ; .. dynamic string
                 RBRA    _PED_CKF, !Z
                 RBRA    _PED_KL, 1              ; illegal key => main loop
         
-_PED_FKF        MOVE    STR_HELP_EDIT, R8
+_PED_FKF        MOVE    STR_HELP_EDIT, R8       ; numeric edit help text
                 MOVE    0, R9
                 MOVE    39, R10
                 RSUB    PRINT_STR_AT, 1
@@ -1202,14 +1206,88 @@ _PED_FKF        MOVE    STR_HELP_EDIT, R8
                 SYSCALL(puts, 1)
 
                 ADD     1, R12                  ; LUT: string to be printed
-                MOVE    @R12, R8                ; print dynamic edit string
+                MOVE    @R12++, R8              ; print dynamic edit string
                 SYSCALL(puts, 1)
 
                 RSUB    CURSOR_ON, 1
+                MOVE    R4, R8                  ; R4=address of edited pal col
+                INCRB
+                XOR     R0, R0                  ; R0=value that user entered
+                MOVE    @R12++, R1              ; R1=# of nibbles to type
+                MOVE    @R12++, R2              ; R2=bitmask
+                NOT     R2, R3                  ; R3=bitmask to clear value
+                MOVE    @R12, R4                ; R4=SHL pos in color word
+                XOR     R5, R5                  ; R5=typed # of nibbles
+                MOVE    R1, R6                  ; R6=SHL pos of nib. in buffer
+                SUB     1, R6
+                SHL     2, R6
+                MOVE    R8, R7                  ; R7=address of edited pal col
 
-                SYSCALL(getc, 1)
+_PED_NEXTCHR    RSUB    KBD_GETCHAR, 1
+                SYSCALL(chr2upper, 1)
+                MOVE    R8, R11                 ; remember char for printing
 
-                RBRA    _PED_START, 1
+                CMP     KBD$ENTER, R8           ; ENTER = store & finish
+                RBRA    _PED_STORE, Z 
+
+                CMP     KBD$ESC, R8             ; ESC = cancel
+                RBRA    _PED_NUM_END, Z
+
+                MOVE    '0', R9                 ; R8 in range [0..9]
+                MOVE    ':', R10                ; ASCII of 9 + 1
+                SYSCALL(in_range_u, 1)
+                RBRA    _PED_VALIDCHR1, C       ; in range: proceed
+                MOVE    'A', R9                 ; R8 in range [A..F]
+                MOVE    'G', R10
+                SYSCALL(in_range_u, 1)
+                RBRA    _PED_VALIDCHR2, C       ; in range: proceed
+                RBRA    _PED_NEXTCHR, 1         ; illegal char: ignore
+
+_PED_VALIDCHR1  SUB     '0', R8                 ; R8=convert to number
+                RBRA    _PED_NIBBLE, 1
+_PED_VALIDCHR2  SUB     55, R8                  ; R8=convert to number
+_PED_NIBBLE     CMP     R5, R1                  ; max amount of chars?
+                RBRA    _PED_NEXTCHR, Z         ; yes: ignore typed char
+                ADD     1, R5                   ; R5=typed # of nibbles
+
+                AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)
+                SHL     R6, R8                  ; move nib. to correct pos
+                OR      R8, R0                  ; add to correct pos in buffer
+                SUB     4, R6                   ; next nib: 4 bit pos to right
+
+                MOVE    R11, R8                 ; print nib
+                SYSCALL(putc, 1)
+
+                RBRA    _PED_NEXTCHR, 1
+
+_PED_STORE      SUB     R5, R1                  ; R1=# remaining not typed nib
+                AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)
+                SHL     2, R1                   ; amount of necessary SHR 
+                AND     0xFFFB, SR              ; ckr C for SHR (shift in a 0)
+                SHR     R1, R0                  ; compensate for # of typed ch
+
+                AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)
+                SHL     R4, R0                  ; shift to pos in color word
+                AND     R2, R0                  ; bitmask to cut to right size 
+
+                MOVE    VGA$PALETTE_ADDR, R12   ; R7 = address of currently ..
+                MOVE    R7, @R12++              ; edited palette color
+                AND     R3, @R12                ; clear old value
+                OR      R0, @R12                ; store new value
+
+                ; continue editing: back to pal ed main loop
+_PED_NUM_END    RSUB    CURSOR_OFF, 1                
+                MOVE    PAL_ED_X, R8            ; clear edit string
+                MOVE    22, R9
+                SYSCALL(vga_moveto, 1)
+                MOVE    STR_CLR_LEFT, R8
+                SYSCALL(puts, 1)
+                MOVE    STR_HELP_PAL, R8        ; print pal ed help
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
+                DECRB 
+                RBRA    _PED_KL, 1              ; pal ed main loop
 
                 ; end pal ed
 _PED_END        RSUB    CURSOR_ON, 1
@@ -1256,7 +1334,7 @@ _PED_STRS       .DW STR_RED, STR_GREEN, STR_BLUE
                 ; and strings, amount of hex digits (nibbles) to be entered,
                 ; the bit mask and the amount of SHL to position the nibbles
 _PED_EDIT_ITEMS .EQU    5
-_PED_EDIT_LINE  .EQU    3
+_PED_EDIT_LINE  .EQU    5
 _PED_EDIT       .DW     KBD$F1, STR_RGB24,      6, 0xFFFF,      0
                 .DW     KBD$F3, STR_RGB15,      4, 0x7FFF,      0
                 .DW     KBD$F5, STR_PED_RED,    2, RED_MASK,    10
