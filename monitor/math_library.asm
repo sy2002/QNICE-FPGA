@@ -303,7 +303,7 @@ _MTH$IRU_2      OR      0x0004, SR              ; Set carry bit
 _MTH$IRU_3      AND     0xFFFB, SR              ; Clear carry bit
                 DECRB
                 RET
-
+;
 ;******************************************************************************
 ;*
 ;* MTH$IN_RANGE_S    returns C=1 if R8 >= R9 and < R10 else C=0
@@ -312,3 +312,23 @@ _MTH$IRU_3      AND     0xFFFB, SR              ; Clear carry bit
 ;******************************************************************************
 ;
 MTH$IN_RANGE_S  HALT
+;
+;******************************************************************************
+;*
+;* MTH$SHL32 performs 32-bit shift-left with the same semantics as SHL:
+;*           fills with X and shifts to C
+;*           R8 = low word, R9 = high word, R10 = SHL amount
+;*
+;******************************************************************************
+;
+MTH$SHL32       HALT
+;
+;******************************************************************************
+;*
+;* MTH$SHR32 performs 32-bit shift-right with the same semantics as SHR:
+;*           fills with C and shifts to X
+;*           R8 = low word, R9 = high word, R10 = SHL amount
+;*
+;******************************************************************************
+;
+MTH$SHR32       HALT
