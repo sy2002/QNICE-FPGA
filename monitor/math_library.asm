@@ -327,7 +327,7 @@ MTH$SHL32       HALT
 ;*
 ;* MTH$SHR32 performs 32-bit shift-right with the same semantics as SHR:
 ;*           fills with C and shifts to X
-;*           R8 = low word, R9 = high word, R10 = SHL amount
+;*           R8 = low word, R9 = high word, R10 = SHR amount
 ;*
 ;******************************************************************************
 ;
