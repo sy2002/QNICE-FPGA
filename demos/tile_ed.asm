@@ -1253,14 +1253,15 @@ _PED_RGB        .DW     RED_MASK,   0,          RED_ONE_C,    10 ; RED - 1
 _PED_STRS       .DW STR_RED, STR_GREEN, STR_BLUE
 
                 ; this look up table stores the combination of function keys
-                ; and strings, amount of hex digits (nibbles) to be entered
+                ; and strings, amount of hex digits (nibbles) to be entered,
+                ; the bit mask and the amount of SHL to position the nibbles
 _PED_EDIT_ITEMS .EQU    5
 _PED_EDIT_LINE  .EQU    3
-_PED_EDIT       .DW     KBD$F1, STR_RGB24,      6
-                .DW     KBD$F3, STR_RGB15,      4
-                .DW     KBD$F5, STR_PED_RED,    2
-                .DW     KBD$F7, STR_PED_GREEN,  2
-                .DW     KBD$F9, STR_PED_BLUE,   2
+_PED_EDIT       .DW     KBD$F1, STR_RGB24,      6, 0xFFFF,      0
+                .DW     KBD$F3, STR_RGB15,      4, 0x7FFF,      0
+                .DW     KBD$F5, STR_PED_RED,    2, RED_MASK,    10
+                .DW     KBD$F7, STR_PED_GREEN,  2, GREEN_MASK,  5
+                .DW     KBD$F9, STR_PED_BLUE,   2, BLUE_MASK,   0
 
                 ; scratch buffer for editing: each nibble one word, highest
                 ; nibble first (editing "from left to right")
