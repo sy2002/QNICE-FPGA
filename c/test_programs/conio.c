@@ -20,17 +20,17 @@ void gotoxy(int col, int row)
    MMIO(VGA_CR_Y) = row;   // VGA cursor Y position
 } // gotoxy
 
-void cputcxy(int col, int row, char ch)
+void cputcxy(int col, int row, int ch)
 {
    gotoxy(col, row);
    MMIO(VGA_CHAR) = ch;    // VGA character to be displayed
 } // cputcxy
 
-void cputsxy(int col, int row, const char *str)
+void cputsxy(int col, int row, const char *str, int color)
 {
    while (*str)
    {
-      cputcxy(col++, row, *str);
+      cputcxy(col++, row, (*str) + color);
       str++;
    }
 } // cputsxy

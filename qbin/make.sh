@@ -25,7 +25,7 @@ echo "building:   hdmi_de.c"
 qvc  $C_DEMOS/hdmi_de.c $C_FLAGS
 mv   $C_DEMOS/hdmi_de.out .
 echo "building:   maze2d.c"
-qvc  $C_DEMOS/maze2d.c $C_DEMOS/conio.c $C_DEMOS/rand.c $C_FLAGS
+qvc  $C_DEMOS/maze2d.c $C_DEMOS/conio.c $C_DEMOS/rand.c $C_DEMOS/maze_grid.c $C_FLAGS
 mv   $C_DEMOS/maze2d.out .
 echo "building:   shell.c"
 qvc  $C_DEMOS/shell.c $C_FLAGS

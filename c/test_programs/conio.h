@@ -5,8 +5,8 @@
  */
 
 void gotoxy(int col, int row);
-void cputcxy(int col, int row, char ch);
-void cputsxy(int col, int row, const char *str);   // String must be zero-terminated.
+void cputcxy(int col, int row, int ch);
+void cputsxy(int col, int row, const char *str, int color);   // String must be zero-terminated.
 void clrscr();
 char cgetc();
 long time();
