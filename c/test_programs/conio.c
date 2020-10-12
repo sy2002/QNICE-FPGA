@@ -26,11 +26,11 @@ void cputcxy(int col, int row, int ch)
    MMIO(VGA_CHAR) = ch;    // VGA character to be displayed
 } // cputcxy
 
-void cputsxy(int col, int row, const char *str)
+void cputsxy(int col, int row, const char *str, int color)
 {
    while (*str)
    {
-      cputcxy(col++, row, *str);
+      cputcxy(col++, row, (*str) + color);
       str++;
    }
 } // cputsxy

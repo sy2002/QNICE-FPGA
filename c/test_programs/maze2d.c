@@ -12,255 +12,87 @@
  * done by MJoergen in August 2020
  */
 
-#include "conio.h"   // Function to write to the VGA screen
-#include "rand.h"    // Random generator
+#include "conio.h"      // Function to write to the VGA screen
+#include "rand.h"       // Random generator
+#include "maze_grid.h"  // The actual internals of the maze generation
 
-// Define the size of the maze.
-#define MAX_ROWS  18
-#define MAX_COLS  38
-#define MAX_SQUARES	(MAX_ROWS*MAX_COLS)
-
-// Each square has a value that is a bitmask of open walls.
-// E.g. the value 3 means that the square has openings to the north and the
-// east, while there are blocking walls to the south and the west.
-char grid[MAX_SQUARES];
-
-int init = 0;
+enum
+{
+   MENU,       // Show menu
+   PLAYING,    // Show maze
+   GAME_OVER   // Show end-screen
+} gameState;
 
 // Level 1 shows everything
 // Level 2 shows the squares alreay visited
 // Level 3 shows only the current square
 int level = 1;
 
-int curSq;
-int endSq;
+// If non-zero then display the ending square
 int hint = 0;
 
-enum
+
+static void draw_menu()
 {
-   DIR_NORTH = 0,
-   DIR_EAST,
-   DIR_WEST,
-   DIR_SOUTH,
-   MAX_DIRS,
-   VISITED = 7
-};
-
-#define GetRow(sq)	(sq % MAX_ROWS)
-#define GetCol(sq)	(sq / MAX_ROWS)
-
-const int offset[MAX_DIRS] = {-1, MAX_ROWS, -MAX_ROWS, 1};
-
-static char GetRandomDir()
-{
-   return my_rand() % MAX_DIRS;
-}
-
-static int GetRandomSquare()
-{
-   return my_rand() % MAX_SQUARES;
-}
-
-
-// Draw the current square as 3x3 characters.
-static void DrawPos(int sq)
-{
-   const char wall = '#';
-   char col = 1 + 2*GetCol(sq);
-   char row = 1 + 2*GetRow(sq);
-   char g = grid[sq];
-
-   int color = 0x0000;
+   int color = 0;
    switch (level)
    {
       case 1 : color = 0x0000; break;  // COLOR_LIGHT_GREEN
       case 2 : color = 0x0400; break;  // COLOR_YELLOW
       case 3 : color = 0x0300; break;  // COLOR_ORANGE
    }
-
-   if ((level == 1) ||
-      ((level == 2) && (g&(1<<VISITED))) ||
-      ((level == 3) && (sq == curSq)) ||
-      ((hint == 1) && (sq == endSq)))
-   {
-      cputcxy(col,   row,   color + wall);
-      cputcxy(col,   row+2, color + wall);
-      cputcxy(col+2, row+2, color + wall);
-      cputcxy(col+2, row,   color + wall);
-      cputcxy(col+1, row,   color + ((g&(1<<DIR_NORTH)) ? ' ' : wall));
-      cputcxy(col+2, row+1, color + ((g&(1<<DIR_EAST))  ? ' ' : wall));
-      cputcxy(col,   row+1, color + ((g&(1<<DIR_WEST))  ? ' ' : wall));
-      cputcxy(col+1, row+2, color + ((g&(1<<DIR_SOUTH)) ? ' ' : wall));
-      if (sq == endSq)
-         cputcxy(col+1, row+1, color + '*');
-      else if (sq == curSq)
-         cputcxy(col+1, row+1, color + '@');
-      else
-         cputcxy(col+1, row+1, color + ' ');
-   }
-} // end of DrawPos
-
-
-static void pause()
-{
-   for (long i=0; i<1000; ++i)
-   {
-      // Calling my_rand() prevents the optimizer from pruning this loop,
-      // because my_rand() has side-effects (it updates the seed).
-      my_rand();
-   }
-} // end of pause
-
-
-// Generate maze
-static void InitMaze(void)
-{
-   int sq;
-   int count;
-   int c;
-
-   for(sq=0; sq<MAX_SQUARES; sq++)
-   {
-      grid[sq]=0; // Initially all walls are blocked.
-   }
-
-   sq = GetRandomSquare(); // Start at a random square in the maze.
-   count = MAX_SQUARES-1;  // Number of squares remaining to be visited.
-   while (count)           // Continue until all squares are visited.
-   {
-      int dir = GetRandomDir();
-      int newSq = sq + offset[dir]; // Go to a neighbouring square.
-
-      int sameRow = (GetRow(sq)==GetRow(newSq));
-      int sameCol = (GetCol(sq)==GetCol(newSq));
-
-      // Check whether the new square is in fact inside the maze.
-      if ( ((sameRow && !sameCol) || (!sameRow && sameCol))
-            && (newSq>=0) && (newSq<MAX_SQUARES) )
-      {
-         if (!grid[newSq])
-         {	/* We haven't been here before. */
-
-            /* Make an opening */
-            int mask_old = 1 << dir;
-            int mask_new = 1 << (MAX_DIRS-1) - dir;
-            grid[sq] += mask_old; DrawPos(sq);
-            sq = newSq;
-            grid[sq] += mask_new; DrawPos(sq);
-            count--;
-            pause();
-         }
-         else
-         {  // We're moved to a square we've already visited.
-            // Either we continue moving around, or we - occasionally -
-            // teleport to a random other square inside the part of the maze
-            // already built.
-            if ((my_rand() % 6) == 0)
-            {
-               /* Start from a different square that is connected */
-               do
-               {
-                  sq = GetRandomSquare();
-               }
-               while (!grid[sq]);
-            }
-         }
-      }
-   }
-
-   curSq = MAX_SQUARES - 1;
-   grid[curSq] |= 1<<VISITED;
-
-   do
-   {
-      endSq = GetRandomSquare();
-   } while (GetRow(endSq) >= MAX_ROWS/2 || GetCol(endSq) >= MAX_COLS/2);
-} // end of InitMaze
-
-
-static void gameInit()
-{
-   init = 0;
-   level = 1;
-   hint = 0;
-
    clrscr();
-   cputsxy(1, 10, "Welcome to this aMAZEing game!\0");
-   cputsxy(1, 12, "Press g to generate a new maze.\0");
-   cputsxy(1, 13, "Press 123 to change the level of the game.\0");
-   cputsxy(1, 14, "Move around with the keys WASD / HJKL / arrows.\0");
-   cputsxy(1, 15, "Press r to reset the current maze.\0");
-   cputsxy(1, 16, "Press x to get a hint.\0");
-   cputsxy(1, 17, "Press q to quit the game.\0");
-   cputsxy(1, 18, "Press m to return to this menu.\0");
-} // end of gameInit
+   cputsxy(1, 10, "Welcome to this aMAZEing game!\0", color);
+   cputsxy(1, 12, "Press g to generate a new maze.\0", color);
+   cputsxy(1, 13, "Press 123 to change the level of the game.\0", color);
+   cputsxy(1, 14, "Move around with the keys WASD / HJKL / arrows.\0", color);
+   cputsxy(1, 15, "Press r to reset the current maze.\0", color);
+   cputsxy(1, 16, "Press x to get a hint.\0", color);
+   cputsxy(1, 17, "Press q to quit the game.\0", color);
+   cputsxy(1, 18, "Press m to return to this menu.\0", color);
+} // end of draw_menu
 
 
-static void ShowMaze()
+static int game_update()
 {
-   clrscr();
-   for (int sq=0; sq<MAX_SQUARES; ++sq)
+   switch (gameState)
    {
-      DrawPos(sq);
-   }
-} // end of ShowMaze
-
-
-static void playerUpdate(int dir)
-{
-   if (!init)
-      return;
-
-   if (grid[curSq] & (1<<dir))   // Check if move is allowed.
-   {
-      curSq += offset[dir];
-      grid[curSq] |= 1<<VISITED;
-   }
-
-   if (curSq == endSq)
-   {
-      ShowMaze();
-      cputsxy(1, 38, "You escaped!\0");
-   }
-} // end of playerUpdate
-
-static void ResetMaze()
-{
-   for (int sq=0; sq<MAX_SQUARES; ++sq)
-   {
-      grid[sq] &= ~(1<<VISITED);
-   }
-   curSq = MAX_SQUARES - 1;
-   grid[curSq] |= 1<<VISITED;
-} // end of ResetMaze
-
-
-static int gameUpdate()
-{
-   if (init)
-   {
-      ShowMaze();
-      DrawPos(curSq);
+      case MENU:
+         draw_menu();
+         break;
+      case PLAYING:
+         maze_draw(level, hint);
+         break;
+      case GAME_OVER:
+         maze_draw(level, hint);
+         cputsxy(1, 38, "You escaped!\0", 0);
+         break;
    }
 
    hint = 0;
-   char ch;
-   switch (ch = cgetc())
+   switch (cgetc())
    {
-      case '1' : if (init) {level = 1; ShowMaze();} break;
-      case '2' : if (init) {level = 2; ShowMaze();} break;
-      case '3' : if (init) {level = 3; ShowMaze();} break;
-      case 'g' : clrscr(); InitMaze(); ShowMaze(); init = 1; break;
-      case 'r' : ResetMaze(); break;
+      case '1' : level = 1; break;
+      case '2' : level = 2; break;
+      case '3' : level = 3; break;
+      case 'g' : if (gameState == MENU)
+                 {
+                    clrscr();
+                    maze_init();
+                    maze_draw(level, hint);
+                    gameState = PLAYING;
+                 }
+                 break;
+      case 'r' : if (gameState != MENU) {maze_reset(); gameState = PLAYING;} break;
       case 'x' : hint = 1; break;
-      case 'm' : gameInit(); break;
+      case 'm' : gameState = MENU; break;
 
-      case 'w' : case 'k' : playerUpdate(DIR_NORTH); break;
-      case 's' : case 'j' : playerUpdate(DIR_SOUTH); break;
-      case 'd' : case 'l' : playerUpdate(DIR_EAST); break;
-      case 'a' : case 'h' : playerUpdate(DIR_WEST); break;
+      case 'w' : case 'k' : if (gameState == PLAYING) {if (maze_move(DIR_NORTH)) gameState = GAME_OVER;} break;
+      case 's' : case 'j' : if (gameState == PLAYING) {if (maze_move(DIR_SOUTH)) gameState = GAME_OVER;} break;
+      case 'd' : case 'l' : if (gameState == PLAYING) {if (maze_move(DIR_EAST)) gameState = GAME_OVER;} break;
+      case 'a' : case 'h' : if (gameState == PLAYING) {if (maze_move(DIR_WEST)) gameState = GAME_OVER;} break;
 
-      case 'q' : cputsxy(1, 38, "GOODBYE!.\0");
+      case 'q' : cputsxy(1, 38, "GOODBYE!.\0", 0);
                  return 1;    // End the game.
    }
 
@@ -271,11 +103,12 @@ static int gameUpdate()
 int main()
 {
    my_srand(time());    // Seed random number generator.
+   level = 1;
 
-   gameInit();
+   gameState = MENU;
    while (1)
    {
-      if (gameUpdate())
+      if (game_update())
          break;
    }
 
