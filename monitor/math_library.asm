@@ -321,14 +321,87 @@ MTH$IN_RANGE_S  HALT
 ;*
 ;******************************************************************************
 ;
-MTH$SHL32       HALT
+MTH$SHL32       INCRB
+                MOVE    SR, R0                  ; Store X
+                MOVE    R10, R10
+                RBRA    _MTH$SHL_EXIT, Z
+                CMP     0x21, R10
+                RBRA    _MTH$SHL_ALL, !N        ; Jump if shifting more than 32
+                CMP     0x11, R10
+                RBRA    _MTH$SHL16, N           ; Jump if shifting 16 or less
+                MOVE    R8, R9
+                MOVE    R0, SR                  ; Restore X bit
+                SHL     0x10, R8
+                SUB     0x10, R10
+
+_MTH$SHL16      MOVE    0x10, R1
+                SUB     R10, R1                 ; Calculate 16-shift
+
+                MOVE    R8, R2
+                AND     0xFFFB, SR              ; Clear carry bit
+                SHR     R1, R2
+
+                MOVE    R0, SR                  ; Restore X bit
+                SHL     R10, R8
+                AND     0xFFFD, SR              ; Clear X bit
+                SHL     R10, R9
+                OR      R2, R9
+
+_MTH$SHL_EXIT   DECRB
+                RET
+
+_MTH$SHL_ALL    MOVE    R0, SR                  ; Restore X bit
+                SHL     0x11, R9
+                SHL     0x11, R8
+                DECRB
+                RET
+
+
 ;
 ;******************************************************************************
 ;*
 ;* MTH$SHR32 performs 32-bit shift-right with the same semantics as SHR:
-;*           fills with C and shifts to X
+;*           fills with C
 ;*           R8 = low word, R9 = high word, R10 = SHR amount
 ;*
 ;******************************************************************************
 ;
-MTH$SHR32       HALT
+MTH$SHR32       INCRB
+                MOVE    SR, R0                  ; Store C
+                MOVE    R10, R10
+                RBRA    _MTH$SHR_EXIT, Z
+                CMP     0x21, R10
+                RBRA    _MTH$SHR_ALL, !N        ; Jump if shifting more than 32
+                CMP     0x11, R10
+                RBRA    _MTH$SHR16, N           ; Jump if shifting 16 or less
+                MOVE    R9, R8
+                MOVE    R0, SR                  ; Restore C bit
+                SHR     0x10, R9
+                SUB     0x10, R10
+
+_MTH$SHR16      MOVE    0x10, R1
+                SUB     R10, R1                 ; Calculate 16-shift
+
+                MOVE    R9, R2
+                AND     0xFFFD, SR              ; Clear X bit
+                SHL     R1, R2
+
+                MOVE    R0, SR                  ; Restore C bit
+                SHR     R10, R9
+                AND     0xFFFB, SR              ; Clear carry bit
+                SHR     R10, R8
+                OR      R2, R8
+
+                DECRB
+                RET
+
+_MTH$SHR_EXIT   MOVE    R0, SR
+                DECRB
+                RET
+
+_MTH$SHR_ALL    MOVE    R0, SR                  ; Restore C bit
+                SHR     0x11, R9
+                SHR     0x11, R8
+                DECRB
+                RET
+
