@@ -3,8 +3,8 @@
 #include "maze_grid.h"
 
 // Define the size of the maze.
-#define MAX_ROWS  8
-#define MAX_COLS  8
+#define MAX_ROWS  18
+#define MAX_COLS  38
 #define MAX_SQUARES	(MAX_ROWS*MAX_COLS)
 
 // Each square has a value that is a bitmask of open walls.
