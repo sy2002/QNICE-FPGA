@@ -392,11 +392,7 @@ _MTH$SHR16      MOVE    0x10, R1
                 SHR     R10, R8
                 OR      R2, R8
 
-                DECRB
-                RET
-
-_MTH$SHR_EXIT   MOVE    R0, SR
-                DECRB
+_MTH$SHR_EXIT   DECRB
                 RET
 
 _MTH$SHR_ALL    MOVE    R0, SR                  ; Restore C bit
