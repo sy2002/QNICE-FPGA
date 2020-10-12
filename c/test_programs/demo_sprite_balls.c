@@ -278,7 +278,7 @@ static void showStats()
                                     (long) pBall->vel_scaled.y * (long) pBall->vel_scaled.y) / 2;
    }
    snprintf(buffer, 20, "Ekin = %ld         ", ekin/VEL_SCALE);
-   cputsxy(20, 20, buffer);
+   cputsxy(20, 20, buffer, 0);
 }
 
 int main()
