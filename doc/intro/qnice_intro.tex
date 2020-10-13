@@ -97,7 +97,7 @@
     \end{center}
     \begin{description}
      \item [{\tt 1}:] Always set to 1
-     \item [{\tt X}:] 1 if the last result was {\tt 0xFFFF}
+     \item [{\tt X}:] Used by shift instructions only.
      \item [{\tt C}:] Carry flag
      \item [{\tt Z}:] 1 if the last result was {\tt 0x0000}
      \item [{\tt N}:] 1 if the last result was negative
@@ -266,18 +266,18 @@
       \hline
        Instruction&\texttt{V}&\texttt{N}&\texttt{Z}&\texttt{C}&\texttt{X}&\texttt{1}\\
       \hline
-       \texttt{MOVE} & &W&W& &W& \\
-       \texttt{ADD}  &W&W&W&W&W& \\
-       \texttt{ADDC} &W&W&W&R/W&W& \\
-       \texttt{SUB}  &W&W&W&W&W& \\
-       \texttt{SUBC} &W&W&W&R/W&W& \\
+       \texttt{MOVE} & &W&W& & & \\
+       \texttt{ADD}  &W&W&W&W& & \\
+       \texttt{ADDC} &W&W&W&R/W& & \\
+       \texttt{SUB}  &W&W&W&W& & \\
+       \texttt{SUBC} &W&W&W&R/W& & \\
        \texttt{SHL}  & &W&W&W&R& \\
        \texttt{SHR}  & &W&W&R&W& \\
-       \texttt{SWAP} & &W&W& &W& \\
-       \texttt{NOT}  & &W&W& &W& \\
-       \texttt{AND}  & &W&W& &W& \\
-       \texttt{OR}   & &W&W& &W& \\
-       \texttt{XOR}  & &W&W& &W& \\
+       \texttt{SWAP} & &W&W& & & \\
+       \texttt{NOT}  & &W&W& & & \\
+       \texttt{AND}  & &W&W& & & \\
+       \texttt{OR}   & &W&W& & & \\
+       \texttt{XOR}  & &W&W& & & \\
       \hline
      \end{tabular}
     \end{center}
