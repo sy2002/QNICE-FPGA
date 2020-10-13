@@ -90,6 +90,12 @@ int main()
    }
 
 end:
+
+   MMIO(VGA_STATE) |= VGA_EN_HW_CURSOR;   // Enable cursor
+   qmon_vga_cls();                        // Clear screen
+   sprite_clear_all();                    // Remove all sprites
+   MMIO(VGA_STATE) &= ~VGA_EN_SPRITE;     // Disable sprites
+
    return 0;
 }
 

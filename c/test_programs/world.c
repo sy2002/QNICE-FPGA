@@ -611,7 +611,7 @@ sprite layering. \
 int main()
 {
    MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // Hide cursor
-   qmon_vga_cls();                        // Clearn screen
+   qmon_vga_cls();                        // Clear screen
    sprite_clear_all();                    // Clear all sprites
    MMIO(VGA_STATE) |= VGA_EN_SPRITE;      // Enable sprites
 
@@ -695,6 +695,12 @@ int main()
          break;
       }
    }
+
+   MMIO(VGA_STATE) |= VGA_EN_HW_CURSOR;   // Enable cursor
+   qmon_vga_cls();                        // Clear screen
+   sprite_clear_all();                    // Clear all sprites
+   MMIO(VGA_STATE) &= ~VGA_EN_SPRITE;     // Disable sprites
+   MMIO(VGA_ADJUST_X) = 0;                // Disable horizontal scrolling
 
    return 0;
 }

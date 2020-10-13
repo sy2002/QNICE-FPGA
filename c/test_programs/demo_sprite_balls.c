@@ -309,13 +309,25 @@ int main()
       showStats();
       stat_update(MMIO(VGA_SCAN_LINE));   // Update statistics.
       if (MMIO(IO_UART_SRA) & 1)
+      {
+         unsigned int tmp = MMIO(IO_UART_RHRA);
          break;
+      }
+      if (MMIO(IO_KBD_STATE) & KBD_NEW_ANY)
+      {
+         unsigned int tmp = MMIO(IO_KBD_DATA);
+         break;
+      }
    }
    printf("\nScanline statistics (which scanline have we reached before next draw)?\n");
    printf("Should all be below 480.\n");
    stat_show();
 
-   qmon_gets();
+   MMIO(VGA_STATE) |= VGA_EN_HW_CURSOR;   // Enable cursor
+   qmon_vga_cls();                        // Clear screen
+   sprite_clear_all();                    // Remove all sprites
+   MMIO(VGA_STATE) &= ~VGA_EN_SPRITE;     // Disable sprites
+
    return 0;
 } // main
 
