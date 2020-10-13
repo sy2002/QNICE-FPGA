@@ -12,6 +12,9 @@
 **            26-JUL-2020   Control instructions added, started adding timers
 **            xx-AUG-2020   Lots of corrections, INCRB, DECRB added, new update_status_bits() etc.
 **            xx-SEP-2020   Introduction of shadow registers and EXC instruction
+**            xx-OCT-2020   Fixed a bug associated with the address displayed after breakpoints,
+**                          changed the behaviour of the X-bit so that only shift instructions
+**                          make use of this bit any more.
 **
 ** The following defines are available:
 **
@@ -94,8 +97,7 @@
 /* The following constants form a bit mask to allow the exclusion of several bits */
 #define MODIFY_ALL             0x0
 #define DO_NOT_MODIFY_CARRY    0x1
-#define DO_NOT_MODIFY_X        0x2
-#define DO_NOT_MODIFY_OVERFLOW 0x4
+#define DO_NOT_MODIFY_OVERFLOW 0x2
 
 #define GENERIC_CONTROL_OPCODE 0xe /* All control instructions share this common opcode */
 #define GENERIC_BRANCH_OPCODE  0xf /* All branches share this common opcode */
@@ -787,11 +789,6 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
 
   sr_bits = read_register(SR);
 
-  if (!(control_bitmask & DO_NOT_MODIFY_X)) 
-    x = (destination & 0xffff) == 0xffff ? 1 : 0;
-  else 
-    x = (sr_bits >> 1) & 1; // Retain old X-flag
-
   if (!(control_bitmask & DO_NOT_MODIFY_CARRY)) 
     c = destination & 0x10000 ? 1 : 0;
   else 
@@ -932,9 +929,7 @@ int execute() {
         write_register(SR, (read_register(SR) & 0xfffb) | temp_flag);                 /* Shift into C bit */
         write_destination(destination_mode, destination_regaddr, destination, FALSE);
       }
-      update_status_bits(destination, source_0, source_1, 
-                         DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_X | DO_NOT_MODIFY_OVERFLOW, 
-                         NO_ADD_SUB_INSTRUCTION);
+      update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
       break;
     case 6: /* SHR */
       source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
@@ -947,9 +942,7 @@ int execute() {
         write_register(SR, (read_register(SR) & 0xfffd) | temp_flag);                     /* Shift into X bit */
         write_destination(destination_mode, destination_regaddr, destination, FALSE);
       }
-      update_status_bits(destination, source_0, source_1, 
-                         DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_X | DO_NOT_MODIFY_OVERFLOW, 
-                         NO_ADD_SUB_INSTRUCTION);
+      update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
       break;
     case 7: /* SWAP */
       source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
