@@ -17,6 +17,9 @@
 #include "rand.h"       // Random generator
 #include "maze_grid.h"  // The actual internals of the maze generation
 
+// convenient mechanism to access QNICE's Memory Mapped IO registers
+#define MMIO( __x ) *((unsigned int volatile *) __x )
+
 enum
 {
    MENU,       // Show menu
@@ -102,6 +105,8 @@ static void draw_ending()
 
 static int game_update()
 {
+   MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // Hide cursor
+
    switch (gameState)
    {
       case MENU:
@@ -115,8 +120,7 @@ static int game_update()
          draw_ending();
          break;
    }
-
-   hint = 0;
+   MMIO(VGA_STATE) |= VGA_EN_HW_CURSOR;   // Enable cursor
 
    int ch;
    do
@@ -124,16 +128,24 @@ static int game_update()
       ch = cpeekc();
    } while (!ch);
 
+   if (hint)
+   {
+      clrscr();
+      hint = 0;
+   }
+
    switch (ch)
    {
-      case '1' : level = 1; break;
-      case '2' : level = 2; break;
-      case '3' : level = 3; break;
+      case '1' : level = 1; clrscr(); break;
+      case '2' : level = 2; clrscr(); break;
+      case '3' : level = 3; clrscr(); break;
       case 'g' : if (gameState != PLAYING)
                  {
                     clrscr();
                     maze_init();
                     maze_draw(get_color(), get_mask());
+                    if (level > 1)
+                       clrscr();
                     gameState = PLAYING;
                  }
                  break;
@@ -146,7 +158,7 @@ static int game_update()
       case 'd' : case 'l' : case KBD_CUR_RIGHT : if (gameState == PLAYING) {if (maze_move(DIR_EAST)) gameState = GAME_OVER;} break;
       case 'a' : case 'h' : case KBD_CUR_LEFT  : if (gameState == PLAYING) {if (maze_move(DIR_WEST)) gameState = GAME_OVER;} break;
 
-      case 'q' : cputsxy(1, 38, "GOODBYE!.\0", 0);
+      case 'q' : cputsxy(1, 38, "GOODBYE!\0", 0);
                  return 1;    // End the game.
    }
 

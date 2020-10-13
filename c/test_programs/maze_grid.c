@@ -63,7 +63,6 @@ static void maze_drawPos(int sq, int color, int mask)
 
 void maze_draw(int color, int mask)
 {
-   clrscr();
    for (int sq=0; sq<MAX_SQUARES; ++sq)
    {
       maze_drawPos(sq, color, mask);
