@@ -224,6 +224,9 @@ void expand_tabs(char *dst, char *src) {
   int i, non_space_found;
   char label[STRING_LENGTH], rest[STRING_LENGTH], scratch[STRING_LENGTH], *p;
 
+  for (i = 0; i < STRING_LENGTH; i++)
+    label[i] = rest[i] = scratch[i] = (char) 0;
+
   p = dst;  // Remember the start of the destination string
   i = 0;
   while (*src) {
@@ -242,7 +245,7 @@ void expand_tabs(char *dst, char *src) {
 
   //  Format labels etc. nicely. The following code is pretty ugly and this should have been done
   // long before we come to expand_tabs(...) but I did not feel brave enough to change it in the 
-  // depth of the assembler, which caused this kludge:
+  // depth of the assembler, eventually causing this kludge:
   strcpy(scratch, dst);
   if (*scratch && *scratch != ' ' && *scratch != ';') { // If a line starts with a non-space character it starts with a label
     i = 0;
@@ -251,7 +254,7 @@ void expand_tabs(char *dst, char *src) {
     scratch[i] = (char) 0;
     strcpy(label, scratch);
     p = scratch + i + 1;
-    
+
     i = 0;
     while (p[i] && p[i] == ' ')
       i++;
