@@ -59,7 +59,14 @@ L_SHR32_01      MOVE    0x89AB, R8
 E_SHR32_01      HALT
 E_SHR32_02      HALT
 
-L_SHR32_02      SYSCALL(exit, 1)
+L_SHR32_02
+
+; Everything worked as expected! We are done now.
+EXIT            MOVE    OK, R8
+                SYSCALL(puts, 1)
+                SYSCALL(exit, 1)
+
+OK              .ASCII_W    "OK\n"
 
 
 
