@@ -11,11 +11,13 @@ enum
    VISITED = 7
 };
 
-// Draw the current square as 3x3 characters.
-void maze_drawPos(int sq, int level, int hint);
+#define MAZE_MASK_CURRENT 0x0001
+#define MAZE_MASK_VISITED 0x0002
+#define MAZE_MASK_ALL     0x0004
+#define MAZE_MASK_END     0x0008
 
 // Draw the entire maze and place cursor at player.
-void maze_draw(int level, int hint);
+void maze_draw(int color, int mask);
 
 // Generate maze
 void maze_init();

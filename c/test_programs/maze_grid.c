@@ -30,27 +30,18 @@ static int GetRandomSquare()
    return my_rand() % MAX_SQUARES;
 }
 
-
 // Draw the current square as 3x3 characters.
-void maze_drawPos(int sq, int level, int hint)
+static void maze_drawPos(int sq, int color, int mask)
 {
-   const char wall = '#';
+   char wall = '#';
    char col = 1 + 2*GetCol(sq);
    char row = 1 + 2*GetRow(sq);
    char g = grid[sq];
 
-   int color = 0x0000;
-   switch (level)
-   {
-      case 1 : color = 0x0000; break;  // COLOR_LIGHT_GREEN
-      case 2 : color = 0x0400; break;  // COLOR_YELLOW
-      case 3 : color = 0x0300; break;  // COLOR_ORANGE
-   }
-
-   if ((level == 1) ||
-      ((level == 2) && (g&(1<<VISITED))) ||
-      ((level == 3) && (sq == curSq)) ||
-      ((hint == 1) && (sq == endSq)))
+   if ((mask & MAZE_MASK_ALL)                          ||
+      ((mask & MAZE_MASK_VISITED) && (g&(1<<VISITED))) ||
+      ((mask & MAZE_MASK_CURRENT) && (sq == curSq))    ||
+      ((mask & MAZE_MASK_END)     && (sq == endSq)))
    {
       cputcxy(col,   row,   color + wall);
       cputcxy(col,   row+2, color + wall);
@@ -70,14 +61,16 @@ void maze_drawPos(int sq, int level, int hint)
 } // end of maze_drawPos
 
 
-void maze_draw(int level, int hint)
+void maze_draw(int color, int mask)
 {
    clrscr();
    for (int sq=0; sq<MAX_SQUARES; ++sq)
    {
-      maze_drawPos(sq, level, hint);
+      maze_drawPos(sq, color, mask);
    }
-   maze_drawPos(curSq, level, hint);
+
+   // Place cursor at current square
+   maze_drawPos(curSq, color, mask);
 } // end of maze_draw
 
 
@@ -99,7 +92,7 @@ void maze_init()
    int count;
    int c;
 
-   for(sq=0; sq<MAX_SQUARES; sq++)
+   for (sq=0; sq<MAX_SQUARES; sq++)
    {
       grid[sq]=0; // Initially all walls are blocked.
    }
@@ -124,9 +117,9 @@ void maze_init()
             /* Make an opening */
             int mask_old = 1 << dir;
             int mask_new = 1 << (MAX_DIRS-1) - dir;
-            grid[sq] += mask_old; maze_drawPos(sq, 1, 0);
+            grid[sq] += mask_old; maze_drawPos(sq, 0x0000, MAZE_MASK_ALL);
             sq = newSq;
-            grid[sq] += mask_new; maze_drawPos(sq, 1, 0);
+            grid[sq] += mask_new; maze_drawPos(sq, 0x0000, MAZE_MASK_ALL);
             count--;
             pause();
          }
@@ -146,11 +139,16 @@ void maze_init()
             }
          }
       }
-   }
+   } // while (count)
 
-   curSq = MAX_SQUARES - 1;
+   // Select a starting square near the lower right corner
+   do
+   {
+      curSq = GetRandomSquare();
+   } while (GetRow(curSq) < MAX_ROWS/2 || GetCol(curSq) < MAX_COLS/2);
    grid[curSq] |= 1<<VISITED;
 
+   // Select an ending square near the top left corner
    do
    {
       endSq = GetRandomSquare();

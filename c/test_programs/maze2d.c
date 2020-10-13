@@ -53,15 +53,34 @@ static void draw_menu()
    cputsxy(1, row+8, "Press m to return to this menu.\0", color);
 } // end of draw_menu
 
-static void draw_ending()
+
+static int get_color()
 {
-   int color = 0;
    switch (level)
    {
-      case 1 : color = 0x0000; break;  // COLOR_LIGHT_GREEN
-      case 2 : color = 0x0400; break;  // COLOR_YELLOW
-      case 3 : color = 0x0300; break;  // COLOR_ORANGE
+      case 1 : return 0x0000;   // COLOR_LIGHT_GREEN
+      case 2 : return 0x0400;   // COLOR_YELLOW
+      case 3 : return 0x0300;   // COLOR_ORANGE
    }
+   return 0x0000;
+} // end of get_color
+
+
+static int get_mask()
+{
+   switch (level)
+   {
+      case 1 : return MAZE_MASK_ALL;
+      case 2 : return MAZE_MASK_VISITED | (hint ? MAZE_MASK_END : 0);
+      case 3 : return MAZE_MASK_CURRENT | (hint ? MAZE_MASK_END : 0);
+   }
+   return MAZE_MASK_ALL;
+} // end of get_mask
+
+
+static void draw_ending()
+{
+   int color = get_color();
 
    const char *end[] = {
       " __     __                                              _   ",
@@ -88,10 +107,10 @@ static int game_update()
          draw_menu();
          break;
       case PLAYING:
-         maze_draw(level, hint);
+         maze_draw(get_color(), get_mask());
          break;
       case GAME_OVER:
-         maze_draw(level, hint);
+         maze_draw(get_color(), get_mask());
          draw_ending();
          break;
    }
@@ -106,7 +125,7 @@ static int game_update()
                  {
                     clrscr();
                     maze_init();
-                    maze_draw(level, hint);
+                    maze_draw(get_color(), get_mask());
                     gameState = PLAYING;
                  }
                  break;
