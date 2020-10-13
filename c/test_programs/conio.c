@@ -45,6 +45,15 @@ char cgetc()
    return qmon_getc();
 } // cgetc
 
+int cpeekc()
+{
+   if (MMIO(IO_KBD_STATE) & KBD_NEW_ANY)
+   {
+      return MMIO(IO_KBD_DATA);
+   }
+   return 0;
+} // cpeekc
+
 long time()
 {
    return MMIO(IO_CYC_LO);

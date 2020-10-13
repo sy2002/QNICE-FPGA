@@ -12,6 +12,7 @@
  * done by MJoergen in August 2020
  */
 
+#include "sysdef.h"     // KBD_CUR_UP etc.
 #include "conio.h"      // Function to write to the VGA screen
 #include "rand.h"       // Random generator
 #include "maze_grid.h"  // The actual internals of the maze generation
@@ -116,7 +117,14 @@ static int game_update()
    }
 
    hint = 0;
-   switch (cgetc())
+
+   int ch;
+   do
+   {
+      ch = cpeekc();
+   } while (!ch);
+
+   switch (ch)
    {
       case '1' : level = 1; break;
       case '2' : level = 2; break;
@@ -133,10 +141,10 @@ static int game_update()
       case 'x' : hint = 1; break;
       case 'm' : gameState = MENU; break;
 
-      case 'w' : case 'k' : if (gameState == PLAYING) {if (maze_move(DIR_NORTH)) gameState = GAME_OVER;} break;
-      case 's' : case 'j' : if (gameState == PLAYING) {if (maze_move(DIR_SOUTH)) gameState = GAME_OVER;} break;
-      case 'd' : case 'l' : if (gameState == PLAYING) {if (maze_move(DIR_EAST)) gameState = GAME_OVER;} break;
-      case 'a' : case 'h' : if (gameState == PLAYING) {if (maze_move(DIR_WEST)) gameState = GAME_OVER;} break;
+      case 'w' : case 'k' : case KBD_CUR_UP    : if (gameState == PLAYING) {if (maze_move(DIR_NORTH)) gameState = GAME_OVER;} break;
+      case 's' : case 'j' : case KBD_CUR_DOWN  : if (gameState == PLAYING) {if (maze_move(DIR_SOUTH)) gameState = GAME_OVER;} break;
+      case 'd' : case 'l' : case KBD_CUR_RIGHT : if (gameState == PLAYING) {if (maze_move(DIR_EAST)) gameState = GAME_OVER;} break;
+      case 'a' : case 'h' : case KBD_CUR_LEFT  : if (gameState == PLAYING) {if (maze_move(DIR_WEST)) gameState = GAME_OVER;} break;
 
       case 'q' : cputsxy(1, 38, "GOODBYE!.\0", 0);
                  return 1;    // End the game.
