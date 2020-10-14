@@ -99,7 +99,7 @@ STIM_SHL32      .DW     0x0000, ST____C_, 0x4567, 0x89AB, ST____C_
                 .DW     0xFFFF
 
 ;* MTH$SHR32 performs 32-bit shift-right with the same semantics as SHR:
-;*           fills with C
+;*           fills with C and shifts to X
 ;*           R8 = low word, R9 = high word, R10 = SHR amount
 
 STIM_SHR32      .DW     0x0000, ST_____X, 0x4567, 0x89AB
