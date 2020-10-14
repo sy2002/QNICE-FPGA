@@ -318,6 +318,7 @@ MTH$IN_RANGE_S  HALT
 ;* MTH$SHL32 performs 32-bit shift-left with the same semantics as SHL:
 ;*           fills with X and shifts to C
 ;*           R8 = low word, R9 = high word, R10 = SHL amount
+;*           After the call, the X flag is undefined
 ;*
 ;******************************************************************************
 ;
@@ -363,6 +364,7 @@ _MTH$SHL_ALL    MOVE    R0, SR                  ; Restore X bit
 ;* MTH$SHR32 performs 32-bit shift-right with the same semantics as SHR:
 ;*           fills with C and shifts to X
 ;*           R8 = low word, R9 = high word, R10 = SHR amount
+;*           After the call, the C flag is undefined
 ;*
 ;******************************************************************************
 ;

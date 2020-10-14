@@ -79,6 +79,7 @@ OK              .ASCII_W    "OK\n"
 ;* MTH$SHL32 performs 32-bit shift-left with the same semantics as SHL:
 ;*           fills with X and shifts to C
 ;*           R8 = low word, R9 = high word, R10 = SHL amount
+;*           After the call, the X flag is undefined
 
 STIM_SHL32      .DW     0x0000, ST____C_, 0x4567, 0x89AB, ST____C_
                 .DW     0x0004, ST____C_, 0x5678, 0x9AB0, ST______
@@ -107,6 +108,7 @@ STIM_SHL32      .DW     0x0000, ST____C_, 0x4567, 0x89AB, ST____C_
 ;* MTH$SHR32 performs 32-bit shift-right with the same semantics as SHR:
 ;*           fills with C and shifts to X
 ;*           R8 = low word, R9 = high word, R10 = SHR amount
+;*           After the call, the C flag is undefined
 
 STIM_SHR32      .DW     0x0000, ST_____X, 0x4567, 0x89AB, ST_____X
                 .DW     0x0004, ST_____X, 0x0456, 0x789A, ST_____X
