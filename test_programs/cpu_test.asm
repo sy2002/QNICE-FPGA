@@ -102,11 +102,11 @@
 
 ; Instruction | Flags affected
 ;             | V | N | Z | C | X |
-; MOVE        | . | * | * | . | * |
-; SWAP        | . | * | * | . | * |
-; NOT         | . | * | * | . | * |
-; AND/OR/XOR  | . | * | * | . | * |
-; ADD/SUB     | * | * | * | * | * |
+; MOVE        | . | * | * | . | . |
+; SWAP        | . | * | * | . | . |
+; NOT         | . | * | * | . | . |
+; AND/OR/XOR  | . | * | * | . | . |
+; ADD/SUB     | * | * | * | * | . |
 ; SHL         | . | * | * | * | . |
 ; SHR         | . | * | * | . | * |
 ; CMP         | * | * | * | . | . |
@@ -276,7 +276,7 @@ E_MOVE_IMM_24   HALT
 L_MOVE_IMM_24
 
 
-L_MOVE_IMM_30   MOVE    0xFFFF, R0
+L_MOVE_IMM_30   MOVE    0xFFFF, R0              ; X should still be clear
                 ABRA    E_MOVE_IMM_31, Z        ; Verify "absolute branch zero" is not taken.
                 ABRA    L_MOVE_IMM_31, !Z       ; Verify "absolute branch nonzero" is taken.
                 HALT
@@ -287,8 +287,8 @@ L_MOVE_IMM_31
                 HALT
 E_MOVE_IMM_32   HALT
 L_MOVE_IMM_32
-                ABRA    E_MOVE_IMM_33, !X       ; Verify "absolute branch nonX" is not taken.
-                ABRA    L_MOVE_IMM_33, X        ; Verify "absolute branch X" is taken.
+                ABRA    E_MOVE_IMM_33, X        ; Verify "absolute branch X" is not taken.
+                ABRA    L_MOVE_IMM_33, !X       ; Verify "absolute branch nonX" is taken.
                 HALT
 E_MOVE_IMM_33   HALT
 L_MOVE_IMM_33
@@ -299,6 +299,15 @@ E_MOVE_IMM_34   HALT
 L_MOVE_IMM_34
 
 
+L_MOVE_IMM_40   MOVE    0x00FF, R14             ; Set all bits in the status register
+                MOVE    0xFFFF, R0              ; This should leave X set
+                ABRA    E_MOVE_IMM_43, !X       ; Verify "absolute branch nonX" is not taken.
+                ABRA    L_MOVE_IMM_43, X        ; Verify "absolute branch X" is taken.
+                HALT
+E_MOVE_IMM_43   HALT
+L_MOVE_IMM_43
+
+
 ; ---------------------------------------------------------------------------
 ; Test the MOVE register instruction, and the X, Z, and N-conditional branches
 
@@ -306,6 +315,7 @@ L_MOVE_REG_00   MOVE    0x1234, R1
                 MOVE    0x0000, R2
                 MOVE    0xFEDC, R3
                 MOVE    0xFFFF, R4
+                MOVE    0x00FF, R14             ; Set all bits in the status register
 
                 MOVE    R1, R0
                 RBRA    E_MOVE_REG_01, Z        ; Verify "absolute branch zero" is not taken.
@@ -318,8 +328,8 @@ L_MOVE_REG_01
                 HALT
 E_MOVE_REG_02   HALT
 L_MOVE_REG_02
-                RBRA    E_MOVE_REG_03, X        ; Verify "absolute branch X" is not taken.
-                RBRA    L_MOVE_REG_03, !X       ; Verify "absolute branch nonX" is taken.
+                RBRA    E_MOVE_REG_03, !X       ; Verify "absolute branch nonX" is not taken.
+                RBRA    L_MOVE_REG_03, X        ; Verify "absolute branch X" is taken.
                 HALT
 E_MOVE_REG_03   HALT
 L_MOVE_REG_03
@@ -341,8 +351,8 @@ L_MOVE_REG_11
                 HALT
 E_MOVE_REG_12   HALT
 L_MOVE_REG_12
-                RBRA    E_MOVE_REG_13, X        ; Verify "absolute branch X" is not taken.
-                RBRA    L_MOVE_REG_13, !X       ; Verify "absolute branch nonX" is taken.
+                RBRA    E_MOVE_REG_13, !X       ; Verify "absolute branch nonX" is not taken.
+                RBRA    L_MOVE_REG_13, X        ; Verify "absolute branch X" is taken.
                 HALT
 E_MOVE_REG_13   HALT
 L_MOVE_REG_13
@@ -364,8 +374,8 @@ L_MOVE_REG_21
                 HALT
 E_MOVE_REG_22   HALT
 L_MOVE_REG_22
-                RBRA    E_MOVE_REG_23, X        ; Verify "absolute branch X" is not taken.
-                RBRA    L_MOVE_REG_23, !X       ; Verify "absolute branch nonX" is taken.
+                RBRA    E_MOVE_REG_23, !X       ; Verify "absolute branch nonX" is not taken.
+                RBRA    L_MOVE_REG_23, X        ; Verify "absolute branch X" is taken.
                 HALT
 E_MOVE_REG_23   HALT
 L_MOVE_REG_23
@@ -376,7 +386,8 @@ E_MOVE_REG_24   HALT
 L_MOVE_REG_24
 
 
-L_MOVE_REG_30   MOVE    R4, R0
+L_MOVE_REG_30   MOVE    0x0000, R14             ; Clear all bits in the status register
+                MOVE    R4, R0
                 RBRA    E_MOVE_REG_31, Z        ; Verify "absolute branch zero" is not taken.
                 RBRA    L_MOVE_REG_31, !Z       ; Verify "absolute branch nonzero" is taken.
                 HALT
@@ -387,8 +398,8 @@ L_MOVE_REG_31
                 HALT
 E_MOVE_REG_32   HALT
 L_MOVE_REG_32
-                RBRA    E_MOVE_REG_33, !X       ; Verify "absolute branch nonX" is not taken.
-                RBRA    L_MOVE_REG_33, X        ; Verify "absolute branch X" is taken.
+                RBRA    E_MOVE_REG_33, X        ; Verify "absolute branch X" is not taken.
+                RBRA    L_MOVE_REG_33, !X       ; Verify "absolute branch nonX" is taken.
                 HALT
 E_MOVE_REG_33   HALT
 L_MOVE_REG_33
@@ -547,16 +558,16 @@ L_REG_13_01
 ; ---------------------------------------------------------------------------
 ; Test the ADD instruction, and the status register
 ; Addition                 | V | N | Z | C | X | 1 |
-; 0x1234 + 0x4321 = 0x5555 | 0 | 0 | 0 | 0 | 0 | 1 | ADD_0
-; 0x8765 + 0x9876 = 0x1FDB | 1 | 0 | 0 | 1 | 0 | 1 | ADD_1
-; 0x1234 + 0x9876 = 0xAAAA | 0 | 1 | 0 | 0 | 0 | 1 | ADD_2
-; 0xFEDC + 0xEDCB = 0xECA7 | 0 | 1 | 0 | 1 | 0 | 1 | ADD_3
-; 0xFEDC + 0x0123 = 0xFFFF | 0 | 1 | 0 | 0 | 1 | 1 | ADD_4
-; 0xFEDC + 0x0124 = 0x0000 | 0 | 0 | 1 | 1 | 0 | 1 | ADD_5
-; 0x7654 + 0x6543 = 0xDB97 | 1 | 1 | 0 | 0 | 0 | 1 | ADD_6
+; 0x1234 + 0x4321 = 0x5555 | 0 | 0 | 0 | 0 | - | 1 | ADD_0
+; 0x8765 + 0x9876 = 0x1FDB | 1 | 0 | 0 | 1 | - | 1 | ADD_1
+; 0x1234 + 0x9876 = 0xAAAA | 0 | 1 | 0 | 0 | - | 1 | ADD_2
+; 0xFEDC + 0xEDCB = 0xECA7 | 0 | 1 | 0 | 1 | - | 1 | ADD_3
+; 0xFEDC + 0x0123 = 0xFFFF | 0 | 1 | 0 | 0 | - | 1 | ADD_4
+; 0xFEDC + 0x0124 = 0x0000 | 0 | 0 | 1 | 1 | - | 1 | ADD_5
+; 0x7654 + 0x6543 = 0xDB97 | 1 | 1 | 0 | 0 | - | 1 | ADD_6
 
 ; Addition                 | V | N | Z | C | X | 1 |
-; 0x1234 + 0x4321 = 0x5555 | 0 | 0 | 0 | 0 | 0 | 1 | ADD_0
+; 0x1234 + 0x4321 = 0x5555 | 0 | 0 | 0 | 0 | - | 1 | ADD_0
 
                 MOVE    0x0000, R14             ; Clear status register
 
@@ -593,7 +604,7 @@ L_ADD_05
                 HALT
 E_ADD_06        HALT
 L_ADD_06
-                MOVE    R14, R1                 ; Verify status register: --000001
+                MOVE    R14, R1                 ; Verify status register: 00000001
                 CMP     0x0001, R1
                 RBRA    E_ADD_07, !Z
                 RBRA    L_ADD_07, Z
@@ -608,8 +619,10 @@ E_ADD_08        HALT
 L_ADD_08
 
 
+                MOVE    0x00FF, R14             ; Set all status flags
+
 ; Addition                 | V | N | Z | C | X | 1 |
-; 0x8765 + 0x9876 = 0x1FDB | 1 | 0 | 0 | 1 | 0 | 1 | ADD_1
+; 0x8765 + 0x9876 = 0x1FDB | 1 | 0 | 0 | 1 | - | 1 | ADD_1
 L_ADD_10        MOVE    0x8765, R0
                 ADD     0x9876, R0
 
@@ -633,8 +646,8 @@ L_ADD_13
                 HALT
 E_ADD_14        HALT
 L_ADD_14
-                RBRA    E_ADD_15, X             ; Verify "relative branch X" is not taken.
-                RBRA    L_ADD_15, !X            ; Verify "relative branch nonX" is taken.
+                RBRA    E_ADD_15, !X            ; Verify "relative branch nonX" is not taken.
+                RBRA    L_ADD_15, X             ; Verify "relative branch X" is taken.
                 HALT
 E_ADD_15        HALT
 L_ADD_15
@@ -643,8 +656,8 @@ L_ADD_15
                 HALT
 E_ADD_16        HALT
 L_ADD_16
-                MOVE    R14, R1                 ; Verify status register: --100101
-                CMP     0x0025, R1
+                MOVE    R14, R1                 ; Verify status register: 11100111
+                CMP     0x00E7, R1
                 RBRA    E_ADD_17, !Z
                 RBRA    L_ADD_17, Z
                 HALT
@@ -658,8 +671,10 @@ E_ADD_18        HALT
 L_ADD_18
 
 
+                MOVE    0x0000, R14             ; Clear all status flags
+
 ; Addition                 | V | N | Z | C | X | 1 |
-; 0x1234 + 0x9876 = 0xAAAA | 0 | 1 | 0 | 0 | 0 | 1 | ADD_2
+; 0x1234 + 0x9876 = 0xAAAA | 0 | 1 | 0 | 0 | - | 1 | ADD_2
 L_ADD_20        MOVE    0x1234, R0
                 ADD     0x9876, R0
 
@@ -693,7 +708,7 @@ L_ADD_25
                 HALT
 E_ADD_26        HALT
 L_ADD_26
-                MOVE    R14, R1                 ; Verify status register: --010001
+                MOVE    R14, R1                 ; Verify status register: 00010001
                 CMP     0x0011, R1
                 RBRA    E_ADD_27, !Z
                 RBRA    L_ADD_27, Z
@@ -708,8 +723,10 @@ E_ADD_28        HALT
 L_ADD_28
 
 
+                MOVE    0x00FF, R14             ; Set all status flags
+
 ; Addition                 | V | N | Z | C | X | 1 |
-; 0xFEDC + 0xEDCB = 0xECA7 | 0 | 1 | 0 | 1 | 0 | 1 | ADD_3
+; 0xFEDC + 0xEDCB = 0xECA7 | 0 | 1 | 0 | 1 | - | 1 | ADD_3
 L_ADD_30        MOVE    0xFEDC, R0
                 ADD     0xEDCB, R0
 
@@ -733,8 +750,8 @@ L_ADD_33
                 HALT
 E_ADD_34        HALT
 L_ADD_34
-                RBRA    E_ADD_35, X             ; Verify "relative branch X" is not taken.
-                RBRA    L_ADD_35, !X            ; Verify "relative branch nonX" is taken.
+                RBRA    E_ADD_35, !X            ; Verify "relative branch nonX" is not taken.
+                RBRA    L_ADD_35, X             ; Verify "relative branch X" is taken.
                 HALT
 E_ADD_35        HALT
 L_ADD_35
@@ -743,8 +760,8 @@ L_ADD_35
                 HALT
 E_ADD_36        HALT
 L_ADD_36
-                MOVE    R14, R1                 ; Verify status register: --010101
-                CMP     0x0015, R1
+                MOVE    R14, R1                 ; Verify status register: 11010111
+                CMP     0x00D7, R1
                 RBRA    E_ADD_37, !Z
                 RBRA    L_ADD_37, Z
                 HALT
@@ -758,8 +775,10 @@ E_ADD_38        HALT
 L_ADD_38
 
 
+                MOVE    0x0000, R14             ; Clear all status flags
+
 ; Addition                 | V | N | Z | C | X | 1 |
-; 0xFEDC + 0x0123 = 0xFFFF | 0 | 1 | 0 | 0 | 1 | 1 | ADD_4
+; 0xFEDC + 0x0123 = 0xFFFF | 0 | 1 | 0 | 0 | - | 1 | ADD_4
 L_ADD_40        MOVE    0xFEDC, R0
                 ADD     0x0123, R0
 
@@ -783,8 +802,8 @@ L_ADD_43
                 HALT
 E_ADD_44        HALT
 L_ADD_44
-                RBRA    E_ADD_45, !X            ; Verify "relative branch nonX" is not taken.
-                RBRA    L_ADD_45, X             ; Verify "relative branch X" is taken.
+                RBRA    E_ADD_45, X             ; Verify "relative branch X" is not taken.
+                RBRA    L_ADD_45, !X            ; Verify "relative branch nonX" is taken.
                 HALT
 E_ADD_45        HALT
 L_ADD_45
@@ -793,8 +812,8 @@ L_ADD_45
                 HALT
 E_ADD_46        HALT
 L_ADD_46
-                MOVE    R14, R1                 ; Verify status register: --010011
-                CMP     0x0013, R1
+                MOVE    R14, R1                 ; Verify status register: 00010001
+                CMP     0x0011, R1
                 RBRA    E_ADD_47, !Z
                 RBRA    L_ADD_47, Z
                 HALT
@@ -808,8 +827,10 @@ E_ADD_48        HALT
 L_ADD_48
 
 
+                MOVE    0x00FF, R14             ; Set all status flags
+
 ; Addition                 | V | N | Z | C | X | 1 |
-; 0xFEDC + 0x0124 = 0x0000 | 0 | 0 | 1 | 1 | 0 | 1 | ADD_5
+; 0xFEDC + 0x0124 = 0x0000 | 0 | 0 | 1 | 1 | - | 1 | ADD_5
 L_ADD_50        MOVE    0xFEDC, R0
                 ADD     0x0124, R0
 
@@ -833,8 +854,8 @@ L_ADD_53
                 HALT
 E_ADD_54        HALT
 L_ADD_54
-                RBRA    E_ADD_55, X             ; Verify "relative branch X" is not taken.
-                RBRA    L_ADD_55, !X            ; Verify "relative branch nonX" is taken.
+                RBRA    E_ADD_55, !X            ; Verify "relative branch nonX" is not taken.
+                RBRA    L_ADD_55, X             ; Verify "relative branch X" is taken.
                 HALT
 E_ADD_55        HALT
 L_ADD_55
@@ -843,8 +864,8 @@ L_ADD_55
                 HALT
 E_ADD_56        HALT
 L_ADD_56
-                MOVE    R14, R1                 ; Verify status register: --001101
-                CMP     0x000D, R1
+                MOVE    R14, R1                 ; Verify status register: 11001111
+                CMP     0x00CF, R1
                 RBRA    E_ADD_57, !Z
                 RBRA    L_ADD_57, Z
                 HALT
@@ -858,8 +879,10 @@ E_ADD_58        HALT
 L_ADD_58
 
 
+                MOVE    0x0000, R14             ; Clear all status flags
+
 ; Addition                 | V | N | Z | C | X | 1 |
-; 0x7654 + 0x6543 = 0xDB97 | 1 | 1 | 0 | 0 | 0 | 1 | ADD_6
+; 0x7654 + 0x6543 = 0xDB97 | 1 | 1 | 0 | 0 | - | 1 | ADD_6
 L_ADD_60        MOVE    0x7654, R0
                 ADD     0x6543, R0
 
@@ -893,7 +916,7 @@ L_ADD_65
                 HALT
 E_ADD_66        HALT
 L_ADD_66
-                MOVE    R14, R1                 ; Verify status register: --110001
+                MOVE    R14, R1                 ; Verify status register: 00110001
                 CMP     0x0031, R1
                 RBRA    E_ADD_67, !Z
                 RBRA    L_ADD_67, Z
@@ -909,10 +932,10 @@ L_ADD_68
 
 
 ; ---------------------------------------------------------------------------
-; Test the MOVE instruction doesnt change C and V flags.
+; Test the MOVE instruction doesnt change C, X, and V flags.
 L_MOVE_CV_00    MOVE    0x0000, R14             ; Clear all bits in the status register
 
-                MOVE    0x0000, R0              ; Perform a MOVE instruction
+                MOVE    0xFFFF, R0              ; Perform a MOVE instruction
                 RBRA    E_MOVE_CV_01, V         ; Verify "relative branch overflow" is not taken.
                 RBRA    L_MOVE_CV_01, !V        ; Verify "relative branch nonoverflow" is taken.
                 HALT
@@ -923,6 +946,11 @@ L_MOVE_CV_01
                 HALT
 E_MOVE_CV_02    HALT
 L_MOVE_CV_02
+                RBRA    E_MOVE_CV_03, X         ; Verify "relative branch X" is not taken.
+                RBRA    L_MOVE_CV_03, !X        ; Verify "relative branch nonX" is taken.
+                HALT
+E_MOVE_CV_03    HALT
+L_MOVE_CV_03
 
 L_MOVE_CV_10    MOVE    0x00FF, R14             ; Set all bits in the status register
 
@@ -937,6 +965,11 @@ L_MOVE_CV_11
                 HALT
 E_MOVE_CV_12    HALT
 L_MOVE_CV_12
+                RBRA    E_MOVE_CV_13, !X        ; Verify "relative branch nonX" is not taken.
+                RBRA    L_MOVE_CV_13, X         ; Verify "relative branch X" is taken.
+                HALT
+E_MOVE_CV_13    HALT
+L_MOVE_CV_13
 
 
 ; ---------------------------------------------------------------------------
@@ -1250,19 +1283,19 @@ L_ADDC_01       MOVE    @R8, R0                 ; First operand
                 HALT
 E_ADDC_01       HALT
 
-STIM_ADDC       .DW     0x1234, 0x4321, ST______, 0x5555, ST______
-                .DW     0x1234, 0x9876, ST______, 0xAAAA, ST__N___
-                .DW     0x7654, 0x6543, ST______, 0xDB97, ST_VN___
-                .DW     0x8765, 0x9876, ST______, 0x1FDB, ST_V__C_
-                .DW     0xFEDC, 0x0123, ST______, 0xFFFF, ST__N__X
-                .DW     0xFEDC, 0x0124, ST______, 0x0000, ST___ZC_
-                .DW     0xFEDC, 0xEDCB, ST______, 0xECA7, ST__N_C_
+STIM_ADDC       .DW     0x1234, 0x4321, ST_____X, 0x5555, ST_____X
+                .DW     0x1234, 0x9876, ST_____X, 0xAAAA, ST__N__X
+                .DW     0x7654, 0x6543, ST_____X, 0xDB97, ST_VN__X
+                .DW     0x8765, 0x9876, ST_____X, 0x1FDB, ST_V__CX
+                .DW     0xFEDC, 0x0123, ST_____X, 0xFFFF, ST__N__X
+                .DW     0xFEDC, 0x0124, ST_____X, 0x0000, ST___ZCX
+                .DW     0xFEDC, 0xEDCB, ST_____X, 0xECA7, ST__N_CX
 
                 .DW     0x1234, 0x4321, ST____C_, 0x5556, ST______
                 .DW     0x1234, 0x9876, ST____C_, 0xAAAB, ST__N___
                 .DW     0x7654, 0x6543, ST____C_, 0xDB98, ST_VN___
                 .DW     0x8765, 0x9876, ST____C_, 0x1FDC, ST_V__C_
-                .DW     0xFEDC, 0x0122, ST____C_, 0xFFFF, ST__N__X
+                .DW     0xFEDC, 0x0122, ST____C_, 0xFFFF, ST__N___
                 .DW     0xFEDC, 0x0123, ST____C_, 0x0000, ST___ZC_
                 .DW     0xFEDC, 0xEDCB, ST____C_, 0xECA8, ST__N_C_
 
@@ -1305,11 +1338,11 @@ E_SUB_01        HALT
 ;                .DW     0x5678, 0xFEDC, ST______, 0x579C, ST____C_
 ;                .DW     0x89AB, 0x4321, ST____C_, 0x468A, ST_V____
 
-STIM_SUB        .DW     0x5678, 0x4321, ST______, 0x1357, ST______
+STIM_SUB        .DW     0x5678, 0x4321, ST_____X, 0x1357, ST_____X
                 .DW     0x5678, 0x5678, ST____C_, 0x0000, ST___Z__
-                .DW     0x5678, 0x5679, ST______, 0xFFFF, ST_VN_CX
+                .DW     0x5678, 0x5679, ST_____X, 0xFFFF, ST_VN_CX
                 .DW     0x5678, 0x89AB, ST____C_, 0xCCCD, ST__N_C_
-                .DW     0x5678, 0xFEDC, ST______, 0x579C, ST____C_
+                .DW     0x5678, 0xFEDC, ST_____X, 0x579C, ST____CX
                 .DW     0x89AB, 0x4321, ST____C_, 0x468A, ST______
 
                 .DW     0x0000
@@ -1358,15 +1391,15 @@ E_SUBC_01       HALT
 ;                .DW     0x5678, 0xFEDC, ST____C_, 0x579B, ST____C_
 ;                .DW     0x89AB, 0x4321, ST____C_, 0x4689, ST_V____
 
-STIM_SUBC       .DW     0x5678, 0x4321, ST______, 0x1357, ST______
-                .DW     0x5678, 0x5678, ST______, 0x0000, ST___Z__
-                .DW     0x5678, 0x5679, ST______, 0xFFFF, ST_VN_CX
-                .DW     0x5678, 0x89AB, ST______, 0xCCCD, ST__N_C_
-                .DW     0x5678, 0xFEDC, ST______, 0x579C, ST____C_
-                .DW     0x89AB, 0x4321, ST______, 0x468A, ST______
+STIM_SUBC       .DW     0x5678, 0x4321, ST_____X, 0x1357, ST_____X
+                .DW     0x5678, 0x5678, ST_____X, 0x0000, ST___Z_X
+                .DW     0x5678, 0x5679, ST_____X, 0xFFFF, ST_VN_CX
+                .DW     0x5678, 0x89AB, ST_____X, 0xCCCD, ST__N_CX
+                .DW     0x5678, 0xFEDC, ST_____X, 0x579C, ST____CX
+                .DW     0x89AB, 0x4321, ST_____X, 0x468A, ST_____X
 
                 .DW     0x5678, 0x4321, ST____C_, 0x1356, ST______
-                .DW     0x5678, 0x5678, ST____C_, 0xFFFF, ST_VN_CX
+                .DW     0x5678, 0x5678, ST____C_, 0xFFFF, ST_VN_C_
                 .DW     0x5678, 0x5677, ST____C_, 0x0000, ST___Z__
                 .DW     0x5678, 0x89AB, ST____C_, 0xCCCC, ST__N_C_
                 .DW     0x5678, 0xFEDC, ST____C_, 0x579B, ST____C_
@@ -1616,12 +1649,12 @@ E_SWAP_01       HALT
 STIM_SWAP
 
                 .DW     0x8765, ST______, 0x6587, ST______
-                .DW     0x8765, ST_VNZCX, 0x6587, ST_V__C_
+                .DW     0x8765, ST_VNZCX, 0x6587, ST_V__CX
                 .DW     0x6587, ST______, 0x8765, ST__N___
-                .DW     0x6587, ST_VNZCX, 0x8765, ST_VN_C_
+                .DW     0x6587, ST_VNZCX, 0x8765, ST_VN_CX
                 .DW     0x0000, ST______, 0x0000, ST___Z__
-                .DW     0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
-                .DW     0xFFFF, ST______, 0xFFFF, ST__N__X
+                .DW     0x0000, ST_VNZCX, 0x0000, ST_V_ZCX
+                .DW     0xFFFF, ST______, 0xFFFF, ST__N___
                 .DW     0xFFFF, ST_VNZCX, 0xFFFF, ST_VN_CX
 
                 .DW     0x1111
@@ -1657,13 +1690,13 @@ E_NOT_01        HALT
 STIM_NOT
 
                 .DW     0x8765, ST______, 0x789A, ST______
-                .DW     0x8765, ST_VNZCX, 0x789A, ST_V__C_
+                .DW     0x8765, ST_VNZCX, 0x789A, ST_V__CX
                 .DW     0x6587, ST______, 0x9A78, ST__N___
-                .DW     0x6587, ST_VNZCX, 0x9A78, ST_VN_C_
-                .DW     0x0000, ST______, 0xFFFF, ST__N__X
+                .DW     0x6587, ST_VNZCX, 0x9A78, ST_VN_CX
+                .DW     0x0000, ST______, 0xFFFF, ST__N___
                 .DW     0x0000, ST_VNZCX, 0xFFFF, ST_VN_CX
                 .DW     0xFFFF, ST______, 0x0000, ST___Z__
-                .DW     0xFFFF, ST_VNZCX, 0x0000, ST_V_ZC_
+                .DW     0xFFFF, ST_VNZCX, 0x0000, ST_V_ZCX
 
                 .DW     0x1111
 
@@ -1702,20 +1735,20 @@ STIM_AND        .DW     0x5678, 0x4321, ST______, 0x4220, ST______
                 .DW     0x4321, 0xFFFF, ST______, 0x4321, ST______
                 .DW     0x0000, 0x4321, ST______, 0x0000, ST___Z__
                 .DW     0x4321, 0x0000, ST______, 0x0000, ST___Z__
-                .DW     0xFFFF, 0xFFFF, ST______, 0xFFFF, ST__N__X
-                .DW     0xFFFF, 0xFFFF, ST______, 0xFFFF, ST__N__X
+                .DW     0xFFFF, 0xFFFF, ST______, 0xFFFF, ST__N___
+                .DW     0xFFFF, 0xFFFF, ST______, 0xFFFF, ST__N___
                 .DW     0x8000, 0xFFFF, ST______, 0x8000, ST__N___
                 .DW     0xFFFF, 0x8000, ST______, 0x8000, ST__N___
 
-                .DW     0x5678, 0x4321, ST_VNZCX, 0x4220, ST_V__C_
-                .DW     0xFFFF, 0x4321, ST_VNZCX, 0x4321, ST_V__C_
-                .DW     0x4321, 0xFFFF, ST_VNZCX, 0x4321, ST_V__C_
-                .DW     0x0000, 0x4321, ST_VNZCX, 0x0000, ST_V_ZC_
-                .DW     0x4321, 0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
+                .DW     0x5678, 0x4321, ST_VNZCX, 0x4220, ST_V__CX
+                .DW     0xFFFF, 0x4321, ST_VNZCX, 0x4321, ST_V__CX
+                .DW     0x4321, 0xFFFF, ST_VNZCX, 0x4321, ST_V__CX
+                .DW     0x0000, 0x4321, ST_VNZCX, 0x0000, ST_V_ZCX
+                .DW     0x4321, 0x0000, ST_VNZCX, 0x0000, ST_V_ZCX
                 .DW     0xFFFF, 0xFFFF, ST_VNZCX, 0xFFFF, ST_VN_CX
                 .DW     0xFFFF, 0xFFFF, ST_VNZCX, 0xFFFF, ST_VN_CX
-                .DW     0x8000, 0xFFFF, ST_VNZCX, 0x8000, ST_VN_C_
-                .DW     0xFFFF, 0x8000, ST_VNZCX, 0x8000, ST_VN_C_
+                .DW     0x8000, 0xFFFF, ST_VNZCX, 0x8000, ST_VN_CX
+                .DW     0xFFFF, 0x8000, ST_VNZCX, 0x8000, ST_VN_CX
 
                 .DW     0x1111
 
@@ -1752,22 +1785,22 @@ E_OR_01         HALT
 STIM_OR         .DW     0x5678, 0x4321, ST______, 0x5779, ST______
                 .DW     0x0000, 0x4321, ST______, 0x4321, ST______
                 .DW     0x4321, 0x0000, ST______, 0x4321, ST______
-                .DW     0xFFFF, 0x4321, ST______, 0xFFFF, ST__N__X
-                .DW     0x4321, 0xFFFF, ST______, 0xFFFF, ST__N__X
+                .DW     0xFFFF, 0x4321, ST______, 0xFFFF, ST__N___
+                .DW     0x4321, 0xFFFF, ST______, 0xFFFF, ST__N___
                 .DW     0x0000, 0x0000, ST______, 0x0000, ST___Z__
                 .DW     0x0000, 0x0000, ST______, 0x0000, ST___Z__
                 .DW     0x8000, 0x0000, ST______, 0x8000, ST__N___
                 .DW     0x0000, 0x8000, ST______, 0x8000, ST__N___
 
-                .DW     0x5678, 0x4321, ST_VNZCX, 0x5779, ST_V__C_
-                .DW     0x0000, 0x4321, ST_VNZCX, 0x4321, ST_V__C_
-                .DW     0x4321, 0x0000, ST_VNZCX, 0x4321, ST_V__C_
+                .DW     0x5678, 0x4321, ST_VNZCX, 0x5779, ST_V__CX
+                .DW     0x0000, 0x4321, ST_VNZCX, 0x4321, ST_V__CX
+                .DW     0x4321, 0x0000, ST_VNZCX, 0x4321, ST_V__CX
                 .DW     0xFFFF, 0x4321, ST_VNZCX, 0xFFFF, ST_VN_CX
                 .DW     0x4321, 0xFFFF, ST_VNZCX, 0xFFFF, ST_VN_CX
-                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
-                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
-                .DW     0x8000, 0x0000, ST_VNZCX, 0x8000, ST_VN_C_
-                .DW     0x0000, 0x8000, ST_VNZCX, 0x8000, ST_VN_C_
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZCX
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZCX
+                .DW     0x8000, 0x0000, ST_VNZCX, 0x8000, ST_VN_CX
+                .DW     0x0000, 0x8000, ST_VNZCX, 0x8000, ST_VN_CX
 
                 .DW     0x1111
 
@@ -1808,22 +1841,22 @@ STIM_XOR        .DW     0x5678, 0x4321, ST______, 0x1559, ST______
                 .DW     0x4321, 0xFFFF, ST______, 0xBCDE, ST__N___
                 .DW     0x0000, 0x0000, ST______, 0x0000, ST___Z__
                 .DW     0x0000, 0x0000, ST______, 0x0000, ST___Z__
-                .DW     0x7777, 0x8888, ST______, 0xFFFF, ST__N__X
-                .DW     0x8888, 0x7777, ST______, 0xFFFF, ST__N__X
+                .DW     0x7777, 0x8888, ST______, 0xFFFF, ST__N___
+                .DW     0x8888, 0x7777, ST______, 0xFFFF, ST__N___
                 .DW     0x8000, 0x0000, ST______, 0x8000, ST__N___
                 .DW     0x0000, 0x8000, ST______, 0x8000, ST__N___
 
-                .DW     0x5678, 0x4321, ST_VNZCX, 0x1559, ST_V__C_
-                .DW     0x0000, 0x4321, ST_VNZCX, 0x4321, ST_V__C_
-                .DW     0x4321, 0x0000, ST_VNZCX, 0x4321, ST_V__C_
-                .DW     0xFFFF, 0x4321, ST_VNZCX, 0xBCDE, ST_VN_C_
-                .DW     0x4321, 0xFFFF, ST_VNZCX, 0xBCDE, ST_VN_C_
-                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
-                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZC_
+                .DW     0x5678, 0x4321, ST_VNZCX, 0x1559, ST_V__CX
+                .DW     0x0000, 0x4321, ST_VNZCX, 0x4321, ST_V__CX
+                .DW     0x4321, 0x0000, ST_VNZCX, 0x4321, ST_V__CX
+                .DW     0xFFFF, 0x4321, ST_VNZCX, 0xBCDE, ST_VN_CX
+                .DW     0x4321, 0xFFFF, ST_VNZCX, 0xBCDE, ST_VN_CX
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZCX
+                .DW     0x0000, 0x0000, ST_VNZCX, 0x0000, ST_V_ZCX
                 .DW     0x7777, 0x8888, ST_VNZCX, 0xFFFF, ST_VN_CX
                 .DW     0x8888, 0x7777, ST_VNZCX, 0xFFFF, ST_VN_CX
-                .DW     0x8000, 0x0000, ST_VNZCX, 0x8000, ST_VN_C_
-                .DW     0x0000, 0x8000, ST_VNZCX, 0x8000, ST_VN_C_
+                .DW     0x8000, 0x0000, ST_VNZCX, 0x8000, ST_VN_CX
+                .DW     0x0000, 0x8000, ST_VNZCX, 0x8000, ST_VN_CX
 
                 .DW     0x1111
 
