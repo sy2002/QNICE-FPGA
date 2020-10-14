@@ -113,13 +113,13 @@ begin
    begin
    
       -- CMP FLAG HANDLING
-      --    X = 0
+      --    X is unchanged
       --    Z = 1, if Src = Dst otherwise Z = 0
       --    N = 1, if unsigned(Src) > unsigned(Dst), otherwise N = 0
       --    V = 1, if signed(Src) > signed(Dst), otherwise V = 0
       if Opcode = opcCMP then
       
-         X <= '0';
+         X <= x_in;
       
          if input1 = input2 then
             Z <= '1';
@@ -143,12 +143,8 @@ begin
       else
          -- the X register is context sensitive
          if opcode /= opcSHR then
-            -- X is true if result is FFFF
-            if res(15 downto 0) = x"FFFF" then
-               X <= '1';
-            else
-               X <= '0';
-            end if;
+            -- X is unchanged.
+            X <= x_in;
          else
             X <= shifter_x_out;
          end if;

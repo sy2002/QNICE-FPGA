@@ -138,7 +138,7 @@ L_UNC_3
 ; ---------------------------------------------------------------------------
 ; Test that moving data into R14 sets the correct status bits
 
-L_R14_ST_00     MOVE    0x00FF, R14                ; Set all bits in the status register
+L_R14_ST_00     MOVE    0x003F, R14                ; Set all bits in the status register
                 RBRA    E_R14_ST_01, !V            ; Verify "relative branch nonoverflow" is not taken.
                 RBRA    L_R14_ST_01, V             ; Verify "relative branch overflow" is taken.
                 HALT
@@ -299,7 +299,7 @@ E_MOVE_IMM_34   HALT
 L_MOVE_IMM_34
 
 
-L_MOVE_IMM_40   MOVE    0x00FF, R14             ; Set all bits in the status register
+L_MOVE_IMM_40   MOVE    0x003F, R14             ; Set all bits in the status register
                 MOVE    0xFFFF, R0              ; This should leave X set
                 ABRA    E_MOVE_IMM_43, !X       ; Verify "absolute branch nonX" is not taken.
                 ABRA    L_MOVE_IMM_43, X        ; Verify "absolute branch X" is taken.
@@ -315,7 +315,7 @@ L_MOVE_REG_00   MOVE    0x1234, R1
                 MOVE    0x0000, R2
                 MOVE    0xFEDC, R3
                 MOVE    0xFFFF, R4
-                MOVE    0x00FF, R14             ; Set all bits in the status register
+                MOVE    0x003F, R14             ; Set all bits in the status register
 
                 MOVE    R1, R0
                 RBRA    E_MOVE_REG_01, Z        ; Verify "absolute branch zero" is not taken.
@@ -619,7 +619,7 @@ E_ADD_08        HALT
 L_ADD_08
 
 
-                MOVE    0x00FF, R14             ; Set all status flags
+                MOVE    0x003F, R14             ; Set all status flags
 
 ; Addition                 | V | N | Z | C | X | 1 |
 ; 0x8765 + 0x9876 = 0x1FDB | 1 | 0 | 0 | 1 | - | 1 | ADD_1
@@ -656,8 +656,8 @@ L_ADD_15
                 HALT
 E_ADD_16        HALT
 L_ADD_16
-                MOVE    R14, R1                 ; Verify status register: 11100111
-                CMP     0x00E7, R1
+                MOVE    R14, R1                 ; Verify status register: 00100111
+                CMP     0x0027, R1
                 RBRA    E_ADD_17, !Z
                 RBRA    L_ADD_17, Z
                 HALT
@@ -723,7 +723,7 @@ E_ADD_28        HALT
 L_ADD_28
 
 
-                MOVE    0x00FF, R14             ; Set all status flags
+                MOVE    0x003F, R14             ; Set all status flags
 
 ; Addition                 | V | N | Z | C | X | 1 |
 ; 0xFEDC + 0xEDCB = 0xECA7 | 0 | 1 | 0 | 1 | - | 1 | ADD_3
@@ -760,8 +760,8 @@ L_ADD_35
                 HALT
 E_ADD_36        HALT
 L_ADD_36
-                MOVE    R14, R1                 ; Verify status register: 11010111
-                CMP     0x00D7, R1
+                MOVE    R14, R1                 ; Verify status register: 00010111
+                CMP     0x0017, R1
                 RBRA    E_ADD_37, !Z
                 RBRA    L_ADD_37, Z
                 HALT
@@ -827,7 +827,7 @@ E_ADD_48        HALT
 L_ADD_48
 
 
-                MOVE    0x00FF, R14             ; Set all status flags
+                MOVE    0x003F, R14             ; Set all status flags
 
 ; Addition                 | V | N | Z | C | X | 1 |
 ; 0xFEDC + 0x0124 = 0x0000 | 0 | 0 | 1 | 1 | - | 1 | ADD_5
@@ -864,8 +864,8 @@ L_ADD_55
                 HALT
 E_ADD_56        HALT
 L_ADD_56
-                MOVE    R14, R1                 ; Verify status register: 11001111
-                CMP     0x00CF, R1
+                MOVE    R14, R1                 ; Verify status register: 00001111
+                CMP     0x000F, R1
                 RBRA    E_ADD_57, !Z
                 RBRA    L_ADD_57, Z
                 HALT
@@ -952,7 +952,7 @@ L_MOVE_CV_02
 E_MOVE_CV_03    HALT
 L_MOVE_CV_03
 
-L_MOVE_CV_10    MOVE    0x00FF, R14             ; Set all bits in the status register
+L_MOVE_CV_10    MOVE    0x003F, R14             ; Set all bits in the status register
 
                 MOVE    0x0000, R0              ; Perform a MOVE instruction
                 RBRA    E_MOVE_CV_11, !V        ; Verify "relative branch nonoverflow" is not taken.
