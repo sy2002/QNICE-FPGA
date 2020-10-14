@@ -49,13 +49,19 @@ L_SHR32_01      MOVE    0x89AB, R8
                 SYSCALL(shr32, 1)
                 MOVE    @R11++, R0
                 MOVE    @R11++, R1
+                MOVE    @R11++, R2
 
+                MOVE    R14, R3
+                AND     ST_____X, R3
+                CMP     R3, R2
+                RBRA    E_SHR32_00, !Z
                 CMP     R9, R0
                 RBRA    E_SHR32_01, !Z
                 CMP     R8, R1
                 RBRA    E_SHR32_02, !Z
                 RBRA    L_SHR32_01, 1
 
+E_SHR32_00      HALT
 E_SHR32_01      HALT
 E_SHR32_02      HALT
 
@@ -102,27 +108,27 @@ STIM_SHL32      .DW     0x0000, ST____C_, 0x4567, 0x89AB, ST____C_
 ;*           fills with C and shifts to X
 ;*           R8 = low word, R9 = high word, R10 = SHR amount
 
-STIM_SHR32      .DW     0x0000, ST_____X, 0x4567, 0x89AB
-                .DW     0x0004, ST_____X, 0x0456, 0x789A
-                .DW     0x0008, ST_____X, 0x0045, 0x6789
-                .DW     0x000C, ST_____X, 0x0004, 0x5678
-                .DW     0x0010, ST_____X, 0x0000, 0x4567
-                .DW     0x0014, ST_____X, 0x0000, 0x0456
-                .DW     0x0018, ST_____X, 0x0000, 0x0045
-                .DW     0x001C, ST_____X, 0x0000, 0x0004
-                .DW     0x0020, ST_____X, 0x0000, 0x0000
-                .DW     0x0024, ST_____X, 0x0000, 0x0000
+STIM_SHR32      .DW     0x0000, ST_____X, 0x4567, 0x89AB, ST_____X
+                .DW     0x0004, ST_____X, 0x0456, 0x789A, ST_____X
+                .DW     0x0008, ST_____X, 0x0045, 0x6789, ST_____X
+                .DW     0x000C, ST_____X, 0x0004, 0x5678, ST_____X
+                .DW     0x0010, ST_____X, 0x0000, 0x4567, ST_____X
+                .DW     0x0014, ST_____X, 0x0000, 0x0456, ST______
+                .DW     0x0018, ST_____X, 0x0000, 0x0045, ST______
+                .DW     0x001C, ST_____X, 0x0000, 0x0004, ST______
+                .DW     0x0020, ST_____X, 0x0000, 0x0000, ST______
+                .DW     0x0024, ST_____X, 0x0000, 0x0000, ST______
 
-                .DW     0x0000, ST____C_, 0x4567, 0x89AB
-                .DW     0x0004, ST____C_, 0xF456, 0x789A
-                .DW     0x0008, ST____C_, 0xFF45, 0x6789
-                .DW     0x000C, ST____C_, 0xFFF4, 0x5678
-                .DW     0x0010, ST____C_, 0xFFFF, 0x4567
-                .DW     0x0014, ST____C_, 0xFFFF, 0xF456
-                .DW     0x0018, ST____C_, 0xFFFF, 0xFF45
-                .DW     0x001C, ST____C_, 0xFFFF, 0xFFF4
-                .DW     0x0020, ST____C_, 0xFFFF, 0xFFFF
-                .DW     0x0024, ST____C_, 0xFFFF, 0xFFFF
+                .DW     0x0000, ST____C_, 0x4567, 0x89AB, ST______
+                .DW     0x0004, ST____C_, 0xF456, 0x789A, ST_____X
+                .DW     0x0008, ST____C_, 0xFF45, 0x6789, ST_____X
+                .DW     0x000C, ST____C_, 0xFFF4, 0x5678, ST_____X
+                .DW     0x0010, ST____C_, 0xFFFF, 0x4567, ST_____X
+                .DW     0x0014, ST____C_, 0xFFFF, 0xF456, ST______
+                .DW     0x0018, ST____C_, 0xFFFF, 0xFF45, ST______
+                .DW     0x001C, ST____C_, 0xFFFF, 0xFFF4, ST______
+                .DW     0x0020, ST____C_, 0xFFFF, 0xFFFF, ST______
+                .DW     0x0024, ST____C_, 0xFFFF, 0xFFFF, ST_____X
 
                 .DW     0xFFFF
 
