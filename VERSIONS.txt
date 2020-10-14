@@ -1,6 +1,12 @@
 Version 1.7     xxxxxxxx, yy zzzz
 =================================
 
+* ISA: QNICE Instruction Set Architecture updated to version 1.7. The changes
+  are:
+  - Behavior of X flag changed: <TODO describe>
+  - More stuff?
+WIP sift through all issues tagged with V1.7 that tackle ISA changes 
+
 * CPU: Implemented "FastPath" feature that makes sure, that all instructions
   that operate on registers only (including branches) are from now on only
   taking two CPU cycles. This leads to an average speed-up of 2% compared
