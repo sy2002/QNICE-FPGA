@@ -789,6 +789,8 @@ void update_status_bits(unsigned int destination, unsigned int source_0, unsigne
 
   sr_bits = read_register(SR);
 
+  x = (sr_bits >> 1) & 1; // Retain old X-flag
+
   if (!(control_bitmask & DO_NOT_MODIFY_CARRY)) 
     c = destination & 0x10000 ? 1 : 0;
   else 
