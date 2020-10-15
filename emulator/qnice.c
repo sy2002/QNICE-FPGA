@@ -136,7 +136,7 @@ typedef struct statistic_data {
 } statistic_data;
 
 int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$verbose = FALSE,
-    gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
+    gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
     gbl$ctrl_c = FALSE, gbl$breakpoint = -1, gbl$cycle_counter_state = 0, gbl$eae_operand_0 = 0,
     gbl$eae_operand_1 = 0, gbl$eae_result_lo = 0, gbl$eae_result_hi = 0, gbl$eae_csr = 0,
     gbl$error = FALSE;;
