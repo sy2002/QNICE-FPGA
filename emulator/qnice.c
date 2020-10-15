@@ -14,7 +14,8 @@
 **            xx-SEP-2020   Introduction of shadow registers and EXC instruction
 **            xx-OCT-2020   Fixed a bug associated with the address displayed after breakpoints,
 **                          changed the behaviour of the X-bit so that only shift instructions
-**                          make use of this bit any more.
+**                          make use of this bit any more, changed the disassembler so that relative 
+**                          addresses are displayed as absolute values, too.
 **
 ** The following defines are available:
 **
@@ -629,11 +630,12 @@ int decode_operand(unsigned int operand, char *string) {
 */
 void disassemble(unsigned int start, unsigned int stop) {
   unsigned int i, opcode, instruction, j;
-  int skip_addresses;
-  char scratch[STRING_LENGTH], operands[STRING_LENGTH], mnemonic[STRING_LENGTH];
+  int skip_addresses, relative_address;
+  char scratch[STRING_LENGTH], operands[STRING_LENGTH], mnemonic[STRING_LENGTH], absolute_address[STRING_LENGTH];
 
   printf("Disassembled contents of memory locations %04x - %04x:\n", start, stop);
   for (i = start, skip_addresses = 0; i <= stop || skip_addresses; i++) {
+    *absolute_address = (char) 0;
     opcode = (instruction = access_memory(i, READ_MEMORY, 0) & 0xffff) >> 12;
     if (skip_addresses) { /* Do not decode this machine word -- since it was used in @R15++! */
       skip_addresses--;
@@ -680,8 +682,10 @@ void disassemble(unsigned int start, unsigned int stop) {
     } else if (opcode == GENERIC_BRANCH_OPCODE) { /* Branch or Subroutine call */
       strcpy(mnemonic, gbl$branch_mnemonics[(instruction >> 4) & 0x3]);
       if ((skip_addresses  = decode_operand((instruction >> 6) & 0x3f, scratch)))
-        sprintf(scratch, "0x%04X", access_memory(i + 1, READ_MEMORY, 0));
-      sprintf(operands, "%s, %s%c", scratch, (instruction >> 3) & 1 ? "!" : "", gbl$sr_bits[instruction & 0x7]);
+        sprintf(scratch, "0x%04X", relative_address = access_memory(i + 1, READ_MEMORY, 0));
+      if ((!strcmp(mnemonic, "RBRA") || !strcmp(mnemonic, "RSUB")) && skip_addresses) // Compute abolute destination address
+        sprintf(absolute_address, "\t(-> %04X)", (relative_address + i + skip_addresses + 1) & 0xffff);
+      sprintf(operands, "%s, %s%c%s", scratch, (instruction >> 3) & 1 ? "!" : "", gbl$sr_bits[instruction & 0x7], absolute_address);
     } else {
       strcpy(mnemonic, "???");
       *operands = (char) 0;
