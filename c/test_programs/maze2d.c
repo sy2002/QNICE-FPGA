@@ -14,7 +14,7 @@
 
 #include "sysdef.h"     // KBD_CUR_UP etc.
 #include "conio.h"      // Function to write to the VGA screen
-#include "rand.h"       // Random generator
+#include "qmon.h"       // Random generator
 #include "maze_grid.h"  // The actual internals of the maze generation
 
 // convenient mechanism to access QNICE's Memory Mapped IO registers
@@ -168,7 +168,7 @@ static int game_update()
 
 int main()
 {
-   my_srand(time());    // Seed random number generator.
+   qmon_srand(time());    // Seed random number generator.
    level = 1;
 
    gameState = MENU;

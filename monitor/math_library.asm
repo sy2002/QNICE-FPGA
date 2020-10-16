@@ -84,14 +84,14 @@ _MTH$DIVS_BUSY  MOVE    @R0, R1             ; Test busy bit
 ;
 MTH$DIVU        INCRB
                 MOVE    IO$EAE_OPERAND_0, R0
-                MOVE    R8, @R0++           ; R0 now points to OPERAND_1
+                MOVE    R8, @R0++               ; R0 now points to OPERAND_1
                 MOVE    R9, @R0
                 MOVE    IO$EAE_CSR, R0
                 MOVE    EAE$DIVU, @R0
 #ifndef EAE_NO_WAIT
-_MTH$DIVU_BUSY  MOVE    @R0, R1             ; Test busy bit
+_MTH$DIVU_BUSY  MOVE    @R0, R1                 ; Test busy bit
                 AND     0x8000, R1
-                RBRA    _MTH$DIVU_BUSY, !Z  ; Still busy, wait...
+                RBRA    _MTH$DIVU_BUSY, !Z      ; Still busy, wait...
 #endif
                 MOVE    IO$EAE_RESULT_LO, R0
                 MOVE    @R0++, R10
@@ -400,6 +400,121 @@ _MTH$SHR_EXIT   DECRB
 _MTH$SHR_ALL    MOVE    R0, SR                  ; Restore C bit
                 SHR     0x11, R9
                 SHR     0x11, R8
+                DECRB
+                RET
+
+;
+;***************************************************************************************
+;* MTH$SRAND
+;*
+;* R8: Contains the new seed
+;*
+;* Seeds the built-in random number generator.
+;*
+;* Implements the C-function:
+;*    void srand(unsigned int);
+;***************************************************************************************
+;
+MTH$SRAND       INCRB
+                MOVE    _MTH$SEED_LOW, R0
+                MOVE    R8, @R0++
+                MOVE    0x6c16, @R0             ; Clear the MSB of the seed.
+                DECRB
+                RET
+
+;
+;***************************************************************************************
+;* MTH$RAND
+;*
+;* Returns a uniform distributed random number in the range 0x0000 - 0x7FFF.
+;*
+;* Implements the C-function:
+;*    unsigned int rand();
+;*
+;* The seed is updated using the following calculation:
+;*
+;* X~ = a*X mod n,
+;* where a = 48271 and n = 2^31-1.
+;*
+;* This is known as the Park-Miller Random Number Generator.
+;*
+;* The value returned is bits 30-16 of the new X value.
+;*
+;***************************************************************************************
+;
+MTH$RAND        INCRB
+                MOVE    _MTH$SEED_LOW, R0
+                MOVE    48271, R1
+                MOVE    IO$EAE_OPERAND_0, R5
+                MOVE    IO$EAE_CSR, R6
+                MOVE    IO$EAE_RESULT_LO, R7
+
+                ; Calculate LSB * A and store as R4 * 2^16 + R3
+                MOVE    @R0++, @R5++            ; First operand is LSB of seed
+                MOVE    R1, @R5                 ; Second operand is A
+                MOVE    EAE$MULU, @R6           ; Unsigned multiplication
+#ifndef EAE_NO_WAIT
+_MTH$RAND_BUSY  MOVE    @R6, R2                 ; Test busy bit
+                RBRA    _MTH$RAND_BUSY, N       ; Still busy, wait...
+#endif
+                MOVE    @R7++, R3               ; Store LSB*A in R4:R3
+                MOVE    @R7, R4
+
+                ; Calculate MSB * A and store as R2 * 2^16 + R1
+                MOVE    @R0, @R5                ; Second operand is MSB of seed
+                MOVE    R1, @--R5               ; First operand is A
+                MOVE    EAE$MULU, @R6           ; Unsigned multiplication
+#ifndef EAE_NO_WAIT
+_MTH$RAND_BUSY  MOVE    @R6, R2                 ; Test busy bit
+                RBRA    _MTH$RAND_BUSY, N       ; Still busy, wait...
+#endif
+                MOVE    @R7, R2                 ; Store MSB*A in R2:R1
+                MOVE    @--R7, R1
+
+                ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                ; At this stage the calculation SEED * A is represented as follows:
+                ; R2 * 2^32 + R1 * 2^16 + R4 * 2^16 + R3
+                ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+                ; We now reduce this value modulo 2^31-1, using the trick 2^32 = 2.
+                ; The first iteration of modulo gives:
+                ; (R1+R4) * 2^16 + (R3+2*R2).
+                ; Care must be taken because overflow can occur in the intermediate steps.
+
+                ; In the following we evaluate this expression and store the result as
+                ; carry * 2^32 + R1 * 2^16 + R2.
+                ;
+                ; Since the seed is less than 2^31, we know that R2 < 2^15.
+                ; Therefore, the following instruction wont overflow.
+                ADD     R2, R2                  ; R2 *= 2
+                ADD     R3, R2                  ; R2 += R3.
+                ; Now R2 contains (R3+2*R2) from before, but the carry flag is important.
+                ADDC    R4, R1                  ; R1 += R4 + carry
+
+                ; Now we store the carry in R5
+                MOVE    0, R5
+                ADDC    R5, R5
+
+                ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                ; At this stage we have the result stored as:
+                ; R5 * 2^32 + R1 * 2^16 + R2.
+                ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+                ; We multiply R5 by 2 and add bit 15 of R1.
+                ; At the same time we clear bit 15 of R1.
+                SHL     1, R1                   ; Move bit 15 to carry (and X into bit 0)
+                ADDC    R5, R5                  ; Note: This also clears carry
+                SHR     1, R1                   ; Move zero back into bit 15 (and bit 0 to X)
+
+                ; Now we add 0:R5 to R1:R2
+                ADD     R5, R2
+                ADDC    0, R1
+
+                ; Store new value of seed
+                MOVE    R1, @R0
+                MOVE    R2, @--R0
+
+                MOVE    R1, R8                  ; Return MSB of new seed
                 DECRB
                 RET
 

@@ -12,7 +12,6 @@
 #include "qmon.h"
 #include "sysdef.h"
 #include "sprite.h"
-#include "rand.h"
 #include "images.h"
 #include "stat.h"
 #include "conio.h"
@@ -57,16 +56,16 @@ static void init_all_sprites()
    // Initialize each sprite
    for (unsigned int i=0; i<NUM_SPRITES; ++i)
    {
-      int image_index = my_rand()%NUM_IMAGES;
+      int image_index = qmon_rand()%NUM_IMAGES;
 
-      balls[i].pos_scaled.x      = (my_rand()%(640-64)+32)*POS_SCALE;
-      balls[i].pos_scaled.y      = (my_rand()%(480-64)+32)*POS_SCALE;
-      balls[i].vel_scaled.x      = my_rand()%VEL_SCALE-VEL_SCALE/2;
-      balls[i].vel_scaled.y      = my_rand()%VEL_SCALE-VEL_SCALE/2;
+      balls[i].pos_scaled.x      = (qmon_rand()%(640-64)+32)*POS_SCALE;
+      balls[i].pos_scaled.y      = (qmon_rand()%(480-64)+32)*POS_SCALE;
+      balls[i].vel_scaled.x      = qmon_rand()%VEL_SCALE-VEL_SCALE/2;
+      balls[i].vel_scaled.y      = qmon_rand()%VEL_SCALE-VEL_SCALE/2;
       balls[i].radius_scaled     = images[image_index].radius_scaled*POS_SCALE;
       balls[i].mass              = images[image_index].mass;
       balls[i].sprite_bitmap_ptr = image_index;
-      balls[i].color             = (my_rand()&0x7FFF) | 0xC63; // Avoid darks colors
+      balls[i].color             = (qmon_rand()&0x7FFF) | 0xC63; // Avoid darks colors
       balls[i].collided          = 0;
 
       t_sprite_palette palette = sprite_palette_transparent;
@@ -288,7 +287,7 @@ int main()
    sprite_clear_all();
    printf("Bouncing balls!\n");
    printf("Press any key to stop\n");
-   my_srand(MMIO(IO_CYC_LO));
+   qmon_srand(MMIO(IO_CYC_LO));
    init_all_sprites();
    stat_clear();
    while (1)

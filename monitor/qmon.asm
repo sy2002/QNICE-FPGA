@@ -113,6 +113,8 @@ vga_copypal!    RBRA    VGA$COPYPAL, 1
 vga_moveto!     RBRA    VGA$MOVE_TO_XY, 1
 shl32!          RBRA    MTH$SHL32, 1
 shr32!          RBRA    MTH$SHR32, 1
+srand!          RBRA    MTH$SRAND, 1
+rand!           RBRA    MTH$RAND, 1
 ;
 ;  The actual monitor code starts here:
 ;

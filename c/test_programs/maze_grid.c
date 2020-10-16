@@ -1,4 +1,4 @@
-#include "rand.h"    // Random generator
+#include "qmon.h"    // Random generator
 #include "conio.h"
 #include "maze_grid.h"
 
@@ -22,12 +22,12 @@ static const int offset[MAX_DIRS] = {-1, MAX_ROWS, -MAX_ROWS, 1};
 
 static char GetRandomDir()
 {
-   return my_rand() % MAX_DIRS;
+   return qmon_rand() % MAX_DIRS;
 }
 
 static int GetRandomSquare()
 {
-   return my_rand() % MAX_SQUARES;
+   return qmon_rand() % MAX_SQUARES;
 }
 
 // Draw the current square as 3x3 characters.
@@ -77,9 +77,9 @@ static void pause()
 {
    for (long i=0; i<1000; ++i)
    {
-      // Calling my_rand() prevents the optimizer from pruning this loop,
-      // because my_rand() has side-effects (it updates the seed).
-      my_rand();
+      // Calling qmon_rand() prevents the optimizer from pruning this loop,
+      // because qmon_rand() has side-effects (it updates the seed).
+      qmon_rand();
    }
 } // end of pause
 
@@ -127,7 +127,7 @@ void maze_init()
             // Either we continue moving around, or we - occasionally -
             // teleport to a random other square inside the part of the maze
             // already built.
-            if ((my_rand() % 6) == 0)
+            if ((qmon_rand() % 6) == 0)
             {
                /* Start from a different square that is connected */
                do
