@@ -124,6 +124,9 @@ QMON$COLDSTART  AND     0x00FF, SR              ; Make sure we are in register b
                 MOVE    IO$INS_STATE, R0        ; start instruction counter
                 MOVE    INS$RESET, @R0
 
+                MOVE    IC$CSR, R0
+                MOVE    IC$ENABLE_INTERRUPTS, @R0   ; Enable global interrupts
+
                 RSUB    VGA$INIT, 1             ; Does not clear the screen, so that
                                                 ; the HW boot message stays visible
                 MOVE    QMON$WELCOME, R8        ; Print welcome message
