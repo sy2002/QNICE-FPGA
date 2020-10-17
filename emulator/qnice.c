@@ -16,6 +16,7 @@
 **                          changed the behaviour of the X-bit so that only shift instructions
 **                          make use of this bit any more, changed the disassembler so that relative 
 **                          addresses are displayed as absolute values, too.
+**                          Somehow the INT instruction does not work... Fixed...
 **
 ** The following defines are available:
 **
@@ -835,7 +836,6 @@ int execute() {
   int condition, cmp_0, cmp_1;
 
   gbl$error = FALSE;
-  debug_address = address = read_register(PC); /* Get PC */
 
 #ifdef USE_VGA
   /* global instruction counter for MIPS calcluation; slightly different semantics than gbl$cycle_counter++ */
@@ -865,6 +865,7 @@ int execute() {
         printf("!\n");
     }
   }
+  debug_address = address = read_register(PC); /* Get PC */
 
   if (gbl$cycle_counter_state & 0x0002)
     gbl$cycle_counter++; /* Increment cycle counter which is an instruction counter in the emulator as opposed to the hardware. */
