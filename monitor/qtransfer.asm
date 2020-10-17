@@ -231,6 +231,7 @@ _QH2SI_NXT_NIB  MOVE    @R1++, R8               ; next character
                 RBRA    _QHS2I_ILLEGAL, Z
 
                 SUB     R9, R10                 ; R10 = hex nibble: 0..15
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     4, R3                   ; old value one nibble left
                 ADD     R10, R3                 ; add next value
                 SUB     1, R2                   ; one less iteration
