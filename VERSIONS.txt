@@ -9,9 +9,12 @@ WIP sift through all issues tagged with V1.7 that tackle ISA changes
 
 * CPU: Implemented "FastPath" feature that makes sure, that all instructions
   that operate on registers only (including branches) are from now on only
-  taking two CPU cycles. This leads to an average speed-up of 2% compared
-  to V1.6 and a new peak performance of 14.67 MIPS which is an improvement
-  of 8% compared to V1.6.
+  taking two CPU cycles. This leads to an average speed of 13.21 MIPS, which
+  is a speed-up of 2% compared to V1.6. The new peak performance is 14.67 MIPS
+  which is an improvement of 8% compared to V1.6.
+TODO: <WASM emulator Website needs to name the new speed, and for better
+      reading, we should print the speed in bold on the website, as the
+      user needs to adjust the emulation speed manually.>
 
 * MONITOR: qtransfer is now part of the Monitor.
 
@@ -32,7 +35,7 @@ WIP * TILE_ED: Version 2.0 which supports multicolor mode, font & palette editin
 WIP * PaqNice: Pac-Man remake for QNICE-FPGA
 
 WIP * Q-TRIS: Color, switchable to classic, ...
-  Adjusted (slowed down) to match the CPU's speedup.
+  (Done:) Adjusted (slowed down) to match the CPU's speedup.
 
 Version 1.6     September, 7 2020
 =================================
