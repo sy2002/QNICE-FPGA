@@ -105,7 +105,7 @@ You currently cannot copy from or paste to the emulator window. Use the
 native offline version, if you need for example to work with "memory load"
 (press `m` and then `l`) for loading your own `.out` files.
 
-The speed of the QNICE-FPGA hardware running at 50 MHz is 12.9 MIPS
+The speed of the QNICE-FPGA hardware running at 50 MHz is 13.0 MIPS
 (million instructions per second). The emulator may run too fast in your web
 browser. You need to adjust the emulation speed to match the hardware
 manually.
