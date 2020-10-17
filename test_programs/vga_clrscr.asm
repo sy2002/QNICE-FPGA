@@ -18,6 +18,7 @@
                     MOVE    1, @R0
                     MOVE    @R0, R3
 
+                    AND     0xFFFD, SR              ; clear X (shift in '0')
                     SHL     8, R2
                     OR      R3, R2
                     MOVE    R2, @R7     

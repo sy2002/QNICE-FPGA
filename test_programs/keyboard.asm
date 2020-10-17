@@ -22,6 +22,7 @@ MAIN_LOOP       RSUB    READ_KEYBOARD, 1    ; no syscall to ensure that we read 
 
                 MOVE    @R2, R1              
                 AND     KBD$MODIFIERS, R1   ; extract modifiers
+                AND     0xFFFD, SR          ; clear X (shift in '0')                
                 SHL     3, R1               ; shift them to TIL digit 2
                 MOVE    R1, R7              ; R7 will be the display variable
 

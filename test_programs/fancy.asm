@@ -112,8 +112,10 @@ S_ISR           MOVE    0xF000, SR              ; big distance to regbanks
                 ADD     @R0, R8
 
                 MOVE    R8, R10                 ; this section means "* 62"
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     5, R10
                 SUB     R8, R10
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     1, R10
 
                 CMP     'F', @R2                ; check mode

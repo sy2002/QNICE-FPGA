@@ -1129,6 +1129,7 @@ _PED_SHOWRGB_L  MOVE    PAL_ED_X, R8            ; x-pos for cursor
                 SUB     R9, R8
                 ADD     VGA$PALETTE_OFFS_USER, R8
                 MOVE    R8, R4                  ; R4 = addr of current col
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     8, R8
                 MOVE    CHR_PAL_F, R3
                 ADD     R8, R3
@@ -1151,6 +1152,7 @@ _PED_BG         MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
                 ADD     VGA$PALETTE_OFFS_USER, R8
                 ADD     16, R8                  ; switch to background pal
                 MOVE    R8, R4                  ; R4 = addr of current col
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     12, R8
                 MOVE    CHR_PAL_B, R3
                 ADD     R8, R3
@@ -1169,6 +1171,7 @@ _PED_CK         MOVE    '1', R9
                 MOVE    R5, R10                 ; R5 = 15bit RGB color
                 MOVE    VGA$PALETTE_DATA, R9
                 SUB     '1', R8                 ; 1 => 0; 2 => 1, ...
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     2, R8                   ; 4 LUT entries per row
                 MOVE    _PED_RGB, R6            ; index to look-up table
                 ADD     R8, R6 
@@ -1220,6 +1223,7 @@ _PED_FKF        MOVE    STR_HELP_EDIT, R8       ; numeric edit help text
                 XOR     R5, R5                  ; R5=typed # of nibbles
                 MOVE    R1, R6                  ; R6=SHL pos of nib. in buffer
                 SUB     1, R6
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     2, R6
                 MOVE    R8, R7                  ; R7=address of edited pal col
 
@@ -1263,7 +1267,7 @@ _PED_NIBBLE     CMP     R5, R1                  ; max amount of chars?
 _PED_STORE      SUB     R5, R1                  ; R1=# remaining not typed nib
                 AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)
                 SHL     2, R1                   ; amount of necessary SHR 
-                AND     0xFFFB, SR              ; ckr C for SHR (shift in a 0)
+                AND     0xFFFB, SR              ; clr C for SHR (shift in a 0)
                 SHR     R1, R0                  ; compensate for # of typed ch
 
                 AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)

@@ -71,6 +71,7 @@ _IO$GET_W_HEX_INPUT RSUB    IO$GETCHAR, 1                   ; Read a character i
                     RBRA    _IO$GET_W_HEX_INPUT, 1          ; Retry
 _IO$GET_W_HEX_VALID RSUB    IO$PUTCHAR, 1                   ; Echo character
                     SUB     IO$HEX_NIBBLES, R10             ; Get number of character
+                    AND     0xFFFD, SR                      ; clear X (shift in '0')                    
                     SHL     4, R0
                     ADD     R10, R0
                     SUB     0x0001, R1

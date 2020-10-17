@@ -46,6 +46,7 @@ ITERATION       .EQU    0x001A              ; Number of iterations
 _MAIN_LOOP      SYSCALL(vga_cls, 1)
                 RSUB    MANDEL, 1           ; Generate one Mandelbrot-set
 ;
+                AND     0xFFFD, SR          ; clear X (shift in '0')
                 MOVE    R0, R9              ; This is the step size to be
                 SHL     3, R9               ; used in horizontal shifts,
                 MOVE    R3, R10             ; while this one is used in
@@ -109,6 +110,7 @@ _MAIN_NOT_I     CMP     'o', R8
                 SUB     R11, R4
                 ADD     R11, R5
                 ;
+                AND     0xFFFD, SR          ; clear X (shift in '0')                
                 SHL     1, R0               ; Double step width for x
                 SHL     1, R3               ; and y
                 RBRA    _MAIN_NEXT, 1

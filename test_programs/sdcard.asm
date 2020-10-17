@@ -334,7 +334,7 @@ _INPUT_READHEX  INCRB
 
                 MOVE    R0, R5                  ; R5 = work pointer
                 MOVE    0, R1                   ; 8 digits = 32bit
-                MOVE    12, R2                   ; SHL counter
+                MOVE    12, R2                  ; SHL counter
                 XOR     R3, R3                  ; temp LO word
                 XOR     R4, R4                  ; temp HI word
                 MOVE    _INPUT_RHX_NIB, R9      ; R9 = hex nibbles
@@ -346,6 +346,7 @@ _INPUT_RHX_LP   MOVE    @R5++, R8
                 CMP     R10, 0
                 RBRA    _INPUT_RHX_ERR, Z       ; not found: error
                 SUB     R9, R10                 ; extract digit
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     R2, R10                 ; correct position for nibble
                 SUB     4, R2                   ; next time: one nibble less
                 CMP     R1, 3
@@ -1923,6 +1924,7 @@ _F32_DLST_VITAL NOP      ; @TODO test corrupt directories
                 ADD     FAT32$DE_SECOND, R8         ; R8 = pointer to second
                 MOVE    R10, R5                     ; R5 = 16bit encoded time
                 AND     0x001F, R5                  ; second is in bits 0..4
+                AND     0xFFFD, SR                  ; clear X (shift in '0')                
                 SHL     1, R5                       ; seconds stored as 2 secs
                 MOVE    R5, @R8                     ; store seconds to dir. e.
 
@@ -2914,7 +2916,8 @@ _F32_RFDH_INCC3 MOVE    R0, R10
                 ; new one back to the directory handle and load the
                 ; sector 0 within this cluster
 _F32_RFDH_INCC4 MOVE    R0, R8                      ; R8 = device handle
-                MOVE    R12, R9                     ; R9 = index, 32bit, so 
+                MOVE    R12, R9                     ; R9 = index, 32bit, so
+                AND     0xFFFD, SR
                 SHL     2, R9                       ; multiply by 4 to get it
                 RSUB    FAT32$READ_DW, 1            ; pointer in R11|R10
                 MOVE    R1, R2

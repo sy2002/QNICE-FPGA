@@ -613,6 +613,7 @@ QMON$LOAD_E1    MOVE    @R0++, R8               ; current char
 QMON$LOAD_E1E   ADD     1, SP                   ; char not OK: skip return address on stack
                 RBRA    QMON$LOAD_SCF, 1        ; directly jump to error message
 QMON$LOAD_E1C   SUB     IO$HEX_NIBBLES, R10     ; get numeric representation of char
+                AND     0xFFFD, SR              ; clear X (shift in '0')
                 SHL     4, R2                   ; last digit moves to the left
                 ADD     R10, R2                 ; current digit adds to address
                 SUB     1, R1                   ; are we done?

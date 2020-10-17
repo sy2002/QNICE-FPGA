@@ -883,6 +883,7 @@ _F32_DLST_VITAL NOP      ; @TODO test corrupt directories
                 ADD     FAT32$DE_SECOND, R8         ; R8 = pointer to second
                 MOVE    R10, R5                     ; R5 = 16bit encoded time
                 AND     0x001F, R5                  ; second is in bits 0..4
+                AND     0xFFFD, SR                  ; clear X (shift in '0')                
                 SHL     1, R5                       ; seconds stored as 2 secs
                 MOVE    R5, @R8                     ; store seconds to dir. e.
 
@@ -1874,7 +1875,8 @@ _F32_RFDH_INCC3 MOVE    R0, R10
                 ; new one back to the directory handle and load the
                 ; sector 0 within this cluster
 _F32_RFDH_INCC4 MOVE    R0, R8                      ; R8 = device handle
-                MOVE    R12, R9                     ; R9 = index, 32bit, so 
+                MOVE    R12, R9                     ; R9 = index, 32bit, so
+                AND     0xFFFD, SR                
                 SHL     2, R9                       ; multiply by 4 to get it
                 RSUB    FAT32$READ_DW, 1            ; pointer in R11|R10
                 MOVE    R1, R2

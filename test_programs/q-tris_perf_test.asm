@@ -1052,6 +1052,7 @@ _DM_START       MOVE    Tetromino_Y, R6
 
                 MOVE    0, R4                   ; R4: line counter (y)
 _DM_LOOP_Y      MOVE    R4, R5                  ; R5: y offset = 8 x y
+                AND     0xFFFD, SR              ; clear X (shift in '0')
                 SHL     3, R5 
                 MOVE    Tetromino_X, R6         ; set hw cursor to x start...
                 MOVE    @R6, @R0                ; ...pos of Tetromino 8x8...
@@ -1109,6 +1110,7 @@ _DM_IS_IT_OWN   MOVE    R4, R12                 ; current y position
                 RBRA    _DM_OBSTACLE, V         ; yes: obstacle found
                 CMP     8, R2                   ; x positive out-of-bound?
                 RBRA    _DM_OBSTACLE, Z         ; yes: obstacle found
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     3, R12                  ; (R12 = y) x 8 (line offset)
                 ADD     R2, R12                 ; add (R2 = x)
                 ADD     RenderedTTR, R12        ; completing the offset
@@ -1492,6 +1494,7 @@ _RTTR_BCLR      MOVE    R8, @R0                 ; remember # in RenderedNumber
                 ; R0: contains the source memory location
                 MOVE    Tetrominos, R0          ; start address of patterns
                 MOVE    R8, R1                  ; addr = (# x 8) + start
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     3, R1                   ; SHL 3 means x 8
                 ADD     R1, R0                  ; R0: source memory location
 
@@ -1501,11 +1504,13 @@ _RTTR_BCLR      MOVE    R8, @R0                 ; remember # in RenderedNumber
                 ; R1: contains the destination memory location
                 MOVE    R4, R1                  ; R1: destination mem. loc.
                 MOVE    R8, R3                  ; TTR_Offs = # x 2
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     1, R3
                 ADD     TTR_Offs, R3
                 MOVE    @R3++, R2               ; fetch x correction...
                 ADD     R2, R1                  ; and add it to the dest. mem.
                 MOVE    @R3, R2                 ; fetch y correction...
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     3, R2                   ; multiply by 8 because ...
                 ADD     R2, R1                  ; ... of 8 chars per ln
 
@@ -2005,6 +2010,7 @@ SPEED_DELAY     INCRB
                 MOVE    Level, R7
                 MOVE    @R7, R0
                 SUB     1, R0                   ; level counting starts with 1
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     1, R0                   ; 2 words per table entry
                 MOVE    Level_Speed, R7
                 ADD     R0, R7                  ; select table row
@@ -2013,6 +2019,7 @@ SPEED_DELAY     INCRB
 
                 CMP     1, R8                   ; in R8 = 1 mode ...
                 RBRA    _SPEED_DELAY_SS, Z      ; ... skip the doubling
+                AND     0xFFFD, SR              ; clear X (shift in '0')                
                 SHL     1, R1                   ; double the second multiplier
 
 _SPEED_DELAY_SS MOVE    R1, R2                  ; remeber R1
