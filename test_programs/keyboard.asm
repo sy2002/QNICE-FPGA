@@ -30,6 +30,7 @@ MAIN_LOOP       RSUB    READ_KEYBOARD, 1    ; no syscall to ensure that we read 
                 MOVE    R8, R1              
                 AND     KBD$SPECIAL, R1
                 RBRA    _NO_SPECIAL, Z
+                AND     0xFFFB, SR          ; clear C (shift in '0')
                 SHR     8, R1               ; shift them to TIL digits 0..1
                 OR      R1, R7
                 OR      0x1000, R7          ; show flag in digit 3

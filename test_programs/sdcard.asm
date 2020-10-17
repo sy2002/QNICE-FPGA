@@ -41,6 +41,7 @@
                 MOVE    STR_CARDTYPE, R8
                 SYSCALL(puts, 1)
                 MOVE    @R5, R7                 ; read CSR
+                AND     0xFFFB, SR              ; clear C (shift in '0')                
                 SHR     12, R7                  ; bits 13 .. 12 are relevant
                 RBRA    DCT_1, !Z               ; 00 = unknown card / error
                 MOVE    STR_CT_NA, R8
@@ -1882,6 +1883,7 @@ _F32_DLST_VITAL NOP      ; @TODO test corrupt directories
                 MOVE    R11, @R8                    ; store size high word
 
                 ; file date
+                ; carry (C) is zero at the SHRs due to the preceding ADDs
                 MOVE    R0, R8                      ; R8 = device handle
                 MOVE    R4, R9                      ; R9 = index to be read
                 ADD     FAT32$FE_FILEDATE, R9
@@ -1905,6 +1907,7 @@ _F32_DLST_VITAL NOP      ; @TODO test corrupt directories
                 MOVE    R5, @R8                     ; store day to dir. entry
 
                 ; file time
+                ; carry (C) is zero at the SHRs due to the preceding ADDs                
                 MOVE    R0, R8                      ; R8 = device handle
                 MOVE    R4, R9                      ; R9 = index to be read
                 ADD     FAT32$FE_FILETIME, R9
@@ -3071,10 +3074,11 @@ _F32_RSIC_END   DECRB
 FAT32$CHECKSUM  INCRB
 
                 MOVE    11, R0                      ; R0 = character count
-                XOR     R1, R1                      ; R1 = 8 bit sum                
+                XOR     R1, R1                      ; R1 = 8 bit sum
 
                 ; perform an unsigned char rotate right
-_F32_CHKSM_LP   SHR     1, R1                       ; shift right 1 into X
+_F32_CHKSM_LP   AND     0xFFFB, SR                  ; clear C (shift in '0')
+                SHR     1, R1                       ; shift right 1 into X
                 RBRA    _F32_CHKSM_NRI, !X          ; X=0: skip
                 OR      0x80, R1                    ; X=1: rotate in a 1
 

@@ -101,7 +101,7 @@ _IO$PWH_SCAN    MOVE R1, R2             ; and create a scratch copy of this poin
                 AND 0x000f, R3          ; Only the four LSBs are of interest
                 ADD R3, R2              ; Adjust pointer to the desired nibble
                 MOVE @R2, @--SP         ; and save the ASCII character to the stack
-                SHR 4, R8               ; Shift R8 four places right
+                SHR 4, R8               ; Shift R8 four places right (C is 0 due to ADD)
                 SUB 0x0001, R4          ; Decrement loop counter
                 RBRA _IO$PWH_SCAN, !Z   ; and continue with the next nibble
                                         ; Now read these characters back and print them

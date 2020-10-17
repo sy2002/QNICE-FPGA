@@ -100,6 +100,7 @@ CALC_TTR_POS    MOVE    Tetromino_Y, R1
                 MOVE    -8, @R1                 ; y start pos = -8
                 MOVE    PLAYFIELD_X, R0         ; x start pos is the middle...
                 ADD     PLAYFIELD_W, R0         ; ... of the playfield ...
+                                                ; (C is '0' due to the ADD)
                 SHR     1, R0                   ; ..which is ((X+W) / 2) - of
                 MOVE    TTR_SX_Offs, R1         ; of is taken from TTR_SX_Offs
                 MOVE    R4, R2
@@ -859,6 +860,7 @@ _CRH_CHK_COMPL  CMP     0, @R8                  ; any lines completed?
                 MOVE    R11, R9                 ; first scanned line on scrn
                 MOVE    R12, R10                ; amount of lines to process                
                 MOVE    @R8, R3                 ; amount of "blinks"
+                AND     0xFFFB, SR              ; clear C (shift in '0')             
                 SHR     1, R3                   ; 2 screen pixels = 1 real row
 
                 MOVE    R3, R8                  ; process cleared lines ...

@@ -29,6 +29,7 @@ DBG$DISASM          INCRB
                     MOVE    ' ', R8             ; Print a delimiter
                     RSUB    IO$PUTCHAR, 1
                     MOVE    R1, R2              ; R1 contains the instruction
+                    AND     0xFFFB, SR          ; clear C (shift in '0')                    
                     SHR     0x0009, R2          ; Get opcode * 8
                     AND     0x0078, R2          ; Filter out the unnecessary LSBs
                     CMP     0x0070, R2          ; Is it a control instruction?
@@ -55,6 +56,7 @@ _DBG$DISASM_CTRL    MOVE    R1, R2              ; Determine the type of control 
                     MOVE    ' ', R8
                     RSUB    IO$PUTCHAR, 1       ; ...and a delimiter
                     MOVE    R1, R8              ; Refetch the instruction
+                    AND     0xFFFB, SR          ; clear C (shift in '0')                                        
                     SHR     0x0006, R8          ; Get the constant
                     AND     0x001F, R8
                     RSUB    IO$PUT_W_HEX, 1
@@ -63,6 +65,7 @@ _DBG$DISASM_CTRL    MOVE    R1, R2              ; Determine the type of control 
                     RSUB    _DBG$HANDLE_DEST, 1
                     RBRA    _DBG$DISASM_EXIT, 1
 _DBG$DISASM_NO_EXC  MOVE    R1, R2
+                    AND     0xFFFB, SR          ; clear C (shift in '0')                    
                     SHR     0x0003, R2          ; Shift only three to the right as
                     AND     0x01F8, R2          ; each mnemonic is 8 characters long
                     MOVE    _DBG$CTRL_MNEMONICS, R8
@@ -76,6 +79,7 @@ _DBG$DISASM_NO_EXC  MOVE    R1, R2
                     RBRA    _DBG$DISASM_EXIT, 1 ; Finished
 ; Treat branches and subroutine calls:
 _DBG$DISASM_BRSU    MOVE    R1, R2              ; Determine branch/call type
+                    AND     0xFFFB, SR          ; clear C (shift in '0')
                     SHR     0x0001, R2
                     AND     0x0018, R2          ; 00...00MM000, M = mode
                     MOVE    _DBG$BRSU_MNEMONICS, R8
@@ -120,6 +124,7 @@ _DBG$REL_S          .ASCII_W    "\t\t(-> "
 ; R0 will be incremented.
 ;
 _DBG$HANDLE_SOURCE  MOVE    R1, R4              ; Prepare the source operand
+                    AND     0xFFFB, SR          ; clear C (shift in '0')
                     SHR     0x0006, R4
 ;
 ;  This routine does the actual operand decoding and is used for source and

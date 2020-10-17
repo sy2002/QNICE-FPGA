@@ -433,6 +433,7 @@ _SAVE_NEXT_X    MOVE    0x30, R8                ; print "0"
                 RSUB    UART_PUTCHAR, 1
                 MOVE    @R2, R8                 ; read tile data from VRAM
                 AND     0x00F0, R8              ; extract high nibble ...
+                AND     0xFFFB, SR              ; clear C (shift in '0')                
                 SHR     4, R8
                 MOVE    HEX_DIGITS, R11         ; ... convert it to hex ...
                 ADD     R8, R11
@@ -1095,12 +1096,14 @@ _PED_SHOWRGB_L  MOVE    PAL_ED_X, R8            ; x-pos for cursor
                 MOVE    R5, R8                  ; 15-bit compound value
                 AND     @R11, R8                ; extract R, G or B
                 ADD     3, R11                  ; amount of SHR in LUT
+                                                ; (C is zero here due to ADD)
                 SHR     @R11++, R8              ; now R8 = 2 nibbles
                 RSUB    PRINT_2HEXNIBS, 1       ; print R8
                 MOVE    R8, @--SP               ; remember R8
                 MOVE    STR_METER, R8           ; clear old meter display by
                 SYSCALL(puts, 1)                ; printing [                ]
                 MOVE    @SP++, R8               ; R8 = R, G or B in 2 nibbles
+                AND     0xFFFB, SR              ; clear C (shift in '0')                
                 SHR     1, R8                   ; calculate the x-coordinate..
                 ADD     PAL_ED_X, R8            ; of the visualization ..
                 ADD     16, R8
@@ -1362,9 +1365,10 @@ PRINT_24BIT_RGB SYSCALL(enter, 1)
 
 _P24B_LOOP      AND     @R0, R8
                 ADD     3, R0                   ; how much do we need to SHR?
-                SHR     @R0++, R8
+                SHR     @R0++, R8               ; C is zero here due to ADD
                 MOVE    0x083A, R9              ; conversion: 15 to 24 bit:
                 SYSCALL(mulu, 1)                ; multiply by 0x083A and ..
+                AND     0xFFFB, SR              ; clear C (shift in '0')                
                 SHR     8, R10                  ; .. then SHR 8
                 MOVE    R10, R8
                 SYSCALL(PRINT_2HEXNIBS, 1)
@@ -1386,6 +1390,7 @@ PRINT_2HEXNIBS  SYSCALL(enter, 1)
                 MOVE    R8, R0
                 AND     0x00FF, R0              ; mask upper bits
                 MOVE    R0, R1
+                AND     0xFFFB, SR              ; clear C (shift in '0')s                
                 SHR     4, R1                   ; hi-nibble
                 AND     0x000F, R0              ; lo-nibble
 
@@ -1542,7 +1547,8 @@ _DRAW_WS_PH     MOVE    39, R10
                 ; center tile editing box on the right side of workspace
                 ; by setting the hardware cursor to the correct coordinate
 _DRAW_WS_STD    MOVE    TILE_DX, R12
-                MOVE    @R12, R3             
+                MOVE    @R12, R3
+                AND     0xFFFB, SR              ; clear C (shift in '0')                
                 SHR     1, R3                   ; divide TILE_DX by 2 ...
                 MOVE    TILE_CENTER_X, R4
                 SUB     R3, R4                  ; ... and subtract from center
@@ -1557,6 +1563,7 @@ _DRAW_WS_STD    MOVE    TILE_DX, R12
                 SUB     1, @R0                  ; -1 because of border line
                 MOVE    TILE_DY, R12
                 MOVE    @R12, R3                ; TILE_DY ditto
+                AND     0xFFFB, SR              ; clear C (shift in '0')                
                 SHR     1, R3
                 MOVE    TILE_CENTER_Y, R4
                 SUB     R3, R4

@@ -841,6 +841,7 @@ _F32_DLST_VITAL NOP      ; @TODO test corrupt directories
                 MOVE    R11, @R8                    ; store size high word
 
                 ; file date
+                ; carry flag (C) is zero at the SHRs due to the preceding ADDs
                 MOVE    R0, R8                      ; R8 = device handle
                 MOVE    R4, R9                      ; R9 = index to be read
                 ADD     FAT32$FE_FILEDATE, R9
@@ -864,6 +865,7 @@ _F32_DLST_VITAL NOP      ; @TODO test corrupt directories
                 MOVE    R5, @R8                     ; store day to dir. entry
 
                 ; file time
+                ; carry flag (C) is zero at the SHRs due to the preceding ADDs                
                 MOVE    R0, R8                      ; R8 = device handle
                 MOVE    R4, R9                      ; R9 = index to be read
                 ADD     FAT32$FE_FILETIME, R9
@@ -2033,7 +2035,8 @@ FAT32$CHECKSUM  INCRB
                 XOR     R1, R1                      ; R1 = 8 bit sum                
 
                 ; perform an unsigned char rotate right
-_F32_CHKSM_LP   SHR     1, R1                       ; shift right 1 into X
+_F32_CHKSM_LP   AND     0xFFFB, SR                  ; clear C (shift in '0')                
+                SHR     1, R1                       ; shift right 1 into X
                 RBRA    _F32_CHKSM_NRI, !X          ; X=0: skip
                 OR      0x80, R1                    ; X=1: rotate in a 1
 
