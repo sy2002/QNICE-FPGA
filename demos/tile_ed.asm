@@ -1,4 +1,4 @@
-; TileEd is a simple "text mode sprite" (aka "tile") editor
+; TileEd is the ultimate "text mode sprite" (aka "tile") editor
 ; it was originally developed as a tool to develop "qtris.asm"
 ;
 ; Uses VGA to display all 256 characters of the font (based on font.asm) on
@@ -1055,7 +1055,10 @@ _PED_START      MOVE    STR_HELP_PAL, R8
 
                 ; main loop of the palette editor
 
-_PED_KL         MOVE    PAL_ED_X, R8            ; print selected pal entry
+_PED_KL         MOVE    _PED_SCRATCH, R8        ; init input scratch buffer
+                MOVE    0, @R8++
+                MOVE    0, @R8
+                MOVE    PAL_ED_X, R8            ; print selected pal entry
                 MOVE    11, R9
                 SYSCALL(vga_moveto, 1)
                 MOVE    STR_PED_ACTIVE, R8
@@ -1218,7 +1221,6 @@ _PED_FKF        MOVE    STR_HELP_EDIT, R8       ; numeric edit help text
                 RSUB    CURSOR_ON, 1
                 MOVE    R4, R8                  ; R4=address of edited pal col
                 INCRB
-                XOR     R0, R0                  ; R0=value that user entered
                 MOVE    @R12++, R1              ; R1=# of nibbles to type
                 MOVE    @R12++, R2              ; R2=bitmask
                 NOT     R2, R3                  ; R3=bitmask to clear value
@@ -1257,9 +1259,15 @@ _PED_NIBBLE     CMP     R5, R1                  ; max amount of chars?
                 RBRA    _PED_NEXTCHR, Z         ; yes: ignore typed char
                 ADD     1, R5                   ; R5=typed # of nibbles
 
-                AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)
-                SHL     R6, R8                  ; move nib. to correct pos
-                OR      R8, R0                  ; add to correct pos in buffer
+                XOR     R9, R9                  ; R9 = hi word  R8 = lo word
+                MOVE    R6, R10                 ; R10 = amount
+                AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)                
+                SYSCALL(shl32, 1)               ; move nib. to correct pos
+
+                MOVE    _PED_SCRATCH, R0        ; store nibble at the correct
+                OR      R9, @R0++               ; position in the buffer:
+                OR      R8, @R0                 ; from left to right
+
                 SUB     4, R6                   ; next nib: 4 bit pos to right
 
                 MOVE    R11, R8                 ; print nib
@@ -1270,17 +1278,46 @@ _PED_NIBBLE     CMP     R5, R1                  ; max amount of chars?
 _PED_STORE      SUB     R5, R1                  ; R1=# remaining not typed nib
                 AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)
                 SHL     2, R1                   ; amount of necessary SHR 
-                AND     0xFFFB, SR              ; clr C for SHR (shift in a 0)
-                SHR     R1, R0                  ; compensate for # of typed ch
 
-                AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)
-                SHL     R4, R0                  ; shift to pos in color word
-                AND     R2, R0                  ; bitmask to cut to right size 
+                MOVE    _PED_SCRATCH, R0        ; compensate for # of typed ch
+                MOVE    @R0++, R9               ; hi word
+                MOVE    @R0, R8                 ; lo word
+                MOVE    R1, R10                 ; amount of shr
+                AND     0xFFFB, SR              ; clr C for SHR (shift in a 0)                
+                SYSCALL(shr32, 1)               ; result: R9=hi R8=lo
+                SUB     1, R0
+                MOVE    R9, @R0++               ; store in scratch buffer
+                MOVE    R8, @R0                                                                 
+
+                CMP     0xFFFF, R4              ; 24-bit flag?
+                RBRA    _PED_STORE2, !Z         ; no: just use low word in R8
+                AND     0x00F8, R9              ; convert 24-bit to 15-bit..
+                XOR     R8, R8                  ; ..according to tools/rgb2q.c
+                MOVE    9, R10
+                AND     0xFFFB, SR              ; clr C for SHR (shift in a 0)                
+                SYSCALL(shr32, 1)               ; result is in R8, ignore R9
+                MOVE    R8, R9                  ; R9 will contain 15-bit val.
+                MOVE    @R0, R8
+                AND     0xF800, R8
+                AND     0xFFFB, SR              ; clr C for SHR (shift in a 0)                
+                SHR     6, R8
+                ADD     R8, R9
+                MOVE    @R0, R8
+                AND     0x00F8, R8
+                AND     0xFFFB, SR              ; clr C for SHR (shift in a 0)                
+                SHR     3, R8
+                ADD     R8, R9
+                MOVE    R9, R8                  ; _PED_STORE2 expcts val in R8
+                XOR     R4, R4                  ; no shl necessary             
+
+_PED_STORE2     AND     0xFFFD, SR              ; clr X for SHL (shift in a 0)
+                SHL     R4, R8                  ; shift to pos in color word
+                AND     R2, R8                  ; bitmask to cut to right size 
 
                 MOVE    VGA$PALETTE_ADDR, R12   ; R7 = address of currently ..
                 MOVE    R7, @R12++              ; edited palette color
                 AND     R3, @R12                ; clear old value
-                OR      R0, @R12                ; store new value
+                OR      R8, @R12                ; store new value
 
                 ; continue editing: back to pal ed main loop
 _PED_NUM_END    RSUB    CURSOR_OFF, 1                
@@ -1340,9 +1377,10 @@ _PED_STRS       .DW STR_RED, STR_GREEN, STR_BLUE
                 ; this look up table stores the combination of function keys
                 ; and strings, amount of hex digits (nibbles) to be entered,
                 ; the bit mask and the amount of SHL to position the nibbles
+                ; inside the color word (0xFFFF = special 24-bit flag)
 _PED_EDIT_ITEMS .EQU    5
 _PED_EDIT_LINE  .EQU    5
-_PED_EDIT       .DW     KBD$F1, STR_RGB24,      6, 0xFFFF,      0
+_PED_EDIT       .DW     KBD$F1, STR_RGB24,      6, 0xFFFF,      0xFFFF
                 .DW     KBD$F3, STR_RGB15,      4, 0x7FFF,      0
                 .DW     KBD$F5, STR_PED_RED,    2, RED_MASK,    10
                 .DW     KBD$F7, STR_PED_GREEN,  2, GREEN_MASK,  5
