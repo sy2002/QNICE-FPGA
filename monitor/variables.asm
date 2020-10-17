@@ -10,9 +10,16 @@
 ;; now) unable to perform address arithmetic!
 ;;=========================================================================================
 ;
-            .ORG    0xFEEB
+            .ORG    0xFEE9
 
 VAR$STACK_START         .BLOCK  0x0001                  ; Here comes the stack...
+;
+;******************************************************************************************
+;* MTH: Current seed for the Random Number Generator
+;******************************************************************************************
+;
+_MTH$SEED_LOW           .BLOCK  0x0001                  ; Bits 15-0 of the seed
+_MTH$SEED_HIGH          .BLOCK  0x0001                  ; Bits 30-16 of the seed
 ;
 ;******************************************************************************************
 ;* VGA control block

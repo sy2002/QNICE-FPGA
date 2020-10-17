@@ -27,6 +27,8 @@ typedef int (*_qmon_fp)();
 #define qmon_puthex(x)              ((_qmon_fp)  QMON_EP_PUTHEX)(x)
 #define qmon_str2upper(x)           ((_qmon_fp)  QMON_EP_STR2UPPER)(x)
 #define qmon_exit                   ((_qmon_fp)  QMON_EP_EXIT)
+#define qmon_srand(x)               ((_qmon_fp)  QMON_EP_SRAND)(x)
+#define qmon_rand                   ((_qmon_fp)  QMON_EP_RAND)
 
 /* ========================================================================
    STRING I/O AND STRING HANDLING FUNCTIONS

@@ -16,7 +16,7 @@ echo "building:   demo_atom.c"
 qvc  $C_DEMOS/demo_atom.c $C_DEMOS/sprite.c $C_DEMOS/atom_sprite.c $C_FLAGS_MM
 mv   $C_DEMOS/demo_atom.out .
 echo "building:   demo_sprite_balls.c"
-qvc  $C_DEMOS/demo_sprite_balls.c $C_DEMOS/sprite.c $C_DEMOS/rand.c $C_DEMOS/images.c $C_DEMOS/stat.c  $C_DEMOS/conio.c $C_FLAGS_MM
+qvc  $C_DEMOS/demo_sprite_balls.c $C_DEMOS/sprite.c $C_DEMOS/images.c $C_DEMOS/stat.c  $C_DEMOS/conio.c $C_FLAGS_MM
 mv   $C_DEMOS/demo_sprite_balls.out .
 echo "building:   demo_tree.c"
 qvc  $C_DEMOS/demo_tree.c $C_DEMOS/sprite.c $C_DEMOS/tree_sprite.c $C_FLAGS_MM
@@ -25,7 +25,7 @@ echo "building:   hdmi_de.c"
 qvc  $C_DEMOS/hdmi_de.c $C_FLAGS
 mv   $C_DEMOS/hdmi_de.out .
 echo "building:   maze2d.c"
-qvc  $C_DEMOS/maze2d.c $C_DEMOS/conio.c $C_DEMOS/rand.c $C_DEMOS/maze_grid.c $C_FLAGS
+qvc  $C_DEMOS/maze2d.c $C_DEMOS/conio.c $C_DEMOS/maze_grid.c $C_FLAGS
 mv   $C_DEMOS/maze2d.out .
 echo "building:   shell.c"
 qvc  $C_DEMOS/shell.c $C_FLAGS
