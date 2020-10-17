@@ -109,18 +109,16 @@ begin
       end case;
    end process;
    
-   manage_flags : process (res, opcode, input1, input2, s_input1, s_input2, shifter_x_out)
+   manage_flags : process (res, opcode, input1, input2, s_input1, s_input2, shifter_x_out, x_in)
    begin
+      X <= x_in;
    
       -- CMP FLAG HANDLING
       --    X is unchanged
       --    Z = 1, if Src = Dst otherwise Z = 0
       --    N = 1, if unsigned(Src) > unsigned(Dst), otherwise N = 0
       --    V = 1, if signed(Src) > signed(Dst), otherwise V = 0
-      if Opcode = opcCMP then
-      
-         X <= x_in;
-      
+      if Opcode = opcCMP then            
          if input1 = input2 then
             Z <= '1';
          else
@@ -141,11 +139,8 @@ begin
       
       -- REGULAR FLAG HANDLING
       else
-         -- the X register is context sensitive
-         if opcode /= opcSHR then
-            -- X is unchanged.
-            X <= x_in;
-         else
+         -- SHR is the only operation that directly modifies X
+         if opcode = opcSHR then
             X <= shifter_x_out;
          end if;
          

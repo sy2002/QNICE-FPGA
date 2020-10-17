@@ -774,7 +774,7 @@ begin
                   -- the following defaults are overwritten by the "if Opcode..." section below
                   var_V := SR(5);   -- default: V is not changed by the ALU
                   var_C := SR(2);   -- default: C is not changed by the ALU
-                  var_X := Alu_X;   -- default: X is changed by the ALU
+                  var_X := SR(1);   -- default: X is not changed by the ALU
             
                   -- only additions and subtractions are allowed to change V and C
                   if Opcode = opcADD or Opcode = opcADDC or Opcode = opcSUB or Opcode = opcSUBC then
@@ -784,7 +784,6 @@ begin
                   -- CMP is allowed to change Z, V and N (Alu_Z and Alu_N is already set in fsmSR below)
                   elsif Opcode = opcCMP then
                      var_V := Alu_V;
-                     var_X := SR(1); -- X cannot be changed by CMP
                   end if;
                   
                   fsmSR <= SR(15 downto 8) & "00" & var_V & Alu_N & Alu_Z & var_C & var_X & "1";
