@@ -163,8 +163,8 @@ begin
 
    -- Calculate sprite bitmap address
    stage1.diff_y     <= stage1.next_y - stage1.pos_y when stage1.config(C_CONFIG_MIRROR_Y) = '0' else
-                        31 + stage1.pos_y - stage1.next_y when stage2.config(C_CONFIG_HICOLOR) = '0' else
-                        15 + stage1.pos_y - stage1.next_y when stage2.config(C_CONFIG_HICOLOR) = '1';
+                   31 + stage1.pos_y - stage1.next_y when stage2.config(C_CONFIG_HICOLOR) = '0' else
+                   15 + stage1.pos_y - stage1.next_y; --  when stage2.config(C_CONFIG_HICOLOR) = '1';
 
    stage1.bitmap_offset <= std_logic_vector(to_unsigned(conv_integer(stage1.diff_y(3 downto 0)), G_INDEX_SIZE+4)) when stage2.config(C_CONFIG_HICOLOR) = '1' else
                            std_logic_vector(to_unsigned(conv_integer(stage1.diff_y(4 downto 1)), G_INDEX_SIZE+4));
