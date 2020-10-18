@@ -212,9 +212,9 @@
   interrupt service routine (ISR) on the data bus. In case of a software
   interrupt (\texttt{INT}-instruction) the ISR address is specified by the 
   \texttt{dst} part of the instruction. When an interrupt occurs, the CPU
-  saves the contents of \texttt{PC} and \texttt{SP} in two shadow-registers
-  which are not software accessible. An ISR must be left with the 
-  \texttt{RTI}-instruction. Interrupts can not be nested.
+  saves the contents of \texttt{R8} to \texttt{R15} in eight shadow registers
+  which can be accessed with the \texttt{EXC} instruction. An ISR must be 
+  left with the \texttt{RTI}-instruction. Interrupts can not be nested.
 %
  \section{Input/Output}
   I/O devices are memory mapped, their respective control and data registers 
