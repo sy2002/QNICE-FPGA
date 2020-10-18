@@ -179,7 +179,8 @@ begin
          data_en_o   => data_en_o
       ); -- i_vga_sync
 
-   pixel_y_o <= pixel_y+1 when conv_integer(pixel_x) >= H_PIXELS else
+   pixel_y_o <= (others => '0') when conv_integer(pixel_x) >= H_PIXELS and conv_integer(pixel_y) = 524 else
+                pixel_y+1       when conv_integer(pixel_x) >= H_PIXELS else
                 pixel_y;
 
 end architecture synthesis;
