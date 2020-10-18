@@ -55,7 +55,7 @@ architecture synthesis of vga_scanline is
    -- This is necessary because if the block vga_blockram_with_byte_enable
    -- is instantiated with a column size of 17 bits only, Vivado can
    -- not infer the proper byte-enables on the BRAMs.
-   function expand(arg : std_logic_vector(543 downto 0)) return std_logic_vector(575 downto 0) is
+   function expand(arg : std_logic_vector(543 downto 0)) return std_logic_vector is
       variable res : std_logic_vector(575 downto 0);
    begin
       for i in 0 to 31 loop
