@@ -120,10 +120,7 @@
 #define SR  14  // Status register
 #define SP  13  // Stack pointer
 
-#define NUMBER_OF_SHADOW_REGISTERS  3   // Overall number of shadow registers
-#define SR_PC   0                       // Shadow register for PC
-#define SR_SR   1                       // Shadow register for SR
-#define SR_SP   2                       // Shadow register for SP
+#define NUMBER_OF_SHADOW_REGISTERS  8   // Overall number of shadow registers
 
 #define MAX_LAST_ADDRESSES     16
 
@@ -854,15 +851,16 @@ int execute() {
       gbl$sw_interrupt_request ||
       (gbl$hw_interrupt_request && !gbl$interrupt_active && ((gbl$ic_csr & IC_ENABLE_INTERRUPTS) && (!(gbl$ic_csr & IC_BLOCK_INTERRUPTS)))) 
      ) { // Interrupts cannot be nested!
-    gbl$interrupt_active  = TRUE;                   // Remember that we are currently servicing an interrupt
+    gbl$interrupt_active  = TRUE;                           // Remember that we are currently servicing an interrupt
     if (gbl$sw_interrupt_request)
       gbl$sw_interrupt_request = FALSE;
     else
       gbl$hw_interrupt_request = FALSE;
-    gbl$shadow_register[SR_PC] = read_register(PC); // Save PC
-    gbl$shadow_register[SR_SR] = read_register(SR); // Save status register 
-    gbl$shadow_register[SR_SP] = read_register(SP); // Save stack pointer
-    write_register(PC, gbl$interrupt_address);      // Jump to interrupt service routine
+
+    for (int i = 0; i < NUMBER_OF_SHADOW_REGISTERS; i++)    // Save registers 8 to 15 in their corresponding shadow registers
+      gbl$shadow_register[i] = read_register(8 + i);
+
+    write_register(PC, gbl$interrupt_address);              // Jump to interrupt service routine
 
     if (gbl$debug) {
       printf("Interrupt");
@@ -1034,9 +1032,9 @@ int execute() {
           return TRUE;
         }
         gbl$interrupt_active = FALSE;
-        write_register(SP, gbl$shadow_register[SR_SP]);
-        write_register(SR, gbl$shadow_register[SR_SR]);
-        write_register(PC, gbl$shadow_register[SR_PC]);
+
+        for (i = 0; i < NUMBER_OF_SHADOW_REGISTERS; i++)    // Restore registers R8 to R15 from their corresponding shadow registers
+          write_register(i + 8, gbl$shadow_register[i]);
       } else if (command == INT_INSTRUCTION) {
         if (gbl$interrupt_active) {
           printf("Rogue INT instruction with an ISR at address %04X. HALT!\n", debug_address);
@@ -1055,8 +1053,7 @@ int execute() {
         write_register(SR, ((sr_bits & 0x00ff) | (rb << 8)) & 0xffff);
       } else if (command & 0x20) { // EXC instruction!
         if ((shadow_address = command & 0x1f) >= NUMBER_OF_SHADOW_REGISTERS) {
-          printf("EXC instruction with illegal shadow register number %02X at address %04X. HALT!\n", 
-                 shadow_address, debug_address);
+          printf("EXC instruction with illegal shadow register no. %02X at address %04X. HALT!\n", shadow_address, debug_address);
           return TRUE;
         }
 
