@@ -30,6 +30,12 @@ static int GetRandomSquare()
    return qmon_rand() % MAX_SQUARES;
 }
 
+// This swaps the foreground and background color.
+static int invert(int color)
+{
+   return (((color&0x0F00) << 4) + ((color&0xF000) >> 4)) ^ 0x8800;
+}
+
 // Draw the current square as 3x3 characters.
 static void maze_drawPos(int sq, int color, int mask)
 {
@@ -52,9 +58,9 @@ static void maze_drawPos(int sq, int color, int mask)
       cputcxy(col,   row+1, color + ((g&(1<<DIR_WEST))  ? ' ' : wall));
       cputcxy(col+1, row+2, color + ((g&(1<<DIR_SOUTH)) ? ' ' : wall));
       if (sq == endSq)
-         cputcxy(col+1, row+1, color + '*');
+         cputcxy(col+1, row+1, invert(color) + '*');
       else if (sq == curSq)
-         cputcxy(col+1, row+1, color + '@');
+         cputcxy(col+1, row+1, invert(color) + '@');
       else
          cputcxy(col+1, row+1, color + ' ');
    }
@@ -144,14 +150,14 @@ void maze_init()
    do
    {
       curSq = GetRandomSquare();
-   } while (GetRow(curSq) < MAX_ROWS/2 || GetCol(curSq) < MAX_COLS/2);
+   } while (GetRow(curSq) < 3*MAX_ROWS/4 || GetCol(curSq) < 3*MAX_COLS/4);
    grid[curSq] |= 1<<VISITED;
 
    // Select an ending square near the top left corner
    do
    {
       endSq = GetRandomSquare();
-   } while (GetRow(endSq) >= MAX_ROWS/2 || GetCol(endSq) >= MAX_COLS/2);
+   } while (GetRow(endSq) >= MAX_ROWS/4 || GetCol(endSq) >= MAX_COLS/4);
 } // end of maze_init
 
 

@@ -47,14 +47,22 @@ static void draw_menu()
    }
    clrscr();
    int row = 5;
-   cputsxy(1, row,   "Welcome to this aMAZEing game!\0", color);
-   cputsxy(1, row+2, "Press g to generate a new maze.\0", color);
-   cputsxy(1, row+3, "Press 123 to change the level of the game.\0", color);
-   cputsxy(1, row+4, "Move around with the keys WASD / HJKL / arrows.\0", color);
-   cputsxy(1, row+5, "Press r to reset the current maze.\0", color);
-   cputsxy(1, row+6, "Press x to get a hint.\0", color);
-   cputsxy(1, row+7, "Press q to quit the game.\0", color);
-   cputsxy(1, row+8, "Press m to return to this menu.\0", color);
+   cputsxy(1, row++, "Welcome to this aMAZEing game!\0", color);
+   row++;
+   cputsxy(1, row++, "You are trapped in the maze.", color);
+   cputsxy(1, row++, "Find your way to the * to escape!", color);
+   cputsxy(1, row++, "* In Level 1, you know where you are.", color);
+   cputsxy(1, row++, "* In Level 2, you can still remember the path you walked.", color);
+   cputsxy(1, row++, "* But in level 3, only a dim torch is illuminating the direct surrounding.", color);
+   row++;
+   cputsxy(1, row++, "Don't be ashamed to ask for help and press 'x' in level 2 and level 3.", color);
+   row++;
+   cputsxy(1, row++, "Press g to generate a new maze.\0", color);
+   cputsxy(1, row++, "Press 123 to change the level of the game.\0", color);
+   cputsxy(1, row++, "Move around with the keys WASD / HJKL / arrows.\0", color);
+   cputsxy(1, row++, "Press r to reset the current maze.\0", color);
+   cputsxy(1, row++, "Press q to quit the game.\0", color);
+   cputsxy(1, row++, "Press m to return to this menu.\0", color);
 } // end of draw_menu
 
 
@@ -105,14 +113,14 @@ static void draw_ending()
 
 static int game_update()
 {
-   MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // Hide cursor
-
    switch (gameState)
    {
       case MENU:
          draw_menu();
          break;
       case PLAYING:
+         if (level == 3)
+            clrscr();
          maze_draw(get_color(), get_mask());
          break;
       case GAME_OVER:
@@ -120,8 +128,6 @@ static int game_update()
          draw_ending();
          break;
    }
-   MMIO(VGA_STATE) |= VGA_EN_HW_CURSOR;   // Enable cursor
-
    int ch;
    do
    {
@@ -155,10 +161,11 @@ static int game_update()
 
       case 'w' : case 'k' : case KBD_CUR_UP    : if (gameState == PLAYING) {if (maze_move(DIR_NORTH)) gameState = GAME_OVER;} break;
       case 's' : case 'j' : case KBD_CUR_DOWN  : if (gameState == PLAYING) {if (maze_move(DIR_SOUTH)) gameState = GAME_OVER;} break;
-      case 'd' : case 'l' : case KBD_CUR_RIGHT : if (gameState == PLAYING) {if (maze_move(DIR_EAST)) gameState = GAME_OVER;} break;
-      case 'a' : case 'h' : case KBD_CUR_LEFT  : if (gameState == PLAYING) {if (maze_move(DIR_WEST)) gameState = GAME_OVER;} break;
+      case 'd' : case 'l' : case KBD_CUR_RIGHT : if (gameState == PLAYING) {if (maze_move(DIR_EAST))  gameState = GAME_OVER;} break;
+      case 'a' : case 'h' : case KBD_CUR_LEFT  : if (gameState == PLAYING) {if (maze_move(DIR_WEST))  gameState = GAME_OVER;} break;
 
-      case 'q' : cputsxy(1, 38, "GOODBYE!\0", 0);
+      case 'q' : clrscr();
+                 cputsxy(30, 18, "GOODBYE!\0", 0);
                  return 1;    // End the game.
    }
 
@@ -168,6 +175,8 @@ static int game_update()
 
 int main()
 {
+   MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // Hide cursor
+
    qmon_srand(time());    // Seed random number generator.
    level = 1;
 
@@ -177,6 +186,8 @@ int main()
       if (game_update())
          break;
    }
+
+   MMIO(VGA_STATE) |= VGA_EN_HW_CURSOR;   // Enable cursor
 
    return 0;
 } // end of main
