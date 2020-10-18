@@ -164,7 +164,8 @@ begin
                   cyc_data_out      or
                   ins_data_out      or
                   eae_data_out      or
-                  sd_data_out;
+                  sd_data_out       or
+                  int_data_out;
 
    i_clk : entity work.clk
    port map
