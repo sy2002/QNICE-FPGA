@@ -163,5 +163,5 @@ Since the design does not support aborting, eventually the CPU will grant the
 interrupt request **and expect a valid ISR address**. It is therefore
 imperative that the programmer makes sure that it's possible to return a valid
 ISR address, even when interrupts are disabled. This is described in more detail
-in [doc/best-practices.md](doc/best-practices.md).
+in [doc/best-practices.md](best-practices.md#interrupt-service-routines-isrs).
 
