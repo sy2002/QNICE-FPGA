@@ -17,6 +17,7 @@
 **                          make use of this bit any more, changed the disassembler so that relative 
 **                          addresses are displayed as absolute values, too.
 **                          Somehow the INT instruction does not work... Fixed...
+**                          The INT instruction is no longer affected by disabling interrupts now.
 **
 ** The following defines are available:
 **
@@ -177,7 +178,8 @@ char* gbl$commands[] = {
 
 
 unsigned int gbl$interrupt_address,                 // Interrupt address as set by the interrupting "device"
-             gbl$interrupt_request = FALSE,         // This flag denotes an interrupt request.
+             gbl$hw_interrupt_request = FALSE,      // This flag denotes a hardware interrupt request,
+             gbl$sw_interrupt_request = FALSE,      // while this represents a software interrupt (INT).
              gbl$interrupt_active = FALSE,          // true if an interrupt is currently being serviced.
              gbl$ic_csr = 0,                        // Interrupts are enabled when bit 0 is 1 and bit 1 is 0.
                                                     // CSR[0] = "interrupt enable", CSR[1] = "interrupt block" (temporarily)
@@ -590,7 +592,7 @@ void reset_machine() {
   gbl$memory[IO_SWITCH_REG] = 3;
 #endif
 
-  gbl$interrupt_request = FALSE;
+  gbl$hw_interrupt_request = gbl$sw_interrupt_request = FALSE;
   gbl$interrupt_active  = FALSE;
   gbl$ic_csr            = 0;    // Interrupts disabled, block disabled
 
@@ -848,10 +850,15 @@ int execute() {
 #endif
 
   // Take care of interrupts
-  if (gbl$interrupt_request && !gbl$interrupt_active && 
-     ( (gbl$ic_csr & IC_ENABLE_INTERRUPTS) && (!(gbl$ic_csr & IC_BLOCK_INTERRUPTS)))) { // Interrupts cannot be nested!
+  if (
+      gbl$sw_interrupt_request ||
+      (gbl$hw_interrupt_request && !gbl$interrupt_active && ((gbl$ic_csr & IC_ENABLE_INTERRUPTS) && (!(gbl$ic_csr & IC_BLOCK_INTERRUPTS)))) 
+     ) { // Interrupts cannot be nested!
     gbl$interrupt_active  = TRUE;                   // Remember that we are currently servicing an interrupt
-    gbl$interrupt_request = FALSE;
+    if (gbl$sw_interrupt_request)
+      gbl$sw_interrupt_request = FALSE;
+    else
+      gbl$hw_interrupt_request = FALSE;
     gbl$shadow_register[SR_PC] = read_register(PC); // Save PC
     gbl$shadow_register[SR_SR] = read_register(SR); // Save status register 
     gbl$shadow_register[SR_SP] = read_register(SP); // Save stack pointer
@@ -1037,7 +1044,7 @@ int execute() {
         }
         gbl$interrupt_address = read_source_operand(destination_mode, destination_regaddr, TRUE);
         write_destination(destination_mode, destination_regaddr, gbl$interrupt_address, TRUE);
-        gbl$interrupt_request = TRUE;
+        gbl$sw_interrupt_request = TRUE;
       } else if (command == INCRB_INSTRUCTION) {
         sr_bits = read_register(SR);
         rb = ((sr_bits >> 8) + 1) & 0xff;
@@ -1614,7 +1621,7 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef USE_TIMER
-  initializeTimerModule(&gbl$interrupt_request, &gbl$interrupt_address);
+  initializeTimerModule(&gbl$hw_interrupt_request, &gbl$interrupt_address);
 #endif
 
   if (*++argv) { /* At least one argument */
