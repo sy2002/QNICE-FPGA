@@ -145,7 +145,7 @@ _ISR_1              MOVE    @R2, R3
                     MOVE    R6, @R2
                     MOVE    R3, R6
                     SUB     1, @R0
-                    RBRA    _ISR_1, !X
+                    RBRA    _ISR_1, !N
 
                     ; Restore old values of Cursor X and Y
                     MOVE    R4, @R0
