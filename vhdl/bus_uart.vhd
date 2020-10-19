@@ -54,7 +54,7 @@ signal fifo_full              : std_logic;
 signal fifo_fill_count        : integer range UART_FIFO_SIZE - 1 downto 0;
 
 signal reading                : std_logic := '0';
-signal reset_reading          : std_logic;
+signal reading_d              : std_logic := '0';
 
 -- registers
 signal byte_tx_ready          : std_logic := '0';
@@ -73,7 +73,7 @@ signal uart_divisor           : std_logic_vector(15 downto 0);
 --attribute mark_debug of cpu_data_in     : signal is true;
 --attribute mark_debug of cpu_data_out    : signal is true;
 --attribute mark_debug of reading         : signal is true;
---attribute mark_debug of reset_reading   : signal is true;
+--attribute mark_debug of reading_d       : signal is true;
 --attribute mark_debug of fifo_rd_en      : signal is true;
 --attribute mark_debug of fifo_rd_valid   : signal is true;
 --attribute mark_debug of fifo_rd_data    : signal is true;
@@ -141,15 +141,11 @@ begin
    handle_reading : process(clk)
    begin
       if rising_edge(clk) then
-         if uart_en = '1' and uart_we = '0' and uart_reg = "10" then
-            reading <= '1';
-         end if;
-
-         if reset = '1' or reset_reading = '1' then
-            reading <= '0';
-         end if;
+         reading_d <= reading;
       end if;
    end process;
+
+   reading <= '1' when uart_en = '1' and uart_we = '0' and uart_reg = "10" else '0';
    
    read_registers : process(uart_en, uart_we, uart_reg, uart_tx_ready, fifo_empty, fifo_rd_data, uart_divisor)
    begin 
@@ -161,13 +157,19 @@ begin
                cpu_data_out <= uart_divisor;
 
             -- register 1: status register
-            when "01" => cpu_data_out <= x"000" & "00" & uart_tx_ready & (not fifo_empty);
+            when "01" =>
+               cpu_data_out <= x"000" & "00" & uart_tx_ready & (not fifo_empty);
 
             -- register 2: receive (aka read) register
             when "10" =>
-               cpu_data_out <= x"00" & fifo_rd_data;
+               if fifo_empty = '0' then
+                  cpu_data_out <= x"00" & fifo_rd_data;
+               else
+                  cpu_data_out <= (others => '0');
+               end if;
 
-            when others => cpu_data_out <= (others => '0');
+            when others =>
+               cpu_data_out <= (others => '0');
          end case;
       else
          cpu_data_out <= (others => '0');
@@ -217,9 +219,8 @@ begin
       end if;
    end process;
    
-   uart_cpu_ws <= reading;
-   fifo_rd_en <= reading and not reset_reading;
-   reset_reading <= fifo_rd_valid;
+   uart_cpu_ws <= '0';
+   fifo_rd_en <= reading and not reading_d;
    cts <= '1' when fifo_fill_count >= UART_FIFO_SIZE-5 else '0';
 
 end beh;
