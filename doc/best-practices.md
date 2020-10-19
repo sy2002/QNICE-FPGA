@@ -20,6 +20,8 @@ All languages
 * When your program ends, call the monitor function `exit`.
 * Configure your editor to convert [TABs to
   SPACEs](https://stackoverflow.blog/2017/06/15/developers-use-spaces-make-money-use-tabs/).
+* Use [SYSINFO](sysinfo.md) in your software to check if the assumptions
+  you are making about the hardware are actually true.
 
 Register Banks
 --------------

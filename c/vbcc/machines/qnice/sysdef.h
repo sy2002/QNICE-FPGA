@@ -223,6 +223,13 @@
 #define IC_BLOCK_INTERRUPTS    	0x0002
 //
 //---------------------------------------------------------------------------------------
+//  Block FFE8: SYSINFO
+//---------------------------------------------------------------------------------------
+//
+#define IO_SYSINFO_ADDR    	0xFFE8
+#define IO_SYSINFO_DATA    	0xFFE9
+//
+//---------------------------------------------------------------------------------------
 //  Block FFF0: MEGA65 (double block, 16 registers)
 //---------------------------------------------------------------------------------------
 //
@@ -310,6 +317,32 @@
 #define EAE_DIVU               	0x0002                  // Unsigned 16 bit division with remainder
 #define EAE_DIVS               	0x0003                  // Signed 16 bit division with remainder
 #define EAE_BUSY               	0x8000                  // Busy flag (1 = operation still running)
+
+// ========== SYSINFO ==========
+
+#define SYSINFO_HW_PLATFORM    	0x0000                  // Hardware platform enumeration
+#define SYSINFO_CPU_SPEED      	0x0001                  // Main clock frequency (in MHz)
+#define SYSINFO_CPU_BANKS      	0x0002                  // Number of register banks
+#define SYSINFO_RAM_START      	0x0003                  // Start address of RAM
+#define SYSINFO_RAM_SIZE       	0x0004                  // Amount of RAM (in kilo-words)
+#define SYSINFO_GPU_SPRITES    	0x0005                  // Number of sprites supported
+#define SYSINFO_GPU_LINES      	0x0006                  // Number of lines in screen buffer
+#define SYSINFO_UART_MAX       	0x0007                  // Maximum baudrate (in kb/s)
+#define SYSINFO_CAP_MMU        	0x0100                  // Nonzero if built-in MMU present
+#define SYSINFO_CAP_EAE        	0x0101                  // Nonzero if built-in EAE present
+#define SYSINFO_CAP_FPU        	0x0102                  // Nonzero if built-in FPU present
+
+#define SYSINFO_HW_EMU_CONSOLE 	0x0000                  // Enumator (no VGA)
+#define SYSINFO_HW_EMU_VGA     	0x0001                  // Enumator with VGA
+#define SYSINFO_HW_EMU_WASM    	0x0002                  // Enumator on Web Assembly
+#define SYSINFO_HW_NEXYS       	0x0010                  // Digilent Nexys board
+#define SYSINFO_HW_NEXYS4DDR   	0x0011                  // - Nexys 4 DDR
+#define SYSINFO_HW_NEXYSA7100T 	0x0012                  // - Nexys A7-100T
+#define SYSINFO_HW_MEGA65      	0x0020                  // MEGA65 board
+#define SYSINFO_HW_MEGA65R2    	0x0021                  // - Revision 2
+#define SYSINFO_HW_MEGA65R3    	0x0022                  // - Revision 3
+#define SYSINFO_HW_DE10NANO    	0x0030                  // DE10 Nano board
+
 
 // ========== SD CARD ==========
 
