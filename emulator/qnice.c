@@ -904,7 +904,7 @@ int execute() {
       gbl$hw_interrupt_request = FALSE;
 
     for (int i = 0; i < NUMBER_OF_SHADOW_REGISTERS; i++)    // Save registers 8 to 15 in their corresponding shadow registers
-      gbl$shadow_register[i] = read_register(8 + i);
+      gbl$shadow_register[i] = read_register(16 - NUMBER_OF_SHADOW_REGISTERS + i);
 
     write_register(PC, gbl$interrupt_address);              // Jump to interrupt service routine
 
@@ -1080,7 +1080,7 @@ int execute() {
         gbl$interrupt_active = FALSE;
 
         for (i = 0; i < NUMBER_OF_SHADOW_REGISTERS; i++)    // Restore registers R8 to R15 from their corresponding shadow registers
-          write_register(i + 8, gbl$shadow_register[i]);
+          write_register(i + 16 - NUMBER_OF_SHADOW_REGISTERS, gbl$shadow_register[i]);
       } else if (command == INT_INSTRUCTION) {
         if (gbl$interrupt_active) {
           printf("Rogue INT instruction with an ISR at address %04X. HALT!\n", debug_address);
@@ -1270,7 +1270,7 @@ void dump_registers() {
 
     printf("%04x ", read_register(i));
   }
-  printf("\n\nShadow registers (PC, SR, SP):\n");
+  printf("\n\nShadow registers:\n");
  
   for (i = 0; i < NUMBER_OF_SHADOW_REGISTERS; i++) {
     if (!(i % 4)) /* New row */
