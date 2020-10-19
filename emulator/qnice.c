@@ -276,6 +276,42 @@ static void signal_handler_ctrl_c(int signo) {
   gbl$ctrl_c = TRUE;
 }
 
+#ifdef USE_SYSINFO
+static unsigned int sysinfo_addr;
+
+static unsigned int sysinfo_get_value() {
+   switch (sysinfo_addr)
+   {
+#if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
+      case SYSINFO_HW_PLATFORM : return SYSINFO_HW_EMU_VGA;
+#endif
+#if defined(USE_VGA) && defined(__EMSCRIPTEN__)
+      case SYSINFO_HW_PLATFORM : return SYSINFO_HW_EMU_WASM;
+#endif
+#if !defined(USE_VGA) && defined(__EMSCRIPTEN__)
+      case SYSINFO_HW_PLATFORM : return SYSINFO_HW_EMU_CONSOLE;
+#endif
+      case SYSINFO_CPU_SPEED   : return 50;
+      case SYSINFO_CPU_BANKS   : return 256;
+      case SYSINFO_RAM_START   : return 0x8000;
+      case SYSINFO_RAM_SIZE    : return 32;
+#if defined(USE_VGA)
+      case SYSINFO_GPU_SPRITES : return 128;
+      case SYSINFO_GPU_LINES   : return 800;
+#endif
+#if !defined(USE_VGA)
+      case SYSINFO_GPU_SPRITES : return 0;
+      case SYSINFO_GPU_LINES   : return 0;
+#endif
+      case SYSINFO_UART_MAX    : return 0;
+      case SYSINFO_CAP_MMU     : return 0;
+      case SYSINFO_CAP_EAE     : return 1;
+      case SYSINFO_CAP_FPU     : return 0;
+   }
+   return 0;
+}
+#endif
+
 #if defined(USE_VGA) && !defined(__EMSCRIPTEN__)
 static int signal_handler_ctrl_c_multithreaded(void* param) {
   ctrlc_thread_id = pthread_self();
@@ -468,6 +504,12 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
       else if (address >= IO_TIMER_BASE_ADDRESS && address < IO_TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
         value = readTimerDeviceRegister(address - IO_TIMER_BASE_ADDRESS);
 #endif
+#ifdef USE_SYSINFO
+      else if (address == IO_SYSINFO_ADDR)
+        value = sysinfo_addr;
+      else if (address == IO_SYSINFO_DATA)
+        value = sysinfo_get_value();
+#endif
       else if (address == IC_CSR) // Access the interrupt controller
         value = gbl$ic_csr & 3;
     }
@@ -555,6 +597,10 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
 #ifdef USE_TIMER
       else if (address >= IO_TIMER_BASE_ADDRESS && address < IO_TIMER_BASE_ADDRESS + NUMBER_OF_TIMERS * REG_PER_TIMER)
         writeTimerDeviceRegister(address - IO_TIMER_BASE_ADDRESS, value);
+#endif
+#ifdef USE_SYSINFO
+      else if (address == IO_SYSINFO_ADDR)
+        sysinfo_addr = value;
 #endif
       else if (address == IC_CSR) // Access the interrupt controller
         gbl$ic_csr = value & 0xffff;
