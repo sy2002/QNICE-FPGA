@@ -57,6 +57,8 @@ begin
          when X"0100" => data <= std_logic_vector(to_unsigned(SYSINFO_MMU_PRESENT, 16));
          when X"0101" => data <= std_logic_vector(to_unsigned(SYSINFO_EAE_PRESENT, 16));
          when X"0102" => data <= std_logic_vector(to_unsigned(SYSINFO_FPU_PRESENT, 16));
+         when X"0103" => data <= std_logic_vector(to_unsigned(SYSINFO_GPU_PRESENT, 16));
+         when X"0104" => data <= std_logic_vector(to_unsigned(SYSINFO_KBD_PRESENT, 16));
          when others  => data <= (others => '0');
       end case;
    end process p_data;

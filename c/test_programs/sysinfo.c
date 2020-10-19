@@ -21,16 +21,16 @@ static const char *get_hw_platform()
 {
    switch (read_sysinfo(SYSINFO_HW_PLATFORM))
    {
-      case SYSINFO_HW_EMU_CONSOLE : return "Emulator (no VGA)";
-      case SYSINFO_HW_EMU_VGA     : return "Emulator with VGA";
-      case SYSINFO_HW_EMU_WASM    : return "Emulator on Web Assembly";
-      case SYSINFO_HW_NEXYS       : return "Digilent Nexys board";
-      case SYSINFO_HW_NEXYS4DDR   : return "Digilent Nexys 4 DDR";
-      case SYSINFO_HW_NEXYSA7100T : return "Digilent Nexys A7-100T";
-      case SYSINFO_HW_MEGA65      : return "MEGA65 board";
-      case SYSINFO_HW_MEGA65R2    : return "MEGA65 Revision 2";
-      case SYSINFO_HW_MEGA65R3    : return "MEGA65 Revision 3";
-      case SYSINFO_HW_DE10NANO    : return "DE10 Nano board";
+      case SYSINFO_HW_EMU_CONSOLE  : return "Emulator (no VGA)";
+      case SYSINFO_HW_EMU_VGA      : return "Emulator with VGA";
+      case SYSINFO_HW_EMU_WASM     : return "Emulator on Web Assembly";
+      case SYSINFO_HW_NEXYS        : return "Digilent Nexys board";
+      case SYSINFO_HW_NEXYS_4DDR   : return "Digilent Nexys 4 DDR";
+      case SYSINFO_HW_NEXYS_A7100T : return "Digilent Nexys A7-100T";
+      case SYSINFO_HW_MEGA65       : return "MEGA65 board";
+      case SYSINFO_HW_MEGA65_R2    : return "MEGA65 Revision 2";
+      case SYSINFO_HW_MEGA65_R3    : return "MEGA65 Revision 3";
+      case SYSINFO_HW_DE10NANO     : return "DE10 Nano board";
    }
    return "UNKNOWN";
 } // get_hw_platform
@@ -48,6 +48,8 @@ int main()
    printf("MMU present:        %s\n", read_sysinfo(SYSINFO_CAP_MMU) ? "Yes" : "No");
    printf("EAE present:        %s\n", read_sysinfo(SYSINFO_CAP_EAE) ? "Yes" : "No");
    printf("FPU present:        %s\n", read_sysinfo(SYSINFO_CAP_FPU) ? "Yes" : "No");
+   printf("GPU present:        %s\n", read_sysinfo(SYSINFO_CAP_GPU) ? "Yes" : "No");
+   printf("Keyboard present:   %s\n", read_sysinfo(SYSINFO_CAP_KBD) ? "Yes" : "No");
    return 0;
 }
 

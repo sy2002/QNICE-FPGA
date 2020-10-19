@@ -307,6 +307,14 @@ static unsigned int sysinfo_get_value() {
       case SYSINFO_CAP_MMU     : return 0;
       case SYSINFO_CAP_EAE     : return 1;
       case SYSINFO_CAP_FPU     : return 0;
+#if defined(USE_VGA)
+      case SYSINFO_CAP_GPU     : return 1;
+      case SYSINFO_CAP_KBD     : return 1;
+#endif
+#if !defined(USE_VGA)
+      case SYSINFO_CAP_GPU     : return 0;
+      case SYSINFO_CAP_KBD     : return 0;
+#endif
    }
    return 0;
 }

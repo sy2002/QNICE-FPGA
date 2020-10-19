@@ -340,16 +340,18 @@ SYSINFO$UART_MAX        .EQU    0x0007                  ; Maximum baudrate (in k
 SYSINFO$CAP_MMU         .EQU    0x0100                  ; Nonzero if built-in MMU present
 SYSINFO$CAP_EAE         .EQU    0x0101                  ; Nonzero if built-in EAE present
 SYSINFO$CAP_FPU         .EQU    0x0102                  ; Nonzero if built-in FPU present
+SYSINFO$CAP_GPU         .EQU    0x0103                  ; Nonzero if GPU present
+SYSINFO$CAP_KBD         .EQU    0x0104                  ; Nonzero if keyboard present
 
 SYSINFO$HW_EMU_CONSOLE  .EQU    0x0000                  ; Enumator (no VGA)
 SYSINFO$HW_EMU_VGA      .EQU    0x0001                  ; Enumator with VGA
 SYSINFO$HW_EMU_WASM     .EQU    0x0002                  ; Enumator on Web Assembly
 SYSINFO$HW_NEXYS        .EQU    0x0010                  ; Digilent Nexys board
-SYSINFO$HW_NEXYS4DDR    .EQU    0x0011                  ; - Nexys 4 DDR
-SYSINFO$HW_NEXYSA7100T  .EQU    0x0012                  ; - Nexys A7-100T
+SYSINFO$HW_NEXYS_4DDR   .EQU    0x0011                  ; - Nexys 4 DDR
+SYSINFO$HW_NEXYS_A7100T .EQU    0x0012                  ; - Nexys A7-100T
 SYSINFO$HW_MEGA65       .EQU    0x0020                  ; MEGA65 board
-SYSINFO$HW_MEGA65R2     .EQU    0x0021                  ; - Revision 2
-SYSINFO$HW_MEGA65R3     .EQU    0x0022                  ; - Revision 3
+SYSINFO$HW_MEGA65_R2    .EQU    0x0021                  ; - Revision 2
+SYSINFO$HW_MEGA65_R3    .EQU    0x0022                  ; - Revision 3
 SYSINFO$HW_DE10NANO     .EQU    0x0030                  ; DE10 Nano board
 
 
