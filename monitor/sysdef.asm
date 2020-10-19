@@ -232,6 +232,13 @@ IC$ENABLE_INTERRUPTS    .EQU 0x0001
 IC$BLOCK_INTERRUPTS     .EQU 0x0002
 ;
 ;---------------------------------------------------------------------------------------
+;  Block FFE8: SYSINFO
+;---------------------------------------------------------------------------------------
+;
+IO$SYSINFO_ADDR     .EQU    0xFFE8
+IO$SYSINFO_DATA     .EQU    0xFFE9
+;
+;---------------------------------------------------------------------------------------
 ;  Block FFF0: MEGA65 (double block, 16 registers)
 ;---------------------------------------------------------------------------------------
 ;
@@ -319,6 +326,32 @@ EAE$MULS                .EQU    0x0001                  ; Signed 16 bit multipli
 EAE$DIVU                .EQU    0x0002                  ; Unsigned 16 bit division with remainder
 EAE$DIVS                .EQU    0x0003                  ; Signed 16 bit division with remainder
 EAE$BUSY                .EQU    0x8000                  ; Busy flag (1 = operation still running)
+
+; ========== SYSINFO ==========
+
+SYSINFO$HW_PLATFORM     .EQU    0x0000                  ; Hardware platform enumeration
+SYSINFO$CPU_SPEED       .EQU    0x0001                  ; Main clock frequency (in MHz)
+SYSINFO$CPU_BANKS       .EQU    0x0002                  ; Number of register banks
+SYSINFO$RAM_START       .EQU    0x0003                  ; Start address of RAM
+SYSINFO$RAM_SIZE        .EQU    0x0004                  ; Amount of RAM (in kilo-words)
+SYSINFO$GPU_SPRITES     .EQU    0x0005                  ; Number of sprites supported
+SYSINFO$GPU_LINES       .EQU    0x0006                  ; Number of lines in screen buffer
+SYSINFO$UART_MAX        .EQU    0x0007                  ; Maximum baudrate (in kb/s)
+SYSINFO$CAP_MMU         .EQU    0x0100                  ; Nonzero if built-in MMU present
+SYSINFO$CAP_EAE         .EQU    0x0101                  ; Nonzero if built-in EAE present
+SYSINFO$CAP_FPU         .EQU    0x0102                  ; Nonzero if built-in FPU present
+
+SYSINFO$HW_EMU_CONSOLE  .EQU    0x0000                  ; Enumator (no VGA)
+SYSINFO$HW_EMU_VGA      .EQU    0x0001                  ; Enumator with VGA
+SYSINFO$HW_EMU_WASM     .EQU    0x0002                  ; Enumator on Web Assembly
+SYSINFO$HW_NEXYS        .EQU    0x0010                  ; Digilent Nexys board
+SYSINFO$HW_NEXYS4DDR    .EQU    0x0011                  ; - Nexys 4 DDR
+SYSINFO$HW_NEXYSA7100T  .EQU    0x0012                  ; - Nexys A7-100T
+SYSINFO$HW_MEGA65       .EQU    0x0020                  ; MEGA65 board
+SYSINFO$HW_MEGA65R2     .EQU    0x0021                  ; - Revision 2
+SYSINFO$HW_MEGA65R3     .EQU    0x0022                  ; - Revision 3
+SYSINFO$HW_DE10NANO     .EQU    0x0030                  ; DE10 Nano board
+
 
 ; ========== SD CARD ==========
 

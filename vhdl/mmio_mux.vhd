@@ -106,6 +106,11 @@ port (
    int_we            : out std_logic;
    int_reg           : out std_logic_vector(2 downto 0);
 
+   -- SYS INFO range $FFE8..$FFEF
+   sys_en            : buffer std_logic;
+   sys_we            : out std_logic;
+   sys_reg           : out std_logic_vector(0 downto 0);
+
    -- HyerRAM register range $FFF0 .. $FFF3
    hram_en           : buffer std_logic;
    hram_we           : out std_logic;
@@ -208,6 +213,11 @@ begin
    int_en            <= '1' when addr(15 downto 3) = x"FF5" & "0" and no_igrant_active else '0';      -- FF50
    int_we            <= int_en and data_dir and data_valid;
    int_reg           <= addr(2 downto 0);
+
+   -- Block FFE8: SYSINFO
+   sys_en            <= '1' when addr(15 downto 3) = x"FFE" & "1" and no_igrant_active else '0';      -- FFE8
+   sys_we            <= sys_en and data_dir and data_valid;
+   sys_reg           <= addr(0 downto 0);
 
    -- Block FFF0: MEGA65 block, currently only HyperRAM
    hram_en           <= '1' when GD_HRAM and addr(15 downto 4) = x"FFF" and no_igrant_active else '0';   -- FFF0

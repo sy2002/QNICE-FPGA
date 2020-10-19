@@ -72,6 +72,7 @@ Full documentation in alphabetical order
 * [Releasing (how-to)](how-to-release.md)
 * [Revision history](../VERSIONS.txt)
 * [Software requirements](requirements.txt)
+* [System hardware and capability information (SYSINFO)](sysinfo.md)
 * [STDIN/STDOUT](#details-on-the-switch-register-that-controls-stdinstdout)
 * [Transferring software to QNICE-FPGA](#transferring-software-to-qnice-fpga)
 * [Website (how-to update)](how-to-release.md#step-7-update-the-website-qnice-fpgacom)
@@ -125,6 +126,9 @@ Basics
   baud rate of 1 Mbit/s upon startup by sliding switch 3 to the ON position.
   Furthermore, the baudrate can be configured from software,  see
   [IO_Devices.md](IO_Devices.md#uart).
+
+* QNICE-FPGA sports a [SYSINFO](sysinfo.md) mechanism that @MJoergen please
+  fill this stub.
 
 ### Details on the Switch Register that controls STDIN/STDOUT
 

@@ -127,6 +127,10 @@ signal sd_en                  : std_logic;
 signal sd_we                  : std_logic;
 signal sd_reg                 : std_logic_vector(2 downto 0); 
 signal sd_data_out            : std_logic_vector(15 downto 0);
+signal sys_en                 : std_logic;
+signal sys_we                 : std_logic;
+signal sys_reg                : std_logic_vector(0 downto 0);
+signal sys_data_out           : std_logic_vector(15 downto 0);
 signal reset_ctl              : std_logic;
 
 -- VGA color output
@@ -165,7 +169,8 @@ begin
                   ins_data_out      or
                   eae_data_out      or
                   sd_data_out       or
-                  int_data_out;
+                  int_data_out      or
+                  sys_data_out;
 
    i_clk : entity work.clk
    port map
@@ -360,6 +365,18 @@ begin
          data_out => eae_data_out
       );
 
+   -- SYSINFO
+   sys_inst : entity work.sysinfo
+      port map (
+         clk => SLOW_CLOCK,
+         reset => reset_ctl,
+         en => sys_en,
+         we => sys_we,
+         reg => sys_reg,
+         data_in => cpu_data_out,
+         data_out => sys_data_out
+      );
+
    -- SD Card
    sd_card : entity work.sdcard
       port map (
@@ -442,6 +459,9 @@ begin
          eae_en => eae_en,
          eae_we => eae_we,
          eae_reg => eae_reg,
+         sys_en => sys_en,
+         sys_we => sys_we,
+         sys_reg => sys_reg,
          sd_en => sd_en,
          sd_we => sd_we,
          sd_reg => sd_reg,
