@@ -50,6 +50,7 @@
 //    Contains the ASCII character in bits 7 downto 0  or the special key code
 //    in 15 downto 8. The "or" is meant exclusive, i.e. it cannot happen that
 //    one transmission contains an ASCII character PLUS a special character.
+#define IO_KBD_EVENT   	0xFF06 // Read from event fifo of USB keyboard
 //
 //---------------------------------------------------------------------------------------
 //  Block FF08: SYSTEM COUNTERS

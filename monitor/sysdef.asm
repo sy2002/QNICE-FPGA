@@ -59,6 +59,7 @@ IO$KBD_DATA     .EQU 0xFF05 ; Data register of USB keyboard
 ;    Contains the ASCII character in bits 7 downto 0  or the special key code
 ;    in 15 downto 8. The "or" is meant exclusive, i.e. it cannot happen that
 ;    one transmission contains an ASCII character PLUS a special character.
+IO$KBD_EVENT    .EQU 0xFF06 ; Read from event fifo of USB keyboard
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FF08: SYSTEM COUNTERS

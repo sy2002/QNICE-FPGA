@@ -52,7 +52,9 @@ static Uint16   sprite_addr;
 static Uint16   kbd_state;
 static Uint16   kbd_data;
 const  Uint16   kbd_fifo_size = 100;
+const  Uint16   kbd_event_size = 64;
 fifo_t*         kbd_fifo;
+fifo_t*         kbd_event;
 
 #ifdef __EMSCRIPTEN__
     #define display_dx ((Uint16) 960)      //the hardware runs at a 1.8 : 1 ratio, see screenshots on GitHub
@@ -137,6 +139,9 @@ unsigned int kbd_read_register(unsigned int address)
                 return fifo_pull(kbd_fifo);
             }
 #endif
+
+        case IO_KBD_EVENT:
+            return fifo_pull(kbd_event);
     }
 
     return 0;
@@ -624,6 +629,7 @@ int vga_init()
     speedstats_rendered = gbl$speedstats;
     
     kbd_fifo = fifo_init(kbd_fifo_size);
+    kbd_event = fifo_init(kbd_event_size);
 
     unsigned long pixelheap = render_dx * render_dy * sizeof(Uint32);
     if ((screen_pixels = malloc(pixelheap)) == 0)
@@ -675,6 +681,7 @@ int vga_init()
 void vga_shutdown()
 {
     fifo_free(kbd_fifo);
+    fifo_free(kbd_event);
     free(screen_pixels);
     SDL_DestroyTexture(screen_texture);
     SDL_DestroyRenderer(renderer);
@@ -870,11 +877,17 @@ void vga_one_iteration_keyboard()
 {
     while (SDL_PollEvent(&event))
     {
+        if (event.type == SDL_KEYUP)
+        {
+            SDL_Keycode keycode = ((SDL_KeyboardEvent*) &event)->keysym.sym;
+            fifo_push(kbd_event, keycode | 0x8000);
+        }
         if (event.type == SDL_KEYDOWN)
         {
             SDL_Keycode keycode = ((SDL_KeyboardEvent*) &event)->keysym.sym;
             SDL_Keymod keymod = SDL_GetModState();
             kbd_handle_keydown(keycode, keymod);
+            fifo_push(kbd_event, keycode);
         }
 
         else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)

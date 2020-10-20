@@ -502,7 +502,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
 #ifdef USE_VGA
       else if (address >= VGA_STATE && address <= VGA_SPRITE_DATA) /* VGA register */
         value = vga_read_register(address);
-      else if (address >= IO_KBD_STATE && address <= IO_KBD_DATA)
+      else if (address >= IO_KBD_STATE && address <= IO_KBD_EVENT)
         value = kbd_read_register(address);
 #endif
 #ifdef USE_IDE
@@ -592,7 +592,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
 #ifdef USE_VGA
       else if (address >= VGA_STATE && address <= VGA_SPRITE_DATA) /* VGA register */
         vga_write_register(address, value);
-      else if (address >= IO_KBD_STATE && address <= IO_KBD_DATA)
+      else if (address >= IO_KBD_STATE && address <= IO_KBD_EVENT)
         kbd_write_register(address, value);
 #endif      
 #ifdef USE_IDE
