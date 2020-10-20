@@ -81,7 +81,7 @@ void maze_draw(int color, int mask)
 
 static void pause()
 {
-   for (long i=0; i<1000; ++i)
+   for (long i=0; i<5000; ++i)
    {
       // Calling qmon_rand() prevents the optimizer from pruning this loop,
       // because qmon_rand() has side-effects (it updates the seed).
