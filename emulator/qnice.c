@@ -304,6 +304,7 @@ static unsigned int sysinfo_get_value() {
       case SYSINFO_GPU_LINES   : return 0;
 #endif
       case SYSINFO_UART_MAX    : return 0;
+      case SYSINFO_VERSION     : return 0x0170;
       case SYSINFO_CAP_MMU     : return 0;
       case SYSINFO_CAP_EAE     : return 1;
       case SYSINFO_CAP_FPU     : return 0;

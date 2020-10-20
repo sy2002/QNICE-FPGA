@@ -35,6 +35,14 @@ static const char *get_hw_platform()
    return "UNKNOWN";
 } // get_hw_platform
 
+static const char *get_version()
+{
+   static char str[8];
+   unsigned int version = read_sysinfo(SYSINFO_VERSION);
+   snprintf(str, 8, "%u.%u%u", version>>8, (version>>4) & 0xf, version & 0xf);
+   return str;
+} // get_version
+
 int main()
 {
    printf("Hardware platform:  %s\n", get_hw_platform());
@@ -45,6 +53,7 @@ int main()
    printf("GPU sprites:        %u\n", read_sysinfo(SYSINFO_GPU_SPRITES));
    printf("GPU screen lines:   %u\n", read_sysinfo(SYSINFO_GPU_LINES));
    printf("UART max baudrate:  %u kb/s\n", read_sysinfo(SYSINFO_UART_MAX));
+   printf("QNICE version:      %s\n", get_version());
    printf("MMU present:        %s\n", read_sysinfo(SYSINFO_CAP_MMU) ? "Yes" : "No");
    printf("EAE present:        %s\n", read_sysinfo(SYSINFO_CAP_EAE) ? "Yes" : "No");
    printf("FPU present:        %s\n", read_sysinfo(SYSINFO_CAP_FPU) ? "Yes" : "No");

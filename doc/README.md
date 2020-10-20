@@ -127,8 +127,8 @@ Basics
   Furthermore, the baudrate can be configured from software,  see
   [IO_Devices.md](IO_Devices.md#uart).
 
-* QNICE-FPGA sports a [SYSINFO](sysinfo.md) mechanism that @MJoergen please
-  fill this stub.
+* QNICE-FPGA sports a [SYSINFO](sysinfo.md) mechanism that provides a central
+  database for querying the features supported by the platform.
 
 ### Details on the Switch Register that controls STDIN/STDOUT
 

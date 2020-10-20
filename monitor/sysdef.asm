@@ -337,10 +337,11 @@ SYSINFO$RAM_SIZE        .EQU    0x0004                  ; Amount of RAM (in kilo
 SYSINFO$GPU_SPRITES     .EQU    0x0005                  ; Number of sprites supported
 SYSINFO$GPU_LINES       .EQU    0x0006                  ; Number of lines in screen buffer
 SYSINFO$UART_MAX        .EQU    0x0007                  ; Maximum baudrate (in kb/s)
+SYSINFO$VERSION         .EQU    0x0008                  ; QNICE version
 SYSINFO$CAP_MMU         .EQU    0x0100                  ; Nonzero if built-in MMU present
 SYSINFO$CAP_EAE         .EQU    0x0101                  ; Nonzero if built-in EAE present
 SYSINFO$CAP_FPU         .EQU    0x0102                  ; Nonzero if built-in FPU present
-SYSINFO$CAP_GPU         .EQU    0x0103                  ; Nonzero if GPU present
+SYSINFO$CAP_GPU         .EQU    0x0103                  ; Nonzero if built-in GPU present
 SYSINFO$CAP_KBD         .EQU    0x0104                  ; Nonzero if keyboard present
 
 SYSINFO$HW_EMU_CONSOLE  .EQU    0x0000                  ; Enumator (no VGA)

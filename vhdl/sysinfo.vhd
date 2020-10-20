@@ -54,6 +54,7 @@ begin
          when X"0005" => data <= std_logic_vector(to_unsigned(VGA_NUM_SPRITES, 16));
          when X"0006" => data <= std_logic_vector(to_unsigned(VGA_RAM_SIZE/80, 16));
          when X"0007" => data <= std_logic_vector(to_unsigned(UART_BAUDRATE_MAX/1000, 16));
+         when X"0008" => data <= X"0170";
          when X"0100" => data <= std_logic_vector(to_unsigned(SYSINFO_MMU_PRESENT, 16));
          when X"0101" => data <= std_logic_vector(to_unsigned(SYSINFO_EAE_PRESENT, 16));
          when X"0102" => data <= std_logic_vector(to_unsigned(SYSINFO_FPU_PRESENT, 16));
