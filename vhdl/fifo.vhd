@@ -19,7 +19,6 @@ entity ring_buffer is
  
     -- Read port
     rd_en : in std_logic;
-    rd_valid : out std_logic;
     rd_data : out std_logic_vector(RAM_WIDTH - 1 downto 0);
  
     -- Flags
@@ -92,15 +91,10 @@ begin
     if rising_edge(clk) then
       if rst = '1' then
         tail <= 0;
-        rd_valid <= '0';
       else
-        rd_valid <= '0';
- 
         if rd_en = '1' and empty_i = '0' then
           incr(tail);
-          rd_valid <= '1';
         end if;
- 
       end if;
     end if;
   end process;
@@ -110,9 +104,10 @@ begin
   begin
     if rising_edge(clk) then
       ram(head) <= wr_data;
-      rd_data <= ram(tail);
     end if;
   end process;
+
+  rd_data <= ram(tail);
  
   -- Update the fill count
   PROC_COUNT : process(head, tail)

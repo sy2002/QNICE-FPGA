@@ -39,7 +39,9 @@ ENTITY ps2_keyboard_to_ascii IS
       spec_new   : OUT STD_LOGIC;                     -- output flag indicating new special key value
       spec_code  : OUT STD_LOGIC_VECTOR(7 downto 0);  -- special key value
       locale     : IN  STD_LOGIC_VECTOR(2 downto 0);  -- locale will not be latched but eval. in real time
-      modifiers  : OUT STD_LOGIC_VECTOR(2 downto 0)   -- modifiers: 0 = shift, 1 = alt, 2 = ctrl
+      modifiers  : OUT STD_LOGIC_VECTOR(2 downto 0);  -- modifiers: 0 = shift, 1 = alt, 2 = ctrl
+      event_data : OUT STD_LOGIC_VECTOR(15 downto 0);
+      event_wr   : OUT STD_LOGIC
       ); 
 END ps2_keyboard_to_ascii;
 
@@ -76,6 +78,7 @@ BEGIN
       prev_ps2_code_new <= ps2_code_new; --keep track of previous ps2_code_new values to determine low-to-high transitions
       ascii_new <= '0';                                       --reset new ASCII code indicator
       spec_new <= '0';
+      event_wr <= '0';
       CASE state IS
       
         --ready state: wait for a new PS2 code to be received
@@ -109,6 +112,9 @@ BEGIN
             e0_code <= '0';  --reset multi-code command flag
             ascii_ext <= '0';
             spec <= x"00";
+
+            event_data <= break & "0000000" & ps2_code;
+            event_wr   <= '1';
             
             --handle codes for control, shift, and caps lock
             CASE ps2_code IS

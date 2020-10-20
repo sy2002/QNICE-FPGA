@@ -62,6 +62,17 @@ signal ff_spec_new         : std_logic;
 signal ff_locale           : std_logic_vector(2 downto 0);
 signal modifiers           : std_logic_vector(2 downto 0);
 
+signal event_data          : std_logic_vector(15 downto 0);
+signal event_wr            : std_logic;
+signal event_rd_en         : std_logic;
+signal event_rd_data       : std_logic_vector(15 downto 0);
+signal event_empty         : std_logic;
+signal event_full          : std_logic;
+signal event_fill_count    : integer range 63 downto 0;
+
+signal reading             : std_logic;
+signal reading_d           : std_logic;
+
 begin
 
    kbd : entity work.ps2_keyboard_to_ascii
@@ -74,7 +85,29 @@ begin
          spec_new => spec_new,
          spec_code => spec_code,
          locale => ff_locale,
-         modifiers => modifiers
+         modifiers => modifiers,
+         event_data => event_data,
+         event_wr => event_wr
+      );
+
+   -- Event FIFO
+   event_fifo : entity work.ring_buffer
+      generic map
+      (
+         RAM_WIDTH => 16,
+         RAM_DEPTH => 64
+      )
+      port map
+      (
+         clk => CLK,
+         rst => reset,
+         wr_en => event_wr,
+         wr_data => event_data,
+         rd_en => event_rd_en,
+         rd_data => event_rd_data,
+         empty => event_empty,
+         full => event_full,
+         fill_count => event_fill_count
       );
 
    ff_new_handler : process(clk)
@@ -114,7 +147,19 @@ begin
    end process;
 
       
-   read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new, ascii_code, spec_code, modifiers)
+   reading <= '1' when kbd_en = '1' and kbd_we = '0' and kbd_reg = "10" else '0';
+
+   handle_reading : process(clk)
+   begin
+      if rising_edge(clk) then
+         reading_d <= reading;
+      end if;
+   end process;
+
+   event_rd_en <= reading and not reading_d;
+
+   read_registers : process(kbd_en, kbd_we, kbd_reg, ff_locale, ff_spec_new, ff_ascii_new,
+      ascii_code, spec_code, modifiers, event_empty, event_rd_data)
    begin
       if kbd_en = '1' and kbd_we = '0' then
          case kbd_reg is
@@ -131,6 +176,14 @@ begin
             when "01" =>
                cpu_data_out <= spec_code & ascii_code;
                
+            -- read event register
+            when "10" =>
+               if event_empty = '0' then
+                  cpu_data_out <= event_rd_data;
+               else
+                  cpu_data_out <= (others => '0');
+               end if;
+
             when others =>
                cpu_data_out <= (others => '0');
          

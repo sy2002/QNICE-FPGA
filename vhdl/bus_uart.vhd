@@ -47,7 +47,6 @@ signal uart_tx_ready          : std_logic;
 
 -- FIFO control signals
 signal fifo_rd_en             : std_logic;
-signal fifo_rd_valid          : std_logic;
 signal fifo_rd_data           : std_logic_vector(7 downto 0);
 signal fifo_empty             : std_logic;
 signal fifo_full              : std_logic;
@@ -75,7 +74,6 @@ signal uart_divisor           : std_logic_vector(15 downto 0);
 --attribute mark_debug of reading         : signal is true;
 --attribute mark_debug of reading_d       : signal is true;
 --attribute mark_debug of fifo_rd_en      : signal is true;
---attribute mark_debug of fifo_rd_valid   : signal is true;
 --attribute mark_debug of fifo_rd_data    : signal is true;
 --attribute mark_debug of fifo_empty      : signal is true;
 --attribute mark_debug of fifo_full       : signal is true;
@@ -116,7 +114,6 @@ begin
          wr_en => uart_rx_enable,
          wr_data => uart_rx_data,
          rd_en => fifo_rd_en,
-         rd_valid => fifo_rd_valid,
          rd_data => fifo_rd_data,
          empty => fifo_empty,
          full => fifo_full,
