@@ -108,18 +108,10 @@ BEGIN
 
         --translate state: translate PS2 code to ASCII value
         WHEN translate =>
-            break <= '0';    --reset break flag
             e0_code <= '0';  --reset multi-code command flag
             ascii_ext <= '0';
             spec <= x"00";
 
-            if e0_code = '1' then
-               event_data <= break & "0001110" & ps2_code;
-            else
-               event_data <= break & "0000000" & ps2_code;
-            end if;
-            event_wr   <= '1';
-            
             --handle codes for control, shift, and caps lock
             CASE ps2_code IS
               WHEN x"58" =>                   --caps lock code
@@ -527,29 +519,30 @@ BEGIN
               END IF;              
             END IF;
           
-          IF(break = '0') THEN  --the code is a make
-            state <= output;      --proceed to output state
-          ELSE                  --code is a break
-            state <= ready;       --return to ready state to await next PS2 code
-          END IF;
+          state <= output;      --proceed to output state
         
         --output state: verify the code is valid and output the ASCII value
         WHEN output =>
 
+          break <= '0';    --reset break flag
           IF (ascii(7) = '0' or ascii_ext='1') THEN              --the PS2 code has an ASCII output
-            ascii_new <= '1';                                   --set flag indicating new ASCII output
+            ascii_new <= not break;                                   --set flag indicating new ASCII output
             ascii_code <= ascii_ext & ascii(6 DOWNTO 0);        --output the ASCII value
+            event_data <= "" & break & "0000000" & ascii_ext & ascii(6 downto 0);
           END IF;
           
           IF spec /= x"00" THEN
-            spec_new <= '1';
+            spec_new <= not break;
             ascii_code <= x"00";
+            event_data <= "" & break & spec(6 downto 0) & X"00";
           END IF;
           spec_code <= spec;
-          
+
           modifiers(mod_ctrl_bit)  <= control_l or control_r;
           modifiers(mod_shift_bit) <= shift_l or shift_r;
           modifiers(mod_alt_bit)   <= alt_l or alt_gr;
+
+          event_wr   <= '1';
           
           state <= ready;                      --return to ready state to await next PS2 code
 
