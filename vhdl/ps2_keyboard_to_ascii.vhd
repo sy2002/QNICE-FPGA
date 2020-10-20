@@ -113,7 +113,11 @@ BEGIN
             ascii_ext <= '0';
             spec <= x"00";
 
-            event_data <= break & "0000000" & ps2_code;
+            if e0_code = '1' then
+               event_data <= break & "0001110" & ps2_code;
+            else
+               event_data <= break & "0000000" & ps2_code;
+            end if;
             event_wr   <= '1';
             
             --handle codes for control, shift, and caps lock
