@@ -156,6 +156,81 @@ void kbd_write_register(unsigned int address, unsigned int value)
     }
 }
 
+static Uint16 kbd_translate(SDL_Keycode keycode)
+{
+    Uint16 retval = 0;
+
+    if ((keycode > 0 && keycode < 128) || keycode == 60 || keycode == 94 || keycode == 223 || keycode == 228 || keycode == 246 || keycode == 252)
+    {
+        retval = keycode;
+
+        if (kbd_state & KBD_SHIFT)
+        {
+            if (keycode >= 'a' && keycode <= 'z')
+                retval -= 32; //to upper
+            else switch (keycode)
+            {
+                //whole mapping table is currently DE keyboard specific
+                case '1':   retval = '!';   break;
+                case '2':   retval = '"';   break;
+                case '3':   retval = 0xA7;  break;
+                case '4':   retval = '$';   break;
+                case '5':   retval = '%';   break;
+                case '6':   retval = '&';   break;
+                case '7':   retval = '/';   break;
+                case '8':   retval = '(';   break;
+                case '9':   retval = ')';   break;
+                case '0':   retval = '=';   break;
+                case ',':   retval = ';';   break;
+                case '.':   retval = ':';   break;
+                case '-':   retval = '_';   break;
+                case '+':   retval = '*';   break;
+                case '#':   retval = 0x27;  break;
+
+                case 60:    retval = 0xB0;  break;
+                case 94:    retval = 0x3E;  break;
+                case 223:   retval = '?';   break;
+                case 228:   retval = 0xC4;  break;
+                case 246:   retval = 0xD6;  break;
+                case 252:   retval = 0xDC;  break;
+            }
+        }
+        else switch(keycode)
+        {
+            case 60:    retval = 0x5E;  break;
+            case 94:    retval = 0x3C;  break;
+            case 223:   retval = 0xDF;  break;
+        }
+
+        //CTRL + <letter> "overwrites" any other behaviour to 1 .. 26
+        if ((kbd_state & KBD_CTRL) && keycode >= 'a' && keycode <= 'z')
+            retval = keycode - 96; // a = 1, b = 2, ...
+    }
+    else
+    {
+        switch (keycode)
+        {
+            case SDLK_UP:       retval = KBD_CUR_UP;      break;
+            case SDLK_DOWN:     retval = KBD_CUR_DOWN;    break;
+            case SDLK_LEFT:     retval = KBD_CUR_LEFT;    break;
+            case SDLK_RIGHT:    retval = KBD_CUR_RIGHT;   break;
+            case SDLK_PAGEUP:   retval = KBD_PG_UP;       break;
+            case SDLK_PAGEDOWN: retval = KBD_PG_DOWN;     break;
+            case SDLK_HOME:     retval = KBD_HOME;        break;
+            case SDLK_END:      retval = KBD_END;         break;
+            case SDLK_INSERT:   retval = KBD_INS;         break;
+            case SDLK_DELETE:   retval = KBD_DEL;         break;
+
+            default:
+                if (keycode >= SDLK_F1 && keycode <= SDLK_F12)
+                    retval = (keycode - 0x4000003A + 1) << 8;
+                else
+                    return 0;
+        }
+    }
+    return retval;
+}
+
 void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
 {
     bool shift_pressed;
@@ -255,92 +330,24 @@ void kbd_handle_keydown(SDL_Keycode keycode, SDL_Keymod keymod)
         alt_pressed = false;
     }
 
-    if ((keycode > 0 && keycode < 128) || keycode == 60 || keycode == 94 || keycode == 223 || keycode == 228 || keycode == 246 || keycode == 252)
-    {
-        kbd_data = keycode;
-
-        if (shift_pressed)
-        {
-            if (keycode >= 'a' && keycode <= 'z')
-                kbd_data -= 32; //to upper
-            else switch (keycode)
-            {
-                //whole mapping table is currently DE keyboard specific
-                case '1':   kbd_data = '!';   break;
-                case '2':   kbd_data = '"';   break;
-                case '3':   kbd_data = 0xA7;  break;
-                case '4':   kbd_data = '$';   break;
-                case '5':   kbd_data = '%';   break;
-                case '6':   kbd_data = '&';   break;
-                case '7':   kbd_data = '/';   break;
-                case '8':   kbd_data = '(';   break;
-                case '9':   kbd_data = ')';   break;
-                case '0':   kbd_data = '=';   break;
-                case ',':   kbd_data = ';';   break;
-                case '.':   kbd_data = ':';   break;
-                case '-':   kbd_data = '_';   break;
-                case '+':   kbd_data = '*';   break;
-                case '#':   kbd_data = 0x27;  break;
-
-                case 60:    kbd_data = 0xB0;  break;
-                case 94:    kbd_data = 0x3E;  break;
-                case 223:   kbd_data = '?';   break;
-                case 228:   kbd_data = 0xC4;  break;
-                case 246:   kbd_data = 0xD6;  break;
-                case 252:   kbd_data = 0xDC;  break;
-            }
-        }
-        else switch(keycode)
-        {
-            case 60:    kbd_data = 0x5E;  break;
-            case 94:    kbd_data = 0x3C;  break;
-            case 223:   kbd_data = 0xDF;  break;
-        }
-
-        //CTRL + <letter> "overwrites" any other behaviour to 1 .. 26
-        if (ctrl_pressed && keycode >= 'a' && keycode <= 'z')
-            kbd_data = keycode - 96; // a = 1, b = 2, ...
+    kbd_data = kbd_translate(keycode);
 
 #ifdef __EMSCRIPTEN__
-        fifo_push(kbd_fifo, kbd_data);
-#endif
-
-        /* For avoiding race conditions, this needs to be the last statement
-           within this if branch and this is also the reason, why in the
-           following else branch the KBD_NEW_SPECIAL assignment is done like
-           it is done: As soon as the flag is set,
-           the CPU in the parallel thread is likely to read the data. */
-        kbd_state |= KBD_NEW_ASCII;
-    }
-    else
+    if (kbd_data > 0)
     {
-        switch (keycode)
-        {
-            case SDLK_UP:       kbd_data = KBD_CUR_UP;      break;
-            case SDLK_DOWN:     kbd_data = KBD_CUR_DOWN;    break;       
-            case SDLK_LEFT:     kbd_data = KBD_CUR_LEFT;    break;       
-            case SDLK_RIGHT:    kbd_data = KBD_CUR_RIGHT;   break;      
-            case SDLK_PAGEUP:   kbd_data = KBD_PG_UP;       break;      
-            case SDLK_PAGEDOWN: kbd_data = KBD_PG_DOWN;     break;    
-            case SDLK_HOME:     kbd_data = KBD_HOME;        break;       
-            case SDLK_END:      kbd_data = KBD_END;         break;    
-            case SDLK_INSERT:   kbd_data = KBD_INS;         break;    
-            case SDLK_DELETE:   kbd_data = KBD_DEL;         break;    
-
-            default:
-                if (keycode >= SDLK_F1 && keycode <= SDLK_F12)
-                    kbd_data = (keycode - 0x4000003A + 1) << 8;
-                else
-                    return;
-        }
-
-#ifdef __EMSCRIPTEN__
-        fifo_push(kbd_fifo, kbd_data);
+       fifo_push(kbd_fifo, kbd_data);
+    }
 #endif
 
-        //see description above at KBD_NEW_ASCII
-        kbd_state |= KBD_NEW_SPECIAL;
-    }
+    /* For avoiding race conditions, this needs to be the last statement
+       within this if branch and this is also the reason, why in the
+       following else branch the KBD_NEW_SPECIAL assignment is done like
+       it is done: As soon as the flag is set,
+       the CPU in the parallel thread is likely to read the data. */
+    if (kbd_data > 0xff)
+       kbd_state |= KBD_NEW_SPECIAL;
+    else if (kbd_data > 0)
+       kbd_state |= KBD_NEW_ASCII;
 }
 
 static Uint32 palette[VGA_PALETTE_OFFS_MAX+1] = {
@@ -880,14 +887,18 @@ void vga_one_iteration_keyboard()
         if (event.type == SDL_KEYUP)
         {
             SDL_Keycode keycode = ((SDL_KeyboardEvent*) &event)->keysym.sym;
-            fifo_push(kbd_event, keycode | 0x8000);
+            Uint16 keyval = kbd_translate(keycode);
+            if (keyval)
+               fifo_push(kbd_event, keyval | 0x8000);
         }
         if (event.type == SDL_KEYDOWN)
         {
             SDL_Keycode keycode = ((SDL_KeyboardEvent*) &event)->keysym.sym;
             SDL_Keymod keymod = SDL_GetModState();
             kbd_handle_keydown(keycode, keymod);
-            fifo_push(kbd_event, keycode);
+            Uint16 keyval = kbd_translate(keycode);
+            if (keyval)
+               fifo_push(kbd_event, keyval);
         }
 
         else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
