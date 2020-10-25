@@ -2,12 +2,14 @@
  * A litte game that generates a maze and lets the player find his/her
  * way out of the maze.
  *
+ * Compile with: "qvc maze2d.c conio.c maze_grid.c"
+ *
  * Maze is displayed on the VGA screen.
  * Keyboard controls are:
- *   UP    : w
- *   DOWN  : s
- *   LEFT  : a
- *   RIGHT : d
+ *   UP    : w or k
+ *   DOWN  : s or j
+ *   LEFT  : a or h
+ *   RIGHT : d or l
  *
  * done by MJoergen in August 2020
  */
@@ -228,7 +230,7 @@ static int game_update()
                  }
                  break;
       case 'r' : if (gameState != MENU) {maze_reset(); gameState = PLAYING;} break;
-      case 'x' : hint = 1; gbl_timer.seconds += 10; break;
+      case 'x' : if (level > 1) {hint = 1; gbl_timer.seconds += 10;} break;
       case 'm' : gameState = MENU; break;
 
       case 'w' : case 'k' : case KBD_CUR_UP    : if (gameState == PLAYING) {if (maze_move(DIR_NORTH)) gameState = GAME_OVER;} break;
