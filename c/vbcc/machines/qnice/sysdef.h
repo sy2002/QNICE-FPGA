@@ -479,7 +479,8 @@
 #define KBD_NEW_ANY            	0x0003                  // any new key available
 
 #define KBD_ASCII              	0x00FF                  // mask the special keys
-#define KBD_SPECIAL            	0xFF00                  // mask the ascii keys
+#define KBD_SPECIAL            	0x7F00                  // mask the ascii keys
+#define KBD_BREAK              	0x8000                  // used by IO_KBD_EVENT
 
 #define KBD_LOCALE             	0x001C                  // bit mask for checking locales
 #define KBD_LOCALE_US          	0x0000                  // default: US keyboard layout

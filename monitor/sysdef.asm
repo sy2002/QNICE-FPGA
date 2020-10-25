@@ -488,7 +488,8 @@ KBD$NEW_SPECIAL         .EQU    0x0002                  ; new special key availa
 KBD$NEW_ANY             .EQU    0x0003                  ; any new key available
 
 KBD$ASCII               .EQU    0x00FF                  ; mask the special keys
-KBD$SPECIAL             .EQU    0xFF00                  ; mask the ascii keys
+KBD$SPECIAL             .EQU    0x7F00                  ; mask the ascii keys
+KBD$BREAK               .EQU    0x8000                  ; used by IO$KBD_EVENT
 
 KBD$LOCALE              .EQU    0x001C                  ; bit mask for checking locales
 KBD$LOCALE_US           .EQU    0x0000                  ; default: US keyboard layout

@@ -1,12 +1,15 @@
 // A simple tennis-game
 //
-// Use the arrow keys to move the player
+// Compile with "qvc tennis.c sprite.c conio.c"
+// Use the arrow keys to move the player.
+// Press Q or <ESC> to quit the game.
 
 #include <stdio.h>
 
 #include "qmon.h"
 #include "sysdef.h"
 #include "sprite.h"
+#include "conio.h"
 
 // convenient mechanism to access QNICE's Memory Mapped IO registers
 #define MMIO( __x ) *((unsigned int volatile *) __x )
@@ -81,75 +84,150 @@ static const t_sprite_bitmap ball = {
    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
 };
 
+/* Define some useful constants */
+static const int CHAR_WIDTH    = 8;       // pixels
+static const int SCREEN_WIDTH  = 80;      // characters
+static const int SCREEN_HEIGHT = 40;      // characters
+static const int BAR_POS_CH    = 40;      // characters
+static const int BAR_HEIGHT_CH = 8;       // characters
+static const int BAR_LEFT      = 320;     // pixels
+static const int BAR_RIGHT     = 328;     // pixels
+static const int BAR_TOP       = 384;     // pixels
+static const int PLAYER_SPEED  = 2;       // pixels/frame
+static const int PLAYER_RADIUS = 16;      // pixels
+static const int SCREEN_LEFT   = 8;       // pixels
+static const int SCREEN_RIGHT  = 632;     // pixels
+static const int WHITE_SQUARE  = 0xF720;  // palette and character
+
+/* Game variables are declared here */
+
+static int move_left   = 0;    // Current status of LEFT cursor key
+static int move_right  = 0;    // Current status of RIGHT cursor key
+static int pos_x       = 200;  // Current X-position of player centre (pixels)
+static const int pos_y = 480;  // Current Y-position of player centre (pixels)
+
+
+/*
+ * This function is called once at start of the program
+ */
 static void game_init()
 {
    MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // hide cursor
    MMIO(VGA_STATE) |= VGA_EN_SPRITE;      // enable sprites
+   qmon_vga_cls();                        // clear screen
+   sprite_clear_all();                    // clear any previous sprites
 
-   qmon_vga_cls();
-   sprite_clear_all();
-
+   /* Define player sprite */
    t_sprite_palette palette = sprite_palette_transparent;
    palette[1] = VGA_COLOR_RED;
    sprite_set_palette(0, palette);
-   sprite_set_bitmap(0, ball);
+   sprite_set_bitmap(0, player);
    sprite_set_config(0, VGA_SPRITE_CSR_VISIBLE);
+
+   /* Draw playing field */
+   for (int x=0; x<SCREEN_WIDTH; ++x)
+   {
+      cputcxy(x, 0, WHITE_SQUARE);
+   }
+   for (int y=0; y<SCREEN_HEIGHT; ++y)
+   {
+      cputcxy(0, y, WHITE_SQUARE);
+      cputcxy(SCREEN_WIDTH-1, y, WHITE_SQUARE);
+   }
+   for (int y=SCREEN_HEIGHT-BAR_HEIGHT_CH; y<SCREEN_HEIGHT; ++y)
+   {
+      cputcxy(BAR_POS_CH, y, WHITE_SQUARE);
+   }
 } // end of game_init
 
+
+/*
+ * This function is called once at the end of the program
+ */
 static void game_exit()
 {
    MMIO(VGA_STATE) |= VGA_EN_HW_CURSOR;   // show cursor
    MMIO(VGA_STATE) &= ~VGA_EN_SPRITE;     // disable sprites
-   qmon_vga_cls();
-   sprite_clear_all();
+   qmon_vga_cls();                        // clear screen
+   sprite_clear_all();                    // clear any previous sprites
 } // end of game_exit
 
-static int move_up = 0;
-static int move_down = 0;
-static int move_left = 0;
-static int move_right = 0;
 
-static int pos_x = 300;
-static int pos_y = 200;
+/*
+ * This function is called once per frame, i.e. 60 times a second
+ */
+static void game_draw()
+{
+   /*
+    * The player is shown as a semi cirle, and the variables pos_x and pos_y
+    * give the centre of this circle. However, sprite coordinates are the upper
+    * left corner of the sprite. Therefore, we have to adjust the coordinates
+    * with the size of the sprite.
+    */
+   sprite_set_position(0, pos_x-PLAYER_RADIUS, pos_y-PLAYER_RADIUS);
+} // end of game_draw
 
-// This function is called once per frame, i.e. 60 times a second
+
+/*
+ * This function is called once per frame, i.e. 60 times a second
+ */
 static int game_update()
 {
+   /* Update state of player movement keys */
    int ev = MMIO(IO_KBD_EVENT);
    switch (ev)
    {
-      case KBD_CUR_UP    : move_up = 1; break;
-      case KBD_CUR_DOWN  : move_down = 1; break;
-      case KBD_CUR_LEFT  : move_left = 1; break;
-      case KBD_CUR_RIGHT : move_right = 1; break;
-      case KBD_CUR_UP    | 0x8000 : move_up = 0; break;
-      case KBD_CUR_DOWN  | 0x8000 : move_down = 0; break;
-      case KBD_CUR_LEFT  | 0x8000 : move_left = 0; break;
-      case KBD_CUR_RIGHT | 0x8000 : move_right = 0; break;
-      case 'q' : return 1;
+      case KBD_CUR_LEFT              : move_left  = 1; break;
+      case KBD_CUR_RIGHT             : move_right = 1; break;
+      case KBD_CUR_LEFT  | KBD_BREAK : move_left  = 0; break;
+      case KBD_CUR_RIGHT | KBD_BREAK : move_right = 0; break;
+      case 'q'                       : return 1;   /* q   : Quit program */
+      case 'Q'                       : return 1;   /* Q   : Quit program */
+      case 0x1b                      : return 1;   /* ESC : Quit program */
+      case 0x03                      : return 1;   /* ^C  : Quit program */
+#ifdef DEBUG
+      default                        : if (ev) {printf("%04x\n", ev);} break;
+#endif
    }
 
-   pos_x += move_right - move_left;
-   pos_y += move_down - move_up;
+   /* Move player */
+   if (move_right && !move_left)
+   {
+      pos_x += PLAYER_SPEED;
+      if (pos_x >= BAR_LEFT - PLAYER_RADIUS)
+         pos_x = BAR_LEFT - PLAYER_RADIUS;
+   }
+
+   if (!move_right && move_left)
+   {
+      pos_x -= PLAYER_SPEED;
+      if (pos_x < SCREEN_LEFT + PLAYER_RADIUS)
+         pos_x = SCREEN_LEFT + PLAYER_RADIUS;
+   }
 
    return 0;
 } // end of game_update
 
-static void game_draw()
-{
-   sprite_set_position(0, pos_x, pos_y);
-} // end of game_draw
 
+/*
+ * The main entry point
+ */
 int main()
 {
    game_init();
 
+   /* This is the main game loop */
    while (1)
    {
+      /* Wait while screen is being rendered */
       while (MMIO(VGA_SCAN_LINE) < 480) {}
+
       game_draw();
+
       if (game_update())
          break;
+
+      /* Wait until screen porch is finished */
       while (MMIO(VGA_SCAN_LINE) >= 480) {}
    }
 
