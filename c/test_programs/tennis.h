@@ -31,6 +31,9 @@ extern const int SCREEN_LEFT;
 extern const int SCREEN_RIGHT;
 extern const int WHITE_SQUARE;
 extern const int BALL_RADIUS;
+extern const int VEL_SCALE;
+extern const int POS_SCALE;
+extern const int GRAVITY;
 
 typedef struct
 {

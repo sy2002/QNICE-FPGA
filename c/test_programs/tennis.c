@@ -21,6 +21,10 @@ const int SCREEN_LEFT   = 8;       // pixels
 const int SCREEN_RIGHT  = 632;     // pixels
 const int WHITE_SQUARE  = PAL_FG_YELLOW + PAL_BG_YELLOW + 0x20;  // palette and character
 const int BALL_RADIUS   = 8;       // pixels
+const int VEL_SCALE     = 512;
+const int POS_SCALE     = 32;
+const int GRAVITY       = 5;       // pixels/frame^2
+
 
 /* Forward declarations */
 void player_init();
