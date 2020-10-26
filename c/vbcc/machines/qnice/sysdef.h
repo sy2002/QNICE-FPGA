@@ -300,6 +300,40 @@
 #define VGA_COLOR_WHITE        	0x7FFF
 #define VGA_COLOR_TRANSPARENT  	0x8000
 
+#define PAL_BG_BLACK           	0x0000
+#define PAL_BG_DARK_GRAY       	0x1000
+#define PAL_BG_RED             	0x2000
+#define PAL_BG_BLUE            	0x3000
+#define PAL_BG_GREEN           	0x4000
+#define PAL_BG_BROWN           	0x5000
+#define PAL_BG_PURPLE          	0x6000
+#define PAL_BG_LIGHT_GRAY      	0x7000
+#define PAL_BG_LIGHT_GREEN     	0x8000
+#define PAL_BG_LIGHT_BLUE      	0x9000
+#define PAL_BG_CYAN            	0xA000
+#define PAL_BG_ORANGE          	0xB000
+#define PAL_BG_YELLOW          	0xC000
+#define PAL_BG_TAN             	0xD000
+#define PAL_BG_PINK            	0xE000
+#define PAL_BG_WHITE           	0xF000
+
+#define PAL_FG_LIGHT_GREEN     	0x0000
+#define PAL_FG_LIGHT_BLUE      	0x0100
+#define PAL_FG_CYAN            	0x0200
+#define PAL_FG_ORANGE          	0x0300
+#define PAL_FG_YELLOW          	0x0400
+#define PAL_FG_TAN             	0x0500
+#define PAL_FG_PINK            	0x0600
+#define PAL_FG_WHITE           	0x0700
+#define PAL_FG_BLACK           	0x0800
+#define PAL_FG_DARK_GRAY       	0x0900
+#define PAL_FG_RED             	0x0A00
+#define PAL_FG_BLUE            	0x0B00
+#define PAL_FG_GREEN           	0x0C00
+#define PAL_FG_BROWN           	0x0D00
+#define PAL_FG_PURPLE          	0x0E00
+#define PAL_FG_LIGHT_GRAY      	0x0F00
+
 
 // ========== CYCLE COUNTER ==========
 

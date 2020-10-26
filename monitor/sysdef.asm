@@ -309,6 +309,40 @@ VGA$COLOR_PINK          .EQU    0x7F3E
 VGA$COLOR_WHITE         .EQU    0x7FFF
 VGA$COLOR_TRANSPARENT   .EQU    0x8000
 
+PAL$BG_BLACK            .EQU    0x0000
+PAL$BG_DARK_GRAY        .EQU    0x1000
+PAL$BG_RED              .EQU    0x2000
+PAL$BG_BLUE             .EQU    0x3000
+PAL$BG_GREEN            .EQU    0x4000
+PAL$BG_BROWN            .EQU    0x5000
+PAL$BG_PURPLE           .EQU    0x6000
+PAL$BG_LIGHT_GRAY       .EQU    0x7000
+PAL$BG_LIGHT_GREEN      .EQU    0x8000
+PAL$BG_LIGHT_BLUE       .EQU    0x9000
+PAL$BG_CYAN             .EQU    0xA000
+PAL$BG_ORANGE           .EQU    0xB000
+PAL$BG_YELLOW           .EQU    0xC000
+PAL$BG_TAN              .EQU    0xD000
+PAL$BG_PINK             .EQU    0xE000
+PAL$BG_WHITE            .EQU    0xF000
+
+PAL$FG_LIGHT_GREEN      .EQU    0x0000
+PAL$FG_LIGHT_BLUE       .EQU    0x0100
+PAL$FG_CYAN             .EQU    0x0200
+PAL$FG_ORANGE           .EQU    0x0300
+PAL$FG_YELLOW           .EQU    0x0400
+PAL$FG_TAN              .EQU    0x0500
+PAL$FG_PINK             .EQU    0x0600
+PAL$FG_WHITE            .EQU    0x0700
+PAL$FG_BLACK            .EQU    0x0800
+PAL$FG_DARK_GRAY        .EQU    0x0900
+PAL$FG_RED              .EQU    0x0A00
+PAL$FG_BLUE             .EQU    0x0B00
+PAL$FG_GREEN            .EQU    0x0C00
+PAL$FG_BROWN            .EQU    0x0D00
+PAL$FG_PURPLE           .EQU    0x0E00
+PAL$FG_LIGHT_GRAY       .EQU    0x0F00
+
 
 ; ========== CYCLE COUNTER ==========
 
