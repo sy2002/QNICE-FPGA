@@ -29,6 +29,8 @@ extern const int PLAYER_SPEED;
 extern const int PLAYER_RADIUS;
 extern const int SCREEN_LEFT;
 extern const int SCREEN_RIGHT;
+extern const int SCREEN_BOTTOM;
+extern const int SCREEN_TOP;
 extern const int WHITE_SQUARE;
 extern const int BALL_RADIUS;
 extern const int VEL_SCALE;
