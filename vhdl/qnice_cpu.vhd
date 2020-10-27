@@ -90,11 +90,21 @@ signal reg_write_en        : std_logic := '0';
 
 -- registers R13 (SP), R14 (SR) and R15 (PC) are directly modeled within the CPU
 -- but also read-only accessible via the register file
+signal R8                  : std_logic_vector(15 downto 0) := x"0000";
+signal R9                  : std_logic_vector(15 downto 0) := x"0000";
+signal R10                 : std_logic_vector(15 downto 0) := x"0000";
+signal R11                 : std_logic_vector(15 downto 0) := x"0000";
+signal R12                 : std_logic_vector(15 downto 0) := x"0000";
 signal SP                  : std_logic_vector(15 downto 0) := x"0000"; -- stack pointer   (R13)
 signal SR                  : std_logic_vector(15 downto 0) := x"0001"; -- status register (R14)
 signal PC                  : std_logic_vector(15 downto 0) := x"0000"; -- program counter (R15)
 
 -- interrupt handling
+signal R8_org              : std_logic_vector(15 downto 0);
+signal R9_org              : std_logic_vector(15 downto 0);
+signal R10_org             : std_logic_vector(15 downto 0);
+signal R11_org             : std_logic_vector(15 downto 0);
+signal R12_org             : std_logic_vector(15 downto 0);
 signal SP_org              : std_logic_vector(15 downto 0);            -- saved stack pointer   (R13)
 signal SR_org              : std_logic_vector(15 downto 0);            -- saved status register (R14)
 signal PC_org              : std_logic_vector(15 downto 0);            -- saved program counter (R15)
@@ -124,12 +134,22 @@ signal fsmDataToBus        : std_logic_vector(15 downto 0);
 signal fsmCpuAddr          : std_logic_vector(15 downto 0);
 signal fsmCpuDataDirCtrl   : std_logic;
 signal fsmCpuDataValid     : std_logic;
+signal fsmR8               : std_logic_vector(15 downto 0);
+signal fsmR9               : std_logic_vector(15 downto 0);
+signal fsmR10              : std_logic_vector(15 downto 0);
+signal fsmR11              : std_logic_vector(15 downto 0);
+signal fsmR12              : std_logic_vector(15 downto 0);
 signal fsmSP               : std_logic_vector(15 downto 0);
 signal fsmSR               : std_logic_vector(15 downto 0);
 signal fsmPC               : std_logic_vector(15 downto 0);
 signal fsmNextCpuState     : tCPU_States;
 
 -- interrupt handling
+signal fsmR8_org           : std_logic_vector(15 downto 0);
+signal fsmR9_org           : std_logic_vector(15 downto 0);
+signal fsmR10_org          : std_logic_vector(15 downto 0);
+signal fsmR11_org          : std_logic_vector(15 downto 0);
+signal fsmR12_org          : std_logic_vector(15 downto 0);
 signal fsmSP_org           : std_logic_vector(15 downto 0);
 signal fsmSR_org           : std_logic_vector(15 downto 0);
 signal fsmPC_org           : std_logic_vector(15 downto 0);
@@ -234,6 +254,11 @@ begin
       port map
       (
          clk         => CLK,
+         R8          => R8,
+         R9          => R9,
+         R10         => R10,
+         R11         => R11,
+         R12         => R12,
          SP          => SP,
          SR          => SR,
          PC          => PC,
@@ -276,13 +301,23 @@ begin
             DATA_DIR <= '0';
             DATA_VALID <= '0';
             
-            SP <= x"0000";
-            SR <= x"0001";
-            PC <= x"0000";
+            R8  <= x"0000";
+            R9  <= x"0000";
+            R10 <= x"0000";
+            R11 <= x"0000";
+            R12 <= x"0000";
+            SP  <= x"0000";
+            SR  <= x"0001";
+            PC  <= x"0000";
             
-            SP_org <= x"0000";
-            SR_org <= x"0001";
-            PC_org <= x"0000";
+            R8_org  <= x"0000";
+            R9_org  <= x"0000";
+            R10_org <= x"0000";
+            R11_org <= x"0000";
+            R12_org <= x"0000";
+            SP_org  <= x"0000";
+            SR_org  <= x"0001";
+            PC_org  <= x"0000";
             Int_Active <= '0';
             
             Instruction <= (others => '0');            
@@ -310,13 +345,23 @@ begin
             DATA_DIR <= fsmCpuDataDirCtrl;
             DATA_VALID <= fsmCpuDataValid;
             
-            SP <= fsmSP;
-            SR <= fsmSR(15 downto 1) & "1";
-            PC <= fsmPC;
+            R8  <= fsmR8;
+            R9  <= fsmR9;
+            R10 <= fsmR10;
+            R11 <= fsmR11;
+            R12 <= fsmR12;
+            SP  <= fsmSP;
+            SR  <= fsmSR(15 downto 1) & "1";
+            PC  <= fsmPC;
             
-            SP_org <= fsmSP_org;
-            SR_org <= fsmSR_org;
-            PC_org <= fsmPC_org;
+            R8_org  <= fsmR8_org;
+            R9_org  <= fsmR9_org;
+            R10_org <= fsmR10_org;
+            R11_org <= fsmR11_org;
+            R12_org <= fsmR12_org;
+            SP_org  <= fsmSP_org;
+            SR_org  <= fsmSR_org;
+            PC_org  <= fsmPC_org;
             Int_Active <= fsmInt_Active;
             
             Instruction <= fsmInstruction;
@@ -336,7 +381,8 @@ begin
       end if;
    end process;
    
-   fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, SP_org, SR_org, PC_org,
+   fsm_output_decode : process (cpu_state, ADDR_Bus, R8, R9, R10, R11, R12, SP, SR, PC,
+                                R8_org, R9_org, R10_org, R11_org, R12_org, SP_org, SR_org, PC_org,
                                 DATA_IN, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
                                 Instruction, Opcode, Ctrl_Cmd, FastPath,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
@@ -356,9 +402,14 @@ begin
       IGRANT_N <= '1';
          
       fsmDataToBus <= (others => '0');
-      fsmSP <= SP;
-      fsmSR <= SR(15 downto 1) & "1";
-      fsmPC <= PC;      
+      fsmR8  <= R8;
+      fsmR9  <= R9;
+      fsmR10 <= R10;
+      fsmR11 <= R11;
+      fsmR12 <= R12;
+      fsmSP  <= SP;
+      fsmSR  <= SR(15 downto 1) & "1";
+      fsmPC  <= PC;
       fsmCpuAddr <= ADDR_Bus;
       fsmCpuDataDirCtrl <= '0';
       fsmCpuDataValid <= '0';
@@ -377,13 +428,23 @@ begin
       
       fsmInt_Active <= Int_Active;
       if Int_Active = '0' then
-         fsmSP_org <= SP;
-         fsmSR_org <= SR(15 downto 1) & "1";
-         fsmPC_org <= PC;
+         fsmR8_org  <= R8;
+         fsmR9_org  <= R9;
+         fsmR10_org <= R10;
+         fsmR11_org <= R11;
+         fsmR12_org <= R12;
+         fsmSP_org  <= SP;
+         fsmSR_org  <= SR(15 downto 1) & "1";
+         fsmPC_org  <= PC;
       else
-         fsmSP_org <= SP_org;
-         fsmSR_org <= SR_org;
-         fsmPC_org <= PC_org;
+         fsmR8_org  <= R8_org;
+         fsmR9_org  <= R9_org;
+         fsmR10_org <= R10_org;
+         fsmR11_org <= R11_org;
+         fsmR12_org <= R12_org;
+         fsmSP_org  <= SP_org;
+         fsmSR_org  <= SR_org;
+         fsmPC_org  <= PC_org;
       end if;
                
       -- as fsm_advance_state is clocking the values on rising edges,
@@ -447,9 +508,14 @@ begin
                   when ctrlRTI =>                     
                      if Int_Active = '1' then
                         fsmInt_Active <= '0';
-                        fsmSP <= SP_org;
-                        fsmSR <= SR_org;
-                        fsmPC <= PC_org;
+                        fsmR8  <= R8_org;
+                        fsmR9  <= R9_org;
+                        fsmR10 <= R10_org;
+                        fsmR11 <= R11_org;
+                        fsmR12 <= R12_org;
+                        fsmSP  <= SP_org;
+                        fsmSR  <= SR_org;
+                        fsmPC  <= PC_org;
                         fsmCPUAddr <= PC_org;
                         fsmNextCpuState <= cs_fetch;
                      -- rogue RTI: HALT
@@ -476,6 +542,21 @@ begin
                               fsmNextCpuState <= cs_int_indirect_isr;                           
                               fsmCPUAddr <= reg_read_data2 - 1;
                               case Dst_RegNo is
+                                 when x"8" =>
+                                    fsmR8 <= R8 - 1;
+                                    fsmR8_org <= R8 - 1;
+                                 when x"9" =>
+                                    fsmR9 <= R9 - 1;
+                                    fsmR9_org <= R9 - 1;
+                                 when x"A" =>
+                                    fsmR10 <= R10 - 1;
+                                    fsmR10_org <= R10 - 1;
+                                 when x"B" =>
+                                    fsmR11 <= R11 - 1;
+                                    fsmR11_org <= R11 - 1;
+                                 when x"C" =>
+                                    fsmR12 <= R12 - 1;
+                                    fsmR12_org <= R12 - 1;
                                  when x"D" =>
                                     fsmSP <= SP - 1;
                                     fsmSP_org <= SP - 1;
@@ -495,6 +576,21 @@ begin
                               fsmNextCpuState <= cs_int_indirect_isr;
                               fsmCPUAddr <= reg_read_data2;
                               case Dst_RegNo is
+                                 when x"8" =>
+                                    fsmR8 <= R8 + 1;
+                                    fsmR8_org <= R8 + 1;
+                                 when x"9" =>
+                                    fsmR9 <= R9 + 1;
+                                    fsmR9_org <= R9 + 1;
+                                 when x"A" =>
+                                    fsmR10 <= R10 + 1;
+                                    fsmR10_org <= R10 + 1;
+                                 when x"B" =>
+                                    fsmR11 <= R11 + 1;
+                                    fsmR11_org <= R11 + 1;
+                                 when x"C" =>
+                                    fsmR12 <= R12 + 1;
+                                    fsmR12_org <= R12 + 1;
                                  when x"D" =>
                                     fsmSP <= SP + 1;
                                     fsmSP_org <= SP + 1;
@@ -559,9 +655,14 @@ begin
                      -- write back the decremented values
                      -- special handling of SR and PC as they are not stored in the register file
                      case Src_RegNo is
-                        when x"D" => fsmSP <= SP - 1;
-                        when x"E" => fsmSR <= SR - 1;
-                        when x"F" => fsmPC <= PC - 1;
+                        when x"8" => fsmR8  <= R8 - 1;
+                        when x"9" => fsmR9  <= R9 - 1;
+                        when x"A" => fsmR10 <= R10 - 1;
+                        when x"B" => fsmR11 <= R11 - 1;
+                        when x"C" => fsmR12 <= R12 - 1;
+                        when x"D" => fsmSP  <= SP - 1;
+                        when x"E" => fsmSR  <= SR - 1;
+                        when x"F" => fsmPC  <= PC - 1;
                         when others =>
                            fsm_reg_write_addr <= Src_RegNo;
                            fsm_reg_write_data <= reg_read_data1 - 1;
@@ -581,9 +682,14 @@ begin
                   if Dst_Mode = amIndirPreDec then
                      fsmCpuAddr <= reg_read_data2 - 1;
                      case Dst_RegNo is
-                        when x"D" => fsmSP <= SP - 1;
-                        when x"E" => fsmSR <= SR - 1;
-                        when x"F" => fsmPC <= PC - 1;
+                        when x"8" => fsmR8  <= R8 - 1;
+                        when x"9" => fsmR9  <= R9 - 1;
+                        when x"A" => fsmR10 <= R10 - 1;
+                        when x"B" => fsmR11 <= R11 - 1;
+                        when x"C" => fsmR12 <= R12 - 1;
+                        when x"D" => fsmSP  <= SP - 1;
+                        when x"E" => fsmSR  <= SR - 1;
+                        when x"F" => fsmPC  <= PC - 1;
                         when others =>
                            fsm_reg_write_addr <= Dst_RegNo;
                            fsm_reg_write_data <= reg_read_data2 - 1;
@@ -611,18 +717,38 @@ begin
                if Src_Mode = amIndirPostInc then
                   -- special handling of SR and PC as they are not stored in the register file
                   case Src_RegNo is
+                     when x"8" =>
+                        fsmR8     <= R8 + 1;
+                        varResult := R8 + 1;
+
+                     when x"9" =>
+                        fsmR9     <= R9 + 1;
+                        varResult := R9 + 1;
+
+                     when x"A" =>
+                        fsmR10    <= R10 + 1;
+                        varResult := R10 + 1;
+
+                     when x"B" =>
+                        fsmR11    <= R11 + 1;
+                        varResult := R11 + 1;
+
+                     when x"C" =>
+                        fsmR12    <= R12 + 1;
+                        varResult := R12 + 1;
+
                      when x"D" =>
                         fsmSP     <= SP + 1;
                         varResult := SP + 1;
-                        
+
                      when x"E" =>
                         fsmSR     <= SR + 1;
                         varResult := SR + 1;
-                        
+
                      when x"F" =>
                         fsmPC     <= PC + 1;
                         varResult := PC + 1;
-                        
+
                      when others =>
                         fsm_reg_write_addr <= Src_RegNo;
                         fsm_reg_write_data <= Src_Value + 1;
@@ -675,9 +801,14 @@ begin
                      end if;
                      
                      case Dst_RegNo is
-                        when x"D" => fsmSP <= SP - 1;
-                        when x"E" => fsmSR <= SR - 1;
-                        when x"F" => fsmPC <= PC - 1;
+                        when x"8" => fsmR8  <= R8 - 1;
+                        when x"9" => fsmR9  <= R9 - 1;
+                        when x"A" => fsmR10 <= R10 - 1;
+                        when x"B" => fsmR11 <= R11 - 1;
+                        when x"C" => fsmR12 <= R12 - 1;
+                        when x"D" => fsmSP  <= SP - 1;
+                        when x"E" => fsmSR  <= SR - 1;
+                        when x"F" => fsmPC  <= PC - 1;
                         when others =>
                            fsm_reg_write_addr <= Dst_RegNo;
                            fsm_reg_write_data <= Dst_Value - 1; -- here, the code is not identical
@@ -794,10 +925,30 @@ begin
                
                   -- store result in register
                   case Dst_RegNo is
+                     -- R8
+                     when x"8" =>
+                        fsmR8 <= std_logic_vector(Alu_Result);
+
+                     -- R9
+                     when x"9" =>
+                        fsmR9 <= std_logic_vector(Alu_Result);
+
+                     -- R10
+                     when x"A" =>
+                        fsmR10 <= std_logic_vector(Alu_Result);
+
+                     -- R11
+                     when x"B" =>
+                        fsmR11 <= std_logic_vector(Alu_Result);
+
+                     -- R12
+                     when x"C" =>
+                        fsmR12 <= std_logic_vector(Alu_Result);
+
                      -- R13 aka SP
                      when x"D" =>
                         fsmSP <= std_logic_vector(Alu_Result);
-                     
+
                      -- R14 aka SR
                      when x"E" =>
                         -- when doing a compare, then do not write back the old SR value
@@ -805,13 +956,13 @@ begin
                            -- bit 0 of the SR is not writeable, it is always 1
                            fsmSR(15 downto 1) <= std_logic_vector(Alu_Result(15 downto 1));
                         end if;
-                           
+
                      -- R15 aka PC
                      when x"F" =>
                         fsmPC <= std_logic_vector(Alu_Result);
                         fsmCpuAddr <= std_logic_vector(Alu_Result);
-                        
-                     -- R0 .. R12
+
+                     -- R0 .. R7
                      when others =>
                         fsm_reg_write_addr <= Dst_RegNo;
                         fsm_reg_write_data <= std_logic_vector(Alu_Result);
@@ -860,8 +1011,13 @@ begin
                if Dst_Mode = amIndirPostInc then
                   -- special handling of SP, SR and PC as they are not stored in the register file
                   case Dst_RegNo is
-                     when x"D" => fsmSP <= SP + 1;
-                     when x"E" => fsmSR <= SR + 1;
+                     when x"8" => fsmR8  <= R8 + 1;
+                     when x"9" => fsmR9  <= R9 + 1;
+                     when x"A" => fsmR10 <= R10 + 1;
+                     when x"B" => fsmR11 <= R11 + 1;
+                     when x"C" => fsmR12 <= R12 + 1;
+                     when x"D" => fsmSP  <= SP + 1;
+                     when x"E" => fsmSR  <= SR + 1;
                      
                      when x"F" =>
                         fsmPC <= PC + 1;

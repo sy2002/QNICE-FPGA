@@ -26,7 +26,22 @@
         MOVE    ITEST_1, R8
         SYSCALL(puts, 1)
 
+        MOVE    0x89AB, R8      ; Preload registers with specific values
+        MOVE    0x9ABC, R9
+        MOVE    0xABCD, R10
+        MOVE    0xBCDE, R11
+        MOVE    0xCDEF, R12
         INT     ISR_ABS         ; Test direct ISR address (this basically is @R15++)
+        CMP         0x89AB, R8  ; Verify registers are not changed
+        RBRA        ISR_ERR1, !Z
+        CMP         0x9ABC, R9
+        RBRA        ISR_ERR1, !Z
+        CMP         0xABCD, R10
+        RBRA        ISR_ERR1, !Z
+        CMP         0xBCDE, R11
+        RBRA        ISR_ERR1, !Z
+        CMP         0xCDEF, R12
+        RBRA        ISR_ERR1, !Z
 
         MOVE    ISR_REG, R8     ; Test ISR address in register
         INT     R8
@@ -43,8 +58,25 @@
         MOVE    ITEST_3, R8
         SYSCALL(puts, 1)
         SYSCALL(exit, 1)
+ISR_ERR1 HALT
+ISR_ERR2 HALT
         
-ISR_ABS MOVE        ITEST_2, R8
+ISR_ABS CMP         0x89AB, R8  ; Verify registers are not changed
+        RBRA        ISR_ERR2, !Z
+        CMP         0x9ABC, R9
+        RBRA        ISR_ERR2, !Z
+        CMP         0xABCD, R10
+        RBRA        ISR_ERR2, !Z
+        CMP         0xBCDE, R11
+        RBRA        ISR_ERR2, !Z
+        CMP         0xCDEF, R12
+        RBRA        ISR_ERR2, !Z
+
+        MOVE        ITEST_2, R8
+        MOVE        0x0000, R9  ; Destroy preloaded values
+        MOVE        0x0000, R10
+        MOVE        0x0000, R11
+        MOVE        0x0000, R12
         SYSCALL(puts, 1)
         RTI
         HALT
