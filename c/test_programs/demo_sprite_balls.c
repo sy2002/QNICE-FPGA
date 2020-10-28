@@ -2,7 +2,7 @@
  *
  *  This program demonstrates bouncing balls using all 128 sprites.
  *
- *  How to compile: qvc demo_sprite_balls.c sprite.c rand.c images.c stat.c conio.c -O3 -c99 -maxoptpasses=100
+ *  How to compile: qvc demo_sprite_balls.c sprite.c images.c stat.c conio.c -O3 -c99 -maxoptpasses=100
  *
  *  done by MJoergen in September 2020
 */
@@ -180,7 +180,6 @@ static void update()
       {
          pBall->pos_scaled.x = 640*POS_SCALE-1-pBall->radius_scaled;
          pBall->vel_scaled.x = -pBall->vel_scaled.x;
-
       }
 
       if (pBall->pos_scaled.y < pBall->radius_scaled && pBall->vel_scaled.y < 0)
