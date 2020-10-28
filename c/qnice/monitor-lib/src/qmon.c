@@ -5,6 +5,7 @@
     within C programs and within the C standard library.
 
     done by sy2002 in October 2016
+    Math functions added by sy2002 in October 2020    
 */
 
 #include "qmon.h"
@@ -42,6 +43,68 @@ int def_qmon_split_str(char* input, char separator, char** output) =
 int qmon_split_str(char* input, char separator, char** output)
 {
     return def_qmon_split_str(input, separator, output);
+}
+
+/* ========================================================================
+   MATH FUNCTIONS
+   ======================================================================== */
+
+unsigned long def_qmon_mulu(unsigned int a, unsigned int b) =
+  "          ASUB     " M2S(QMON_EP_MULU) ", 1\n"           //call MTH$MULU in monitor (expects a in R8, b in R9)
+  "          MOVE     R10, R8\n"                            //R10 = low word
+  "          MOVE     R11, R9\n";                           //R11 = high word
+
+unsigned long qmon_mulu(unsigned int a, unsigned int b)
+{
+    return def_qmon_mulu(a, b);
+}
+
+long def_qmon_muls(int a, int b) =
+  "          ASUB     " M2S(QMON_EP_MULS) ", 1\n"           //call MTH$MULS in monitor (expects a in R8, b in R9)
+  "          MOVE     R10, R8\n"                            //R10 = low word
+  "          MOVE     R11, R9\n";                           //R11 = high word
+
+long qmon_muls(int a, int b)
+{
+    return def_qmon_muls(a, b);
+}
+
+unsigned int def_qmon_divmod_u(unsigned int a, unsigned int b, unsigned int* mod) =
+  "          INCRB\n"
+  "          MOVE     R10, R0\n"                            //R10 = mod
+  "          ASUB     " M2S(QMON_EP_DIVU) ", 1\n"           //call MTH$DIVU in monitor (expects a in R8, b in R9)
+  "          MOVE     R10, R8\n"                            //R10 = result of division => R8 = return value
+  "          MOVE     R11, @R0\n"                           //R11 = modulo => store to mod
+  "          DECRB\n";  
+
+unsigned int qmon_divmod_u(unsigned int a, unsigned int b, unsigned int* mod)
+{
+    return def_qmon_divmod_u(a, b, mod);
+}
+
+unsigned int qmon_divu(unsigned int a, unsigned int b)
+{
+    unsigned int dummy;
+    return def_qmon_divmod_u(a, b, &dummy);
+}
+
+int def_qmon_divmod_s(int a, int b, unsigned int* mod) =
+  "          INCRB\n"
+  "          MOVE     R10, R0\n"                            //R10 = mod
+  "          ASUB     " M2S(QMON_EP_DIVS) ", 1\n"           //call MTH$DIVS in monitor (expects a in R8, b in R9)
+  "          MOVE     R10, R8\n"                            //R10 = result of division => R8 = return value
+  "          MOVE     R11, @R0\n"                           //R11 = modulo => store to mod
+  "          DECRB\n";  
+
+int qmon_divmod_s(int a, int b, unsigned int* mod)
+{
+    return def_qmon_divmod_s(a, b, mod);
+}
+
+int qmon_divs(int a, int b)
+{
+    unsigned int dummy;
+    return def_qmon_divmod_s(a, b, &dummy);
 }
 
 /* ========================================================================

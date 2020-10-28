@@ -5,6 +5,7 @@
     within C programs and within the C standard library.
 
     done by sy2002 in October 2016
+    Math functions added by sy2002 in October 2020
 */
 
 #ifndef _QMON_H
@@ -31,6 +32,26 @@ typedef int (*_qmon_fp)();
 #define qmon_rand                   ((_qmon_fp)  QMON_EP_RAND)
 
 /* ========================================================================
+   MATH FUNCTIONS
+   ======================================================================== */
+
+/* Signed and unsigned 16-bit multiplication that returns a 32-bit value */
+unsigned long qmon_mulu(unsigned int a, unsigned int b);
+long qmon_muls(int a, int b);
+
+/* Signed and unsigned 16-bit division that returns a 16-bit value */
+unsigned int qmon_divu(unsigned int a, unsigned int b);
+int qmon_divs(int a, int b);
+
+/* Two-in-one functions that utilize EAE's ability to do a 16-bit division
+   and a 16-bit modulo in one operation.
+
+   The result of the division is directly returned from the function and
+   the modulo is returned via a pointer. */
+unsigned int qmon_divmod_u(unsigned int a, unsigned int b, unsigned int* mod);
+int qmon_divmod_s(int a, int b, unsigned int* mod);
+
+/* ========================================================================
    STRING I/O AND STRING HANDLING FUNCTIONS
    ======================================================================== */
 
@@ -50,10 +71,6 @@ typedef int (*_qmon_fp)();
        5test<zero terminator> 
    and the function returns 3. */   
 int qmon_split_str(char* input, char separator, char** output);
-
-/* ========================================================================
-   XYZ FUNCTIONS
-   ======================================================================== */
 
 /* ========================================================================
     FAT32 IMPLEMENTATION
