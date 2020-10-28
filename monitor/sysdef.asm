@@ -231,6 +231,7 @@ IC$CSR              .EQU 0xFF50 ; Global Interrupt Enable
     ;             programming.
 IC$ENABLE_INTERRUPTS    .EQU 0x0001
 IC$BLOCK_INTERRUPTS     .EQU 0x0002
+IC$BLOCK_INTERRUPTS_INVERT     .EQU 0xFFFD
 ;
 ;---------------------------------------------------------------------------------------
 ;  Block FFE8: SYSINFO

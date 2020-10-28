@@ -222,6 +222,7 @@
     //             programming.
 #define IC_ENABLE_INTERRUPTS   	0x0001
 #define IC_BLOCK_INTERRUPTS    	0x0002
+#define IC_BLOCK_INTERRUPTS_INVERT    	0xFFFD
 //
 //---------------------------------------------------------------------------------------
 //  Block FFE8: SYSINFO
