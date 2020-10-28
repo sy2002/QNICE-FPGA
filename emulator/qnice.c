@@ -572,6 +572,7 @@ unsigned int access_memory(unsigned int address, unsigned int operation, unsigne
               if (gbl$eae_operand_0 & 0x8000) gbl$eae_operand_0 |= 0xffffffffffff8000; /* Perform a sign extension */
               if (gbl$eae_operand_1 & 0x8000) gbl$eae_operand_1 |= 0xffffffffffff8000;
               gbl$eae_result_lo = gbl$eae_operand_0 / gbl$eae_operand_1;
+              gbl$eae_result_hi = gbl$eae_operand_0 % gbl$eae_operand_1;
             }
             break;
           default:
