@@ -79,9 +79,6 @@ EMULATOR:
 
 * Test, if compilation and running works under Windows
 
-* WASM: Ability to upload .out files (directly fill them into RAM?) and
-  ability to mount FAT32 file systems via upload
-
 * Emulate all VGA register commands
 
 * WASM: Investigate if switching the WebGL context to high performance mode
