@@ -9,6 +9,9 @@
    * qvc test.c -O1
    * qvc test.c -O2
    * qvc test.c -O3
+
+   Details:
+   https://github.com/sy2002/QNICE-FPGA/issues/75
 */
 
 #include <stdio.h>

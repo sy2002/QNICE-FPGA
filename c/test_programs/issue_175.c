@@ -5,6 +5,9 @@
 //
 // However, when compiled with "qvc issue_175.c" the program incorrectly outputs
 // x=989, v=96
+//
+// Details:
+// https://github.com/sy2002/QNICE-FPGA/issues/175
 
 #include <stdio.h>
 

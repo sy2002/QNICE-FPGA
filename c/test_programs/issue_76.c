@@ -3,6 +3,9 @@
    Expected result:  r=565, res=190
 
    Fixed. So the expected result should be shown.
+
+   Details:
+   https://github.com/sy2002/QNICE-FPGA/issues/76
 */
 
 #include <stdio.h>

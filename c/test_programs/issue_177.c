@@ -1,6 +1,9 @@
 // This is a small test program to test Issue #177.
 // When compiled without optimization, it generates incorrect assembly.
 // When compiled with optimization, it generates correct assembly.
+//
+// Details:
+// https://github.com/sy2002/QNICE-FPGA/issues/177
 
 #include <sysdef.h>
 
