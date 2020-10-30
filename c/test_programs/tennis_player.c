@@ -5,7 +5,8 @@
 static int move_left;      // Current status of LEFT cursor key
 static int move_right;     // Current status of RIGHT cursor key
 
-t_vec player_position;     // Position of player
+t_vec player_position;
+t_vec player_velocity;
 
 
 /*
@@ -23,6 +24,9 @@ void player_init()
    player_position.x = 200*POS_SCALE;
    player_position.y = 480*POS_SCALE;
 
+   player_velocity.x = 0*VEL_SCALE;
+   player_velocity.y = 0*VEL_SCALE;
+
    move_left  = 0;
    move_right = 0;
 } // end of player_init
@@ -34,8 +38,8 @@ void player_init()
 void player_draw()
 {
    /*
-    * The player is shown as a semi cirle, and the variables pos_x and pos_y
-    * give the centre of this circle. However, sprite coordinates are the upper
+    * The player is shown as a semi cirle, and the variable player_position
+    * gives the centre of this circle. However, sprite coordinates are the upper
     * left corner of the sprite. Therefore, we have to adjust the coordinates
     * with the size of the sprite.
     */
@@ -67,21 +71,30 @@ int player_update()
 #endif
    }
 
-   /* Move player */
+   /* Calculate player velocity */
    if (move_right && !move_left)
+      player_velocity.x = PLAYER_SPEED*VEL_SCALE;
+   else if (!move_right && move_left)
+      player_velocity.x = -PLAYER_SPEED*VEL_SCALE;
+   else
+      player_velocity.x = 0;
+
+   /* Move player */
+   player_position.x += player_velocity.x / (VEL_SCALE/POS_SCALE);
+   player_position.y += player_velocity.y / (VEL_SCALE/POS_SCALE);
+
+   /* Handle collision with right side */
+//   if (player_position.x >= POS_SCALE * (BAR_LEFT - PLAYER_RADIUS))
+//      player_position.x = POS_SCALE * (BAR_LEFT - PLAYER_RADIUS);
+   if (player_position.x >= POS_SCALE * (SCREEN_RIGHT - PLAYER_RADIUS))
    {
-      player_position.x += PLAYER_SPEED * POS_SCALE;
-//      if (player_position.x >= POS_SCALE * (BAR_LEFT - PLAYER_RADIUS))
-//         player_position.x = POS_SCALE * (BAR_LEFT - PLAYER_RADIUS);
-      if (player_position.x >= POS_SCALE * (SCREEN_RIGHT - PLAYER_RADIUS))
-         player_position.x = POS_SCALE * (SCREEN_RIGHT - PLAYER_RADIUS);
+      player_position.x = POS_SCALE * (SCREEN_RIGHT - PLAYER_RADIUS);
    }
 
-   if (!move_right && move_left)
+   /* Handle collision with left side */
+   if (player_position.x < POS_SCALE * (SCREEN_LEFT + PLAYER_RADIUS))
    {
-      player_position.x -= PLAYER_SPEED * POS_SCALE;
-      if (player_position.x < POS_SCALE * (SCREEN_LEFT + PLAYER_RADIUS))
-         player_position.x = POS_SCALE * (SCREEN_LEFT + PLAYER_RADIUS);
+      player_position.x = POS_SCALE * (SCREEN_LEFT + PLAYER_RADIUS);
    }
 
    return 0;

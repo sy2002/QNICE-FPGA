@@ -1,6 +1,6 @@
 // A simple tennis-game
 //
-// Compile with "qvc tennis.c sprite.c conio.c tennis_player.c tennis_sprite.c tennis_ball.c"
+// Compile with "qvc tennis.c sprite.c conio.c tennis_player.c tennis_sprite.c tennis_ball.c -O3"
 // Use the arrow keys to move the player.
 // Press Q or <ESC> to quit the game.
 
@@ -22,12 +22,12 @@ const int SCREEN_LEFT   = 8;       // pixels
 const int SCREEN_RIGHT  = 632;     // pixels
 const int SCREEN_BOTTOM = 480;     // pixels
 const int SCREEN_TOP    = 12;      // pixels
-const int WHITE_SQUARE  = PAL_FG_YELLOW + PAL_BG_YELLOW + 0x20;  // palette and character
+const int WHITE_SQUARE  = PAL_FG_YELLOW + PAL_BG_YELLOW + ' ';  // palette and character
 const int BALL_RADIUS   = 8;       // pixels
-const int SPRITE_RADIUS = 16;       // pixels
+const int SPRITE_RADIUS = 16;      // pixels
 const int VEL_SCALE     = 512;
 const int POS_SCALE     = 32;
-const int GRAVITY       = 5;       // pixels/frame^2
+const int GRAVITY       = 12;      // pixels/frame^2
 
 
 /* Forward declarations */
@@ -37,7 +37,7 @@ int  player_update();
 
 void ball_init();
 void ball_draw();
-int ball_update();
+int  ball_update();
 
 /*
  * This function is called once at start of the program
@@ -96,8 +96,13 @@ static void game_draw()
  */
 static int game_update()
 {
-   ball_update();
-   return player_update();
+   if (player_update())
+      return 1;
+   if (ball_update())
+   {
+      ball_init();
+   }
+   return 0;
 } // end of game_update
 
 

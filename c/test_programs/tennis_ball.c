@@ -6,7 +6,8 @@
 static t_vec position;
 static t_vec velocity;
 
-extern t_vec player_position; // Position of player
+extern t_vec player_position; // Located in tennis_player.c
+
 
 /*
  * This function calculates (x*y)/z.
@@ -49,6 +50,16 @@ static int muldiv(long x, long y, long z)
    return res;
 } // end of muldiv
 
+
+/*
+ * Calculate the dot product of two vectors
+ */
+static long vector_dot(t_vec vec1, t_vec vec2)
+{
+   return qmon_muls(vec1.x, vec2.x) + qmon_muls(vec1.y, vec2.y);
+} // end of vector_dot
+
+
 /*
  * This function is written based on this article:
  * https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
@@ -58,10 +69,8 @@ static t_vec calcNewVelocity(t_vec pos1, t_vec pos2, t_vec vel1, t_vec vel2)
    t_vec delta_pos = {.x=pos1.x-pos2.x, .y=pos1.y-pos2.y};
    t_vec delta_vel = {.x=vel1.x-vel2.x, .y=vel1.y-vel2.y};
 
-   // Since the radius is at most 16, the total distance is at most 32. With a scaling factor of 32,
-   // the largest value of delta_pos.xy is 32*32 = 2^10. So the largest value of dpdp is 2^20.
-   long dpdv = qmon_muls(delta_pos.x,delta_vel.x) + qmon_muls(delta_pos.y,delta_vel.y);
-   long dpdp = qmon_muls(delta_pos.x,delta_pos.x) + qmon_muls(delta_pos.y,delta_pos.y);
+   long dpdv = vector_dot(delta_pos, delta_vel);
+   long dpdp = vector_dot(delta_pos, delta_pos);
 
    t_vec result = vel1;
    if (dpdv < 0)
@@ -77,24 +86,56 @@ static t_vec calcNewVelocity(t_vec pos1, t_vec pos2, t_vec vel1, t_vec vel2)
 } // end of calcNewVelocity
 
 
-static void collision_point(t_vec otherPos, int distance)
+/*
+ * This function handles collision between the ball and a moving circle.
+ */
+static void collision_circle(t_vec *pOtherPos, int otherRadius)
 {
-   t_vec delta_pos = {.x=otherPos.x-position.x, .y=otherPos.y-position.y};
+   // Construct vector from ball to other circle
+   t_vec vector_to_other = {.x=pOtherPos->x-position.x, .y=pOtherPos->y-position.y};
 
-   long x2 = qmon_muls(delta_pos.x, delta_pos.x);
-   long y2 = qmon_muls(delta_pos.y, delta_pos.y);
-   long r2 = qmon_muls(distance, distance);
-   const t_vec zero = {0, 0};
+   // Calculate current distance squared
+   long current_dist2 = vector_dot(vector_to_other, vector_to_other);
 
-   if (x2+y2 < r2)
+   // Calculate required distance
+   int required_distance = otherRadius + BALL_RADIUS*POS_SCALE;
+
+   // Calculate required distance squared
+   long required_dist2 = qmon_muls(required_distance, required_distance);
+
+   // Check whether a collision has actually occurred
+   if (current_dist2 < required_dist2)
    {
-      velocity = calcNewVelocity(
-            position,
-            otherPos,
-            velocity,
-            zero);
+      // Update position of ball. This is done by the formula
+      //   delta_pos = (required_distance - current_distance) / current_distance * vector_to_other
+      // But calculating the current_distance involves a square root, so instead
+      // we use the following approximate formula
+      //   delta_pos = (required_distance^2 - current_distance^2) / (2*required_distance^2) * vector_to_other
+      long dividend = required_dist2 - current_dist2;
+      long divisor = 2*required_dist2;
+
+      // If the other object is a circle, move both objects an equal amount
+      if (otherRadius)
+      {
+         int dx = muldiv(dividend, vector_to_other.x, divisor);
+         int dy = muldiv(dividend, vector_to_other.y, divisor);
+
+         position.x -= dx/2;
+         position.y -= dy/2;
+
+         pOtherPos->x += dx/2;
+         pOtherPos->y += dy/2;
+      }
+      else // if the other object is a point, move only the ball
+      {
+         position.x -= muldiv(dividend, vector_to_other.x, divisor);
+         position.y -= muldiv(dividend, vector_to_other.y, divisor);
+      }
+
+      const t_vec zero_velocity = {0, 0};
+      velocity = calcNewVelocity(position, *pOtherPos, velocity, zero_velocity);
    }
-} // end of collision_point
+} // end of collision_circle
 
 
 /*
@@ -109,7 +150,7 @@ void ball_init()
    sprite_set_bitmap(1, sprite_ball);
    sprite_set_config(1, VGA_SPRITE_CSR_VISIBLE);
 
-   position.x = 218*POS_SCALE;
+   position.x = 198*POS_SCALE;
    position.y = 180*POS_SCALE;
 
    velocity.x = 0*VEL_SCALE;
@@ -141,6 +182,12 @@ int ball_update()
 {
    position.x += velocity.x / (VEL_SCALE/POS_SCALE);
    position.y += velocity.y / (VEL_SCALE/POS_SCALE);
+
+   /* Ball fell out of bottom of screen */
+   if (position.y > POS_SCALE*(SCREEN_BOTTOM+BALL_RADIUS))
+   {
+      return 1;
+   }
 
    /* Collision against left wall */
    if (position.x < POS_SCALE*(SCREEN_LEFT+BALL_RADIUS))
@@ -214,15 +261,15 @@ int ball_update()
       }
    }
 
-   /* Collision against player */
-   collision_point(player_position, (PLAYER_RADIUS+BALL_RADIUS)*POS_SCALE);
+   t_vec barTopLeft  = {BAR_LEFT*POS_SCALE,  BAR_TOP*POS_SCALE};
+   t_vec barTopRight = {BAR_RIGHT*POS_SCALE, BAR_TOP*POS_SCALE};
 
-   const t_vec barTopLeft  = {BAR_LEFT*POS_SCALE,  BAR_TOP*POS_SCALE};
-   const t_vec barTopRight = {BAR_RIGHT*POS_SCALE, BAR_TOP*POS_SCALE};
+   /* Collision against player */
+   collision_circle(&player_position, PLAYER_RADIUS*POS_SCALE);
 
    /* Collision against barrier corners */
-   collision_point(barTopLeft,  BALL_RADIUS * POS_SCALE);
-   collision_point(barTopRight, BALL_RADIUS * POS_SCALE);
+   collision_circle(&barTopLeft,  0);
+   collision_circle(&barTopRight, 0);
 
    velocity.y += GRAVITY;
 
