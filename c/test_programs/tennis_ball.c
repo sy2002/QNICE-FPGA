@@ -3,10 +3,11 @@
 
 /* Game variables are declared here */
 
-static t_vec position;
-static t_vec velocity;
+t_vec ball_position;
+t_vec ball_velocity;
 
 extern t_vec player_position; // Located in tennis_player.c
+extern t_vec bot_position;    // Located in tennis_bot.c
 
 
 /*
@@ -92,7 +93,7 @@ static t_vec calcNewVelocity(t_vec pos1, t_vec pos2, t_vec vel1, t_vec vel2)
 static void collision_circle(t_vec *pOtherPos, int otherRadius)
 {
    // Construct vector from ball to other circle
-   t_vec vector_to_other = {.x=pOtherPos->x-position.x, .y=pOtherPos->y-position.y};
+   t_vec vector_to_other = {.x=pOtherPos->x-ball_position.x, .y=pOtherPos->y-ball_position.y};
 
    // Calculate current distance squared
    long current_dist2 = vector_dot(vector_to_other, vector_to_other);
@@ -114,26 +115,25 @@ static void collision_circle(t_vec *pOtherPos, int otherRadius)
       long dividend = required_dist2 - current_dist2;
       long divisor = 2*required_dist2;
 
-      // If the other object is a circle, move both objects an equal amount
+      int dx = muldiv(dividend, vector_to_other.x, divisor);
+      int dy = muldiv(dividend, vector_to_other.y, divisor);
+
+      // If the other object is a circle, move both objects an equal amount in the X-direction
       if (otherRadius)
       {
-         int dx = muldiv(dividend, vector_to_other.x, divisor);
-         int dy = muldiv(dividend, vector_to_other.y, divisor);
-
-         position.x -= dx/2;
-         position.y -= dy/2;
-
+         ball_position.x -= dx/2;
          pOtherPos->x += dx/2;
-         pOtherPos->y += dy/2;
+
+         ball_position.y -= dy;
       }
       else // if the other object is a point, move only the ball
       {
-         position.x -= muldiv(dividend, vector_to_other.x, divisor);
-         position.y -= muldiv(dividend, vector_to_other.y, divisor);
+         ball_position.x -= dx;
+         ball_position.y -= dy;
       }
 
       const t_vec zero_velocity = {0, 0};
-      velocity = calcNewVelocity(position, *pOtherPos, velocity, zero_velocity);
+      ball_velocity = calcNewVelocity(ball_position, *pOtherPos, ball_velocity, zero_velocity);
    }
 } // end of collision_circle
 
@@ -150,11 +150,11 @@ void ball_init()
    sprite_set_bitmap(1, sprite_ball);
    sprite_set_config(1, VGA_SPRITE_CSR_VISIBLE);
 
-   position.x = 198*POS_SCALE;
-   position.y = 180*POS_SCALE;
+   ball_position.x = 198*POS_SCALE;
+   ball_position.y = 180*POS_SCALE;
 
-   velocity.x = 0*VEL_SCALE;
-   velocity.y = 0*VEL_SCALE;
+   ball_velocity.x = 0*VEL_SCALE;
+   ball_velocity.y = 0*VEL_SCALE;
 } // end of player_init
 
 
@@ -170,8 +170,8 @@ void ball_draw()
     * with the size of the sprite.
     */
    sprite_set_position(1,
-         position.x/POS_SCALE-SPRITE_RADIUS,
-         position.y/POS_SCALE-SPRITE_RADIUS);
+         ball_position.x/POS_SCALE-SPRITE_RADIUS,
+         ball_position.y/POS_SCALE-SPRITE_RADIUS);
 } // end of ball_draw
 
 
@@ -180,84 +180,84 @@ void ball_draw()
  */
 int ball_update()
 {
-   position.x += velocity.x / (VEL_SCALE/POS_SCALE);
-   position.y += velocity.y / (VEL_SCALE/POS_SCALE);
+   ball_position.x += ball_velocity.x / (VEL_SCALE/POS_SCALE);
+   ball_position.y += ball_velocity.y / (VEL_SCALE/POS_SCALE);
 
    /* Ball fell out of bottom of screen */
-   if (position.y > POS_SCALE*(SCREEN_BOTTOM+BALL_RADIUS))
+   if (ball_position.y > POS_SCALE*(SCREEN_BOTTOM+BALL_RADIUS))
    {
       return 1;
    }
 
    /* Collision against left wall */
-   if (position.x < POS_SCALE*(SCREEN_LEFT+BALL_RADIUS))
+   if (ball_position.x < POS_SCALE*(SCREEN_LEFT+BALL_RADIUS))
    {
-      position.x = POS_SCALE*(SCREEN_LEFT+BALL_RADIUS);
+      ball_position.x = POS_SCALE*(SCREEN_LEFT+BALL_RADIUS);
 
-      if (velocity.x < 0)
+      if (ball_velocity.x < 0)
       {
-         velocity.x = -velocity.x;
+         ball_velocity.x = -ball_velocity.x;
       }
    }
 
    /* Collision against right wall */
-   if (position.x > POS_SCALE*(SCREEN_RIGHT-BALL_RADIUS))
+   if (ball_position.x > POS_SCALE*(SCREEN_RIGHT-BALL_RADIUS))
    {
-      position.x = POS_SCALE*(SCREEN_RIGHT-BALL_RADIUS);
+      ball_position.x = POS_SCALE*(SCREEN_RIGHT-BALL_RADIUS);
 
-      if (velocity.x > 0)
+      if (ball_velocity.x > 0)
       {
-         velocity.x = -velocity.x;
+         ball_velocity.x = -ball_velocity.x;
       }
    }
 
    /* Collision against top wall */
-   if (position.y < POS_SCALE*(SCREEN_TOP+BALL_RADIUS))
+   if (ball_position.y < POS_SCALE*(SCREEN_TOP+BALL_RADIUS))
    {
-      position.y = POS_SCALE*(SCREEN_TOP+BALL_RADIUS);
+      ball_position.y = POS_SCALE*(SCREEN_TOP+BALL_RADIUS);
 
-      if (velocity.y < 0)
+      if (ball_velocity.y < 0)
       {
-         velocity.y = -velocity.y;
+         ball_velocity.y = -ball_velocity.y;
       }
    }
 
    /* Collision against left side of barrier */
-   if (position.x > POS_SCALE*(BAR_LEFT-BALL_RADIUS) && 
-       position.x < POS_SCALE*BAR_MIDDLE &&
-       position.y > POS_SCALE*BAR_TOP)
+   if (ball_position.x > POS_SCALE*(BAR_LEFT-BALL_RADIUS) &&
+       ball_position.x < POS_SCALE*BAR_MIDDLE &&
+       ball_position.y > POS_SCALE*BAR_TOP)
    {
-      position.x = POS_SCALE*(BAR_LEFT-BALL_RADIUS);
+      ball_position.x = POS_SCALE*(BAR_LEFT-BALL_RADIUS);
 
-      if (velocity.x > 0)
+      if (ball_velocity.x > 0)
       {
-         velocity.x = -velocity.x;
+         ball_velocity.x = -ball_velocity.x;
       }
    }
 
    /* Collision against right side of barrier */
-   if (position.x > POS_SCALE*BAR_MIDDLE &&
-       position.x < POS_SCALE*(BAR_RIGHT+BALL_RADIUS) &&
-       position.y > POS_SCALE*BAR_TOP)
+   if (ball_position.x > POS_SCALE*BAR_MIDDLE &&
+       ball_position.x < POS_SCALE*(BAR_RIGHT+BALL_RADIUS) &&
+       ball_position.y > POS_SCALE*BAR_TOP)
    {
-      position.x = POS_SCALE*(BAR_RIGHT+BALL_RADIUS);
+      ball_position.x = POS_SCALE*(BAR_RIGHT+BALL_RADIUS);
 
-      if (velocity.x < 0)
+      if (ball_velocity.x < 0)
       {
-         velocity.x = -velocity.x;
+         ball_velocity.x = -ball_velocity.x;
       }
    }
 
    /* Collision against top side of barrier */
-   if (position.y > POS_SCALE*(BAR_TOP-BALL_RADIUS) &&
-       position.x > POS_SCALE*BAR_LEFT &&
-       position.x < POS_SCALE*BAR_RIGHT)
+   if (ball_position.y > POS_SCALE*(BAR_TOP-BALL_RADIUS) &&
+       ball_position.x > POS_SCALE*BAR_LEFT &&
+       ball_position.x < POS_SCALE*BAR_RIGHT)
    {
-      position.y = POS_SCALE*(BAR_TOP-BALL_RADIUS);
+      ball_position.y = POS_SCALE*(BAR_TOP-BALL_RADIUS);
 
-      if (velocity.y > 0)
+      if (ball_velocity.y > 0)
       {
-         velocity.y = -velocity.y;
+         ball_velocity.y = -ball_velocity.y;
       }
    }
 
@@ -266,12 +266,17 @@ int ball_update()
 
    /* Collision against player */
    collision_circle(&player_position, PLAYER_RADIUS*POS_SCALE);
+   player_position.y = 480*POS_SCALE;
+
+   /* Collision against bot */
+   collision_circle(&bot_position, BOT_RADIUS*POS_SCALE);
+   bot_position.y = 480*POS_SCALE;
 
    /* Collision against barrier corners */
    collision_circle(&barTopLeft,  0);
    collision_circle(&barTopRight, 0);
 
-   velocity.y += GRAVITY;
+   ball_velocity.y += GRAVITY;
 
    return 0;
 } // end of ball_update

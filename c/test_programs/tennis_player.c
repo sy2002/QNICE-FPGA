@@ -84,11 +84,9 @@ int player_update()
    player_position.y += player_velocity.y / (VEL_SCALE/POS_SCALE);
 
    /* Handle collision with right side */
-//   if (player_position.x >= POS_SCALE * (BAR_LEFT - PLAYER_RADIUS))
-//      player_position.x = POS_SCALE * (BAR_LEFT - PLAYER_RADIUS);
-   if (player_position.x >= POS_SCALE * (SCREEN_RIGHT - PLAYER_RADIUS))
+   if (player_position.x >= POS_SCALE * (BAR_LEFT - PLAYER_RADIUS))
    {
-      player_position.x = POS_SCALE * (SCREEN_RIGHT - PLAYER_RADIUS);
+      player_position.x = POS_SCALE * (BAR_LEFT - PLAYER_RADIUS);
    }
 
    /* Handle collision with left side */

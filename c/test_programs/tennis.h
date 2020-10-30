@@ -38,6 +38,8 @@ extern const int SPRITE_RADIUS;
 extern const int VEL_SCALE;
 extern const int POS_SCALE;
 extern const int GRAVITY;
+extern const int BOT_SPEED;
+extern const int BOT_RADIUS;
 
 typedef struct
 {

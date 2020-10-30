@@ -1,6 +1,6 @@
 // A simple tennis-game
 //
-// Compile with "qvc tennis.c sprite.c conio.c tennis_player.c tennis_sprite.c tennis_ball.c -O3"
+// Compile with "qvc tennis.c sprite.c conio.c tennis_player.c tennis_sprite.c tennis_ball.c tennis_bot.c -O3"
 // Use the arrow keys to move the player.
 // Press Q or <ESC> to quit the game.
 
@@ -28,6 +28,8 @@ const int SPRITE_RADIUS = 16;      // pixels
 const int VEL_SCALE     = 512;
 const int POS_SCALE     = 32;
 const int GRAVITY       = 12;      // pixels/frame^2
+const int BOT_SPEED     = 2;       // pixels/frame
+const int BOT_RADIUS    = 16;      // pixels
 
 
 /* Forward declarations */
@@ -38,6 +40,10 @@ int  player_update();
 void ball_init();
 void ball_draw();
 int  ball_update();
+
+void bot_init();
+void bot_draw();
+void bot_update();
 
 /*
  * This function is called once at start of the program
@@ -51,6 +57,7 @@ static void game_init()
 
    player_init();
    ball_init();
+   bot_init();
 
    /* Draw playing field */
    for (int x=0; x<SCREEN_WIDTH; ++x)
@@ -88,6 +95,7 @@ static void game_draw()
 {
    player_draw();
    ball_draw();
+   bot_draw();
 } // end of game_draw
 
 
@@ -96,11 +104,15 @@ static void game_draw()
  */
 static int game_update()
 {
+   bot_update();
    if (player_update())
       return 1;
    if (ball_update())
    {
-      ball_init();
+      ball_position.y = 180*POS_SCALE;
+
+      ball_velocity.x = 0*VEL_SCALE;
+      ball_velocity.y = 0*VEL_SCALE;
    }
    return 0;
 } // end of game_update
