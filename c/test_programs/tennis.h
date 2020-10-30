@@ -41,6 +41,14 @@ extern const int GRAVITY;
 extern const int BOT_SPEED;
 extern const int BOT_RADIUS;
 
+enum
+{
+   SCORE_PLAYER_HIT = 1,
+   SCORE_PLAYER_LOSE,
+   SCORE_BOT_HIT,
+   SCORE_BOT_LOSE,
+};
+
 typedef struct
 {
    int x;

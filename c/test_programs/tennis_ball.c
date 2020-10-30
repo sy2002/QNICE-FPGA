@@ -9,6 +9,7 @@ t_vec ball_velocity;
 extern t_vec player_position; // Located in tennis_player.c
 extern t_vec bot_position;    // Located in tennis_bot.c
 
+void score_update();
 
 /*
  * This function calculates (x*y)/z.
@@ -203,6 +204,14 @@ int ball_update()
    /* Ball fell out of bottom of screen */
    if (ball_position.y > POS_SCALE*(SCREEN_BOTTOM+BALL_RADIUS))
    {
+      if (ball_position.x > POS_SCALE * BAR_MIDDLE)
+      {
+         score_update(SCORE_BOT_LOSE);
+      }
+      else
+      {
+         score_update(SCORE_PLAYER_LOSE);
+      }
       return 1;
    }
 
@@ -288,12 +297,20 @@ int ball_update()
    t_vec barTopRight = {BAR_RIGHT*POS_SCALE, BAR_TOP*POS_SCALE};
 
    /* Collision against player */
-   collision += collision_circle(&player_position, PLAYER_RADIUS*POS_SCALE);
-   player_position.y = 480*POS_SCALE;
+   if (collision_circle(&player_position, PLAYER_RADIUS*POS_SCALE))
+   {
+      collision = 1;
+      player_position.y = 480*POS_SCALE;
+      score_update(SCORE_PLAYER_HIT);
+   }
 
    /* Collision against bot */
-   collision += collision_circle(&bot_position, BOT_RADIUS*POS_SCALE);
-   bot_position.y = 480*POS_SCALE;
+   if (collision_circle(&bot_position, BOT_RADIUS*POS_SCALE))
+   {
+      collision = 1;
+      bot_position.y = 480*POS_SCALE;
+      score_update(SCORE_BOT_HIT);
+   }
 
    /* Collision against barrier corners */
    collision += collision_circle(&barTopLeft,  0);

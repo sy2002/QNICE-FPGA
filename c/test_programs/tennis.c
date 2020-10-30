@@ -1,6 +1,6 @@
 // A simple tennis-game
 //
-// Compile with "qvc tennis.c sprite.c conio.c tennis_player.c tennis_sprite.c tennis_ball.c tennis_bot.c -O3"
+// Compile with "qvc tennis.c sprite.c conio.c tennis_player.c tennis_sprite.c tennis_ball.c tennis_bot.c tennis_score.c -O3"
 // Use the arrow keys to move the player.
 // Press Q or <ESC> to quit the game.
 
@@ -46,6 +46,9 @@ void bot_init();
 void bot_draw();
 void bot_update();
 
+void score_init();
+void score_draw();
+
 /*
  * This function is called once at start of the program
  */
@@ -60,6 +63,7 @@ static void game_init()
    player_init();
    ball_init();
    bot_init();
+   score_init();
 
    /* Draw playing field */
    for (int x=0; x<SCREEN_WIDTH; ++x)
@@ -98,6 +102,7 @@ static void game_draw()
    player_draw();
    ball_draw();
    bot_draw();
+   score_draw();
 } // end of game_draw
 
 
