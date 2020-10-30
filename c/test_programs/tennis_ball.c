@@ -109,11 +109,11 @@ void ball_init()
    sprite_set_bitmap(1, sprite_ball);
    sprite_set_config(1, VGA_SPRITE_CSR_VISIBLE);
 
-   position.x = 200*POS_SCALE;
+   position.x = 218*POS_SCALE;
    position.y = 180*POS_SCALE;
 
-   velocity.x = 1*VEL_SCALE;
-   velocity.y = -1*VEL_SCALE;
+   velocity.x = 0*VEL_SCALE;
+   velocity.y = 0*VEL_SCALE;
 } // end of player_init
 
 
@@ -178,8 +178,7 @@ int ball_update()
    /* Collision against left side of barrier */
    if (position.x > POS_SCALE*(BAR_LEFT-BALL_RADIUS) && 
        position.x < POS_SCALE*BAR_MIDDLE &&
-       position.y > POS_SCALE*(BAR_TOP-BALL_RADIUS)
-       )
+       position.y > POS_SCALE*BAR_TOP)
    {
       position.x = POS_SCALE*(BAR_LEFT-BALL_RADIUS);
 
@@ -192,7 +191,7 @@ int ball_update()
    /* Collision against right side of barrier */
    if (position.x > POS_SCALE*BAR_MIDDLE &&
        position.x < POS_SCALE*(BAR_RIGHT+BALL_RADIUS) &&
-       position.y > POS_SCALE*(BAR_TOP-BALL_RADIUS))
+       position.y > POS_SCALE*BAR_TOP)
    {
       position.x = POS_SCALE*(BAR_RIGHT+BALL_RADIUS);
 
@@ -204,8 +203,8 @@ int ball_update()
 
    /* Collision against top side of barrier */
    if (position.y > POS_SCALE*(BAR_TOP-BALL_RADIUS) &&
-       position.x > POS_SCALE*(BAR_LEFT-BALL_RADIUS) &&
-       position.x < POS_SCALE*(BAR_RIGHT+BALL_RADIUS))
+       position.x > POS_SCALE*BAR_LEFT &&
+       position.x < POS_SCALE*BAR_RIGHT)
    {
       position.y = POS_SCALE*(BAR_TOP-BALL_RADIUS);
 
@@ -218,16 +217,14 @@ int ball_update()
    /* Collision against player */
    collision_point(player_position, (PLAYER_RADIUS+BALL_RADIUS)*POS_SCALE);
 
-#if 0
-   const t_vec barTopLeft  = {BAR_LEFT, BAR_TOP};
-   const t_vec barTopRight = {BAR_RIGHT, BAR_TOP};
+   const t_vec barTopLeft  = {BAR_LEFT*POS_SCALE,  BAR_TOP*POS_SCALE};
+   const t_vec barTopRight = {BAR_RIGHT*POS_SCALE, BAR_TOP*POS_SCALE};
 
    /* Collision against barrier corners */
-   collision_point(barTopLeft, BALL_RADIUS);
-   collision_point(barTopRight, BALL_RADIUS);
+   collision_point(barTopLeft,  BALL_RADIUS * POS_SCALE);
+   collision_point(barTopRight, BALL_RADIUS * POS_SCALE);
 
    velocity.y += GRAVITY;
-#endif
 
    return 0;
 } // end of ball_update
