@@ -90,7 +90,7 @@ static t_vec calcNewVelocity(t_vec pos1, t_vec pos2, t_vec vel1, t_vec vel2)
 /*
  * This function handles collision between the ball and a moving circle.
  */
-static void collision_circle(t_vec *pOtherPos, int otherRadius)
+static int collision_circle(t_vec *pOtherPos, int otherRadius)
 {
    // Construct vector from ball to other circle
    t_vec vector_to_other = {.x=pOtherPos->x-ball_position.x, .y=pOtherPos->y-ball_position.y};
@@ -134,7 +134,10 @@ static void collision_circle(t_vec *pOtherPos, int otherRadius)
 
       const t_vec zero_velocity = {0, 0};
       ball_velocity = calcNewVelocity(ball_position, *pOtherPos, ball_velocity, zero_velocity);
+
+      return 1;
    }
+   return 0;
 } // end of collision_circle
 
 
@@ -155,7 +158,19 @@ void ball_init()
 
    ball_velocity.x = 0*VEL_SCALE;
    ball_velocity.y = 0*VEL_SCALE;
-} // end of player_init
+} // end of ball_init
+
+
+/*
+ * This function is called every time a ball is lost
+ */
+void ball_reset()
+{
+   ball_position.y = 180*POS_SCALE;
+
+   ball_velocity.x = 0*VEL_SCALE;
+   ball_velocity.y = 0*VEL_SCALE;
+} // end of ball_reset
 
 
 /*
@@ -180,6 +195,8 @@ void ball_draw()
  */
 int ball_update()
 {
+   int collision = 0;
+
    ball_position.x += ball_velocity.x / (VEL_SCALE/POS_SCALE);
    ball_position.y += ball_velocity.y / (VEL_SCALE/POS_SCALE);
 
@@ -192,6 +209,7 @@ int ball_update()
    /* Collision against left wall */
    if (ball_position.x < POS_SCALE*(SCREEN_LEFT+BALL_RADIUS))
    {
+      collision = 1;
       ball_position.x = POS_SCALE*(SCREEN_LEFT+BALL_RADIUS);
 
       if (ball_velocity.x < 0)
@@ -203,6 +221,7 @@ int ball_update()
    /* Collision against right wall */
    if (ball_position.x > POS_SCALE*(SCREEN_RIGHT-BALL_RADIUS))
    {
+      collision = 1;
       ball_position.x = POS_SCALE*(SCREEN_RIGHT-BALL_RADIUS);
 
       if (ball_velocity.x > 0)
@@ -214,6 +233,7 @@ int ball_update()
    /* Collision against top wall */
    if (ball_position.y < POS_SCALE*(SCREEN_TOP+BALL_RADIUS))
    {
+      collision = 1;
       ball_position.y = POS_SCALE*(SCREEN_TOP+BALL_RADIUS);
 
       if (ball_velocity.y < 0)
@@ -227,6 +247,7 @@ int ball_update()
        ball_position.x < POS_SCALE*BAR_MIDDLE &&
        ball_position.y > POS_SCALE*BAR_TOP)
    {
+      collision = 1;
       ball_position.x = POS_SCALE*(BAR_LEFT-BALL_RADIUS);
 
       if (ball_velocity.x > 0)
@@ -240,6 +261,7 @@ int ball_update()
        ball_position.x < POS_SCALE*(BAR_RIGHT+BALL_RADIUS) &&
        ball_position.y > POS_SCALE*BAR_TOP)
    {
+      collision = 1;
       ball_position.x = POS_SCALE*(BAR_RIGHT+BALL_RADIUS);
 
       if (ball_velocity.x < 0)
@@ -253,6 +275,7 @@ int ball_update()
        ball_position.x > POS_SCALE*BAR_LEFT &&
        ball_position.x < POS_SCALE*BAR_RIGHT)
    {
+      collision = 1;
       ball_position.y = POS_SCALE*(BAR_TOP-BALL_RADIUS);
 
       if (ball_velocity.y > 0)
@@ -265,16 +288,33 @@ int ball_update()
    t_vec barTopRight = {BAR_RIGHT*POS_SCALE, BAR_TOP*POS_SCALE};
 
    /* Collision against player */
-   collision_circle(&player_position, PLAYER_RADIUS*POS_SCALE);
+   collision += collision_circle(&player_position, PLAYER_RADIUS*POS_SCALE);
    player_position.y = 480*POS_SCALE;
 
    /* Collision against bot */
-   collision_circle(&bot_position, BOT_RADIUS*POS_SCALE);
+   collision += collision_circle(&bot_position, BOT_RADIUS*POS_SCALE);
    bot_position.y = 480*POS_SCALE;
 
    /* Collision against barrier corners */
-   collision_circle(&barTopLeft,  0);
-   collision_circle(&barTopRight, 0);
+   collision += collision_circle(&barTopLeft,  0);
+   collision += collision_circle(&barTopRight, 0);
+
+   // Add a small random perturbation, such that the magnitude of the velocity
+   // increases slightly after each collision.
+   if (collision)
+   {
+      int dvx = qmon_rand() % (VEL_SCALE/40);
+      int dvy = qmon_rand() % (VEL_SCALE/40);
+      if (ball_velocity.x > 0)
+         ball_velocity.x += dvx;
+      else
+         ball_velocity.x -= dvx;
+
+      if (ball_velocity.y > 0)
+         ball_velocity.y += dvy;
+      else
+         ball_velocity.y -= dvy;
+   }
 
    ball_velocity.y += GRAVITY;
 

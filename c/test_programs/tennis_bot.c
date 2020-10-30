@@ -51,7 +51,8 @@ int prevent_possible_compiler_bug = 0;
  */
 void bot_update()
 {
-   /* Aimly slight to the right of the ball */
+   /* Aimly slight to the right of the ball, so that a collision will tend to
+    * push the ball towards the player */
    int target_x = ball_position.x + 3*POS_SCALE;
 
    /* Calculate distance to target */

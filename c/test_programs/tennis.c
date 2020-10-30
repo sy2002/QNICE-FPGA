@@ -38,6 +38,7 @@ void player_draw();
 int  player_update();
 
 void ball_init();
+void ball_reset();
 void ball_draw();
 int  ball_update();
 
@@ -54,6 +55,7 @@ static void game_init()
    MMIO(VGA_STATE) |= VGA_EN_SPRITE;      // enable sprites
    qmon_vga_cls();                        // clear screen
    sprite_clear_all();                    // clear any previous sprites
+   qmon_srand(1);                         // Initialize random number
 
    player_init();
    ball_init();
@@ -109,10 +111,7 @@ static int game_update()
       return 1;
    if (ball_update())
    {
-      ball_position.y = 180*POS_SCALE;
-
-      ball_velocity.x = 0*VEL_SCALE;
-      ball_velocity.y = 0*VEL_SCALE;
+      ball_reset();
    }
    return 0;
 } // end of game_update
