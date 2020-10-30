@@ -112,7 +112,7 @@ void ball_init()
    position.x = 200*POS_SCALE;
    position.y = 180*POS_SCALE;
 
-   velocity.x = 2*VEL_SCALE;
+   velocity.x = 1*VEL_SCALE;
    velocity.y = -1*VEL_SCALE;
 } // end of player_init
 
@@ -215,6 +215,9 @@ int ball_update()
       }
    }
 
+   /* Collision against player */
+   collision_point(player_position, (PLAYER_RADIUS+BALL_RADIUS)*POS_SCALE);
+
 #if 0
    const t_vec barTopLeft  = {BAR_LEFT, BAR_TOP};
    const t_vec barTopRight = {BAR_RIGHT, BAR_TOP};
@@ -222,9 +225,6 @@ int ball_update()
    /* Collision against barrier corners */
    collision_point(barTopLeft, BALL_RADIUS);
    collision_point(barTopRight, BALL_RADIUS);
-
-   /* Collision against player */
-   collision_point(player_position, PLAYER_RADIUS+BALL_RADIUS);
 
    velocity.y += GRAVITY;
 #endif

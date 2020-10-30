@@ -2,10 +2,10 @@
 
 /* Game variables are declared here */
 
-static int move_left  = 0;    // Current status of LEFT cursor key
-static int move_right = 0;    // Current status of RIGHT cursor key
+static int move_left;      // Current status of LEFT cursor key
+static int move_right;     // Current status of RIGHT cursor key
 
-t_vec player_position = {200, 480}; // Initial position of player
+t_vec player_position;     // Position of player
 
 
 /*
@@ -19,6 +19,12 @@ void player_init()
    sprite_set_palette(0, palette);
    sprite_set_bitmap(0, sprite_player);
    sprite_set_config(0, VGA_SPRITE_CSR_VISIBLE);
+
+   player_position.x = 200*POS_SCALE;
+   player_position.y = 480*POS_SCALE;
+
+   move_left  = 0;
+   move_right = 0;
 } // end of player_init
 
 
@@ -33,7 +39,9 @@ void player_draw()
     * left corner of the sprite. Therefore, we have to adjust the coordinates
     * with the size of the sprite.
     */
-   sprite_set_position(0, player_position.x-SPRITE_RADIUS, player_position.y-SPRITE_RADIUS);
+   sprite_set_position(0,
+         player_position.x/POS_SCALE-SPRITE_RADIUS,
+         player_position.y/POS_SCALE-SPRITE_RADIUS);
 } // end of player_draw
 
 
@@ -62,18 +70,18 @@ int player_update()
    /* Move player */
    if (move_right && !move_left)
    {
-      player_position.x += PLAYER_SPEED;
-//      if (player_position.x >= BAR_LEFT - PLAYER_RADIUS)
-//         player_position.x = BAR_LEFT - PLAYER_RADIUS;
-      if (player_position.x >= SCREEN_RIGHT - PLAYER_RADIUS)
-         player_position.x = SCREEN_RIGHT - PLAYER_RADIUS;
+      player_position.x += PLAYER_SPEED * POS_SCALE;
+//      if (player_position.x >= POS_SCALE * (BAR_LEFT - PLAYER_RADIUS))
+//         player_position.x = POS_SCALE * (BAR_LEFT - PLAYER_RADIUS);
+      if (player_position.x >= POS_SCALE * (SCREEN_RIGHT - PLAYER_RADIUS))
+         player_position.x = POS_SCALE * (SCREEN_RIGHT - PLAYER_RADIUS);
    }
 
    if (!move_right && move_left)
    {
-      player_position.x -= PLAYER_SPEED;
-      if (player_position.x < SCREEN_LEFT + PLAYER_RADIUS)
-         player_position.x = SCREEN_LEFT + PLAYER_RADIUS;
+      player_position.x -= PLAYER_SPEED * POS_SCALE;
+      if (player_position.x < POS_SCALE * (SCREEN_LEFT + PLAYER_RADIUS))
+         player_position.x = POS_SCALE * (SCREEN_LEFT + PLAYER_RADIUS);
    }
 
    return 0;
