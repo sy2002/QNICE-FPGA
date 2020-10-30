@@ -10,7 +10,6 @@
 #include <stdio.h>
 
 #include "qmon.h"
-#include "sysdef.h"
 #include "sprite.h"
 #include "images.h"
 #include "stat.h"
@@ -79,24 +78,6 @@ static void init_all_sprites()
    }
 } // init_all_sprites
 
-// This is an optimized multiply routine.
-// It takes two 16-bit signed inputs and returns a 32-bit signed output.
-static long muls(int arg1, int arg2)
-{
-   // Using a union is much faster than performing explicit shifts.
-   union {
-      long l;
-      int  i[2];
-   } u;
-
-   MMIO(IO_EAE_OPERAND_0) = arg1;
-   MMIO(IO_EAE_OPERAND_1) = arg2;
-   MMIO(IO_EAE_CSR)       = EAE_MULS;
-   u.i[0] = MMIO(IO_EAE_RESULT_LO); // This implicitly assumes little-endian.
-   u.i[1] = MMIO(IO_EAE_RESULT_HI);
-   return u.l;
-}
-
 // This function calculates (x*y)/z
 static int muldiv(long x, long y, long z)
 {
@@ -145,8 +126,8 @@ static t_vec calcNewVelocity(int mass1, int mass2, t_vec pos1, t_vec pos2, t_vec
 
    // Since the radius is at most 16, the total distance is at most 32. With a scaling factor of 32,
    // the largest value of delta_pos.xy is 32*32 = 2^10. So the largest value of dpdp is 2^20.
-   long dpdv = muls(delta_pos.x,delta_vel.x) + muls(delta_pos.y,delta_vel.y);
-   long dpdp = muls(delta_pos.x,delta_pos.x) + muls(delta_pos.y,delta_pos.y);
+   long dpdv = qmon_muls(delta_pos.x,delta_vel.x) + qmon_muls(delta_pos.y,delta_vel.y);
+   long dpdp = qmon_muls(delta_pos.x,delta_pos.x) + qmon_muls(delta_pos.y,delta_pos.y);
 
    t_vec result = vel1;
    if (dpdv < 0)
@@ -204,9 +185,9 @@ static void update()
 
          int sum_r_scaled = pBall->radius_scaled + pOtherBall->radius_scaled;
 
-         long x2 = muls(diff_pos_scaled.x,diff_pos_scaled.x);
-         long y2 = muls(diff_pos_scaled.y,diff_pos_scaled.y);
-         long r2 = muls(sum_r_scaled,sum_r_scaled);
+         long x2 = qmon_muls(diff_pos_scaled.x,diff_pos_scaled.x);
+         long y2 = qmon_muls(diff_pos_scaled.y,diff_pos_scaled.y);
+         long r2 = qmon_muls(sum_r_scaled,sum_r_scaled);
 
          if (x2+y2 < r2)
          {
