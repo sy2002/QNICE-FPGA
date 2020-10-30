@@ -33,7 +33,7 @@ void player_draw()
     * left corner of the sprite. Therefore, we have to adjust the coordinates
     * with the size of the sprite.
     */
-   sprite_set_position(0, player_position.x-PLAYER_RADIUS, player_position.y-PLAYER_RADIUS);
+   sprite_set_position(0, player_position.x-SPRITE_RADIUS, player_position.y-SPRITE_RADIUS);
 } // end of player_draw
 
 
@@ -63,8 +63,10 @@ int player_update()
    if (move_right && !move_left)
    {
       player_position.x += PLAYER_SPEED;
-      if (player_position.x >= BAR_LEFT - PLAYER_RADIUS)
-         player_position.x = BAR_LEFT - PLAYER_RADIUS;
+//      if (player_position.x >= BAR_LEFT - PLAYER_RADIUS)
+//         player_position.x = BAR_LEFT - PLAYER_RADIUS;
+      if (player_position.x >= SCREEN_RIGHT - PLAYER_RADIUS)
+         player_position.x = SCREEN_RIGHT - PLAYER_RADIUS;
    }
 
    if (!move_right && move_left)

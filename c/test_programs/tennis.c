@@ -13,6 +13,7 @@ const int SCREEN_HEIGHT = 40;      // characters
 const int BAR_POS_CH    = 40;      // characters
 const int BAR_HEIGHT_CH = 8;       // characters
 const int BAR_LEFT      = 320;     // pixels
+const int BAR_MIDDLE    = 324;     // pixels
 const int BAR_RIGHT     = 328;     // pixels
 const int BAR_TOP       = 384;     // pixels
 const int PLAYER_SPEED  = 2;       // pixels/frame
@@ -23,6 +24,7 @@ const int SCREEN_BOTTOM = 480;     // pixels
 const int SCREEN_TOP    = 12;      // pixels
 const int WHITE_SQUARE  = PAL_FG_YELLOW + PAL_BG_YELLOW + 0x20;  // palette and character
 const int BALL_RADIUS   = 8;       // pixels
+const int SPRITE_RADIUS = 16;       // pixels
 const int VEL_SCALE     = 512;
 const int POS_SCALE     = 32;
 const int GRAVITY       = 5;       // pixels/frame^2
@@ -35,7 +37,7 @@ int  player_update();
 
 void ball_init();
 void ball_draw();
-void ball_update();
+int ball_update();
 
 /*
  * This function is called once at start of the program
@@ -116,6 +118,12 @@ int main()
 
       if (game_update())
          break;
+
+      if (MMIO(IO_UART_SRA) & 1)
+      {
+         unsigned int tmp = MMIO(IO_UART_RHRA);
+         break;
+      }
 
       /* Wait until screen porch is finished */
       while (MMIO(VGA_SCAN_LINE) >= 480) {}

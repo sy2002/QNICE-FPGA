@@ -1,3 +1,4 @@
+#include <qmon.h>
 #include "tennis.h"
 
 /* Game variables are declared here */
@@ -6,27 +7,6 @@ static t_vec position;
 static t_vec velocity;
 
 extern t_vec player_position; // Position of player
-
-/*
- * This is an optimized multiply routine.
- * It takes two 16-bit signed inputs and returns a 32-bit signed output.
- */
-static long muls(int arg1, int arg2)
-{
-   // Using a union is much faster than performing explicit shifts.
-   union {
-      long l;
-      int  i[2];
-   } u;
-
-   MMIO(IO_EAE_OPERAND_0) = arg1;
-   MMIO(IO_EAE_OPERAND_1) = arg2;
-   MMIO(IO_EAE_CSR)       = EAE_MULS;
-   u.i[0] = MMIO(IO_EAE_RESULT_LO); // This implicitly assumes little-endian.
-   u.i[1] = MMIO(IO_EAE_RESULT_HI);
-   return u.l;
-} // end of muls
-
 
 /*
  * This function calculates (x*y)/z.
@@ -80,8 +60,8 @@ static t_vec calcNewVelocity(t_vec pos1, t_vec pos2, t_vec vel1, t_vec vel2)
 
    // Since the radius is at most 16, the total distance is at most 32. With a scaling factor of 32,
    // the largest value of delta_pos.xy is 32*32 = 2^10. So the largest value of dpdp is 2^20.
-   long dpdv = muls(delta_pos.x,delta_vel.x) + muls(delta_pos.y,delta_vel.y);
-   long dpdp = muls(delta_pos.x,delta_pos.x) + muls(delta_pos.y,delta_pos.y);
+   long dpdv = qmon_muls(delta_pos.x,delta_vel.x) + qmon_muls(delta_pos.y,delta_vel.y);
+   long dpdp = qmon_muls(delta_pos.x,delta_pos.x) + qmon_muls(delta_pos.y,delta_pos.y);
 
    t_vec result = vel1;
    if (dpdv < 0)
@@ -101,9 +81,9 @@ static void collision_point(t_vec otherPos, int distance)
 {
    t_vec delta_pos = {.x=otherPos.x-position.x, .y=otherPos.y-position.y};
 
-   long x2 = muls(delta_pos.x, delta_pos.x);
-   long y2 = muls(delta_pos.y, delta_pos.y);
-   long r2 = muls(distance, distance);
+   long x2 = qmon_muls(delta_pos.x, delta_pos.x);
+   long y2 = qmon_muls(delta_pos.y, delta_pos.y);
+   long r2 = qmon_muls(distance, distance);
    const t_vec zero = {0, 0};
 
    if (x2+y2 < r2)
@@ -130,10 +110,10 @@ void ball_init()
    sprite_set_config(1, VGA_SPRITE_CSR_VISIBLE);
 
    position.x = 200*POS_SCALE;
-   position.y = 80*POS_SCALE;
+   position.y = 180*POS_SCALE;
 
-   velocity.x = 0;
-   velocity.y = 0;
+   velocity.x = 2*VEL_SCALE;
+   velocity.y = -1*VEL_SCALE;
 } // end of player_init
 
 
@@ -149,8 +129,8 @@ void ball_draw()
     * with the size of the sprite.
     */
    sprite_set_position(1,
-         position.x/POS_SCALE-BALL_RADIUS,
-         position.y/POS_SCALE-BALL_RADIUS);
+         position.x/POS_SCALE-SPRITE_RADIUS,
+         position.y/POS_SCALE-SPRITE_RADIUS);
 } // end of ball_draw
 
 
@@ -185,9 +165,9 @@ int ball_update()
    }
 
    /* Collision against top wall */
-   if (position.y < POS_SCALE*SCREEN_TOP)
+   if (position.y < POS_SCALE*(SCREEN_TOP+BALL_RADIUS))
    {
-      position.y = POS_SCALE*SCREEN_TOP;
+      position.y = POS_SCALE*(SCREEN_TOP+BALL_RADIUS);
 
       if (velocity.y < 0)
       {
@@ -196,7 +176,10 @@ int ball_update()
    }
 
    /* Collision against left side of barrier */
-   if (position.x > POS_SCALE*(BAR_LEFT-BALL_RADIUS) && position.y > POS_SCALE*(BAR_TOP-BALL_RADIUS))
+   if (position.x > POS_SCALE*(BAR_LEFT-BALL_RADIUS) && 
+       position.x < POS_SCALE*BAR_MIDDLE &&
+       position.y > POS_SCALE*(BAR_TOP-BALL_RADIUS)
+       )
    {
       position.x = POS_SCALE*(BAR_LEFT-BALL_RADIUS);
 
@@ -207,7 +190,9 @@ int ball_update()
    }
 
    /* Collision against right side of barrier */
-   if (position.x < POS_SCALE*(BAR_RIGHT+BALL_RADIUS) && position.y > POS_SCALE*(BAR_TOP-BALL_RADIUS))
+   if (position.x > POS_SCALE*BAR_MIDDLE &&
+       position.x < POS_SCALE*(BAR_RIGHT+BALL_RADIUS) &&
+       position.y > POS_SCALE*(BAR_TOP-BALL_RADIUS))
    {
       position.x = POS_SCALE*(BAR_RIGHT+BALL_RADIUS);
 
@@ -219,8 +204,8 @@ int ball_update()
 
    /* Collision against top side of barrier */
    if (position.y > POS_SCALE*(BAR_TOP-BALL_RADIUS) &&
-         position.x > POS_SCALE*(BAR_LEFT-BALL_RADIUS) &&
-         position.x < POS_SCALE*(BAR_RIGHT+BALL_RADIUS))
+       position.x > POS_SCALE*(BAR_LEFT-BALL_RADIUS) &&
+       position.x < POS_SCALE*(BAR_RIGHT+BALL_RADIUS))
    {
       position.y = POS_SCALE*(BAR_TOP-BALL_RADIUS);
 
@@ -230,6 +215,7 @@ int ball_update()
       }
    }
 
+#if 0
    const t_vec barTopLeft  = {BAR_LEFT, BAR_TOP};
    const t_vec barTopRight = {BAR_RIGHT, BAR_TOP};
 
@@ -241,6 +227,7 @@ int ball_update()
    collision_point(player_position, PLAYER_RADIUS+BALL_RADIUS);
 
    velocity.y += GRAVITY;
+#endif
 
    return 0;
 } // end of ball_update
