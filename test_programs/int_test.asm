@@ -18,6 +18,7 @@
 ;QMON> 
 ;
 ; done by vaxman and sy2002 in July/August 2020
+; enhanced by MJoergen and sy2002 in October/November 2020 to fit new ISA V1.7
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -32,16 +33,16 @@
         MOVE    0xBCDE, R11
         MOVE    0xCDEF, R12
         INT     ISR_ABS         ; Test direct ISR address (this basically is @R15++)
-        CMP         0x89AB, R8  ; Verify registers are not changed
-        RBRA        ISR_ERR1, !Z
-        CMP         0x9ABC, R9
-        RBRA        ISR_ERR1, !Z
-        CMP         0xABCD, R10
-        RBRA        ISR_ERR1, !Z
-        CMP         0xBCDE, R11
-        RBRA        ISR_ERR1, !Z
-        CMP         0xCDEF, R12
-        RBRA        ISR_ERR1, !Z
+        CMP     0x89AB, R8      ; Verify registers are not changed
+        RBRA    ISR_ERR1, !Z
+        CMP     0x9ABC, R9
+        RBRA    ISR_ERR1, !Z
+        CMP     0xABCD, R10
+        RBRA    ISR_ERR1, !Z
+        CMP     0xBCDE, R11
+        RBRA    ISR_ERR1, !Z
+        CMP     0xCDEF, R12
+        RBRA    ISR_ERR1, !Z
 
         MOVE    ISR_REG, R8     ; Test ISR address in register
         INT     R8
@@ -50,16 +51,31 @@
         INT     @R8
 
         MOVE    PREDECIND_1, R8 ; Test indirect ISR address with predecrement
+        MOVE    R8, R0
         INT     @--R8
+        SUB     1, R0
+        CMP     R8, R0
+        RBRA    ISR_ERR3, !Z    ; Jump to ISR worked (predec worked), but then
+                                ; the register was reverted back
+
+        MOVE    R8, R0
+        ADD     1, R0
 
         INT     @R8++           ; test postincrement during INT
+
+        CMP     R8, R0
+        RBRA    ISR_ERR4, !Z    ; post increment did not work
+
         INT     @R8
 
         MOVE    ITEST_3, R8
         SYSCALL(puts, 1)
         SYSCALL(exit, 1)
+        
 ISR_ERR1 HALT
 ISR_ERR2 HALT
+ISR_ERR3 HALT
+ISR_ERR4 HALT
         
 ISR_ABS CMP         0x89AB, R8  ; Verify registers are not changed
         RBRA        ISR_ERR2, !Z
