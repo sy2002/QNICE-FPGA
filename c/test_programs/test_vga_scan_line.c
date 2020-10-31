@@ -1,6 +1,9 @@
 // This program rapidly samples the behaviour of the VGA_SCAN_LINE register.
 // The requirement is that this register increases by one in the range 0 to 524 inclusive.
 // If this requirement fails, the sequence of monitored values is written to stdout.
+//
+// Details:
+// https://github.com/sy2002/QNICE-FPGA/issues/181
 
 #include <stdio.h>
 #include <qmon.h>
