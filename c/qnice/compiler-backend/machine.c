@@ -1371,14 +1371,18 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
   struct obj o,*cc=0;int cc_t;
   struct IC *p2;
   if(TINY){
-    ret="move\t@R13++,R15";
     call="asub";
     jump="abra";
   }else{
-    ret="move\t@R13++,R15";
     call="asub";
     jump="abra";
   }
+  if(v->tattr&INTERRUPT){
+    ret="rti";
+    need_return=1;
+  }else
+    ret="move\t@R13++,R15";
+
   if(DEBUG&1) printf("gen_code()\n");
   if(!v->fi) v->fi=new_fi();
   v->fi->flags|=ALL_REGS;
@@ -2094,6 +2098,10 @@ void gen_code(FILE *f,struct IC *p,struct Var *v,zmax offset)
       if(!compare_objects(&p->q1,&p->z)){
 	load_op(f,&p->q1,t,t1);
 	load_op(f,&p->z,t,t2);
+	if((p->q2.flags&(REG|DREFOBJ))==(REG|DREFOBJ)&&isreg(z)&&p->q2.reg==p->z.reg){
+	  move(f,0,p->q2.reg,0,t2,NPOINTER);
+	  p->q2.reg=t2;
+	}
 	move(f,&p->q1,0,&p->z,0,t);
 	/* cleanup postinc if necessary (not done by cleanup_lword */
 	if(p->z.reg==t2&&(p->z.flags&(REG|DREFOBJ))==(REG|DREFOBJ)&&ISLWORD(t))
