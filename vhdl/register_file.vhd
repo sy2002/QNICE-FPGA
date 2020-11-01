@@ -113,25 +113,6 @@ signal is_special_register_wr : boolean;
 
 begin
 
-   SP <= SpecialRegisters(13);
-   SR <= SpecialRegisters(14);
-   PC <= SpecialRegisters(15);
-   PC_Org <= SpecialRegisters_Org(15);
-   
-   -- performance optimization: re-wiring the signal is the fastest way to multiply by 8
-   sel_rbank_mul8(10 downto 3) <= sel_rbank(7 downto 0) & "000";
-   
-   sel_rbank_i  <= conv_integer(sel_rbank_mul8);
-   write_addr_i <= conv_integer(write_addr);
-   read_addr1_i <= conv_integer(read_addr1);
-   read_addr2_i <= conv_integer(read_addr2);
-
-   -- performance optimization: instead of using "<" and ">" we specify bit patterns
-   is_special_register_wr <= true when write_addr(3) = '1' and write_addr(2) = '1' and (write_addr(1) = '1' or write_addr(0) = '1') else false;   
-   is_upper_register_wr   <= true when write_addr(3) = '1' and (write_addr(2) = '0' or (write_addr(1) = '0' and write_addr(0) = '0')) else false;
-   is_upper_register_rd1  <= true when read_addr1(3) = '1' and (read_addr1(2) = '0' or (read_addr1(1) = '0' and read_addr1(0) = '0')) else false;
-   is_upper_register_rd2  <= true when read_addr2(3) = '1' and (read_addr2(2) = '0' or (read_addr2(1) = '0' and read_addr2(0) = '0')) else false;
-
    -- Copy of CPU registers. Only used for debugging
 --   r0  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 0);
 --   r1  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 1);
@@ -141,6 +122,27 @@ begin
 --   r9  <= UpperRegisters(9);
 --   r10 <= UpperRegisters(10);
 --   r11 <= UpperRegisters(11);
+
+   SP <= SpecialRegisters(13);
+   SR <= SpecialRegisters(14);
+   PC <= SpecialRegisters(15);
+   PC_Org <= SpecialRegisters_Org(15);
+   
+   -- performance optimization: re-wiring the signal is the fastest way to multiply by 8
+   sel_rbank_mul8(10 downto 0) <= sel_rbank(7 downto 0) & "000";
+   
+   sel_rbank_i  <= conv_integer(sel_rbank_mul8);
+   write_addr_i <= conv_integer(write_addr);
+   read_addr1_i <= conv_integer(read_addr1);
+   read_addr2_i <= conv_integer(read_addr2);
+
+   -- performance optimization: instead of using "<" and ">" we specify bit patterns
+   -- a special register is > 12
+   -- an upper register is >= 8 and < 13
+   is_special_register_wr <= true when write_addr(3) = '1' and write_addr(2) = '1' and (write_addr(1) = '1' or write_addr(0) = '1') else false;   
+   is_upper_register_wr   <= true when write_addr(3) = '1' and (write_addr(2) = '0' or (write_addr(1) = '0' and write_addr(0) = '0')) else false;
+   is_upper_register_rd1  <= true when read_addr1(3) = '1' and (read_addr1(2) = '0' or (read_addr1(1) = '0' and read_addr1(0) = '0')) else false;
+   is_upper_register_rd2  <= true when read_addr2(3) = '1' and (read_addr2(2) = '0' or (read_addr2(1) = '0' and read_addr2(0) = '0')) else false;
 
    special_write_register : process(clk)
    variable
