@@ -17,7 +17,6 @@ All languages
 * The Monitor acts as "operating system" and offers convenient functions as
   documented in [doc/monitor/doc.pdf](monitor/doc.pdf). They range from IO
   functions over math and string functions to debug functions.
-* When your program ends, call the monitor function `exit`.
 * Configure your editor to convert [TABs to
   SPACEs](https://stackoverflow.blog/2017/06/15/developers-use-spaces-make-money-use-tabs/).
 * Use [SYSINFO](sysinfo.md) in your software to check if the assumptions
@@ -130,17 +129,18 @@ Native QNICE assembler
 * Always include `dist_kit/sysdef.asm`, so that you have the convenience
   macros for the CPU registers `SP`, `SR`, and `PC` as well as the
   convenience macros for `RET` for returning from a subroutine and 
-  `SYSCALL` (if monitor functions are needed).
+  `SYSCALL`.
 * Use `SYSCALL(<monitor function>, <branch flag>)` to call a monitor function.
   Do not directly use a branch command, because we might at a later stage
   add more logic to `SYSCALL`.
-* Optionally include `dist_kit/monitor.def`, if you need "operating system"
-  functions such as "return to monitor" aka `SYSCALL(exit, 1)` or others.
-* When writing a tight inner loop which needs maximum performance, be aware
+* When your program ends, call the monitor function `exit`.
+* Include `dist_kit/monitor.def` to give "operating system" functions such as
+  "return to monitor" aka `SYSCALL(exit, 1)` or others.
+* When writing a tight inner loop that needs maximum performance, be aware
   that register to register operations only need two CPU cycles, so that
   for example your inner loop should branch to an address stored in a register
-  like `RBRA R8, 1` versus directly addressing a label like
-  `RBRA MY_LABEL, 1`. Also `ADD R8, R9` is faster than `ADD @R8, R9`.
+  like `ABRA R8, 1` versus directly addressing a label like
+  `ABRA MY_LABEL, 1`. Also `ADD R8, R9` is faster than `ADD @R8, R9`.
 
 ### Columns and spacing
 
@@ -176,7 +176,7 @@ and includes some more best practices.
 ### Subroutines
 
 * Sub routines must use the upper registers R8 to R12 to return values.
-* They must not change any upper register that is not needed for returning 
+* They may not change any upper register that is not needed for returning
   values.
 * Another elegant way to return one or more boolean values is to use the
   status register's flags because you can then use branch commands after
@@ -266,7 +266,7 @@ C
     ...
   }  
   ```
-  Inside an ISR in C, make sure, that you are only calling functions (if any),
+  Inside an ISR in C, make sure that you are only calling functions (if any),
   that are also using the `__norbank` prefix for the reasons described above
   in the section [Interrupt Service Routines (ISRs)](#interrupt-service-routines-isrs).
   Using the standard C library inside ISRs is not safe and can lead to very
@@ -276,6 +276,7 @@ C
   to manually link any libraries.
 * Additionally to the Standard C library that can be included as usual, there
   is the QNICE Monitor library that provides "operating system functions"
-  to C programs. It can be included via `#include "qmon.h"` and you can find
+  to C programs. It can be included via `#include <qmon.h>` and you can find
   it in `c/qnice/monitor-lib/include/qmon.h`
-* You can also include `sysdef.h`, if you need low-level access to devices.
+* You can also `#include <sysdef.h>`, if you need low-level access to devices.
+
