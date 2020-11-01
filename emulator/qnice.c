@@ -755,13 +755,13 @@ void disassemble(unsigned int start, unsigned int stop) {
 ** Read a source operand specified by mode and regaddr. If suppress_increment is set (all instructions with only
 ** one argument should do this!), the autoincrement will not be executed since this will be the task of 
 ** the operand update step. If this is necessary, mode == 2 can be used as a condition for this.
-** Predecrement will be executed always, postincrement only conditionally.
 */
-unsigned int read_source_operand(unsigned int mode, unsigned int regaddr, int suppress_increment) {
+unsigned int read_source_operand(unsigned int mode, unsigned int regaddr, int suppress_increment, int suppress_decrement) {
   unsigned int source;
 
   if (gbl$debug)
-    printf("\tread_source_operand: mode=%01X, reg=%01X, skip_increment=%d\n\r", mode, regaddr, suppress_increment);
+    printf("\tread_source_operand: mode=%01X, reg=%01X, skip_increment=%d, skip_decrement=%d\n\r",
+          mode, regaddr, suppress_increment, suppress_decrement);
 
   switch (mode) { /* Mode bits of source operand */
     case 0: /* Rxx */
@@ -776,8 +776,9 @@ unsigned int read_source_operand(unsigned int mode, unsigned int regaddr, int su
         write_register(regaddr, read_register(regaddr) + 1);
       break;
     case 3: /* @--Rxx */
-      write_register(regaddr, read_register(regaddr) - 1);
-      source = access_memory(read_register(regaddr), READ_MEMORY, 0);
+      source = access_memory(read_register(regaddr) - 1, READ_MEMORY, 0);
+      if (!suppress_decrement)
+         write_register(regaddr, read_register(regaddr) - 1);
       break;
     default:
       printf("Internal error, fetch operand!\n");
@@ -953,42 +954,42 @@ int execute() {
 
   switch (opcode) {
     case 0: /* MOVE */
-      destination = read_source_operand(source_mode, source_regaddr, FALSE);
+      destination = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
       update_status_bits(destination, destination, destination, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, 
                          NO_ADD_SUB_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 1: /* ADD */
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_1 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
       destination = source_0 + source_1;
       update_status_bits(destination, source_0, source_1, MODIFY_ALL, ADD_INSTRUCTION); 
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 2: /* ADDC */
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_1 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
       destination = source_0 + source_1 + ((read_register(SR) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL, ADD_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 3: /* SUB */
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_1 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
       destination = source_0 - source_1;
       update_status_bits(destination, source_0, source_1, MODIFY_ALL, SUB_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 4: /* SUBC */
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_1 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
       destination = source_0 - source_1 - ((read_register(SR) >> 2) & 1); /* Take carry into account */
       update_status_bits(destination, source_0, source_1, MODIFY_ALL, SUB_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 5: /* SHL */
-      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
-      destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
+      destination = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
       if (source_0) {
         for (i = 0; i < source_0; i++) {
           temp_flag = (destination & 0x8000) >> 13;
@@ -1000,8 +1001,8 @@ int execute() {
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
       break;
     case 6: /* SHR */
-      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
-      destination = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
+      destination = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
       if (source_0) {
         for (i = 0; i < source_0; i++) {
           temp_flag = (destination & 1) << 1;
@@ -1013,41 +1014,41 @@ int execute() {
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
       break;
     case 7: /* SWAP */
-      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
       destination = (source_0 >> 8) | ((source_0 << 8) & 0xff00);
       update_status_bits(destination, source_0, source_0, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 8: /* NOT */
-      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
       destination = ~source_0 & 0xffff;
       update_status_bits(destination, source_0, source_0, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
       break;
     case 9: /* AND */
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_1 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
       destination = source_0 & source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 10: /* OR */
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_1 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
       destination = source_0 | source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 11: /* XOR */
-      source_1 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
+      source_1 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
+      source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
       destination = source_0 ^ source_1;
       update_status_bits(destination, source_0, source_1, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, NO_ADD_SUB_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, TRUE);
       break;
     case 12: /* CMP */
-      source_0 = read_source_operand(source_mode, source_regaddr, FALSE);
-      source_1 = read_source_operand(destination_mode, destination_regaddr, FALSE);
+      source_0 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
+      source_1 = read_source_operand(destination_mode, destination_regaddr, FALSE, FALSE);
 
       sr_bits = read_register(SR); // CMP does NOT use the standard logic for setting the SR bits - this is done explicitly here.
 
@@ -1096,7 +1097,7 @@ int execute() {
           printf("Rogue INT instruction with an ISR at address %04X. HALT!\n", debug_address);
           return TRUE;
         }
-        gbl$interrupt_address = read_source_operand(destination_mode, destination_regaddr, TRUE);
+        gbl$interrupt_address = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
         write_destination(destination_mode, destination_regaddr, gbl$interrupt_address, TRUE);
         gbl$sw_interrupt_request = TRUE;
       } else if (command == INCRB_INSTRUCTION) {
@@ -1113,7 +1114,7 @@ int execute() {
           return TRUE;
         }
 
-        source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE);
+        source_0 = read_source_operand(destination_mode, destination_regaddr, TRUE, FALSE);
         shadow_value = gbl$shadow_register[shadow_address];
         gbl$shadow_register[shadow_address] = source_0;
         write_destination(destination_mode, destination_regaddr, shadow_value, FALSE);
@@ -1122,12 +1123,26 @@ int execute() {
       break;
     case 15: /* Branch or subroutine call */
       /* Determine destination address in case the branch/subroutine instruction will be performed */
-      destination = read_source_operand(source_mode, source_regaddr, FALSE); /* Perform autoincrement since no write back occurs! */
+      destination = read_source_operand(source_mode, source_regaddr, TRUE, TRUE);
 
       /* Determine which SR bit to use, etc. */
       condition = (read_register(SR) >> (instruction & 0x7)) & 1;
       if (instruction & 0x0008) /* Invert bit to be checked? */
         condition = 1 - condition;
+
+      /* In mode @R++, we must increment the source register when the branch is taken.
+       * We must always increment when it is the PC register.  */
+      if (source_mode == 0x2 && (condition || source_regaddr == 0xf))
+      {
+        write_register(source_regaddr, read_register(source_regaddr) + 1);
+      }
+
+      /* In mode @--R, we must decrement the source register when the branch is taken.
+       * We must always decrement when it is the PC register.  */
+      if (source_mode == 0x3 && (condition || source_regaddr == 0xf))
+      {
+        write_register(source_regaddr, read_register(source_regaddr) - 1);
+      }
 
       /* Now it is time to determine which branch resp. subroutine call type to execute if the condition is satisfied */
       if (condition) {
@@ -1150,10 +1165,6 @@ int execute() {
             break;
         }
       }
-      /* We must increment the PC in case of a constant destination address even if the branch is not taken! */
-// NO, we must not since the PC has already been incremented during the fetch operation!
-//      else if (source_mode == 0x2 && source_regaddr == 0xf) /* This is mode @R15++ */
-//        write_register(PC, read_register(PC) + 1);
       break;
     default:
       printf("PANIK: Illegal instruction found: Opcode %0X at address %04X.\n", opcode, address);

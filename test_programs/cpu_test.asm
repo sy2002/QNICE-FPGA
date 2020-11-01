@@ -51,6 +51,10 @@
 ; SUB_AM   : Test the SUB instruction with all addressing modes (different registers)
 ; SUB_AM2  : Test the SUB instruction with all addressing modes (same registers)
 
+; Group 4. Conditional branching and addressing modes.
+; COND_ABRA: Test the ABRA instruction with all addressing modes (different registers)
+; COND_ASUB: Test the ASUB instruction with all addressing modes (different registers)
+
 ; Instructions:
 ; MOVE, ADD, ADDC, SUB, SUBC, SHL, SHR, SWAP
 ; NOT, AND, OR, XOR, CMP, res, HALT, BRA/SUB
@@ -3919,6 +3923,373 @@ E_SUB_AM2_143   HALT
 E_SUB_AM2_144   HALT
 L_SUB_AM2_141
 
+
+; Group 4. Conditional branching and addressing modes.
+; COND_ABRA: Test the ABRA instruction with all addressing modes (different registers)
+
+; ABRA R0, <condition>
+L_COND_ABRA_00
+                MOVE    E_COND_ABRA_01, R0
+                ABRA    R0, Z                   ; Should not jump
+                CMP     E_COND_ABRA_01, R0      ; Verify R0 unchanged
+                ABRA    E_COND_ABRA_02, !Z      ; Should not jump
+                MOVE    L_COND_ABRA_01, R0
+                ABRA    R0, !Z                  ; Should jump
+                HALT
+E_COND_ABRA_01  HALT
+E_COND_ABRA_02  HALT
+E_COND_ABRA_03  HALT
+L_COND_ABRA_01  CMP     L_COND_ABRA_01, R0      ; Verify R0 unchanged
+                ABRA    E_COND_ABRA_03, !Z      ; Should not jump
+
+; ABRA @R0, <condition>
+L_COND_ABRA_10
+                MOVE    D_COND_ABRA_1, R0
+                MOVE    E_COND_ABRA_11, @R0
+                ABRA    @R0, Z                  ; Should not jump
+                CMP     D_COND_ABRA_1, R0       ; Verify R0 unchanged
+                ABRA    E_COND_ABRA_12, !Z      ; Should not jump
+                CMP     E_COND_ABRA_11, @R0     ; Verify @R0 unchanged
+                ABRA    E_COND_ABRA_13, !Z      ; Should not jump
+                MOVE    L_COND_ABRA_11, @R0
+                ABRA    @R0, !Z                 ; Should jump
+                HALT
+E_COND_ABRA_11  HALT
+E_COND_ABRA_12  HALT
+E_COND_ABRA_13  HALT
+E_COND_ABRA_14  HALT
+E_COND_ABRA_15  HALT
+L_COND_ABRA_11  CMP     D_COND_ABRA_1, R0       ; Verify R0 unchanged
+                ABRA    E_COND_ABRA_14, !Z      ; Should not jump
+                CMP     L_COND_ABRA_11, @R0     ; Verify @R0 unchanged
+                ABRA    E_COND_ABRA_15, !Z      ; Should not jump
+
+; ABRA @R0++, <condition>
+L_COND_ABRA_20
+                MOVE    D_COND_ABRA_0, R8
+                MOVE    D_COND_ABRA_1, R9
+                MOVE    D_COND_ABRA_2, R10
+                MOVE    E_COND_ABRA_21, @R8
+                MOVE    E_COND_ABRA_22, @R9
+                MOVE    E_COND_ABRA_23, @R10
+                MOVE    R9, R0
+                ABRA    @R0++, Z                ; Should not jump
+                CMP     R9, R0                  ; Verify R0 unchanged
+                ABRA    E_COND_ABRA_24, !Z      ; Should not jump
+                CMP     E_COND_ABRA_22, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ABRA_25, !Z      ; Should not jump
+
+                MOVE    L_COND_ABRA_21, @R9
+                ABRA    @R0++, !Z               ; Should jump
+                HALT
+E_COND_ABRA_21  HALT
+E_COND_ABRA_22  HALT
+E_COND_ABRA_23  HALT
+E_COND_ABRA_24  HALT
+E_COND_ABRA_25  HALT
+E_COND_ABRA_26  HALT
+E_COND_ABRA_27  HALT
+E_COND_ABRA_28  HALT
+L_COND_ABRA_21  CMP     R10, R0                 ; Verify R0 incremented
+                ABRA    E_COND_ABRA_26, !Z      ; Should not jump
+                CMP     L_COND_ABRA_21, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ABRA_27, !Z      ; Should not jump
+                CMP     E_COND_ABRA_23, @R10    ; Verify @R10 unchanged
+                ABRA    E_COND_ABRA_28, !Z      ; Should not jump
+
+; ABRA @--R0, <condition>
+L_COND_ABRA_30
+                MOVE    D_COND_ABRA_0, R8
+                MOVE    D_COND_ABRA_1, R9
+                MOVE    D_COND_ABRA_2, R10
+                MOVE    E_COND_ABRA_31, @R8
+                MOVE    E_COND_ABRA_32, @R9
+                MOVE    E_COND_ABRA_33, @R10
+                MOVE    R9, R0
+                ABRA    @--R0, Z                ; Should not jump
+                CMP     R9, R0                  ; Verify R0 unchanged
+                ABRA    E_COND_ABRA_34, !Z      ; Should not jump
+                CMP     E_COND_ABRA_32, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ABRA_35, !Z      ; Should not jump
+
+                MOVE    L_COND_ABRA_31, @R8
+                ABRA    @--R0, !Z               ; Should jump
+                HALT
+E_COND_ABRA_31  HALT
+E_COND_ABRA_32  HALT
+E_COND_ABRA_33  HALT
+E_COND_ABRA_34  HALT
+E_COND_ABRA_35  HALT
+E_COND_ABRA_36  HALT
+E_COND_ABRA_37  HALT
+E_COND_ABRA_38  HALT
+L_COND_ABRA_31  CMP     R8, R0                  ; Verify R0 decremented
+                ABRA    E_COND_ABRA_36, !Z      ; Should not jump
+                CMP     L_COND_ABRA_31, @R8     ; Verify @R8 unchanged
+                ABRA    E_COND_ABRA_37, !Z      ; Should not jump
+                CMP     E_COND_ABRA_32, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ABRA_38, !Z      ; Should not jump
+
+                ABRA    L_COND_ABRA_40, 1
+
+D_COND_ABRA_0   .DW     0x0000
+D_COND_ABRA_1   .DW     0x0000
+D_COND_ABRA_2   .DW     0x0000
+
+L_COND_ABRA_40
+
+; ABRA R13, <condition>
+L_COND_ABRA_50
+                MOVE    E_COND_ABRA_51, R13
+                ABRA    R13, Z                  ; Should not jump
+                CMP     E_COND_ABRA_51, R13     ; Verify R13 unchanged
+                ABRA    E_COND_ABRA_52, !Z      ; Should not jump
+                MOVE    L_COND_ABRA_51, R13
+                ABRA    R13, !Z                 ; Should jump
+                HALT
+E_COND_ABRA_51  HALT
+E_COND_ABRA_52  HALT
+E_COND_ABRA_53  HALT
+L_COND_ABRA_51  CMP     L_COND_ABRA_51, R13     ; Verify R13 unchanged
+                ABRA    E_COND_ABRA_53, !Z      ; Should not jump
+
+; ABRA @R13, <condition>
+L_COND_ABRA_60
+                MOVE    D_COND_ABRA_1, R13
+                MOVE    E_COND_ABRA_61, @R13
+                ABRA    @R13, Z                 ; Should not jump
+                CMP     D_COND_ABRA_1, R13      ; Verify R13 unchanged
+                ABRA    E_COND_ABRA_62, !Z      ; Should not jump
+                CMP     E_COND_ABRA_61, @R13    ; Verify @R13 unchanged
+                ABRA    E_COND_ABRA_63, !Z      ; Should not jump
+                MOVE    L_COND_ABRA_61, @R13
+                ABRA    @R13, !Z                ; Should jump
+                HALT
+E_COND_ABRA_61  HALT
+E_COND_ABRA_62  HALT
+E_COND_ABRA_63  HALT
+E_COND_ABRA_64  HALT
+E_COND_ABRA_65  HALT
+L_COND_ABRA_61  CMP     D_COND_ABRA_1, R13      ; Verify R13 unchanged
+                ABRA    E_COND_ABRA_64, !Z      ; Should not jump
+                CMP     L_COND_ABRA_61, @R13    ; Verify @R13 unchanged
+                ABRA    E_COND_ABRA_65, !Z      ; Should not jump
+
+; ABRA @R13++, <condition>
+L_COND_ABRA_70
+                MOVE    D_COND_ABRA_0, R8
+                MOVE    D_COND_ABRA_1, R9
+                MOVE    D_COND_ABRA_2, R10
+                MOVE    E_COND_ABRA_71, @R8
+                MOVE    E_COND_ABRA_72, @R9
+                MOVE    E_COND_ABRA_73, @R10
+                MOVE    R9, R13
+                ABRA    @R13++, Z               ; Should not jump
+                CMP     R9, R13                 ; Verify R13 unchanged
+                ABRA    E_COND_ABRA_74, !Z      ; Should not jump
+                CMP     E_COND_ABRA_72, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ABRA_75, !Z      ; Should not jump
+
+                MOVE    L_COND_ABRA_71, @R9
+                ABRA    @R13++, !Z              ; Should jump
+                HALT
+E_COND_ABRA_71  HALT
+E_COND_ABRA_72  HALT
+E_COND_ABRA_73  HALT
+E_COND_ABRA_74  HALT
+E_COND_ABRA_75  HALT
+E_COND_ABRA_76  HALT
+E_COND_ABRA_77  HALT
+E_COND_ABRA_78  HALT
+L_COND_ABRA_71  CMP     R10, R13                ; Verify R13 incremented
+                ABRA    E_COND_ABRA_76, !Z      ; Should not jump
+                CMP     L_COND_ABRA_71, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ABRA_77, !Z      ; Should not jump
+                CMP     E_COND_ABRA_73, @R10    ; Verify @R10 unchanged
+                ABRA    E_COND_ABRA_78, !Z      ; Should not jump
+
+; ABRA @--R13, <condition>
+L_COND_ABRA_80
+                MOVE    D_COND_ABRA_0, R8
+                MOVE    D_COND_ABRA_1, R9
+                MOVE    D_COND_ABRA_2, R10
+                MOVE    E_COND_ABRA_81, @R8
+                MOVE    E_COND_ABRA_82, @R9
+                MOVE    E_COND_ABRA_83, @R10
+                MOVE    R9, R13
+                ABRA    @--R13, Z               ; Should not jump
+                CMP     R9, R13                 ; Verify R13 unchanged
+                ABRA    E_COND_ABRA_84, !Z      ; Should not jump
+                CMP     E_COND_ABRA_82, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ABRA_85, !Z      ; Should not jump
+
+                MOVE    L_COND_ABRA_81, @R8
+                ABRA    @--R13, !Z              ; Should jump
+                HALT
+E_COND_ABRA_81  HALT
+E_COND_ABRA_82  HALT
+E_COND_ABRA_83  HALT
+E_COND_ABRA_84  HALT
+E_COND_ABRA_85  HALT
+E_COND_ABRA_86  HALT
+E_COND_ABRA_87  HALT
+E_COND_ABRA_88  HALT
+L_COND_ABRA_81  CMP     R8, R13                 ; Verify R13 decremented
+                ABRA    E_COND_ABRA_86, !Z      ; Should not jump
+                CMP     L_COND_ABRA_81, @R8     ; Verify @R8 unchanged
+                ABRA    E_COND_ABRA_87, !Z      ; Should not jump
+                CMP     E_COND_ABRA_82, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ABRA_88, !Z      ; Should not jump
+
+                ABRA    L_COND_ABRA_90, 1
+
+L_COND_ABRA_90
+
+; COND_ASUB: Test the ASUB instruction with all addressing modes (different registers)
+
+; ASUB R0, <condition>
+L_COND_ASUB_00
+                MOVE    D_COND_STACK_3, R13     ; Setup stack pointer
+                MOVE    E_COND_ASUB_01, R0
+                ASUB    R0, Z                   ; Should not jump
+                CMP     E_COND_ASUB_01, R0      ; Verify R0 unchanged
+                ABRA    E_COND_ASUB_02, !Z      ; Should not jump
+                CMP     D_COND_STACK_3, R13     ; Verify R13 unchanged
+                ABRA    E_COND_ASUB_03, !Z      ; Should not jump
+                MOVE    L_COND_ASUB_01, R0
+                ASUB    R0, !Z                  ; Should jump
+                HALT
+E_COND_ASUB_01  HALT
+E_COND_ASUB_02  HALT
+E_COND_ASUB_03  HALT
+E_COND_ASUB_04  HALT
+E_COND_ASUB_05  HALT
+L_COND_ASUB_01  CMP     L_COND_ASUB_01, R0      ; Verify R0 unchanged
+                ABRA    E_COND_ASUB_04, !Z      ; Should not jump
+                CMP     D_COND_STACK_2, R13     ; Verify R13 decremented
+                ABRA    E_COND_ASUB_05, !Z      ; Should not jump
+
+; ASUB @R0, <condition>
+L_COND_ASUB_10
+                MOVE    D_COND_STACK_3, R13     ; Setup stack pointer
+                MOVE    D_COND_ASUB_1, R0
+                MOVE    E_COND_ASUB_11, @R0
+                ASUB    @R0, Z                  ; Should not jump
+                CMP     D_COND_ASUB_1, R0       ; Verify R0 unchanged
+                ABRA    E_COND_ASUB_12, !Z      ; Should not jump
+                CMP     E_COND_ASUB_11, @R0     ; Verify @R0 unchanged
+                ABRA    E_COND_ASUB_13, !Z      ; Should not jump
+                CMP     D_COND_STACK_3, R13     ; Verify R13 unchanged
+                ABRA    E_COND_ASUB_14, !Z      ; Should not jump
+                MOVE    L_COND_ASUB_11, @R0
+                ASUB    @R0, !Z                 ; Should jump
+                HALT
+E_COND_ASUB_11  HALT
+E_COND_ASUB_12  HALT
+E_COND_ASUB_13  HALT
+E_COND_ASUB_14  HALT
+E_COND_ASUB_15  HALT
+E_COND_ASUB_16  HALT
+E_COND_ASUB_17  HALT
+L_COND_ASUB_11  CMP     D_COND_ASUB_1, R0       ; Verify R0 unchanged
+                ABRA    E_COND_ASUB_15, !Z      ; Should not jump
+                CMP     L_COND_ASUB_11, @R0     ; Verify @R0 unchanged
+                ABRA    E_COND_ASUB_16, !Z      ; Should not jump
+                CMP     D_COND_STACK_2, R13     ; Verify R13 decremented
+                ABRA    E_COND_ASUB_17, !Z      ; Should not jump
+
+; ASUB @R0++, <condition>
+L_COND_ASUB_20
+                MOVE    D_COND_STACK_3, R13     ; Setup stack pointer
+                MOVE    D_COND_ASUB_0, R8
+                MOVE    D_COND_ASUB_1, R9
+                MOVE    D_COND_ASUB_2, R10
+                MOVE    E_COND_ASUB_21, @R8
+                MOVE    E_COND_ASUB_22, @R9
+                MOVE    E_COND_ASUB_23, @R10
+                MOVE    R9, R0
+                ASUB    @R0++, Z                ; Should not jump
+                CMP     R9, R0                  ; Verify R0 unchanged
+                ABRA    E_COND_ASUB_24, !Z      ; Should not jump
+                CMP     E_COND_ASUB_22, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ASUB_25, !Z      ; Should not jump
+                CMP     D_COND_STACK_3, R13     ; Verify R13 unchanged
+                ABRA    E_COND_ASUB_26, !Z      ; Should not jump
+
+                MOVE    L_COND_ASUB_21, @R9
+                ASUB    @R0++, !Z               ; Should jump
+                HALT
+E_COND_ASUB_21  HALT
+E_COND_ASUB_22  HALT
+E_COND_ASUB_23  HALT
+E_COND_ASUB_24  HALT
+E_COND_ASUB_25  HALT
+E_COND_ASUB_26  HALT
+E_COND_ASUB_27  HALT
+E_COND_ASUB_28  HALT
+E_COND_ASUB_29  HALT
+E_COND_ASUB_2A  HALT
+L_COND_ASUB_21  CMP     R10, R0                 ; Verify R0 incremented
+                ABRA    E_COND_ASUB_27, !Z      ; Should not jump
+                CMP     L_COND_ASUB_21, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ASUB_28, !Z      ; Should not jump
+                CMP     E_COND_ASUB_23, @R10    ; Verify @R10 unchanged
+                ABRA    E_COND_ASUB_29, !Z      ; Should not jump
+                CMP     D_COND_STACK_2, R13     ; Verify R13 decremented
+                ABRA    E_COND_ASUB_2A, !Z      ; Should not jump
+
+; ASUB @--R0, <condition>
+L_COND_ASUB_30
+                MOVE    D_COND_STACK_3, R13     ; Setup stack pointer
+                MOVE    D_COND_ASUB_0, R8
+                MOVE    D_COND_ASUB_1, R9
+                MOVE    D_COND_ASUB_2, R10
+                MOVE    E_COND_ASUB_31, @R8
+                MOVE    E_COND_ASUB_32, @R9
+                MOVE    E_COND_ASUB_33, @R10
+                MOVE    R9, R0
+                ASUB    @--R0, Z                ; Should not jump
+                CMP     R9, R0                  ; Verify R0 unchanged
+                ABRA    E_COND_ASUB_34, !Z      ; Should not jump
+                CMP     E_COND_ASUB_32, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ASUB_35, !Z      ; Should not jump
+                CMP     D_COND_STACK_3, R13     ; Verify R13 unchanged
+                ABRA    E_COND_ASUB_36, !Z      ; Should not jump
+
+                MOVE    L_COND_ASUB_31, @R8
+                ASUB    @--R0, !Z               ; Should jump
+                HALT
+E_COND_ASUB_31  HALT
+E_COND_ASUB_32  HALT
+E_COND_ASUB_33  HALT
+E_COND_ASUB_34  HALT
+E_COND_ASUB_35  HALT
+E_COND_ASUB_36  HALT
+E_COND_ASUB_37  HALT
+E_COND_ASUB_38  HALT
+E_COND_ASUB_39  HALT
+E_COND_ASUB_3A  HALT
+L_COND_ASUB_31  CMP     R8, R0                  ; Verify R0 decremented
+                ABRA    E_COND_ASUB_37, !Z      ; Should not jump
+                CMP     L_COND_ASUB_31, @R8     ; Verify @R8 unchanged
+                ABRA    E_COND_ASUB_38, !Z      ; Should not jump
+                CMP     E_COND_ASUB_32, @R9     ; Verify @R9 unchanged
+                ABRA    E_COND_ASUB_39, !Z      ; Should not jump
+                CMP     D_COND_STACK_2, R13     ; Verify R13 decremented
+                ABRA    E_COND_ASUB_3A, !Z      ; Should not jump
+
+                ABRA    L_COND_ASUB_40, 1
+
+D_COND_STACK_0  .DW     0x0000
+D_COND_STACK_1  .DW     0x0000
+D_COND_STACK_2  .DW     0x0000
+D_COND_STACK_3  .DW     0x0000
+
+D_COND_ASUB_0   .DW     0x0000
+D_COND_ASUB_1   .DW     0x0000
+D_COND_ASUB_2   .DW     0x0000
+
+L_COND_ASUB_40
 
 ; Everything worked as expected! We are done now.
 EXIT            MOVE    OK, R8
