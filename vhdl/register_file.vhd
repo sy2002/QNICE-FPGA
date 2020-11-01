@@ -1,34 +1,39 @@
-----------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
 -- QNICE specific 16 bit dual port register file
 -- 
--- asynchronous read, syncronous write on falling clock edge (!)
--- registers range from 0 to 15
--- registers 0..7 are a window into 256 x 8 registers, switched by sel_rbank
--- (the QNICE registers 14 (status register, SR) and 15 (program counter, PC)
--- are not implemented in this register bank but directly within the CPU
--- special behaviour when reading the registers 14 and 15: when reading
--- register 13, 14 or 15 then SP (when 13), SR (when 14) or PC (when 15) is output
+-- * asynchronous read
+-- * syncronous write on falling clock edge (!)
+-- * registers range from 0 to 15
 --
--- to save tons of logic, there is no reset line to set all registers to zero
+-- registers 13 to 15 are special registers which also receive some special treatment:
+-- they are written at the rising clock edge (!)
+--    R13 = SP = stack pointer
+--    R14 = SR = status register
+--    R15 = PC = program counter
+--
+-- registers 0..7 are a window into 256 x 8 registers, switched by sel_rbank
 --
 -- done in July 2015 by sy2002
-----------------------------------------------------------------------------------
+-- refactored in November 2020 by sy2002
+---------------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 use work.env1_globals.all;
+use work.cpu_constants.all;
 
 entity register_file is
 port (
    clk         : in  std_logic;   -- clock: writing occurs at the rising edge
    
-   -- input stack pointer (SP) status register (SR) and program counter (PC) so
-   -- that they can conveniently be read when adressing 13 (SP), 14 (SR), 15 (PC)
-   SP          : in std_logic_vector(15 downto 0);
-   SR          : in std_logic_vector(15 downto 0);
-   PC          : in std_logic_vector(15 downto 0);
-   
+   -- output stack pointer (SP) status register (SR) and program counter (PC) so
+   -- that they can conveniently be read by the CPU
+   SP          : out std_logic_vector(15 downto 0);
+   SR          : out std_logic_vector(15 downto 0);
+   PC          : out std_logic_vector(15 downto 0);
+   PC_Org      : out std_logic_vector(15 downto 0);
+      
    -- select the appropriate register window for the lower 8 registers
    sel_rbank   : in  std_logic_vector(7 downto 0);
    
@@ -47,21 +52,36 @@ port (
    -- set shadow_en = 1 to make sure that each write operation is shadowed
    -- set revert_en = 1 to copy the shadow registers back to the main registers
    shadow_en   : in  std_logic;
-   revert_en   : in  std_logic
+   revert_en   : in  std_logic;
+   
+   -- Additionally to the standard way of writing a register via the mechanism
+   -- write_addr and write_en (see above) SP, SR and PC are written each
+   -- falling clock cycle using these values.
+   -- Caution: write_en and revert_en take precedence if set to '1'.
+   fsmSP       : in std_logic_vector(15 downto 0);
+   fsmSR       : in std_logic_vector(15 downto 0);
+   fsmPC       : in std_logic_vector(15 downto 0)   
 );
 end register_file;
 
 architecture beh of register_file is
 
 type upper_register_array is array(8 to 12) of std_logic_vector(15 downto 0);
+type special_register_array is array(13 to 15) of std_logic_vector(15 downto 0);
 
--- two dimensional array to model the lower register bank (windowed)
+-- model the lower register bank (windowed)
 type rega is array (0 to 8*SHADOW_REGFILE_SIZE-1) of std_logic_vector(15 downto 0);
 
-signal LowerRegisterWindow : rega;
+signal LowerRegisterWindow    : rega;
+signal UpperRegisters         : upper_register_array;
+signal UpperRegisters_Org     : upper_register_array;
+signal SpecialRegisters       : special_register_array;
+signal SpecialRegisters_Org   : special_register_array;
 
-signal UpperRegisters      : upper_register_array;
-signal UpperRegisters_Org  : upper_register_array;
+signal sel_rbank_i            : integer;
+signal write_addr_i           : integer;
+signal read_addr1_i           : integer;
+signal read_addr2_i           : integer;
 
 -- Copy of CPU registers. Only used for debugging
 --signal r0  : std_logic_vector(15 downto 0);
@@ -85,6 +105,16 @@ signal UpperRegisters_Org  : upper_register_array;
 
 begin
 
+   SP <= SpecialRegisters(13);
+   SR <= SpecialRegisters(14);
+   PC <= SpecialRegisters(15);
+   PC_Org <= SpecialRegisters_Org(15);
+   
+   sel_rbank_i  <= conv_integer(sel_rbank) * 8;
+   write_addr_i <= conv_integer(write_addr);
+   read_addr1_i <= conv_integer(read_addr1);
+   read_addr2_i <= conv_integer(read_addr2);
+
    -- Copy of CPU registers. Only used for debugging
 --   r0  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 0);
 --   r1  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 1);
@@ -95,53 +125,86 @@ begin
 --   r10 <= UpperRegisters(10);
 --   r11 <= UpperRegisters(11);
 
-   write_register : process (clk)
+   special_write_register : process(clk)
+   variable
+      data: std_logic_vector(15 downto 0);   
    begin
-      if falling_edge(clk) then            
-         if write_en = '1' then
-            if write_addr(3) = '0' then
-               LowerRegisterWindow(conv_integer(sel_rbank)*8+conv_integer(write_addr)) <= write_data;
+      if rising_edge(clk) then      
+         -- by default, SP, SR and PC are updated and if necessary also shadowed every rising clock edge
+         SpecialRegisters(13) <= fsmSP;
+         SpecialRegisters(14) <= fsmSR;
+         SpecialRegisters(15) <= fsmPC;
+         if shadow_en = '1' then
+            SpecialRegisters_Org(13) <= fsmSP;
+            SpecialRegisters_Org(14) <= fsmSR;
+            SpecialRegisters_Org(15) <= fsmPC;            
+         end if;
+         
+         if write_en = '1' and write_addr_i > 12 then
+            -- make sure that the lowest bit of the SR (R14) is always 1
+            if write_addr /= regSR then
+               data := write_data;
             else
-               UpperRegisters(conv_integer(write_addr)) <= write_data;
-               if shadow_en = '1' then
-                  UpperRegisters_Org(conv_integer(write_addr)) <= write_data;
-               end if;
+               data := write_data(15 downto 1) & '1';
+            end if;             
+         
+            SpecialRegisters(write_addr_i) <= data;
+            if shadow_en = '1' then
+               SpecialRegisters_Org(write_addr_i) <= data;
             end if;
          elsif revert_en = '1' then
-            UpperRegisters(8) <= UpperRegisters_Org(8);
-            UpperRegisters(9) <= UpperRegisters_Org(9);
-            UpperRegisters(10) <= UpperRegisters_Org(10);
-            UpperRegisters(11) <= UpperRegisters_Org(11);
-            UpperRegisters(12) <= UpperRegisters_Org(12);            
-         end if;
+            for regnr in 13 to 15 loop
+               SpecialRegisters(regnr) <= SpecialRegisters_Org(regnr); 
+            end loop;
+         end if;      
+      end if;
+   end process;
+
+   standard_write_register : process (clk)
+   begin
+      if falling_edge(clk) then     
+                                                                         
+         -- write to lower or upper register bank and handle writing to the shadow registers
+         if write_en = '1' then
+            if write_addr(3) = '0' then
+               LowerRegisterWindow(sel_rbank_i + write_addr_i) <= write_data;
+            else
+               if write_addr_i < 13 then
+                  UpperRegisters(write_addr_i) <= write_data;
+                  if shadow_en = '1' then
+                     UpperRegisters_Org(write_addr_i) <= write_data;
+                  end if;
+               end if;
+            end if;
+            
+         -- revert R8 .. R15 back to the value stored in the shadow registers
+         elsif revert_en = '1' then
+            for regnr in 8 to 12 loop
+               UpperRegisters(regnr) <= UpperRegisters_Org(regnr);
+            end loop;
+         end if; 
       end if;
    end process;
    
-   read_register1 : process(read_addr1, LowerRegisterWindow, UpperRegisters, sel_rbank, SP, SR, PC)
+   read_register1 : process(sel_rbank_i, read_addr1_i, LowerRegisterWindow, UpperRegisters, SpecialRegisters)
    begin
-      if read_addr1(3) = '0' then
-         read_data1 <= LowerRegisterWindow(conv_integer(sel_rbank)*8+conv_integer(read_addr1));
+      if read_addr1_i < 8 then
+         read_data1 <= LowerRegisterWindow(sel_rbank_i + read_addr1_i);
+      elsif read_addr1_i < 13 then
+         read_data1 <= UpperRegisters(read_addr1_i);
       else
-         case read_addr1 is
-            when x"D" =>   read_data1 <= SP;
-            when x"E" =>   read_data1 <= SR;
-            when X"F" =>   read_data1 <= PC;
-            when others => read_data1 <= UpperRegisters(conv_integer(read_addr1)); 
-         end case;
+         read_data1 <= SpecialRegisters(read_addr1_i); 
       end if;   
    end process;
    
-   read_register2 : process(read_addr2, LowerRegisterWindow, UpperRegisters, sel_rbank, SP, SR, PC)
+   read_register2 : process(sel_rbank_i, read_addr2_i, LowerRegisterWindow, UpperRegisters, SpecialRegisters)
    begin
-      if read_addr2(3) = '0' then
-         read_data2 <= LowerRegisterWindow(conv_integer(sel_rbank)*8+conv_integer(read_addr2));
+      if read_addr2_i < 8 then
+         read_data2 <= LowerRegisterWindow(sel_rbank_i + read_addr2_i);
+      elsif read_addr2_i < 13 then
+         read_data2 <= UpperRegisters(read_addr2_i);
       else
-         case read_addr2 is
-            when x"D" =>   read_data2 <= SP;
-            when x"E" =>   read_data2 <= SR;
-            when x"F" =>   read_data2 <= PC;
-            when others => read_data2 <= UpperRegisters(conv_integer(read_addr2));
-         end case;
+         read_data2 <= SpecialRegisters(read_addr2_i);
       end if;
    end process;   
 

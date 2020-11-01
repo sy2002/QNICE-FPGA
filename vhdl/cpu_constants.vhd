@@ -9,6 +9,11 @@ use IEEE.STD_LOGIC_1164.all;
 
 package cpu_constants is
 
+-- special registers
+constant regSP    : std_logic_vector(3 downto 0) := x"D";
+constant regSR    : std_logic_vector(3 downto 0) := x"E";
+constant regPC    : std_logic_vector(3 downto 0) := x"F";
+
 -- opcodes
 constant opcMOVE  : std_logic_vector(3 downto 0) := x"0";
 constant opcADD   : std_logic_vector(3 downto 0) := x"1";
