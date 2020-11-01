@@ -80,10 +80,16 @@ signal UpperRegisters_Org     : upper_register_array;
 signal SpecialRegisters       : special_register_array;
 signal SpecialRegisters_Org   : special_register_array;
 
+signal sel_rbank_mul8         : std_logic_vector(10 downto 0);
 signal sel_rbank_i            : integer;
 signal write_addr_i           : integer;
 signal read_addr1_i           : integer;
 signal read_addr2_i           : integer;
+
+signal is_upper_register_wr   : boolean;
+signal is_upper_register_rd1  : boolean;
+signal is_upper_register_rd2  : boolean;
+signal is_special_register_wr : boolean;
 
 -- Copy of CPU registers. Only used for debugging
 --signal r0  : std_logic_vector(15 downto 0);
@@ -112,10 +118,19 @@ begin
    PC <= SpecialRegisters(15);
    PC_Org <= SpecialRegisters_Org(15);
    
-   sel_rbank_i  <= conv_integer(sel_rbank) * 8;
+   -- performance optimization: re-wiring the signal is the fastest way to multiply by 8
+   sel_rbank_mul8(10 downto 3) <= sel_rbank(7 downto 0);
+   
+   sel_rbank_i  <= conv_integer(sel_rbank_mul8);
    write_addr_i <= conv_integer(write_addr);
    read_addr1_i <= conv_integer(read_addr1);
    read_addr2_i <= conv_integer(read_addr2);
+
+   -- performance optimization: instead of using "<" and ">" we specify bit patterns
+   is_special_register_wr <= true when write_addr(3) = '1' and write_addr(2) = '1' and (write_addr(1) = '1' or write_addr(0) = '1') else false;   
+   is_upper_register_wr   <= true when write_addr(3) = '1' and (write_addr(2) = '0' or (write_addr(1) = '0' and write_addr(0) = '0')) else false;
+   is_upper_register_rd1  <= true when read_addr1(3) = '1' and (read_addr1(2) = '0' or (read_addr1(1) = '0' and read_addr1(0) = '0')) else false;
+   is_upper_register_rd2  <= true when read_addr2(3) = '1' and (read_addr2(2) = '0' or (read_addr2(1) = '0' and read_addr2(0) = '0')) else false;
 
    -- Copy of CPU registers. Only used for debugging
 --   r0  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 0);
@@ -142,7 +157,7 @@ begin
             SpecialRegisters_Org(15) <= fsmPC;            
          end if;
          
-         if write_en = '1' and write_addr_i > 12 then
+         if write_en = '1' and is_special_register_wr then
             -- make sure that the lowest bit of the SR (R14) is always 1
             if write_addr /= regSR then
                data := write_data;
@@ -171,7 +186,7 @@ begin
             if write_addr(3) = '0' then
                LowerRegisterWindow(sel_rbank_i + write_addr_i) <= write_data;
             else
-               if write_addr_i < 13 then
+               if is_upper_register_wr then
                   UpperRegisters(write_addr_i) <= write_data;
                   if shadow_en = '1' then
                      UpperRegisters_Org(write_addr_i) <= write_data;
@@ -188,22 +203,22 @@ begin
       end if;
    end process;
    
-   read_register1 : process(sel_rbank_i, read_addr1_i, LowerRegisterWindow, UpperRegisters, SpecialRegisters)
+   read_register1 : process(sel_rbank_i, read_addr1, read_addr1_i, is_upper_register_rd1, LowerRegisterWindow, UpperRegisters, SpecialRegisters)
    begin
-      if read_addr1_i < 8 then
+      if read_addr1(3) = '0' then
          read_data1 <= LowerRegisterWindow(sel_rbank_i + read_addr1_i);
-      elsif read_addr1_i < 13 then
+      elsif is_upper_register_rd1 then
          read_data1 <= UpperRegisters(read_addr1_i);
       else
          read_data1 <= SpecialRegisters(read_addr1_i); 
       end if;   
    end process;
    
-   read_register2 : process(sel_rbank_i, read_addr2_i, LowerRegisterWindow, UpperRegisters, SpecialRegisters)
+   read_register2 : process(sel_rbank_i, read_addr2, read_addr2_i, is_upper_register_rd2, LowerRegisterWindow, UpperRegisters, SpecialRegisters)
    begin
-      if read_addr2_i < 8 then
+      if read_addr2(3) = '0' then
          read_data2 <= LowerRegisterWindow(sel_rbank_i + read_addr2_i);
-      elsif read_addr2_i < 13 then
+      elsif is_upper_register_rd2 then
          read_data2 <= UpperRegisters(read_addr2_i);
       else
          read_data2 <= SpecialRegisters(read_addr2_i);
