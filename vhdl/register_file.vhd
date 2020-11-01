@@ -119,7 +119,7 @@ begin
    PC_Org <= SpecialRegisters_Org(15);
    
    -- performance optimization: re-wiring the signal is the fastest way to multiply by 8
-   sel_rbank_mul8(10 downto 3) <= sel_rbank(7 downto 0);
+   sel_rbank_mul8(10 downto 3) <= sel_rbank(7 downto 0) & "000";
    
    sel_rbank_i  <= conv_integer(sel_rbank_mul8);
    write_addr_i <= conv_integer(write_addr);
