@@ -89,6 +89,7 @@ signal reg_write_data      : std_logic_vector(15 downto 0) := (others => '0');
 signal reg_write_en        : std_logic := '0';
 signal reg_revert_en       : std_logic := '0';
 signal reg_force_shadowing : std_logic := '0';
+signal reg_shadow_spr      : std_logic; --combinatorial signal to control the shadowing of special regs (SP, SR, PC)
 
 -- direct access to the special registers within the register bank
 signal SP                  : std_logic_vector(15 downto 0); -- stack pointer   (R13)
@@ -233,27 +234,28 @@ begin
    Registers : entity work.register_file
       port map
       (
-         clk         => CLK,
-         SP          => SP,
-         SR          => SR,
-         PC          => PC,
-         PC_Org      => PC_Org,
-         fsmSP       => fsmSP,
-         fsmSR       => fsmSR,
-         fsmPC       => fsmPC,
-         sel_rbank   => SR(15 downto 8),
-         read_addr1  => reg_read_addr1,
-         read_addr2  => reg_read_addr2,
-         read_data1  => reg_read_data1,
-         read_data2  => reg_read_data2,
-         write_addr  => reg_write_addr,
-         write_data  => reg_write_data,
-         write_en    => reg_write_en,
-         revert_en   => reg_revert_en,
+         clk            => CLK,
+         SP             => SP,
+         SR             => SR,
+         PC             => PC,
+         PC_Org         => PC_Org,
+         fsmSP          => fsmSP,
+         fsmSR          => fsmSR,
+         fsmPC          => fsmPC,
+         sel_rbank      => SR(15 downto 8),
+         read_addr1     => reg_read_addr1,
+         read_addr2     => reg_read_addr2,
+         read_data1     => reg_read_data1,
+         read_data2     => reg_read_data2,
+         write_addr     => reg_write_addr,
+         write_data     => reg_write_data,
+         write_en       => reg_write_en,
+         revert_en      => reg_revert_en,
          
          -- the upper registers are shadowed at each write operation, so that they can
          -- be restored any time (e.g. when returning from an interrupt) using revert_en
-         shadow_en   => (not Int_Active) or reg_force_shadowing
+         shadow_en      => (not Int_Active) or reg_force_shadowing,
+         shadow_spr_en  => reg_shadow_spr
       );
       
    -- ALU
@@ -403,8 +405,10 @@ begin
       fsm_reg_write_data <= reg_write_data;
       fsm_reg_write_en <= '0';
       fsm_reg_revert_en <= '0';
-      fsm_reg_force_shadowing <= '0';      
+      fsm_reg_force_shadowing <= '0';
       fsmInt_Active <= Int_Active;
+      
+      reg_shadow_spr <= not reg_force_shadowing;
                
       -- as fsm_advance_state is clocking the values on rising edges,
       -- the below-mentioned output decoding is to be read as:
@@ -483,6 +487,7 @@ begin
                            when amDirect =>
                               fsmCPUAddr <= reg_read_data2;
                               fsmPC <= reg_read_data2;
+                              reg_shadow_spr <= '0';                              
                               fsmNextCpuState <= cs_fetch;
                                                          
                            when amIndirect =>
@@ -493,17 +498,13 @@ begin
                               fsmNextCpuState <= cs_int_indirect_isr;                           
                               fsmCPUAddr <= reg_read_data2 - 1;
                               writeReg(Dst_RegNo, reg_read_data2, -1);
-                              if conv_integer(Dst_RegNo) < 13 then
-                                 fsm_reg_force_shadowing <= '1';
-                              end if;                                                                        
+                              fsm_reg_force_shadowing <= '1';
                               
                            when amIndirPostInc =>
                               fsmNextCpuState <= cs_int_indirect_isr;
                               fsmCPUAddr <= reg_read_data2;
                               writeReg(Dst_RegNo, reg_read_data2, +1);
-                              if conv_integer(Dst_RegNo) < 13 then
-                                 fsm_reg_force_shadowing <= '1';
-                              end if;                                    
+                              fsm_reg_force_shadowing <= '1';
                               
                            when others =>
                               fsmNextCpuState <= cs_halt;

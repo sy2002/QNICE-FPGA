@@ -25,42 +25,44 @@ use work.cpu_constants.all;
 
 entity register_file is
 port (
-   clk         : in  std_logic;   -- clock: writing occurs at the rising edge
+   clk            : in  std_logic;   -- clock: writing occurs at the rising edge
    
    -- output stack pointer (SP) status register (SR) and program counter (PC) so
    -- that they can conveniently be read by the CPU
-   SP          : out std_logic_vector(15 downto 0);
-   SR          : out std_logic_vector(15 downto 0);
-   PC          : out std_logic_vector(15 downto 0);
-   PC_Org      : out std_logic_vector(15 downto 0);
+   SP             : out std_logic_vector(15 downto 0);
+   SR             : out std_logic_vector(15 downto 0);
+   PC             : out std_logic_vector(15 downto 0);
+   PC_Org         : out std_logic_vector(15 downto 0);
       
    -- select the appropriate register window for the lower 8 registers
-   sel_rbank   : in  std_logic_vector(7 downto 0);
+   sel_rbank      : in  std_logic_vector(7 downto 0);
    
    -- read register addresses and read result
-   read_addr1  : in  std_logic_vector(3 downto 0);
-   read_addr2  : in  std_logic_vector(3 downto 0);
-   read_data1  : out std_logic_vector(15 downto 0);
-   read_data2  : out std_logic_vector(15 downto 0);
+   read_addr1     : in  std_logic_vector(3 downto 0);
+   read_addr2     : in  std_logic_vector(3 downto 0);
+   read_data1     : out std_logic_vector(15 downto 0);
+   read_data2     : out std_logic_vector(15 downto 0);
    
    -- write register address & data and write enable
-   write_addr  : in  std_logic_vector(3 downto 0);
-   write_data  : in  std_logic_vector(15 downto 0);
-   write_en    : in  std_logic;
+   write_addr     : in  std_logic_vector(3 downto 0);
+   write_data     : in  std_logic_vector(15 downto 0);
+   write_en       : in  std_logic;
    
    -- shadow register handling:
-   -- set shadow_en = 1 to make sure that each write operation is shadowed
-   -- set revert_en = 1 to copy the shadow registers back to the main registers
-   shadow_en   : in  std_logic;
-   revert_en   : in  std_logic;
+   -- shadow_en makes sure that each write operation is shadowed
+   -- shadow_spr_en in combination with shadow_en makes sure that also special regs (SP, SR, PC) are shadowed
+   -- revert_en copies the shadow registers back to the main registers
+   shadow_en      : in  std_logic;
+   shadow_spr_en  : in  std_logic; 
+   revert_en      : in  std_logic;
    
    -- Additionally to the standard way of writing a register via the mechanism
    -- write_addr and write_en (see above) SP, SR and PC are written each
    -- falling clock cycle using these values.
    -- Caution: write_en and revert_en take precedence if set to '1'.
-   fsmSP       : in std_logic_vector(15 downto 0);
-   fsmSR       : in std_logic_vector(15 downto 0);
-   fsmPC       : in std_logic_vector(15 downto 0)   
+   fsmSP          : in std_logic_vector(15 downto 0);
+   fsmSR          : in std_logic_vector(15 downto 0);
+   fsmPC          : in std_logic_vector(15 downto 0)   
 );
 end register_file;
 
@@ -134,7 +136,7 @@ begin
          SpecialRegisters(13) <= fsmSP;
          SpecialRegisters(14) <= fsmSR;
          SpecialRegisters(15) <= fsmPC;
-         if shadow_en = '1' then
+         if shadow_en = '1' and shadow_spr_en = '1' then
             SpecialRegisters_Org(13) <= fsmSP;
             SpecialRegisters_Org(14) <= fsmSR;
             SpecialRegisters_Org(15) <= fsmPC;            
@@ -149,7 +151,7 @@ begin
             end if;             
          
             SpecialRegisters(write_addr_i) <= data;
-            if shadow_en = '1' then
+            if shadow_en = '1' and shadow_spr_en = '1' then
                SpecialRegisters_Org(write_addr_i) <= data;
             end if;
          elsif revert_en = '1' then
