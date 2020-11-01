@@ -179,7 +179,7 @@ begin
          data_en_o   => data_en_o
       ); -- i_vga_sync
 
-   p_pixel_y : process
+   p_pixel_y : process (clk_i)
    begin
       if rising_edge(clk_i) then
          pixel_y_o <= pixel_y;
