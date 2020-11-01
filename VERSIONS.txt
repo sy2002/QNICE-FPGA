@@ -4,6 +4,8 @@ Version 1.7     xxxxxxxx, yy zzzz
 * ISA: QNICE Instruction Set Architecture updated to version 1.7. The changes
   are:
   - Behavior of X flag changed: <TODO describe>
+  - Interrupt behavior changed: R8 .. R12 are now saved: <TODO describe>
+  - Behavior of branch commands changed: no predec or postinc when not taken: <TODO describe>
   - More stuff?
 WIP sift through all issues tagged with V1.7 that tackle ISA changes 
 

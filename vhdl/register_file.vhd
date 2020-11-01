@@ -25,14 +25,9 @@ port (
    
    -- input stack pointer (SP) status register (SR) and program counter (PC) so
    -- that they can conveniently be read when adressing 13 (SP), 14 (SR), 15 (PC)
-   R8          : in std_logic_vector(15 downto 0);
-   R9          : in std_logic_vector(15 downto 0);
-   R10         : in std_logic_vector(15 downto 0);
-   R11         : in std_logic_vector(15 downto 0);
-   R12         : in std_logic_vector(15 downto 0);
-   SP          : in std_logic_vector(15 downto 0); -- R13
-   SR          : in std_logic_vector(15 downto 0); -- R14
-   PC          : in std_logic_vector(15 downto 0); -- R15
+   SP          : in std_logic_vector(15 downto 0);
+   SR          : in std_logic_vector(15 downto 0);
+   PC          : in std_logic_vector(15 downto 0);
    
    -- select the appropriate register window for the lower 8 registers
    sel_rbank   : in  std_logic_vector(7 downto 0);
@@ -46,7 +41,13 @@ port (
    -- write register address & data and write enable
    write_addr  : in  std_logic_vector(3 downto 0);
    write_data  : in  std_logic_vector(15 downto 0);
-   write_en    : in  std_logic   
+   write_en    : in  std_logic;
+   
+   -- shadow register handling:
+   -- set shadow_en = 1 to make sure that each write operation is shadowed
+   -- set revert_en = 1 to copy the shadow registers back to the main registers
+   shadow_en   : in  std_logic;
+   revert_en   : in  std_logic
 );
 end register_file;
 
@@ -59,11 +60,18 @@ type rega is array (0 to 8*SHADOW_REGFILE_SIZE-1) of std_logic_vector(15 downto 
 
 signal LowerRegisterWindow : rega;
 
+signal UpperRegisters      : upper_register_array;
+signal UpperRegisters_Org  : upper_register_array;
+
 -- Copy of CPU registers. Only used for debugging
-signal r0  : std_logic_vector(15 downto 0);
-signal r1  : std_logic_vector(15 downto 0);
-signal r2  : std_logic_vector(15 downto 0);
-signal r3  : std_logic_vector(15 downto 0);
+--signal r0  : std_logic_vector(15 downto 0);
+--signal r1  : std_logic_vector(15 downto 0);
+--signal r2  : std_logic_vector(15 downto 0);
+--signal r3  : std_logic_vector(15 downto 0);
+--signal r8  : std_logic_vector(15 downto 0);
+--signal r9  : std_logic_vector(15 downto 0);
+--signal r10 : std_logic_vector(15 downto 0);
+--signal r11 : std_logic_vector(15 downto 0);
 
 --attribute mark_debug        : boolean;
 --attribute mark_debug of r0  : signal is true;
@@ -78,10 +86,14 @@ signal r3  : std_logic_vector(15 downto 0);
 begin
 
    -- Copy of CPU registers. Only used for debugging
-   r0  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 0);
-   r1  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 1);
-   r2  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 2);
-   r3  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 3);
+--   r0  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 0);
+--   r1  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 1);
+--   r2  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 2);
+--   r3  <= LowerRegisterWindow(conv_integer(sel_rbank)*8 + 3);
+--   r8  <= UpperRegisters(8);
+--   r9  <= UpperRegisters(9);
+--   r10 <= UpperRegisters(10);
+--   r11 <= UpperRegisters(11);
 
    write_register : process (clk)
    begin
@@ -89,43 +101,46 @@ begin
          if write_en = '1' then
             if write_addr(3) = '0' then
                LowerRegisterWindow(conv_integer(sel_rbank)*8+conv_integer(write_addr)) <= write_data;
+            else
+               UpperRegisters(conv_integer(write_addr)) <= write_data;
+               if shadow_en = '1' then
+                  UpperRegisters_Org(conv_integer(write_addr)) <= write_data;
+               end if;
             end if;
+         elsif revert_en = '1' then
+            UpperRegisters(8) <= UpperRegisters_Org(8);
+            UpperRegisters(9) <= UpperRegisters_Org(9);
+            UpperRegisters(10) <= UpperRegisters_Org(10);
+            UpperRegisters(11) <= UpperRegisters_Org(11);
+            UpperRegisters(12) <= UpperRegisters_Org(12);            
          end if;
       end if;
    end process;
    
-   read_register1 : process(read_addr1, LowerRegisterWindow, sel_rbank, R8, R9, R10, R11, R12, SP, SR, PC)
+   read_register1 : process(read_addr1, LowerRegisterWindow, UpperRegisters, sel_rbank, SP, SR, PC)
    begin
       if read_addr1(3) = '0' then
          read_data1 <= LowerRegisterWindow(conv_integer(sel_rbank)*8+conv_integer(read_addr1));
       else
          case read_addr1 is
-            when x"8" =>   read_data1 <= R8;
-            when x"9" =>   read_data1 <= R9;
-            when x"A" =>   read_data1 <= R10;
-            when x"B" =>   read_data1 <= R11;
-            when x"C" =>   read_data1 <= R12;
-            when x"D" =>   read_data1 <= SP; -- R13
-            when x"E" =>   read_data1 <= SR; -- R14
-            when others => read_data1 <= PC; -- R15
+            when x"D" =>   read_data1 <= SP;
+            when x"E" =>   read_data1 <= SR;
+            when X"F" =>   read_data1 <= PC;
+            when others => read_data1 <= UpperRegisters(conv_integer(read_addr1)); 
          end case;
       end if;   
    end process;
    
-   read_register2 : process(read_addr2, LowerRegisterWindow, sel_rbank, R8, R9, R10, R11, R12, SP, SR, PC)
+   read_register2 : process(read_addr2, LowerRegisterWindow, UpperRegisters, sel_rbank, SP, SR, PC)
    begin
       if read_addr2(3) = '0' then
          read_data2 <= LowerRegisterWindow(conv_integer(sel_rbank)*8+conv_integer(read_addr2));
       else
          case read_addr2 is
-            when x"8" =>   read_data2 <= R8;
-            when x"9" =>   read_data2 <= R9;
-            when x"A" =>   read_data2 <= R10;
-            when x"B" =>   read_data2 <= R11;
-            when x"C" =>   read_data2 <= R12;
-            when x"D" =>   read_data2 <= SP; -- R13
-            when x"E" =>   read_data2 <= SR; -- R14
-            when others => read_data2 <= PC; -- R15
+            when x"D" =>   read_data2 <= SP;
+            when x"E" =>   read_data2 <= SR;
+            when x"F" =>   read_data2 <= PC;
+            when others => read_data2 <= UpperRegisters(conv_integer(read_addr2));
          end case;
       end if;
    end process;   
