@@ -24,6 +24,9 @@
 #include "../dist_kit/monitor.def"
 
         .ORG    0x8000
+
+        MOVE    HELP_STR, R8
+        SYSCALL(puts, 1)
         MOVE    ITEST_1, R8
         SYSCALL(puts, 1)
 
@@ -32,7 +35,13 @@
         MOVE    0xABCD, R10
         MOVE    0xBCDE, R11
         MOVE    0xCDEF, R12
+
+        ; --------------------------------------------------------------------
+        ; Test direct ISR address
+        ; --------------------------------------------------------------------
+
         INT     ISR_ABS         ; Test direct ISR address (this basically is @R15++)
+
         CMP     0x89AB, R8      ; Verify registers are not changed
         RBRA    ISR_ERR1, !Z
         CMP     0x9ABC, R9
@@ -44,11 +53,45 @@
         CMP     0xCDEF, R12
         RBRA    ISR_ERR1, !Z
 
+        ; --------------------------------------------------------------------
+        ; Test direct ISR address in register
+        ; --------------------------------------------------------------------
+
         MOVE    ISR_REG, R8     ; Test ISR address in register
         INT     R8
 
+        CMP     ISR_REG, R8     ; Verify registers are not changed
+        RBRA    ISR_ERR1_2, !Z
+        CMP     0x9ABC, R9
+        RBRA    ISR_ERR1_2, !Z
+        CMP     0xABCD, R10
+        RBRA    ISR_ERR1_2, !Z
+        CMP     0xBCDE, R11
+        RBRA    ISR_ERR1_2, !Z
+        CMP     0xCDEF, R12
+        RBRA    ISR_ERR1_2, !Z
+
+        ; --------------------------------------------------------------------
+        ; Test indirect ISR address
+        ; --------------------------------------------------------------------
+
         MOVE    INDIRECT, R8    ; Test indirect ISR address
         INT     @R8
+
+        CMP     INDIRECT, R8    ; Verify registers are not changed
+        RBRA    ISR_ERR1_3, !Z
+        CMP     0x9ABC, R9
+        RBRA    ISR_ERR1_3, !Z
+        CMP     0xABCD, R10
+        RBRA    ISR_ERR1_3, !Z
+        CMP     0xBCDE, R11
+        RBRA    ISR_ERR1_3, !Z
+        CMP     0xCDEF, R12
+        RBRA    ISR_ERR1_3, !Z
+
+        ; --------------------------------------------------------------------
+        ; Test indirect ISR with predecrement
+        ; --------------------------------------------------------------------
 
         MOVE    PREDECIND_1, R8 ; Test indirect ISR address with predecrement
         MOVE    R8, R0
@@ -58,6 +101,19 @@
         RBRA    ISR_ERR3, !Z    ; Jump to ISR worked (predec worked), but then
                                 ; the register was reverted back
 
+        CMP     0x9ABC, R9      ; Verify registers are not changed
+        RBRA    ISR_ERR1_4, !Z
+        CMP     0xABCD, R10
+        RBRA    ISR_ERR1_4, !Z
+        CMP     0xBCDE, R11
+        RBRA    ISR_ERR1_4, !Z
+        CMP     0xCDEF, R12
+        RBRA    ISR_ERR1_4, !Z
+
+        ; --------------------------------------------------------------------
+        ; Test indirect ISR with postincrement
+        ; --------------------------------------------------------------------
+
         MOVE    R8, R0
         ADD     1, R0
 
@@ -66,17 +122,50 @@
         CMP     R8, R0
         RBRA    ISR_ERR4, !Z    ; post increment did not work
 
+        CMP     0x9ABC, R9      ; Verify registers are not changed
+        RBRA    ISR_ERR1_5, !Z
+        CMP     0xABCD, R10
+        RBRA    ISR_ERR1_5, !Z
+        CMP     0xBCDE, R11
+        RBRA    ISR_ERR1_5, !Z
+        CMP     0xCDEF, R12
+        RBRA    ISR_ERR1_5, !Z
+
         INT     @R8
 
+        CMP     R8, R0          ; Verify registers are not changed
+        RBRA    ISR_ERR1_6, !Z
+        CMP     0x9ABC, R9      
+        RBRA    ISR_ERR1_6, !Z
+        CMP     0xABCD, R10
+        RBRA    ISR_ERR1_6, !Z
+        CMP     0xBCDE, R11
+        RBRA    ISR_ERR1_6, !Z
+        CMP     0xCDEF, R12
+        RBRA    ISR_ERR1_6, !Z        
+
         MOVE    ITEST_3, R8
-        SYSCALL(puts, 1)
+        SYSCALL(puts, 1)        
         SYSCALL(exit, 1)
         
-ISR_ERR1 HALT
-ISR_ERR2 HALT
-ISR_ERR3 HALT
-ISR_ERR4 HALT
-        
+ISR_ERR1    HALT
+ISR_ERR1_2  HALT
+ISR_ERR1_3  HALT
+ISR_ERR1_4  HALT
+ISR_ERR1_5  HALT
+ISR_ERR1_6  HALT
+ISR_ERR2    HALT
+ISR_ERR2_2  HALT
+ISR_ERR2_3  HALT
+ISR_ERR2_4  HALT
+ISR_ERR2_5  HALT
+ISR_ERR3    HALT
+ISR_ERR4    HALT
+
+        ; --------------------------------------------------------------------
+        ; ISR: Direct ISR address
+        ; --------------------------------------------------------------------
+
 ISR_ABS CMP         0x89AB, R8  ; Verify registers are not changed
         RBRA        ISR_ERR2, !Z
         CMP         0x9ABC, R9
@@ -96,28 +185,101 @@ ISR_ABS CMP         0x89AB, R8  ; Verify registers are not changed
         SYSCALL(puts, 1)
         RTI
         HALT
-ISR_REG MOVE        ITEST_2_1, R8
+
+        ; --------------------------------------------------------------------
+        ; ISR: Direct ISR address in register
+        ; --------------------------------------------------------------------        
+
+ISR_REG CMP         ISR_REG, R8  ; Verify registers are not changed
+        RBRA        ISR_ERR2_2, !Z
+        CMP         0x9ABC, R9
+        RBRA        ISR_ERR2_2, !Z
+        CMP         0xABCD, R10
+        RBRA        ISR_ERR2_2, !Z
+        CMP         0xBCDE, R11
+        RBRA        ISR_ERR2_2, !Z
+        CMP         0xCDEF, R12
+        RBRA        ISR_ERR2_2, !Z
+
+        MOVE        ITEST_2_1, R8
         SYSCALL(puts, 1)
         RTI
         HALT
-ISR_IND MOVE        ITEST_2_2, R8
+
+        ; --------------------------------------------------------------------
+        ; ISR: Indirect ISR address
+        ; --------------------------------------------------------------------        
+
+ISR_IND CMP         INDIRECT, R8  ; Verify registers are not changed
+        RBRA        ISR_ERR2_3, !Z
+        CMP         0x9ABC, R9
+        RBRA        ISR_ERR2_3, !Z
+        CMP         0xABCD, R10
+        RBRA        ISR_ERR2_3, !Z
+        CMP         0xBCDE, R11
+        RBRA        ISR_ERR2_3, !Z
+        CMP         0xCDEF, R12
+        RBRA        ISR_ERR2_3, !Z
+
+        MOVE        ITEST_2_2, R8
         SYSCALL(puts, 1)
         RTI
         HALT
-ISR_PRE MOVE        R8, @--SP
+
+        ; --------------------------------------------------------------------
+        ; ISR: Indirect ISR address with predecrement
+        ; --------------------------------------------------------------------        
+
+ISR_PRE CMP         PREDECIND, R8  ; Verify registers are not changed
+        RBRA        ISR_ERR2_4, !Z
+        CMP         0x9ABC, R9
+        RBRA        ISR_ERR2_4, !Z
+        CMP         0xABCD, R10
+        RBRA        ISR_ERR2_4, !Z
+        CMP         0xBCDE, R11
+        RBRA        ISR_ERR2_4, !Z
+        CMP         0xCDEF, R12
+        RBRA        ISR_ERR2_4, !Z
+
+        MOVE        R8, @--SP
         MOVE        ITEST_2_3, R8
         SYSCALL(puts, 1)
         MOVE        @SP++, R8        
         RTI
         HALT
-ISR_PST MOVE        ITEST_2_4, R8
+
+        ; --------------------------------------------------------------------
+        ; ISR: Indirect ISR address with postincrement
+        ; --------------------------------------------------------------------        
+
+ISR_PST CMP         PREDECIND_1, R8  ; Verify registers are not changed
+        RBRA        ISR_ERR2_5, !Z
+        CMP         0x9ABC, R9
+        RBRA        ISR_ERR2_5, !Z
+        CMP         0xABCD, R10
+        RBRA        ISR_ERR2_5, !Z
+        CMP         0xBCDE, R11
+        RBRA        ISR_ERR2_5, !Z
+        CMP         0xCDEF, R12
+        RBRA        ISR_ERR2_5, !Z
+
+        MOVE        ITEST_2_4, R8
         SYSCALL(puts, 1)
         RTI
         HALT
 
+        ; --------------------------------------------------------------------
+        ; Jump table and strings
+        ; --------------------------------------------------------------------        
+
 INDIRECT    .DW         ISR_IND
 PREDECIND   .DW         ISR_PRE
 PREDECIND_1 .DW         ISR_PST
+
+HELP_STR    .ASCII_P    "Test software interrupts.\n"
+            .ASCII_P    "The correct output of this program should look like this:\n\n"
+            .ASCII_P    "Start\nISR_ABS\nISR_REG\nISR_IND\nISR_PRE\nISR_PRE\nISR_POST\nEnd\n"
+            .ASCII_W    "======================== OUTPUT: ========================\n"
 
 ITEST_1     .ASCII_W    "Start\n"
 ITEST_2     .ASCII_W    "ISR_ABS\n"
