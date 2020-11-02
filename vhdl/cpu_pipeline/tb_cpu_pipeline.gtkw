@@ -1,0 +1,58 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Mon Nov  2 11:53:48 2020
+[*]
+[dumpfile] "/home/mfj/git/sy2002/QNICE-FPGA/vhdl/cpu_pipeline/tb_cpu_pipeline.ghw"
+[dumpfile_mtime] "Mon Nov  2 11:52:10 2020"
+[dumpfile_size] 16290
+[savefile] "/home/mfj/git/sy2002/QNICE-FPGA/vhdl/cpu_pipeline/tb_cpu_pipeline.gtkw"
+[timestart] 0
+[size] 1307 891
+[pos] 265 26
+*-27.786322 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.tb_cpu_pipeline.
+[treeopen] top.tb_cpu_pipeline.i_cpu_pipeline.
+[sst_width] 223
+[signals_width] 182
+[sst_expanded] 1
+[sst_vpaned_height] 357
+@800200
+-cpu_pipeline
+@28
+top.tb_cpu_pipeline.i_cpu_pipeline.clk_i
+top.tb_cpu_pipeline.i_cpu_pipeline.rst_i
+top.tb_cpu_pipeline.i_cpu_pipeline.mem_write_o
+top.tb_cpu_pipeline.i_cpu_pipeline.mem_read_o
+@22
+#{top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[15] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[14] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[13] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[12] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[11] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[10] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[9] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[8] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[7] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[6] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[5] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[4] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[3] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[2] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[1] top.tb_cpu_pipeline.i_cpu_pipeline.mem_address_o[0]
+#{top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[15] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[14] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[13] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[12] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[11] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[10] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[9] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[8] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[7] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[6] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[5] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[4] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[3] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[2] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[1] top.tb_cpu_pipeline.i_cpu_pipeline.mem_wr_data_o[0]
+#{top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[15] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[14] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[13] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[12] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[11] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[10] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[9] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[8] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[7] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[6] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[5] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[4] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[3] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[2] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[1] top.tb_cpu_pipeline.i_cpu_pipeline.mem_rd_data_i[0]
+@28
+top.tb_cpu_pipeline.i_cpu_pipeline.inst_valid
+top.tb_cpu_pipeline.i_cpu_pipeline.inst_ready
+@22
+#{top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[15] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[14] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[13] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[12] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[11] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[10] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[9] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[8] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[7] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[6] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[5] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[4] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[3] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[2] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[1] top.tb_cpu_pipeline.i_cpu_pipeline.inst_address[0]
+#{top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[15] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[14] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[13] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[12] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[11] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[10] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[9] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[8] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[7] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[6] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[5] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[4] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[3] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[2] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[1] top.tb_cpu_pipeline.i_cpu_pipeline.inst_data[0]
+@28
+top.tb_cpu_pipeline.i_cpu_pipeline.src_valid
+top.tb_cpu_pipeline.i_cpu_pipeline.src_ready
+@22
+#{top.tb_cpu_pipeline.i_cpu_pipeline.src_address[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.src_address[15] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[14] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[13] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[12] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[11] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[10] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[9] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[8] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[7] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[6] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[5] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[4] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[3] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[2] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[1] top.tb_cpu_pipeline.i_cpu_pipeline.src_address[0]
+#{top.tb_cpu_pipeline.i_cpu_pipeline.src_data[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.src_data[15] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[14] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[13] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[12] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[11] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[10] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[9] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[8] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[7] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[6] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[5] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[4] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[3] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[2] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[1] top.tb_cpu_pipeline.i_cpu_pipeline.src_data[0]
+@28
+top.tb_cpu_pipeline.i_cpu_pipeline.dst_valid
+top.tb_cpu_pipeline.i_cpu_pipeline.dst_ready
+@22
+#{top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[15] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[14] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[13] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[12] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[11] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[10] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[9] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[8] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[7] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[6] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[5] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[4] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[3] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[2] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[1] top.tb_cpu_pipeline.i_cpu_pipeline.dst_address[0]
+#{top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[15] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[14] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[13] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[12] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[11] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[10] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[9] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[8] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[7] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[6] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[5] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[4] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[3] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[2] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[1] top.tb_cpu_pipeline.i_cpu_pipeline.dst_data[0]
+@28
+top.tb_cpu_pipeline.i_cpu_pipeline.res_valid
+top.tb_cpu_pipeline.i_cpu_pipeline.res_ready
+@22
+#{top.tb_cpu_pipeline.i_cpu_pipeline.res_address[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.res_address[15] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[14] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[13] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[12] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[11] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[10] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[9] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[8] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[7] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[6] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[5] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[4] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[3] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[2] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[1] top.tb_cpu_pipeline.i_cpu_pipeline.res_address[0]
+#{top.tb_cpu_pipeline.i_cpu_pipeline.res_data[15:0]} top.tb_cpu_pipeline.i_cpu_pipeline.res_data[15] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[14] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[13] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[12] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[11] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[10] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[9] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[8] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[7] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[6] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[5] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[4] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[3] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[2] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[1] top.tb_cpu_pipeline.i_cpu_pipeline.res_data[0]
+@1000200
+-cpu_pipeline
+[pattern_trace] 1
+[pattern_trace] 0
