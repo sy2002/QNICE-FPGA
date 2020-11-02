@@ -3,7 +3,8 @@
 # in your OS repository, otherwise it may be downloaded from here:
 # https://github.com/ghdl/ghdl
 
-SOURCES  = arbiter.vhd
+SOURCES  = cpu_constants.vhd
+SOURCES += arbiter.vhd
 SOURCES += memory.vhd
 SOURCES += alu.vhd
 SOURCES += registers.vhd

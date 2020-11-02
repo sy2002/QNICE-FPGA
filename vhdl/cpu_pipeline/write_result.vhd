@@ -2,6 +2,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use work.cpu_constants.all;
+
 entity write_result is
    port (
       clk_i          : in  std_logic;
@@ -29,13 +31,6 @@ entity write_result is
 end entity write_result;
 
 architecture synthesis of write_result is
-
-   -- Instruction format is as follows
-   subtype R_OPCODE    is natural range 15 downto 12;
-   subtype R_SRC_REG   is natural range 11 downto  8;
-   subtype R_SRC_MODE  is natural range  7 downto  6;
-   subtype R_DEST_REG  is natural range  5 downto  2;
-   subtype R_DEST_MODE is natural range  1 downto  0;
 
    signal res_data : std_logic_vector(15 downto 0);
    signal sr       : std_logic_vector(7 downto 0);
