@@ -33,50 +33,81 @@ architecture synthesis of cpu_pipeline is
    signal res_address  : std_logic_vector(15 downto 0);
    signal res_data     : std_logic_vector(15 downto 0);
 
-   signal instruction  : std_logic_vector(15 downto 0);
+   signal instruction1 : std_logic_vector(15 downto 0);
+   signal instruction2 : std_logic_vector(15 downto 0);
+   signal src_operand  : std_logic_vector(15 downto 0);
+   signal instruction3 : std_logic_vector(15 downto 0);
+   signal dst_operand  : std_logic_vector(15 downto 0);
+
+   signal reg_src_reg  : std_logic_vector(3 downto 0);
+   signal reg_src_data : std_logic_vector(15 downto 0);
+   signal reg_dst_reg  : std_logic_vector(3 downto 0);
+   signal reg_dst_data : std_logic_vector(15 downto 0);
+   signal reg_res_wr   : std_logic;
+   signal reg_res_reg  : std_logic_vector(3 downto 0);
+   signal reg_res_data : std_logic_vector(15 downto 0);
+   signal reg_pc       : std_logic_vector(15 downto 0);
+   signal reg_sr       : std_logic_vector(15 downto 0);
 
 begin
 
    i_read_instruction : entity work.read_instruction
       port map (
-         clk_i         => clk_i,
-         rst_i         => rst_i,
-         mem_valid_o   => inst_valid,
-         mem_ready_i   => inst_ready,
-         mem_address_o => inst_address,
-         mem_data_i    => inst_data,
-         instruction_o => instruction
+         clk_i          => clk_i,
+         rst_i          => rst_i,
+         pc_i           => reg_pc,
+         mem_valid_o    => inst_valid,
+         mem_ready_i    => inst_ready,
+         mem_address_o  => inst_address,
+         mem_data_i     => inst_data,
+         instruction_o  => instruction1
       ); -- i_read_instruction
 
    i_read_src_operand : entity work.read_src_operand
       port map (
-         clk_i         => clk_i,
-         rst_i         => rst_i,
-         mem_valid_o   => src_valid,
-         mem_ready_i   => src_ready,
-         mem_address_o => src_address,
-         mem_data_i    => src_data,
-         instruction_i => instruction
+         clk_i          => clk_i,
+         rst_i          => rst_i,
+         mem_valid_o    => src_valid,
+         mem_ready_i    => src_ready,
+         mem_address_o  => src_address,
+         mem_data_i     => src_data,
+         instruction_i  => instruction1,
+         res_src_reg_o  => reg_src_reg,
+         res_src_data_i => reg_src_data,
+         src_operand_o  => src_operand,
+         instruction_o  => instruction2
       ); -- i_read_src_operand
 
    i_read_dst_operand : entity work.read_dst_operand
       port map (
-         clk_i         => clk_i,
-         rst_i         => rst_i,
-         mem_valid_o   => dst_valid,
-         mem_ready_i   => dst_ready,
-         mem_address_o => dst_address,
-         mem_data_i    => dst_data
+         clk_i          => clk_i,
+         rst_i          => rst_i,
+         mem_valid_o    => dst_valid,
+         mem_ready_i    => dst_ready,
+         mem_address_o  => dst_address,
+         mem_data_i     => dst_data,
+         instruction_i  => instruction2,
+         res_dst_reg_o  => reg_dst_reg,
+         res_dst_data_i => reg_dst_data,
+         dst_operand_o  => dst_operand,
+         instruction_o  => instruction3
       ); -- i_read_dst_operand
 
    i_write_result : entity work.write_result
       port map (
-         clk_i         => clk_i,
-         rst_i         => rst_i,
-         mem_valid_o   => res_valid,
-         mem_ready_i   => res_ready,
-         mem_address_o => res_address,
-         mem_data_o    => res_data
+         clk_i          => clk_i,
+         rst_i          => rst_i,
+         instruction_i  => instruction3,
+         src_data_i     => src_operand,
+         dst_data_i     => dst_operand,
+         sr_i           => reg_sr(7 downto 0),
+         mem_valid_o    => res_valid,
+         mem_ready_i    => res_ready,
+         mem_address_o  => res_address,
+         mem_data_o     => res_data,
+         reg_res_reg_o  => reg_res_reg,
+         reg_res_wr_o   => reg_res_wr,
+         reg_res_data_o => reg_res_data
       ); -- i_write_result
 
    i_arbiter : entity work.arbiter
@@ -105,6 +136,19 @@ begin
          mem_rd_data_i   => mem_rd_data_i,
          mem_read_o      => mem_read_o
       );
+
+   i_registers : entity work.registers
+      port map (
+         clk_i      => clk_i,
+         rst_i      => rst_i,
+         src_reg_i  => reg_src_reg,
+         src_data_o => reg_src_data,
+         dst_reg_i  => reg_dst_reg,
+         dst_data_o => reg_dst_data,
+         res_wr_i   => reg_res_wr,
+         res_reg_i  => reg_res_reg,
+         res_data_i => reg_res_data
+      ); -- i_registers
 
 end architecture synthesis;
 

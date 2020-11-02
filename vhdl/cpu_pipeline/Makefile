@@ -5,6 +5,8 @@
 
 SOURCES  = arbiter.vhd
 SOURCES += memory.vhd
+SOURCES += alu.vhd
+SOURCES += registers.vhd
 SOURCES += read_instruction.vhd
 SOURCES += read_src_operand.vhd
 SOURCES += read_dst_operand.vhd
@@ -25,9 +27,9 @@ show: $(WAVE)
 	gtkwave $(WAVE) $(SAVE)
 
 $(WAVE): $(SOURCES)
-	ghdl -i -fsynopsys $(SOURCES)
-	ghdl -m -fsynopsys $(TB)
-	ghdl -r -fsynopsys $(TB) --wave=$(WAVE) --stop-time=1us
+	ghdl -i --ieee=synopsys $(SOURCES)
+	ghdl -m --ieee=synopsys $(TB)
+	ghdl -r --ieee=synopsys $(TB) --wave=$(WAVE) --stop-time=1us
 
 
 #####################################
