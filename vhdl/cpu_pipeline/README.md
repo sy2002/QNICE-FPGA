@@ -91,3 +91,52 @@ This will assemble the file `test1.asm` into binary data in the file
 
 Verification is done by manually inspecting the generated waveform.
 
+## Arbiter and pipeline
+
+In the following we'll analyze the dynamics of the pipeline and the
+arbitration for the memory in a few different cases.
+
+### `MOVE @R, R`
+
+First we will consider a sequence of instructions of the same instruction,
+namely `MOVE @R, R`. To execute this instrution, the CPU needs to perform an
+instruction fetch, as well as reading the source operand.  In other words, the
+stages `Read Inst` and `Read Source` will be performing memory accesses, while
+the stages `Read Dest` and `Write Result` will not.
+
+The following table shows each stage as a row, and with time progressing to the
+right. As an instruction propagates through the pipeline, it will travel
+diagonally down to the right. If an instruction is shown with small letters,
+then that means the instruction is not performing any memory access in that
+particular clock cycle. In other words, in each column at most one row may
+perform a memory access.
+
+```
+Read Inst    | MOVE @R,R0 | .......... | MOVE @R,R1 | .......... | MOVE @R,R2 | .......... |
+Read Source  | .......... | MOVE @R,R0 | .......... | MOVE @R,R1 | .......... | MOVE @R,R2 |
+Read Dest    | .......... | .......... | move @r,r0 | .......... | move @r,r1 | .......... |
+Write Result | .......... | .......... | .......... | move @r,r0 | .......... | move @r,r1 |
+```
+
+The table shows how "Read Source" takes precedence over "Read Inst". So at the
+second time step, no instrucion fetch is taking place while the CPU is reading
+the source operand from @R.
+
+The table also shows that the memory bus is active on all clock cycles, and a
+new instruction starts every two clock cycles.
+
+### `MOVE R, @R`
+Next we wil consider a seemingly similar looking sequence, this time with the
+instruction `MOVE R, @R`. This instruction will access memory three times:
+`Read Inst`, `Read Dest`, and `Write Result`.
+
+```
+Read Inst    MOVE R,@R0 | MOVE R,@R1 | .......... | .......... | .......... | .......... | MOVE R,@R2 |
+Read Source  .......... | move r,@r0 | move r,@r1 | .......... | .......... | .......... | .......... |
+Read Dest    .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | .......... | .......... |
+Write Result .......... | .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | .......... |
+```
+
+We see how it now takes six clock cycles to perform two instructions, and that
+the memory system is active on every clock cycle.
+

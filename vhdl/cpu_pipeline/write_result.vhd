@@ -40,6 +40,9 @@ architecture synthesis of write_result is
 
 begin
 
+   -- To previous stage (combinatorial)
+   ready_o <= '1';
+
    i_alu : entity work.alu
       port map (
          clk_i      => clk_i,

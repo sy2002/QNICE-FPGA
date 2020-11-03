@@ -12,12 +12,12 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="1000000fs"></ZoomEndTime>
-      <Cursor1Time time="36145fs"></Cursor1Time>
+      <ZoomEndTime time="371353fs"></ZoomEndTime>
+      <Cursor1Time time="276316fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="241"></NameColumnWidth>
-      <ValueColumnWidth column_width="145"></ValueColumnWidth>
+      <ValueColumnWidth column_width="140"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="4" />
    <wvobject type="logic" fp_name="/tb_cpu_pipeline/clk">
@@ -31,6 +31,7 @@
    <wvobject type="group" fp_name="group22">
       <obj_property name="label">registers</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[0]">
          <obj_property name="ElementShortName">[0][15:0]</obj_property>
          <obj_property name="ObjectShortName">[0][15:0]</obj_property>
@@ -42,6 +43,42 @@
       <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[2]">
          <obj_property name="ElementShortName">[2][15:0]</obj_property>
          <obj_property name="ObjectShortName">[2][15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[3]">
+         <obj_property name="ElementShortName">[3][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[3][15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[4]">
+         <obj_property name="ElementShortName">[4][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[4][15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[5]">
+         <obj_property name="ElementShortName">[5][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[5][15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[6]">
+         <obj_property name="ElementShortName">[6][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[6][15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[7]">
+         <obj_property name="ElementShortName">[7][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[7][15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[8]">
+         <obj_property name="ElementShortName">[8][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[8][15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[9]">
+         <obj_property name="ElementShortName">[9][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[9][15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[10]">
+         <obj_property name="ElementShortName">[10][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[10][15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_cpu_pipeline/i_top/i_cpu_pipeline/i_registers/regs[11]">
+         <obj_property name="ElementShortName">[11][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[11][15:0]</obj_property>
       </wvobject>
    </wvobject>
    <wvobject type="group" fp_name="group28">

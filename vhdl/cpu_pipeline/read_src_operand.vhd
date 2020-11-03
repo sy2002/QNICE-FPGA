@@ -38,6 +38,9 @@ architecture synthesis of read_src_operand is
 
 begin
 
+   -- To previous stage (combinatorial)
+   ready_o <= ready_i;
+
    -- To register file (combinatorial)
    p_reg : process (valid_i, instruction_i, reg_src_data_i)
    begin
@@ -81,14 +84,21 @@ begin
    p_next_stage : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         if instruction_i(R_SRC_MODE) = C_MODE_REG then
-            src_operand_o <= reg_src_data_i;
-         elsif mem_ready_i = '1' then
-            src_operand_o <= mem_data_i;
+         if ready_i = '1' then
+            valid_o <= '0';
          end if;
 
-         valid_o       <= valid_i;
-         instruction_o <= instruction_i;
+         if valid_i = '1' and ready_i = '1' then
+            if instruction_i(R_SRC_MODE) = C_MODE_REG then
+               valid_o       <= '1';
+               instruction_o <= instruction_i;
+               src_operand_o <= reg_src_data_i;
+            elsif mem_ready_i = '1' then
+               valid_o       <= '1';
+               instruction_o <= instruction_i;
+               src_operand_o <= mem_data_i;
+            end if;
+         end if;
 
          if rst_i = '1' then
             valid_o       <= '0';

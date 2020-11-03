@@ -41,15 +41,19 @@ architecture synthesis of read_dst_operand is
 
 begin
 
+   -- To previous stage (combinatorial)
+   ready_o <= '1' when instruction_i(R_DEST_MODE) = C_MODE_REG else
+              mem_ready_i;
+
    -- To register file (combinatorial)
-   p_reg : process (valid_i, instruction_i, reg_dst_data_i)
+   p_reg : process (valid_i, instruction_i, reg_dst_data_i, mem_ready_i)
    begin
       -- Default values to avoid latch
       reg_dst_reg_o  <= instruction_i(R_DEST_REG);
       reg_dst_wr_o   <= '0';
       reg_dst_data_o <= reg_dst_data_i;
 
-      if valid_i = '1' then
+      if valid_i = '1' and mem_ready_i = '1' then
          case conv_integer(instruction_i(R_DEST_MODE)) is
             when C_MODE_REG  => null;
             when C_MODE_MEM  => null;
@@ -84,10 +88,20 @@ begin
    p_next_stage : process (clk_i)
    begin
       if rising_edge(clk_i) then
+         if ready_i = '1' then
+            valid_o <= '0';
+         end if;
+
          if instruction_i(R_DEST_MODE) = C_MODE_REG then
+            valid_o       <= valid_i;
             dst_operand_o <= reg_dst_data_i;
+            instruction_o <= instruction_i;
+            src_operand_o <= src_operand_i;
          elsif mem_ready_i = '1' then
+            valid_o       <= valid_i;
             dst_operand_o <= mem_data_i;
+            instruction_o <= instruction_i;
+            src_operand_o <= src_operand_i;
          end if;
 
          if instruction_i(R_DEST_MODE) = C_MODE_PRE then
@@ -95,10 +109,6 @@ begin
          else
             dst_address_o <= reg_dst_data_i;
          end if;
-
-         valid_o       <= valid_i;
-         instruction_o <= instruction_i;
-         src_operand_o <= src_operand_i;
 
          if rst_i = '1' then
             valid_o       <= '0';
