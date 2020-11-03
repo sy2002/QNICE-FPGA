@@ -19,6 +19,8 @@ SOURCES += tb_cpu_pipeline.vhd
 TB       = tb_cpu_pipeline
 WAVE     = $(TB).ghw
 SAVE     = $(TB).gtkw
+ROM      = prog.rom
+PROG     = prog.asm
 
 
 #####################################
@@ -28,11 +30,13 @@ SAVE     = $(TB).gtkw
 show: $(WAVE)
 	gtkwave $(WAVE) $(SAVE)
 
-$(WAVE): $(SOURCES)
+$(WAVE): $(SOURCES) $(ROM)
 	ghdl -i --ieee=synopsys $(SOURCES)
 	ghdl -m --ieee=synopsys $(TB)
 	ghdl -r --ieee=synopsys $(TB) --wave=$(WAVE) --stop-time=1us
 
+$(ROM): $(PROG)
+	../../assembler/asm $(PROG)
 
 #####################################
 # Cleanup

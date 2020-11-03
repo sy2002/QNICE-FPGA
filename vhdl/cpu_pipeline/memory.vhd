@@ -1,9 +1,13 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
-use ieee.numeric_std.all;
+use ieee.std_logic_textio.all;
+use std.textio.all;
 
 entity memory is
+   generic (
+      G_ROM_FILE : string
+   );
    port (
       clk_i     : in  std_logic;
       rst_i     : in  std_logic;
@@ -19,16 +23,24 @@ architecture synthesis of memory is
 
    type mem_t is array (0 to 255) of std_logic_vector(15 downto 0);
 
+   -- This reads the ROM contents from a text file
+   impure function InitRamFromFile(RamFileName : in string) return mem_t is
+      FILE RamFile : text is in RamFileName;
+      variable RamFileLine : line;
+      variable ram : mem_t := (others => (others => '0'));
+   begin
+      for i in mem_t'range loop
+         readline (RamFile, RamFileLine);
+         read (RamFileLine, ram(i));
+         if endfile(RamFile) then
+            return ram;
+         end if;
+      end loop;
+      return ram;
+   end function;
+
    -- Initialize memory contents
-   signal mem_r : mem_t := (
-      16 => X"0F00",    -- MOVE  R15, R0
-      17 => X"0F04",    -- MOVE  R15, R1
-      18 => X"1045",    -- ADD   @R0, @R1
-      19 => X"0F08",    -- MOVE  R15, R2
-      20 => X"0F0C",    -- MOVE  R15, R3
-      21 => X"0F10",    -- MOVE  R15, R4
-      others => (others => '0')
-   );
+   signal mem_r : mem_t := InitRamFromFile(G_ROM_FILE);
 
 begin
 

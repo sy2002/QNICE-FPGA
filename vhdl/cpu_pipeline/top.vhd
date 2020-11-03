@@ -3,6 +3,9 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity top is
+   generic (
+      G_ROM_FILE : string
+   );
    port (
       clk_i  : in std_logic;
       rstn_i : in std_logic;
@@ -41,6 +44,9 @@ begin
       ); -- i_cpu_pipeline
 
    i_memory : entity work.memory
+      generic map (
+         G_ROM_FILE => G_ROM_FILE
+      )
       port map (
          clk_i     => clk_i,
          rst_i     => rst,
