@@ -56,7 +56,7 @@ cycle, and must be signalled in some way. Here we use the signal `valid` to
 indicate if the next stage should do some work or just skip this clock cycle.
 
 Similarly, the arbiter may grant or deny access to the external memory. In
-other words, is - say - `Read Operand 2` and `Write Result` both want to access
+other words, if - say - `Read Operand 2` and `Write Result` both want to access
 memory, only `Write Result` will be granted access. In the mean time, the stage
 `Read Operand 2` must wait until it is granted access. This stalls the entire
 pipeline all the way back to the start, because no stage before `Read Operand
@@ -78,8 +78,16 @@ I've written a small simulation testbench that instantiates this top level
 entity and provides clock and reset.
 
 ### Test methodology
-So the test methodology is to write a small assembly program in the file
-`prog.asm`.  This will get assembled into binary data in the file `prog.rom`,
-which is used to initialize the memory. Then the PC is reset to (currently)
-0x0010, and the CPU starts executing!
+So the test methodology is to write one or more small assembly program and
+place them in the file e.g. `test1.asm`. Then to start the test simply type:
+
+```
+make test1
+```
+
+This will assemble the file `test1.asm` into binary data in the file
+`prog.rom`, which is used to initialize the memory. Then the PC is reset
+(currently to 0x0010), and the CPU starts executing!
+
+Verification is done by manually inspecting the generated waveform.
 

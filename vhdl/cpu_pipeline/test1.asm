@@ -1,4 +1,4 @@
-; This test file is the very first test of the CPU
+; This test file is the very first test of the CPU.
 ; It tests the following:
 ; MOVE R, R
 ; MOVE @R, R
