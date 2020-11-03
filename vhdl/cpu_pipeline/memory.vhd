@@ -15,7 +15,7 @@ entity memory is
    );
 end entity memory;
 
-architecture simulation of memory is
+architecture synthesis of memory is
 
    type mem_t is array (0 to 255) of std_logic_vector(15 downto 0);
 
@@ -50,6 +50,5 @@ begin
       end if;
    end process p_read;
 
-end architecture simulation;
-
+end architecture synthesis;
 

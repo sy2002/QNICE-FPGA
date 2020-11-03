@@ -48,8 +48,8 @@ begin
 
    res_ready   <= '1';
    dst_ready   <= not (res_valid_i and res_ready);
-   src_ready   <= not ((res_valid_i and res_ready) or (src_valid_i and src_ready));
-   inst_ready  <= not ((res_valid_i and res_ready) or (src_valid_i and src_ready) or (dst_valid_i and dst_ready));
+   src_ready   <= not ((res_valid_i and res_ready) or (dst_valid_i and dst_ready));
+   inst_ready  <= not ((res_valid_i and res_ready) or (dst_valid_i and dst_ready) or (src_valid_i and src_ready));
 
    mem_address_o <= res_address_i  when (res_valid_i  and res_ready)  = '1' else
                     dst_address_i  when (dst_valid_i  and dst_ready)  = '1' else

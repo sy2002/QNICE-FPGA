@@ -10,7 +10,8 @@ entity cpu_pipeline is
       mem_wr_data_o : out std_logic_vector(15 downto 0);
       mem_write_o   : out std_logic;
       mem_rd_data_i : in  std_logic_vector(15 downto 0);
-      mem_read_o    : out std_logic
+      mem_read_o    : out std_logic;
+      debug_o       : out std_logic_vector(15 downto 0)
    );
 end entity cpu_pipeline;
 
@@ -55,9 +56,11 @@ architecture synthesis of cpu_pipeline is
 
    signal reg_src_reg     : std_logic_vector(3 downto 0);
    signal reg_src_rd_data : std_logic_vector(15 downto 0);
+   signal reg_src_wr      : std_logic;
    signal reg_src_wr_data : std_logic_vector(15 downto 0);
    signal reg_dst_reg     : std_logic_vector(3 downto 0);
    signal reg_dst_rd_data : std_logic_vector(15 downto 0);
+   signal reg_dst_wr      : std_logic;
    signal reg_dst_wr_data : std_logic_vector(15 downto 0);
    signal reg_res_wr      : std_logic;
    signal reg_res_reg     : std_logic_vector(3 downto 0);
@@ -91,6 +94,7 @@ begin
          instruction_i  => stage1.instruction,
          reg_src_reg_o  => reg_src_reg,
          reg_src_data_i => reg_src_rd_data,
+         reg_src_wr_o   => reg_src_wr,
          reg_src_data_o => reg_src_wr_data,
          mem_valid_o    => src_valid,
          mem_ready_i    => src_ready,
@@ -109,6 +113,7 @@ begin
          src_operand_i  => stage2.src_operand,
          reg_dst_reg_o  => reg_dst_reg,
          reg_dst_data_i => reg_dst_rd_data,
+         reg_dst_wr_o   => reg_dst_wr,
          reg_dst_data_o => reg_dst_wr_data,
          mem_valid_o    => dst_valid,
          mem_ready_i    => dst_ready,
@@ -177,14 +182,18 @@ begin
          sr_i       => reg_wr_sr,
          src_reg_i  => reg_src_reg,
          src_data_o => reg_src_rd_data,
+         src_wr_i   => reg_src_wr,
          src_data_i => reg_src_wr_data,
          dst_reg_i  => reg_dst_reg,
          dst_data_o => reg_dst_rd_data,
+         dst_wr_i   => reg_dst_wr,
          dst_data_i => reg_dst_wr_data,
          res_wr_i   => reg_res_wr,
          res_reg_i  => reg_res_reg,
          res_data_i => reg_res_data
       ); -- i_registers
+
+   debug_o <= reg_rd_pc;
 
 end architecture synthesis;
 

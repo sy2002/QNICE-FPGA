@@ -13,6 +13,7 @@ SOURCES += read_src_operand.vhd
 SOURCES += read_dst_operand.vhd
 SOURCES += write_result.vhd
 SOURCES += cpu_pipeline.vhd
+SOURCES += top.vhd
 SOURCES += tb_cpu_pipeline.vhd
 
 TB       = tb_cpu_pipeline
@@ -40,4 +41,10 @@ $(WAVE): $(SOURCES)
 clean:
 	rm -rf work-*.cf
 	rm -rf $(WAVE)
+	rm -rf cpu_pipeline/cpu_pipeline.cache
+	rm -rf cpu_pipeline/cpu_pipeline.hw
+	rm -rf cpu_pipeline/cpu_pipeline.ip_user_files
+	rm -rf cpu_pipeline/cpu_pipeline.runs
+	rm -rf cpu_pipeline/cpu_pipeline.sim
+	rm -rf vivado.jou
 

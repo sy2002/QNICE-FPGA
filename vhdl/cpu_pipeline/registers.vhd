@@ -15,9 +15,11 @@ entity registers is
       sr_i       : in  std_logic_vector(15 downto 0);
       src_reg_i  : in  std_logic_vector(3 downto 0);
       src_data_o : out std_logic_vector(15 downto 0);
+      src_wr_i   : in  std_logic;
       src_data_i : in  std_logic_vector(15 downto 0);
       dst_reg_i  : in  std_logic_vector(3 downto 0);
       dst_data_o : out std_logic_vector(15 downto 0);
+      dst_wr_i   : in  std_logic;
       dst_data_i : in  std_logic_vector(15 downto 0);
       res_wr_i   : in  std_logic;
       res_reg_i  : in  std_logic_vector(3 downto 0);
@@ -44,18 +46,21 @@ begin
       if rising_edge(clk_i) then
          regs(C_REG_PC) <= pc_i;
          regs(C_REG_SR) <= sr_i;
-         regs(conv_integer(src_reg_i)) <= src_data_i;
-         regs(conv_integer(dst_reg_i)) <= dst_data_i;
-
+         if src_wr_i = '1' then
+            regs(conv_integer(src_reg_i)) <= src_data_i;
+         end if;
+         if dst_wr_i = '1' then
+            regs(conv_integer(dst_reg_i)) <= dst_data_i;
+         end if;
          if res_wr_i = '1' then
             regs(conv_integer(res_reg_i)) <= res_data_i;
          end if;
-      end if;
 
-      if rst_i = '1' then
-         regs <= (others => (others => '0'));
-         regs(C_REG_SR)(0) <= '1';
-         regs(C_REG_PC) <= X"0010";   -- TBD
+         if rst_i = '1' then
+            regs <= (others => (others => '0'));
+            regs(C_REG_SR)(0) <= '1';
+            regs(C_REG_PC) <= X"0010";   -- TBD
+         end if;
       end if;
    end process p_write;
 

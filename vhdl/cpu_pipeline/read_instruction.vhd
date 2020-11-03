@@ -37,10 +37,10 @@ begin
          if mem_ready_i = '1' then
             instruction_o <= mem_data_i;
          end if;
-      end if;
 
-      if rst_i = '1' then
-         instruction_o <= (others => '0');
+         if rst_i = '1' then
+            instruction_o <= (others => '0');
+         end if;
       end if;
    end process p_next_stage;
 
