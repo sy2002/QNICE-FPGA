@@ -2,6 +2,8 @@
 # Simulation is done using the program ghdl. It may be available
 # in your OS repository, otherwise it may be downloaded from here:
 # https://github.com/ghdl/ghdl
+#
+# To run a test, just type e.g. "make test1".
 
 SOURCES  = cpu_constants.vhd
 SOURCES += arbiter.vhd
@@ -27,6 +29,7 @@ PROG     = prog.asm
 # Simulation
 #####################################
 
+.PHONY: show
 show: $(WAVE)
 	gtkwave $(WAVE) $(SAVE)
 
@@ -35,8 +38,11 @@ $(WAVE): $(SOURCES) $(ROM)
 	ghdl -m --ieee=synopsys $(TB)
 	ghdl -r --ieee=synopsys $(TB) --wave=$(WAVE) --stop-time=1us
 
-$(ROM): $(PROG)
-	../../assembler/asm $(PROG)
+test%:
+	../../assembler/asm $@.asm
+	mv $@.rom $(ROM)
+	make show
+
 
 #####################################
 # Cleanup
@@ -51,4 +57,7 @@ clean:
 	rm -rf cpu_pipeline/cpu_pipeline.runs
 	rm -rf cpu_pipeline/cpu_pipeline.sim
 	rm -rf vivado.jou
+	rm -rf $(ROM)
+	rm -rf *.lis
+	rm -rf *.out
 
