@@ -1,7 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
-use ieee.numeric_std.all;
 
 use work.cpu_constants.all;
 
@@ -12,6 +11,7 @@ entity read_src_operand is
 
       -- From previous stage
       valid_i        : in  std_logic;
+      ready_o        : out std_logic;
       instruction_i  : in  std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
@@ -28,6 +28,7 @@ entity read_src_operand is
 
       -- To next stage (registered)
       valid_o        : out std_logic;
+      ready_i        : in  std_logic;
       src_operand_o  : out std_logic_vector(15 downto 0);
       instruction_o  : out std_logic_vector(15 downto 0)
    );
@@ -40,6 +41,7 @@ begin
    -- To register file (combinatorial)
    p_reg : process (valid_i, instruction_i, reg_src_data_i)
    begin
+      -- Default values to avoid latch
       reg_src_reg_o  <= instruction_i(R_SRC_REG);
       reg_src_wr_o   <= '0';
       reg_src_data_o <= reg_src_data_i;
@@ -85,12 +87,13 @@ begin
             src_operand_o <= mem_data_i;
          end if;
 
-         valid_o <= valid_i;
+         valid_o       <= valid_i;
          instruction_o <= instruction_i;
 
          if rst_i = '1' then
-            src_operand_o <= (others => '0');
+            valid_o       <= '0';
             instruction_o <= (others => '0');
+            src_operand_o <= (others => '0');
          end if;
       end if;
    end process p_next_stage;

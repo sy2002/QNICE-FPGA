@@ -1,14 +1,18 @@
+-- This is the top level entity used to synthesize the pipelined CPU.
+-- There is an accompanying project file in cpu_pipeline/cpu_pipeline.xpr and
+-- an associated constraint file in top.xdc.
+-- The LED output is connected to the PC of the CPU.
+
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
 
 entity top is
    generic (
-      G_ROM_FILE : string
+      G_ROM_FILE : string := "prog.rom"
    );
    port (
-      clk_i  : in std_logic;
-      rstn_i : in std_logic;
+      clk_i  : in  std_logic;
+      rstn_i : in  std_logic;
       led_o  : out std_logic_vector(15 downto 0)
    );
 end entity top;
@@ -24,6 +28,7 @@ architecture synthesis of top is
 
 begin
 
+   -- Make sure the reset signal is synchronized to the clock
    p_rst : process (clk_i)
    begin
       if rising_edge(clk_i) then

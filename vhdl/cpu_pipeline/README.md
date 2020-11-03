@@ -42,3 +42,44 @@ The important design decisions are as follows:
 * There are four stages.
 * Each stage receives input in the same clock cycle as providing the output.
 
+In other words, the horizontal connections are combinatorial. The vertical
+connections are registered. The registering is depicted with the thick
+horiontal bars where the connections originate from.
+
+Important constants (e.g. instruction decoding) is placed in the package file
+`cpu_constants.vhd`.
+
+## Pipeline flow and back pressure
+Data usually flows from stage to stage on every clock cycle. However, sometimes
+a stage does not have data to deliver to the next stage. This creates an idle
+cycle, and must be signalled in some way. Here we use the signal `valid` to
+indicate if the next stage should do some work or just skip this clock cycle.
+
+Similarly, the arbiter may grant or deny access to the external memory. In
+other words, is - say - `Read Operand 2` and `Write Result` both want to access
+memory, only `Write Result` will be granted access. In the mean time, the stage
+`Read Operand 2` must wait until it is granted access. This stalls the entire
+pipeline all the way back to the start, because no stage before `Read Operand
+2` may proceed. This stalling is indicated by the signal `ready`, which is
+deasserted when a stage is not able to accept new data.
+
+## Testing
+I'm simultaneously testing the design in simulation and in hardware. I've
+therefore written a top-level entity `top.vhd` that instantiates the pipelined
+CPU as well as a small memory. This small memory acts as a RAM, and is
+initialized with some instructions. In others words, the memory provides
+instructions for the CPU as well as acting as writeable memory while the
+instructions are being executed.
+
+In order for the synthesis to not reduce away all the logic, I've connected the
+PC to the LED outputs.
+
+I've written a small simulation testbench that instantiates this top level
+entity and provides clock and reset.
+
+### Test methodology
+So the test methodology is to write a small assembly program in the file
+`prog.asm`.  This will get assembled into binary data in the file `prog.rom`,
+which is used to initialize the memory. Then the PC is reset to (currently)
+0x0010, and the CPU starts executing!
+

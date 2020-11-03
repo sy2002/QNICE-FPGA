@@ -1,6 +1,9 @@
+-- This is the main CPU module.
+-- Currently, it requires the memory to read combinatorially (or alternatively
+-- on the falling clock edge).
+
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
 
 entity cpu_pipeline is
    port (
@@ -17,6 +20,33 @@ end entity cpu_pipeline;
 
 architecture synthesis of cpu_pipeline is
 
+   type t_stage1 is record
+      valid       : std_logic;
+      ready       : std_logic;
+      instruction : std_logic_vector(15 downto 0);
+   end record t_stage1;
+
+   type t_stage2 is record
+      valid       : std_logic;
+      ready       : std_logic;
+      instruction : std_logic_vector(15 downto 0);
+      src_operand : std_logic_vector(15 downto 0);
+   end record t_stage2;
+
+   type t_stage3 is record
+      valid       : std_logic;
+      ready       : std_logic;
+      instruction : std_logic_vector(15 downto 0);
+      src_operand : std_logic_vector(15 downto 0);
+      dst_operand : std_logic_vector(15 downto 0);
+      dst_address : std_logic_vector(15 downto 0);
+   end record t_stage3;
+
+   signal stage1          : t_stage1;
+   signal stage2          : t_stage2;
+   signal stage3          : t_stage3;
+
+   -- Connections to the arbiter
    signal inst_valid      : std_logic;
    signal inst_ready      : std_logic;
    signal inst_address    : std_logic_vector(15 downto 0);
@@ -34,29 +64,7 @@ architecture synthesis of cpu_pipeline is
    signal res_address     : std_logic_vector(15 downto 0);
    signal res_data        : std_logic_vector(15 downto 0);
 
-   type t_stage1 is record
-      valid       : std_logic;
-      instruction : std_logic_vector(15 downto 0);
-   end record t_stage1;
-
-   type t_stage2 is record
-      valid       : std_logic;
-      instruction : std_logic_vector(15 downto 0);
-      src_operand : std_logic_vector(15 downto 0);
-   end record t_stage2;
-
-   type t_stage3 is record
-      valid       : std_logic;
-      instruction : std_logic_vector(15 downto 0);
-      src_operand : std_logic_vector(15 downto 0);
-      dst_operand : std_logic_vector(15 downto 0);
-      dst_address : std_logic_vector(15 downto 0);
-   end record t_stage3;
-
-   signal stage1          : t_stage1;
-   signal stage2          : t_stage2;
-   signal stage3          : t_stage3;
-
+   -- Connections to the register file
    signal reg_src_reg     : std_logic_vector(3 downto 0);
    signal reg_src_rd_data : std_logic_vector(15 downto 0);
    signal reg_src_wr      : std_logic;
@@ -78,16 +86,17 @@ begin
    -- Stage 1
    i_read_instruction : entity work.read_instruction
       port map (
-         clk_i          => clk_i,
-         rst_i          => rst_i,
-         pc_i           => reg_rd_pc,
-         pc_o           => reg_wr_pc,
-         mem_valid_o    => inst_valid,
-         mem_ready_i    => inst_ready,
-         mem_address_o  => inst_address,
-         mem_data_i     => inst_data,
-         valid_o        => stage1.valid,
-         instruction_o  => stage1.instruction
+         clk_i         => clk_i,
+         rst_i         => rst_i,
+         pc_i          => reg_rd_pc,
+         pc_o          => reg_wr_pc,
+         mem_valid_o   => inst_valid,
+         mem_ready_i   => inst_ready,
+         mem_address_o => inst_address,
+         mem_data_i    => inst_data,
+         valid_o       => stage1.valid,
+         ready_i       => stage1.ready,
+         instruction_o => stage1.instruction
       ); -- i_read_instruction
 
    -- Stage 2
@@ -96,6 +105,7 @@ begin
          clk_i          => clk_i,
          rst_i          => rst_i,
          valid_i        => stage1.valid,
+         ready_o        => stage1.ready,
          instruction_i  => stage1.instruction,
          reg_src_reg_o  => reg_src_reg,
          reg_src_data_i => reg_src_rd_data,
@@ -106,6 +116,7 @@ begin
          mem_address_o  => src_address,
          mem_data_i     => src_data,
          valid_o        => stage2.valid,
+         ready_i        => stage2.ready,
          src_operand_o  => stage2.src_operand,
          instruction_o  => stage2.instruction
       ); -- i_read_src_operand
@@ -116,6 +127,7 @@ begin
          clk_i          => clk_i,
          rst_i          => rst_i,
          valid_i        => stage2.valid,
+         ready_o        => stage2.ready,
          instruction_i  => stage2.instruction,
          src_operand_i  => stage2.src_operand,
          reg_dst_reg_o  => reg_dst_reg,
@@ -127,6 +139,7 @@ begin
          mem_address_o  => dst_address,
          mem_data_i     => dst_data,
          valid_o        => stage3.valid,
+         ready_i        => stage3.ready,
          src_operand_o  => stage3.src_operand,
          dst_operand_o  => stage3.dst_operand,
          dst_address_o  => stage3.dst_address,
@@ -139,6 +152,7 @@ begin
          clk_i          => clk_i,
          rst_i          => rst_i,
          valid_i        => stage3.valid,
+         ready_o        => stage3.ready,
          instruction_i  => stage3.instruction,
          src_operand_i  => stage3.src_operand,
          dst_operand_i  => stage3.dst_operand,
@@ -156,30 +170,30 @@ begin
 
    i_arbiter : entity work.arbiter
       port map (
-         clk_i           => clk_i,
-         rst_i           => rst_i,
-         inst_valid_i    => inst_valid,
-         inst_ready_o    => inst_ready,
-         inst_address_i  => inst_address,
-         inst_data_o     => inst_data,
-         src_valid_i     => src_valid,
-         src_ready_o     => src_ready,
-         src_address_i   => src_address,
-         src_data_o      => src_data,
-         dst_valid_i     => dst_valid,
-         dst_ready_o     => dst_ready,
-         dst_address_i   => dst_address,
-         dst_data_o      => dst_data,
-         res_valid_i     => res_valid,
-         res_ready_o     => res_ready,
-         res_address_i   => res_address,
-         res_data_i      => res_data,
-         mem_address_o   => mem_address_o,
-         mem_wr_data_o   => mem_wr_data_o,
-         mem_write_o     => mem_write_o,
-         mem_rd_data_i   => mem_rd_data_i,
-         mem_read_o      => mem_read_o
-      );
+         clk_i          => clk_i,
+         rst_i          => rst_i,
+         inst_valid_i   => inst_valid,
+         inst_ready_o   => inst_ready,
+         inst_address_i => inst_address,
+         inst_data_o    => inst_data,
+         src_valid_i    => src_valid,
+         src_ready_o    => src_ready,
+         src_address_i  => src_address,
+         src_data_o     => src_data,
+         dst_valid_i    => dst_valid,
+         dst_ready_o    => dst_ready,
+         dst_address_i  => dst_address,
+         dst_data_o     => dst_data,
+         res_valid_i    => res_valid,
+         res_ready_o    => res_ready,
+         res_address_i  => res_address,
+         res_data_i     => res_data,
+         mem_address_o  => mem_address_o,
+         mem_wr_data_o  => mem_wr_data_o,
+         mem_write_o    => mem_write_o,
+         mem_rd_data_i  => mem_rd_data_i,
+         mem_read_o     => mem_read_o
+      ); -- i_arbiter
 
    i_registers : entity work.registers
       port map (

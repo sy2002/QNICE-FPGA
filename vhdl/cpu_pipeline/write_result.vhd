@@ -1,7 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
-use ieee.numeric_std.all;
 
 use work.cpu_constants.all;
 
@@ -12,6 +11,7 @@ entity write_result is
 
       -- From previous stage
       valid_i        : in  std_logic;
+      ready_o        : out std_logic;
       instruction_i  : in  std_logic_vector(15 downto 0);
       src_operand_i  : in  std_logic_vector(15 downto 0);
       dst_operand_i  : in  std_logic_vector(15 downto 0);

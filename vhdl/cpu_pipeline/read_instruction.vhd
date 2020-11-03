@@ -1,7 +1,8 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
-use ieee.numeric_std.all;
+
+use work.cpu_constants.all;
 
 entity read_instruction is
    port (
@@ -20,6 +21,7 @@ entity read_instruction is
 
       -- To next pipeline stage (registered)
       valid_o       : out std_logic;
+      ready_i       : in  std_logic;
       instruction_o : out std_logic_vector(15 downto 0)
    );
 end entity read_instruction;
@@ -42,9 +44,11 @@ begin
    p_next_stage : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         valid_o <= '0';
+         valid_o       <= '0';
+         instruction_o <= (others => '0');
+
          if mem_ready_i = '1' then
-            valid_o <= '1';
+            valid_o       <= '1';
             instruction_o <= mem_data_i;
          end if;
 

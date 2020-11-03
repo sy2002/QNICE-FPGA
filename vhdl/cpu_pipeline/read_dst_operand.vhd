@@ -1,7 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
-use ieee.numeric_std.all;
 
 use work.cpu_constants.all;
 
@@ -12,6 +11,7 @@ entity read_dst_operand is
 
       -- From previous stage
       valid_i        : in  std_logic;
+      ready_o        : out std_logic;
       instruction_i  : in  std_logic_vector(15 downto 0);
       src_operand_i  : in  std_logic_vector(15 downto 0);
 
@@ -29,6 +29,7 @@ entity read_dst_operand is
 
       -- To next stage (registered)
       valid_o        : out std_logic;
+      ready_i        : in  std_logic;
       src_operand_o  : out std_logic_vector(15 downto 0);
       dst_operand_o  : out std_logic_vector(15 downto 0);
       dst_address_o  : out std_logic_vector(15 downto 0);
@@ -43,9 +44,11 @@ begin
    -- To register file (combinatorial)
    p_reg : process (valid_i, instruction_i, reg_dst_data_i)
    begin
+      -- Default values to avoid latch
       reg_dst_reg_o  <= instruction_i(R_DEST_REG);
       reg_dst_wr_o   <= '0';
       reg_dst_data_o <= reg_dst_data_i;
+
       if valid_i = '1' then
          case conv_integer(instruction_i(R_DEST_MODE)) is
             when C_MODE_REG  => null;
@@ -98,10 +101,11 @@ begin
          src_operand_o <= src_operand_i;
 
          if rst_i = '1' then
+            valid_o       <= '0';
+            instruction_o <= (others => '0');
             src_operand_o <= (others => '0');
             dst_operand_o <= (others => '0');
             dst_address_o <= (others => '0');
-            instruction_o <= (others => '0');
          end if;
       end if;
    end process p_next_stage;
