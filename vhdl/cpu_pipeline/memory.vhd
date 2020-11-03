@@ -41,12 +41,12 @@ begin
       end if;
    end process p_write;
 
-   p_read : process (clk_i)
+   -- Combinatorial read (TBD: Replace with falling_edge)
+   p_read : process (address_i, read_i)
    begin
-      if rising_edge(clk_i) then
-         if read_i = '1' then
-            rd_data_o <= mem_r(conv_integer(address_i));
-         end if;
+      rd_data_o <= (others => '0');
+      if read_i = '1' then
+         rd_data_o <= mem_r(conv_integer(address_i));
       end if;
    end process p_read;
 

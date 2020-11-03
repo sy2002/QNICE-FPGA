@@ -35,15 +35,18 @@ architecture synthesis of cpu_pipeline is
    signal res_data        : std_logic_vector(15 downto 0);
 
    type t_stage1 is record
+      valid       : std_logic;
       instruction : std_logic_vector(15 downto 0);
    end record t_stage1;
 
    type t_stage2 is record
+      valid       : std_logic;
       instruction : std_logic_vector(15 downto 0);
       src_operand : std_logic_vector(15 downto 0);
    end record t_stage2;
 
    type t_stage3 is record
+      valid       : std_logic;
       instruction : std_logic_vector(15 downto 0);
       src_operand : std_logic_vector(15 downto 0);
       dst_operand : std_logic_vector(15 downto 0);
@@ -83,6 +86,7 @@ begin
          mem_ready_i    => inst_ready,
          mem_address_o  => inst_address,
          mem_data_i     => inst_data,
+         valid_o        => stage1.valid,
          instruction_o  => stage1.instruction
       ); -- i_read_instruction
 
@@ -91,6 +95,7 @@ begin
       port map (
          clk_i          => clk_i,
          rst_i          => rst_i,
+         valid_i        => stage1.valid,
          instruction_i  => stage1.instruction,
          reg_src_reg_o  => reg_src_reg,
          reg_src_data_i => reg_src_rd_data,
@@ -100,6 +105,7 @@ begin
          mem_ready_i    => src_ready,
          mem_address_o  => src_address,
          mem_data_i     => src_data,
+         valid_o        => stage2.valid,
          src_operand_o  => stage2.src_operand,
          instruction_o  => stage2.instruction
       ); -- i_read_src_operand
@@ -109,6 +115,7 @@ begin
       port map (
          clk_i          => clk_i,
          rst_i          => rst_i,
+         valid_i        => stage2.valid,
          instruction_i  => stage2.instruction,
          src_operand_i  => stage2.src_operand,
          reg_dst_reg_o  => reg_dst_reg,
@@ -119,6 +126,7 @@ begin
          mem_ready_i    => dst_ready,
          mem_address_o  => dst_address,
          mem_data_i     => dst_data,
+         valid_o        => stage3.valid,
          src_operand_o  => stage3.src_operand,
          dst_operand_o  => stage3.dst_operand,
          dst_address_o  => stage3.dst_address,
@@ -130,6 +138,7 @@ begin
       port map (
          clk_i          => clk_i,
          rst_i          => rst_i,
+         valid_i        => stage3.valid,
          instruction_i  => stage3.instruction,
          src_operand_i  => stage3.src_operand,
          dst_operand_i  => stage3.dst_operand,
