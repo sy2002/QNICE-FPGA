@@ -35,6 +35,17 @@ package cpu_constants is
    constant C_OP_CTRL : integer := 14;
    constant C_OP_BRA  : integer := 15;
 
+   -- Addressing modes
+   constant C_MODE_REG  : integer := 0;   -- R
+   constant C_MODE_MEM  : integer := 1;   -- @R
+   constant C_MODE_POST : integer := 2;   -- @R++
+   constant C_MODE_PRE  : integer := 3;   -- @--R
+
+   -- Special registers
+   constant C_REG_PC : integer := 15;
+   constant C_REG_SR : integer := 14;
+   constant C_REG_SP : integer := 13;
+
 end cpu_constants;
 
 package body cpu_constants is

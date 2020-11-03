@@ -11,10 +11,10 @@ entity alu is
       rst_i      : in  std_logic;
       src_data_i : in  std_logic_vector(15 downto 0);
       dst_data_i : in  std_logic_vector(15 downto 0);
-      sr_i       : in  std_logic_vector(7 downto 0);
+      sr_i       : in  std_logic_vector(15 downto 0);
       opcode_i   : in  std_logic_vector(3 downto 0);
       res_data_o : out std_logic_vector(15 downto 0);
-      sr_o       : out std_logic_vector(7 downto 0)
+      sr_o       : out std_logic_vector(15 downto 0)
    );
 end entity alu;
 
