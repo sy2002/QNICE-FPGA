@@ -242,9 +242,11 @@ CPU and memory in a `system.vhd` file which can be used for simulation. This
 module is then instantiated in the top level file.
 
 The current resource utilization in the FPGA are as follows:
+
 * Slice LUTs : 354
 * Slice Registers : 111
 * Slices : 107
+
 This shows the CPU uses very few resources indeed. But the ALU is not fully
 implemented yet, and neither is register banking.
 
