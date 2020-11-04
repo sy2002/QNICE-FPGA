@@ -47,8 +47,17 @@ begin
    p_special : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         pc <= pc_i;
-         sr <= sr_i or X"0001";
+         if reg_valid_i = '1' and conv_integer(reg_address_i) = C_REG_PC then
+            pc <= reg_data_i;
+         else
+            pc <= pc_i;
+         end if;
+
+         if reg_valid_i = '1' and conv_integer(reg_address_i) = C_REG_SR then
+            sr <= reg_data_i or X"0001";
+         else
+            sr <= sr_i or X"0001";
+         end if;
 
          if rst_i = '1' then
             pc <= X"0010"; -- TBD

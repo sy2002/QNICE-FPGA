@@ -99,3 +99,8 @@ MOVE  R5, @--R1   ; Should write 0x0F08 to 0x0012 and 0x0012 into R1
 MOVE  R6, @--R2   ; Should write 0x0F0C to 0x0013 and 0x0013 into R2
 MOVE  R7, @--R3   ; Should write 0x0010 to 0x0014 and 0x0014 into R3
 
+MOVE  0x1234, R0  ; Should write 0x1234 to R0 and increment PC twice
+MOVE  0x2345, R1  ; Should write 0x2345 to R0 and increment PC twice
+MOVE  0x3456, R2  ; Should write 0x3456 to R0 and increment PC twice
+MOVE  0x4567, R3  ; Should write 0x4567 to R0 and increment PC twice
+
