@@ -30,7 +30,7 @@ The four stages also interact with the register file.
 The current QNICE design allows combinatorial reads from both the register file
 and from memory. Here memory read is synchronous to the falling clock edge, so
 appears combinatorial from the CPU's perspective. We will probably later on
-introduce flip-flops when reading from register file and/or memory, in order to
+insert flip-flops when reading from register file and/or memory, in order to
 reduce the long combinatorial paths and thereby increase the clock frequency.
 However, in order to keep the design as simple as possible, this is deferred to
 later.
@@ -45,13 +45,13 @@ The important design decisions are as follows:
 
 In other words, the horizontal connections are combinatorial. The vertical
 connections are registered. The registering is depicted with the thick
-horiontal bars where the connections originate from.
+horizontal bars where the connections originate from.
 
 Important constants (e.g. instruction decoding) is placed in the package file
 `cpu_constants.vhd`.
 
 ## Pipeline flow and back pressure
-Data usually flows from stage to stage on every clock cycle. However, sometimes
+Data usually flows from one stage to the next on every clock cycle. However, sometimes
 a stage does not have data to deliver to the next stage. This creates an idle
 cycle, and must be signalled in some way. Here we use the signal `valid` to
 indicate if the next stage should do some work or just skip this clock cycle.
@@ -73,14 +73,14 @@ instructions for the CPU as well as acting as writeable memory while the
 instructions are being executed.
 
 In order for the synthesis to not reduce away all the logic, I've connected the
-PC to the LED outputs.
+PC register to the LED outputs.
 
 I've written a small simulation testbench that instantiates this top level
 entity and provides clock and reset.
 
 ### Test methodology
-So the test methodology is to write one or more small assembly program and
-place them in the file e.g. `test1.asm`. Then to start the test simply type:
+So the test methodology is to write one or more small assembly programs and
+place them in a file e.g. `test1.asm`. Then to start the test simply type:
 
 ```
 make test1
@@ -270,4 +270,28 @@ destination. Therefore, they can be optimized by not requesting a memory
 access. To simplify the design I've introduced a new signal `mem_request`
 in the file `read_dst_operand.vhd`. The same signal has been introduced into
 the other pipeline stages as well, just for consistency.
+
+Since the `MOVE R, @R` instruction now only accesses the memory twice,
+the memory arbitration dynamics are much different,
+as shown in the following:
+
+```
+Read Inst    | MOVE R,@R0 | MOVE R,@R1 | MOVE R,@R2 | .......... | .......... | .......... | MOVE R,@R3
+Read Source  | .......... | move r,@r0 | move r,@r1 | move r,@r2 | .......... | .......... | ..........
+Read Dest    | .......... | .......... | move r,@r0 | move r,@r1 | move r,@r2 | .......... | ..........
+Write Result | .......... | .......... | .......... | MOVE R,@R0 | MOVE R,@R1 | MOVE R,@R2 | ..........
+```
+
+## Finalizing the ALU
+
+The ALU is a large combinatorial module, including two barrel shifters
+(shifting a variable amount). It therefore makes sense to complete this module,
+to see how it influences the resource count and timing.
+
+It turns out the timing is unaffected. The resource utilization has
+approximately doubled to:
+
+* Slice LUTs : 601
+* Slice Registers : 116
+* Slices : 175
 
