@@ -49,7 +49,6 @@ begin
                   '0' when instruction_i(R_SRC_MODE) = C_MODE_REG else
                   '0' when instruction_i(R_OPCODE) = C_OP_RES else
                   '0' when instruction_i(R_OPCODE) = C_OP_CTRL else
-                  '0' when instruction_i(R_OPCODE) = C_OP_BRA else
                   '1';
 
    -- Are we waiting for memory read access?

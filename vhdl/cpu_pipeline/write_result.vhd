@@ -1,6 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
 
 use work.cpu_constants.all;
 
@@ -18,6 +19,7 @@ entity write_result is
       dst_address_i   : in  std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
+      pc_i            : in  std_logic_vector(15 downto 0);
       sr_i            : in  std_logic_vector(15 downto 0);
       sr_o            : out std_logic_vector(15 downto 0);
 
@@ -71,6 +73,7 @@ begin
       port map (
          clk_i      => clk_i,
          rst_i      => rst_i,
+         valid_i    => valid_i,
          src_data_i => src_operand_i,
          dst_data_i => dst_operand_i,
          sr_i       => sr_i,
@@ -109,11 +112,31 @@ begin
       reg_res_data_o <= (others => '0');
 
       if valid_i = '1' and ready = '1' then
-         if conv_integer(instruction_i(R_DEST_MODE)) = C_MODE_REG then
+         -- Is this is branch type instruction ?
+         if conv_integer(instruction_i(R_OPCODE)) = C_OP_BRA then
+
+            -- Is the condition satisfied ?
+            if sr_i(conv_integer(instruction_i(R_BRA_COND))) = not instruction_i(R_BRA_NEGATE) then
+
+               reg_res_reg_o  <= std_logic_vector(to_unsigned(C_REG_PC, 4));
+               reg_res_wr_o   <= '1';
+
+               case conv_integer(instruction_i(R_BRA_MODE)) is
+                  when C_BRA_ABRA => reg_res_data_o <= res_data;
+                  when C_BRA_ASUB => reg_res_data_o <= res_data;
+                  when C_BRA_RBRA => reg_res_data_o <= pc_i + res_data;
+                  when C_BRA_RSUB => reg_res_data_o <= pc_i + res_data;
+                  when others => null;
+               end case;
+            end if;
+         elsif conv_integer(instruction_i(R_OPCODE)) = C_OP_CTRL then
+            report "Control instruction";
+         elsif conv_integer(instruction_i(R_DEST_MODE)) = C_MODE_REG then
             reg_res_reg_o  <= instruction_i(R_DEST_REG);
             reg_res_wr_o   <= '1';
             reg_res_data_o <= res_data;
          end if;
+
       end if;
    end process p_reg;
 

@@ -309,3 +309,24 @@ updated value to the PC, so it will be ready for the next instruction.
 
 A minor edit to the file `registers.vhd` was all that was needed.
 
+## Branch instruction
+Conditional branching is a very tricky subject. Ideally, we should implement
+some kind of branch prediction. But for now, we'll instead just stall the
+pipeline for some clock cycles, in order to be sure that the status register is
+updated.
+
+The idea is that the branch instruction is executed in stage 4. But
+furthermore, when a branch instruction is encountered in stage 1, this stage
+will stop any further instruction fetching for another 3 clock cycles.
+
+And that is it! All the basic functionality is now implemented (but not
+tested).  And there are still all the pipeline hazards.
+
+But just for fun, I've copied the `cpu_test.asm` file into a local copy
+`test2.asm` with a few changes, e.g. the start address is changed to 0x0000.
+Getting this comprehensive CPU test to run without errors will take some effort,
+but at least it can run for a few clock cycles already.
+
+One bug found so far is that the status register should only be updated when
+executing an instruction. I've therefore added a `valid` signal to the ALU.
+

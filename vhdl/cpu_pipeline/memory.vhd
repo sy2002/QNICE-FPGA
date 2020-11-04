@@ -21,7 +21,7 @@ end entity memory;
 
 architecture synthesis of memory is
 
-   type mem_t is array (0 to 255) of std_logic_vector(15 downto 0);
+   type mem_t is array (0 to 8191) of std_logic_vector(15 downto 0);
 
    -- This reads the ROM contents from a text file
    impure function InitRamFromFile(RamFileName : in string) return mem_t is

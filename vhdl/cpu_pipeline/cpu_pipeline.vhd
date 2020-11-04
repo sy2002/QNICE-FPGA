@@ -167,6 +167,7 @@ begin
          src_operand_i   => stage3.src_operand,
          dst_operand_i   => stage3.dst_operand,
          dst_address_i   => stage3.dst_address,
+         pc_i            => reg_rd_pc,
          sr_i            => reg_rd_sr,
          sr_o            => reg_wr_sr,
          mem_valid_o     => res_valid,

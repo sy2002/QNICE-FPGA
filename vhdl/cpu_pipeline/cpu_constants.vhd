@@ -4,11 +4,14 @@ use ieee.std_logic_1164.all;
 package cpu_constants is
 
    -- Instruction format is as follows
-   subtype R_OPCODE    is natural range 15 downto 12;
-   subtype R_SRC_REG   is natural range 11 downto  8;
-   subtype R_SRC_MODE  is natural range  7 downto  6;
-   subtype R_DEST_REG  is natural range  5 downto  2;
-   subtype R_DEST_MODE is natural range  1 downto  0;
+   subtype R_OPCODE     is natural range 15 downto 12;
+   subtype R_SRC_REG    is natural range 11 downto  8;
+   subtype R_SRC_MODE   is natural range  7 downto  6;
+   subtype R_DEST_REG   is natural range  5 downto  2;
+   subtype R_DEST_MODE  is natural range  1 downto  0;
+   subtype R_BRA_MODE   is natural range  5 downto  4;
+   constant R_BRA_NEGATE : integer := 3;
+   subtype R_BRA_COND   is natural range  2 downto  0;
 
    -- Decode status bits
    constant C_SR_V : integer := 5;
@@ -45,6 +48,12 @@ package cpu_constants is
    constant C_REG_PC : integer := 15;
    constant C_REG_SR : integer := 14;
    constant C_REG_SP : integer := 13;
+
+   -- Branch modes
+   constant C_BRA_ABRA : integer := 0;
+   constant C_BRA_ASUB : integer := 1;
+   constant C_BRA_RBRA : integer := 2;
+   constant C_BRA_RSUB : integer := 3;
 
 end cpu_constants;
 

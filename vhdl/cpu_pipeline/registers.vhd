@@ -60,7 +60,7 @@ begin
          end if;
 
          if rst_i = '1' then
-            pc <= X"0010"; -- TBD
+            pc <= X"0000";
             sr <= X"0001";
          end if;
       end if;

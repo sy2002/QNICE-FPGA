@@ -32,13 +32,15 @@ architecture synthesis of read_instruction is
    signal mem_ready   : std_logic;
    signal ready       : std_logic;
 
+   signal count       : integer range 0 to 3;
    signal valid       : std_logic;
    signal instruction : std_logic_vector(15 downto 0);
 
 begin
 
    -- Do we want to read from memory?
-   mem_request <= ready_i or not valid;
+   mem_request <= ready_i or not valid when count = 0 else
+                  '0';
 
    -- Are we waiting for memory read access?
    mem_ready <= (not mem_request) or mem_ready_i;
@@ -48,7 +50,7 @@ begin
 
 
    -- To register file (combinatorial)
-   pc_o <= pc_i + 1 when ready = '1' else
+   pc_o <= pc_i + 1 when ready = '1' and count = 0 else
            pc_i;
 
    -- To memory subsystem (combinatorial)
@@ -61,16 +63,26 @@ begin
       if rising_edge(clk_i) then
          -- Has next stage consumed the output?
          if ready_i = '1' then
-            valid       <= '0';
-            instruction <= (others => '0');
+            valid <= '0';
          end if;
 
          if ready = '1' then
-            valid       <= '1';
-            instruction <= mem_data_i;
+            case count is
+               when 0 =>
+                  valid       <= '1';
+                  instruction <= mem_data_i;
+                  if mem_data_i(R_OPCODE) = C_OP_BRA then
+                     count <= 3;
+                  end if;
+               when 1 => count <= 0;
+               when 2 => count <= 1;
+               when 3 => count <= 2;
+               when others => null;
+            end case;
          end if;
 
          if rst_i = '1' then
+            count       <= 0;
             valid       <= '0';
             instruction <= (others => '0');
          end if;
