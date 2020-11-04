@@ -233,7 +233,7 @@ half of the clock cycle to process the data.
 Adding this change to the design leads to timing violations when running at 100
 Mhz.  So now we see that all these combinatorial connections lead to large
 timing paths (as expected) and reduces the maximum frequency. Therefore, a
-clock module is added in top.vhd to generate a slower clock. Later, we might
+clock module is added in `top.vhd` to generate a slower clock. Later, we might
 look into how we can increase the clock frequency e.g. by introducing more
 pipeline stages. Currently, the clock is running at 65 MHz.
 
@@ -249,8 +249,8 @@ This shows the CPU uses very few resources indeed. But the ALU is not fully
 implemented yet, and neither is register banking.
 
 Here is a short TODO list for the next few steps:
-* Finish the ALU, including generating the correct value for SR.
-* Optimize the `MOVE R, @R` instruction so that it does not read from @R, since
+* Finish the ALU, including generating the correct value for `SR`.
+* Optimize the `MOVE R, @R` instruction so that it does not read from `@R`, since
   that value is not used.
 * Make sure instructions like `MOVE @R15++, R` work, so that we can load
   immediate values into registers.
