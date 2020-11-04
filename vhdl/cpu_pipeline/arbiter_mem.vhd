@@ -73,7 +73,7 @@ begin
    src_ready   <= not (res_active or dst_active);
    inst_ready  <= not (res_active or dst_active or src_active);
 
-   -- Propage signals from selected stage to the memory.
+   -- Propagate signals from selected stage to the memory.
    mem_address_o <= res_address_i  when res_active  = '1' else
                     dst_address_i  when dst_active  = '1' else
                     src_address_i  when src_active  = '1' else

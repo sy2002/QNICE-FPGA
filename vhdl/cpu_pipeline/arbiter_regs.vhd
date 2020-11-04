@@ -59,7 +59,7 @@ begin
    dst_ready <= not res_active;
    src_ready <= not (res_active or dst_active);
 
-   -- Propage signals from selected stage to the register file.
+   -- Propagate signals from selected stage to the register file.
    reg_address_o <= src_reg_i when src_active = '1' else
                     dst_reg_i when dst_active = '1' else
                     res_reg_i when res_active = '1' else

@@ -21,7 +21,7 @@ begin
    begin
       rst <= '1';
       wait for 100 ns;
-      wait until clk = '1';
+      wait until clk = '1';   -- Make sure "rst" is synchronized to the clock.
       rst <= '0';
       wait;
    end process p_rst;

@@ -39,18 +39,21 @@ architecture synthesis of write_result is
 
    signal res_data : std_logic_vector(15 downto 0);
 
-   signal mem_ready : std_logic;
-   signal reg_ready : std_logic;
-   signal ready     : std_logic;
+   signal mem_request : std_logic;
+   signal mem_ready   : std_logic;
+   signal reg_ready   : std_logic;
+   signal ready       : std_logic;
 
 begin
 
+   -- Do we want to write to memory?
+   mem_request <= '0' when valid_i = '0' else
+                  '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
+                  '0' when instruction_i(R_OPCODE) = C_OP_BRA else
+                  '1';
+
    -- Are we waiting for memory read access?
-   mem_ready <= '1' when valid_i = '0' else
-                '1' when instruction_i(R_DEST_MODE) = C_MODE_MEM else
-                '1' when instruction_i(R_DEST_MODE) = C_MODE_POST else
-                '1' when instruction_i(R_DEST_MODE) = C_MODE_PRE else
-                mem_ready_i;
+   mem_ready <= (not mem_request) or mem_ready_i;
 
    -- Are we waiting for register write access?
    reg_ready <= '1' when valid_i = '0' else
@@ -78,14 +81,14 @@ begin
 
 
    -- To memory subsystem (combinatorial)
-   p_mem : process (valid_i, instruction_i, res_data, dst_address_i, ready)
+   p_mem : process (valid_i, instruction_i, res_data, dst_address_i, ready, mem_request)
    begin
       -- Default values to avoid latch
       mem_valid_o   <= '0';
       mem_address_o <= dst_address_i;
       mem_data_o    <= res_data;
 
-      if valid_i = '1' and ready = '1' then
+      if valid_i = '1' and ready = '1' and mem_request = '1' then
          case conv_integer(instruction_i(R_DEST_MODE)) is
             when C_MODE_REG  => null;
             when C_MODE_MEM  => mem_valid_o <= '1';

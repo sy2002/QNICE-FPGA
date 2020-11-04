@@ -37,16 +37,23 @@ end entity read_src_operand;
 
 architecture synthesis of read_src_operand is
 
-   signal mem_ready : std_logic;
-   signal reg_ready : std_logic;
-   signal ready     : std_logic;
+   signal mem_request : std_logic;
+   signal mem_ready   : std_logic;
+   signal reg_ready   : std_logic;
+   signal ready       : std_logic;
 
 begin
 
+   -- Do we want to read from memory?
+   mem_request <= '0' when valid_i = '0' else
+                  '0' when instruction_i(R_SRC_MODE) = C_MODE_REG else
+                  '0' when instruction_i(R_OPCODE) = C_OP_RES else
+                  '0' when instruction_i(R_OPCODE) = C_OP_CTRL else
+                  '0' when instruction_i(R_OPCODE) = C_OP_BRA else
+                  '1';
+
    -- Are we waiting for memory read access?
-   mem_ready <= '1' when valid_i = '0' else
-                '1' when instruction_i(R_SRC_MODE) = C_MODE_REG else
-                mem_ready_i;
+   mem_ready <= (not mem_request) or mem_ready_i;
 
    -- Are we waiting for register write access?
    reg_ready <= '1' when valid_i = '0' else
@@ -81,13 +88,13 @@ begin
 
 
    -- To memory subsystem (combinatorial)
-   p_mem : process (valid_i, instruction_i, reg_src_data_i, ready)
+   p_mem : process (valid_i, instruction_i, reg_src_data_i, ready, mem_request)
    begin
       -- Default values to avoid latch
       mem_valid_o   <= '0';
       mem_address_o <= (others => '0');
 
-      if valid_i = '1' and ready = '1' then
+      if valid_i = '1' and ready = '1' and mem_request = '1' then
          case conv_integer(instruction_i(R_SRC_MODE)) is
             when C_MODE_REG  => null;
             when C_MODE_MEM  => mem_address_o <= reg_src_data_i;   mem_valid_o <= '1';
@@ -103,8 +110,11 @@ begin
    p_next_stage : process (clk_i)
    begin
       if rising_edge(clk_i) then
+         -- Has next stage consumed the output?
          if ready_i = '1' then
-            valid_o <= '0';
+            valid_o       <= '0';
+            instruction_o <= (others => '0');
+            src_operand_o <= (others => '0');
          end if;
 
          if valid_i = '1' and ready = '1' then
@@ -112,10 +122,14 @@ begin
                valid_o       <= '1';
                instruction_o <= instruction_i;
                src_operand_o <= reg_src_data_i;
-            elsif mem_ready_i = '1' then
+            elsif mem_ready = '1' then
                valid_o       <= '1';
                instruction_o <= instruction_i;
-               src_operand_o <= mem_data_i;
+               if mem_request = '1' then
+                  src_operand_o <= mem_data_i;
+               else
+                  src_operand_o <= (others => '0');
+               end if;
             end if;
          end if;
 

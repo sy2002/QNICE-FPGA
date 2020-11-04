@@ -259,3 +259,15 @@ Here is a short TODO list for the next few steps:
 * And then finally conditional branching, so that we can start writing
   self-verifying test cases.
 
+## Optimizing `MOVE R, @R`
+It seems that the memory interface is a saturated interface, meaning that on
+every clock cycle the CPU is either reading from or writing to memory. It
+therefore makes sense to optimize instructions, so they only spend memory
+bandwidth if it is really needed.
+
+Some instruction, e.g. MOVE, SWAP, and NOT, do not read the old value of the
+destination. Therefore, they can be optimized by not requesting a memory
+access. To simplify the design I've introduced a new signal `mem_request`
+in the file `read_dst_operand.vhd`. The same signal has been introduced into
+the other pipeline stages as well, just for consistency.
+

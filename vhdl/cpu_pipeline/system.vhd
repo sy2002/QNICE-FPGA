@@ -1,7 +1,5 @@
--- This is the top level entity used to synthesize the pipelined CPU.
--- There is an accompanying project file in cpu_pipeline/cpu_pipeline.xpr and
--- an associated constraint file in top.xdc.
--- The LED output is connected to the PC of the CPU.
+-- This module instantiates the CPU and a small memory
+-- It is to be used for both simulation (in tb_system.vhd) and for synthesis (in top.vhd).
 
 library ieee;
 use ieee.std_logic_1164.all;
