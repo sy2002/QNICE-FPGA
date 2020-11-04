@@ -290,7 +290,6 @@ Write Result | .......... | .......... | .......... | MOVE R,@R0 | MOVE R,@R1 | 
 In six clock cycles the CPU can execute three instructions, compared to two before.
 
 ## Finalizing the ALU
-
 The ALU is a large combinatorial module, including two barrel shifters
 (shifting a variable amount). It therefore makes sense to complete this module,
 to see how it influences the resource count and timing.
@@ -301,4 +300,12 @@ approximately doubled to:
 * Slice LUTs : 601
 * Slice Registers : 116
 * Slices : 175
+
+## The instructions `MOVE @R15++, R`
+This instruction is tricky, becaue it updates the PC. Fortunately, this update
+takes place already in stage 2 where a memory read operation is taking place,
+thus stopping an instruction fetch. Meanwhile, stage 2 is also writing the
+updated value to the PC, so it will be ready for the next instruction.
+
+A minor edit to the file `registers.vhd` was all that was needed.
 

@@ -32,10 +32,13 @@ architecture synthesis of read_instruction is
    signal mem_ready   : std_logic;
    signal ready       : std_logic;
 
+   signal valid       : std_logic;
+   signal instruction : std_logic_vector(15 downto 0);
+
 begin
 
    -- Do we want to read from memory?
-   mem_request <= '1';
+   mem_request <= ready_i or not valid;
 
    -- Are we waiting for memory read access?
    mem_ready <= (not mem_request) or mem_ready_i;
@@ -50,7 +53,7 @@ begin
 
    -- To memory subsystem (combinatorial)
    mem_address_o <= pc_i;
-   mem_valid_o   <= not rst_i;
+   mem_valid_o   <= mem_request and not rst_i;
 
    -- To next pipeline stage (registered)
    p_next_stage : process (clk_i)
@@ -58,21 +61,24 @@ begin
       if rising_edge(clk_i) then
          -- Has next stage consumed the output?
          if ready_i = '1' then
-            valid_o       <= '0';
-            instruction_o <= (others => '0');
+            valid       <= '0';
+            instruction <= (others => '0');
          end if;
 
          if ready = '1' then
-            valid_o       <= '1';
-            instruction_o <= mem_data_i;
+            valid       <= '1';
+            instruction <= mem_data_i;
          end if;
 
          if rst_i = '1' then
-            valid_o       <= '0';
-            instruction_o <= (others => '0');
+            valid       <= '0';
+            instruction <= (others => '0');
          end if;
       end if;
    end process p_next_stage;
+
+   valid_o       <= valid;
+   instruction_o <= instruction;
 
 end architecture synthesis;
 
