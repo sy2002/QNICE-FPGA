@@ -6,7 +6,8 @@
 # To run a test, just type e.g. "make test1".
 
 SOURCES  = cpu_constants.vhd
-SOURCES += arbiter.vhd
+SOURCES += arbiter_regs.vhd
+SOURCES += arbiter_mem.vhd
 SOURCES += memory.vhd
 SOURCES += alu.vhd
 SOURCES += registers.vhd
@@ -15,10 +16,10 @@ SOURCES += read_src_operand.vhd
 SOURCES += read_dst_operand.vhd
 SOURCES += write_result.vhd
 SOURCES += cpu_pipeline.vhd
-SOURCES += top.vhd
-SOURCES += tb_cpu_pipeline.vhd
+SOURCES += system.vhd
+SOURCES += tb_system.vhd
 
-TB       = tb_cpu_pipeline
+TB       = tb_system
 WAVE     = $(TB).ghw
 SAVE     = $(TB).gtkw
 ROM      = prog.rom
@@ -36,7 +37,7 @@ show: $(WAVE)
 $(WAVE): $(SOURCES) $(ROM)
 	ghdl -i --ieee=synopsys $(SOURCES)
 	ghdl -m --ieee=synopsys $(TB)
-	ghdl -r --ieee=synopsys $(TB) --wave=$(WAVE) --stop-time=1us
+	ghdl -r --ieee=synopsys $(TB) --wave=$(WAVE) --stop-time=2us
 
 test%:
 	../../assembler/asm $@.asm

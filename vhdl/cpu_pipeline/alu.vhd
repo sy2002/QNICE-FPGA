@@ -21,7 +21,7 @@ architecture synthesis of alu is
 
 begin
 
-   p_res_data : process (src_data_i, dst_data_i, opcode_i)
+   p_res_data : process (src_data_i, dst_data_i, opcode_i, sr_i)
    begin
       res_data_o <= src_data_i;  -- Default value to avoid latches
       case conv_integer(opcode_i) is

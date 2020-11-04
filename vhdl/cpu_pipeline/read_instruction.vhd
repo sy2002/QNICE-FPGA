@@ -28,26 +28,32 @@ end entity read_instruction;
 
 architecture synthesis of read_instruction is
 
+   signal ready : std_logic;
+
 begin
 
-   -- To register file (combinatorial)
-   pc_o          <= pc_i + 1 when mem_ready_i = '1' else
-                    pc_i;
+   -- Are we ready to complete this stage?
+   ready <= mem_ready_i and ready_i;
 
+
+   -- To register file (combinatorial)
+   pc_o          <= pc_i + 1 when ready = '1' else
+                    pc_i;
 
    -- To memory subsystem (combinatorial)
    mem_address_o <= pc_i;
    mem_valid_o   <= not rst_i;
 
-
    -- To next pipeline stage (registered)
    p_next_stage : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         valid_o       <= '0';
-         instruction_o <= (others => '0');
+         if ready_i = '1' then
+            valid_o       <= '0';
+            instruction_o <= (others => '0');
+         end if;
 
-         if mem_ready_i = '1' then
+         if ready = '1' then
             valid_o       <= '1';
             instruction_o <= mem_data_i;
          end if;

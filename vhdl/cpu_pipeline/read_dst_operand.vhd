@@ -6,54 +6,73 @@ use work.cpu_constants.all;
 
 entity read_dst_operand is
    port (
-      clk_i          : in  std_logic;
-      rst_i          : in  std_logic;
+      clk_i           : in  std_logic;
+      rst_i           : in  std_logic;
 
       -- From previous stage
-      valid_i        : in  std_logic;
-      ready_o        : out std_logic;
-      instruction_i  : in  std_logic_vector(15 downto 0);
-      src_operand_i  : in  std_logic_vector(15 downto 0);
+      valid_i         : in  std_logic;
+      ready_o         : out std_logic;
+      instruction_i   : in  std_logic_vector(15 downto 0);
+      src_operand_i   : in  std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
-      reg_dst_reg_o  : out std_logic_vector(3 downto 0);
-      reg_dst_data_i : in  std_logic_vector(15 downto 0);
-      reg_dst_wr_o   : out std_logic;
-      reg_dst_data_o : out std_logic_vector(15 downto 0);
+      reg_dst_reg_o   : out std_logic_vector(3 downto 0);
+      reg_dst_data_i  : in  std_logic_vector(15 downto 0);
+      reg_dst_wr_o    : out std_logic;
+      reg_dst_ready_i : in  std_logic;
+      reg_dst_data_o  : out std_logic_vector(15 downto 0);
 
       -- To memory subsystem (combinatorial)
-      mem_valid_o    : out std_logic;
-      mem_ready_i    : in  std_logic;
-      mem_address_o  : out std_logic_vector(15 downto 0);
-      mem_data_i     : in  std_logic_vector(15 downto 0);
+      mem_valid_o     : out std_logic;
+      mem_ready_i     : in  std_logic;
+      mem_address_o   : out std_logic_vector(15 downto 0);
+      mem_data_i      : in  std_logic_vector(15 downto 0);
 
       -- To next stage (registered)
-      valid_o        : out std_logic;
-      ready_i        : in  std_logic;
-      src_operand_o  : out std_logic_vector(15 downto 0);
-      dst_operand_o  : out std_logic_vector(15 downto 0);
-      dst_address_o  : out std_logic_vector(15 downto 0);
-      instruction_o  : out std_logic_vector(15 downto 0)
+      valid_o         : out std_logic;
+      ready_i         : in  std_logic;
+      src_operand_o   : out std_logic_vector(15 downto 0);
+      dst_operand_o   : out std_logic_vector(15 downto 0);
+      dst_address_o   : out std_logic_vector(15 downto 0);
+      instruction_o   : out std_logic_vector(15 downto 0)
    );
 end entity read_dst_operand;
 
 architecture synthesis of read_dst_operand is
 
+   signal mem_ready : std_logic;
+   signal reg_ready : std_logic;
+   signal ready     : std_logic;
+
 begin
 
+   -- Are we waiting for memory read access?
+   mem_ready <= '1' when valid_i = '0' else
+                '1' when instruction_i(R_DEST_MODE) = C_MODE_REG else
+                mem_ready_i;
+
+   -- Are we waiting for register write access?
+   reg_ready <= '1' when valid_i = '0' else
+                '1' when instruction_i(R_DEST_MODE) = C_MODE_REG else
+                '1' when instruction_i(R_DEST_MODE) = C_MODE_MEM else
+                reg_dst_ready_i;
+
+   -- Are we ready to complete this stage?
+   ready <= mem_ready and reg_ready and ready_i;
+
    -- To previous stage (combinatorial)
-   ready_o <= '1' when instruction_i(R_DEST_MODE) = C_MODE_REG else
-              mem_ready_i;
+   ready_o <= ready;
+
 
    -- To register file (combinatorial)
-   p_reg : process (valid_i, instruction_i, reg_dst_data_i, mem_ready_i)
+   p_reg : process (valid_i, instruction_i, reg_dst_data_i, ready)
    begin
       -- Default values to avoid latch
       reg_dst_reg_o  <= instruction_i(R_DEST_REG);
       reg_dst_wr_o   <= '0';
       reg_dst_data_o <= reg_dst_data_i;
 
-      if valid_i = '1' and mem_ready_i = '1' then
+      if valid_i = '1' and ready = '1' then
          case conv_integer(instruction_i(R_DEST_MODE)) is
             when C_MODE_REG  => null;
             when C_MODE_MEM  => null;
@@ -66,13 +85,13 @@ begin
 
 
    -- To memory subsystem (combinatorial)
-   p_mem : process (valid_i, instruction_i, reg_dst_data_i)
+   p_mem : process (valid_i, instruction_i, reg_dst_data_i, ready)
    begin
       -- Default values to avoid latch
       mem_valid_o   <= '0';
       mem_address_o <= (others => '0');
 
-      if valid_i = '1' then
+      if valid_i = '1' and ready = '1' then
          case conv_integer(instruction_i(R_DEST_MODE)) is
             when C_MODE_REG  => null;
             when C_MODE_MEM  => mem_address_o <= reg_dst_data_i;   mem_valid_o <= '1';

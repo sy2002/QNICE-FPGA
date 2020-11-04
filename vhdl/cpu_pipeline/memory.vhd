@@ -53,11 +53,12 @@ begin
       end if;
    end process p_write;
 
-   -- Combinatorial read (TBD: Replace with falling_edge)
-   p_read : process (address_i, read_i)
+   -- Synchronuos read on falling_edge.
+   -- To the CPU this appears as a combinatorial read, but
+   -- leaves only half a clock cycle for the CPU processing.
+   p_read : process (clk_i)
    begin
-      rd_data_o <= (others => '0');
-      if read_i = '1' then
+      if falling_edge(clk_i) then
          rd_data_o <= mem_r(conv_integer(address_i));
       end if;
    end process p_read;

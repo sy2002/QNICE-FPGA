@@ -64,22 +64,30 @@ architecture synthesis of cpu_pipeline is
    signal res_address     : std_logic_vector(15 downto 0);
    signal res_data        : std_logic_vector(15 downto 0);
 
-   -- Connections to the register file
+   -- Connections to the arbiter_regs
    signal reg_src_reg     : std_logic_vector(3 downto 0);
    signal reg_src_rd_data : std_logic_vector(15 downto 0);
    signal reg_src_wr      : std_logic;
+   signal reg_src_ready   : std_logic;
    signal reg_src_wr_data : std_logic_vector(15 downto 0);
    signal reg_dst_reg     : std_logic_vector(3 downto 0);
    signal reg_dst_rd_data : std_logic_vector(15 downto 0);
    signal reg_dst_wr      : std_logic;
+   signal reg_dst_ready   : std_logic;
    signal reg_dst_wr_data : std_logic_vector(15 downto 0);
    signal reg_res_wr      : std_logic;
+   signal reg_res_ready   : std_logic;
    signal reg_res_reg     : std_logic_vector(3 downto 0);
-   signal reg_res_data    : std_logic_vector(15 downto 0);
+   signal reg_res_wr_data : std_logic_vector(15 downto 0);
    signal reg_rd_pc       : std_logic_vector(15 downto 0);
    signal reg_wr_pc       : std_logic_vector(15 downto 0);
    signal reg_rd_sr       : std_logic_vector(15 downto 0);
    signal reg_wr_sr       : std_logic_vector(15 downto 0);
+
+   -- Connections to the register file
+   signal arb_valid       : std_logic;
+   signal arb_address     : std_logic_vector(3 downto 0);
+   signal arb_data        : std_logic_vector(15 downto 0);
 
 begin
 
@@ -102,73 +110,76 @@ begin
    -- Stage 2
    i_read_src_operand : entity work.read_src_operand
       port map (
-         clk_i          => clk_i,
-         rst_i          => rst_i,
-         valid_i        => stage1.valid,
-         ready_o        => stage1.ready,
-         instruction_i  => stage1.instruction,
-         reg_src_reg_o  => reg_src_reg,
-         reg_src_data_i => reg_src_rd_data,
-         reg_src_wr_o   => reg_src_wr,
-         reg_src_data_o => reg_src_wr_data,
-         mem_valid_o    => src_valid,
-         mem_ready_i    => src_ready,
-         mem_address_o  => src_address,
-         mem_data_i     => src_data,
-         valid_o        => stage2.valid,
-         ready_i        => stage2.ready,
-         src_operand_o  => stage2.src_operand,
-         instruction_o  => stage2.instruction
+         clk_i           => clk_i,
+         rst_i           => rst_i,
+         valid_i         => stage1.valid,
+         ready_o         => stage1.ready,
+         instruction_i   => stage1.instruction,
+         reg_src_reg_o   => reg_src_reg,
+         reg_src_data_i  => reg_src_rd_data,
+         reg_src_wr_o    => reg_src_wr,
+         reg_src_ready_i => reg_src_ready,
+         reg_src_data_o  => reg_src_wr_data,
+         mem_valid_o     => src_valid,
+         mem_ready_i     => src_ready,
+         mem_address_o   => src_address,
+         mem_data_i      => src_data,
+         valid_o         => stage2.valid,
+         ready_i         => stage2.ready,
+         src_operand_o   => stage2.src_operand,
+         instruction_o   => stage2.instruction
       ); -- i_read_src_operand
 
    -- Stage 3
    i_read_dst_operand : entity work.read_dst_operand
       port map (
-         clk_i          => clk_i,
-         rst_i          => rst_i,
-         valid_i        => stage2.valid,
-         ready_o        => stage2.ready,
-         instruction_i  => stage2.instruction,
-         src_operand_i  => stage2.src_operand,
-         reg_dst_reg_o  => reg_dst_reg,
-         reg_dst_data_i => reg_dst_rd_data,
-         reg_dst_wr_o   => reg_dst_wr,
-         reg_dst_data_o => reg_dst_wr_data,
-         mem_valid_o    => dst_valid,
-         mem_ready_i    => dst_ready,
-         mem_address_o  => dst_address,
-         mem_data_i     => dst_data,
-         valid_o        => stage3.valid,
-         ready_i        => stage3.ready,
-         src_operand_o  => stage3.src_operand,
-         dst_operand_o  => stage3.dst_operand,
-         dst_address_o  => stage3.dst_address,
-         instruction_o  => stage3.instruction
+         clk_i           => clk_i,
+         rst_i           => rst_i,
+         valid_i         => stage2.valid,
+         ready_o         => stage2.ready,
+         instruction_i   => stage2.instruction,
+         src_operand_i   => stage2.src_operand,
+         reg_dst_reg_o   => reg_dst_reg,
+         reg_dst_data_i  => reg_dst_rd_data,
+         reg_dst_wr_o    => reg_dst_wr,
+         reg_dst_ready_i => reg_dst_ready,
+         reg_dst_data_o  => reg_dst_wr_data,
+         mem_valid_o     => dst_valid,
+         mem_ready_i     => dst_ready,
+         mem_address_o   => dst_address,
+         mem_data_i      => dst_data,
+         valid_o         => stage3.valid,
+         ready_i         => stage3.ready,
+         src_operand_o   => stage3.src_operand,
+         dst_operand_o   => stage3.dst_operand,
+         dst_address_o   => stage3.dst_address,
+         instruction_o   => stage3.instruction
       ); -- i_read_dst_operand
 
    -- Stage 4
    i_write_result : entity work.write_result
       port map (
-         clk_i          => clk_i,
-         rst_i          => rst_i,
-         valid_i        => stage3.valid,
-         ready_o        => stage3.ready,
-         instruction_i  => stage3.instruction,
-         src_operand_i  => stage3.src_operand,
-         dst_operand_i  => stage3.dst_operand,
-         dst_address_i  => stage3.dst_address,
-         sr_i           => reg_rd_sr,
-         sr_o           => reg_wr_sr,
-         mem_valid_o    => res_valid,
-         mem_ready_i    => res_ready,
-         mem_address_o  => res_address,
-         mem_data_o     => res_data,
-         reg_res_reg_o  => reg_res_reg,
-         reg_res_wr_o   => reg_res_wr,
-         reg_res_data_o => reg_res_data
+         clk_i           => clk_i,
+         rst_i           => rst_i,
+         valid_i         => stage3.valid,
+         ready_o         => stage3.ready,
+         instruction_i   => stage3.instruction,
+         src_operand_i   => stage3.src_operand,
+         dst_operand_i   => stage3.dst_operand,
+         dst_address_i   => stage3.dst_address,
+         sr_i            => reg_rd_sr,
+         sr_o            => reg_wr_sr,
+         mem_valid_o     => res_valid,
+         mem_ready_i     => res_ready,
+         mem_address_o   => res_address,
+         mem_data_o      => res_data,
+         reg_res_reg_o   => reg_res_reg,
+         reg_res_wr_o    => reg_res_wr,
+         reg_res_ready_i => reg_res_ready,
+         reg_res_data_o  => reg_res_wr_data
       ); -- i_write_result
 
-   i_arbiter : entity work.arbiter
+   i_arbiter_mem : entity work.arbiter_mem
       port map (
          clk_i          => clk_i,
          rst_i          => rst_i,
@@ -195,25 +206,42 @@ begin
          mem_read_o     => mem_read_o
       ); -- i_arbiter
 
+   i_arbiter_regs : entity work.arbiter_regs
+      port map (
+         clk_i         => clk_i,
+         rst_i         => rst_i,
+         src_valid_i   => reg_src_wr,
+         src_ready_o   => reg_src_ready,
+         src_reg_i     => reg_src_reg,
+         src_data_i    => reg_src_wr_data,
+         dst_valid_i   => reg_dst_wr,
+         dst_ready_o   => reg_dst_ready,
+         dst_reg_i     => reg_dst_reg,
+         dst_data_i    => reg_dst_wr_data,
+         res_valid_i   => reg_res_wr,
+         res_ready_o   => reg_res_ready,
+         res_reg_i     => reg_res_reg,
+         res_data_i    => reg_res_wr_data,
+         reg_valid_o   => arb_valid,
+         reg_address_o => arb_address,
+         reg_data_o    => arb_data
+      ); -- i_arbiter_regs
+
    i_registers : entity work.registers
       port map (
-         clk_i      => clk_i,
-         rst_i      => rst_i,
-         pc_o       => reg_rd_pc,
-         pc_i       => reg_wr_pc,
-         sr_o       => reg_rd_sr,
-         sr_i       => reg_wr_sr,
-         src_reg_i  => reg_src_reg,
-         src_data_o => reg_src_rd_data,
-         src_wr_i   => reg_src_wr,
-         src_data_i => reg_src_wr_data,
-         dst_reg_i  => reg_dst_reg,
-         dst_data_o => reg_dst_rd_data,
-         dst_wr_i   => reg_dst_wr,
-         dst_data_i => reg_dst_wr_data,
-         res_wr_i   => reg_res_wr,
-         res_reg_i  => reg_res_reg,
-         res_data_i => reg_res_data
+         clk_i         => clk_i,
+         rst_i         => rst_i,
+         pc_o          => reg_rd_pc,
+         pc_i          => reg_wr_pc,
+         sr_o          => reg_rd_sr,
+         sr_i          => reg_wr_sr,
+         src_reg_i     => reg_src_reg,
+         src_data_o    => reg_src_rd_data,
+         dst_reg_i     => reg_dst_reg,
+         dst_data_o    => reg_dst_rd_data,
+         reg_valid_i   => arb_valid,
+         reg_address_i => arb_address,
+         reg_data_i    => arb_data
       ); -- i_registers
 
    debug_o <= reg_rd_pc;

@@ -40,10 +40,10 @@ MOVE  R2,  R6     ; Should put 0x0013 into R6
 MOVE  R3,  R7     ; Should put 0x0014 into R7
 
 ; Arbiter during sequence of MOVE @R, R:
-; Read Inst       MOVE @R,R | .......... | MOVE @R, R | .......... |
-; Read Source     ......... | MOVE @R, R | .......... | MOVE @R, R |
-; Read Dest       ......... | .......... | .......... | .......... |
-; Write Result    ......... | .......... | .......... | .......... |
+; Read Inst    | MOVE @R,R | .......... | MOVE @R, R | .......... |
+; Read Source  | ......... | MOVE @R, R | .......... | MOVE @R, R |
+; Read Dest    | ......... | .......... | .......... | .......... |
+; Write Result | ......... | .......... | .......... | .......... |
 
 ; Now test MOVE @R, R
 MOVE  @R0, R8     ; Should put 0x0F04 into R8  (hex for MOVE R15, R1)
@@ -76,10 +76,10 @@ MOVE  R15, R10    ; Should put 0x002B into R10
 MOVE  R15, R11    ; Should put 0x002C into R11
 
 ; Arbiter during sequence of MOVE R, @R:
-; Read Inst       MOVE R,@R0 | MOVE R,@R1 | .......... | .......... | .......... | .......... | MOVE R,@R2 | MOVE R,@R3 |
-; Read Source     .......... | .......... | .......... | .......... | .......... | .......... | .......... | .......... |
-; Read Dest       .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | .......... | .......... | .......... |
-; Write Result    .......... | .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | .......... | .......... |
+; Read Inst    | MOVE R,@R0 | MOVE R,@R1 | .......... | .......... | .......... | .......... | MOVE R,@R2 | MOVE R,@R3 |
+; Read Source  | .......... | .......... | .......... | .......... | .......... | .......... | .......... | .......... |
+; Read Dest    | .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | .......... | .......... | .......... |
+; Write Result | .......... | .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | .......... | .......... |
 
 ; Now test MOVE R, @R
 MOVE  R0, @R8     ; Should write 0x0011 to 0x0029
@@ -94,8 +94,8 @@ MOVE  R10, @R2++  ; Should write 0x002B to 0x0013 and 0x0014 into R2
 MOVE  R11, @R3++  ; Should write 0x002C to 0x0014 and 0x0015 into R3
 
 ; Now test MOVE R, @R++
-MOVE  R4, @--R0   ; Should write 0x0011 to 0x0029 and 0x0029 into R0
-MOVE  R5, @--R1   ; Should write 0x0012 to 0x002A and 0x002A into R1
-MOVE  R6, @--R2   ; Should write 0x0013 to 0x002B and 0x002B into R2
-MOVE  R7, @--R3   ; Should write 0x0014 to 0x002C and 0x002C into R3
+MOVE  R4, @--R0   ; Should write 0x0F04 to 0x0011 and 0x0011 into R0
+MOVE  R5, @--R1   ; Should write 0x0F08 to 0x0012 and 0x0012 into R1
+MOVE  R6, @--R2   ; Should write 0x0F0C to 0x0013 and 0x0013 into R2
+MOVE  R7, @--R3   ; Should write 0x0010 to 0x0014 and 0x0014 into R3
 

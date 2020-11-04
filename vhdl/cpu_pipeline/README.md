@@ -31,8 +31,9 @@ The current QNICE design allows combinatorial reads from both the register file
 and from memory. Here memory read is synchronous to the falling clock edge, so
 appears combinatorial from the CPU's perspective. We will probably later on
 introduce flip-flops when reading from register file and/or memory, in order to
-increase the clock frequency. However, in order to keep the design as simple as
-possible, this is deferred to later.
+reduce the long combinatorial paths and thereby increase the clock frequency.
+However, in order to keep the design as simple as possible, this is deferred to
+later.
 
 So far, the design looks as follows:
 
@@ -119,24 +120,126 @@ Write Result | .......... | .......... | .......... | move @r,r0 | .......... | 
 ```
 
 The table shows how "Read Source" takes precedence over "Read Inst". So at the
-second time step, no instrucion fetch is taking place while the CPU is reading
+second time step, no instruction fetch is taking place while the CPU is reading
 the source operand from @R.
 
 The table also shows that the memory bus is active on all clock cycles, and a
 new instruction starts every two clock cycles.
 
 ### `MOVE R, @R`
-Next we wil consider a seemingly similar looking sequence, this time with the
+Next we will consider a seemingly similar looking sequence, this time with the
 instruction `MOVE R, @R`. This instruction will access memory three times:
-`Read Inst`, `Read Dest`, and `Write Result`.
+`Read Inst`, `Read Dest`, and `Write Result`. The dynamics is now somewhat more complicated,
+as shown in the following:
 
 ```
-Read Inst    MOVE R,@R0 | MOVE R,@R1 | .......... | .......... | .......... | .......... | MOVE R,@R2 |
-Read Source  .......... | move r,@r0 | move r,@r1 | .......... | .......... | .......... | .......... |
-Read Dest    .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | .......... | .......... |
-Write Result .......... | .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | .......... |
+Read Inst    | MOVE R,@R0 | MOVE R,@R1 | .......... | .......... | .......... | .......... | MOVE R,@R2
+Read Source  | .......... | move r,@r0 | move r,@r1 | .......... | .......... | .......... | ..........
+Read Dest    | .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | .......... | ..........
+Write Result | .......... | .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | ..........
 ```
 
 We see how it now takes six clock cycles to perform two instructions, and that
 the memory system is active on every clock cycle.
+
+One may argue that the MOVE instruction does not need to read the destination
+operand. That is entirely true, but the above dynamics still apply to
+instructions like `ADD R, @R`. To put it differently, the instruction `MOVE R,
+@R` can be optimized by having it not read the destination operand. This is
+still TBD.
+
+### Register file access
+In the current design, there are three simultaneous writes to the CPU registers:
+
+* In the `Read Source` stage in case of pre-decrement or post-increment.
+* In the `Read Dest` stage in case of pre-decrement or post-increment.
+* In the `Write Result` stage when the destination is a register.
+
+However, any given instruction only updates at most two CPU registers. So does
+the register file really need three write ports? This quesion is important,
+because the synthesis tool only allows a maximum of two write ports for RAM
+blocks.
+
+Consider the following sequence of instructions:
+```
+ADD R0, R1        (stage 4)
+ADD R2, @R3++     (stage 3)
+ADD @R4++, R5     (stages 2 and 4)
+```
+
+The table below shows this time register file updates (indicated with the
+instruction written in upper case letters):
+
+```
+1. Read Inst    | add r0, r1    | add r2, @r3++ | add @r4++, r5 | ............. | ............. | .............
+2. Read Source  | ............. | add r0, r1    | add r2, @r3++ | ADD @R4++, R5 | ............. | .............
+3. Read Dest    | ............. | ............. | add r0, r1    | ADD R2, @R3++ | add @r4++, r5 | .............
+4. Write Result | ............. | ............. | ............. | ADD R0, R1    | add r2, @r3++ | ADD @R4++, R5
+```
+
+It is seen that in the fourth clock cycle, three different pipeline stages all
+want to write to the register file simultaneously.
+
+However, in this specific combination of instructions the third instruction
+will be stalled due to the arbiter.
+
+So this analysis shows that the register file needs three write ports, but most
+of the time, not all three writes will be active at any given time.  In other
+words, we need another arbiter, this time for the register access!  This is
+necessary, in order to be able to implement the register file using RAM blocks
+in the FPGA. The reason is that RAM blocks in the FPGA only support one write
+port, where there are multiple read ports at the same time.
+
+### Redesign
+So this calls for another iteration of the design.  The previous arbiter is now
+renamed to `arbiter_mem.vhd` and a new `arbiter_regs.vhd` is added. The
+register arbiter allows only a single stage to write to the register file at a
+given time.  In the figure below is shown the new arbiter placed in between the
+processing stages and the register file.
+
+![Pipeline Design 2](design2.png)
+
+Crucial for this redesign is that the register arbiter provides a ready signal
+to each stage, indicating whether that stage is allowed access. So now each
+stage must wait for three conditions:
+
+* Access to register write
+* Access to memory
+* Access to next stage
+
+Only when all three conditions are met simultaneously may the stage proceed
+with its processing.  Otherwise it must wait until the next clock cycle, thus
+stalling the entire pipeline. However, this extra register arbiter doesn't seem
+to lead to major pipeline stalling in practice. A close analysis will follow
+later.
+
+The implementation of the register arbiter is similar to the memory arbiter,
+but with only three "clients" it becomes slightly simpler. Just like with the
+memory arbiter priority is given to the later stages. This decision too is TBD,
+but initially it is believed to help proving that the pipeline never locks up,
+i.e.  where multiple stages are waiting for each other, and no stages are
+proceeding.
+
+It should be noted that updating of the PC and the SR is handled separately.
+The register arbiter only handles regular register updates.
+
+## Implementation in hardware
+Since the design is becoming more complex, it is necessary that the memory
+block is implemented using RAM blocks in the FPGA. This requires a synchronous
+read.  So far, our design expects a combinatorial read from the memory, but
+this can be achieved by clocking the memory on the **falling** clock edge. So
+the memory performs a synchronous read, but the CPU still has the remaining
+half of the clock cycle to process the data.
+
+Adding this change to the design leads to timing violations when running at 100
+Mhz.  So now we see that all these combinatorial connections lead to large
+timing paths (as expected) and reduces the maximum frequency. Therefore, a
+clock module is added in top.vhd to generate a (slightly) slower clock. Later,
+we might look into how we can increase the clock frequency e.g. by introducing
+more pipeline stages.
+
+Simlulating a clock module is very slow, so to avoid that I've connected the
+CPU and memory in a `system.vhd` file which can be used for simulation. This
+module is then instantiated in the top level file.
+
 
