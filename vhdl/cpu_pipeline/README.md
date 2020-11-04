@@ -113,7 +113,7 @@ particular clock cycle. In other words, in each column at most one row may
 perform a memory access.
 
 ```
-Read Inst    | MOVE @R,R0 | .......... | MOVE @R,R1 | .......... | MOVE @R,R2 | .......... |
+Read Inst    | MOVE @R,R0 | .. wait .. | MOVE @R,R1 | .. wait .. | MOVE @R,R2 | .......... |
 Read Source  | .......... | MOVE @R,R0 | .......... | MOVE @R,R1 | .......... | MOVE @R,R2 |
 Read Dest    | .......... | .......... | move @r,r0 | .......... | move @r,r1 | .......... |
 Write Result | .......... | .......... | .......... | move @r,r0 | .......... | move @r,r1 |
@@ -121,7 +121,8 @@ Write Result | .......... | .......... | .......... | move @r,r0 | .......... | 
 
 The table shows how "Read Source" takes precedence over "Read Inst". So at the
 second time step, no instruction fetch is taking place while the CPU is reading
-the source operand from @R.
+the source operand from @R. The word "wait" indicates that the stage would
+like to do some work, but is not allowed due to.
 
 The table also shows that the memory bus is active on all clock cycles, and a
 new instruction starts every two clock cycles.
@@ -133,14 +134,15 @@ instruction `MOVE R, @R`. This instruction will access memory three times:
 as shown in the following:
 
 ```
-Read Inst    | MOVE R,@R0 | MOVE R,@R1 | .......... | .......... | .......... | .......... | MOVE R,@R2
+Read Inst    | MOVE R,@R0 | MOVE R,@R1 | .. wait .. | .. wait .. | .. wait .. | .. wait .. | MOVE R,@R2
 Read Source  | .......... | move r,@r0 | move r,@r1 | .......... | .......... | .......... | ..........
-Read Dest    | .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | .......... | ..........
+Read Dest    | .......... | .......... | MOVE R,@R0 | .. wait .. | MOVE R,@R1 | .......... | ..........
 Write Result | .......... | .......... | .......... | MOVE R,@R0 | .......... | MOVE R,@R1 | ..........
 ```
 
 We see how it now takes six clock cycles to perform two instructions, and that
-the memory system is active on every clock cycle.
+the memory system is active on every clock cycle. In the fourth cycle, the
+stage `Read Dest` is forced to wait, because of memory arbitration.
 
 One may argue that the MOVE instruction does not need to read the destination
 operand. That is entirely true, but the above dynamics still apply to
@@ -198,7 +200,7 @@ processing stages and the register file.
 
 ![Pipeline Design 2](design2.png)
 
-Crucial for this redesign is that the register arbiter provides a ready signal
+Crucial for this redesign is that the register arbiter provides a `ready` signal
 to each stage, indicating whether that stage is allowed access. So now each
 stage must wait for three conditions:
 
@@ -219,7 +221,7 @@ but initially it is believed to help proving that the pipeline never locks up,
 i.e.  where multiple stages are waiting for each other, and no stages are
 proceeding.
 
-It should be noted that updating of the PC and the SR is handled separately.
+It should be noted that updating of the `PC` and the `SR` is handled separately.
 The register arbiter only handles regular register updates.
 
 ## Implementation in hardware
@@ -232,16 +234,20 @@ half of the clock cycle to process the data.
 
 Adding this change to the design leads to timing violations when running at 100
 Mhz.  So now we see that all these combinatorial connections lead to large
-timing paths (as expected) and reduces the maximum frequency. Therefore, a
-clock module is added in `top.vhd` to generate a slower clock. Later, we might
-look into how we can increase the clock frequency e.g. by introducing more
-pipeline stages. Currently, the clock is running at 65 MHz.
+timing paths (as expected) and reduces the maximum frequency. In particular,
+the memory block itself consumes half of a clock cycle, as mentioned above.
 
-Simlulating a clock module is very slow, so to avoid that I've connected the
-CPU and memory in a `system.vhd` file which can be used for simulation. This
-module is then instantiated in the top level file.
+In order to meet timing, a clock module is added in `top.vhd` to generate a
+slower clock.  Later, we might look into how we can increase the clock
+frequency e.g. by introducing more pipeline stages. Currently, the clock is
+running at 65 MHz.
 
-The current resource utilization in the FPGA are as follows:
+Simulating a clock module is very slow, so to avoid that I've connected the
+CPU and memory in a `system.vhd` file, which can be used for both simulation
+and synthesis. This module is then instantiated in the top level synthesis file
+and in the simulation testbench.
+
+The current resource utilization in the FPGA is as follows:
 
 * Slice LUTs : 354
 * Slice Registers : 111
@@ -265,22 +271,23 @@ every clock cycle the CPU is either reading from or writing to memory. It
 therefore makes sense to optimize instructions, so they only spend memory
 bandwidth if it is really needed.
 
-Some instruction, e.g. MOVE, SWAP, and NOT, do not read the old value of the
+Some instructions, e.g. MOVE, SWAP, and NOT, do not read the old value of the
 destination. Therefore, they can be optimized by not requesting a memory
-access. To simplify the design I've introduced a new signal `mem_request`
+access. To simplify the implementation I've introduced a new signal `mem_request`
 in the file `read_dst_operand.vhd`. The same signal has been introduced into
 the other pipeline stages as well, just for consistency.
 
 Since the `MOVE R, @R` instruction now only accesses the memory twice,
-the memory arbitration dynamics are much different,
-as shown in the following:
+the memory arbitration dynamics are different, as shown in the following:
 
 ```
-Read Inst    | MOVE R,@R0 | MOVE R,@R1 | MOVE R,@R2 | .......... | .......... | .......... | MOVE R,@R3
+Read Inst    | MOVE R,@R0 | MOVE R,@R1 | MOVE R,@R2 | .. wait .. | .. wait .. | .. wait .. | MOVE R,@R3
 Read Source  | .......... | move r,@r0 | move r,@r1 | move r,@r2 | .......... | .......... | ..........
 Read Dest    | .......... | .......... | move r,@r0 | move r,@r1 | move r,@r2 | .......... | ..........
 Write Result | .......... | .......... | .......... | MOVE R,@R0 | MOVE R,@R1 | MOVE R,@R2 | ..........
 ```
+
+In six clock cycles the CPU can execute three instructions, compared to two before.
 
 ## Finalizing the ALU
 
