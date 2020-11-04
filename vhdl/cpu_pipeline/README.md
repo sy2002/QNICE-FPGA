@@ -157,18 +157,18 @@ In the current design, there are three simultaneous writes to the CPU registers:
 
 However, any given instruction only updates at most two CPU registers. So does
 the register file really need three write ports? This quesion is important,
-because the synthesis tool only allows a maximum of two write ports for RAM
-blocks.
+because the synthesis tool only allows one write port for RAM blocks, when
+they are combined with multiple read ports.
 
 Consider the following sequence of instructions:
 ```
-ADD R0, R1        (stage 4)
-ADD R2, @R3++     (stage 3)
-ADD @R4++, R5     (stages 2 and 4)
+ADD R0, R1        (update register R1 in stage 4)
+ADD R2, @R3++     (update register R3 in stage 3)
+ADD @R4++, R5     (update register R4 in stage 2 and register R5 in stage 4)
 ```
 
-The table below shows this time register file updates (indicated with the
-instruction written in upper case letters):
+The table below shows register file updates (indicated with the instruction
+written in upper case letters):
 
 ```
 1. Read Inst    | add r0, r1    | add r2, @r3++ | add @r4++, r5 | ............. | ............. | .............
@@ -181,14 +181,13 @@ It is seen that in the fourth clock cycle, three different pipeline stages all
 want to write to the register file simultaneously.
 
 However, in this specific combination of instructions the third instruction
-will be stalled due to the arbiter.
+will be stalled due to the memory arbiter.
 
 So this analysis shows that the register file needs three write ports, but most
 of the time, not all three writes will be active at any given time.  In other
 words, we need another arbiter, this time for the register access!  This is
 necessary, in order to be able to implement the register file using RAM blocks
-in the FPGA. The reason is that RAM blocks in the FPGA only support one write
-port, where there are multiple read ports at the same time.
+in the FPGA.
 
 ### Redesign
 So this calls for another iteration of the design.  The previous arbiter is now
@@ -211,7 +210,7 @@ Only when all three conditions are met simultaneously may the stage proceed
 with its processing.  Otherwise it must wait until the next clock cycle, thus
 stalling the entire pipeline. However, this extra register arbiter doesn't seem
 to lead to major pipeline stalling in practice. A close analysis will follow
-later.
+later (TBD).
 
 The implementation of the register arbiter is similar to the memory arbiter,
 but with only three "clients" it becomes slightly simpler. Just like with the
@@ -234,12 +233,27 @@ half of the clock cycle to process the data.
 Adding this change to the design leads to timing violations when running at 100
 Mhz.  So now we see that all these combinatorial connections lead to large
 timing paths (as expected) and reduces the maximum frequency. Therefore, a
-clock module is added in top.vhd to generate a (slightly) slower clock. Later,
-we might look into how we can increase the clock frequency e.g. by introducing
-more pipeline stages.
+clock module is added in top.vhd to generate a slower clock. Later, we might
+look into how we can increase the clock frequency e.g. by introducing more
+pipeline stages. Currently, the clock is running at 65 MHz.
 
 Simlulating a clock module is very slow, so to avoid that I've connected the
 CPU and memory in a `system.vhd` file which can be used for simulation. This
 module is then instantiated in the top level file.
 
+The current resource utilization in the FPGA are as follows:
+* Slice LUTs : 354
+* Slice Registers : 111
+* Slices : 107
+This shows the CPU uses very few resources indeed. But the ALU is not fully
+implemented yet, and neither is register banking.
+
+Here is a short TODO list for the next few steps:
+* Finish the ALU, including generating the correct value for SR.
+* Optimize the `MOVE R, @R` instruction so that it does not read from @R, since
+  that value is not used.
+* Make sure instructions like `MOVE @R15++, R` work, so that we can load
+  immediate values into registers.
+* And then finally conditional branching, so that we can start writing
+  self-verifying test cases.
 
