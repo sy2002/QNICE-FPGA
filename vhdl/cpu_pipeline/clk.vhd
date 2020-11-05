@@ -27,10 +27,10 @@ begin
          STARTUP_WAIT         => FALSE,
          CLKIN1_PERIOD        => 10.000,  -- 100 MHz
          DIVCLK_DIVIDE        => 1,
-         CLKFBOUT_MULT_F      => 6.500,
+         CLKFBOUT_MULT_F      => 10.000,
          CLKFBOUT_PHASE       => 0.000,
          CLKFBOUT_USE_FINE_PS => FALSE,
-         CLKOUT0_DIVIDE_F     => 10.000,  -- 65 MHz
+         CLKOUT0_DIVIDE_F     => 20.000,  -- 50 MHz
          CLKOUT0_PHASE        => 0.000,
          CLKOUT0_DUTY_CYCLE   => 0.500,
          CLKOUT0_USE_FINE_PS  => FALSE

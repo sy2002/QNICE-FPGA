@@ -394,3 +394,23 @@ perhaps already in stage 1. Writing the updated `src` and `dst` register values 
 then be moved up one clock cycle each, to stages 1 and 2 respectively. This
 last change will help with our current bug, where the `PC` is updated in stage 3.
 
+Due to the recent changes (mainly conditional branching) I've had to reduce the
+clock frequency further to 50 Mhz.
+
+I made a small change in `read_src_operand` and `read_dst_operand`, because
+there is no need for the memory address to depend on the register arbiter.
+This change improves timing, because it reduces the combinatorial inputs to the
+memory address.
+
+After this change, the slowest timing path has a slack of 0.7 ns and a logic
+depth of 8 levels: The `read_dst_operand` stage reads the destination register
+value from the register file and then reads the destination operand from
+memory.
+
+Some more statistics at this stage of the project:
+
+* Slice LUTs : 688
+* Slice Registers : 135
+* Slices : 207
+* `cpu_test.asm` fails first at 0x0149, which is approximately 6% of the whole test.
+
