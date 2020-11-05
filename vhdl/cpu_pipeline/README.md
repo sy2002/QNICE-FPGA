@@ -317,7 +317,9 @@ updated.
 
 The idea is that the branch instruction is executed in stage 4. But
 furthermore, when a branch instruction is encountered in stage 1, this stage
-will stop any further instruction fetching for another 3 clock cycles.
+will stop any further instruction fetching for another 3 clock cycles. This
+means that the status register in stage 4 is guaranteed to have the correct
+value.
 
 And that is it! All the basic functionality is now implemented (but not
 tested).  And there are still all the pipeline hazards.
@@ -325,8 +327,70 @@ tested).  And there are still all the pipeline hazards.
 But just for fun, I've copied the `cpu_test.asm` file into a local copy
 `test2.asm` with a few changes, e.g. the start address is changed to 0x0000.
 Getting this comprehensive CPU test to run without errors will take some effort,
-but at least it can run for a few clock cycles already.
+but at least it can run for a few clock cycles now.
 
 One bug found so far is that the status register should only be updated when
 executing an instruction. I've therefore added a `valid` signal to the ALU.
+
+## Running the `cpu_test.asm`
+It is great to have a comprehensive CPU test suite, and the current design
+is now able to run this test and give meaningful (but incorrect) results.
+Apart from the branch hazards that we've fixed in a brutally inefficient
+way above, I don't expect so many pipeline hazards, so it therefore makes
+sense to try and run this test now to see what bugs are discovered.
+
+To aid in debugging, I've added a small disassembler. This will print out
+to the console the disassembly of the current instruction executed.
+
+One bug found quickly was that branch instructions should read their target
+location from the source operand, and not from the destination operand. This is
+actually an error in the QNICE ISA documentation, that is yet to be fixed.
+
+With this bug fixed the test now runs until address `0x0149` where it tries to
+execute the instruciton `CMP R0, @R15++`.  And here we see our first true
+pipeline hazard: The PC is updated in the third clock cycle
+`read_dst_operand` but already in the second clock cycle is the next
+instruction being fetched, before the PC has been incremented.
+
+This is therefore a good time to look more detailed into the operations
+performed in each pipeline stage:
+
+* Stage 1:
+  - Receive `PC` from register file
+  - Present `PC` to memory
+  - Receive instruction from memory
+  - Write updated `PC` to register file
+* Stage 2:
+  - Present `src` register address to register file
+  - Receive `src` register value from register file
+  - Present `src` operand address to memory
+  - Receive `src` operand value from memory
+  - Write updated `src` register value to register file
+* Stage 3:
+  - Present `dst` register address to register file
+  - Receive `dst` register value from register file
+  - Present `dst` operand address to memory
+  - Receive `dst` operand value from memory
+  - Write updated `dst` register value to register file
+* Stage 4:
+  - Calculate result using ALU
+  - Write `dst` result value to memory
+  - Write calculated `dst` register value to register file
+  - Write new `PC` to register file (if branching)
+
+The lines involving the memory (two lines each stage) must remain there,
+because that is what our whole design is based around. However, many of the
+other operations can be moved around somewhat. This has effect on pipeline
+hazards as well as on timing closure.
+
+One such change could be to move the ALU calculation from stage 4 to stage 3.
+This will give access to the status register one clock cycle earlier, and may
+therefore reduce our (inefficient) branch delay by one clock cycle. Since the
+ALU is a very timing expensive component, this move will have an impact on
+timing as well (but that impact may be both positive or negative).
+
+Another possible change is to read the `src` and `dst` register values earlier,
+perhaps already in stage 1. Writing the updated `src` and `dst` register values can
+then be moved up one clock cycle each, to stages 1 and 2 respectively. This
+last change will help with our current bug, where the `PC` is updated in stage 3.
 
