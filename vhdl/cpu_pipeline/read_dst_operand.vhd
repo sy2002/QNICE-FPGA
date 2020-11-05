@@ -102,12 +102,20 @@ begin
       mem_valid_o   <= '0';
       mem_address_o <= (others => '0');
 
+      case conv_integer(instruction_i(R_DEST_MODE)) is
+         when C_MODE_REG  => null;
+         when C_MODE_MEM  => mem_address_o <= reg_dst_data_i;
+         when C_MODE_POST => mem_address_o <= reg_dst_data_i;
+         when C_MODE_PRE  => mem_address_o <= reg_dst_data_i-1;
+         when others      => null;
+      end case;
+
       if valid_i = '1' and ready = '1' and mem_request = '1' then
          case conv_integer(instruction_i(R_DEST_MODE)) is
             when C_MODE_REG  => null;
-            when C_MODE_MEM  => mem_address_o <= reg_dst_data_i;   mem_valid_o <= '1';
-            when C_MODE_POST => mem_address_o <= reg_dst_data_i;   mem_valid_o <= '1';
-            when C_MODE_PRE  => mem_address_o <= reg_dst_data_i-1; mem_valid_o <= '1';
+            when C_MODE_MEM  => mem_valid_o <= '1';
+            when C_MODE_POST => mem_valid_o <= '1';
+            when C_MODE_PRE  => mem_valid_o <= '1';
             when others      => null;
          end case;
       end if;
