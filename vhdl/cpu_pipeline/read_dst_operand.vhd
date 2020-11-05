@@ -56,6 +56,7 @@ begin
                   '0' when instruction_i(R_OPCODE) = C_OP_SWAP else
                   '0' when instruction_i(R_OPCODE) = C_OP_NOT else
                   '0' when instruction_i(R_OPCODE) = C_OP_RES else
+                  '0' when instruction_i(R_OPCODE) = C_OP_BRA else
                   '1';
 
    -- Are we waiting for memory read access?
