@@ -46,7 +46,7 @@ begin
    mem_ready <= (not mem_request) or mem_ready_i;
 
    -- Are we ready to complete this stage?
-   ready <= mem_ready and ready_i;
+   ready <= mem_ready and ready_i and not rst_i;
 
 
    -- To register file (combinatorial)
@@ -74,6 +74,10 @@ begin
                   if mem_data_i(R_OPCODE) = C_OP_BRA then
                      count <= 3;
                   end if;
+
+                  -- synthesis translate_off
+                  disassemble(pc_i, mem_data_i);
+                  -- synthesis translate_on
                when 1 => count <= 0;
                when 2 => count <= 1;
                when 3 => count <= 2;

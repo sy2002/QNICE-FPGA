@@ -55,7 +55,69 @@ package cpu_constants is
    constant C_BRA_RBRA : integer := 2;
    constant C_BRA_RSUB : integer := 3;
 
+   procedure disassemble(pc : std_logic_vector; inst : std_logic_vector);
+
 end cpu_constants;
 
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+use ieee.std_logic_textio.all;
+use std.textio.all;
+
 package body cpu_constants is
+
+   procedure disassemble(pc : std_logic_vector; inst : std_logic_vector) is
+      function to_hstring(slv : std_logic_vector) return string is
+         variable l : line;
+      begin
+         hwrite(l, slv);
+         return l.all;
+      end function to_hstring;
+
+      function inst_str(slv : std_logic_vector) return string is
+      begin
+         case conv_integer(slv) is
+            when C_OP_MOVE => return "MOVE";
+            when C_OP_ADD  => return "ADD";
+            when C_OP_ADDC => return "ADDC";
+            when C_OP_SUB  => return "SUB";
+            when C_OP_SUBC => return "SUBC";
+            when C_OP_SHL  => return "SHL";
+            when C_OP_SHR  => return "SHR";
+            when C_OP_SWAP => return "SWAP";
+            when C_OP_NOT  => return "NOT";
+            when C_OP_AND  => return "AND";
+            when C_OP_OR   => return "OR";
+            when C_OP_XOR  => return "XOR";
+            when C_OP_CMP  => return "CMP";
+            when C_OP_RES  => return "???";
+            when C_OP_CTRL => return "CTRL";
+            when C_OP_BRA  => return "BRA";
+            when others => return "???";
+         end case;
+         return "???";
+      end function inst_str;
+
+      function reg_str(reg : std_logic_vector; mode : std_logic_vector) return string is
+      begin
+         case conv_integer(mode) is
+            when C_MODE_REG  => return "R" & integer'image(conv_integer(reg));
+            when C_MODE_MEM  => return "@R" & integer'image(conv_integer(reg));
+            when C_MODE_POST => return "@R" & integer'image(conv_integer(reg)) & "++";
+            when C_MODE_PRE  => return "@--R" & integer'image(conv_integer(reg));
+            when others => return "???";
+         end case;
+         return "???";
+      end function reg_str;
+
+   begin
+      report to_hstring(pc) & " " &
+             "(" & to_hstring(inst) & ") " &
+             inst_str(inst(R_OPCODE)) & " " &
+             reg_str(inst(R_SRC_REG), inst(R_SRC_MODE)) & ", " &
+             reg_str(inst(R_DEST_REG), inst(R_DEST_MODE));
+   end procedure disassemble;
+
 end cpu_constants;
+
