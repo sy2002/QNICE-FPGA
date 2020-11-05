@@ -22,6 +22,7 @@ entity read_instruction is
       -- To next pipeline stage (registered)
       valid_o       : out std_logic;
       ready_i       : in  std_logic;
+      pc_inst_o     : out std_logic_vector(15 downto 0);
       instruction_o : out std_logic_vector(15 downto 0)
    );
 end entity read_instruction;
@@ -34,6 +35,7 @@ architecture synthesis of read_instruction is
 
    signal count       : integer range 0 to 3;
    signal valid       : std_logic;
+   signal pc_inst     : std_logic_vector(15 downto 0);
    signal instruction : std_logic_vector(15 downto 0);
 
 begin
@@ -70,14 +72,11 @@ begin
             case count is
                when 0 =>
                   valid       <= '1';
+                  pc_inst     <= pc_i;
                   instruction <= mem_data_i;
                   if mem_data_i(R_OPCODE) = C_OP_BRA then
                      count <= 3;
                   end if;
-
-                  -- synthesis translate_off
-                  disassemble(pc_i, mem_data_i);
-                  -- synthesis translate_on
                when 1 => count <= 0;
                when 2 => count <= 1;
                when 3 => count <= 2;
@@ -94,6 +93,7 @@ begin
    end process p_next_stage;
 
    valid_o       <= valid;
+   pc_inst_o     <= pc_inst;
    instruction_o <= instruction;
 
 end architecture synthesis;

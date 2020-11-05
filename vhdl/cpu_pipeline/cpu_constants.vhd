@@ -19,6 +19,7 @@ package cpu_constants is
    constant C_SR_Z : integer := 3;
    constant C_SR_C : integer := 2;
    constant C_SR_X : integer := 1;
+   constant C_SR_1 : integer := 0;
 
    -- Opcodes
    constant C_OP_MOVE : integer := 0;
@@ -55,7 +56,7 @@ package cpu_constants is
    constant C_BRA_RBRA : integer := 2;
    constant C_BRA_RSUB : integer := 3;
 
-   procedure disassemble(pc : std_logic_vector; inst : std_logic_vector);
+   procedure disassemble(pc : std_logic_vector; inst : std_logic_vector; operand : std_logic_vector);
 
 end cpu_constants;
 
@@ -67,7 +68,7 @@ use std.textio.all;
 
 package body cpu_constants is
 
-   procedure disassemble(pc : std_logic_vector; inst : std_logic_vector) is
+   procedure disassemble(pc : std_logic_vector; inst : std_logic_vector; operand : std_logic_vector) is
       function to_hstring(slv : std_logic_vector) return string is
          variable l : line;
       begin
@@ -99,24 +100,74 @@ package body cpu_constants is
          return "???";
       end function inst_str;
 
-      function reg_str(reg : std_logic_vector; mode : std_logic_vector) return string is
+      function reg_str(reg : std_logic_vector;
+                       mode : std_logic_vector;
+                       operand : std_logic_vector) return string is
       begin
-         case conv_integer(mode) is
-            when C_MODE_REG  => return "R" & integer'image(conv_integer(reg));
-            when C_MODE_MEM  => return "@R" & integer'image(conv_integer(reg));
-            when C_MODE_POST => return "@R" & integer'image(conv_integer(reg)) & "++";
-            when C_MODE_PRE  => return "@--R" & integer'image(conv_integer(reg));
-            when others => return "???";
-         end case;
+         if conv_integer(reg) = C_REG_PC and conv_integer(mode) = C_MODE_POST then
+            return "0x" & to_hstring(operand);
+         else
+            case conv_integer(mode) is
+               when C_MODE_REG  => return "R" & integer'image(conv_integer(reg));
+               when C_MODE_MEM  => return "@R" & integer'image(conv_integer(reg));
+               when C_MODE_POST => return "@R" & integer'image(conv_integer(reg)) & "++";
+               when C_MODE_PRE  => return "@--R" & integer'image(conv_integer(reg));
+               when others => return "???";
+            end case;
+         end if;
          return "???";
       end function reg_str;
 
+      function mode_str(mode : std_logic_vector) return string is
+      begin
+         case conv_integer(mode) is
+            when C_BRA_ABRA => return "ABRA";
+            when C_BRA_ASUB => return "ASUB";
+            when C_BRA_RBRA => return "RBRA";
+            when C_BRA_RSUB => return "RSUB";
+            when others => return "???";
+         end case;
+         return "???";
+      end function mode_str;
+
+      function neg_str(negate : std_logic) return string is
+      begin
+         if negate = '1' then
+            return "!";
+         else
+            return "";
+         end if;
+      end function neg_str;
+
+      function cond_str(condition : std_logic_vector) return string is
+      begin
+         case conv_integer(condition) is
+            when C_SR_V => return "V";
+            when C_SR_N => return "N";
+            when C_SR_Z => return "Z";
+            when C_SR_C => return "C";
+            when C_SR_X => return "X";
+            when C_SR_1 => return "1";
+            when others => return "?";
+         end case;
+         return "?";
+      end function cond_str;
+
    begin
-      report to_hstring(pc) & " " &
-             "(" & to_hstring(inst) & ") " &
-             inst_str(inst(R_OPCODE)) & " " &
-             reg_str(inst(R_SRC_REG), inst(R_SRC_MODE)) & ", " &
-             reg_str(inst(R_DEST_REG), inst(R_DEST_MODE));
+      if conv_integer(inst(R_OPCODE)) = C_OP_BRA then
+         report to_hstring(pc) & " " &
+               "(" & to_hstring(inst) & ") " &
+               mode_str(inst(R_BRA_MODE)) & " " &
+               reg_str(inst(R_SRC_REG), inst(R_SRC_MODE), operand) & ", " &
+               neg_str(inst(R_BRA_NEGATE)) &
+               cond_str(inst(R_BRA_COND));
+      else
+         report to_hstring(pc) & " " &
+               "(" & to_hstring(inst) & ") " &
+               inst_str(inst(R_OPCODE)) & " " &
+               reg_str(inst(R_SRC_REG), inst(R_SRC_MODE), operand) & ", " &
+               reg_str(inst(R_DEST_REG), inst(R_DEST_MODE), operand);
+      end if;
    end procedure disassemble;
 
 end cpu_constants;

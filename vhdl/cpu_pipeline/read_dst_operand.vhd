@@ -12,6 +12,7 @@ entity read_dst_operand is
       -- From previous stage
       valid_i         : in  std_logic;
       ready_o         : out std_logic;
+      pc_inst_i       : in  std_logic_vector(15 downto 0);
       instruction_i   : in  std_logic_vector(15 downto 0);
       src_operand_i   : in  std_logic_vector(15 downto 0);
 
@@ -34,6 +35,7 @@ entity read_dst_operand is
       src_operand_o   : out std_logic_vector(15 downto 0);
       dst_operand_o   : out std_logic_vector(15 downto 0);
       dst_address_o   : out std_logic_vector(15 downto 0);
+      pc_inst_o       : out std_logic_vector(15 downto 0);
       instruction_o   : out std_logic_vector(15 downto 0)
    );
 end entity read_dst_operand;
@@ -128,6 +130,7 @@ begin
             if instruction_i(R_DEST_MODE) = C_MODE_REG then
                valid_o       <= '1';
                dst_operand_o <= reg_dst_data_i;
+               pc_inst_o     <= pc_inst_i;
                instruction_o <= instruction_i;
                src_operand_o <= src_operand_i;
             elsif mem_ready = '1' then
@@ -137,6 +140,7 @@ begin
                else
                   dst_operand_o <= (others => '0');
                end if;
+               pc_inst_o     <= pc_inst_i;
                instruction_o <= instruction_i;
                src_operand_o <= src_operand_i;
             end if;

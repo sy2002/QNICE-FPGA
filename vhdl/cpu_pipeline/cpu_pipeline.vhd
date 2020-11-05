@@ -23,12 +23,14 @@ architecture synthesis of cpu_pipeline is
    type t_stage1 is record
       valid       : std_logic;
       ready       : std_logic;
+      pc_inst     : std_logic_vector(15 downto 0);
       instruction : std_logic_vector(15 downto 0);
    end record t_stage1;
 
    type t_stage2 is record
       valid       : std_logic;
       ready       : std_logic;
+      pc_inst     : std_logic_vector(15 downto 0);
       instruction : std_logic_vector(15 downto 0);
       src_operand : std_logic_vector(15 downto 0);
    end record t_stage2;
@@ -36,6 +38,7 @@ architecture synthesis of cpu_pipeline is
    type t_stage3 is record
       valid       : std_logic;
       ready       : std_logic;
+      pc_inst     : std_logic_vector(15 downto 0);
       instruction : std_logic_vector(15 downto 0);
       src_operand : std_logic_vector(15 downto 0);
       dst_operand : std_logic_vector(15 downto 0);
@@ -104,6 +107,7 @@ begin
          mem_data_i    => inst_data,
          valid_o       => stage1.valid,
          ready_i       => stage1.ready,
+         pc_inst_o     => stage1.pc_inst,
          instruction_o => stage1.instruction
       ); -- i_read_instruction
 
@@ -114,6 +118,7 @@ begin
          rst_i           => rst_i,
          valid_i         => stage1.valid,
          ready_o         => stage1.ready,
+         pc_inst_i       => stage1.pc_inst,
          instruction_i   => stage1.instruction,
          reg_src_reg_o   => reg_src_reg,
          reg_src_data_i  => reg_src_rd_data,
@@ -127,6 +132,7 @@ begin
          valid_o         => stage2.valid,
          ready_i         => stage2.ready,
          src_operand_o   => stage2.src_operand,
+         pc_inst_o       => stage2.pc_inst,
          instruction_o   => stage2.instruction
       ); -- i_read_src_operand
 
@@ -137,6 +143,7 @@ begin
          rst_i           => rst_i,
          valid_i         => stage2.valid,
          ready_o         => stage2.ready,
+         pc_inst_i       => stage2.pc_inst,
          instruction_i   => stage2.instruction,
          src_operand_i   => stage2.src_operand,
          reg_dst_reg_o   => reg_dst_reg,
@@ -153,6 +160,7 @@ begin
          src_operand_o   => stage3.src_operand,
          dst_operand_o   => stage3.dst_operand,
          dst_address_o   => stage3.dst_address,
+         pc_inst_o       => stage3.pc_inst,
          instruction_o   => stage3.instruction
       ); -- i_read_dst_operand
 
@@ -163,6 +171,7 @@ begin
          rst_i           => rst_i,
          valid_i         => stage3.valid,
          ready_o         => stage3.ready,
+         pc_inst_i       => stage3.pc_inst,
          instruction_i   => stage3.instruction,
          src_operand_i   => stage3.src_operand,
          dst_operand_i   => stage3.dst_operand,

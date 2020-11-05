@@ -13,6 +13,7 @@ entity write_result is
       -- From previous stage
       valid_i         : in  std_logic;
       ready_o         : out std_logic;
+      pc_inst_i       : in  std_logic_vector(15 downto 0);
       instruction_i   : in  std_logic_vector(15 downto 0);
       src_operand_i   : in  std_logic_vector(15 downto 0);
       dst_operand_i   : in  std_logic_vector(15 downto 0);
@@ -104,7 +105,7 @@ begin
 
 
    -- To register file (combinatorial)
-   p_reg : process (valid_i, instruction_i, res_data, ready)
+   p_reg : process (valid_i, instruction_i, res_data, ready, pc_i, clk_i, pc_inst_i)
    begin
       -- Default values to avoid latch
       reg_res_reg_o  <= (others => '0');
@@ -136,6 +137,12 @@ begin
             reg_res_wr_o   <= '1';
             reg_res_data_o <= res_data;
          end if;
+
+         -- synthesis translate_off
+         if rising_edge(clk_i) then
+            disassemble(pc_inst_i, instruction_i, res_data);
+         end if;
+         -- synthesis translate_on
 
       end if;
    end process p_reg;
