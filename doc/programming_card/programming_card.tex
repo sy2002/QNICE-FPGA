@@ -95,17 +95,19 @@
       {\tt E}&{\tt INCRB}&&Increment register bank address\\
       {\tt E}&{\tt DECRB}&&Decrement register bank address\\
       {\tt E}&{\tt EXC}&{\tt const, dst}&Exchange shadow register\\
-      {\tt F}&{\tt ABRA}&{\tt dst, [!]cond}&Absolute branch\\
-      {\tt F}&{\tt ASUB}&{\tt dst, [!]cond}&Absolut subroutine call\\
-      {\tt F}&{\tt RBRA}&{\tt dst, [!]cond}&Relative branch\\
-      {\tt F}&{\tt RSUB}&{\tt dst, [!]cond}&Relative subroutine call\\
+      {\tt F}&{\tt ABRA}&{\tt src, [!]cond}&Absolute branch\\
+      {\tt F}&{\tt ASUB}&{\tt src, [!]cond}&Absolut subroutine call\\
+      {\tt F}&{\tt RBRA}&{\tt src, [!]cond}&Relative branch\\
+      {\tt F}&{\tt RSUB}&{\tt src, [!]cond}&Relative subroutine call\\
      \hline
     \end{longtable}
    \end{center}
   }
 %
+\vspace*{-13mm}
   \subsection{Basic Instructions (opcodes \texttt{0}..\texttt{C})}
    \begin{center}
+{\scriptsize
     \begin{longtable}{|c||c|c||c|c|}
      \hline
      4 bit&4 bit&2 bit&4 bit&2 bit\\
@@ -113,23 +115,27 @@
      {\tt dst rxx}&{\tt dst mode}\\
      \hline
     \end{longtable}
+}
    \end{center}
   \vspace*{-14mm}
 %
   \subsection{Control instructions}
     \begin{center}
+{\scriptsize
      \begin{longtable}{|c||c||c|c|}
       \hline
       4 bit&6 bit&4 bit&2 bit\\
       {\tt opcode=E}&command&\texttt{dst rxx}&\texttt{dst mode}\\
       \hline
      \end{longtable}
+}
     \end{center}
    \vspace*{-13mm}
 %
-  \subsection{Jumps and Branches}
+  \subsection{Subroutine calls and branches}
    {\scriptsize
     \begin{center}
+{\scriptsize
      \begin{longtable}{|c||c|c||c||c|c|}
       \hline
       4 bit&4 bit&2 bit&2 bit&1 bit&3 bit\\
@@ -138,15 +144,22 @@
       {\tt mode}&{\tt condition}&{\tt condition}\\
       \hline
      \end{longtable}
+}
     \end{center}
    }
-   \vspace*{-13mm}
+   \vspace*{-10mm}
+   Note: In the most common case of a constant destination address or a 
+   constant displacement, the constant is stored in the word following the 
+   branch/subroutine call instruction i.\,e. the operand is \texttt{@R15++}.
+   In this and only this case \texttt{R15} is incremented anyways even if
+   the condition is not met!
 %
   \subsection{CMP}
    The CMP (compare) instruction can be used for signed as well as for unsigned
    comparisons:
    \begin{center}
     \vspace*{-2mm}
+{\scriptsize
     \begin{longtable}{|l|l|l|l|l|}
      \hline
      Condition&\multicolumn{4}{|c|}{Flags}\\
@@ -159,6 +172,7 @@
      \texttt{src}$>$\texttt{dst}&\texttt{0}&\texttt{1}&\texttt{0}&\texttt{1}\\
      \hline
     \end{longtable}
+}
     \vspace*{-8mm}
    \end{center}
 %
@@ -190,6 +204,7 @@
    which facilitate write- and readability of QNICE assembler code:
    \vspace*{-3mm}
    \begin{center}
+{\scriptsize
     \begin{longtable}{|l|l|}
      \hline
       Shortcut&Implementation\\
@@ -204,6 +219,7 @@
       \texttt{PC}&\texttt{R15}\\
      \hline
     \end{longtable}
+}
    \end{center}
    \vspace*{-15mm}
 %
@@ -288,6 +304,7 @@
 ~
 \vspace*{-4mm}
     \begin{center}
+{\scriptsize
      \begin{longtable}{|l|l|}
       \hline
       Bit&Description\\
@@ -305,6 +322,7 @@
       2\dots 0&Display color (RGB).\\
       \hline
      \end{longtable}
+}
     \end{center}
 \vspace*{-15mm}
    \subsubsection{\texttt{VGA\$CR\_X}}
@@ -331,6 +349,7 @@
    \subsubsection{\texttt{IO\$KBD\_STATE}}
     \begin{center}
      \vspace*{-3mm}
+{\scriptsize
      \begin{longtable}{|l|l|}
       \hline
        Bit&Description\\
@@ -345,6 +364,7 @@
         &5: shift, 6: alt, 7: ctrl\\
       \hline
      \end{longtable}
+}
     \end{center}
     \vspace*{-14mm}
    \subsection{Cycle Counter}
@@ -352,6 +372,7 @@
     \subsubsection{\texttt{CYC\$STATE}}
 ~\vspace*{-3mm}
      \begin{center}
+{\scriptsize
       \begin{longtable}{|l|l|}
        \hline
         Bit&Description\\
@@ -361,12 +382,14 @@
         1&1: count, 0: inhibit\\
        \hline
       \end{longtable}
+}
      \end{center}
      \vspace*{-14mm}
 %
   \subsection{EAE}
    \subsection{\texttt{IO\$EAE\_CSR}}
     \begin{center}
+{\scriptsize
      \begin{longtable}{|l|l|}
       \hline
        Bit&Description\\
@@ -376,12 +399,14 @@
        15&Busy if set\\
       \hline
      \end{longtable}
+}
     \end{center}
 %
 ~\vspace*{-20mm}
   \subsection{UART}
    \subsubsection{\texttt{IO\$UART\_SRA}}
     \begin{center}
+{\scriptsize
      \begin{longtable}{|l|l|}
       \hline
        Bit&Description\\
@@ -391,6 +416,7 @@
        1&Transmitter ready for next character.\\
       \hline
      \end{longtable}
+}
     \end{center}
     \vspace*{-16mm}
 %

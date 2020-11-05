@@ -153,11 +153,11 @@ IO$SD_CSR       .EQU 0xFF25 ; Command and Status Register (write to execute comm
 ;  IO$TIMER_x_PRE: The 100 kHz timer clock is divided by the value stored in
 ;                  this device register. 100 (which corresponds to 0x0064 in
 ;                  the prescaler register) yields a 1 millisecond pulse which
-;                  in turn is fed to the actual counter.
+;                  in turn is fed to the actual counter. If this value is zero,
+;                  the timer is stopped and no interrupts are generated.
 ;  IO$TIMER_x_CNT: When the number of output pulses from the prescaler circuit
 ;                  equals the number stored in this register, an interrupt will
-;                  be generated (if the interrupt address is 0x0000, the
-;                  interrupt will be suppressed).
+;                  be generated.
 ;  IO$TIMER_x_INT: This register contains the address of the desired interrupt
 ;                  service routine.
 ;

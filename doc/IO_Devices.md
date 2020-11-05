@@ -1,14 +1,12 @@
 # Detailed description of I/O devices
 
-## Fundamental I/O (switches, TIL, keyboard)
+## Fundamental I/O (switches, TIL)
 
 Address | Description
 ------- | -----------
 `FF00`  | 16 binary on-board switches
 `FF01`  | TIL display
 `FF02`  | Mask register for TIL display
-`FF04`  | Status register of USB keyboard
-`FF05`  | Data register of USB keyboard
 
 The on-board switches (`FF00`) are used as follows:
 * Bit 0 (R/O) : Select STDIN (0 = UART, 1 = Keyboard)
@@ -16,12 +14,25 @@ The on-board switches (`FF00`) are used as follows:
 * Bit 2 (R/O) : Enable CPU debug mode
 * Bit 3 (R/O) : Select default UART baudrate (0 = 115 kbit/s, 1 = 1 Mbit/s)
 
+## Keyboard
+
+Address | Description
+------- | -----------
+`FF04`  | Status register of USB keyboard
+`FF05`  | Data register of USB keyboard
+`FF06`  | Event register of USB keyboard
+
 The Status register (`FF04`) is decoded as follows
 * Bit 0 (R/O) : New ASCII character available for reading
 * Bit 1 (R/O) : New Special Key available for reading
 * Bits 2-4 (R/W) : Locale (0 = US, 1 = DE)
 * Bits 5-7 (R/O) : Modifiers (5 = shift, 6 = alt, 7 = ctrl)
 
+The keyboard interface uses two FIFO's: One FIFO contains key-presses only, the
+other FIFO contains both key-presses and key-releases.
+
+The Keyboard Data register (`FF05`) and the keyboad event registers (`FF06`)
+provide read-only access to these two FIFOs'.
 
 ## System Counters
 The QNICE supports two different 48-bit counters: A clock cycle counter,
@@ -129,11 +140,40 @@ Address | Description
 `FF2C`  | Timer 1 Counter
 `FF2D`  | Timer 1 Interrupt Address
 
+Each timer generates an interrupt with a frequency calculated as 100 kHz
+divided by the prescaler and divided by (counter+1). For example, setting both
+Prescaler and Counter to 1 leads to an interrupt frequency of 50 kHz.
+
+If the prescaler has a value of zero, the timer is stopped and no interrupts
+are generated.
 
 ## VGA
 
 As VGA is a very capable and thus complex device, the documentation for this
 device is in a separate document: [doc/VGA_Features.md](VGA_Features.md)
+
+
+## Interrupt Controller
+
+The Interrupt Controller allows software to control the execution of interrupts.
+
+There is a single register at address `FF50` with two bits:
+* Bit 0 : Global interrupt enable. Set to 1 to enable interrupts. Set to 0 to
+  disable interrupts.
+* Bit 1 : Block interrupts. Set to 1 to block interrupts. Set to 0 to allow
+  interrupts.
+
+These two bits augment each other, meaning that interrupts are only served when
+Enable = 1 AND Block = 0.
+
+The Block bit is intended for temporary blocking of interrupts arund critical
+section. This would typically be code that uses resources shared by the
+interrupt service routine.
+
+## SYSINFO
+
+This block provides a central database of system capabilities. It is described
+in a separate document: [doc/sysinfo.md](sysinfo.md)
 
 
 ## HyperRAM

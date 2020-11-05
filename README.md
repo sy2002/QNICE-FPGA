@@ -247,9 +247,10 @@ possible I/O devices.
 | FF18 - FF1F | EAE                                         |
 | FF20 - FF27 | SD CARD                                     |
 | FF28 - FF2F | Timers                                      |
-| FF30 - FF37 | VGA                                         |
-| FF38 - FF3F | VGA                                         |
-| FF40 - FFEF | Reserved                                    |
+| FF30 - FF4F | VGA                                         |
+| FF50 - FF57 | Interrupt Controller                        |
+| FF58 - FFE7 | Reserved                                    |
+| FFE8 - FFEF | SYSINFO                                     |
 | FFF0 - FFFF | HyperRAM (MEGA65)                           |
 
 [Here](doc/IO_Devices.md) is a detailed description of I/O devices.
