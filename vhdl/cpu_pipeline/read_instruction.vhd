@@ -32,24 +32,25 @@ end entity read_instruction;
 
 architecture synthesis of read_instruction is
 
-   signal dbg_cycle_counter : std_logic_vector(15 downto 0);
-   signal dbg_inst_counter  : std_logic_vector(15 downto 0);
+   signal dbg_cycle_counter_r : std_logic_vector(15 downto 0);
+   signal dbg_inst_counter_r  : std_logic_vector(15 downto 0);
 
-   signal mem_request   : std_logic;
-   signal mem_ready     : std_logic;
-   signal ready         : std_logic;
+   signal mem_request     : std_logic;
+   signal mem_ready       : std_logic;
+   signal ready           : std_logic;
+   signal reg_src_data    : std_logic_vector(15 downto 0);
 
-   signal count         : integer range 0 to 3;
-   signal valid         : std_logic;
-   signal pc_inst       : std_logic_vector(15 downto 0);
-   signal src_reg_value : std_logic_vector(15 downto 0);
-   signal instruction   : std_logic_vector(15 downto 0);
+   signal count_r         : integer range 0 to 3;
+   signal valid_r         : std_logic;
+   signal pc_inst_r       : std_logic_vector(15 downto 0);
+   signal src_reg_value_r : std_logic_vector(15 downto 0);
+   signal instruction_r   : std_logic_vector(15 downto 0);
 
 begin
 
    -- Do we want to read from memory?
-   mem_request <= ready_i or not valid when count = 0 else
-                  '0';
+   mem_request <= '0' when count_r /= 0 else
+                  not (valid_r and not ready_i);
 
    -- Are we waiting for memory read access?
    mem_ready <= (not mem_request) or mem_ready_i;
@@ -59,11 +60,15 @@ begin
 
 
    -- To register file (combinatorial)
-   pc_o <= pc_i + 1 when ready = '1' and count = 0 else
+   pc_o <= pc_i + 1 when ready = '1' and count_r = 0 else
            pc_i;
 
    -- To register file (combinatorial)
    reg_src_rd_reg_o <= mem_data_i(R_SRC_REG);   -- Instruction decoding
+
+   -- Register value before increment/decrement
+   reg_src_data <= pc_i + 1 when mem_data_i(R_SRC_REG) = C_REG_PC else -- Instruction decoding
+                   reg_src_data_i;
 
    -- To memory subsystem (combinatorial)
    mem_address_o <= pc_i;
@@ -73,52 +78,49 @@ begin
    p_next_stage : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         dbg_cycle_counter <= dbg_cycle_counter + 1;
+         dbg_cycle_counter_r <= dbg_cycle_counter_r + 1;
 
          -- Has next stage consumed the output?
          if ready_i = '1' then
-            valid <= '0';
+            valid_r <= '0';
          end if;
 
          if ready = '1' then
-            case count is
+            case count_r is
                when 0 =>
-                  dbg_inst_counter <= dbg_inst_counter + 1;
-                  valid         <= '1';
-                  pc_inst       <= pc_i;
-                  src_reg_value <= reg_src_data_i;
-                  if mem_data_i(R_SRC_REG) = C_REG_PC then   -- Instruction decoding
-                     src_reg_value <= pc_i + 1;
-                  end if;
-                  instruction   <= mem_data_i;
+                  dbg_inst_counter_r <= dbg_inst_counter_r + 1;
+                  valid_r         <= '1';
+                  pc_inst_r       <= pc_i;
+                  src_reg_value_r <= reg_src_data;
+                  instruction_r   <= mem_data_i;
                   if mem_data_i(R_OPCODE) = C_OP_BRA then
-                     count <= 3;
+                     count_r <= 3;
                   end if;
                   if mem_data_i(R_OPCODE) = C_OP_CTRL then
                      report "CONTROL instruction"
                         severity failure;
                   end if;
-               when 1 => count <= 0;
-               when 2 => count <= 1;
-               when 3 => count <= 2;
+               when 1 => count_r <= 0;
+               when 2 => count_r <= 1;
+               when 3 => count_r <= 2;
                when others => null;
             end case;
          end if;
 
          if rst_i = '1' then
-            count       <= 0;
-            valid       <= '0';
-            instruction <= (others => '0');
-            dbg_cycle_counter <= (others => '0');
-            dbg_inst_counter  <= (others => '0');
+            count_r       <= 0;
+            valid_r       <= '0';
+            instruction_r <= (others => '0');
+            dbg_cycle_counter_r <= (others => '0');
+            dbg_inst_counter_r  <= (others => '0');
          end if;
       end if;
    end process p_next_stage;
 
-   valid_o         <= valid;
-   pc_inst_o       <= pc_inst;
-   src_reg_value_o <= src_reg_value;
-   instruction_o   <= instruction;
+   valid_o         <= valid_r;
+   pc_inst_o       <= pc_inst_r;
+   src_reg_value_o <= src_reg_value_r;
+   instruction_o   <= instruction_r;
 
 end architecture synthesis;
 
