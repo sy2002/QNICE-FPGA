@@ -444,3 +444,25 @@ The statistics above show that there is very little contention to the memory
 very representative (hopefully!) and are mainly indicative of the CPU test
 consisting of a lot of branch instructions that each take 4 clock cycles.
 
+To facilitate optimizations (and bugfixes) I've made a few minor changes:
+
+* Separate read and write register. This gives more flexibility for optimizations.
+* Add debug output to console about memory accesses. This helps tracking down bugs.
+* Stop the simulation when a control instruction (e.g. HALT) occurs.
+
+With these changes the test now ends with the following lines:
+
+```
+arbiter_mem.vhd:70:16:@4560ns:(report note): MEM: read instruction from 0x0149
+arbiter_mem.vhd:70:16:@4570ns:(report note): MEM: read instruction from 0x014A
+arbiter_mem.vhd:74:16:@4580ns:(report note): MEM: read dst operand from 0x014B
+arbiter_mem.vhd:76:16:@4590ns:(report note): MEM: write result to 0x014B
+cpu_constants.vhd:165:10:@4590ns:(report note): 0149 (C03E) CMP R0, 0x1233
+arbiter_mem.vhd:70:16:@4600ns:(report note): MEM: read instruction from 0x014C
+cpu_constants.vhd:165:10:@4600ns:(report note): 014A (1234) ADD R2, R13
+ghdl:error: bound check failure at memory.vhd:62
+```
+
+Here it is much more clear that the line `MEM: read instruction from 0x014A` is
+incorrect, since address 0x014A contains an operand, and not an instruction.
+
