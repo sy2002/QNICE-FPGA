@@ -1,6 +1,8 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
+use ieee.std_logic_textio.all;
+use std.textio.all;
 
 entity arbiter_mem is
    port (
@@ -55,9 +57,24 @@ architecture synthesis of arbiter_mem is
 begin
 
    p_dbg_mem_counter : process (clk_i)
+      function to_hstring(slv : std_logic_vector) return string is
+         variable l : line;
+      begin
+         hwrite(l, slv);
+         return l.all;
+      end function to_hstring;
    begin
       if rising_edge(clk_i) then
          if (inst_active or src_active or dst_active or res_active) = '1' then
+            if inst_active = '1' then
+               report "MEM: read instruction from 0x" & to_hstring(inst_address_i);
+            elsif src_active = '1' then
+               report "MEM: read src operand from 0x" & to_hstring(src_address_i);
+            elsif dst_active = '1' then
+               report "MEM: read dst operand from 0x" & to_hstring(dst_address_i);
+            else
+               report "MEM: write result to 0x" & to_hstring(res_address_i);
+            end if;
             dbg_mem_counter <= dbg_mem_counter + 1;
          end if;
          if rst_i = '1' then
