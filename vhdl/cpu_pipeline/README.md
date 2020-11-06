@@ -415,7 +415,8 @@ Timing:
 * The slowest timing path has a slack of 0.7 ns and a logic
 depth of 8 levels: The `read_dst_operand` stage reads the destination register
 value from the register file and then reads the destination operand from
-memory.
+memory. As the clock half-period is 10 ns, the current slack suggests a possible
+clock frequency of 500/(10-0.7) = 53 MHz.
 
 Test coverage:
 
