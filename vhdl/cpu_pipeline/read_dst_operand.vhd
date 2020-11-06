@@ -6,37 +6,38 @@ use work.cpu_constants.all;
 
 entity read_dst_operand is
    port (
-      clk_i           : in  std_logic;
-      rst_i           : in  std_logic;
+      clk_i            : in  std_logic;
+      rst_i            : in  std_logic;
 
       -- From previous stage
-      valid_i         : in  std_logic;
-      ready_o         : out std_logic;
-      pc_inst_i       : in  std_logic_vector(15 downto 0);
-      instruction_i   : in  std_logic_vector(15 downto 0);
-      src_operand_i   : in  std_logic_vector(15 downto 0);
+      valid_i          : in  std_logic;
+      ready_o          : out std_logic;
+      pc_inst_i        : in  std_logic_vector(15 downto 0);
+      instruction_i    : in  std_logic_vector(15 downto 0);
+      src_operand_i    : in  std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
-      reg_dst_reg_o   : out std_logic_vector(3 downto 0);
-      reg_dst_data_i  : in  std_logic_vector(15 downto 0);
-      reg_dst_wr_o    : out std_logic;
-      reg_dst_ready_i : in  std_logic;
-      reg_dst_data_o  : out std_logic_vector(15 downto 0);
+      reg_dst_rd_reg_o : out std_logic_vector(3 downto 0);
+      reg_dst_data_i   : in  std_logic_vector(15 downto 0);
+      reg_dst_wr_reg_o : out std_logic_vector(3 downto 0);
+      reg_dst_wr_o     : out std_logic;
+      reg_dst_ready_i  : in  std_logic;
+      reg_dst_data_o   : out std_logic_vector(15 downto 0);
 
       -- To memory subsystem (combinatorial)
-      mem_valid_o     : out std_logic;
-      mem_ready_i     : in  std_logic;
-      mem_address_o   : out std_logic_vector(15 downto 0);
-      mem_data_i      : in  std_logic_vector(15 downto 0);
+      mem_valid_o      : out std_logic;
+      mem_ready_i      : in  std_logic;
+      mem_address_o    : out std_logic_vector(15 downto 0);
+      mem_data_i       : in  std_logic_vector(15 downto 0);
 
       -- To next stage (registered)
-      valid_o         : out std_logic;
-      ready_i         : in  std_logic;
-      src_operand_o   : out std_logic_vector(15 downto 0);
-      dst_operand_o   : out std_logic_vector(15 downto 0);
-      dst_address_o   : out std_logic_vector(15 downto 0);
-      pc_inst_o       : out std_logic_vector(15 downto 0);
-      instruction_o   : out std_logic_vector(15 downto 0)
+      valid_o          : out std_logic;
+      ready_i          : in  std_logic;
+      src_operand_o    : out std_logic_vector(15 downto 0);
+      dst_operand_o    : out std_logic_vector(15 downto 0);
+      dst_address_o    : out std_logic_vector(15 downto 0);
+      pc_inst_o        : out std_logic_vector(15 downto 0);
+      instruction_o    : out std_logic_vector(15 downto 0)
    );
 end entity read_dst_operand;
 
@@ -76,12 +77,14 @@ begin
 
 
    -- To register file (combinatorial)
+   reg_dst_rd_reg_o <= instruction_i(R_DEST_REG);
+
    p_reg : process (valid_i, instruction_i, reg_dst_data_i, ready)
    begin
       -- Default values to avoid latch
-      reg_dst_reg_o  <= instruction_i(R_DEST_REG);
-      reg_dst_wr_o   <= '0';
-      reg_dst_data_o <= reg_dst_data_i;
+      reg_dst_wr_reg_o <= instruction_i(R_DEST_REG);
+      reg_dst_wr_o     <= '0';
+      reg_dst_data_o   <= reg_dst_data_i;
 
       if valid_i = '1' and ready = '1' then
          case conv_integer(instruction_i(R_DEST_MODE)) is

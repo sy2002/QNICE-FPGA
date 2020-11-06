@@ -7,34 +7,34 @@ use work.cpu_constants.all;
 
 entity write_result is
    port (
-      clk_i           : in  std_logic;
-      rst_i           : in  std_logic;
+      clk_i            : in  std_logic;
+      rst_i            : in  std_logic;
 
       -- From previous stage
-      valid_i         : in  std_logic;
-      ready_o         : out std_logic;
-      pc_inst_i       : in  std_logic_vector(15 downto 0);
-      instruction_i   : in  std_logic_vector(15 downto 0);
-      src_operand_i   : in  std_logic_vector(15 downto 0);
-      dst_operand_i   : in  std_logic_vector(15 downto 0);
-      dst_address_i   : in  std_logic_vector(15 downto 0);
+      valid_i          : in  std_logic;
+      ready_o          : out std_logic;
+      pc_inst_i        : in  std_logic_vector(15 downto 0);
+      instruction_i    : in  std_logic_vector(15 downto 0);
+      src_operand_i    : in  std_logic_vector(15 downto 0);
+      dst_operand_i    : in  std_logic_vector(15 downto 0);
+      dst_address_i    : in  std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
-      pc_i            : in  std_logic_vector(15 downto 0);
-      sr_i            : in  std_logic_vector(15 downto 0);
-      sr_o            : out std_logic_vector(15 downto 0);
+      pc_i             : in  std_logic_vector(15 downto 0);
+      sr_i             : in  std_logic_vector(15 downto 0);
+      sr_o             : out std_logic_vector(15 downto 0);
 
       -- To memory subsystem (combinatorial)
-      mem_valid_o     : out std_logic;
-      mem_ready_i     : in  std_logic;
-      mem_address_o   : out std_logic_vector(15 downto 0);
-      mem_data_o      : out std_logic_vector(15 downto 0);
+      mem_valid_o      : out std_logic;
+      mem_ready_i      : in  std_logic;
+      mem_address_o    : out std_logic_vector(15 downto 0);
+      mem_data_o       : out std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
-      reg_res_reg_o   : out std_logic_vector(3 downto 0);
-      reg_res_wr_o    : out std_logic;
-      reg_res_ready_i : in  std_logic;
-      reg_res_data_o  : out std_logic_vector(15 downto 0)
+      reg_res_wr_reg_o : out std_logic_vector(3 downto 0);
+      reg_res_wr_o     : out std_logic;
+      reg_res_ready_i  : in  std_logic;
+      reg_res_data_o   : out std_logic_vector(15 downto 0)
    );
 end entity write_result;
 
@@ -108,9 +108,9 @@ begin
    p_reg : process (valid_i, instruction_i, res_data, ready, pc_i, clk_i, pc_inst_i)
    begin
       -- Default values to avoid latch
-      reg_res_reg_o  <= (others => '0');
-      reg_res_wr_o   <= '0';
-      reg_res_data_o <= (others => '0');
+      reg_res_wr_reg_o <= (others => '0');
+      reg_res_wr_o     <= '0';
+      reg_res_data_o   <= (others => '0');
 
       if valid_i = '1' and ready = '1' then
          -- Is this is branch type instruction ?
@@ -119,8 +119,8 @@ begin
             -- Is the condition satisfied ?
             if sr_i(conv_integer(instruction_i(R_BRA_COND))) = not instruction_i(R_BRA_NEGATE) then
 
-               reg_res_reg_o  <= std_logic_vector(to_unsigned(C_REG_PC, 4));
-               reg_res_wr_o   <= '1';
+               reg_res_wr_reg_o <= std_logic_vector(to_unsigned(C_REG_PC, 4));
+               reg_res_wr_o     <= '1';
 
                case conv_integer(instruction_i(R_BRA_MODE)) is
                   when C_BRA_ABRA => reg_res_data_o <= res_data;
@@ -133,9 +133,9 @@ begin
          elsif conv_integer(instruction_i(R_OPCODE)) = C_OP_CTRL then
             report "Control instruction";
          elsif conv_integer(instruction_i(R_DEST_MODE)) = C_MODE_REG then
-            reg_res_reg_o  <= instruction_i(R_DEST_REG);
-            reg_res_wr_o   <= '1';
-            reg_res_data_o <= res_data;
+            reg_res_wr_reg_o <= instruction_i(R_DEST_REG);
+            reg_res_wr_o     <= '1';
+            reg_res_data_o   <= res_data;
          end if;
 
          -- synthesis translate_off
