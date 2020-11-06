@@ -83,6 +83,10 @@ begin
                   if mem_data_i(R_OPCODE) = C_OP_BRA then
                      count <= 3;
                   end if;
+                  if mem_data_i(R_OPCODE) = C_OP_CTRL then
+                     report "CONTROL instruction"
+                        severity failure;
+                  end if;
                when 1 => count <= 0;
                when 2 => count <= 1;
                when 3 => count <= 2;
