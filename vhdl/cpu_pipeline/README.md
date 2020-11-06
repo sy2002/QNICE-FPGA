@@ -402,15 +402,44 @@ there is no need for the memory address to depend on the register arbiter.
 This change improves timing, because it reduces the combinatorial inputs to the
 memory address.
 
-After this change, the slowest timing path has a slack of 0.7 ns and a logic
-depth of 8 levels: The `read_dst_operand` stage reads the destination register
-value from the register file and then reads the destination operand from
-memory.
-
 Some more statistics at this stage of the project:
+
+Resource utilization:
 
 * Slice LUTs : 688
 * Slice Registers : 135
 * Slices : 207
+
+Timing:
+
+* The slowest timing path has a slack of 0.7 ns and a logic
+depth of 8 levels: The `read_dst_operand` stage reads the destination register
+value from the register file and then reads the destination operand from
+memory.
+
+Test coverage:
+
 * `cpu_test.asm` fails first at 0x0149, which is approximately 6% of the whole test.
+
+Pipeline statistics:
+
+* Clock cycles : 449
+* Instructions : 120
+* Cycles per instruction : 449/120 = 3.74
+* Memory cycles : 236
+* Memory stalls : 19
+* Memory utilization : 236/449 = 53%
+* Register write cycles : 211
+* Register write stalls : 0
+* Register write utilization : 211/449 = 47%
+
+`Memory stalls` counts whenever any stage has to wait for memory access, i.e.
+whenever more than one stage wants to access the memory in the same cycle.
+`Register write stalls` measures the similar occurrence in the register arbiter.
+
+The statistics above show that there is very little contention to the memory
+(only 19 occurences) and no contention to the register write. Despite this, the
+`cycles per instruction` is very high (almost 4).  These results are not
+very representative (hopefully!) and are mainly indicative of the CPU test
+consisting of a lot of branch instructions that each take 4 clock cycles.
 

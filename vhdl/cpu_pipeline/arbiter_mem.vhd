@@ -1,5 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
 
 entity arbiter_mem is
    port (
@@ -38,6 +39,9 @@ end entity arbiter_mem;
 
 architecture synthesis of arbiter_mem is
 
+   signal dbg_mem_counter  : std_logic_vector(15 downto 0);
+   signal dbg_wait_counter : std_logic_vector(15 downto 0);
+
    signal inst_active : std_logic;
    signal src_active  : std_logic;
    signal dst_active  : std_logic;
@@ -49,6 +53,35 @@ architecture synthesis of arbiter_mem is
    signal res_ready   : std_logic;
 
 begin
+
+   p_dbg_mem_counter : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         if (inst_active or src_active or dst_active or res_active) = '1' then
+            dbg_mem_counter <= dbg_mem_counter + 1;
+         end if;
+         if rst_i = '1' then
+            dbg_mem_counter <= (others => '0');
+         end if;
+      end if;
+   end process p_dbg_mem_counter;
+
+   p_dbg_wait_counter : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         if ((inst_valid_i and src_valid_i) or
+             (inst_valid_i and dst_valid_i) or
+             (inst_valid_i and res_valid_i) or
+             (src_valid_i  and dst_valid_i) or
+             (src_valid_i  and res_valid_i) or
+             (dst_valid_i  and res_valid_i)) = '1' then
+            dbg_wait_counter <= dbg_wait_counter + 1;
+         end if;
+         if rst_i = '1' then
+            dbg_wait_counter <= (others => '0');
+         end if;
+      end if;
+   end process p_dbg_wait_counter;
 
    -- Calculate which stage is actively accessing the memory.
    -- Note: At most one of the signals below may be asserted, as verified in the assert below.

@@ -1,5 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
 
 entity arbiter_regs is
    port (
@@ -31,6 +32,9 @@ end entity arbiter_regs;
 
 architecture synthesis of arbiter_regs is
 
+   signal dbg_reg_counter  : std_logic_vector(15 downto 0);
+   signal dbg_wait_counter : std_logic_vector(15 downto 0);
+
    signal src_active : std_logic;
    signal dst_active : std_logic;
    signal res_active : std_logic;
@@ -40,6 +44,33 @@ architecture synthesis of arbiter_regs is
    signal res_ready  : std_logic;
 
 begin
+
+   p_dbg_reg_counter : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         if (src_active or dst_active or res_active) = '1' then
+            dbg_reg_counter <= dbg_reg_counter + 1;
+         end if;
+         if rst_i = '1' then
+            dbg_reg_counter <= (others => '0');
+         end if;
+      end if;
+   end process p_dbg_reg_counter;
+
+   p_dbg_wait_counter : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         if ((src_valid_i  and dst_valid_i) or
+             (src_valid_i  and res_valid_i) or
+             (dst_valid_i  and res_valid_i)) = '1' then
+            dbg_wait_counter <= dbg_wait_counter + 1;
+         end if;
+         if rst_i = '1' then
+            dbg_wait_counter <= (others => '0');
+         end if;
+      end if;
+   end process p_dbg_wait_counter;
+
 
    -- Calculate which stage is actively writing to a register.
    -- Note: At most one of the signals below may be asserted, as verified in the assert below.

@@ -29,6 +29,9 @@ end entity read_instruction;
 
 architecture synthesis of read_instruction is
 
+   signal dbg_cycle_counter : std_logic_vector(15 downto 0);
+   signal dbg_inst_counter  : std_logic_vector(15 downto 0);
+
    signal mem_request : std_logic;
    signal mem_ready   : std_logic;
    signal ready       : std_logic;
@@ -63,6 +66,8 @@ begin
    p_next_stage : process (clk_i)
    begin
       if rising_edge(clk_i) then
+         dbg_cycle_counter <= dbg_cycle_counter + 1;
+
          -- Has next stage consumed the output?
          if ready_i = '1' then
             valid <= '0';
@@ -71,6 +76,7 @@ begin
          if ready = '1' then
             case count is
                when 0 =>
+                  dbg_inst_counter <= dbg_inst_counter + 1;
                   valid       <= '1';
                   pc_inst     <= pc_i;
                   instruction <= mem_data_i;
@@ -88,6 +94,8 @@ begin
             count       <= 0;
             valid       <= '0';
             instruction <= (others => '0');
+            dbg_cycle_counter <= (others => '0');
+            dbg_inst_counter  <= (others => '0');
          end if;
       end if;
    end process p_next_stage;
