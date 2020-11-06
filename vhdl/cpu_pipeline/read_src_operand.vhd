@@ -13,11 +13,10 @@ entity read_src_operand is
       valid_i          : in  std_logic;
       ready_o          : out std_logic;
       pc_inst_i        : in  std_logic_vector(15 downto 0);
+      src_reg_value_i  : in  std_logic_vector(15 downto 0);
       instruction_i    : in  std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
-      reg_src_rd_reg_o : out std_logic_vector(3 downto 0);
-      reg_src_data_i   : in  std_logic_vector(15 downto 0);
       reg_src_wr_reg_o : out std_logic_vector(3 downto 0);
       reg_src_wr_o     : out std_logic;
       reg_src_ready_i  : in  std_logic;
@@ -69,22 +68,19 @@ begin
    -- To previous stage (combinatorial)
    ready_o <= ready;
 
-   -- To register file (combinatorial)
-   reg_src_rd_reg_o <= instruction_i(R_SRC_REG);
-
-   p_reg : process (valid_i, instruction_i, reg_src_data_i, ready)
+   p_reg : process (valid_i, instruction_i, src_reg_value_i, ready)
    begin
       -- Default values to avoid latch
       reg_src_wr_reg_o <= instruction_i(R_SRC_REG);
       reg_src_wr_o     <= '0';
-      reg_src_data_o   <= reg_src_data_i;
+      reg_src_data_o   <= src_reg_value_i;
 
       if valid_i = '1' and ready = '1' then
          case conv_integer(instruction_i(R_SRC_MODE)) is
             when C_MODE_REG  => null;
             when C_MODE_MEM  => null;
-            when C_MODE_POST => reg_src_data_o <= reg_src_data_i+1; reg_src_wr_o <= '1';
-            when C_MODE_PRE  => reg_src_data_o <= reg_src_data_i-1; reg_src_wr_o <= '1';
+            when C_MODE_POST => reg_src_data_o <= src_reg_value_i+1; reg_src_wr_o <= '1';
+            when C_MODE_PRE  => reg_src_data_o <= src_reg_value_i-1; reg_src_wr_o <= '1';
             when others      => null;
          end case;
       end if;
@@ -92,7 +88,7 @@ begin
 
 
    -- To memory subsystem (combinatorial)
-   p_mem : process (valid_i, instruction_i, reg_src_data_i, ready, mem_request)
+   p_mem : process (valid_i, instruction_i, src_reg_value_i, ready, mem_request)
    begin
       -- Default values to avoid latch
       mem_valid_o   <= '0';
@@ -100,9 +96,9 @@ begin
 
       case conv_integer(instruction_i(R_SRC_MODE)) is
          when C_MODE_REG  => null;
-         when C_MODE_MEM  => mem_address_o <= reg_src_data_i;
-         when C_MODE_POST => mem_address_o <= reg_src_data_i;
-         when C_MODE_PRE  => mem_address_o <= reg_src_data_i-1;
+         when C_MODE_MEM  => mem_address_o <= src_reg_value_i;
+         when C_MODE_POST => mem_address_o <= src_reg_value_i;
+         when C_MODE_PRE  => mem_address_o <= src_reg_value_i-1;
          when others      => null;
       end case;
 
@@ -135,7 +131,7 @@ begin
                valid_o       <= '1';
                pc_inst_o     <= pc_inst_i;
                instruction_o <= instruction_i;
-               src_operand_o <= reg_src_data_i;
+               src_operand_o <= src_reg_value_i;
             elsif mem_ready = '1' then
                valid_o       <= '1';
                pc_inst_o     <= pc_inst_i;

@@ -21,28 +21,29 @@ end entity cpu_pipeline;
 architecture synthesis of cpu_pipeline is
 
    type t_stage1 is record
-      valid       : std_logic;
-      ready       : std_logic;
-      pc_inst     : std_logic_vector(15 downto 0);
-      instruction : std_logic_vector(15 downto 0);
+      valid         : std_logic;
+      ready         : std_logic;
+      pc_inst       : std_logic_vector(15 downto 0);
+      src_reg_value : std_logic_vector(15 downto 0);
+      instruction   : std_logic_vector(15 downto 0);
    end record t_stage1;
 
    type t_stage2 is record
-      valid       : std_logic;
-      ready       : std_logic;
-      pc_inst     : std_logic_vector(15 downto 0);
-      instruction : std_logic_vector(15 downto 0);
-      src_operand : std_logic_vector(15 downto 0);
+      valid         : std_logic;
+      ready         : std_logic;
+      pc_inst       : std_logic_vector(15 downto 0);
+      instruction   : std_logic_vector(15 downto 0);
+      src_operand   : std_logic_vector(15 downto 0);
    end record t_stage2;
 
    type t_stage3 is record
-      valid       : std_logic;
-      ready       : std_logic;
-      pc_inst     : std_logic_vector(15 downto 0);
-      instruction : std_logic_vector(15 downto 0);
-      src_operand : std_logic_vector(15 downto 0);
-      dst_operand : std_logic_vector(15 downto 0);
-      dst_address : std_logic_vector(15 downto 0);
+      valid         : std_logic;
+      ready         : std_logic;
+      pc_inst       : std_logic_vector(15 downto 0);
+      instruction   : std_logic_vector(15 downto 0);
+      src_operand   : std_logic_vector(15 downto 0);
+      dst_operand   : std_logic_vector(15 downto 0);
+      dst_address   : std_logic_vector(15 downto 0);
    end record t_stage3;
 
    signal stage1          : t_stage1;
@@ -99,18 +100,21 @@ begin
    -- Stage 1
    i_read_instruction : entity work.read_instruction
       port map (
-         clk_i         => clk_i,
-         rst_i         => rst_i,
-         pc_i          => reg_rd_pc,
-         pc_o          => reg_wr_pc,
-         mem_valid_o   => inst_valid,
-         mem_ready_i   => inst_ready,
-         mem_address_o => inst_address,
-         mem_data_i    => inst_data,
-         valid_o       => stage1.valid,
-         ready_i       => stage1.ready,
-         pc_inst_o     => stage1.pc_inst,
-         instruction_o => stage1.instruction
+         clk_i            => clk_i,
+         rst_i            => rst_i,
+         pc_i             => reg_rd_pc,
+         pc_o             => reg_wr_pc,
+         reg_src_rd_reg_o => reg_src_rd_reg,
+         reg_src_data_i   => reg_src_rd_data,
+         mem_valid_o      => inst_valid,
+         mem_ready_i      => inst_ready,
+         mem_address_o    => inst_address,
+         mem_data_i       => inst_data,
+         valid_o          => stage1.valid,
+         ready_i          => stage1.ready,
+         pc_inst_o        => stage1.pc_inst,
+         src_reg_value_o  => stage1.src_reg_value,
+         instruction_o    => stage1.instruction
       ); -- i_read_instruction
 
    -- Stage 2
@@ -121,9 +125,8 @@ begin
          valid_i          => stage1.valid,
          ready_o          => stage1.ready,
          pc_inst_i        => stage1.pc_inst,
+         src_reg_value_i  => stage1.src_reg_value,
          instruction_i    => stage1.instruction,
-         reg_src_rd_reg_o => reg_src_rd_reg,
-         reg_src_data_i   => reg_src_rd_data,
          reg_src_wr_reg_o => reg_src_wr_reg,
          reg_src_wr_o     => reg_src_wr,
          reg_src_ready_i  => reg_src_ready,
