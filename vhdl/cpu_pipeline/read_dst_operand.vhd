@@ -30,6 +30,11 @@ entity read_dst_operand is
       mem_address_o    : out std_logic_vector(15 downto 0);
       mem_data_i       : in  std_logic_vector(15 downto 0);
 
+      -- From next stage
+      res_wr_i         : in  std_logic;
+      res_wr_reg_i     : in  std_logic_vector(3 downto 0);
+      res_data_i       : in  std_logic_vector(15 downto 0);
+
       -- To next stage (registered)
       valid_o          : out std_logic := '0';
       ready_i          : in  std_logic;
@@ -43,13 +48,15 @@ end entity read_dst_operand;
 
 architecture synthesis of read_dst_operand is
 
-   signal mem_request : std_logic;
-   signal mem_ready   : std_logic;
-   signal mem_address : std_logic_vector(15 downto 0);
-   signal reg_request : std_logic;
-   signal reg_ready   : std_logic;
-   signal reg_data    : std_logic_vector(15 downto 0);
-   signal ready       : std_logic;
+   signal mem_request  : std_logic;
+   signal mem_ready    : std_logic;
+   signal mem_address  : std_logic_vector(15 downto 0);
+   signal reg_request  : std_logic;
+   signal reg_ready    : std_logic;
+   signal reg_data_in  : std_logic_vector(15 downto 0);
+   signal reg_data_out : std_logic_vector(15 downto 0);
+   signal ready        : std_logic;
+   signal src_operand  : std_logic_vector(15 downto 0);
 
 begin
 
@@ -89,18 +96,18 @@ begin
 
 
    -- To register file (combinatorial)
-   reg_data <= reg_data_i + 1 when instruction_i(R_DEST_MODE) = C_MODE_POST else
-               reg_data_i - 1 when instruction_i(R_DEST_MODE) = C_MODE_PRE else
-               reg_data_i;
+   reg_data_out <= reg_data_in + 1 when instruction_i(R_DEST_MODE) = C_MODE_POST else
+                   reg_data_in - 1 when instruction_i(R_DEST_MODE) = C_MODE_PRE else
+                   reg_data_in;
 
    reg_wr_o     <= reg_request;
    reg_wr_reg_o <= instruction_i(R_DEST_REG);
-   reg_data_o   <= reg_data;
+   reg_data_o   <= reg_data_out;
 
 
    -- To memory subsystem (combinatorial)
-   mem_address <= reg_data_i-1 when instruction_i(R_DEST_MODE) = C_MODE_PRE else
-                  reg_data_i;
+   mem_address <= reg_data_in-1 when instruction_i(R_DEST_MODE) = C_MODE_PRE else
+                  reg_data_in;
 
    mem_valid_o   <= mem_request;
    mem_address_o <= mem_address;
@@ -108,6 +115,14 @@ begin
 
    -- To register file (combinatorial)
    reg_rd_reg_o <= instruction_i(R_DEST_REG);
+
+   reg_data_in <= res_data_i when res_wr_i = '1' and
+                                  conv_integer(res_wr_reg_i) = conv_integer(instruction_i(R_DEST_REG)) else
+                  reg_data_i;
+
+   src_operand <= res_data_i when res_wr_i = '1' and
+                                  conv_integer(res_wr_reg_i) = conv_integer(instruction_i(R_SRC_REG)) else
+                  src_operand_i;
 
 
    -- To next stage (registered)
@@ -127,10 +142,10 @@ begin
          if valid_i = '1' and ready = '1' then
             if instruction_i(R_DEST_MODE) = C_MODE_REG then
                valid_o       <= '1';
-               dst_operand_o <= reg_data_i;
+               dst_operand_o <= reg_data_in;
                pc_inst_o     <= pc_inst_i;
                instruction_o <= instruction_i;
-               src_operand_o <= src_operand_i;
+               src_operand_o <= src_operand;
             elsif mem_ready = '1' then
                valid_o       <= '1';
                if mem_request = '1' then
@@ -140,14 +155,10 @@ begin
                end if;
                pc_inst_o     <= pc_inst_i;
                instruction_o <= instruction_i;
-               src_operand_o <= src_operand_i;
+               src_operand_o <= src_operand;
             end if;
 
-            if instruction_i(R_DEST_MODE) = C_MODE_PRE then
-               dst_address_o <= reg_data_i-1;
-            else
-               dst_address_o <= reg_data_i;
-            end if;
+            dst_address_o <= mem_address;
          end if;
 
          if rst_i = '1' then
