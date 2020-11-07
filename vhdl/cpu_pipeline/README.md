@@ -582,3 +582,35 @@ Interestingly, the total number of register writes has gone down, but that must
 be due to the fix in `read_dst_operand.vhd`, where we now make an exception for
 branch and control instructions.
 
+## Fixing more bugs
+Looking at the waveform it is seen that a previous instruction `CMP 0x1234, R1`
+is changing the value of `R1`. Clearly this is an error, so some minor changes
+are made in `write_result.vhd`, basically just suppressing any register writes
+in case of a `CMP` instruction.
+
+With these changes the test now fails with the lines:
+```
+arbiter_mem.vhd:70:16:@4970ns:(report note): MEM: read instruction from 0x0171
+arbiter_mem.vhd:70:16:@4980ns:(report note): MEM: read instruction from 0x0172
+arbiter_mem.vhd:72:16:@4990ns:(report note): MEM: read src operand from 0x0173
+arbiter_mem.vhd:70:16:@5us:(report note): MEM: read instruction from 0x0174
+cpu_constants.vhd:165:10:@5us:(report note): 0171 (0004) MOVE R0, R1
+arbiter_mem.vhd:72:16:@5010ns:(report note): MEM: read src operand from 0x0175
+cpu_constants.vhd:165:10:@5010ns:(report note): 0172 (CF84) CMP 0x1234, R1
+cpu_constants.vhd:158:10:@5030ns:(report note): 0174 (FF8B) ABRA 0x0179, !Z
+arbiter_mem.vhd:70:16:@5040ns:(report note): MEM: read instruction from 0x0179
+read_instruction.vhd:102:22:@5040ns:(report failure): CONTROL instruction
+```
+
+It is attempting to execute the two instructions
+```
+MOVE R0, R1
+CMP 0x1234, R1
+```
+However, at the time of execution in stage 4, the destination operand (from
+register value `R1`) has not been updated. So this is a real pipeline data
+hazard.
+
+To be continued ...
+
+

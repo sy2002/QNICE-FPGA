@@ -44,6 +44,7 @@ architecture synthesis of write_result is
 
    signal mem_request : std_logic;
    signal mem_ready   : std_logic;
+   signal reg_request : std_logic;
    signal reg_ready   : std_logic;
    signal ready       : std_logic;
 
@@ -59,10 +60,15 @@ begin
    -- Are we waiting for memory read access?
    mem_ready <= (not mem_request) or mem_ready_i;
 
+   -- Do we want register write access?
+   reg_request <= '0' when valid_i = '0' else
+                  '0' when instruction_i(R_OPCODE) = C_OP_BRA else
+                  '0' when instruction_i(R_OPCODE) = C_OP_CMP else
+                  '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
+                  '1';
+
    -- Are we waiting for register write access?
-   reg_ready <= '1' when valid_i = '0' else
-                '1' when instruction_i(R_DEST_MODE) = C_MODE_REG else
-                reg_res_ready_i;
+   reg_ready <= (not reg_request) or reg_res_ready_i;
 
    -- Are we ready to complete this stage?
    ready <= mem_ready and reg_ready;
@@ -133,6 +139,8 @@ begin
             end if;
          elsif conv_integer(instruction_i(R_OPCODE)) = C_OP_CTRL then
             report "Control instruction";
+         elsif conv_integer(instruction_i(R_OPCODE)) = C_OP_CMP then
+            null;
          elsif conv_integer(instruction_i(R_DEST_MODE)) = C_MODE_REG then
             reg_res_wr_reg_o <= instruction_i(R_DEST_REG);
             reg_res_wr_o     <= '1';
