@@ -332,12 +332,13 @@ but at least it can run for a few clock cycles now.
 One bug found so far is that the status register should only be updated when
 executing an instruction. I've therefore added a `valid` signal to the ALU.
 
-## Running the `cpu_test.asm`
-It is great to have a comprehensive CPU test suite, and the current design
-is now able to run this test and give meaningful (but incorrect) results.
-Apart from the branch hazards that we've fixed in a brutally inefficient
-way above, I don't expect so many pipeline hazards, so it therefore makes
-sense to try and run this test now to see what bugs are discovered.
+## Running the `test2.asm`
+It is great to have a comprehensive CPU test suite, and the current design is
+now able to run this test (using the command `make test2`) and give meaningful
+(but incorrect) results.  Apart from the branch hazards that we've fixed in a
+brutally inefficient way above, I don't expect so many pipeline hazards, so it
+therefore makes sense to try and run this test now to see what bugs are
+discovered.
 
 To aid in debugging, I've added a small disassembler. This will print out
 to the console the disassembly of the current instruction executed.
@@ -420,7 +421,7 @@ clock frequency of 500/(10-0.7) = 53 MHz.
 
 Test coverage:
 
-* `cpu_test.asm` fails first at 0x0149, which is approximately 6% of the whole test.
+* `test2.asm` fails first at 0x0149, which is approximately 6% of the whole test.
 
 Pipeline statistics (when reading from 0x0149):
 
