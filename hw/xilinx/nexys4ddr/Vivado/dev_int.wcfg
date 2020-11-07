@@ -13,12 +13,12 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="3642851fs"></ZoomStartTime>
-      <ZoomEndTime time="3909852fs"></ZoomEndTime>
-      <Cursor1Time time="3674051fs"></Cursor1Time>
+      <ZoomStartTime time="444800fs"></ZoomStartTime>
+      <ZoomEndTime time="579101fs"></ZoomEndTime>
+      <Cursor1Time time="498500fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="188"></NameColumnWidth>
+      <NameColumnWidth column_width="180"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="48" />
@@ -46,25 +46,17 @@
       <obj_property name="ElementShortName">PC[15:0]</obj_property>
       <obj_property name="ObjectShortName">PC[15:0]</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/dev_int/cpu/PC_org">
-      <obj_property name="ElementShortName">PC_org[15:0]</obj_property>
-      <obj_property name="ObjectShortName">PC_org[15:0]</obj_property>
+   <wvobject type="array" fp_name="/dev_int/cpu/PC_Org">
+      <obj_property name="ElementShortName">PC_Org[15:0]</obj_property>
+      <obj_property name="ObjectShortName">PC_Org[15:0]</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/dev_int/cpu/SP">
       <obj_property name="ElementShortName">SP[15:0]</obj_property>
       <obj_property name="ObjectShortName">SP[15:0]</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/dev_int/cpu/SP_org">
-      <obj_property name="ElementShortName">SP_org[15:0]</obj_property>
-      <obj_property name="ObjectShortName">SP_org[15:0]</obj_property>
-   </wvobject>
    <wvobject type="array" fp_name="/dev_int/cpu/SR">
       <obj_property name="ElementShortName">SR[15:0]</obj_property>
       <obj_property name="ObjectShortName">SR[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/dev_int/cpu/SR_org">
-      <obj_property name="ElementShortName">SR_org[15:0]</obj_property>
-      <obj_property name="ObjectShortName">SR_org[15:0]</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/dev_int/cpu/Registers/UpperRegisters">
       <obj_property name="ElementShortName">UpperRegisters[8:12][15:0]</obj_property>
@@ -73,6 +65,10 @@
    <wvobject type="array" fp_name="/dev_int/cpu/Registers/UpperRegisters_Org">
       <obj_property name="ElementShortName">UpperRegisters_Org[8:12][15:0]</obj_property>
       <obj_property name="ObjectShortName">UpperRegisters_Org[8:12][15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/cpu/Registers/LowerRegisterWindow">
+      <obj_property name="ElementShortName">LowerRegisterWindow[0:2047][15:0]</obj_property>
+      <obj_property name="ObjectShortName">LowerRegisterWindow[0:2047][15:0]</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/dev_int/cpu/Registers/shadow_en">
       <obj_property name="ElementShortName">shadow_en</obj_property>
@@ -149,6 +145,10 @@
    <wvobject type="array" fp_name="/dev_int/cpu/Dst_Value">
       <obj_property name="ElementShortName">Dst_Value[15:0]</obj_property>
       <obj_property name="ObjectShortName">Dst_Value[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dev_int/cpu/Registers/read_data1">
+      <obj_property name="ElementShortName">read_data1[15:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data1[15:0]</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/dev_int/cpu/Registers/read_data2">
       <obj_property name="ElementShortName">read_data2[15:0]</obj_property>

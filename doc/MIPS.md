@@ -15,13 +15,45 @@ QNICE-FPGA Performance Characteristics
   workload that is being executed.
 
 * Peak performance has been measured in a math-heavy demo such as the
-  mandelbrot demo: 14.67 MIPS. Q-TRIS runs at 13.21 MIPS.
+  mandelbrot demo: 14.84 MIPS. Q-TRIS runs at 13.97 MIPS.
 
 * For the sake of the VGA and WASM emulator, the average QNICE performance
-  is defined as **13.21 MIPS**.
+  is defined as **14.0 MIPS**.
 
-MIPS measurements on September 7, 2020 using CPU version 1.7
-------------------------------------------------------------
+MIPS measurements on November, 7 2020 using CPU V1.7
+----------------------------------------------------
+
+The refactored CPU that also implements the new ISA V1.7 has an optimization
+that branches, that are not taken only need 1 CPU cycle.
+
+### Mandelbrot: 14.84 MIPS
+
+```
+0000 0080 E54F = 8,447,311 cycles            => 0,1689 sec        
+0000 0026 411E = 2,507,038 instructions      => 3.37 cycles / instruction
+                                             => 14.84 MIPS
+```
+
+* Compared with V1.6 this is a 9% speed-up.
+* Compared with the version from September, 7 this is a 1% speed-up.
+
+### Q-TRIS: 13.97 MIPS
+
+```
+0007 3717 1ACB = 30,989,032,139 cycles       => 619.78 sec => 10:20 min
+               =  8,649,514,605 instructions => 3.58 cycles / instruction
+                                             => 13.97 MIPS
+                                             => 14.00 MIPS for Emulator
+```
+
+* Compared with V1.6 this is a 8% speed-up.
+* Compared with the version from September, 7 this is a 6% speed-up.
+
+
+MIPS measurements on September 7, 2020 using the CPU in commit #b17e9db
+-----------------------------------------------------------------------
+
+This CPU version is newer than V1.6, but not yet released in a newer release.
 
 The newly implemented "FastPath" feature that makes sure, that all
 instructions that operate on registers only (including branches) are from now

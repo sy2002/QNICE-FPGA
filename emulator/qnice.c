@@ -215,7 +215,7 @@ unsigned long         gbl$instructions_per_iteration = gbl$ipi_default;
 #endif
 
 /* According to ../doc/MIPS.md, the current QNICE hardware,
-   which runs at 50 MHz performs at 13.21 MIPS.
+   which runs at 50 MHz performs at 14.0 MIPS.
    The speed regulation occurs every 10 milliseconds, which is why we introduce
    a "target instructions per 10-milliseconds" measurement using gbl$target_iptms.
    Since there is system jitter, the gbl$target_iptms needs to be adjusted,
@@ -225,10 +225,10 @@ unsigned long         gbl$instructions_per_iteration = gbl$ipi_default;
    Linux gcc does not allow gbl$qnice_mips to be used within gbl$target_mips and
    gbl$target_iptms, therefore the value 13.21 is repeated.
 */
-const float           gbl$qnice_mips   = 13.21;
+const float           gbl$qnice_mips   = 14.0;
 const float           gbl$max_mips     = INFINITY; 
-float                 gbl$target_mips  = 13.21;
-unsigned long         gbl$target_iptms = ((13.21 * 1e6) / 1e3) * 10;
+float                 gbl$target_mips  = 14.0;
+unsigned long         gbl$target_iptms = ((14.0 * 1e6) / 1e3) * 10;
 float                 gbl$target_iptms_adjustment_factor = 1.0;
 const unsigned long   gbl$target_sampling_s = 3;
 bool                  mips_adjustment_thread_running = false;

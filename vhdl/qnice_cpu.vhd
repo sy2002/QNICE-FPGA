@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------
--- FPGA implementation of the QNICE 16 bit CPU architecture version 1.6
+-- FPGA implementation of the QNICE 16 bit CPU architecture version 1.7
 -- 
 -- done in 2015, 2016, 2020 by sy2002
 ----------------------------------------------------------------------------------
@@ -89,32 +89,43 @@ signal reg_write_data      : std_logic_vector(15 downto 0) := (others => '0');
 signal reg_write_en        : std_logic := '0';
 signal reg_revert_en       : std_logic := '0';
 signal reg_force_shadowing : std_logic := '0';
+signal reg_shadow_spr      : std_logic; --combinatorial signal to control the shadowing of special regs (SP, SR, PC)
 
--- registers R13 (SP), R14 (SR) and R15 (PC) are directly modeled within the CPU
--- but also read-only accessible via the register file
-signal SP                  : std_logic_vector(15 downto 0) := x"0000"; -- stack pointer   (R13)
-signal SR                  : std_logic_vector(15 downto 0) := x"0001"; -- status register (R14)
-signal PC                  : std_logic_vector(15 downto 0) := x"0000"; -- program counter (R15)
+-- direct access to the special registers within the register bank
+signal SP                  : std_logic_vector(15 downto 0); -- stack pointer   (R13)
+signal SR                  : std_logic_vector(15 downto 0); -- status register (R14)
+signal PC                  : std_logic_vector(15 downto 0); -- program counter (R15)
+signal PC_Org              : std_logic_vector(15 downto 0); -- shadow register copy of PC
 
 -- interrupt handling
-signal SP_org              : std_logic_vector(15 downto 0);            -- saved stack pointer   (R13)
-signal SR_org              : std_logic_vector(15 downto 0);            -- saved status register (R14)
-signal PC_org              : std_logic_vector(15 downto 0);            -- saved program counter (R15)
 signal Int_Active          : std_logic := '0';                         -- interrupt / ISR currently active
 
--- instruction related internal CPU registers
+-- CPU-internal registers that buffer instruction related data
 signal Instruction         : std_logic_vector(15 downto 0) := (others => '0'); -- current instruction word
+signal Src_Value           : std_logic_vector(15 downto 0) := (others => '0'); -- the value is coming from a register or from memory
+signal Dst_Value           : std_logic_vector(15 downto 0) := (others => '0'); -- the value is coming from a register or from memory
+
+-- shortcuts to "Instruction" register (combinatorial) 
 signal Opcode              : std_logic_vector(3 downto 0);  -- current opcode, equals bits 15 .. 12
 signal Src_RegNo           : std_logic_vector(3 downto 0);  -- current source register, equals bits 11 .. 8
 signal Src_Mode            : std_logic_vector(1 downto 0);  -- current source mode, equals bits 7 .. 6
-signal Src_Value           : std_logic_vector(15 downto 0) := (others => '0'); -- the value is coming from a register or from memory
 signal Dst_RegNo           : std_logic_vector(3 downto 0);  -- current destination register, equals bits 5 .. 2
 signal Dst_Mode            : std_logic_vector(1 downto 0);  -- current destination mode, equals bits 1 .. 0
-signal Dst_Value           : std_logic_vector(15 downto 0) := (others => '0'); -- the value is coming from a register or from memory
 signal Bra_Mode            : std_logic_vector(1 downto 0);  -- branch mode (branch type)
 signal Bra_Neg             : std_logic;                     -- branch condition negated
 signal Bra_Condition       : std_logic_vector(2 downto 0);  -- flag number within lower 8 bits of SR
 signal Ctrl_Cmd            : std_logic_vector(5 downto 0);  -- Control Command when Opcode = E
+
+-- decoding shortcuts: during the cs_fetch state, the instruction is still on the data bus (DATA_IN)
+signal diOpcode              : std_logic_vector(3 downto 0);
+signal diSrc_RegNo           : std_logic_vector(3 downto 0);
+signal diSrc_Mode            : std_logic_vector(1 downto 0);
+signal diDst_RegNo           : std_logic_vector(3 downto 0);
+signal diDst_Mode            : std_logic_vector(1 downto 0);
+signal diBra_Mode            : std_logic_vector(1 downto 0);
+signal diBra_Neg             : std_logic;
+signal diBra_Condition       : std_logic_vector(2 downto 0);
+signal diCtrl_Cmd            : std_logic_vector(5 downto 0);
 
 -- delayed post increment situation (e.g. MOVE @R1++, @--R2) 
 signal Delayed_PostInc     : std_logic;
@@ -132,9 +143,6 @@ signal fsmPC               : std_logic_vector(15 downto 0);
 signal fsmNextCpuState     : tCPU_States;
 
 -- interrupt handling
-signal fsmSP_org           : std_logic_vector(15 downto 0);
-signal fsmSR_org           : std_logic_vector(15 downto 0);
-signal fsmPC_org           : std_logic_vector(15 downto 0);
 signal fsmInt_Active       : std_logic;
 
 signal fsmInstruction      : std_logic_vector(15 downto 0);
@@ -155,6 +163,7 @@ signal fsmDPI_Value        : std_logic_vector(15 downto 0);
 
 -- ALU signals are purely combinatorical
 signal Alu_Result          : IEEE.NUMERIC_STD.unsigned(15 downto 0); -- execution result
+signal Alu_Result_v        : std_logic_vector(15 downto 0);
 signal Alu_X               : std_logic;
 signal Alu_C               : std_logic;
 signal Alu_Z               : std_logic;
@@ -203,7 +212,8 @@ signal Dst_Value_Fast      : std_logic_vector(15 downto 0);
 --attribute mark_debug of reg_read_data2 : signal is true;
 
 begin
-   -- internal signals
+   -- Instruction is a register
+   -- these signals are shortcuts to decode the components of the instruction
    Opcode         <= Instruction(15 downto 12);
    Src_RegNo      <= Instruction(11 downto 8);
    Src_Mode       <= Instruction(7 downto 6);
@@ -214,15 +224,31 @@ begin
    Bra_Condition  <= Instruction(2 downto 0);
    Ctrl_Cmd       <= Instruction(11 downto 6);
    
+   -- while the CPU is in the state cs_fetch, the "Instruction" register is not loaded, yet
+   -- these signals are shortcuts to decode the data bus (DATA_IN) as if it would be an instruction
+   diOpcode         <= DATA_IN(15 downto 12);
+   diSrc_RegNo      <= DATA_IN(11 downto 8);
+   diSrc_Mode       <= DATA_IN(7 downto 6);
+   diDst_RegNo      <= DATA_IN(5 downto 2);
+   diDst_Mode       <= DATA_IN(1 downto 0);
+   diBra_Mode       <= DATA_IN(5 downto 4);
+   diBra_Neg        <= DATA_IN(3);
+   diBra_Condition  <= DATA_IN(2 downto 0);
+   diCtrl_Cmd       <= DATA_IN(11 downto 6);
+   
+   
+   -- type cast for more elegant access
+   Alu_Result_v   <= std_logic_vector(Alu_Result);
+   
    -- external signals
    ADDR           <= ADDR_Bus;
    HALT           <= '1' when cpu_state = cs_halt else '0';
 
    -- Fastpath: When we have a direct register to register operation or a branch, where the address is in a register
    -- In cs_fetch, the Instruction register is not set, yet, so we need to listen to the data bus
-   FastPath       <= true when (DATA_IN(15 downto 12) /= opcCTRL and cpu_state = cs_fetch and (
-                                 (DATA_IN(15 downto 12) /= opcBRA and DATA_IN(7 downto 6) = amDirect and DATA_IN(1 downto 0) = amDirect) or
-                                 (DATA_IN(15 downto 0)   = opcBRA and DATA_IN(7 downto 6) = amDirect)
+   FastPath       <= true when (cpu_state = cs_fetch and diOpcode /= opcCTRL and (
+                                 (diOpcode /= opcBRA and diSrc_Mode = amDirect and diDst_Mode = amDirect) or
+                                 (diOpcode  = opcBRA and diSrc_Mode = amDirect)
                                ))
                                or 
                                (cpu_state = cs_execute and Opcode /= opcCTRL and (
@@ -237,23 +263,28 @@ begin
    Registers : entity work.register_file
       port map
       (
-         clk         => CLK,
-         SP          => SP,
-         SR          => SR,
-         PC          => PC,
-         sel_rbank   => SR(15 downto 8),
-         read_addr1  => reg_read_addr1,
-         read_addr2  => reg_read_addr2,
-         read_data1  => reg_read_data1,
-         read_data2  => reg_read_data2,
-         write_addr  => reg_write_addr,
-         write_data  => reg_write_data,
-         write_en    => reg_write_en,
-         revert_en   => reg_revert_en,
+         clk            => CLK,
+         SP             => SP,
+         SR             => SR,
+         PC             => PC,
+         PC_Org         => PC_Org,
+         fsmSP          => fsmSP,
+         fsmSR          => fsmSR,
+         fsmPC          => fsmPC,
+         sel_rbank      => SR(15 downto 8),
+         read_addr1     => reg_read_addr1,
+         read_addr2     => reg_read_addr2,
+         read_data1     => reg_read_data1,
+         read_data2     => reg_read_data2,
+         write_addr     => reg_write_addr,
+         write_data     => reg_write_data,
+         write_en       => reg_write_en,
+         revert_en      => reg_revert_en,
          
          -- the upper registers are shadowed at each write operation, so that they can
          -- be restored any time (e.g. when returning from an interrupt) using revert_en
-         shadow_en   => (not Int_Active) or reg_force_shadowing
+         shadow_en      => (not Int_Active) or reg_force_shadowing,
+         shadow_spr_en  => reg_shadow_spr
       );
       
    -- ALU
@@ -285,13 +316,6 @@ begin
             DATA_DIR <= '0';
             DATA_VALID <= '0';
             
-            SP <= x"0000";
-            SR <= x"0001";
-            PC <= x"0000";
-            
-            SP_org <= x"0000";
-            SR_org <= x"0001";
-            PC_org <= x"0000";
             Int_Active <= '0';
             
             Instruction <= (others => '0');            
@@ -307,7 +331,6 @@ begin
             reg_write_addr <= (others => '0');
             reg_write_data <= (others => '0');
             reg_write_en <= '0';
-            reg_revert_en <= '0';
             reg_force_shadowing <= '0';                  
          else
             if fsmNextCpuState = cs_std_seq then
@@ -321,13 +344,6 @@ begin
             DATA_DIR <= fsmCpuDataDirCtrl;
             DATA_VALID <= fsmCpuDataValid;
             
-            SP <= fsmSP;
-            SR <= fsmSR(15 downto 1) & "1";
-            PC <= fsmPC;
-            
-            SP_org <= fsmSP_org;
-            SR_org <= fsmSR_org;
-            PC_org <= fsmPC_org;
             Int_Active <= fsmInt_Active;
             
             Instruction <= fsmInstruction;
@@ -343,13 +359,23 @@ begin
             reg_write_addr <= fsm_reg_write_addr;
             reg_write_data <= fsm_reg_write_data;
             reg_write_en <= fsm_reg_write_en;  
-            reg_revert_en <= fsm_reg_revert_en;
             reg_force_shadowing <= fsm_reg_force_shadowing;
          end if;
       end if;
    end process;
    
-   fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, SP_org, SR_org, PC_org,
+   fsm_revert : process(clk)
+   begin
+      if falling_edge(clk) then
+         if RESET = '1' then
+            reg_revert_en <= '0';
+         else
+            reg_revert_en <= fsm_reg_revert_en;
+         end if;
+      end if;
+   end process;
+      
+   fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, PC_org,
                                 DATA_IN, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
                                 Instruction, Opcode, Ctrl_Cmd, FastPath,
                                 Src_RegNo, Src_Mode, Src_Value, Dst_RegNo, Dst_Mode, Dst_Value,
@@ -358,11 +384,32 @@ begin
                                 Delayed_PostInc, DPI_RegNo, DPI_Value,
                                 reg_read_addr1, reg_read_data1, reg_read_addr2, reg_read_data2,
                                 reg_write_addr, reg_write_data, reg_write_en, reg_revert_en, reg_force_shadowing,
-                                Alu_Result, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)                                
-   variable varResult : std_logic_vector(15 downto 0);
-   variable var_C     : std_logic;
-   variable var_V     : std_logic;
-   variable var_X     : std_logic;
+                                Alu_Result, Alu_Result_v, Alu_V, Alu_N, Alu_Z, Alu_C, Alu_X)
+                                                                
+   variable varResult  : std_logic_vector(15 downto 0);
+   variable var_C      : std_logic;
+   variable var_V      : std_logic;
+   variable var_X      : std_logic;
+   variable var_SR_tbw : std_logic_vector(15 downto 0);
+   
+   procedure writeReg(signal   dstreg   : in std_logic_vector(3 downto 0);
+                      signal   value    : in std_logic_vector(15 downto 0);
+                      constant modifier : integer) is
+   variable
+      value_w : std_logic_vector(15 downto 0);
+   begin
+      value_w := value + modifier;
+      case dstreg is
+         when regSP => fsmSP <= value_w;
+         when regSR => fsmSR <= value_w; 
+         when regPC => fsmPC <= value_w;
+         when others =>
+            fsm_reg_write_addr <= dstreg;
+            fsm_reg_write_data <= value_w;
+            fsm_reg_write_en <= '1';            
+      end case;
+   end procedure;
+        
    begin
       DATA_OUT <= (others => '0');
       INS_CNT_STROBE <= '0';
@@ -371,7 +418,7 @@ begin
       fsmDataToBus <= (others => '0');
       fsmSP <= SP;
       fsmSR <= SR(15 downto 1) & "1";
-      fsmPC <= PC;      
+      fsmPC <= PC;
       fsmCpuAddr <= ADDR_Bus;
       fsmCpuDataDirCtrl <= '0';
       fsmCpuDataValid <= '0';
@@ -389,23 +436,16 @@ begin
       fsm_reg_write_en <= '0';
       fsm_reg_revert_en <= '0';
       fsm_reg_force_shadowing <= '0';
-      
       fsmInt_Active <= Int_Active;
-      if Int_Active = '0' then
-         fsmSP_org <= SP;
-         fsmSR_org <= SR(15 downto 1) & "1";
-         fsmPC_org <= PC;
-      else
-         fsmSP_org <= SP_org;
-         fsmSR_org <= SR_org;
-         fsmPC_org <= PC_org;
-      end if;
+      
+      reg_shadow_spr <= not reg_force_shadowing;
                
       -- as fsm_advance_state is clocking the values on rising edges,
       -- the below-mentioned output decoding is to be read as:
       -- "what will be the output variables at the NEXT state (after the current state)"
       case cpu_state is
          when cs_reset =>
+            fsmSP <= x"0000";
             fsmSR <= x"0001";
             fsmPC <= x"0000";
             fsmCpuAddr <= x"0000";
@@ -432,13 +472,38 @@ begin
                   INS_CNT_STROBE <= '1';  -- count next instruction            
                   fsmInstruction <= DATA_IN; -- valid at falling edge
                   fsmPC <= PC + 1;
-                  fsm_reg_read_addr1 <= DATA_IN(11 downto 8); -- read Src register number
-                  fsm_reg_read_addr2 <= DATA_IN(5 downto 2);  -- rest Dst register number
+                  fsm_reg_read_addr1 <= diSrc_RegNo; -- read Src register number
+                  fsm_reg_read_addr2 <= diDst_RegNo; -- rest Dst register number
+                  
+                  -- In case of a MOVE to SR, the new value has not arrived in SR, yet, so we need to take it from
+                  -- reg_write_data. And if it was a MOVE 0, SR, we need to make sure, that bit 0 is always 1, otherwise
+                  -- for example a "RSUB XYZ, 1" directly after a "MOVE 0, SR" would fail.
+                  if reg_write_en = '1' and reg_write_addr = regSR then
+                     var_SR_tbw := reg_write_data(15 downto 1) & "1";
+                  else
+                     var_SR_tbw := SR(15 downto 1) & "1";
+                  end if;
+                  
+                  -- if a branch is meant to be executed but the branch will *not* be taken, then return directly to cs_fetch
+                  -- this is on the one hand an optimization (speed increase) and on the other hand this implements
+                  -- the new ISA of V1.7 where predec and postinc of registers inside branches are only performed,
+                  -- if the branching condition holds (i.e. the branch would have been taken)
+                  if diOpcode = opcBRA and var_SR_tbw(conv_integer(diBra_Condition)) = diBra_Neg then
+                     -- special treatment for postincremented R15/PC: the postincrement is always executed, even if
+                     -- the branch is not taken; this is an exception due to constant addresses being implemented
+                     -- as something like ABRA @R15++, Z
+                     if diSrc_RegNo = regPC and diSrc_Mode = amIndirPostInc then                     
+                        fsmPC <= PC + 2;              -- +1 is the default, so due to postinc it is +2
+                        fsmCpuAddr <= PC + 2;
+                     else
+                        fsmCpuAddr <= PC + 1;
+                     end if;
+                     fsmNextCpuState <= cs_fetch;
                   
                   -- for direct register to register operations or a branch based on a register, we can 
                   -- skip the decode phase, but we must then make sure that the Alu has the right
                   -- input value: see FastPath handling above and the special "if FastPath" in cs_execute
-                  if FastPath then
+                  elsif FastPath then
                      fsmNextCpuState <= cs_execute;
                   end if;
                end if;
@@ -446,8 +511,6 @@ begin
                                     
          when cs_decode =>
             -- source and destination values in case of direct register addressing modes
-            -- no special handling of SR and PC needed, as this a a read-only activity
-            -- and the registerfile contains a convenience function for that
             fsmSrc_Value <= reg_read_data1;
             fsmDst_Value <= reg_read_data2;
             
@@ -462,11 +525,8 @@ begin
                   when ctrlRTI =>                     
                      if Int_Active = '1' then
                         fsmInt_Active <= '0';
-                        fsm_reg_revert_en <= '1'; -- revert R8..R12
-                        fsmSP <= SP_org;
-                        fsmSR <= SR_org;
-                        fsmPC <= PC_org;
-                        fsmCPUAddr <= PC_org;
+                        fsm_reg_revert_en <= '1'; -- revert R8..R15
+                        fsmCPUAddr <= PC_Org;
                         fsmNextCpuState <= cs_fetch;
                      -- rogue RTI: HALT
                      else
@@ -482,6 +542,7 @@ begin
                            when amDirect =>
                               fsmCPUAddr <= reg_read_data2;
                               fsmPC <= reg_read_data2;
+                              reg_shadow_spr <= '0';                              
                               fsmNextCpuState <= cs_fetch;
                                                          
                            when amIndirect =>
@@ -491,42 +552,14 @@ begin
                            when amIndirPreDec =>
                               fsmNextCpuState <= cs_int_indirect_isr;                           
                               fsmCPUAddr <= reg_read_data2 - 1;
-                              case Dst_RegNo is
-                                 when x"D" =>
-                                    fsmSP <= SP - 1;
-                                    fsmSP_org <= SP - 1;
-                                 when x"E" =>
-                                    fsmSR <= SR - 1;
-                                    fsmSR_org <= SR - 1;
-                                 when x"F" =>
-                                    fsmPC <= PC - 1;
-                                    fsmPC_org <= PC - 1;
-                                 when others =>
-                                    fsm_reg_write_addr <= Dst_RegNo;
-                                    fsm_reg_write_data <= reg_read_data2 - 1;
-                                    fsm_reg_write_en <= '1';
-                                    fsm_reg_force_shadowing <= '1';                                                                        
-                              end case;
+                              writeReg(Dst_RegNo, reg_read_data2, -1);
+                              fsm_reg_force_shadowing <= '1';
                               
                            when amIndirPostInc =>
                               fsmNextCpuState <= cs_int_indirect_isr;
                               fsmCPUAddr <= reg_read_data2;
-                              case Dst_RegNo is
-                                 when x"D" =>
-                                    fsmSP <= SP + 1;
-                                    fsmSP_org <= SP + 1;
-                                 when x"E" =>
-                                    fsmSR <= SR + 1;
-                                    fsmSR_org <= SR + 1;
-                                 when x"F" =>
-                                    fsmPC <= PC + 1;
-                                    fsmPC_org <= PC + 1;
-                                 when others =>
-                                    fsm_reg_write_addr <= Dst_RegNo;
-                                    fsm_reg_write_data <= reg_read_data2 + 1;
-                                    fsm_reg_write_en <= '1';
-                                    fsm_reg_force_shadowing <= '1';                                    
-                              end case;                           
+                              writeReg(Dst_RegNo, reg_read_data2, +1);
+                              fsm_reg_force_shadowing <= '1';
                               
                            when others =>
                               fsmNextCpuState <= cs_halt;
@@ -575,16 +608,7 @@ begin
                      end if;
                      
                      -- write back the decremented values
-                     -- special handling of SR and PC as they are not stored in the register file
-                     case Src_RegNo is
-                        when x"D" => fsmSP <= SP - 1;
-                        when x"E" => fsmSR <= SR - 1;
-                        when x"F" => fsmPC <= PC - 1;
-                        when others =>
-                           fsm_reg_write_addr <= Src_RegNo;
-                           fsm_reg_write_data <= reg_read_data1 - 1;
-                           fsm_reg_write_en <= '1';               
-                     end case;                  
+                     writeReg(Src_RegNo, reg_read_data1, -1);
                   else
                      fsmCpuAddr <= reg_read_data1; -- normal (non decremented) address on the bus for reading
                   end if;
@@ -598,15 +622,7 @@ begin
                   -- pre decrement for destination register
                   if Dst_Mode = amIndirPreDec then
                      fsmCpuAddr <= reg_read_data2 - 1;
-                     case Dst_RegNo is
-                        when x"D" => fsmSP <= SP - 1;
-                        when x"E" => fsmSR <= SR - 1;
-                        when x"F" => fsmPC <= PC - 1;
-                        when others =>
-                           fsm_reg_write_addr <= Dst_RegNo;
-                           fsm_reg_write_data <= reg_read_data2 - 1;
-                           fsm_reg_write_en <= '1';
-                     end case;
+                     writeReg(Dst_RegNo, reg_read_data2, -1);
                   
                   -- normal (non decremented) address on the bus for reading
                   else
@@ -627,26 +643,8 @@ begin
                              
                -- perform post increment
                if Src_Mode = amIndirPostInc then
-                  -- special handling of SR and PC as they are not stored in the register file
-                  case Src_RegNo is
-                     when x"D" =>
-                        fsmSP     <= SP + 1;
-                        varResult := SP + 1;
-                        
-                     when x"E" =>
-                        fsmSR     <= SR + 1;
-                        varResult := SR + 1;
-                        
-                     when x"F" =>
-                        fsmPC     <= PC + 1;
-                        varResult := PC + 1;
-                        
-                     when others =>
-                        fsm_reg_write_addr <= Src_RegNo;
-                        fsm_reg_write_data <= Src_Value + 1;
-                        varResult := Src_Value + 1;
-                        fsm_reg_write_en <= '1';                        
-                  end case;
+                  writeReg(Src_RegNo, Src_Value, +1);
+                  varResult := Src_Value + 1;
                   
                   -- in case of postinc and the destination is the source: make sure the updated destination (!) value
                   -- (not the source value) goes to the ALU, but only if we are executing an opcode that calculates something
@@ -692,15 +690,7 @@ begin
                         fsmCpuAddr <= reg_read_data2 - 1;
                      end if;
                      
-                     case Dst_RegNo is
-                        when x"D" => fsmSP <= SP - 1;
-                        when x"E" => fsmSR <= SR - 1;
-                        when x"F" => fsmPC <= PC - 1;
-                        when others =>
-                           fsm_reg_write_addr <= Dst_RegNo;
-                           fsm_reg_write_data <= Dst_Value - 1; -- here, the code is not identical
-                           fsm_reg_write_en <= '1';
-                     end case;
+                     writeReg(Dst_RegNo, Dst_Value, -1);
                   else
                      -- if the second parameter is also to be fetched indirect and if it
                      -- is identical to the first parameter, then make sure, that the address
@@ -727,9 +717,7 @@ begin
                
                -- handle delayed post-increment
                if Delayed_PostInc = '1' then
-                  fsm_reg_write_addr <= DPI_RegNo;
-                  fsm_reg_write_data <= DPI_Value;
-                  fsm_reg_write_en <= '1';                  
+                  writeReg(DPI_RegNo, DPI_Value, 0);
                   fsmDelayed_PostInc <= '0';
                end if;               
             end if;                        
@@ -741,42 +729,39 @@ begin
                fsmDst_Value <= reg_read_data2;
             end if;
           
-            -- execute branches
+            -- execute branches: if we arrive here, it is granted, that the branch needs to be executed
             if Opcode = opcBRA then
                fsmNextCpuState <= cs_fetch;
                fsmCpuAddr <= PC;
                
-               if SR(conv_integer(Bra_Condition)) = not Bra_Neg then             
-                  case Bra_Mode is
-                     when bmABRA =>
-                        fsmPC <= Src_Value_Fast;
-                        fsmCpuAddr <= Src_Value_Fast;
-                  
-                     when bmRBRA =>
-                        fsmPC <= PC + Src_Value_Fast;
-                        fsmCpuAddr <= PC + Src_Value_Fast;
-                        
-                     when bmASUB | bmRSUB =>
-                        -- decrease stack pointer and store the current program
-                        -- counter to the memory address where the decreased
-                        -- stack pointer is pointing to
-                        fsmSP <= SP - 1;
-                        fsmCpuAddr <= SP - 1;
-                        fsmDataToBus <= PC;
-                        fsmCpuDataDirCtrl <= '1';
-                        fsmCpuDataValid <='1';
-                        fsmNextCpuState <= cs_exepost_sub;
-                                               
-                     when others =>
-                        fsmNextCpuState <= cs_halt;
-                  end case;
-               end if;
+               case Bra_Mode is
+                  when bmABRA =>
+                     fsmPC <= Src_Value_Fast;
+                     fsmCpuAddr <= Src_Value_Fast;
+               
+                  when bmRBRA =>
+                     fsmPC <= PC + Src_Value_Fast;
+                     fsmCpuAddr <= PC + Src_Value_Fast;
+                     
+                  when bmASUB | bmRSUB =>
+                     -- decrease stack pointer and store the current program
+                     -- counter to the memory address where the decreased
+                     -- stack pointer is pointing to
+                     fsmSP <= SP - 1;
+                     fsmCpuAddr <= SP - 1;
+                     fsmDataToBus <= PC;
+                     fsmCpuDataDirCtrl <= '1';
+                     fsmCpuDataValid <='1';
+                     fsmNextCpuState <= cs_exepost_sub;
+                                            
+                  when others =>
+                     fsmNextCpuState <= cs_halt;
+               end case;
             
             -- execute all comands other than branches
-            else
-            
+            else               
                -- As the ALU is a purely combinatorical circuit, ALU's calculation is
-               -- immediatelly done, when cs_execute i entered. We need to make sure,
+               -- immediatelly done, when cs_execute is entered. We need to make sure,
                -- that all ALU inputs contain valid data at this moment in time
                
                -- shift instructions must only modify Z, N, C and X
@@ -811,34 +796,16 @@ begin
                if Dst_Mode = amDirect then
                
                   -- store result in register
-                  case Dst_RegNo is
-                     -- R13 aka SP
-                     when x"D" =>
-                        fsmSP <= std_logic_vector(Alu_Result);
-                     
-                     -- R14 aka SR
-                     when x"E" =>
-                        -- when doing a compare, then do not write back the old SR value
-                        if Opcode /= opcCMP then
-                           -- bit 0 of the SR is not writeable, it is always 1
-                           fsmSR(15 downto 1) <= std_logic_vector(Alu_Result(15 downto 1));
-                        end if;
-                           
-                     -- R15 aka PC
-                     when x"F" =>
-                        fsmPC <= std_logic_vector(Alu_Result);
-                        fsmCpuAddr <= std_logic_vector(Alu_Result);
-                        
-                     -- R0 .. R12
-                     when others =>
-                        fsm_reg_write_addr <= Dst_RegNo;
-                        fsm_reg_write_data <= std_logic_vector(Alu_Result);
-                        fsm_reg_write_en <= '1';
-                  end case;
-                  
-                  -- prepare next fetch by outputting the next instruction's address
-                  -- but only, if the target register of this operation was not the PC (R15)
-                  if (Dst_RegNo /= x"F") then
+                  -- but when doing a compare, then do not write back the old SR value
+                  if (Opcode /= opcCMP) or (Dst_RegNo /= regSR) then
+                     writeReg(Dst_RegNo, Alu_Result_v, 0);
+                  end if;
+                                          
+                  -- prepare next fetch by outputting the next instruction's address:
+                  -- in case we just calculated it, use the ALU result, else use the existing PC
+                  if Dst_RegNo = regPC then
+                     fsmCpuAddr <= Alu_Result_v;
+                  else                     
                      fsmCpuAddr <= PC;
                   end if;
                   
@@ -847,7 +814,7 @@ begin
                   fsmNextCpuState <= cs_exepost_store_dst_indirect; -- also go there in the CMP case due to a possible post increment
                   if Opcode /= opcCMP then
                      fsmCpuAddr <= reg_read_data2;
-                     fsmDataToBus <= std_logic_vector(Alu_Result);
+                     fsmDataToBus <= Alu_Result_v;
                      fsmCpuDataDirCtrl <= '1';
                      fsmCpuDataValid <='1';
                   end if;
@@ -876,20 +843,12 @@ begin
                   
                -- perform post increment
                if Dst_Mode = amIndirPostInc then
-                  -- special handling of SP, SR and PC as they are not stored in the register file
-                  case Dst_RegNo is
-                     when x"D" => fsmSP <= SP + 1;
-                     when x"E" => fsmSR <= SR + 1;
-                     
-                     when x"F" =>
-                        fsmPC <= PC + 1;
-                        fsmCpuAddr <= PC + 1;
-                        
-                     when others =>
-                        fsm_reg_write_addr <= Dst_RegNo;
-                        fsm_reg_write_data <= reg_read_data2 + 1;
-                        fsm_reg_write_en <= '1';               
-                  end case;
+                  writeReg(Dst_RegNo, reg_read_data2, +1);            
+               
+                  -- in case we post increment the PC, then the CPU address needs this value already at the next state 
+                  if Dst_RegNo = regPC then
+                     fsmCpuAddr <= PC + 1;
+                  end if;
                end if;
             end if;
                   
