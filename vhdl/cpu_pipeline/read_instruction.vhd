@@ -50,10 +50,11 @@ begin
 
    -- Do we want to read from memory?
    mem_request <= '0' when count_r /= 0 else
-                  not (valid_r and not ready_i);
+                  '0' when valid_r = '1' and ready_i = '0' else
+                  '1';
 
    -- Are we waiting for memory read access?
-   mem_ready <= (not mem_request) or mem_ready_i;
+   mem_ready <= not (mem_request and not mem_ready_i);
 
    -- Are we ready to complete this stage?
    ready <= mem_ready and ready_i and not rst_i;
