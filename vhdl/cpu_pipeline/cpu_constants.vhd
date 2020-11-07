@@ -102,10 +102,10 @@ package body cpu_constants is
 
       function reg_str(reg : std_logic_vector;
                        mode : std_logic_vector;
-                       operand : std_logic_vector) return string is
+                       oper : std_logic_vector) return string is
       begin
          if conv_integer(reg) = C_REG_PC and conv_integer(mode) = C_MODE_POST then
-            return "0x" & to_hstring(operand);
+            return "0x" & to_hstring(oper);
          else
             case conv_integer(mode) is
                when C_MODE_REG  => return "R" & integer'image(conv_integer(reg));
