@@ -422,24 +422,24 @@ Test coverage:
 
 * `cpu_test.asm` fails first at 0x0149, which is approximately 6% of the whole test.
 
-Pipeline statistics:
+Pipeline statistics (when reading from 0x0149):
 
-* Clock cycles : 449
-* Instructions : 120
-* Cycles per instruction : 449/120 = 3.74
-* Memory cycles : 236
-* Memory stalls : 19
-* Memory utilization : 236/449 = 53%
-* Register write cycles : 211
+* Clock cycles : 445
+* Instructions : 118
+* Cycles per instruction : 445/118 = 3.77
+* Memory cycles : 232
+* Memory stalls : 17
+* Memory utilization : 232/445 = 52%
+* Register write cycles : 210
 * Register write stalls : 0
-* Register write utilization : 211/449 = 47%
+* Register write utilization : 210/445 = 47%
 
 `Memory stalls` counts whenever any stage has to wait for memory access, i.e.
 whenever more than one stage wants to access the memory in the same cycle.
 `Register write stalls` measures the similar occurrence in the register arbiter.
 
 The statistics above show that there is very little contention to the memory
-(only 19 occurences) and no contention to the register write. Despite this, the
+(only 17 occurences) and no contention to the register write. Despite this, the
 `cycles per instruction` is very high (almost 4).  These results are not
 very representative (hopefully!) and are mainly indicative of the CPU test
 consisting of a lot of branch instructions that each take 4 clock cycles.
