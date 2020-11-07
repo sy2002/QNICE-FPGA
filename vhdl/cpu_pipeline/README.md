@@ -612,6 +612,135 @@ However, at the time of execution in stage 4, the destination operand (from
 register value `R1`) has not been updated. So this is a real pipeline data
 hazard.
 
-To be continued ...
+## Fixing some pipeline hazards
+Before proceeding I find it convenient to do some refactorings. The purpose is
+mainly to clean up the code so it becomes more readable. Once this is done, it
+is fairly easy to fix the above pipeline hazard. When the instruction `CMP
+0x1234, R1` is in stage 3, the previous instruction `MOVE R0, R1` is in stage 4
+updating the register R1. So the module `read_dst_operand.vhd` should check
+whether it is reading from the same regsiter that the module `write_result.vhd`
+is writing to.
 
+This is handled by the following few lines of code:
+```
+reg_data_in <= res_data_i when res_wr_i = '1' and
+                               res_wr_reg_i = instruction_i(R_DEST_REG) else
+               reg_data_i;
+```
+
+The signals `res_data_i`, `res_wr_i`, and `res_wr_reg_i` all come from stage 4,
+while the signal `reg_data_i` comes from the register file.
+
+A similar data hazard is when stage 4 is writing to a register that has already
+been read in stage 1. So a similar set of lines are inserted to deal with that:
+```
+src_operand <= res_data_i when res_wr_i = '1' and
+                               res_wr_reg_i = instruction_i(R_SRC_REG) else
+               src_operand_i;
+```
+Here `src_operand_i` comes from the previous stage.
+
+With these changes the test runs much farther now, and stops with the
+following lines:
+
+```
+arbiter_mem.vhd:70:16:@13160ns:(report note): MEM: read instruction from 0x03D7
+arbiter_mem.vhd:70:16:@13170ns:(report note): MEM: read instruction from 0x03D8
+arbiter_mem.vhd:70:16:@13180ns:(report note): MEM: read instruction from 0x03D9
+arbiter_mem.vhd:76:16:@13190ns:(report note): MEM: write result to 0x03FD
+cpu_constants.vhd:165:10:@13190ns:(report note): 03D7 (0409) MOVE R4, @R2
+arbiter_mem.vhd:76:16:@13200ns:(report note): MEM: write result to 0x03FE
+cpu_constants.vhd:165:10:@13200ns:(report note): 03D8 (050D) MOVE R5, @R3
+arbiter_mem.vhd:74:16:@13210ns:(report note): MEM: read dst operand from 0x03DB
+arbiter_mem.vhd:70:16:@13220ns:(report note): MEM: read instruction from 0x03DC
+cpu_constants.vhd:165:10:@13220ns:(report note): 03D9 (C43E) CMP R4, 0x1234
+arbiter_mem.vhd:70:16:@13230ns:(report note): MEM: read instruction from 0x03DD
+arbiter_mem.vhd:72:16:@13240ns:(report note): MEM: read src operand from 0x03DE
+arbiter_mem.vhd:76:16:@13250ns:(report note): MEM: write result to 0x03FA
+cpu_constants.vhd:165:10:@13250ns:(report note): 03DC (0003) MOVE R0, @--R0
+arbiter_mem.vhd:72:16:@13260ns:(report note): MEM: read src operand from 0x03DE
+arbiter_mem.vhd:70:16:@13270ns:(report note): MEM: read instruction from 0x03DF
+read_instruction.vhd:102:22:@13270ns:(report failure): CONTROL instruction
+```
+
+Here the line `MEM: read dst operand from 0x03DB` is incorrect, because this
+is an instruction.
+
+It turns out there are some problems when a source or destination operand is of
+the type `@PC++`. This was because the stages `read_src_operand.vhd` and
+`read_dst_operand.vhd` would proceed with the execution even though the
+register file was busy. This was fixed by just some small changes in these two files.
+
+The next problem that was revealed occurs when writing directly to the PC,
+together with delays caused by arbitration. For now I temporarily added a delay
+in `read_instruction.vhd`, similarly to branches. I feel this is an inelegant
+solution, but for now I'm aiming for correctness (i.e. bugfixing) rather than
+elegance.
+
+Now the test proceeds a bit further and ends with:
+```
+cpu_constants.vhd:158:10:@17150ns:(report note): 0424 (FFB0) RSUB 0x0001, 1
+arbiter_mem.vhd:70:16:@17160ns:(report note): MEM: read instruction from 0x0427
+arbiter_mem.vhd:72:16:@17170ns:(report note): MEM: read src operand from 0x0428
+arbiter_mem.vhd:70:16:@17180ns:(report note): MEM: read instruction from 0x0429
+cpu_constants.vhd:165:10:@17190ns:(report note): 0427 (0FA4) MOVE 0x0447, R9
+arbiter_mem.vhd:72:16:@17200ns:(report note): MEM: read src operand from 0x042A
+arbiter_mem.vhd:74:16:@17210ns:(report note): MEM: read dst operand from 0x0447
+arbiter_mem.vhd:70:16:@17220ns:(report note): MEM: read instruction from 0x042B
+cpu_constants.vhd:165:10:@17220ns:(report note): 0429 (CFA5) CMP 0x5678, @R9
+arbiter_mem.vhd:72:16:@17230ns:(report note): MEM: read src operand from 0x042C
+cpu_constants.vhd:158:10:@17250ns:(report note): 042B (FFAB) RBRA 0x0011, !Z
+arbiter_mem.vhd:70:16:@17270ns:(report note): MEM: read instruction from 0x042D
+arbiter_mem.vhd:72:16:@17280ns:(report note): MEM: read src operand from 0x042E
+arbiter_mem.vhd:70:16:@17290ns:(report note): MEM: read instruction from 0x042F
+arbiter_mem.vhd:70:16:@17300ns:(report note): MEM: read instruction from 0x0430
+cpu_constants.vhd:165:10:@17300ns:(report note): 042D (3FA4) SUB 0x0446, R9
+arbiter_mem.vhd:72:16:@17310ns:(report note): MEM: read src operand from 0x0431
+cpu_constants.vhd:165:10:@17320ns:(report note): 042F (C934) CMP R9, R13
+cpu_constants.vhd:158:10:@17330ns:(report note): 0430 (FFAB) RBRA 0x000D, !Z
+arbiter_mem.vhd:70:16:@17350ns:(report note): MEM: read instruction from 0x0432
+arbiter_mem.vhd:72:16:@17360ns:(report note): MEM: read src operand from 0x0433
+arbiter_mem.vhd:74:16:@17370ns:(report note): MEM: read dst operand from 0x0446
+arbiter_mem.vhd:70:16:@17380ns:(report note): MEM: read instruction from 0x0434
+cpu_constants.vhd:165:10:@17380ns:(report note): 0432 (CFA5) CMP 0x0426, @R9
+arbiter_mem.vhd:72:16:@17390ns:(report note): MEM: read src operand from 0x0435
+cpu_constants.vhd:158:10:@17410ns:(report note): 0434 (FFAB) RBRA 0x000A, !Z
+arbiter_mem.vhd:70:16:@17430ns:(report note): MEM: read instruction from 0x0440
+read_instruction.vhd:105:22:@17430ns:(report failure): CONTROL instruction
+```
+
+The problem now is that `RSUB` and `ASUB` are simply not implemented yet.  We
+have now the following statistics:
+
+Test coverage:
+
+* `test2.asm` fails first at 0x0424, which is approximately 20% of the whole test.
+
+Pipeline statistics (when reading from 0x0424):
+
+* Clock cycles : 1700
+* Instructions : 412
+* Cycles per instruction : 1700/412 = 4.13
+* Memory cycles : 808
+* Memory stalls : 106
+* Memory utilization : 808/1700 = 48%
+* Register write cycles : 605
+* Register write stalls : 0
+* Register write utilization : 605/1700 = 36%
+
+Resource utilization:
+
+* Slice LUTs : 759
+* Slice Registers : 167
+* Slices : 223
+
+Timing:
+
+* The slowest timing path has a slack of -1.3 ns and a logic depth of 15
+  levels.  This suggests a maximum frequency of 500/(10+1.3) = 44 MHz.
+
+Unfortunately, the CPI has increased beyond 4 and the frequency has gone down
+below 50 MHz, so considerable worse performance. In fact, even worse than the
+existing sequential implementation of the CPU. This is somewhat disappointing,
+and certainly fuels a desire to perform optimizations.
 
