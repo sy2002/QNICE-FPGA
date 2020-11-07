@@ -45,29 +45,41 @@ architecture synthesis of read_dst_operand is
 
    signal mem_request : std_logic;
    signal mem_ready   : std_logic;
+   signal mem_address : std_logic_vector(15 downto 0);
+   signal reg_request : std_logic;
    signal reg_ready   : std_logic;
+   signal reg_data    : std_logic_vector(15 downto 0);
    signal ready       : std_logic;
 
 begin
 
    -- Do we want to read from memory?
    mem_request <= '0' when valid_i = '0' else
-                  '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
                   '0' when instruction_i(R_OPCODE) = C_OP_MOVE else
                   '0' when instruction_i(R_OPCODE) = C_OP_SWAP else
                   '0' when instruction_i(R_OPCODE) = C_OP_NOT else
                   '0' when instruction_i(R_OPCODE) = C_OP_RES else
+                  '0' when instruction_i(R_OPCODE) = C_OP_CTRL else
                   '0' when instruction_i(R_OPCODE) = C_OP_BRA else
+                  '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
                   '1';
 
+
+   -- Do we want register write access?
+   reg_request <= '0' when valid_i = '0' else
+                  '0' when instruction_i(R_OPCODE) = C_OP_RES else
+                  '0' when instruction_i(R_OPCODE) = C_OP_CTRL else
+                  '0' when instruction_i(R_OPCODE) = C_OP_BRA else
+                  '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
+                  '0' when instruction_i(R_DEST_MODE) = C_MODE_MEM else
+                  '1';
+
+
    -- Are we waiting for memory read access?
-   mem_ready <= (not mem_request) or mem_ready_i;
+   mem_ready <= not (mem_request and not mem_ready_i);
 
    -- Are we waiting for register write access?
-   reg_ready <= '1' when valid_i = '0' else
-                '1' when instruction_i(R_DEST_MODE) = C_MODE_REG else
-                '1' when instruction_i(R_DEST_MODE) = C_MODE_MEM else
-                reg_ready_i;
+   reg_ready <= not (reg_request and not reg_ready_i);
 
    -- Are we ready to complete this stage?
    ready <= mem_ready and reg_ready and ready_i;
@@ -77,54 +89,25 @@ begin
 
 
    -- To register file (combinatorial)
-   reg_rd_reg_o <= instruction_i(R_DEST_REG);
+   reg_data <= reg_data_i + 1 when instruction_i(R_DEST_MODE) = C_MODE_POST else
+               reg_data_i - 1 when instruction_i(R_DEST_MODE) = C_MODE_PRE else
+               reg_data_i;
 
-   p_reg : process (valid_i, instruction_i, reg_data_i, ready)
-   begin
-      -- Default values to avoid latch
-      reg_wr_reg_o <= instruction_i(R_DEST_REG);
-      reg_wr_o     <= '0';
-      reg_data_o   <= reg_data_i;
-
-      if valid_i = '1' and ready = '1' and
-         instruction_i(R_OPCODE) /= C_OP_CTRL and
-         instruction_i(R_OPCODE) /= C_OP_BRA then
-         case conv_integer(instruction_i(R_DEST_MODE)) is
-            when C_MODE_REG  => null;
-            when C_MODE_MEM  => null;
-            when C_MODE_POST => reg_data_o <= reg_data_i+1; reg_wr_o <= '1';
-            when C_MODE_PRE  => reg_data_o <= reg_data_i-1; reg_wr_o <= '1';
-            when others      => null;
-         end case;
-      end if;
-   end process p_reg;
+   reg_wr_o     <= reg_request;
+   reg_wr_reg_o <= instruction_i(R_DEST_REG);
+   reg_data_o   <= reg_data;
 
 
    -- To memory subsystem (combinatorial)
-   p_mem : process (valid_i, instruction_i, reg_data_i, ready, mem_request)
-   begin
-      -- Default values to avoid latch
-      mem_valid_o   <= '0';
-      mem_address_o <= (others => '0');
+   mem_address <= reg_data_i-1 when instruction_i(R_DEST_MODE) = C_MODE_PRE else
+                  reg_data_i;
 
-      case conv_integer(instruction_i(R_DEST_MODE)) is
-         when C_MODE_REG  => null;
-         when C_MODE_MEM  => mem_address_o <= reg_data_i;
-         when C_MODE_POST => mem_address_o <= reg_data_i;
-         when C_MODE_PRE  => mem_address_o <= reg_data_i-1;
-         when others      => null;
-      end case;
+   mem_valid_o   <= mem_request;
+   mem_address_o <= mem_address;
 
-      if valid_i = '1' and ready = '1' and mem_request = '1' then
-         case conv_integer(instruction_i(R_DEST_MODE)) is
-            when C_MODE_REG  => null;
-            when C_MODE_MEM  => mem_valid_o <= '1';
-            when C_MODE_POST => mem_valid_o <= '1';
-            when C_MODE_PRE  => mem_valid_o <= '1';
-            when others      => null;
-         end case;
-      end if;
-   end process p_mem;
+
+   -- To register file (combinatorial)
+   reg_rd_reg_o <= instruction_i(R_DEST_REG);
 
 
    -- To next stage (registered)
@@ -140,6 +123,7 @@ begin
             dst_address_o <= (others => '0');
          end if;
 
+         -- Shall we complete this stage?
          if valid_i = '1' and ready = '1' then
             if instruction_i(R_DEST_MODE) = C_MODE_REG then
                valid_o       <= '1';
