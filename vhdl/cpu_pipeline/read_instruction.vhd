@@ -40,7 +40,7 @@ architecture synthesis of read_instruction is
    signal ready           : std_logic;
    signal reg_data        : std_logic_vector(15 downto 0);
 
-   signal count_r         : integer range 0 to 3;
+   signal count_r         : integer range 0 to 4;
    signal valid_r         : std_logic := '0';
    signal pc_inst_r       : std_logic_vector(15 downto 0);
    signal src_reg_value_r : std_logic_vector(15 downto 0);
@@ -51,7 +51,6 @@ begin
    -- Do we want to read from memory?
    mem_request <= '0' when count_r /= 0 else
                   '0' when valid_r = '1' and ready_i = '0' else
-                  '0' when valid_r = '1' and instruction_r(R_DEST_REG) = C_REG_PC else
                   '1';
 
    -- Are we waiting for memory read access?
@@ -70,7 +69,7 @@ begin
 
    -- Register value before increment/decrement
    reg_data <= pc_i + 1 when mem_data_i(R_SRC_REG) = C_REG_PC else -- Instruction decoding
-                   reg_data_i;
+               reg_data_i;
 
    -- To memory subsystem (combinatorial)
    mem_address_o <= pc_i;
@@ -96,7 +95,10 @@ begin
                   src_reg_value_r <= reg_data;
                   instruction_r   <= mem_data_i;
                   if mem_data_i(R_OPCODE) = C_OP_BRA then
-                     count_r <= 3;
+                     count_r <= 4;
+                  end if;
+                  if mem_data_i(R_DEST_REG) = C_REG_PC then
+                     count_r <= 4;
                   end if;
                   if mem_data_i(R_OPCODE) = C_OP_CTRL then
                      report "CONTROL instruction"
@@ -106,6 +108,7 @@ begin
             when 1 => count_r <= 0;
             when 2 => count_r <= 1;
             when 3 => count_r <= 2;
+            when 4 => count_r <= 3;
             when others => null;
          end case;
 

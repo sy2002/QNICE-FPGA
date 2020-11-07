@@ -100,7 +100,7 @@ begin
                    reg_data_in - 1 when instruction_i(R_DEST_MODE) = C_MODE_PRE else
                    reg_data_in;
 
-   reg_wr_o     <= reg_request;
+   reg_wr_o     <= reg_request and ready;
    reg_wr_reg_o <= instruction_i(R_DEST_REG);
    reg_data_o   <= reg_data_out;
 
@@ -109,13 +109,14 @@ begin
    mem_address <= reg_data_in-1 when instruction_i(R_DEST_MODE) = C_MODE_PRE else
                   reg_data_in;
 
-   mem_valid_o   <= mem_request;
+   mem_valid_o   <= mem_request and ready;
    mem_address_o <= mem_address;
 
 
    -- To register file (combinatorial)
    reg_rd_reg_o <= instruction_i(R_DEST_REG);
 
+   -- Handle pipeline hazards
    reg_data_in <= res_data_i when res_wr_i = '1' and
                                   conv_integer(res_wr_reg_i) = conv_integer(instruction_i(R_DEST_REG)) else
                   reg_data_i;

@@ -81,7 +81,7 @@ begin
                src_reg_value_i - 1 when instruction_i(R_SRC_MODE) = C_MODE_PRE else
                src_reg_value_i;
 
-   reg_wr_o     <= reg_request;
+   reg_wr_o     <= reg_request and ready;
    reg_wr_reg_o <= instruction_i(R_SRC_REG);
    reg_data_o   <= reg_data;
 
@@ -90,7 +90,7 @@ begin
    mem_address <= src_reg_value_i-1 when instruction_i(R_SRC_MODE) = C_MODE_PRE else
                   src_reg_value_i;
 
-   mem_valid_o   <= mem_request;
+   mem_valid_o   <= mem_request and ready;
    mem_address_o <= mem_address;
 
 
