@@ -27,7 +27,7 @@
 ; Version 1.2 done on August, 18 2020: Slow down by 7% to cater for the speed
 ; increase of the ISA V1.6
 ;
-; !!! WIP Version 2.0: Classic mode, color mode, slow down by 2% to cater for
+; !!! WIP Version 2.0: Classic mode, color mode, slow down to cater for
 ; the speed increase of V1.7 compared to V1.6
 ; ****************************************************************************
 
@@ -402,34 +402,34 @@ GAME_WON     .EQU 10        ; game is won, when "Level 10" is reached
 ; speed is defined by wasted cycles, both numbers are multiplied
 ; second number is also used for blinking frequency, so adjust carefully
 ; (preferably only adjust the first number)
-Level_Speed .DW 946, 274    ; Level 1  (was 800, at ISA V1.21, 
+Level_Speed .DW 946, 290    ; Level 1  (was 800, at ISA V1.21, 
                             ;           was 946, 251 until ISA V1.5
                             ;           was 946, 269 until ISA V1.6)
-            .DW 827, 274    ; Level 2  (was 700 at ISA V1.21
+            .DW 827, 290    ; Level 2  (was 700 at ISA V1.21
                             ;           was 827, 251 until ISA V1.5
                             ;           was 827, 269 until ISA V1.6)
-            .DW 709, 274    ; Level 3  (was 600 at ISA V1.21
+            .DW 709, 290    ; Level 3  (was 600 at ISA V1.21
                             ;           was 709, 251 until ISA V1.5
                             ;           was 709, 269 until ISA V1.6)
-            .DW 591, 274    ; Level 4  (was 500 at ISA V1.21
+            .DW 591, 290    ; Level 4  (was 500 at ISA V1.21
                             ;           was 591, 251 until ISA V1.5
                             ;           was 591, 269 until ISA V1.6)
-            .DW 532, 274    ; Level 5  (was 450 at ISA V1.21
+            .DW 532, 290    ; Level 5  (was 450 at ISA V1.21
                             ;           was 532, 251 until ISA V1.5
                             ;           was 532, 269 until ISA V1.6)
-            .DW 473, 274    ; Level 6  (was 400 at ISA V1.21
+            .DW 473, 290    ; Level 6  (was 400 at ISA V1.21
                             ;           was 473, 251 until ISA V1.5
                             ;           was 473, 269 until ISA V1.6)
-            .DW 414, 274    ; Level 7  (was 350 at ISA V1.21
+            .DW 414, 290    ; Level 7  (was 350 at ISA V1.21
                             ;           was 414, 251 until ISA V1.5
                             ;           was 414, 269 until ISA V1.6)
-            .DW 355, 274    ; Level 8  (was 300 at ISA V1.21
+            .DW 355, 290    ; Level 8  (was 300 at ISA V1.21
                             ;           was 355, 251 until ISA V1.5
                             ;           was 355, 269 until ISA V1.6)
-            .DW 296, 274    ; Level 9  (was 250 at ISA V1.21
+            .DW 296, 290    ; Level 9  (was 250 at ISA V1.21
                             ;           was 296, 251 until ISA V1.5
                             ;           was 296, 269 until ISA V1.6)
-            .DW 296, 274    ; non existing "Level 10" => Game Won
+            .DW 296, 290    ; non existing "Level 10" => Game Won
 
 ; ****************************************************************************
 ; HANDLE_END
