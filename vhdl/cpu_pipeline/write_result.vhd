@@ -40,35 +40,50 @@ end entity write_result;
 
 architecture synthesis of write_result is
 
-   signal res_data : std_logic_vector(15 downto 0);
+   signal res_data       : std_logic_vector(15 downto 0);
 
-   signal mem_request : std_logic;
-   signal mem_ready   : std_logic;
-   signal reg_request : std_logic;
-   signal reg_ready   : std_logic;
-   signal ready       : std_logic;
+   signal mem_request    : std_logic;
+   signal mem_ready      : std_logic;
+   signal reg_request    : std_logic;
+   signal reg_ready      : std_logic;
+   signal ready          : std_logic;
+
+   signal branch_execute : std_logic;
+   signal branch_dest    : std_logic_vector(15 downto 0);
 
 begin
 
    -- Do we want to write to memory?
    mem_request <= '0' when valid_i = '0' else
-                  '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
                   '0' when instruction_i(R_OPCODE) = C_OP_BRA else
+                  '0' when instruction_i(R_OPCODE) = C_OP_CTRL else
                   '0' when instruction_i(R_OPCODE) = C_OP_CMP else
+                  '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
                   '1';
 
-   -- Are we waiting for memory read access?
-   mem_ready <= (not mem_request) or mem_ready_i;
+
+   -- Are we executing and jumping on a branch?
+   branch_execute <= '0' when valid_i = '0' else
+                     '0' when conv_integer(instruction_i(R_OPCODE)) /= C_OP_BRA else
+                     '0' when sr_i(conv_integer(instruction_i(R_BRA_COND))) /= not instruction_i(R_BRA_NEGATE) else
+                     '1';
+
 
    -- Do we want register write access?
    reg_request <= '0' when valid_i = '0' else
+                  '1' when branch_execute = '1' else
                   '0' when instruction_i(R_OPCODE) = C_OP_BRA else
+                  '0' when instruction_i(R_OPCODE) = C_OP_CTRL else
                   '0' when instruction_i(R_OPCODE) = C_OP_CMP else
-                  '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
+                  '0' when instruction_i(R_DEST_MODE) /= C_MODE_REG else
                   '1';
 
+
+   -- Are we waiting for memory read access?
+   mem_ready <= not (mem_request and not mem_ready_i);
+
    -- Are we waiting for register write access?
-   reg_ready <= (not reg_request) or reg_res_ready_i;
+   reg_ready <= not (reg_request and not reg_res_ready_i);
 
    -- Are we ready to complete this stage?
    ready <= mem_ready and reg_ready;
@@ -91,70 +106,35 @@ begin
       ); -- i_alu
 
 
+   -- Where are we jumping to?
+   branch_dest <= pc_i + res_data when instruction_i(R_BRA_MODE) = C_BRA_RBRA else
+                  pc_i + res_data when instruction_i(R_BRA_MODE) = C_BRA_RSUB else
+                  res_data;
+
+   -- To register write subsystem (combinatorial)
+   reg_res_wr_o     <= reg_request and ready;
+   reg_res_wr_reg_o <= std_logic_vector(to_unsigned(C_REG_PC, 4)) when branch_execute = '1' else
+                       instruction_i(R_DEST_REG);
+   reg_res_data_o   <= branch_dest when branch_execute = '1' else
+                       res_data;
+
+
    -- To memory subsystem (combinatorial)
-   p_mem : process (valid_i, instruction_i, res_data, dst_address_i, ready, mem_request)
+   mem_valid_o   <= mem_request and ready;
+   mem_address_o <= dst_address_i;
+   mem_data_o    <= res_data;
+
+
+   -- synthesis translate_off
+   process (clk_i)
    begin
-      -- Default values to avoid latch
-      mem_valid_o   <= '0';
-      mem_address_o <= dst_address_i;
-      mem_data_o    <= res_data;
-
-      if valid_i = '1' and ready = '1' and mem_request = '1' then
-         case conv_integer(instruction_i(R_DEST_MODE)) is
-            when C_MODE_REG  => null;
-            when C_MODE_MEM  => mem_valid_o <= '1';
-            when C_MODE_POST => mem_valid_o <= '1';
-            when C_MODE_PRE  => mem_valid_o <= '1';
-            when others      => null;
-         end case;
-      end if;
-   end process p_mem;
-
-
-   -- To register file (combinatorial)
-   p_reg : process (valid_i, instruction_i, res_data, ready, pc_i, clk_i, pc_inst_i)
-   begin
-      -- Default values to avoid latch
-      reg_res_wr_reg_o <= (others => '0');
-      reg_res_wr_o     <= '0';
-      reg_res_data_o   <= (others => '0');
-
-      if valid_i = '1' and ready = '1' then
-         -- Is this is branch type instruction ?
-         if conv_integer(instruction_i(R_OPCODE)) = C_OP_BRA then
-
-            -- Is the condition satisfied ?
-            if sr_i(conv_integer(instruction_i(R_BRA_COND))) = not instruction_i(R_BRA_NEGATE) then
-
-               reg_res_wr_reg_o <= std_logic_vector(to_unsigned(C_REG_PC, 4));
-               reg_res_wr_o     <= '1';
-
-               case conv_integer(instruction_i(R_BRA_MODE)) is
-                  when C_BRA_ABRA => reg_res_data_o <= res_data;
-                  when C_BRA_ASUB => reg_res_data_o <= res_data;
-                  when C_BRA_RBRA => reg_res_data_o <= pc_i + res_data;
-                  when C_BRA_RSUB => reg_res_data_o <= pc_i + res_data;
-                  when others => null;
-               end case;
-            end if;
-         elsif conv_integer(instruction_i(R_OPCODE)) = C_OP_CTRL then
-            report "Control instruction";
-         elsif conv_integer(instruction_i(R_OPCODE)) = C_OP_CMP then
-            null;
-         elsif conv_integer(instruction_i(R_DEST_MODE)) = C_MODE_REG then
-            reg_res_wr_reg_o <= instruction_i(R_DEST_REG);
-            reg_res_wr_o     <= '1';
-            reg_res_data_o   <= res_data;
-         end if;
-
-         -- synthesis translate_off
-         if rising_edge(clk_i) then
+      if rising_edge(clk_i) then
+         if valid_i = '1' and ready = '1' then
             disassemble(pc_inst_i, instruction_i, res_data);
          end if;
-         -- synthesis translate_on
-
       end if;
-   end process p_reg;
+   end process;
+   -- synthesis translate_on
 
 end architecture synthesis;
 

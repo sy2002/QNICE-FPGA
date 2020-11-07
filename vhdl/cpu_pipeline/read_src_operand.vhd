@@ -29,7 +29,7 @@ entity read_src_operand is
       mem_data_i       : in  std_logic_vector(15 downto 0);
 
       -- To next stage (registered)
-      valid_o          : out std_logic;
+      valid_o          : out std_logic := '0';
       ready_i          : in  std_logic;
       src_operand_o    : out std_logic_vector(15 downto 0);
       pc_inst_o        : out std_logic_vector(15 downto 0);

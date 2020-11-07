@@ -41,7 +41,7 @@ architecture synthesis of read_instruction is
    signal reg_src_data    : std_logic_vector(15 downto 0);
 
    signal count_r         : integer range 0 to 3;
-   signal valid_r         : std_logic;
+   signal valid_r         : std_logic := '0';
    signal pc_inst_r       : std_logic_vector(15 downto 0);
    signal src_reg_value_r : std_logic_vector(15 downto 0);
    signal instruction_r   : std_logic_vector(15 downto 0);
