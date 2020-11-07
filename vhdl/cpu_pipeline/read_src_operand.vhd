@@ -17,10 +17,10 @@ entity read_src_operand is
       instruction_i    : in  std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
-      reg_src_wr_reg_o : out std_logic_vector(3 downto 0);
-      reg_src_wr_o     : out std_logic;
-      reg_src_ready_i  : in  std_logic;
-      reg_src_data_o   : out std_logic_vector(15 downto 0);
+      reg_wr_reg_o     : out std_logic_vector(3 downto 0);
+      reg_wr_o         : out std_logic;
+      reg_ready_i      : in  std_logic;
+      reg_data_o       : out std_logic_vector(15 downto 0);
 
       -- To memory subsystem (combinatorial)
       mem_valid_o      : out std_logic;
@@ -60,7 +60,7 @@ begin
    reg_ready <= '1' when valid_i = '0' else
                 '1' when instruction_i(R_SRC_MODE) = C_MODE_REG else
                 '1' when instruction_i(R_SRC_MODE) = C_MODE_MEM else
-                reg_src_ready_i;
+                reg_ready_i;
 
    -- Are we ready to complete this stage?
    ready <= mem_ready and reg_ready and ready_i;
@@ -71,16 +71,16 @@ begin
    p_reg : process (valid_i, instruction_i, src_reg_value_i, ready)
    begin
       -- Default values to avoid latch
-      reg_src_wr_reg_o <= instruction_i(R_SRC_REG);
-      reg_src_wr_o     <= '0';
-      reg_src_data_o   <= src_reg_value_i;
+      reg_wr_reg_o <= instruction_i(R_SRC_REG);
+      reg_wr_o     <= '0';
+      reg_data_o   <= src_reg_value_i;
 
       if valid_i = '1' and ready = '1' then
          case conv_integer(instruction_i(R_SRC_MODE)) is
             when C_MODE_REG  => null;
             when C_MODE_MEM  => null;
-            when C_MODE_POST => reg_src_data_o <= src_reg_value_i+1; reg_src_wr_o <= '1';
-            when C_MODE_PRE  => reg_src_data_o <= src_reg_value_i-1; reg_src_wr_o <= '1';
+            when C_MODE_POST => reg_data_o <= src_reg_value_i+1; reg_wr_o <= '1';
+            when C_MODE_PRE  => reg_data_o <= src_reg_value_i-1; reg_wr_o <= '1';
             when others      => null;
          end case;
       end if;

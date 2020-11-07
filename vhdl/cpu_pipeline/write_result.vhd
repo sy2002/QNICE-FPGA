@@ -31,10 +31,10 @@ entity write_result is
       mem_data_o       : out std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
-      reg_res_wr_reg_o : out std_logic_vector(3 downto 0);
-      reg_res_wr_o     : out std_logic;
-      reg_res_ready_i  : in  std_logic;
-      reg_res_data_o   : out std_logic_vector(15 downto 0)
+      reg_wr_reg_o     : out std_logic_vector(3 downto 0);
+      reg_wr_o         : out std_logic;
+      reg_ready_i      : in  std_logic;
+      reg_data_o       : out std_logic_vector(15 downto 0)
    );
 end entity write_result;
 
@@ -83,7 +83,7 @@ begin
    mem_ready <= not (mem_request and not mem_ready_i);
 
    -- Are we waiting for register write access?
-   reg_ready <= not (reg_request and not reg_res_ready_i);
+   reg_ready <= not (reg_request and not reg_ready_i);
 
    -- Are we ready to complete this stage?
    ready <= mem_ready and reg_ready;
@@ -112,11 +112,11 @@ begin
                   res_data;
 
    -- To register write subsystem (combinatorial)
-   reg_res_wr_o     <= reg_request and ready;
-   reg_res_wr_reg_o <= std_logic_vector(to_unsigned(C_REG_PC, 4)) when branch_execute = '1' else
-                       instruction_i(R_DEST_REG);
-   reg_res_data_o   <= branch_dest when branch_execute = '1' else
-                       res_data;
+   reg_wr_o     <= reg_request and ready;
+   reg_wr_reg_o <= std_logic_vector(to_unsigned(C_REG_PC, 4)) when branch_execute = '1' else
+                   instruction_i(R_DEST_REG);
+   reg_data_o   <= branch_dest when branch_execute = '1' else
+                   res_data;
 
 
    -- To memory subsystem (combinatorial)

@@ -12,8 +12,8 @@ entity read_instruction is
       -- To register file (combinatorial)
       pc_i             : in  std_logic_vector(15 downto 0);
       pc_o             : out std_logic_vector(15 downto 0);
-      reg_src_rd_reg_o : out std_logic_vector(3 downto 0);
-      reg_src_data_i   : in  std_logic_vector(15 downto 0);
+      reg_rd_reg_o     : out std_logic_vector(3 downto 0);
+      reg_data_i       : in  std_logic_vector(15 downto 0);
 
       -- To memory subsystem (combinatorial)
       mem_valid_o      : out std_logic;
@@ -38,7 +38,7 @@ architecture synthesis of read_instruction is
    signal mem_request     : std_logic;
    signal mem_ready       : std_logic;
    signal ready           : std_logic;
-   signal reg_src_data    : std_logic_vector(15 downto 0);
+   signal reg_data        : std_logic_vector(15 downto 0);
 
    signal count_r         : integer range 0 to 3;
    signal valid_r         : std_logic := '0';
@@ -66,11 +66,11 @@ begin
            pc_i;
 
    -- To register file (combinatorial)
-   reg_src_rd_reg_o <= mem_data_i(R_SRC_REG);   -- Instruction decoding
+   reg_rd_reg_o <= mem_data_i(R_SRC_REG);   -- Instruction decoding
 
    -- Register value before increment/decrement
-   reg_src_data <= pc_i + 1 when mem_data_i(R_SRC_REG) = C_REG_PC else -- Instruction decoding
-                   reg_src_data_i;
+   reg_data <= pc_i + 1 when mem_data_i(R_SRC_REG) = C_REG_PC else -- Instruction decoding
+                   reg_data_i;
 
    -- To memory subsystem (combinatorial)
    mem_address_o <= pc_i;
@@ -93,7 +93,7 @@ begin
                   dbg_inst_counter_r <= dbg_inst_counter_r + 1;
                   valid_r         <= '1';
                   pc_inst_r       <= pc_i;
-                  src_reg_value_r <= reg_src_data;
+                  src_reg_value_r <= reg_data;
                   instruction_r   <= mem_data_i;
                   if mem_data_i(R_OPCODE) = C_OP_BRA then
                      count_r <= 3;

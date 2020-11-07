@@ -17,12 +17,12 @@ entity read_dst_operand is
       src_operand_i    : in  std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
-      reg_dst_rd_reg_o : out std_logic_vector(3 downto 0);
-      reg_dst_data_i   : in  std_logic_vector(15 downto 0);
-      reg_dst_wr_reg_o : out std_logic_vector(3 downto 0);
-      reg_dst_wr_o     : out std_logic;
-      reg_dst_ready_i  : in  std_logic;
-      reg_dst_data_o   : out std_logic_vector(15 downto 0);
+      reg_rd_reg_o     : out std_logic_vector(3 downto 0);
+      reg_data_i       : in  std_logic_vector(15 downto 0);
+      reg_wr_reg_o     : out std_logic_vector(3 downto 0);
+      reg_wr_o         : out std_logic;
+      reg_ready_i      : in  std_logic;
+      reg_data_o       : out std_logic_vector(15 downto 0);
 
       -- To memory subsystem (combinatorial)
       mem_valid_o      : out std_logic;
@@ -67,7 +67,7 @@ begin
    reg_ready <= '1' when valid_i = '0' else
                 '1' when instruction_i(R_DEST_MODE) = C_MODE_REG else
                 '1' when instruction_i(R_DEST_MODE) = C_MODE_MEM else
-                reg_dst_ready_i;
+                reg_ready_i;
 
    -- Are we ready to complete this stage?
    ready <= mem_ready and reg_ready and ready_i;
@@ -77,14 +77,14 @@ begin
 
 
    -- To register file (combinatorial)
-   reg_dst_rd_reg_o <= instruction_i(R_DEST_REG);
+   reg_rd_reg_o <= instruction_i(R_DEST_REG);
 
-   p_reg : process (valid_i, instruction_i, reg_dst_data_i, ready)
+   p_reg : process (valid_i, instruction_i, reg_data_i, ready)
    begin
       -- Default values to avoid latch
-      reg_dst_wr_reg_o <= instruction_i(R_DEST_REG);
-      reg_dst_wr_o     <= '0';
-      reg_dst_data_o   <= reg_dst_data_i;
+      reg_wr_reg_o <= instruction_i(R_DEST_REG);
+      reg_wr_o     <= '0';
+      reg_data_o   <= reg_data_i;
 
       if valid_i = '1' and ready = '1' and
          instruction_i(R_OPCODE) /= C_OP_CTRL and
@@ -92,8 +92,8 @@ begin
          case conv_integer(instruction_i(R_DEST_MODE)) is
             when C_MODE_REG  => null;
             when C_MODE_MEM  => null;
-            when C_MODE_POST => reg_dst_data_o <= reg_dst_data_i+1; reg_dst_wr_o <= '1';
-            when C_MODE_PRE  => reg_dst_data_o <= reg_dst_data_i-1; reg_dst_wr_o <= '1';
+            when C_MODE_POST => reg_data_o <= reg_data_i+1; reg_wr_o <= '1';
+            when C_MODE_PRE  => reg_data_o <= reg_data_i-1; reg_wr_o <= '1';
             when others      => null;
          end case;
       end if;
@@ -101,7 +101,7 @@ begin
 
 
    -- To memory subsystem (combinatorial)
-   p_mem : process (valid_i, instruction_i, reg_dst_data_i, ready, mem_request)
+   p_mem : process (valid_i, instruction_i, reg_data_i, ready, mem_request)
    begin
       -- Default values to avoid latch
       mem_valid_o   <= '0';
@@ -109,9 +109,9 @@ begin
 
       case conv_integer(instruction_i(R_DEST_MODE)) is
          when C_MODE_REG  => null;
-         when C_MODE_MEM  => mem_address_o <= reg_dst_data_i;
-         when C_MODE_POST => mem_address_o <= reg_dst_data_i;
-         when C_MODE_PRE  => mem_address_o <= reg_dst_data_i-1;
+         when C_MODE_MEM  => mem_address_o <= reg_data_i;
+         when C_MODE_POST => mem_address_o <= reg_data_i;
+         when C_MODE_PRE  => mem_address_o <= reg_data_i-1;
          when others      => null;
       end case;
 
@@ -143,7 +143,7 @@ begin
          if valid_i = '1' and ready = '1' then
             if instruction_i(R_DEST_MODE) = C_MODE_REG then
                valid_o       <= '1';
-               dst_operand_o <= reg_dst_data_i;
+               dst_operand_o <= reg_data_i;
                pc_inst_o     <= pc_inst_i;
                instruction_o <= instruction_i;
                src_operand_o <= src_operand_i;
@@ -160,9 +160,9 @@ begin
             end if;
 
             if instruction_i(R_DEST_MODE) = C_MODE_PRE then
-               dst_address_o <= reg_dst_data_i-1;
+               dst_address_o <= reg_data_i-1;
             else
-               dst_address_o <= reg_dst_data_i;
+               dst_address_o <= reg_data_i;
             end if;
          end if;
 
