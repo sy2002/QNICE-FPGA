@@ -53,6 +53,7 @@ begin
    mem_request <= '0' when valid_i = '0' else
                   '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
                   '0' when instruction_i(R_OPCODE) = C_OP_BRA else
+                  '0' when instruction_i(R_OPCODE) = C_OP_CMP else
                   '1';
 
    -- Are we waiting for memory read access?

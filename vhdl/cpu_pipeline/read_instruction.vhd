@@ -51,13 +51,14 @@ begin
    -- Do we want to read from memory?
    mem_request <= '0' when count_r /= 0 else
                   '0' when valid_r = '1' and ready_i = '0' else
+                  '0' when valid_r = '1' and instruction_r(R_DEST_REG) = C_REG_PC else
                   '1';
 
    -- Are we waiting for memory read access?
    mem_ready <= not (mem_request and not mem_ready_i);
 
    -- Are we ready to complete this stage?
-   ready <= mem_ready and ready_i and not rst_i;
+   ready <= mem_request and mem_ready and ready_i and not rst_i;
 
 
    -- To register file (combinatorial)
@@ -86,9 +87,9 @@ begin
             valid_r <= '0';
          end if;
 
-         if ready = '1' then
-            case count_r is
-               when 0 =>
+         case count_r is
+            when 0 =>
+               if ready = '1' then
                   dbg_inst_counter_r <= dbg_inst_counter_r + 1;
                   valid_r         <= '1';
                   pc_inst_r       <= pc_i;
@@ -99,14 +100,14 @@ begin
                   end if;
                   if mem_data_i(R_OPCODE) = C_OP_CTRL then
                      report "CONTROL instruction"
-                        severity failure;
+                     severity failure;
                   end if;
-               when 1 => count_r <= 0;
-               when 2 => count_r <= 1;
-               when 3 => count_r <= 2;
-               when others => null;
-            end case;
-         end if;
+               end if;
+            when 1 => count_r <= 0;
+            when 2 => count_r <= 1;
+            when 3 => count_r <= 2;
+            when others => null;
+         end case;
 
          if rst_i = '1' then
             count_r       <= 0;

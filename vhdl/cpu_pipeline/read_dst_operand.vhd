@@ -86,7 +86,9 @@ begin
       reg_dst_wr_o     <= '0';
       reg_dst_data_o   <= reg_dst_data_i;
 
-      if valid_i = '1' and ready = '1' then
+      if valid_i = '1' and ready = '1' and
+         instruction_i(R_OPCODE) /= C_OP_CTRL and
+         instruction_i(R_OPCODE) /= C_OP_BRA then
          case conv_integer(instruction_i(R_DEST_MODE)) is
             when C_MODE_REG  => null;
             when C_MODE_MEM  => null;

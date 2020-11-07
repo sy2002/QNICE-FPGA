@@ -466,3 +466,119 @@ ghdl:error: bound check failure at memory.vhd:62
 Here it is much more clear that the line `MEM: read instruction from 0x014A` is
 incorrect, since address 0x014A contains an operand, and not an instruction.
 
+## Fixing pipeline hazards
+
+Now begins the long and arduous task of tracking down and fixing the pipeline
+hazards. Currently, we're stopped at the instruction `CMP R, @PC++`. The reason
+is that in stage 2 we begin fetching the next instuction from an incorrect
+address, because only in stage 3 is the PC incremented.
+
+I initially made several attempts at solving this problem by moving the
+register writes from stages 2 and 3 to stages 1 and 2. However, this lead to a
+host of other problems that I couldn't readily solve, so I've temporarily given
+up on that approach. Instead I'm looking into performing more instruction
+decoding in stage 1. What comes to mind is to block the instruction fetch, if
+the current instruction is updating the PC. This is simply done by adding a
+single line to `read_instruction.vhd`:
+
+```
+mem_request <= '0' when valid_r = '1' and instruction_r(R_DEST_REG) = C_REG_PC else
+```
+
+This change is not enough, since stage 1 still erroneously passes on a valid
+instruction even though no instruction fetch was performed. This turns
+out to be another easy fix by adding the condition `mem_request and` to the line:
+
+```
+ready <= mem_request and mem_ready and ready_i and not rst_i;
+```
+
+Alas, this still fails, because now only the very first instruction in
+`test2.asm` is executed. This time it is because the `count_r` signal is not
+being decremented, when `ready` is not asserted. This is not the intended
+behaviour; `count_r` should be decremented regardless of the `ready` signal.
+This too is an easy fix, just by moving the `if ready = '1' then` inside the
+`when 0 =>`.
+
+With all these small changes, finally the instruction `CMP R, @PC++` seems to
+work. There is just one more thing. Looking at the console output reveals the
+lines:
+```
+arbiter_mem.vhd:70:16:@4440ns:(report note): MEM: read instruction from 0x0149
+arbiter_mem.vhd:74:16:@4460ns:(report note): MEM: read dst operand from 0x014A
+arbiter_mem.vhd:76:16:@4470ns:(report note): MEM: write result to 0x014A
+cpu_constants.vhd:165:10:@4470ns:(report note): 0149 (C03E) CMP R0, 0x1233
+```
+The problem here is the third line: `MEM: write result to 0x014A`. This is
+incorrect behaviour, because the `CMP` instruction should not write to the
+destination.  This is yet another trivial fix, just by adding the line:
+```
+mem_request <= '0' when instruction_i(R_OPCODE) = C_OP_CMP else
+```
+in `write_result.vhd``write_result.vhd`
+
+Still the test fails in roughly the same place, this time with the lines:
+```
+arbiter_mem.vhd:70:16:@4440ns:(report note): MEM: read instruction from 0x0149
+arbiter_mem.vhd:74:16:@4460ns:(report note): MEM: read dst operand from 0x014A
+arbiter_mem.vhd:70:16:@4470ns:(report note): MEM: read instruction from 0x014B
+cpu_constants.vhd:165:10:@4470ns:(report note): 0149 (C03E) CMP R0, 0x1233
+arbiter_mem.vhd:72:16:@4480ns:(report note): MEM: read src operand from 0x014C
+cpu_constants.vhd:158:10:@4500ns:(report note): 014B (FF8B) ABRA 0x0150, !Z
+arbiter_mem.vhd:70:16:@4510ns:(report note): MEM: read instruction from 0x0150
+read_instruction.vhd:102:22:@4510ns:(report failure): CONTROL instruction
+```
+The problem is that the instruction being executed is `CMP R0, 0x1233`, but in
+the `test2.asm` source file the correct instruction is `CMP R0, 0x1234`.  So it
+would appear that the destination value is decremented erroneously.  The
+problem is the lines
+```
+if valid_i = '1' and ready = '1' then
+   case conv_integer(instruction_i(R_DEST_MODE)) is
+```         
+in the file `read_dst_operand.vhd`. The reason is that the "destination mode"
+field in the instrucion is not valid in case of branch or control instructions.
+So the previous instruction `0145 (FF83) ABRA 0x0149, Z` was actually
+interpreted as having a destination operand of `@--R0`, which prompted a
+decrement of the `R0` register and the associated destination operand value.
+Again the fix is easy (once the root cause has been found!) and that is to add
+the conditionals
+```
+   instruction_i(R_OPCODE) /= C_OP_CTRL and
+   instruction_i(R_OPCODE) /= C_OP_BRA then
+```
+to the above code segment.
+
+And, finally, the test proceeds. Phew! This was quite arduous, mainly due to
+lots of small bugs.  Interestingly, the changes made above have somewhat
+improved the statistics. So at the time of executing the instruction at 0x0149,
+now only 433 clock cycles have occurred, instead of the value 445 reported
+previously. I believe the reason is that the signal `count_r` is now
+decremented always, and no longer dependent on a conditional.
+
+The test now fails with the lines:
+```
+arbiter_mem.vhd:70:16:@4890ns:(report note): MEM: read instruction from 0x016B
+cpu_constants.vhd:165:10:@4890ns:(report note): 0169 (C13E) CMP R1, 0x1234
+arbiter_mem.vhd:72:16:@4900ns:(report note): MEM: read src operand from 0x016C
+cpu_constants.vhd:158:10:@4920ns:(report note): 016B (FF83) ABRA 0x0170, Z
+arbiter_mem.vhd:70:16:@4930ns:(report note): MEM: read instruction from 0x0170
+read_instruction.vhd:102:22:@4930ns:(report failure): CONTROL instruction
+```
+
+Pipeline statistics (when reading from 0x016B):
+
+* Clock cycles : 478
+* Instructions : 131
+* Cycles per instruction : 478/131 = 3.65
+* Memory cycles : 258
+* Memory stalls : 22
+* Memory utilization : 258/478 = 54%
+* Register write cycles : 203
+* Register write stalls : 0
+* Register write utilization : 203/478 = 42%
+
+Interestingly, the total number of register writes has gone down, but that must
+be due to the fix in `read_dst_operand.vhd`, where we now make an exception for
+branch and control instructions.
+
