@@ -377,7 +377,7 @@ begin
       
    fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, PC_org,
                                 DATA_IN, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
-                                Instruction, Opcode, Ctrl_Cmd, FastPath,
+                                Instruction, Opcode, diOpcode, Ctrl_Cmd, diCtrl_Cmd, FastPath,
                                 Src_RegNo, diSrc_RegNo, Src_Mode, diSrc_Mode, Src_Value,
                                 Dst_RegNo, diDst_RegNo, Dst_Mode, diDst_Mode, Dst_Value,
                                 Src_Value_Fast, Dst_Value_Fast,
@@ -506,6 +506,19 @@ begin
                   -- input value: see FastPath handling above and the special "if FastPath" in cs_execute
                   elsif FastPath then
                      fsmNextCpuState <= cs_execute;
+                  
+                  -- INCRB and DECRB can be done in one cycle   
+                  elsif diOpcode = opcCTRL and (diCtrl_Cmd = ctrlINCRB or diCtrl_Cmd = ctrlDECRB) then
+                     fsmNextCpuState <= cs_fetch;
+                     fsmCPUAddr <= PC + 1;
+                                      
+                     if diCtrl_Cmd = ctrlINCRB then
+                        -- increment the register bank address by one and leave the SR alone while doing so                     
+                        fsmSR(15 downto 8) <= var_SR_tbw(15 downto 8) + 1;
+                     else
+                        -- decrement the register bank address by one and leave the SR alone while doing so                     
+                        fsmSR(15 downto 8) <= var_SR_tbw(15 downto 8) - 1;
+                     end if;                     
                   end if;
                end if;
             end if;
@@ -569,19 +582,7 @@ begin
                      else
                         fsmNextCpuState <= cs_halt;
                      end if;
-                  
-                  -- increment the register bank address by one and leave the SR alone while doing so
-                  when ctrlINCRB =>
-                     fsmSR(15 downto 8) <= SR(15 downto 8) + 1;
-                     fsmCPUAddr <= PC;
-                     fsmNextCpuState <= cs_fetch;
-
-                  -- decrement the register bank address by one and leave the SR alone while doing so                     
-                  when ctrlDECRB =>
-                     fsmSR(15 downto 8) <= SR(15 downto 8) - 1;
-                     fsmCPUAddr <= PC;
-                     fsmNextCpuState <= cs_fetch;
-                                                               
+                                                                                 
                   -- illegal command: HALT
                   when others =>
                      fsmNextCpuState <= cs_halt;
