@@ -831,8 +831,8 @@ Resource utilization:
 
 Timing:
 
-* The slowest timing path has a slack of 7.3 ns (at 50 MHz) and a logic depth of 11
-  levels.  This suggests a maximum frequency of 1000/(20-7.3) = 78 MHz.
+* The slowest timing path has a slack of 7.3 ns (at 50 MHz) and a logic depth
+  of 11 levels.  This suggests a maximum frequency of 1000/(20-7.3) = 78 MHz.
 
 First of all, the timing is now much better than before, with a maximum
 frequency of 78 MHz compared to 53 Mhz previously.
@@ -847,4 +847,59 @@ in total (343 versus 445). This is again due to the faster branch handling.
 The register write cycles has decreased (from 210 to 133). This is because
 branches taken, i.e. updating PC, is now handled "directly" by the register
 file and is no longer implemented as a generic register write.
+
+## Fixing pipeline hazards (again)
+This time I'm trying a different approach to pipeline hazards. Instead of
+copying a value from a later stage to an earlier stage, I rather try to delay
+the earlier stage in case of a pipeline hazard. The reason for this is that the
+data copying introduces long combinatorial paths that reduce the maximum
+clock frequency.
+
+This new appeoach amounts to the signal `wait_o` from stage 2 to stage 1. This
+signal is used if the PC is being updated (e.g. a @PC++ operand), in which case
+the next instruction fetch is delayed.
+
+In stage 2 I can furthermore detect whether there is a register collision, in
+which case the stage just waits for one clock cycle.
+
+With these changes, the test now runs all the way to the `RSUB` instruction,
+which is still not implemented.
+
+Test coverage:
+
+* `test2.asm` fails first at 0x0424, which is approximately 20% of the whole test.
+
+Pipeline statistics (when reading from 0x0424):
+
+* Clock cycles : 1376
+* Instructions : 540
+* Cycles per instruction : 1376/540 = 2.55
+* Memory cycles : 1006
+* Memory stalls : 26
+* Memory utilization : 1006/1376 = 73%
+* Register write cycles : 475
+* Register write stalls : 0
+* Register write utilization : 475/1376 = 35%
+
+Resource utilization:
+
+* Slice LUTs : 671
+* Slice Registers : 206
+* Slices : 204
+
+Timing:
+
+* The slowest timing path has a slack of 6.6 ns (at 50 MHz) and a logic depth of 13
+  levels.  This suggests a maximum frequency of 1000/(20-6.6) = 74 MHz.
+
+The slowest timing path is the signal `write_result.dst_operand`, which comes
+directly out of a Block RAM and into the ALU. However, adding a register to
+this signal has little to no effect on the overall timing, because there is
+also another long timing path through the instruction decoding in stage 2 into
+the stage 1 and then the register file. So it seems already at this stage that
+we have reached the limit of what this design can achieve.
+
+Since reading from a Block RAM itself takes over 2 ns, it could be relevant to
+add (another) register to the memory output. This would require yet another
+redesign of the pipeline, so let's not go there just yet.
 

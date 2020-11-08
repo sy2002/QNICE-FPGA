@@ -22,12 +22,14 @@ end entity cpu_pipeline;
 
 architecture synthesis of cpu_pipeline is
 
-   signal stage1          : t_stage;
-   signal stage2          : t_stage;
-   signal stage3          : t_stage;
-   signal stage1_ready    : std_logic;
-   signal stage2_ready    : std_logic;
-   signal stage3_ready    : std_logic;
+   signal stage1           : t_stage;
+   signal stage2           : t_stage;
+   signal stage3           : t_stage;
+   signal stage1_ready     : std_logic;
+   signal stage2_ready     : std_logic;
+   signal stage3_ready     : std_logic;
+
+   signal stage1_wait      : std_logic;
 
    -- Connections to the arbiter_mem
    signal mem_inst_valid   : std_logic;
@@ -94,32 +96,34 @@ begin
          mem_address_o    => mem_inst_address,
          valid_o          => stage1.valid,
          ready_i          => stage1_ready,
-         pc_inst_o        => stage1.pc_inst
+         pc_inst_o        => stage1.pc_inst,
+         wait_i           => stage1_wait
       ); -- i_read_instruction
 
 
    -- Stage 2
    i_read_src_operand : entity work.read_src_operand
       port map (
-         clk_i            => clk_i,
-         rst_i            => rst_i,
-         flush_i          => flush,
-         ready_o          => stage1_ready,
-         stage1_i         => stage1,
-         mem_data_i       => mem_inst_data,
+         clk_i             => clk_i,
+         rst_i             => rst_i,
+         wait_o            => stage1_wait,
+         flush_i           => flush,
+         ready_o           => stage1_ready,
+         stage1_i          => stage1,
+         mem_data_i        => mem_inst_data,
          reg_rd_src_reg_o  => reg_src_rd_reg,
          reg_rd_src_data_i => reg_src_rd_data,
          reg_rd_dst_reg_o  => reg_dst_rd_reg,
          reg_rd_dst_data_i => reg_dst_rd_data,
-         reg_wr_o         => reg_src_wr,
-         reg_wr_reg_o     => reg_src_wr_reg,
-         reg_wr_data_o    => reg_src_wr_data,
-         reg_ready_i      => reg_src_ready,
-         mem_valid_o      => mem_src_valid,
-         mem_address_o    => mem_src_address,
-         mem_ready_i      => mem_src_ready,
-         stage2_o         => stage2,
-         ready_i          => stage2_ready
+         reg_wr_o          => reg_src_wr,
+         reg_wr_reg_o      => reg_src_wr_reg,
+         reg_wr_data_o     => reg_src_wr_data,
+         reg_ready_i       => reg_src_ready,
+         mem_valid_o       => mem_src_valid,
+         mem_address_o     => mem_src_address,
+         mem_ready_i       => mem_src_ready,
+         stage2_o          => stage2,
+         ready_i           => stage2_ready
       ); -- i_read_src_operand
 
 

@@ -25,7 +25,8 @@ entity read_instruction is
       -- To next pipeline stage (registered)
       valid_o       : out std_logic;
       ready_i       : in  std_logic;
-      pc_inst_o     : out std_logic_vector(15 downto 0)
+      pc_inst_o     : out std_logic_vector(15 downto 0);
+      wait_i        : in  std_logic
    );
 end entity read_instruction;
 
@@ -47,6 +48,7 @@ begin
    mem_request <= '0' when rst_i = '1' else
                   '0' when valid_r = '1' and ready_i = '0' else
                   '0' when flush_i = '1' else
+                  '0' when wait_i = '1' else
                   '1';
 
    -- Are we waiting for memory read access?

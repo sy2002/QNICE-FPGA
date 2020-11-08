@@ -12,6 +12,7 @@ entity read_src_operand is
       flush_i           : in  std_logic;
 
       -- From previous stage
+      wait_o            : out std_logic;
       ready_o           : out std_logic;
       stage1_i          : in  t_stage;
 
@@ -69,9 +70,18 @@ architecture synthesis of read_src_operand is
    signal res_mem_wr_request : std_logic;
    signal res_mem_wr_address : std_logic_vector(15 downto 0);
 
+   signal reg_collision      : std_logic;
+   signal src_reg_pc_update  : std_logic;
+   signal dst_reg_pc_update  : std_logic;
+   signal res_reg_pc_update  : std_logic;
+   signal branch_instruction : std_logic;
+
    signal src_mem_rd_ready   : std_logic;
    signal src_reg_wr_ready   : std_logic;
    signal ready              : std_logic;
+
+   signal stage2_r           : t_stage;
+   signal stage3_r           : t_stage;
 
 begin
 
@@ -144,7 +154,43 @@ begin
                          '0' when inst_opcode = C_OP_CTRL else
                          '0' when inst_opcode = C_OP_CMP else
                          '0' when inst_dst_mode = C_MODE_MEM else
+                         '0' when inst_dst_mode = C_MODE_PRE else
+                         '0' when inst_dst_mode = C_MODE_POST else
                          '1';
+
+
+   -----------------------------------------------------------------------
+   -- Check pipeline hazards
+   -----------------------------------------------------------------------
+
+   reg_collision <= '1' when stage2_r.src_reg_wr_request = '1' and conv_integer(stage2_r.inst_src_reg) = conv_integer(inst_src_reg) else
+                    '1' when stage2_r.dst_reg_wr_request = '1' and conv_integer(stage2_r.inst_dst_reg) = conv_integer(inst_src_reg) else
+                    '1' when stage2_r.res_reg_wr_request = '1' and conv_integer(stage2_r.inst_dst_reg) = conv_integer(inst_src_reg) else
+                    '1' when stage2_r.src_reg_wr_request = '1' and conv_integer(stage2_r.inst_src_reg) = conv_integer(inst_dst_reg) else
+                    '1' when stage2_r.dst_reg_wr_request = '1' and conv_integer(stage2_r.inst_dst_reg) = conv_integer(inst_dst_reg) else
+                    '1' when stage2_r.res_reg_wr_request = '1' and conv_integer(stage2_r.inst_dst_reg) = conv_integer(inst_dst_reg) else
+
+                    '1' when stage3_r.src_reg_wr_request = '1' and conv_integer(stage3_r.inst_src_reg) = conv_integer(inst_src_reg) else
+                    '1' when stage3_r.dst_reg_wr_request = '1' and conv_integer(stage3_r.inst_dst_reg) = conv_integer(inst_src_reg) else
+                    '1' when stage3_r.res_reg_wr_request = '1' and conv_integer(stage3_r.inst_dst_reg) = conv_integer(inst_src_reg) else
+                    '1' when stage3_r.src_reg_wr_request = '1' and conv_integer(stage3_r.inst_src_reg) = conv_integer(inst_dst_reg) else
+                    '1' when stage3_r.dst_reg_wr_request = '1' and conv_integer(stage3_r.inst_dst_reg) = conv_integer(inst_dst_reg) else
+                    '1' when stage3_r.res_reg_wr_request = '1' and conv_integer(stage3_r.inst_dst_reg) = conv_integer(inst_dst_reg) else
+                    '0';
+
+   -- Do we want to update the Program Counter
+   src_reg_pc_update <= src_reg_wr_request when inst_src_reg = C_REG_PC else
+                        '0';
+
+   dst_reg_pc_update <= dst_reg_wr_request when inst_dst_reg = C_REG_PC else
+                        '0';
+
+   res_reg_pc_update <= res_reg_wr_request when inst_dst_reg = C_REG_PC else
+                        '0';
+
+   branch_instruction <= '0' when stage1_i.valid = '0' or flush_i = '1' else
+                         '1' when inst_opcode = C_OP_BRA else
+                         '0';
 
 
    -----------------------------------------------------------------------
@@ -213,54 +259,58 @@ begin
    src_reg_wr_ready <= not (src_reg_wr_request and not reg_ready_i);
 
    -- Everything must be ready before we can proceed
-   ready <= src_mem_rd_ready and src_reg_wr_ready and ready_i and not flush_i;
+   ready <= src_mem_rd_ready and src_reg_wr_ready and ready_i and not flush_i and not reg_collision;
 
 
    -- To next stage (registered)
    p_next_stage : process (clk_i)
    begin
       if rising_edge(clk_i) then
+         stage3_r <= stage2_r;
          -- Has next stage consumed the output?
          if ready_i = '1' or flush_i = '1' then
-            stage2_o <= C_STAGE_INIT;
+            stage2_r <= C_STAGE_INIT;
          end if;
 
          if stage1_i.valid = '1' and ready = '1' then
-            stage2_o.valid              <= '1';
-            stage2_o.pc_inst            <= stage1_i.pc_inst;
-            stage2_o.instruction        <= mem_data_i;
-            stage2_o.inst_opcode        <= inst_opcode;
-            stage2_o.inst_src_mode      <= inst_src_mode;
-            stage2_o.inst_src_reg       <= inst_src_reg;
-            stage2_o.inst_dst_mode      <= inst_dst_mode;
-            stage2_o.inst_dst_reg       <= inst_dst_reg;
-            stage2_o.inst_bra_mode      <= inst_bra_mode;
-            stage2_o.inst_bra_negate    <= inst_bra_negate;
-            stage2_o.inst_bra_cond      <= inst_bra_cond;
-            stage2_o.src_reg_valid      <= src_reg_valid;
-            stage2_o.src_mem_rd_request <= src_mem_rd_request;
-            stage2_o.src_reg_wr_request <= src_reg_wr_request;
-            stage2_o.src_reg_wr_value   <= src_reg_wr_value;
-            stage2_o.src_mem_rd_address <= src_mem_rd_address;
-            stage2_o.dst_reg_valid      <= dst_reg_valid;
-            stage2_o.dst_mem_rd_request <= dst_mem_rd_request;
-            stage2_o.dst_reg_wr_request <= dst_reg_wr_request;
-            stage2_o.dst_reg_wr_value   <= dst_reg_wr_value;
-            stage2_o.dst_mem_rd_address <= dst_mem_rd_address;
-            stage2_o.res_mem_wr_request <= res_mem_wr_request;
-            stage2_o.res_mem_wr_address <= res_mem_wr_address;
-            stage2_o.res_reg_wr_request <= res_reg_wr_request;
-            stage2_o.src_operand        <= src_reg_rd_value;
+            stage2_r.valid              <= '1';
+            stage2_r.pc_inst            <= stage1_i.pc_inst;
+            stage2_r.instruction        <= mem_data_i;
+            stage2_r.inst_opcode        <= inst_opcode;
+            stage2_r.inst_src_mode      <= inst_src_mode;
+            stage2_r.inst_src_reg       <= inst_src_reg;
+            stage2_r.inst_dst_mode      <= inst_dst_mode;
+            stage2_r.inst_dst_reg       <= inst_dst_reg;
+            stage2_r.inst_bra_mode      <= inst_bra_mode;
+            stage2_r.inst_bra_negate    <= inst_bra_negate;
+            stage2_r.inst_bra_cond      <= inst_bra_cond;
+            stage2_r.src_reg_valid      <= src_reg_valid;
+            stage2_r.src_mem_rd_request <= src_mem_rd_request;
+            stage2_r.src_reg_wr_request <= src_reg_wr_request;
+            stage2_r.src_reg_wr_value   <= src_reg_wr_value;
+            stage2_r.src_mem_rd_address <= src_mem_rd_address;
+            stage2_r.dst_reg_valid      <= dst_reg_valid;
+            stage2_r.dst_mem_rd_request <= dst_mem_rd_request;
+            stage2_r.dst_reg_wr_request <= dst_reg_wr_request;
+            stage2_r.dst_reg_wr_value   <= dst_reg_wr_value;
+            stage2_r.dst_mem_rd_address <= dst_mem_rd_address;
+            stage2_r.res_mem_wr_request <= res_mem_wr_request;
+            stage2_r.res_mem_wr_address <= res_mem_wr_address;
+            stage2_r.res_reg_wr_request <= res_reg_wr_request;
+            stage2_r.src_operand        <= src_reg_rd_value;
          end if;
 
          if rst_i = '1' then
-            stage2_o <= C_STAGE_INIT;
+            stage2_r <= C_STAGE_INIT;
          end if;
       end if;
    end process p_next_stage;
 
+   stage2_o <= stage2_r;
+
    -- To previous stage (combinatorial)
    ready_o <= ready;
+   wait_o <= src_reg_pc_update or dst_reg_pc_update or res_reg_pc_update or branch_instruction;
 
 end architecture synthesis;
 
