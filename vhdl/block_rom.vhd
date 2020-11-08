@@ -76,6 +76,15 @@ begin
       end if;
    end process;
 
+   -- Doing it like this (i.e. one combinatorial process and the clocked process) is faster
+   -- than moving "data" to the clocked process and then getting rid of "output" and the
+   -- "manage_output" process.
+   --
+   -- Here are measurements taken with Vivado v2019.2
+   --
+   --    This version here (commit #f11f6bd):         Slack 0.168 / Delay 9.514
+   --    The "optimized" version (commit #d409772):   Slack 0.055 / Delay 9.668
+   
    -- zero while not ce
    manage_output : process (ce, output)
    begin
