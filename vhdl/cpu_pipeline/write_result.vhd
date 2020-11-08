@@ -44,6 +44,8 @@ end entity write_result;
 
 architecture synthesis of write_result is
 
+   signal dst_operand       : std_logic_vector(15 downto 0);
+
    signal res_data          : std_logic_vector(15 downto 0);
 
    signal res_mem_wr_ready  : std_logic;
@@ -56,6 +58,14 @@ architecture synthesis of write_result is
 begin
 
    -----------------------------------------------------------------------
+   -- Determine destination operand
+   -----------------------------------------------------------------------
+
+   dst_operand <= mem_data_i when stage3_i.dst_mem_rd_request = '1' else
+                  stage3_i.dst_mem_rd_address;
+
+
+   -----------------------------------------------------------------------
    -- Calculate result
    -----------------------------------------------------------------------
 
@@ -65,7 +75,7 @@ begin
          rst_i      => rst_i,
          valid_i    => stage3_i.valid,
          src_data_i => stage3_i.src_operand,
-         dst_data_i => mem_data_i,
+         dst_data_i => dst_operand,
          sr_i       => sr_i,
          opcode_i   => stage3_i.inst_opcode,
          res_data_o => res_data,
