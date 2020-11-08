@@ -8,122 +8,70 @@ entity read_dst_operand is
    port (
       clk_i            : in  std_logic;
       rst_i            : in  std_logic;
+   
+      flush_i          : in  std_logic;
 
       -- From previous stage
-      valid_i          : in  std_logic;
-      ready_o          : out std_logic;
-      pc_inst_i        : in  std_logic_vector(15 downto 0);
-      instruction_i    : in  std_logic_vector(15 downto 0);
-      src_operand_i    : in  std_logic_vector(15 downto 0);
+      ready_o           : out std_logic;
+      stage2_i          : in  t_stage;
 
-      -- To register file (combinatorial)
-      reg_rd_reg_o     : out std_logic_vector(3 downto 0);
-      reg_data_i       : in  std_logic_vector(15 downto 0);
-      reg_wr_reg_o     : out std_logic_vector(3 downto 0);
-      reg_wr_o         : out std_logic;
-      reg_ready_i      : in  std_logic;
-      reg_data_o       : out std_logic_vector(15 downto 0);
+      -- From memory
+      mem_data_i        : in  std_logic_vector(15 downto 0);
 
-      -- To memory subsystem (combinatorial)
-      mem_valid_o      : out std_logic;
-      mem_ready_i      : in  std_logic;
-      mem_address_o    : out std_logic_vector(15 downto 0);
-      mem_data_i       : in  std_logic_vector(15 downto 0);
+      -- Write to register file (combinatorial)
+      reg_wr_o          : out std_logic;
+      reg_wr_reg_o      : out std_logic_vector(3 downto 0);
+      reg_wr_data_o     : out std_logic_vector(15 downto 0);
+      reg_ready_i       : in  std_logic;
 
-      -- From next stage
-      res_wr_i         : in  std_logic;
-      res_wr_reg_i     : in  std_logic_vector(3 downto 0);
-      res_data_i       : in  std_logic_vector(15 downto 0);
+      -- Read from memory subsystem (combinatorial)
+      mem_valid_o       : out std_logic;
+      mem_address_o     : out std_logic_vector(15 downto 0);
+      mem_ready_i       : in  std_logic;
 
       -- To next stage (registered)
-      valid_o          : out std_logic := '0';
-      ready_i          : in  std_logic;
-      src_operand_o    : out std_logic_vector(15 downto 0);
-      dst_operand_o    : out std_logic_vector(15 downto 0);
-      dst_address_o    : out std_logic_vector(15 downto 0);
-      pc_inst_o        : out std_logic_vector(15 downto 0);
-      instruction_o    : out std_logic_vector(15 downto 0)
+      stage3_o          : out t_stage;
+      ready_i           : in  std_logic
    );
 end entity read_dst_operand;
 
 architecture synthesis of read_dst_operand is
 
-   signal mem_request  : std_logic;
-   signal mem_ready    : std_logic;
-   signal mem_address  : std_logic_vector(15 downto 0);
-   signal reg_request  : std_logic;
-   signal reg_ready    : std_logic;
-   signal reg_data_in  : std_logic_vector(15 downto 0);
-   signal reg_data_out : std_logic_vector(15 downto 0);
-   signal ready        : std_logic;
-   signal src_operand  : std_logic_vector(15 downto 0);
+   signal dst_mem_ready : std_logic;
+   signal dst_reg_ready : std_logic;
+   signal ready         : std_logic;
 
 begin
 
-   -- Do we want to read from memory?
-   mem_request <= '0' when valid_i = '0' else
-                  '0' when instruction_i(R_OPCODE) = C_OP_MOVE else
-                  '0' when instruction_i(R_OPCODE) = C_OP_SWAP else
-                  '0' when instruction_i(R_OPCODE) = C_OP_NOT else
-                  '0' when instruction_i(R_OPCODE) = C_OP_RES else
-                  '0' when instruction_i(R_OPCODE) = C_OP_CTRL else
-                  '0' when instruction_i(R_OPCODE) = C_OP_BRA else
-                  '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
-                  '1';
+   -----------------------------------------------------------------------
+   -- Optionally read destination operand from memory
+   -----------------------------------------------------------------------
+
+   mem_valid_o   <= stage2_i.dst_mem_rd_request and ready;
+   mem_address_o <= stage2_i.dst_mem_rd_address;
 
 
-   -- Do we want register write access?
-   reg_request <= '0' when valid_i = '0' else
-                  '0' when instruction_i(R_OPCODE) = C_OP_RES else
-                  '0' when instruction_i(R_OPCODE) = C_OP_CTRL else
-                  '0' when instruction_i(R_OPCODE) = C_OP_BRA else
-                  '0' when instruction_i(R_DEST_MODE) = C_MODE_REG else
-                  '0' when instruction_i(R_DEST_MODE) = C_MODE_MEM else
-                  '1';
+   -----------------------------------------------------------------------
+   -- Optionaly write update destination register
+   -----------------------------------------------------------------------
 
+   reg_wr_o      <= stage2_i.dst_reg_wr_request and ready;
+   reg_wr_reg_o  <= stage2_i.inst_dst_reg;
+   reg_wr_data_o <= stage2_i.dst_reg_wr_value;
+
+
+   -----------------------------------------------------------------------
+   -- Are we ready to complete this stage?
+   -----------------------------------------------------------------------
 
    -- Are we waiting for memory read access?
-   mem_ready <= not (mem_request and not mem_ready_i);
+   dst_mem_ready <= not (stage2_i.dst_mem_rd_request and not mem_ready_i);
 
    -- Are we waiting for register write access?
-   reg_ready <= not (reg_request and not reg_ready_i);
+   dst_reg_ready <= not (stage2_i.dst_reg_wr_request and not reg_ready_i);
 
-   -- Are we ready to complete this stage?
-   ready <= mem_ready and reg_ready and ready_i;
-
-   -- To previous stage (combinatorial)
-   ready_o <= ready;
-
-
-   -- To register file (combinatorial)
-   reg_data_out <= reg_data_in + 1 when instruction_i(R_DEST_MODE) = C_MODE_POST else
-                   reg_data_in - 1 when instruction_i(R_DEST_MODE) = C_MODE_PRE else
-                   reg_data_in;
-
-   reg_wr_o     <= reg_request and ready;
-   reg_wr_reg_o <= instruction_i(R_DEST_REG);
-   reg_data_o   <= reg_data_out;
-
-
-   -- To memory subsystem (combinatorial)
-   mem_address <= reg_data_in-1 when instruction_i(R_DEST_MODE) = C_MODE_PRE else
-                  reg_data_in;
-
-   mem_valid_o   <= mem_request and ready;
-   mem_address_o <= mem_address;
-
-
-   -- To register file (combinatorial)
-   reg_rd_reg_o <= instruction_i(R_DEST_REG);
-
-   -- Handle pipeline hazards
-   reg_data_in <= res_data_i when res_wr_i = '1' and
-                                  conv_integer(res_wr_reg_i) = conv_integer(instruction_i(R_DEST_REG)) else
-                  reg_data_i;
-
-   src_operand <= res_data_i when res_wr_i = '1' and
-                                  conv_integer(res_wr_reg_i) = conv_integer(instruction_i(R_SRC_REG)) else
-                  src_operand_i;
+   -- Everything must be ready before we can proceed
+   ready <= dst_mem_ready and dst_reg_ready and ready_i and not flush_i;
 
 
    -- To next stage (registered)
@@ -131,46 +79,26 @@ begin
    begin
       if rising_edge(clk_i) then
          -- Has next stage consumed the output?
-         if ready_i = '1' then
-            valid_o       <= '0';
-            instruction_o <= (others => '0');
-            src_operand_o <= (others => '0');
-            dst_operand_o <= (others => '0');
-            dst_address_o <= (others => '0');
+         if ready_i = '1' or flush_i = '1' then
+            stage3_o <= C_STAGE_INIT;
          end if;
 
          -- Shall we complete this stage?
-         if valid_i = '1' and ready = '1' then
-            if instruction_i(R_DEST_MODE) = C_MODE_REG then
-               valid_o       <= '1';
-               dst_operand_o <= reg_data_in;
-               pc_inst_o     <= pc_inst_i;
-               instruction_o <= instruction_i;
-               src_operand_o <= src_operand;
-            elsif mem_ready = '1' then
-               valid_o       <= '1';
-               if mem_request = '1' then
-                  dst_operand_o <= mem_data_i;
-               else
-                  dst_operand_o <= (others => '0');
-               end if;
-               pc_inst_o     <= pc_inst_i;
-               instruction_o <= instruction_i;
-               src_operand_o <= src_operand;
+         if stage2_i.valid = '1' and ready = '1' then
+            stage3_o <= stage2_i;
+            if stage2_i.src_mem_rd_request = '1' then
+               stage3_o.src_operand <= mem_data_i;
             end if;
-
-            dst_address_o <= mem_address;
          end if;
 
          if rst_i = '1' then
-            valid_o       <= '0';
-            instruction_o <= (others => '0');
-            src_operand_o <= (others => '0');
-            dst_operand_o <= (others => '0');
-            dst_address_o <= (others => '0');
+            stage3_o <= C_STAGE_INIT;
          end if;
       end if;
    end process p_next_stage;
+
+   -- To previous stage (combinatorial)
+   ready_o <= ready;
 
 end architecture synthesis;
 

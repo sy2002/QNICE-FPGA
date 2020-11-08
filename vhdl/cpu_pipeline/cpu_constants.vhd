@@ -58,6 +58,67 @@ package cpu_constants is
 
    procedure disassemble(pc : std_logic_vector; inst : std_logic_vector; operand : std_logic_vector);
 
+   type t_stage is record
+      -- Only valid after stage 1
+      valid              : std_logic;
+      pc_inst            : std_logic_vector(15 downto 0);
+
+      -- Only valid after stage 2
+      instruction        : std_logic_vector(15 downto 0);
+      inst_opcode        : std_logic_vector(3 downto 0);
+      inst_src_mode      : std_logic_vector(1 downto 0);
+      inst_src_reg       : std_logic_vector(3 downto 0);
+      inst_dst_mode      : std_logic_vector(1 downto 0);
+      inst_dst_reg       : std_logic_vector(3 downto 0);
+      inst_bra_mode      : std_logic_vector(1 downto 0);
+      inst_bra_negate    : std_logic;
+      inst_bra_cond      : std_logic_vector(2 downto 0);
+      src_reg_valid      : std_logic;
+      src_reg_wr_request : std_logic;
+      src_reg_wr_value   : std_logic_vector(15 downto 0);
+      src_mem_rd_request : std_logic;
+      src_mem_rd_address : std_logic_vector(15 downto 0);
+      dst_reg_valid      : std_logic;
+      dst_reg_wr_request : std_logic;
+      dst_reg_wr_value   : std_logic_vector(15 downto 0);
+      dst_mem_rd_request : std_logic;
+      dst_mem_rd_address : std_logic_vector(15 downto 0);
+      res_reg_wr_request : std_logic;
+      res_mem_wr_request : std_logic;
+      res_mem_wr_address : std_logic_vector(15 downto 0);
+
+      -- Only valid after stage 3
+      src_operand        : std_logic_vector(15 downto 0);
+   end record t_stage;
+
+   constant C_STAGE_INIT : t_stage := (
+      valid              => '0',
+      pc_inst            => (others => '0'),
+      instruction        => (others => '0'),
+      inst_opcode        => (others => '0'),
+      inst_src_mode      => (others => '0'),
+      inst_src_reg       => (others => '0'),
+      inst_dst_mode      => (others => '0'),
+      inst_dst_reg       => (others => '0'),
+      inst_bra_mode      => (others => '0'),
+      inst_bra_negate    => '0',
+      inst_bra_cond      => (others => '0'),
+      src_reg_valid      => '0',
+      src_reg_wr_request => '0',
+      src_reg_wr_value   => (others => '0'),
+      src_mem_rd_request => '0',
+      src_mem_rd_address => (others => '0'),
+      dst_reg_valid      => '0',
+      dst_reg_wr_request => '0',
+      dst_reg_wr_value   => (others => '0'),
+      dst_mem_rd_request => '0',
+      dst_mem_rd_address => (others => '0'),
+      res_reg_wr_request => '0',
+      res_mem_wr_request => '0',
+      res_mem_wr_address => (others => '0'),
+      src_operand        => (others => '0')
+   );
+
 end cpu_constants;
 
 library ieee;
@@ -168,6 +229,9 @@ package body cpu_constants is
                reg_str(inst(R_SRC_REG), inst(R_SRC_MODE), operand) & ", " &
                reg_str(inst(R_DEST_REG), inst(R_DEST_MODE), operand);
       end if;
+
+      assert conv_integer(inst(R_OPCODE)) /= C_OP_CTRL
+         report "Control instruction" severity failure;
    end procedure disassemble;
 
 end cpu_constants;

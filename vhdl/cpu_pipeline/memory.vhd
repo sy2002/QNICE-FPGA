@@ -58,8 +58,10 @@ begin
    -- leaves only half a clock cycle for the CPU processing.
    p_read : process (clk_i)
    begin
-      if falling_edge(clk_i) then
-         rd_data_o <= mem_r(conv_integer(address_i));
+      if rising_edge(clk_i) then
+         if read_i = '1' then
+            rd_data_o <= mem_r(conv_integer(address_i));
+         end if;
       end if;
    end process p_read;
 

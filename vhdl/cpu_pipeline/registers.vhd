@@ -10,6 +10,8 @@ entity registers is
       rst_i         : in  std_logic;
       pc_o          : out std_logic_vector(15 downto 0);
       pc_i          : in  std_logic_vector(15 downto 0);
+      res_wr_pc_i   : in  std_logic;
+      res_pc_i      : in  std_logic_vector(15 downto 0);
       sr_o          : out std_logic_vector(15 downto 0);
       sr_i          : in  std_logic_vector(15 downto 0);
       src_reg_i     : in  std_logic_vector(3 downto 0);
@@ -48,7 +50,10 @@ begin
    begin
       if rising_edge(clk_i) then
          if reg_valid_i = '1' and conv_integer(reg_address_i) = C_REG_PC then
+            assert res_wr_pc_i = '0' report "Multiple writes to PC" severity failure;
             pc <= reg_data_i;
+         elsif res_wr_pc_i = '1' then
+            pc <= res_pc_i;
          else
             pc <= pc_i;
          end if;

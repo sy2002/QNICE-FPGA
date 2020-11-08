@@ -744,3 +744,103 @@ below 50 MHz, so considerable worse performance. In fact, even worse than the
 existing sequential implementation of the CPU. This is somewhat disappointing,
 and certainly fuels a desire to perform optimizations.
 
+## Redesigning the pipeline
+The timing problems are due to the half clock cycle memory read. So an obvious
+fix is to give the memory a full clock cycle to perform a read. This is done
+simply by chaning `falling_edge` to `rising_edge` in the file `memory.vhd`.
+This is also a more clean design, since mixing falling\_edge and rising\_edge
+is quite confusing.
+
+However, this change now means the CPU no longer can perform a combinatorial
+read from memory. In other words, the pipeline must be redesigned completely,
+and we will therefore be restarting (almost) completely from scratch.
+
+One thing to mention regarding memory, is that it is now necessary to actively
+make use of the signal `read_i`. This is because after a successful read an
+idle (i.e. non-read) clock cycle may change the address, and this should not
+change the instruction read from memory. In other words, the module
+`read_instruction.vhd` relies on being able to read the instruction at a later
+clock cycle.
+
+The block diagram is still the same, with four stages competing for access
+to the memory address bus. However, the data flow is changed.
+
+The new flow looks as follows:
+
+* Stage 1:
+  - Receive `PC` from register file
+  - Initiate memory read from `PC`
+  - Write incremented `PC` to register file
+* Stage 2:
+  - Receive instruction from memory
+  - Decode instruction
+  - Read 'src' and 'dst' registers from register file
+  - Optionally initiate memory read from `src`
+  - Optionally write updated `src` register value to register file
+* Stage 3:
+  - Receive `src` operand value from memory
+  - Optionally initiate memory read from `dst`
+  - Optionally write updated `dst` register value to register file
+* Stage 4:
+  - Receive `dst` operand value from memory
+  - Calculate result using ALU
+  - Optionally write `dst` result value to memory
+  - Optionally write calculated `dst` register value to register file
+  - Optionally write new `PC` to register file (if branching)
+
+One thing I've done differently this time is to perform a complete instruction
+decoding in stage 2 when the instruction is received. This includes deciding
+in which stages to perform memory and/or register accesses.
+
+A second thing I've done differently is that I've employed a trivial branch
+prediction that assumes the branch is not taken. That means that instruction
+fetches continue after a branch instruction, regardless of whether the branch
+is taken. In the event that the branch is taken, then the entire pipeline is
+flushed, which means all pipeline stages are invalidated. This removes the
+3-clock cycle delay in the previous solution.
+
+Another more implementation-specific change is that I've collected all the
+signals from one stage to the next in a single common record type. So instead
+of three different record types `t_stage1`, `t_stage2`, and `t_stage3`, I now
+only have a single record type `t_stage`. This reduces the number of lines of
+code, and relies on the synthesis tool being able to optimize away record
+elements not used.
+
+Test coverage:
+
+* `test2.asm` fails first at 0x0149, which is approximately 6% of the whole test.
+
+Pipeline statistics (when reading from 0x0149):
+
+* Clock cycles : 343
+* Instructions : 167
+* Cycles per instruction : 343/167 = 2.05
+* Memory cycles : 280
+* Memory stalls : 113
+* Memory utilization : 280/343 = 82%
+* Register write cycles : 133
+* Register write stalls : 0
+* Register write utilization : 133/343 = 39%
+
+Resource utilization:
+
+* Slice LUTs : 632
+* Slice Registers : 185
+* Slices : 185
+
+Timing:
+
+* The slowest timing path has a slack of 7.3 ns (at 50 MHz) and a logic depth of 11
+  levels.  This suggests a maximum frequency of 1000/(20-7.3) = 78 MHz.
+
+It is very interesting to compare the above numbers with the previous version,
+which reached exactly the same address too.
+
+The new version fetches many more instructions (167 versus 118). This is due
+to the branch mis-predictions. On the other hand, fewer clock cycles are used
+in total (343 versus 445). This is again due to the faster branch handling.
+
+The register write cycles has decreased (from 210 to 133). This is because
+branches taken, i.e. updating PC, is now handled "directly" by the register
+file and is no longer implemented as a generic register write.
+

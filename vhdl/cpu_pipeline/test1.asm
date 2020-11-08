@@ -104,3 +104,5 @@ MOVE  0x2345, R1  ; Should write 0x2345 to R0 and increment PC twice
 MOVE  0x3456, R2  ; Should write 0x3456 to R0 and increment PC twice
 MOVE  0x4567, R3  ; Should write 0x4567 to R0 and increment PC twice
 
+HALT
+
