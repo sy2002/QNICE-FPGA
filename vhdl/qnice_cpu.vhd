@@ -94,6 +94,7 @@ signal reg_shadow_spr      : std_logic; --combinatorial signal to control the sh
 -- direct access to the special registers within the register bank
 signal SP                  : std_logic_vector(15 downto 0); -- stack pointer   (R13)
 signal SR                  : std_logic_vector(15 downto 0); -- status register (R14)
+signal SR_tbw              : std_logic_vector(15 downto 0); -- for being able to use the SR already in cs_fetch
 signal PC                  : std_logic_vector(15 downto 0); -- program counter (R15)
 signal PC_Org              : std_logic_vector(15 downto 0); -- shadow register copy of PC
 
@@ -244,6 +245,13 @@ begin
    ADDR           <= ADDR_Bus;
    HALT           <= '1' when cpu_state = cs_halt else '0';
 
+   -- For being able to use the SR already in cs_fetch, where the SR-write-back might still be in progress:
+   --   In case of a MOVE to SR, the new value has not arrived in SR, yet, so we need to take it from
+   --   reg_write_data. And if it was a MOVE 0, SR, we need to make sure, that bit 0 is always 1, otherwise
+   --   for example a "RSUB XYZ, 1" directly after a "MOVE 0, SR" would fail.
+   SR_tbw <= SR(15 downto 1) & "1" when cpu_state /= cs_fetch or reg_write_en = '0' or reg_write_addr /= regSR
+                                   else reg_write_data(15 downto 1) & "1";
+
    -- Fastpath: When we have a direct register to register operation or a branch, where the address is in a register
    -- In cs_fetch, the Instruction register is not set, yet, so we need to listen to the data bus
    FastPath       <= true when (cpu_state = cs_fetch and diOpcode /= opcCTRL and (
@@ -255,7 +263,7 @@ begin
                                  (Opcode /= opcBRA and Src_Mode = amDirect and Dst_Mode = amDirect) or
                                  (Opcode  = opcBRA and Src_Mode = amDirect))
                                )
-                               else false;                           
+                          else false;                           
    Src_Value_Fast <= reg_read_data1 when FastPath and cpu_state = cs_execute else Src_Value;
    Dst_Value_Fast <= reg_read_data2 when FastPath and cpu_state = cs_execute else Dst_Value;
       
@@ -375,7 +383,7 @@ begin
       end if;
    end process;
       
-   fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, PC, PC_org,
+   fsm_output_decode : process (cpu_state, ADDR_Bus, SP, SR, SR_tbw, PC, PC_org,
                                 DATA_IN, DATA_To_Bus, WAIT_FOR_DATA, INT_N, Int_Active,
                                 Instruction, Opcode, diOpcode, Ctrl_Cmd, diCtrl_Cmd, FastPath,
                                 Src_RegNo, diSrc_RegNo, Src_Mode, diSrc_Mode, Src_Value,
@@ -391,7 +399,6 @@ begin
    variable var_C      : std_logic;
    variable var_V      : std_logic;
    variable var_X      : std_logic;
-   variable var_SR_tbw : std_logic_vector(15 downto 0);
    
    procedure writeReg(signal   dstreg   : in std_logic_vector(3 downto 0);
                       signal   value    : in std_logic_vector(15 downto 0);
@@ -475,21 +482,12 @@ begin
                   fsmPC <= PC + 1;
                   fsm_reg_read_addr1 <= diSrc_RegNo; -- read Src register number
                   fsm_reg_read_addr2 <= diDst_RegNo; -- rest Dst register number
-                  
-                  -- In case of a MOVE to SR, the new value has not arrived in SR, yet, so we need to take it from
-                  -- reg_write_data. And if it was a MOVE 0, SR, we need to make sure, that bit 0 is always 1, otherwise
-                  -- for example a "RSUB XYZ, 1" directly after a "MOVE 0, SR" would fail.
-                  if reg_write_en = '1' and reg_write_addr = regSR then
-                     var_SR_tbw := reg_write_data(15 downto 1) & "1";
-                  else
-                     var_SR_tbw := SR(15 downto 1) & "1";
-                  end if;
-                  
+                                    
                   -- if a branch is meant to be executed but the branch will *not* be taken, then return directly to cs_fetch
                   -- this is on the one hand an optimization (speed increase) and on the other hand this implements
                   -- the new ISA of V1.7 where predec and postinc of registers inside branches are only performed,
                   -- if the branching condition holds (i.e. the branch would have been taken)
-                  if diOpcode = opcBRA and var_SR_tbw(conv_integer(diBra_Condition)) = diBra_Neg then
+                  if diOpcode = opcBRA and SR_tbw(conv_integer(diBra_Condition)) = diBra_Neg then
                      -- special treatment for postincremented R15/PC: the postincrement is always executed, even if
                      -- the branch is not taken; this is an exception due to constant addresses being implemented
                      -- as something like ABRA @R15++, Z
@@ -507,17 +505,24 @@ begin
                   elsif FastPath then
                      fsmNextCpuState <= cs_execute;
                   
-                  -- INCRB and DECRB can be done in one cycle   
+                  -- INCRB and DECRB can be done in one cycle
+                  -- We are using the more indirect fsm_reg_* way of storing SR, because these registers
+                  -- are sitting physically closer inside the CPU in contrast to SR (via fsmSR). This leads
+                  -- to significantly better timing behavior 
                   elsif diOpcode = opcCTRL and (diCtrl_Cmd = ctrlINCRB or diCtrl_Cmd = ctrlDECRB) then
                      fsmNextCpuState <= cs_fetch;
                      fsmCPUAddr <= PC + 1;
                                       
                      if diCtrl_Cmd = ctrlINCRB then
-                        -- increment the register bank address by one and leave the SR alone while doing so                     
-                        fsmSR(15 downto 8) <= var_SR_tbw(15 downto 8) + 1;
+                        -- increment the register bank address by one and leave the SR alone while doing so
+                        fsm_reg_write_addr <= regSR;
+                        fsm_reg_write_data <= (SR_tbw(15 downto 8) + 1) & SR_tbw(7 downto 0);
+                        fsm_reg_write_en <= '1';
                      else
-                        -- decrement the register bank address by one and leave the SR alone while doing so                     
-                        fsmSR(15 downto 8) <= var_SR_tbw(15 downto 8) - 1;
+                        -- decrement the register bank address by one and leave the SR alone while doing so
+                        fsm_reg_write_addr <= regSR;
+                        fsm_reg_write_data <= (SR_tbw(15 downto 8) - 1) & SR_tbw(7 downto 0);
+                        fsm_reg_write_en <= '1';                              
                      end if;                     
                   end if;
                end if;

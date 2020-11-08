@@ -15,13 +15,41 @@ QNICE-FPGA Performance Characteristics
   workload that is being executed.
 
 * Peak performance has been measured in a math-heavy demo such as the
-  mandelbrot demo: 14.84 MIPS. Q-TRIS runs at 13.97 MIPS.
+  mandelbrot demo: 15.13 MIPS. Q-TRIS runs at 14.47 MIPS.
 
 * For the sake of the VGA and WASM emulator, the average QNICE performance
-  is defined as **14.0 MIPS**.
+  is defined as **14.5 MIPS**.
 
-MIPS measurements on November, 7 2020 using CPU V1.7
+MIPS measurements on November, 8 2020 using CPU V1.7
 ----------------------------------------------------
+
+This CPU version implements INCRB and DECRB in one CPU cycle.
+
+### Mandelbrot: 15.13 MIPS
+
+```
+0000 007E 6F71 = 8,286,065 cycles           => 0,1657 sec
+0000 0026 411E = 2,507,038 instructions     => 3.31 cycles / instruction
+                                            => 15.13 MIPS
+```
+
+* Compared wth V1.6 this is a 11% speed-up.
+* Compared with the version from November, 7 this is a 2% speed-up.
+
+### Q-TRIS: 14.47 MIPS
+
+```
+0009 7F52 956C = 40,790,824,300 cycles       => 815.82 sec => 13:36 min
+0002 BF97 A906 = 11,804,322,054 instructions => 3.46 cycles / instruction
+                                             => 14.47 MIPS
+                                             => 14.50 MIPS for Emulator
+```
+
+* Compared with V1.6 is a 12% speed-up.
+* Compared with the version from November, 7 this is a 4% speed-up.
+
+MIPS measurements on November, 7 2020 using CPU in commit #XxXxXxX
+------------------------------------------------------------------
 
 The refactored CPU that also implements the new ISA V1.7 has an optimization
 that branches, that are not taken only need 1 CPU cycle.
@@ -29,7 +57,7 @@ that branches, that are not taken only need 1 CPU cycle.
 ### Mandelbrot: 14.84 MIPS
 
 ```
-0000 0080 E54F = 8,447,311 cycles            => 0,1689 sec        
+0000 0080 E54F = 8,447,311 cycles            => 0.1689 sec        
 0000 0026 411E = 2,507,038 instructions      => 3.37 cycles / instruction
                                              => 14.84 MIPS
 ```
@@ -41,7 +69,7 @@ that branches, that are not taken only need 1 CPU cycle.
 
 ```
 0007 3717 1ACB = 30,989,032,139 cycles       => 619.78 sec => 10:20 min
-               =  8,649,514,605 instructions => 3.58 cycles / instruction
+0002 038D 1E6D =  8,649,514,605 instructions => 3.58 cycles / instruction
                                              => 13.97 MIPS
                                              => 14.00 MIPS for Emulator
 ```

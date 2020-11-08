@@ -118,7 +118,7 @@ Getting Started
   `R` and then `qbin/q-tris.out` to run Q-TRIS.
 
 * Go to the graphical window, press `SPACE` and start playing. The emulator
-  automatically attempts to regulate the speed to `14.0 MIPS`, which is
+  automatically attempts to regulate the speed to `14.5 MIPS`, which is
   the speed of the original QNICE-FPGA hardware running at 50 MHz. Toggle
   the MIPS and FPS display using `ALT+F`.
 
@@ -214,7 +214,7 @@ WebAssembly/WebGL in a Web Browser: Emulation of the VGA Screen and the PS/2 Key
 
 * In contrast to the native qnice-vga version of the emulator, the
   WebAssembly/WebGL version is not capable to automatically regulate the
-  speed to match the `14.0 MIPS` of the FPGA hardware that runs at 50 MHz.
+  speed to match the `14.5 MIPS` of the FPGA hardware that runs at 50 MHz.
   Probably your computer will be faster, so you will need to slow down
   the emulation speed.
 
@@ -326,7 +326,7 @@ Emulator Architecture
   `int vga_timebase_thread(...)` in `vga.c` is updating the global variable
   `gbl$sdl_ticks` every millisecond.
 
-* The original QNICE-FPGA hardware performs `14.0 MIPS` while running at
+* The original QNICE-FPGA hardware performs `14.5 MIPS` while running at
   50 MHz. Most modern systems will emulate QNICE-FPGA much faster. The
   speed regulation mechanism is implemented in the function `void run()`
   by calculating how many QNICE instructions per 10 milliseconds need to

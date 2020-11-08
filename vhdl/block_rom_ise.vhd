@@ -52,7 +52,6 @@ signal brom : brom_t := read_romfile(FILE_NAME);
 
 begin
 
-   -- process for read and write operation on the rising clock edge
    rom_read : process (clk)
    begin
       if falling_edge(clk) then
