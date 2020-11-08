@@ -4,13 +4,13 @@ QNICE-FPGA Performance Characteristics
 * The system runs with 50 MHz on all currently supported hardware targets.
 
 * The CPU is built around a variable-length state machine. This means that
-  there are instructions that are as short as two clock cycles and others that
+  there are instructions that are as short as one clock cycle and others that
   are in general as long as six clock cycles.
 
 * Slow RAM, ROM and peripheral devices can make the execution even longer, as
   they are able to add wait-states to the CPU's execution.
 
-* It is therefore difficult, to measure "The" CPU performance in MIPS
+* It is therefore difficult, to exactly measure "The" CPU performance in MIPS
   (Million Instructions Per Second). In contrast, it always depends on the
   workload that is being executed.
 

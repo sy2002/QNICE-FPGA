@@ -625,7 +625,7 @@ QMON$LOAD_E1C   SUB     IO$HEX_NIBBLES, R10     ; get numeric representation of 
 ;* Strings
 ;***************************************************************************************
                 
-QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 1.7 (Bernd Ulmann, sy2002, September 2020)\n"
+QMON$WELCOME    .ASCII_P    "\n\nSimple QNICE-monitor - Version 1.7 (Bernd Ulmann, sy2002, November 2020)\n"
 #ifdef RAM_MONITOR
                 .ASCII_P    "Running in RAM!\n"
 #endif
