@@ -30,10 +30,6 @@ architecture beh of BROM is
 
 signal output : std_logic_vector(ROM_WIDTH - 1 downto 0);
 
-signal counter : std_logic := '1'; -- important to be initialized to one
-signal address_old : std_logic_vector(14 downto 0) := (others => 'U');
-signal async_reset : std_logic;
-
 constant C_LINES : natural := 8*1024;
 
 type brom_t is array (0 to C_LINES - 1) of bit_vector(ROM_WIDTH - 1 downto 0);
@@ -61,13 +57,23 @@ begin
    begin
       if falling_edge(clk) then
          if ce = '1' then
-            data <= to_stdlogicvector(brom(conv_integer(address)));
+            output <= to_stdlogicvector(brom(conv_integer(address)));
          else
-            data <= (others => '0');
+            output <= (others => 'U');
          end if;
-      end if;      
+      end if;
    end process;
-   
+
+   -- zero while not ce
+   manage_output : process (ce, output)
+   begin
+      if (ce = '0') then
+         data <= (others => '0');
+      else
+         data <= output;
+      end if;
+   end process;
+
    busy <= '0';
 
 end beh;

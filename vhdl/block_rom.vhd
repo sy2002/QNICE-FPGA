@@ -30,10 +30,6 @@ architecture beh of BROM is
 
 signal output : std_logic_vector(ROM_WIDTH - 1 downto 0);
 
-signal counter : std_logic := '1'; -- important to be initialized to one
-signal address_old : std_logic_vector(14 downto 0) := (others => 'U');
-signal async_reset : std_logic;
-
 impure function get_lines_in_romfile(rom_file_name : in string) return natural is
    file     rom_file  : text is in rom_file_name;
    variable line_v    : line;
@@ -73,10 +69,20 @@ begin
    begin
       if falling_edge(clk) then
          if ce = '1' then
-            data <= to_stdlogicvector(brom(conv_integer(address)));
+            output <= to_stdlogicvector(brom(conv_integer(address)));
          else
-            data <= (others => '0');
+            output <= (others => 'U');
          end if;
+      end if;
+   end process;
+
+   -- zero while not ce
+   manage_output : process (ce, output)
+   begin
+      if (ce = '0') then
+         data <= (others => '0');
+      else
+         data <= output;
       end if;
    end process;
    
