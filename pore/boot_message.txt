@@ -4,4 +4,4 @@ PORE$NEWLINE  .ASCII_W "\n\n"
 
 ; PORE$RESETMSG .ASCII_W "QNICE-FPGA Version 1.7 by sy2002 & MJoergen in September 2020 (GIT #"
 
-PORE$RESETMSG .ASCII_W "QNICE-FPGA V1.7 [WIP] by sy2002 & MJoergen in September 2020 (GIT #
+PORE$RESETMSG .ASCII_W "QNICE-FPGA V1.7 [WIP] by sy2002 & MJoergen in November 2020 (GIT #

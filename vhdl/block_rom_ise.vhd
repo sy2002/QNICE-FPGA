@@ -1,6 +1,7 @@
 -- Block ROM (synchronous)
 -- based on block_ram.vhd and rom_from_file.vhd
 -- done by sy2002 in August 2015
+-- refactored by MJoergen and sy2002 in 2020
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -29,10 +30,6 @@ architecture beh of BROM is
 
 signal output : std_logic_vector(ROM_WIDTH - 1 downto 0);
 
-signal counter : std_logic := '1'; -- important to be initialized to one
-signal address_old : std_logic_vector(14 downto 0) := (others => 'U');
-signal async_reset : std_logic;
-
 constant C_LINES : natural := 8*1024;
 
 type brom_t is array (0 to C_LINES - 1) of bit_vector(ROM_WIDTH - 1 downto 0);
@@ -55,7 +52,6 @@ signal brom : brom_t := read_romfile(FILE_NAME);
 
 begin
 
-   -- process for read and write operation on the rising clock edge
    rom_read : process (clk)
    begin
       if falling_edge(clk) then
@@ -64,8 +60,6 @@ begin
          else
             output <= (others => 'U');
          end if;
-
-         address_old <= address;
       end if;
    end process;
 
@@ -79,38 +73,6 @@ begin
       end if;
    end process;
 
-   -- generate a busy signal for one clock cycle, because this is
-   -- the read delay that this block RAM is having
-   manage_busy : process (clk, async_reset)
-   begin
-      if rising_edge(clk) then
-         if ce = '1' then
-            counter <= not counter;
-         else
-            counter <= '1'; -- reverse logic because busy needs to be "immediatelly" one when needed
-         end if;
-      end if;
-
-      if async_reset = '1' then
-         counter <= '1';
-      end if;
-   end process;
-   
-   -- address changes or changes between reading and writing are
-   -- re-triggering the busy-cycle as this means a new operation for the BRAM
-   manage_busy_on_changes : process (ce, address, address_old)
-   begin
-      if ce = '1' then
-         if address /= address_old then
-            async_reset <= '1';
-         else
-            async_reset <= '0';
-         end if;
-      else
-         async_reset <= '0';
-      end if;      
-   end process;
-   
    busy <= '0';
 
 end beh;
