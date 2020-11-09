@@ -993,3 +993,69 @@ different stages. Furthermore, the instruction decoding and reading from memory
 is only performed in stage 2. So if register writes can be concentrated to
 only stages 3 and 4, the timing should improve.
 
+## Timing optimization
+So before fixing more pipeline hazards I decided to implement the timing
+optimization suggested just above, i.e. to have only stages 3 and 4 write to
+the register file. This reduces the amount of work done in stage 2, and
+specifically stage 2 no longer writes to the register file.
+
+The module `arbiter_regs` is greatly simplified now, and the file
+`read_dst_operand.vhd` now just updates the source register instead of the
+destination register. Similarly, the file `write_result.vhd` simply multiplexes
+between updating a register operand and write a result to the register.
+
+The file `read_src_operand.vhd` turned out to need some more pipeline hazard
+detection. The reason is that instructions involving e.g. @PC++ as the source
+operand now update the PC in stage 3 and not in stage 2. This could be resolved
+by expanding the signal `reg_collision` with detecting explicite updates to the
+PC register.
+
+And with these changes the test runs just like before, and fails at address
+0x0C05.  Unfortunately, the pipeline statistics have worsened:
+
+Pipeline statistics (when reading from 0x0C05):
+
+* Clock cycles : 22626
+* Instructions : 7360
+* Cycles per instruction : 22626/7360 = 3.07
+* Memory cycles : 19536
+* Memory stalls : 1341
+* Memory utilization : 19536/22626 = 86%
+* Register write cycles : 8562
+* Register write stalls : 0
+* Register write utilization : 8562/22626 = 38%
+
+But the timing is better:
+
+Resource utilization:
+
+* Slice LUTs : 2603
+* Slice Registers : 294
+* Slices : 726
+
+Timing:
+
+* The slowest timing path has a slack of 3.6 ns (at 50 MHz) and a logic depth of 10
+  levels.  This suggests a maximum frequency of 1000/(20-3.6) = 61 MHz.
+
+The slowest timing paths are still in `read_src_operand`, this time reading and
+decoding an instruction from memory, reading the source register from the
+register file, and finally reading the source operand value from memory.  This
+seems difficult to optimize, because the above is indeed a description of all
+the work required in this stage.
+
+However, examining the timing path in more detail shows that a lot of the delay
+is due to routing delay. This is because the register file is very large
+(256\*8\*16 = 32k bits), and implemented in LUT RAM.  Each LUT RAM is very
+small, so the register file needs a lot of them, in fact the utilization report
+shows that 1432 LUT RAMs are used, distributed over 528 slices. In other words,
+the register file consumes a large **area** of the FPGA, and this leads to
+large routing delays. Indeed, the timing report shows that the path through the
+register file alone is around 9.5 ns.
+
+Perhaps it is possible to re-implement the register file using Block RAMs
+clocked on the falling clock (yes, that again!), thus consuming a much smaller
+area.  The downside is that only half a clock cycle is available, and reading
+from Block RAMs is quite slow. This will require some experimenting to
+determine, whether this proposed optimization will work.
+

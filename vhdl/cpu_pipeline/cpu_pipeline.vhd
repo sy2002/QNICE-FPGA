@@ -52,10 +52,6 @@ architecture synthesis of cpu_pipeline is
    -- Connections to the arbiter_regs
    signal reg_src_rd_reg  : std_logic_vector(3 downto 0);
    signal reg_src_rd_data : std_logic_vector(15 downto 0);
-   signal reg_src_wr_reg  : std_logic_vector(3 downto 0);
-   signal reg_src_wr      : std_logic;
-   signal reg_src_ready   : std_logic;
-   signal reg_src_wr_data : std_logic_vector(15 downto 0);
    signal reg_dst_rd_reg  : std_logic_vector(3 downto 0);
    signal reg_dst_rd_data : std_logic_vector(15 downto 0);
    signal reg_dst_wr_reg  : std_logic_vector(3 downto 0);
@@ -119,10 +115,6 @@ begin
          reg_rd_src_data_i => reg_src_rd_data,
          reg_rd_dst_reg_o  => reg_dst_rd_reg,
          reg_rd_dst_data_i => reg_dst_rd_data,
-         reg_wr_o          => reg_src_wr,
-         reg_wr_reg_o      => reg_src_wr_reg,
-         reg_wr_data_o     => reg_src_wr_data,
-         reg_ready_i       => reg_src_ready,
          mem_valid_o       => mem_src_valid,
          mem_address_o     => mem_src_address,
          mem_ready_i       => mem_src_ready,
@@ -211,10 +203,6 @@ begin
       port map (
          clk_i         => clk_i,
          rst_i         => rst_i,
-         src_valid_i   => reg_src_wr,
-         src_ready_o   => reg_src_ready,
-         src_reg_i     => reg_src_wr_reg,
-         src_data_i    => reg_src_wr_data,
          dst_valid_i   => reg_dst_wr,
          dst_ready_o   => reg_dst_ready,
          dst_reg_i     => reg_dst_wr_reg,

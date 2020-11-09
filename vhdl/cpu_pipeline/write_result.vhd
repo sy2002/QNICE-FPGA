@@ -53,6 +53,7 @@ architecture synthesis of write_result is
 
    signal res_mem_wr_ready  : std_logic;
    signal res_reg_wr_ready  : std_logic;
+   signal dst_reg_wr_ready  : std_logic;
    signal ready             : std_logic;
 
    signal branch_execute    : std_logic;
@@ -102,9 +103,10 @@ begin
    -----------------------------------------------------------------------
 
    -- To register write subsystem (combinatorial)
-   reg_wr_o      <= stage3_i.res_reg_wr_request and ready;
+   reg_wr_o      <= (stage3_i.res_reg_wr_request or stage3_i.dst_reg_wr_request) and ready;
    reg_wr_reg_o  <= stage3_i.inst_dst_reg;
-   reg_wr_data_o <= res_data;
+   reg_wr_data_o <= res_data when stage3_i.res_reg_wr_request = '1' else
+                    stage3_i.dst_reg_wr_value;
 
 
    -----------------------------------------------------------------------
@@ -140,8 +142,11 @@ begin
    -- Are we waiting for register write access?
    res_reg_wr_ready <= not (stage3_i.res_reg_wr_request and not reg_ready_i);
 
+   -- Are we waiting for register write access?
+   dst_reg_wr_ready <= not (stage3_i.dst_reg_wr_request and not reg_ready_i);
+
    -- Everything must be ready before we can proceed
-   ready <= res_mem_wr_ready and res_reg_wr_ready;
+   ready <= res_mem_wr_ready and (dst_reg_wr_ready or res_reg_wr_ready);
 
 
    -- To previous stage (combinatorial)

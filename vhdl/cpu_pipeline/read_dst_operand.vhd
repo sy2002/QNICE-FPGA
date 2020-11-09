@@ -38,7 +38,7 @@ end entity read_dst_operand;
 architecture synthesis of read_dst_operand is
 
    signal dst_mem_ready : std_logic;
-   signal dst_reg_ready : std_logic;
+   signal src_reg_ready : std_logic;
    signal ready         : std_logic;
 
 begin
@@ -52,12 +52,12 @@ begin
 
 
    -----------------------------------------------------------------------
-   -- Optionaly write update destination register
+   -- Optionaly update source register
    -----------------------------------------------------------------------
 
-   reg_wr_o      <= stage2_i.dst_reg_wr_request and ready;
-   reg_wr_reg_o  <= stage2_i.inst_dst_reg;
-   reg_wr_data_o <= stage2_i.dst_reg_wr_value;
+   reg_wr_o      <= stage2_i.src_reg_wr_request and ready;
+   reg_wr_reg_o  <= stage2_i.inst_src_reg;
+   reg_wr_data_o <= stage2_i.src_reg_wr_value;
 
 
    -----------------------------------------------------------------------
@@ -68,10 +68,10 @@ begin
    dst_mem_ready <= not (stage2_i.dst_mem_rd_request and not mem_ready_i);
 
    -- Are we waiting for register write access?
-   dst_reg_ready <= not (stage2_i.dst_reg_wr_request and not reg_ready_i);
+   src_reg_ready <= not (stage2_i.src_reg_wr_request and not reg_ready_i);
 
    -- Everything must be ready before we can proceed
-   ready <= dst_mem_ready and dst_reg_ready and ready_i and not flush_i;
+   ready <= dst_mem_ready and src_reg_ready and ready_i and not flush_i;
 
 
    -- To next stage (registered)
