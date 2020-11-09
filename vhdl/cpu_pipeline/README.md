@@ -1059,3 +1059,12 @@ area.  The downside is that only half a clock cycle is available, and reading
 from Block RAMs is quite slow. This will require some experimenting to
 determine, whether this proposed optimization will work.
 
+So I just did a quick test by adding a `falling_edge` triggered flip-flop when
+reading in the register file. The timing is slightly worse, i.e. now a
+frequency of 55 MHz.  The overall size of the design is much smaller, as
+predicted, but the timing is limited by the half clock cycle. So this would
+suggest that implementing synchronous reads from the register file will improve
+performce. Alas, this requires (again) another redesign of the pipeline.
+
+To be continued...
+
