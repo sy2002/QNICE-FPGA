@@ -1059,12 +1059,27 @@ area.  The downside is that only half a clock cycle is available, and reading
 from Block RAMs is quite slow. This will require some experimenting to
 determine, whether this proposed optimization will work.
 
-So I just did a quick test by adding a `falling_edge` triggered flip-flop when
-reading in the register file. The timing is slightly worse, i.e. now a
-frequency of 55 MHz.  The overall size of the design is much smaller, as
-predicted, but the timing is limited by the half clock cycle. So this would
-suggest that implementing synchronous reads from the register file will improve
-performce. Alas, this requires (again) another redesign of the pipeline.
+So I just did a test by adding a `falling_edge` triggered flip-flop when
+reading in the register file.  Note that the simulation test still runs as
+before, because the `falling_edge` does not change the semantics of the
+pipeline.  The timing of this change is slightly worse, i.e. now a frequency of
+55 MHz.  The overall size of the design is much smaller, as predicted, but the
+timing is limited by the half clock cycle. So this would suggest that
+implementing synchronous reads from the register file will improve performance.
+Alas, this requires (again) another redesign of the pipeline.
+
+In order to get a rough estimate of the potential performance improvement, I've
+temporarily changed the `falling_edge` to `rising_edge` when reading from the
+register file. This now breaks the semantics of the pipeline, but I can still
+run synthesis and implementation to see the timing report.
+
+This time the freqency jumps up to 67 MHz. The longest timing path is now in
+stage 4 where the destination operand is received from memory, processed in the
+ALU and updates the `SR` in the register file. This suggests that there should
+be (another) register on the memory output.
+
+It's too soon to draw any conclusions, but there does seem to be still some
+options for timing optimizations.
 
 To be continued...
 
