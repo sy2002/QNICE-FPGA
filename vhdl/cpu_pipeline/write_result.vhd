@@ -81,6 +81,7 @@ begin
          dst_data_i => dst_operand,
          sr_i       => sr_i,
          opcode_i   => stage3_i.inst_opcode,
+         ctrl_cmd_i => stage3_i.inst_ctrl_cmd,
          res_data_o => res_data,
          sr_o       => sr_o
       ); -- i_alu

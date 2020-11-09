@@ -29,9 +29,11 @@ end entity registers;
 
 architecture synthesis of registers is
 
-   type mem_t is array (0 to 15) of std_logic_vector(15 downto 0);
+   type upper_mem_t is array (8 to 15) of std_logic_vector(15 downto 0);
+   type lower_mem_t is array (0 to 8*256-1) of std_logic_vector(15 downto 0);
 
-   signal regs : mem_t := (others => (others => '0'));
+   signal upper_regs : upper_mem_t := (others => (others => '0'));
+   signal lower_regs : lower_mem_t := (others => (others => '0'));
 
    signal pc : std_logic_vector(15 downto 0);
    signal sr : std_logic_vector(15 downto 0);
@@ -46,12 +48,14 @@ begin
    src_data_o <= pc when conv_integer(src_reg_i) = C_REG_PC else
                  sr when conv_integer(src_reg_i) = C_REG_SR else
                  sp when conv_integer(src_reg_i) = C_REG_SP else
-                 regs(conv_integer(src_reg_i));
+                 upper_regs(conv_integer(src_reg_i)) when conv_integer(src_reg_i) >= 8 else
+                 lower_regs(conv_integer(sr(15 downto 8))*8+conv_integer(src_reg_i));
 
    dst_data_o <= pc when conv_integer(dst_reg_i) = C_REG_PC else
                  sr when conv_integer(dst_reg_i) = C_REG_SR else
                  sp when conv_integer(dst_reg_i) = C_REG_SP else
-                 regs(conv_integer(dst_reg_i));
+                 upper_regs(conv_integer(dst_reg_i)) when conv_integer(dst_reg_i) >= 8 else
+                 lower_regs(conv_integer(sr(15 downto 8))*8+conv_integer(dst_reg_i));
 
    p_special : process (clk_i)
    begin
@@ -90,7 +94,11 @@ begin
    begin
       if rising_edge(clk_i) then
          if reg_valid_i = '1' then
-            regs(conv_integer(reg_address_i)) <= reg_data_i;
+            if conv_integer(reg_address_i) >= 8 then
+               upper_regs(conv_integer(reg_address_i)) <= reg_data_i;
+            else
+               lower_regs(conv_integer(sr(15 downto 8))*8+conv_integer(reg_address_i)) <= reg_data_i;
+            end if;
          end if;
       end if;
    end process p_write;

@@ -928,3 +928,68 @@ Similarly, the `write_result.vhd` is updated to allow writing to memory of the
 The next thing missing are the instructions `INCRB` and `DECRB`. So before
 implementing those, I'll add support for register banking.
 
+## Implementing register banking and fixing more bugs
+The `INCRB` and `DECRB` instructions are relatively easy to implement. I've
+chosen to implement them inside the ALU. The biggest changes are in the file
+`cpu_constants.vhd`, where the disassembler now supports the control
+instructions.
+
+Pipeline hazards I've chosen to handle by delaying any instructions that
+read the SR. This is done quite simply in `read_src_operand.vhd` using
+the already existing `reg_collision`.
+
+Adding support for register banking was done entirely within the register file.
+
+And finally, the CPU test suite shows its worth and uncovered a few trivial
+bugs in the ALU.
+
+The test now runs much further, and fails when executing the following two
+instructions:
+```
+MOVE    R0, @R4
+MOVE    @R1, @--R2
+```
+What currently happens is that stage 2 reads from `R1` and only in the next
+clock cycle does stage 4 write to `R4`.  The problem is that `R4` and `R1`
+point to the same location in memory, so we here have a data hazard.
+
+Test coverage:
+
+* `test2.asm` fails first at 0x0C05, which is approximately 57% of the whole test.
+
+Pipeline statistics (when reading from 0x0C05):
+
+* Clock cycles : 20590
+* Instructions : 7936
+* Cycles per instruction : 20590/7936 = 2.59
+* Memory cycles : 14143
+* Memory stalls : 1337
+* Memory utilization : 14143/20590 = 69%
+* Register write cycles : 8562
+* Register write stalls : 0
+* Register write utilization : 8562/20590 = 42%
+
+Resource utilization:
+
+* Slice LUTs : 2580
+* Slice Registers : 259
+* Slices : 727
+
+Timing:
+
+* The slowest timing path has a slack of 1.5 ns (at 50 MHz) and a logic depth of 12
+  levels.  This suggests a maximum frequency of 1000/(20-1.5) = 54 MHz.
+
+So we see that the frequency has gone down significantly. This is due to the
+register file.  The slowest timing paths are seen to be in `read_src_operand`,
+where an instruction is read from memory, the source register is read from the
+register file, this source register is incremented, and finally written back to
+the register file.
+
+There is an optimization opportunity here, but would require redesigning the
+pipeline yet again. The crucial point is that any instruction will only ever
+write twice to the register file, yet we currenly support writes from three
+different stages. Furthermore, the instruction decoding and reading from memory
+is only performed in stage 2. So if register writes can be concentrated to
+only stages 3 and 4, the timing should improve.
+

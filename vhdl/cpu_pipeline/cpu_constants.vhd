@@ -12,6 +12,7 @@ package cpu_constants is
    subtype R_BRA_MODE   is natural range  5 downto  4;
    constant R_BRA_NEGATE : integer := 3;
    subtype R_BRA_COND   is natural range  2 downto  0;
+   subtype R_CTRL_CMD   is natural range 11 downto  6;
 
    -- Decode status bits
    constant C_SR_V : integer := 5;
@@ -38,6 +39,12 @@ package cpu_constants is
    constant C_OP_RES  : integer := 13;
    constant C_OP_CTRL : integer := 14;
    constant C_OP_BRA  : integer := 15;
+
+   constant C_CTRL_HALT  : integer := 0;
+   constant C_CTRL_RTI   : integer := 1;
+   constant C_CTRL_INT   : integer := 2;
+   constant C_CTRL_INCRB : integer := 3;
+   constant C_CTRL_DECRB : integer := 4;
 
    -- Addressing modes
    constant C_MODE_REG  : integer := 0;   -- R
@@ -66,6 +73,7 @@ package cpu_constants is
       -- Only valid after stage 2
       instruction        : std_logic_vector(15 downto 0);
       inst_opcode        : std_logic_vector(3 downto 0);
+      inst_ctrl_cmd      : std_logic_vector(5 downto 0);
       inst_src_mode      : std_logic_vector(1 downto 0);
       inst_src_reg       : std_logic_vector(3 downto 0);
       inst_dst_mode      : std_logic_vector(1 downto 0);
@@ -97,6 +105,7 @@ package cpu_constants is
       pc_inst            => (others => '0'),
       instruction        => (others => '0'),
       inst_opcode        => (others => '0'),
+      inst_ctrl_cmd      => (others => '0'),
       inst_src_mode      => (others => '0'),
       inst_src_reg       => (others => '0'),
       inst_dst_mode      => (others => '0'),
@@ -193,6 +202,19 @@ package body cpu_constants is
          return "???";
       end function mode_str;
 
+      function ctrl_str(cmd : std_logic_vector) return string is
+      begin
+         case conv_integer(cmd) is
+            when C_CTRL_HALT  => return "HALT";
+            when C_CTRL_RTI   => return "RTI";
+            when C_CTRL_INT   => return "INT";
+            when C_CTRL_INCRB => return "INCRB";
+            when C_CTRL_DECRB => return "DECRB";
+            when others => return "???";
+         end case;
+         return "???";
+      end function ctrl_str;
+
       function neg_str(negate : std_logic) return string is
       begin
          if negate = '1' then
@@ -217,7 +239,18 @@ package body cpu_constants is
       end function cond_str;
 
    begin
-      if conv_integer(inst(R_OPCODE)) = C_OP_BRA then
+      if conv_integer(inst(R_OPCODE)) = C_OP_CTRL then
+         if conv_integer(inst(R_CTRL_CMD)) = C_CTRL_INT then
+            report to_hstring(pc) & " " &
+               "(" & to_hstring(inst) & ") " &
+               ctrl_str(inst(R_CTRL_CMD)) & " " &
+               reg_str(inst(R_DEST_REG), inst(R_DEST_MODE), operand);
+         else
+            report to_hstring(pc) & " " &
+               "(" & to_hstring(inst) & ") " &
+               ctrl_str(inst(R_CTRL_CMD));
+         end if;
+      elsif conv_integer(inst(R_OPCODE)) = C_OP_BRA then
          report to_hstring(pc) & " " &
                "(" & to_hstring(inst) & ") " &
                mode_str(inst(R_BRA_MODE)) & " " &
@@ -232,8 +265,9 @@ package body cpu_constants is
                reg_str(inst(R_DEST_REG), inst(R_DEST_MODE), operand);
       end if;
 
-      assert conv_integer(inst(R_OPCODE)) /= C_OP_CTRL
-         report "Control instruction" severity failure;
+      if conv_integer(inst(R_OPCODE)) = C_OP_CTRL and conv_integer(inst(R_CTRL_CMD)) = C_CTRL_HALT then
+         report "HALT" severity failure;
+      end if;
    end procedure disassemble;
 
 end cpu_constants;

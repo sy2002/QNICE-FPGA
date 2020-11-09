@@ -47,6 +47,7 @@ architecture synthesis of read_src_operand is
 
    -- Decode instruction
    signal inst_opcode        : std_logic_vector(3 downto 0);
+   signal inst_ctrl_cmd      : std_logic_vector(5 downto 0);
    signal inst_src_mode      : std_logic_vector(1 downto 0);
    signal inst_src_reg       : std_logic_vector(3 downto 0);
    signal inst_dst_mode      : std_logic_vector(1 downto 0);
@@ -92,6 +93,7 @@ begin
    -----------------------------------------------------------------------
 
    inst_opcode     <= mem_data_i(R_OPCODE);
+   inst_ctrl_cmd   <= mem_data_i(R_CTRL_CMD);
    inst_src_mode   <= mem_data_i(R_SRC_MODE);
    inst_src_reg    <= mem_data_i(R_SRC_REG);
    inst_dst_mode   <= mem_data_i(R_DEST_MODE);
@@ -186,6 +188,13 @@ begin
                     '1' when stage3_r.src_reg_wr_request = '1' and conv_integer(stage3_r.inst_src_reg) = conv_integer(inst_dst_reg) else
                     '1' when stage3_r.dst_reg_wr_request = '1' and conv_integer(stage3_r.inst_dst_reg) = conv_integer(inst_dst_reg) else
                     '1' when stage3_r.res_reg_wr_request = '1' and conv_integer(stage3_r.inst_dst_reg) = conv_integer(inst_dst_reg) else
+
+                    '1' when stage2_r.valid = '1' and conv_integer(inst_src_reg) = C_REG_SR else
+                    '1' when stage2_r.valid = '1' and conv_integer(inst_dst_reg) = C_REG_SR else
+
+                    '1' when stage3_r.valid = '1' and conv_integer(inst_src_reg) = C_REG_SR else
+                    '1' when stage3_r.valid = '1' and conv_integer(inst_dst_reg) = C_REG_SR else
+
                     '0';
 
    -- Do we want to update the Program Counter
@@ -288,6 +297,7 @@ begin
             stage2_r.pc_inst            <= stage1_i.pc_inst;
             stage2_r.instruction        <= mem_data_i;
             stage2_r.inst_opcode        <= inst_opcode;
+            stage2_r.inst_ctrl_cmd      <= inst_ctrl_cmd;
             stage2_r.inst_src_mode      <= inst_src_mode;
             stage2_r.inst_src_reg       <= inst_src_reg;
             stage2_r.inst_dst_mode      <= inst_dst_mode;

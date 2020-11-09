@@ -1180,7 +1180,7 @@ L_BANK_00       MOVE    0, R14                  ; Reset register bank
 
 ; Fill all register banks
                 MOVE    0, R9                   ; Current value to write
-                MOVE    0, R14                  ; Reset register bank
+                MOVE    0xF000, R14             ; Reset register bank
 
 L_BANK_01       RSUB    L_BANK_PRNG, 1          ; Get new value of R9
                 MOVE    R9, R0
@@ -1206,6 +1206,7 @@ L_BANK_01       RSUB    L_BANK_PRNG, 1          ; Get new value of R9
 
 ; Verify all register banks
                 MOVE    0, R9                   ; Current value to write
+                MOVE    0xF000, R14             ; Reset register bank
 
 L_BANK_02       RSUB    L_BANK_PRNG, 1          ; Get new value of R9
                 CMP     R9, R0
@@ -3921,9 +3922,5 @@ L_SUB_AM2_141
 
 
 ; Everything worked as expected! We are done now.
-EXIT            MOVE    OK, R8
-                SYSCALL(puts, 1)
-                SYSCALL(exit, 1)
-
-OK              .ASCII_W    "OK\n"
+EXIT            HALT
 

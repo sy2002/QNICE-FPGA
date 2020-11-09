@@ -37,7 +37,7 @@ show: $(WAVE)
 $(WAVE): $(SOURCES) $(ROM)
 	ghdl -i --ieee=synopsys $(SOURCES)
 	ghdl -m --ieee=synopsys $(TB)
-	ghdl -r --ieee=synopsys $(TB) --wave=$(WAVE) --stop-time=200us
+	ghdl -r --ieee=synopsys $(TB) --wave=$(WAVE) --stop-time=2000us
 
 test%:
 	../../assembler/asm $@.asm

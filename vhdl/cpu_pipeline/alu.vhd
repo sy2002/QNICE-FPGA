@@ -13,6 +13,7 @@ entity alu is
       dst_data_i : in  std_logic_vector(15 downto 0);
       sr_i       : in  std_logic_vector(15 downto 0);
       opcode_i   : in  std_logic_vector(3 downto 0);
+      ctrl_cmd_i : in  std_logic_vector(5 downto 0);
       res_data_o : out std_logic_vector(15 downto 0);
       sr_o       : out std_logic_vector(15 downto 0)
    );
@@ -77,7 +78,7 @@ begin
       res_shr <= res;
    end process p_shift_right;
 
-   p_res_data : process (src_data_i, dst_data_i, opcode_i, sr_i)
+   p_res_data : process (src_data_i, dst_data_i, opcode_i, sr_i, res_shl, res_shr)
    begin
       res_data <= ("0" & src_data_i);  -- Default value to avoid latches
       case to_integer(unsigned(opcode_i)) is
@@ -111,10 +112,10 @@ begin
    overflow <= (not src_data_i(15) and not dst_data_i(15) and     res_data(15)) or
                (    src_data_i(15) and     dst_data_i(15) and not res_data(15));
 
-   cmp_n <= '1' when signed(src_data_i) > signed(dst_data_i) else
+   cmp_n <= '1' when unsigned(src_data_i) > unsigned(dst_data_i) else
             '0';
 
-   cmp_v <= '1' when unsigned(src_data_i) > unsigned(dst_data_i) else
+   cmp_v <= '1' when signed(src_data_i) > signed(dst_data_i) else
             '0';
 
    cmp_z <= '1' when src_data_i = dst_data_i else
@@ -125,21 +126,26 @@ begin
       sr_o <= sr_i or X"0001";  -- Default value to preserve bits that are not changed.
       if valid_i = '1' then
          case to_integer(unsigned(opcode_i)) is
-            when C_OP_MOVE =>                           sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
-            when C_OP_ADD  => sr_o(C_SR_V) <= overflow; sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero; sr_o(C_SR_C) <= carry;
-            when C_OP_ADDC => sr_o(C_SR_V) <= overflow; sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero; sr_o(C_SR_C) <= carry;
-            when C_OP_SUB  => sr_o(C_SR_V) <= overflow; sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero; sr_o(C_SR_C) <= carry;
-            when C_OP_SUBC => sr_o(C_SR_V) <= overflow; sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero; sr_o(C_SR_C) <= carry;
-            when C_OP_SHL  => sr_o(C_SR_C) <= res_shl(16);
-            when C_OP_SHR  => sr_o(C_SR_X) <= res_shr(0);
-            when C_OP_SWAP =>                           sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
-            when C_OP_NOT  =>                           sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
-            when C_OP_AND  =>                           sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
-            when C_OP_OR   =>                           sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
-            when C_OP_XOR  =>                           sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
-            when C_OP_CMP  => sr_o(C_SR_V) <= cmp_v;    sr_o(C_SR_N) <= cmp_n;    sr_o(C_SR_Z) <= cmp_z;
+            when C_OP_MOVE =>                              sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
+            when C_OP_ADD  => sr_o(C_SR_V) <= overflow;    sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero; sr_o(C_SR_C) <= carry;
+            when C_OP_ADDC => sr_o(C_SR_V) <= overflow;    sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero; sr_o(C_SR_C) <= carry;
+            when C_OP_SUB  => sr_o(C_SR_V) <= overflow;    sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero; sr_o(C_SR_C) <= carry;
+            when C_OP_SUBC => sr_o(C_SR_V) <= overflow;    sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero; sr_o(C_SR_C) <= carry;
+            when C_OP_SHL  => sr_o(C_SR_C) <= res_shl(16); sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
+            when C_OP_SHR  => sr_o(C_SR_X) <= res_shr(0);  sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
+            when C_OP_SWAP =>                              sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
+            when C_OP_NOT  =>                              sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
+            when C_OP_AND  =>                              sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
+            when C_OP_OR   =>                              sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
+            when C_OP_XOR  =>                              sr_o(C_SR_N) <= negative; sr_o(C_SR_Z) <= zero;
+            when C_OP_CMP  => sr_o(C_SR_V) <= cmp_v;       sr_o(C_SR_N) <= cmp_n;    sr_o(C_SR_Z) <= cmp_z;
             when C_OP_RES  => null; -- No status bits are changed
             when C_OP_CTRL => null; -- No status bits are changed
+               case to_integer(unsigned(ctrl_cmd_i)) is
+                  when C_CTRL_INCRB => sr_o <= std_logic_vector(unsigned(sr_i) + X"0100");
+                  when C_CTRL_DECRB => sr_o <= std_logic_vector(unsigned(sr_i) - X"0100");
+                  when others => null;
+               end case;
             when C_OP_BRA  => null; -- No status bits are changed
             when others    => null;
          end case;
