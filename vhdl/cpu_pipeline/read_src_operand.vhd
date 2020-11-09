@@ -20,6 +20,7 @@ entity read_src_operand is
       mem_data_i        : in  std_logic_vector(15 downto 0);
 
       -- Read from register file (combinatorial)
+      sp_i              : in  std_logic_vector(15 downto 0);
       reg_rd_src_reg_o  : out std_logic_vector(3 downto 0);
       reg_rd_src_data_i : in  std_logic_vector(15 downto 0);
       reg_rd_dst_reg_o  : out std_logic_vector(3 downto 0);
@@ -69,6 +70,7 @@ architecture synthesis of read_src_operand is
    signal res_reg_wr_request : std_logic;
    signal res_mem_wr_request : std_logic;
    signal res_mem_wr_address : std_logic_vector(15 downto 0);
+   signal res_reg_sp_update  : std_logic;
 
    signal reg_collision      : std_logic;
    signal src_reg_pc_update  : std_logic;
@@ -127,11 +129,14 @@ begin
                          '1';
 
    -- Do we want to write result memory?
-   res_mem_wr_request <= '0' when dst_reg_valid = '0' else
+   res_mem_wr_request <= '0' when stage1_i.valid = '0' or flush_i = '1' else
                          '0' when inst_opcode = C_OP_RES else
                          '0' when inst_opcode = C_OP_CTRL else
+                         '1' when inst_opcode = C_OP_BRA and inst_bra_mode = C_BRA_ASUB else
+                         '1' when inst_opcode = C_OP_BRA and inst_bra_mode = C_BRA_RSUB else
                          '0' when inst_opcode = C_OP_BRA and inst_bra_mode = C_BRA_ABRA else
                          '0' when inst_opcode = C_OP_BRA and inst_bra_mode = C_BRA_RBRA else
+                         '0' when dst_reg_valid = '0' else
                          '0' when inst_dst_mode = C_MODE_REG else
                          '1';
 
@@ -148,8 +153,7 @@ begin
                          '1';
 
    -- Do we want to write to destination register?
-   res_reg_wr_request <= '0' when stage1_i.valid = '0' or flush_i = '1' else
-                         '0' when inst_opcode = C_OP_BRA else
+   res_reg_wr_request <= '0' when dst_reg_valid = '0' else
                          '0' when inst_opcode = C_OP_RES else
                          '0' when inst_opcode = C_OP_CTRL else
                          '0' when inst_opcode = C_OP_CMP else
@@ -157,6 +161,12 @@ begin
                          '0' when inst_dst_mode = C_MODE_PRE else
                          '0' when inst_dst_mode = C_MODE_POST else
                          '1';
+
+   -- Do we want to write to SP
+   res_reg_sp_update <= '0' when stage1_i.valid = '0' or flush_i = '1' else
+                        '1' when inst_opcode = C_OP_BRA and inst_bra_mode = C_BRA_ASUB else
+                        '1' when inst_opcode = C_OP_BRA and inst_bra_mode = C_BRA_RSUB else
+                        '0';
 
 
    -----------------------------------------------------------------------
@@ -214,7 +224,8 @@ begin
    dst_mem_rd_address <= dst_reg_rd_value-1 when inst_dst_mode = C_MODE_PRE else
                          dst_reg_rd_value;
 
-   res_mem_wr_address <= dst_reg_rd_value-1 when inst_dst_mode = C_MODE_PRE else
+   res_mem_wr_address <= sp_i-1 when res_reg_sp_update = '1' else
+                         dst_reg_rd_value-1 when inst_dst_mode = C_MODE_PRE else
                          dst_reg_rd_value;
 
 
@@ -297,6 +308,7 @@ begin
             stage2_r.res_mem_wr_request <= res_mem_wr_request;
             stage2_r.res_mem_wr_address <= res_mem_wr_address;
             stage2_r.res_reg_wr_request <= res_reg_wr_request;
+            stage2_r.res_reg_sp_update  <= res_reg_sp_update;
             stage2_r.src_operand        <= src_reg_rd_value;
          end if;
 

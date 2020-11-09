@@ -86,6 +86,7 @@ package cpu_constants is
       res_reg_wr_request : std_logic;
       res_mem_wr_request : std_logic;
       res_mem_wr_address : std_logic_vector(15 downto 0);
+      res_reg_sp_update  : std_logic;
 
       -- Only valid after stage 3
       src_operand        : std_logic_vector(15 downto 0);
@@ -116,6 +117,7 @@ package cpu_constants is
       res_reg_wr_request => '0',
       res_mem_wr_request => '0',
       res_mem_wr_address => (others => '0'),
+      res_reg_sp_update  => '0',
       src_operand        => (others => '0')
    );
 

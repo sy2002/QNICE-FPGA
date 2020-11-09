@@ -20,11 +20,14 @@ entity write_result is
       -- From register file
       pc_i             : in  std_logic_vector(15 downto 0);
       sr_i             : in  std_logic_vector(15 downto 0);
+      sp_i             : in  std_logic_vector(15 downto 0);
 
       -- To register file (combinatorial)
       sr_o             : out std_logic_vector(15 downto 0);
       pc_wr_o          : out std_logic;
       pc_o             : out std_logic_vector(15 downto 0);
+      sp_wr_o          : out std_logic;
+      sp_o             : out std_logic_vector(15 downto 0);
 
       -- Write to memory subsystem (combinatorial)
       mem_valid_o      : out std_logic;
@@ -89,7 +92,8 @@ begin
 
    mem_valid_o   <= stage3_i.res_mem_wr_request and ready;
    mem_address_o <= stage3_i.res_mem_wr_address;
-   mem_data_o    <= res_data;
+   mem_data_o    <= stage3_i.pc_inst + 2 when stage3_i.res_reg_sp_update = '1' else
+                   res_data;
 
 
    -----------------------------------------------------------------------
@@ -122,6 +126,8 @@ begin
    pc_wr_o <= branch_execute;
    pc_o    <= branch_dest;
 
+   sp_wr_o <= stage3_i.res_reg_sp_update;
+   sp_o    <= sp_i-1;
 
    -----------------------------------------------------------------------
    -- Are we ready to complete this stage?

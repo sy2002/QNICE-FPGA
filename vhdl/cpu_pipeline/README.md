@@ -903,3 +903,28 @@ Since reading from a Block RAM itself takes over 2 ns, it could be relevant to
 add (another) register to the memory output. This would require yet another
 redesign of the pipeline, so let's not go there just yet.
 
+## Implementing `RSUB` and `ASUB`
+The RSUB instruction is quite complicated since it must:
+* Read source operand (potentially from memory, potentially updating source register)
+* Write `PC` to memory (pointed to by `SP`)
+* Decrement `SP`.
+In order to simplify the implementation (and to reduce the load on the register
+arbiter) I've decided to let the register file treat the `SP` as a special
+register, just like the `PC` and the `SR`.
+
+So the register file now has some new signals `sp_o`, `res_wr_spi_i`, and
+`res_sp_i`. The treatment of the `SP` in the register file is analogous to the
+`PC`.
+
+The instruction decoding in `read_src_operand` now has a new output signal
+`res_reg_sp_update` that is asserted only during `ASUB` and `RSUB`.
+Additionally, the signals `res_mem_wr_request` and `res_mem_wr_address`
+are modified to allow write to memory.
+
+Similarly, the `write_result.vhd` is updated to allow writing to memory of the
+`PC` as well as the `ALU`.  And that is it! The pipelined CPU can now perform
+`RSUB` and `ASUB`.
+
+The next thing missing are the instructions `INCRB` and `DECRB`. So before
+implementing those, I'll add support for register banking.
+

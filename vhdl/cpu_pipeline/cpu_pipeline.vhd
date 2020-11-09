@@ -70,9 +70,12 @@ architecture synthesis of cpu_pipeline is
    signal reg_wr_pc       : std_logic_vector(15 downto 0);
    signal reg_rd_sr       : std_logic_vector(15 downto 0);
    signal reg_wr_sr       : std_logic_vector(15 downto 0);
+   signal reg_rd_sp       : std_logic_vector(15 downto 0);
 
    signal reg_res_wr_pc   : std_logic;
    signal reg_res_pc      : std_logic_vector(15 downto 0);
+   signal reg_res_wr_sp   : std_logic;
+   signal reg_res_sp      : std_logic_vector(15 downto 0);
 
    -- Connections to the register file
    signal arb_valid       : std_logic;
@@ -111,6 +114,7 @@ begin
          ready_o           => stage1_ready,
          stage1_i          => stage1,
          mem_data_i        => mem_inst_data,
+         sp_i              => reg_rd_sp,
          reg_rd_src_reg_o  => reg_src_rd_reg,
          reg_rd_src_data_i => reg_src_rd_data,
          reg_rd_dst_reg_o  => reg_dst_rd_reg,
@@ -158,9 +162,12 @@ begin
          mem_data_i       => mem_dst_data,
          pc_i             => reg_rd_pc,
          sr_i             => reg_rd_sr,
+         sp_i             => reg_rd_sp,
          sr_o             => reg_wr_sr,
          pc_wr_o          => reg_res_wr_pc,
          pc_o             => reg_res_pc,
+         sp_wr_o          => reg_res_wr_sp,
+         sp_o             => reg_res_sp,
          mem_valid_o      => mem_res_valid,
          mem_address_o    => mem_res_address,
          mem_data_o       => mem_res_data,
@@ -231,6 +238,9 @@ begin
          res_pc_i      => reg_res_pc,
          sr_o          => reg_rd_sr,
          sr_i          => reg_wr_sr,
+         sp_o          => reg_rd_sp,
+         res_wr_sp_i   => reg_res_wr_sp,
+         res_sp_i      => reg_res_sp,
          src_reg_i     => reg_src_rd_reg,
          src_data_o    => reg_src_rd_data,
          dst_reg_i     => reg_dst_rd_reg,

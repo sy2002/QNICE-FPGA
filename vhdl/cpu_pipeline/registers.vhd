@@ -14,6 +14,9 @@ entity registers is
       res_pc_i      : in  std_logic_vector(15 downto 0);
       sr_o          : out std_logic_vector(15 downto 0);
       sr_i          : in  std_logic_vector(15 downto 0);
+      sp_o          : out std_logic_vector(15 downto 0);
+      res_wr_sp_i   : in  std_logic;
+      res_sp_i      : in  std_logic_vector(15 downto 0);
       src_reg_i     : in  std_logic_vector(3 downto 0);
       src_data_o    : out std_logic_vector(15 downto 0);
       dst_reg_i     : in  std_logic_vector(3 downto 0);
@@ -32,18 +35,22 @@ architecture synthesis of registers is
 
    signal pc : std_logic_vector(15 downto 0);
    signal sr : std_logic_vector(15 downto 0);
+   signal sp : std_logic_vector(15 downto 0);
 
 begin
 
    pc_o <= pc;
    sr_o <= sr;
+   sp_o <= sp;
 
    src_data_o <= pc when conv_integer(src_reg_i) = C_REG_PC else
                  sr when conv_integer(src_reg_i) = C_REG_SR else
+                 sp when conv_integer(src_reg_i) = C_REG_SP else
                  regs(conv_integer(src_reg_i));
 
    dst_data_o <= pc when conv_integer(dst_reg_i) = C_REG_PC else
                  sr when conv_integer(dst_reg_i) = C_REG_SR else
+                 sp when conv_integer(dst_reg_i) = C_REG_SP else
                  regs(conv_integer(dst_reg_i));
 
    p_special : process (clk_i)
@@ -58,6 +65,13 @@ begin
             pc <= pc_i;
          end if;
 
+         if reg_valid_i = '1' and conv_integer(reg_address_i) = C_REG_SP then
+            assert res_wr_sp_i = '0' report "Multiple writes to SP" severity failure;
+            sp <= reg_data_i;
+         elsif res_wr_sp_i = '1' then
+            sp <= res_sp_i;
+         end if;
+
          if reg_valid_i = '1' and conv_integer(reg_address_i) = C_REG_SR then
             sr <= reg_data_i or X"0001";
          else
@@ -67,6 +81,7 @@ begin
          if rst_i = '1' then
             pc <= X"0000";
             sr <= X"0001";
+            sp <= X"0000";
          end if;
       end if;
    end process p_special;
