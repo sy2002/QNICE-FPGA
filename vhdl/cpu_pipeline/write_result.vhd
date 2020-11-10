@@ -16,6 +16,7 @@ entity write_result is
 
       -- From memory
       mem_data_i        : in  std_logic_vector(15 downto 0);
+      mem_valid_i       : in  std_logic;
 
       -- From register file
       pc_i             : in  std_logic_vector(15 downto 0);

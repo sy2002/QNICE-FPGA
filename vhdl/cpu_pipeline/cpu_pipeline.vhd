@@ -22,63 +22,65 @@ end entity cpu_pipeline;
 
 architecture synthesis of cpu_pipeline is
 
-   signal stage1           : t_stage;
-   signal stage2           : t_stage;
-   signal stage3           : t_stage;
-   signal stage1_ready     : std_logic;
-   signal stage2_ready     : std_logic;
-   signal stage3_ready     : std_logic;
+   signal stage1             : t_stage;
+   signal stage2             : t_stage;
+   signal stage3             : t_stage;
+   signal stage1_ready       : std_logic;
+   signal stage2_ready       : std_logic;
+   signal stage3_ready       : std_logic;
 
-   signal stage1_wait      : std_logic;
+   signal stage1_wait        : std_logic;
 
    -- Connections to the arbiter_mem
-   signal mem_inst_valid   : std_logic;
-   signal mem_inst_ready   : std_logic;
-   signal mem_inst_address : std_logic_vector(15 downto 0);
-   signal mem_inst_data    : std_logic_vector(15 downto 0);
-   signal mem_src_valid    : std_logic;
-   signal mem_src_ready    : std_logic;
-   signal mem_src_address  : std_logic_vector(15 downto 0);
-   signal mem_src_data     : std_logic_vector(15 downto 0);
-   signal mem_dst_valid    : std_logic;
-   signal mem_dst_ready    : std_logic;
-   signal mem_dst_address  : std_logic_vector(15 downto 0);
-   signal mem_dst_data     : std_logic_vector(15 downto 0);
-   signal mem_res_valid    : std_logic;
-   signal mem_res_ready    : std_logic;
-   signal mem_res_address  : std_logic_vector(15 downto 0);
-   signal mem_res_data     : std_logic_vector(15 downto 0);
+   signal mem_inst_valid     : std_logic;
+   signal mem_inst_ready     : std_logic;
+   signal mem_inst_address   : std_logic_vector(15 downto 0);
+   signal mem_inst_data      : std_logic_vector(15 downto 0);
+   signal mem_src_valid      : std_logic;
+   signal mem_src_ready      : std_logic;
+   signal mem_src_address    : std_logic_vector(15 downto 0);
+   signal mem_src_data       : std_logic_vector(15 downto 0);
+   signal mem_src_data_valid : std_logic;
+   signal mem_dst_valid      : std_logic;
+   signal mem_dst_ready      : std_logic;
+   signal mem_dst_address    : std_logic_vector(15 downto 0);
+   signal mem_dst_data       : std_logic_vector(15 downto 0);
+   signal mem_dst_data_valid : std_logic;
+   signal mem_res_valid      : std_logic;
+   signal mem_res_ready      : std_logic;
+   signal mem_res_address    : std_logic_vector(15 downto 0);
+   signal mem_res_data       : std_logic_vector(15 downto 0);
 
    -- Connections to the arbiter_regs
-   signal reg_src_rd_reg  : std_logic_vector(3 downto 0);
-   signal reg_src_rd_data : std_logic_vector(15 downto 0);
-   signal reg_dst_rd_reg  : std_logic_vector(3 downto 0);
-   signal reg_dst_rd_data : std_logic_vector(15 downto 0);
-   signal reg_dst_wr_reg  : std_logic_vector(3 downto 0);
-   signal reg_dst_wr      : std_logic;
-   signal reg_dst_ready   : std_logic;
-   signal reg_dst_wr_data : std_logic_vector(15 downto 0);
-   signal reg_res_wr      : std_logic;
-   signal reg_res_ready   : std_logic;
-   signal reg_res_wr_reg  : std_logic_vector(3 downto 0);
-   signal reg_res_wr_data : std_logic_vector(15 downto 0);
-   signal reg_rd_pc       : std_logic_vector(15 downto 0);
-   signal reg_wr_pc       : std_logic_vector(15 downto 0);
-   signal reg_rd_sr       : std_logic_vector(15 downto 0);
-   signal reg_wr_sr       : std_logic_vector(15 downto 0);
-   signal reg_rd_sp       : std_logic_vector(15 downto 0);
+   signal reg_src_rd_reg     : std_logic_vector(3 downto 0);
+   signal reg_src_rd_data    : std_logic_vector(15 downto 0);
+   signal reg_dst_rd_reg     : std_logic_vector(3 downto 0);
+   signal reg_dst_rd_data    : std_logic_vector(15 downto 0);
+   signal reg_dst_wr_reg     : std_logic_vector(3 downto 0);
+   signal reg_dst_wr         : std_logic;
+   signal reg_dst_ready      : std_logic;
+   signal reg_dst_wr_data    : std_logic_vector(15 downto 0);
+   signal reg_res_wr         : std_logic;
+   signal reg_res_ready      : std_logic;
+   signal reg_res_wr_reg     : std_logic_vector(3 downto 0);
+   signal reg_res_wr_data    : std_logic_vector(15 downto 0);
+   signal reg_rd_pc          : std_logic_vector(15 downto 0);
+   signal reg_wr_pc          : std_logic_vector(15 downto 0);
+   signal reg_rd_sr          : std_logic_vector(15 downto 0);
+   signal reg_wr_sr          : std_logic_vector(15 downto 0);
+   signal reg_rd_sp          : std_logic_vector(15 downto 0);
 
-   signal reg_res_wr_pc   : std_logic;
-   signal reg_res_pc      : std_logic_vector(15 downto 0);
-   signal reg_res_wr_sp   : std_logic;
-   signal reg_res_sp      : std_logic_vector(15 downto 0);
+   signal reg_res_wr_pc      : std_logic;
+   signal reg_res_pc         : std_logic_vector(15 downto 0);
+   signal reg_res_wr_sp      : std_logic;
+   signal reg_res_sp         : std_logic_vector(15 downto 0);
 
    -- Connections to the register file
-   signal arb_valid       : std_logic;
-   signal arb_address     : std_logic_vector(3 downto 0);
-   signal arb_data        : std_logic_vector(15 downto 0);
+   signal arb_valid          : std_logic;
+   signal arb_address        : std_logic_vector(3 downto 0);
+   signal arb_data           : std_logic_vector(15 downto 0);
 
-   signal flush           : std_logic;
+   signal flush              : std_logic;
 
 begin
 
@@ -132,6 +134,7 @@ begin
          ready_o          => stage2_ready,
          stage2_i         => stage2,
          mem_data_i       => mem_src_data,
+         mem_valid_i      => mem_src_data_valid,
          reg_wr_o         => reg_dst_wr,
          reg_wr_reg_o     => reg_dst_wr_reg,
          reg_wr_data_o    => reg_dst_wr_data,
@@ -152,6 +155,7 @@ begin
          stage3_i         => stage3,
          ready_o          => stage3_ready,
          mem_data_i       => mem_dst_data,
+         mem_valid_i      => mem_dst_data_valid,
          pc_i             => reg_rd_pc,
          sr_i             => reg_rd_sr,
          sp_i             => reg_rd_sp,
@@ -184,10 +188,12 @@ begin
          src_ready_o    => mem_src_ready,
          src_address_i  => mem_src_address,
          src_data_o     => mem_src_data,
+         src_valid_o    => mem_src_data_valid,
          dst_valid_i    => mem_dst_valid,
          dst_ready_o    => mem_dst_ready,
          dst_address_i  => mem_dst_address,
          dst_data_o     => mem_dst_data,
+         dst_valid_o    => mem_dst_data_valid,
          res_valid_i    => mem_res_valid,
          res_ready_o    => mem_res_ready,
          res_address_i  => mem_res_address,

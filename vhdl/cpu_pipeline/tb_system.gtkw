@@ -1,30 +1,29 @@
 [*]
-[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Mon Nov  9 13:34:39 2020
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Tue Nov 10 07:57:14 2020
 [*]
-[dumpfile] "/home/mfj/git/sy2002/QNICE-FPGA/vhdl/cpu_pipeline/tb_system.ghw"
-[dumpfile_mtime] "Mon Nov  9 13:30:47 2020"
-[dumpfile_size] 841219
-[savefile] "/home/mfj/git/sy2002/QNICE-FPGA/vhdl/cpu_pipeline/tb_system.gtkw"
-[timestart] 2779300000
-[size] 1853 1145
+[dumpfile] "/home/mike/git/sy2002/QNICE-FPGA/vhdl/cpu_pipeline/tb_system.ghw"
+[dumpfile_mtime] "Tue Nov 10 07:55:35 2020"
+[dumpfile_size] 664033
+[savefile] "/home/mike/git/sy2002/QNICE-FPGA/vhdl/cpu_pipeline/tb_system.gtkw"
+[timestart] 161900000
+[size] 1853 1132
 [pos] 0 0
-*-24.282270 2844000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-24.700552 254100000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [treeopen] top.tb_system.
 [treeopen] top.tb_system.i_system.
 [treeopen] top.tb_system.i_system.i_cpu_pipeline.
 [treeopen] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage2_i.
 [treeopen] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.
-[treeopen] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.
 [treeopen] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.
 [treeopen] top.tb_system.i_system.i_cpu_pipeline.i_write_result.i_alu.
 [treeopen] top.tb_system.i_system.i_cpu_pipeline.i_write_result.stage3_i.
 [sst_width] 266
-[signals_width] 275
+[signals_width] 348
 [sst_expanded] 1
 [sst_vpaned_height] 408
-@800200
+@c00200
 -memory
 @28
 top.tb_system.i_system.i_memory.clk_i
@@ -37,7 +36,7 @@ top.tb_system.i_system.i_memory.write_i
 #{top.tb_system.i_system.i_memory.address_i[15:0]} top.tb_system.i_system.i_memory.address_i[15] top.tb_system.i_system.i_memory.address_i[14] top.tb_system.i_system.i_memory.address_i[13] top.tb_system.i_system.i_memory.address_i[12] top.tb_system.i_system.i_memory.address_i[11] top.tb_system.i_system.i_memory.address_i[10] top.tb_system.i_system.i_memory.address_i[9] top.tb_system.i_system.i_memory.address_i[8] top.tb_system.i_system.i_memory.address_i[7] top.tb_system.i_system.i_memory.address_i[6] top.tb_system.i_system.i_memory.address_i[5] top.tb_system.i_system.i_memory.address_i[4] top.tb_system.i_system.i_memory.address_i[3] top.tb_system.i_system.i_memory.address_i[2] top.tb_system.i_system.i_memory.address_i[1] top.tb_system.i_system.i_memory.address_i[0]
 #{top.tb_system.i_system.i_memory.rd_data_o[15:0]} top.tb_system.i_system.i_memory.rd_data_o[15] top.tb_system.i_system.i_memory.rd_data_o[14] top.tb_system.i_system.i_memory.rd_data_o[13] top.tb_system.i_system.i_memory.rd_data_o[12] top.tb_system.i_system.i_memory.rd_data_o[11] top.tb_system.i_system.i_memory.rd_data_o[10] top.tb_system.i_system.i_memory.rd_data_o[9] top.tb_system.i_system.i_memory.rd_data_o[8] top.tb_system.i_system.i_memory.rd_data_o[7] top.tb_system.i_system.i_memory.rd_data_o[6] top.tb_system.i_system.i_memory.rd_data_o[5] top.tb_system.i_system.i_memory.rd_data_o[4] top.tb_system.i_system.i_memory.rd_data_o[3] top.tb_system.i_system.i_memory.rd_data_o[2] top.tb_system.i_system.i_memory.rd_data_o[1] top.tb_system.i_system.i_memory.rd_data_o[0]
 #{top.tb_system.i_system.i_memory.wr_data_i[15:0]} top.tb_system.i_system.i_memory.wr_data_i[15] top.tb_system.i_system.i_memory.wr_data_i[14] top.tb_system.i_system.i_memory.wr_data_i[13] top.tb_system.i_system.i_memory.wr_data_i[12] top.tb_system.i_system.i_memory.wr_data_i[11] top.tb_system.i_system.i_memory.wr_data_i[10] top.tb_system.i_system.i_memory.wr_data_i[9] top.tb_system.i_system.i_memory.wr_data_i[8] top.tb_system.i_system.i_memory.wr_data_i[7] top.tb_system.i_system.i_memory.wr_data_i[6] top.tb_system.i_system.i_memory.wr_data_i[5] top.tb_system.i_system.i_memory.wr_data_i[4] top.tb_system.i_system.i_memory.wr_data_i[3] top.tb_system.i_system.i_memory.wr_data_i[2] top.tb_system.i_system.i_memory.wr_data_i[1] top.tb_system.i_system.i_memory.wr_data_i[0]
-@1000200
+@1401200
 -memory
 @c00200
 -arbiter_mem
@@ -53,10 +52,9 @@ top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.res_active
 #{top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[15] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[14] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[13] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[12] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[11] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[10] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[9] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[8] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[7] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[6] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[5] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[4] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[3] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[2] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[1] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_mem.dbg_mem_counter[0]
 @1401200
 -arbiter_mem
-@800200
+@c00200
 -arbiter_regs
 @28
-top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.src_active
 top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dst_active
 top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.res_active
 @24
@@ -64,7 +62,7 @@ top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.res_active
 #{top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[15] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[14] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[13] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[12] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[11] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[10] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[9] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[8] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[7] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[6] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[5] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[4] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[3] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[2] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[1] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_wait_counter[0]
 [color] 3
 #{top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[15] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[14] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[13] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[12] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[11] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[10] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[9] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[8] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[7] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[6] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[5] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[4] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[3] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[2] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[1] top.tb_system.i_system.i_cpu_pipeline.i_arbiter_regs.dbg_reg_counter[0]
-@1000200
+@1401200
 -arbiter_regs
 @c00200
 -registers
@@ -207,16 +205,16 @@ top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.ready
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[15] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[14] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[13] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[12] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[11] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[10] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[9] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[8] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[7] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[6] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[5] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[4] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[3] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[2] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[1] top.tb_system.i_system.i_cpu_pipeline.i_read_instruction.dbg_inst_counter_r[0]
 @1401200
 -read_instruction
-@800200
+@c00200
 -read_src_operand
 @28
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.clk_i
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.rst_i
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.flush_i
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.ready_o
-top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_o
-top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_ready_i
+[color] 2
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_valid_o
+[color] 6
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_ready_i
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.ready_i
 @22
@@ -225,15 +223,10 @@ top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.ready_i
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[15] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[14] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[13] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[12] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[11] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[10] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[9] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[8] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[7] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[6] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[5] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[4] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[3] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[2] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[1] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_src_data_i[0]
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_reg_o[3:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_reg_o[3] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_reg_o[2] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_reg_o[1] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_reg_o[0]
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[15] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[14] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[13] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[12] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[11] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[10] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[9] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[8] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[7] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[6] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[5] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[4] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[3] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[2] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[1] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_rd_dst_data_i[0]
-#{top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_reg_o[3:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_reg_o[3] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_reg_o[2] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_reg_o[1] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_reg_o[0]
-#{top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[15] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[14] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[13] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[12] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[11] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[10] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[9] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[8] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[7] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[6] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[5] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[4] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[3] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[2] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[1] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_wr_data_o[0]
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[15] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[14] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[13] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[12] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[11] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[10] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[9] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[8] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[7] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[6] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[5] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[4] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[3] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[2] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[1] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.mem_address_o[0]
 @28
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.reg_collision
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.src_reg_pc_update
-@29
-top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.src_reg_pc_update_d
-@28
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.dst_reg_pc_update
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.res_reg_pc_update
 top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.branch_instruction
@@ -273,8 +266,9 @@ top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_req
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[15] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[14] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[13] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[12] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[11] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[10] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[9] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[8] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[7] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[6] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[5] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[4] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[3] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[2] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[1] top.tb_system.i_system.i_cpu_pipeline.i_read_src_operand.stage2_o.res_mem_wr_address[0]
 @1000200
 -stage2
+@1401200
 -read_src_operand
-@c00200
+@800200
 -read_dst_operand
 @28
 top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.clk_i
@@ -295,6 +289,10 @@ top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_ready_i
 top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.ready_i
 @22
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[15] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[14] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[13] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[12] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[11] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[10] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[9] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[8] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[7] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[6] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[5] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[4] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[3] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[2] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[1] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_data_i[0]
+@29
+[color] 2
+top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_valid_i
+@22
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_reg_o[3:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_reg_o[3] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_reg_o[2] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_reg_o[1] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_reg_o[0]
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[15] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[14] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[13] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[12] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[11] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[10] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[9] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[8] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[7] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[6] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[5] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[4] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[3] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[2] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[1] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.reg_wr_data_o[0]
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[15] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[14] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[13] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[12] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[11] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[10] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[9] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[8] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[7] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[6] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[5] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[4] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[3] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[2] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[1] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.mem_address_o[0]
@@ -335,6 +333,7 @@ top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.res_mem_wr_req
 #{top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[15] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[14] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[13] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[12] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[11] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[10] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[9] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[8] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[7] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[6] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[5] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[4] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[3] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[2] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[1] top.tb_system.i_system.i_cpu_pipeline.i_read_dst_operand.stage3_o.src_operand[0]
 @1401200
 -stage3
+@1000200
 -read_dst_operand
 @c00200
 -write_result
@@ -374,6 +373,10 @@ top.tb_system.i_system.i_cpu_pipeline.i_write_result.reg_ready_i
 top.tb_system.i_system.i_cpu_pipeline.i_write_result.flush_o
 @22
 #{top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[15] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[14] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[13] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[12] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[11] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[10] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[9] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[8] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[7] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[6] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[5] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[4] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[3] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[2] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[1] top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_data_i[0]
+@28
+[color] 2
+top.tb_system.i_system.i_cpu_pipeline.i_write_result.mem_valid_i
+@22
 #{top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[15] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[14] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[13] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[12] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[11] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[10] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[9] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[8] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[7] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[6] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[5] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[4] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[3] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[2] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[1] top.tb_system.i_system.i_cpu_pipeline.i_write_result.pc_i[0]
 #{top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[15:0]} top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[15] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[14] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[13] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[12] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[11] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[10] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[9] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[8] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[7] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[6] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[5] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[4] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[3] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[2] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[1] top.tb_system.i_system.i_cpu_pipeline.i_write_result.sp_i[0]
 @28

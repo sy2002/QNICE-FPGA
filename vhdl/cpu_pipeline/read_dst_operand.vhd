@@ -17,6 +17,7 @@ entity read_dst_operand is
 
       -- From memory
       mem_data_i        : in  std_logic_vector(15 downto 0);
+      mem_valid_i       : in  std_logic;
 
       -- Write to register file (combinatorial)
       reg_wr_o          : out std_logic;

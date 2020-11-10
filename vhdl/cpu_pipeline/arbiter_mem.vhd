@@ -19,11 +19,13 @@ entity arbiter_mem is
       src_ready_o    : out std_logic;
       src_address_i  : in  std_logic_vector(15 downto 0);
       src_data_o     : out std_logic_vector(15 downto 0);
+      src_valid_o    : out std_logic;
 
       dst_valid_i    : in  std_logic;
       dst_ready_o    : out std_logic;
       dst_address_i  : in  std_logic_vector(15 downto 0);
       dst_data_o     : out std_logic_vector(15 downto 0);
+      dst_valid_o    : out std_logic;
 
       res_valid_i    : in  std_logic;
       res_ready_o    : out std_logic;
@@ -106,6 +108,14 @@ begin
    src_active  <= src_valid_i  and src_ready;
    dst_active  <= dst_valid_i  and dst_ready;
    res_active  <= res_valid_i  and res_ready;
+
+   p_valid : process (clk_i)
+   begin
+      if rising_edge(clk_i) then
+         src_valid_o <= src_active;
+         dst_valid_o <= dst_active;
+      end if;
+   end process p_valid;
 
    -- Note: And'ing with "not clk_i" is to avoid trapping on delta cycle transitions.
    assert (((inst_active and src_active) or
