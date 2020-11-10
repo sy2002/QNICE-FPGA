@@ -44,8 +44,6 @@ void bot_draw()
 } // end of bot_draw
 
 
-int prevent_possible_compiler_bug = 0;
-
 /*
  * This function is called once per frame, i.e. 60 times a second
  */
@@ -87,8 +85,5 @@ void bot_update()
    {
       bot_position.x = POS_SCALE * (BAR_RIGHT + BOT_RADIUS);
    }
-
-   /* Without this line, the program crashes when the last if-branch above is taken */
-   ++prevent_possible_compiler_bug;
 } // end of bot_update
 
