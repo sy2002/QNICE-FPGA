@@ -1083,3 +1083,24 @@ options for timing optimizations.
 
 To be continued...
 
+## Another pipeline bug
+I just thought about another situation where the current design fails.
+The following sequence of instructions don't currently work:
+
+```
+MOVE  R0, R1
+MOVE  @R2++, R3
+```
+
+I wrote a small test program `test3.asm` to demonstrate this.
+
+The reason the program fails is because the first instruction (in stage 4) is
+writing to the register `R1`. At the same time the second instruction (in stage
+3) is trying to increment register `R2`, but is denied access. However, the
+data read from `@R2` is only available in the signal `mem_data_i` on that
+single clock cycle.  In the next clock cycle, when access is granted to the
+register file, the value from the memory has changed, and an incorrect value is
+written into `R3`.
+
+So this has brought me into a deep think ...
+
