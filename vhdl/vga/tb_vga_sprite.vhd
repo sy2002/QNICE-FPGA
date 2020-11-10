@@ -50,10 +50,14 @@ begin
          G_FRAME_COUNT   => 60
       )
       port map (
-         clk_i     => clk,
-         pixel_x_o => pixel_x,
-         pixel_y_o => pixel_y,
-         frame_o   => open
+         clk_i             => clk,
+         pixel_scale_x_i   => X"0100",
+         pixel_scale_y_i   => X"0100",
+         buffer_pixel_x_o  => pixel_x,
+         buffer_pixel_y_o  => pixel_y,
+         monitor_pixel_x_o => pixel_x,
+         monitor_pixel_y_o => pixel_y,
+         monitor_frame_o   => open
       ); -- i_vga_pixel_counters
 
 

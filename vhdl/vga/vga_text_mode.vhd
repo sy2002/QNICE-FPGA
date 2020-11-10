@@ -133,7 +133,7 @@ begin
    -- Decode value read from Display RAM
    stage1.color_bg <= display_data_i(15 downto 12);
    stage1.color_fg <= display_data_i(11 downto 8);
-   stage1.tile      <= display_data_i(7 downto 0);
+   stage1.tile     <= display_data_i(7 downto 0);
 
    -- Just copy char_offset_y because it is constant during a raster line.
    stage1.char_offset_y <= stage0.char_offset_y;
@@ -180,7 +180,8 @@ begin
    stage2.bitmap_index <= C_CHAR_WIDTH-1 - stage2.char_offset_x;
 
    -- Get pixel from font bitmap
-   stage2.font_pixel <= stage2.bitmap(stage2.bitmap_index);
+   stage2.font_pixel <= stage2.bitmap(stage2.bitmap_index) when stage2.char_column < 80 and stage2.char_row < 40 else
+                        '0';
 
    -- Generate cursor blink frequency (2 Hz).
    stage2.cursor_blink <= std_logic_vector(unsigned(frame_i) / 15);

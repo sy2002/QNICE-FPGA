@@ -18,10 +18,10 @@ SOURCES += ../vga_multicolor.vhd
 
 #TB         = tb_vga_text_mode
 #TB_SOURCES = tb_vga_text_mode.vhd
-TB         = tb_vga_sprite
-TB_SOURCES = tb_vga_sprite.vhd
-#TB         = tb_vga_multicolor
-#TB_SOURCES = tb_vga_multicolor.vhd
+#TB         = tb_vga_sprite
+#TB_SOURCES = tb_vga_sprite.vhd
+TB         = tb_vga_multicolor
+TB_SOURCES = tb_vga_multicolor.vhd
 
 WAVE       = $(TB).ghw
 SAVE       = $(TB).gtkw
@@ -30,6 +30,6 @@ SAVE       = $(TB).gtkw
 sim: $(SOURCES)
 	ghdl -i --work=work $(SOURCES) $(TB_SOURCES)
 	ghdl -m --ieee=synopsys -fexplicit $(TB)
-	ghdl -r -fsynopsys  $(TB) --wave=$(WAVE) --max-stack-alloc=1024 --stop-time=55us
+	ghdl -r --ieee=synopsys $(TB) --wave=$(WAVE) --max-stack-alloc=1024 --stop-time=55us
 	gtkwave $(WAVE) $(SAVE)
 

@@ -199,6 +199,8 @@
 #define VGA_PALETTE_OFFS   	0xFF39 // Offset in words into the Palette RAM used for display
 #define VGA_PALETTE_ADDR   	0xFF3A // Palette Address
 #define VGA_PALETTE_DATA   	0xFF3B // Palette Data
+#define VGA_PIXEL_X_SCALE  	0xFF3C // Horizontal scaling in units of 256
+#define VGA_PIXEL_Y_SCALE  	0xFF3D // Vertical scaling in units of 256
 #define VGA_ADJUST_X       	0xFF40 // Pixels to adjust screen in X direction
 #define VGA_ADJUST_Y       	0xFF41 // Pixels to adjust screen in Y direction
 #define VGA_SCAN_LINE      	0xFF42 // Current scan line

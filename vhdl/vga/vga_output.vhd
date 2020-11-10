@@ -27,6 +27,8 @@ entity vga_output is
       cursor_x_i            : in  std_logic_vector(6 downto 0); -- 0 to 79
       cursor_y_i            : in  std_logic_vector(5 downto 0); -- 0 to 39
       pixel_y_o             : out std_logic_vector(9 downto 0); -- 0 to 524
+      pixel_scale_x_i       : in  std_logic_vector(15 downto 0);
+      pixel_scale_y_i       : in  std_logic_vector(15 downto 0);
       adjust_x_i            : in  std_logic_vector(9 downto 0);
       adjust_y_i            : in  std_logic_vector(9 downto 0);
 
@@ -58,18 +60,21 @@ architecture synthesis of vga_output is
    constant H_PIXELS : integer := 640;
    constant V_PIXELS : integer := 480;
 
-   signal pixel_x        : std_logic_vector(9 downto 0);  -- 0 to 799
-   signal pixel_y        : std_logic_vector(9 downto 0);  -- 0 to 524
-   signal frame          : std_logic_vector(5 downto 0);  -- 0 to 59
-   signal color_text     : std_logic_vector(15 downto 0);
-   signal color_sprite   : std_logic_vector(15 downto 0);
-   signal delay_text     : std_logic_vector(9 downto 0);
-   signal delay_sprite   : std_logic_vector(9 downto 0);
-   signal delay          : std_logic_vector(9 downto 0);
-   signal pixel_x_text   : std_logic_vector(9 downto 0);
-   signal pixel_y_text   : std_logic_vector(9 downto 0);
-   signal pixel_x_sprite : std_logic_vector(9 downto 0);
-   signal pixel_y_sprite : std_logic_vector(9 downto 0);
+   signal buffer_pixel_x  : std_logic_vector(9 downto 0);  -- 0 to 799
+   signal buffer_pixel_y  : std_logic_vector(9 downto 0);  -- 0 to 524
+   signal monitor_pixel_x : std_logic_vector(9 downto 0);  -- 0 to 799
+   signal monitor_pixel_y : std_logic_vector(9 downto 0);  -- 0 to 524
+   signal monitor_frame   : std_logic_vector(5 downto 0);  -- 0 to 59
+
+   signal color_text      : std_logic_vector(15 downto 0);
+   signal color_sprite    : std_logic_vector(15 downto 0);
+   signal delay_text      : std_logic_vector(9 downto 0);
+   signal delay_sprite    : std_logic_vector(9 downto 0);
+   signal delay           : std_logic_vector(9 downto 0);
+   signal pixel_x_text    : std_logic_vector(9 downto 0);
+   signal pixel_y_text    : std_logic_vector(9 downto 0);
+   signal pixel_x_sprite  : std_logic_vector(9 downto 0);
+   signal pixel_y_sprite  : std_logic_vector(9 downto 0);
 
 begin
 
@@ -84,10 +89,14 @@ begin
          G_FRAME_COUNT   => 60
       )
       port map (
-         clk_i     => clk_i,
-         pixel_x_o => pixel_x,
-         pixel_y_o => pixel_y,
-         frame_o   => frame
+         clk_i             => clk_i,
+         pixel_scale_x_i   => pixel_scale_x_i,
+         pixel_scale_y_i   => pixel_scale_y_i,
+         buffer_pixel_x_o  => buffer_pixel_x,
+         buffer_pixel_y_o  => buffer_pixel_y,
+         monitor_pixel_x_o => monitor_pixel_x,
+         monitor_pixel_y_o => monitor_pixel_y,
+         monitor_frame_o   => monitor_frame
       ); -- i_vga_pixel_counters
 
 
@@ -95,8 +104,8 @@ begin
    -- Instantiate Text Mode
    -------------------------
 
-   pixel_x_text <= pixel_x + adjust_x_i;
-   pixel_y_text <= pixel_y + adjust_y_i;
+   pixel_x_text <= buffer_pixel_x + adjust_x_i;
+   pixel_y_text <= buffer_pixel_y + adjust_y_i;
 
    i_vga_text_mode : entity work.vga_text_mode
       port map (
@@ -113,7 +122,7 @@ begin
          -- Pixel Counters
          pixel_x_i        => pixel_x_text,
          pixel_y_i        => pixel_y_text,
-         frame_i          => frame,
+         frame_i          => monitor_frame,
          -- Interface to Video RAM
          display_addr_o   => display_addr_o,
          display_data_i   => display_data_i,
@@ -131,8 +140,8 @@ begin
    -- Instantiate Sprites
    -----------------------
 
-   pixel_x_sprite <= pixel_x - delay_text;
-   pixel_y_sprite <= pixel_y;
+   pixel_x_sprite <= buffer_pixel_x - delay_text;
+   pixel_y_sprite <= buffer_pixel_y;
 
    i_vga_sprite : entity work.vga_sprite
       generic map (
@@ -169,8 +178,8 @@ begin
       port map (
          clk_i       => clk_i,
          output_en_i => output_enable_i,
-         pixel_x_i   => pixel_x,
-         pixel_y_i   => pixel_y,
+         pixel_x_i   => monitor_pixel_x,
+         pixel_y_i   => monitor_pixel_y,
          color_i     => color_sprite(14 downto 0),
          delay_i     => delay,
          hsync_o     => hsync_o,
@@ -182,10 +191,10 @@ begin
    p_pixel_y : process (clk_i)
    begin
       if rising_edge(clk_i) then
-         pixel_y_o <= pixel_y;
-         if conv_integer(pixel_x) >= H_PIXELS then
-            pixel_y_o <= pixel_y+1;
-            if conv_integer(pixel_y) = 524 then
+         pixel_y_o <= monitor_pixel_y;
+         if conv_integer(monitor_pixel_x) >= H_PIXELS then
+            pixel_y_o <= monitor_pixel_y+1;
+            if conv_integer(monitor_pixel_y) = 524 then
                pixel_y_o <= (others => '0');
             end if;
          end if;

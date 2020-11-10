@@ -208,6 +208,8 @@ VGA$FONT_DATA       .EQU 0xFF38 ; Font Data
 VGA$PALETTE_OFFS    .EQU 0xFF39 ; Offset in words into the Palette RAM used for display
 VGA$PALETTE_ADDR    .EQU 0xFF3A ; Palette Address
 VGA$PALETTE_DATA    .EQU 0xFF3B ; Palette Data
+VGA$PIXEL_X_SCALE   .EQU 0xFF3C ; Horizontal scaling in units of 256
+VGA$PIXEL_Y_SCALE   .EQU 0xFF3D ; Vertical scaling in units of 256
 VGA$ADJUST_X        .EQU 0xFF40 ; Pixels to adjust screen in X direction
 VGA$ADJUST_Y        .EQU 0xFF41 ; Pixels to adjust screen in Y direction
 VGA$SCAN_LINE       .EQU 0xFF42 ; Current scan line

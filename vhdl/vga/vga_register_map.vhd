@@ -46,6 +46,8 @@ entity vga_register_map is
       display_offset_o : out std_logic_vector(15 downto 0);
       font_offset_o    : out std_logic_vector(15 downto 0);
       palette_offset_o : out std_logic_vector(15 downto 0);
+      pixel_scale_x_o  : out std_logic_vector(15 downto 0);
+      pixel_scale_y_o  : out std_logic_vector(15 downto 0);
       adjust_x_o       : out std_logic_vector(9 downto 0);
       adjust_y_o       : out std_logic_vector(9 downto 0);
       pixel_y_i        : in  std_logic_vector(9 downto 0)
@@ -67,6 +69,8 @@ architecture synthesis of vga_register_map is
    constant C_REG_PALETTE_OFFSET   : integer := 9;
    constant C_REG_PALETTE_ADDRESS  : integer := 10;
    constant C_REG_PALETTE_DATA     : integer := 11;
+   constant C_REG_PIXEL_X_SCALE    : integer := 12;
+   constant C_REG_PIXEL_Y_SCALE    : integer := 13;
    constant C_REG_ADJUST_X         : integer := 16;
    constant C_REG_ADJUST_Y         : integer := 17;
    constant C_REG_SCAN_CURRENT     : integer := 18;
@@ -175,6 +179,8 @@ begin
          if rst_i = '1' then
             register_map <= (others => (others => '0'));
             register_map(C_REG_SCAN_INTERRUPT)(15) <= '1';  -- Disable scanline interrupt
+            register_map(C_REG_PIXEL_X_SCALE)      <= X"0100";
+            register_map(C_REG_PIXEL_Y_SCALE)      <= X"0100";
          end if;
       end if;
    end process p_register_map;
@@ -210,6 +216,8 @@ begin
          cursor_y_o       <= cursor_y;
          adjust_x_o       <= register_map(C_REG_ADJUST_X)(9 downto 0);
          adjust_y_o       <= register_map(C_REG_ADJUST_Y)(9 downto 0);
+         pixel_scale_x_o  <= register_map(C_REG_PIXEL_X_SCALE);
+         pixel_scale_y_o  <= register_map(C_REG_PIXEL_Y_SCALE);
 
          display_offset_o <= display_offset;
          font_offset_o    <= register_map(C_REG_FONT_OFFSET);
