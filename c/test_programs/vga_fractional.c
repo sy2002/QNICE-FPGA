@@ -11,7 +11,7 @@
 //convenient mechanism to access QNICE's Memory Mapped IO registers
 #define MMIO( __x ) *((unsigned int volatile *) __x )
 
-const char text[73][30] = {
+const char text[][30] = {
    "                             \0",
    "                             \0",
    "                             \0",
@@ -40,26 +40,51 @@ const char text[73][30] = {
    "                             \0",
    "                             \0",
    "It is a period  of civil war.\0",
+   "                             \0",
    "Rebel  spaceships,   striking\0",
+   "                             \0",
    "from  a hidden base, have won\0",
+   "                             \0",
    "their  first  victory against\0",
+   "                             \0",
    "the   evil  Galactic  Empire.\0",
    "                             \0",
+   "                             \0",
+   "                             \0",
    "During   the   battle,  Rebel\0",
+   "                             \0",
    "spies managed to steal secret\0",
+   "                             \0",
    "plans     to   the   Empire's\0",
+   "                             \0",
    "ultimate   weapon,  the DEATH\0",
+   "                             \0",
    "STAR,   an   armored    space\0",
+   "                             \0",
    "station with enough  power to\0",
+   "                             \0",
    "destroy   an  entire  planet.\0",
    "                             \0",
+   "                             \0",
+   "                             \0",
    "Pursued   by   the   Empire's\0",
+   "                             \0",
    "sinister   agents,   Princess\0",
+   "                             \0",
    "Leia  races  home  aboard her\0",
+   "                             \0",
    "starship,  custodian  of  the\0",
+   "                             \0",
    "stolen plans  that  can  save\0",
+   "                             \0",
    "her    people   and   restore\0",
+   "                             \0",
    "freedom  to   the  galaxy....\0",
+   "                             \0",
+   "                             \0",
+   "                             \0",
+   "                             \0",
+   "                             \0",
    "                             \0",
    "                             \0",
    "                             \0",
@@ -91,13 +116,14 @@ int main()
    MMIO(VGA_STATE) &= ~VGA_EN_HW_CURSOR;  // Disable hardware cursor.
    qmon_vga_cls();                        // Clear screen.
 
-   int counter = 12*10;
+#define PERIOD 3  // Scrolling speed of 20 pixels/second.
+   int counter = 12*PERIOD;
    int startline = 0;
    while (1)
    {
-      int dy = counter/10;                // Scrolling speed of 6 pixels/second.
+      int dy = counter/PERIOD;
 
-      if (counter >= 12*10)
+      if (counter >= 12*PERIOD)
       {
          counter = 0;
          dy = 0;
@@ -117,9 +143,9 @@ int main()
       {}
       while ((y = MMIO(VGA_SCAN_LINE)) < 480)
       {
-         y += dy;
-         MMIO(VGA_PIXEL_X_SCALE) = (20*256)/(y/12);
-         MMIO(VGA_ADJUST_X) = ((y-480)/12)*160/(y/12);
+         int z=((y+dy)/12)*12-dy;
+         MMIO(VGA_PIXEL_X_SCALE) = (120*256)/(z/2);
+         MMIO(VGA_ADJUST_X) = ((z/2)-240)*160/(z/2);
       }
 
       if (MMIO(IO_UART_SRA) & 1)
