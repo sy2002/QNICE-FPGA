@@ -356,8 +356,6 @@ _MTH$SHL_ALL    MOVE    R0, SR                  ; Restore X bit
                 SHL     0x11, R8
                 DECRB
                 RET
-
-
 ;
 ;******************************************************************************
 ;*
@@ -402,7 +400,6 @@ _MTH$SHR_ALL    MOVE    R0, SR                  ; Restore C bit
                 SHR     0x11, R8
                 DECRB
                 RET
-
 ;
 ;***************************************************************************************
 ;* MTH$SRAND
@@ -421,7 +418,6 @@ MTH$SRAND       INCRB
                 MOVE    0x6c16, @R0             ; Clear the MSB of the seed.
                 DECRB
                 RET
-
 ;
 ;***************************************************************************************
 ;* MTH$RAND
@@ -517,4 +513,3 @@ _MTH$RAND_BUSY  MOVE    @R6, R2                 ; Test busy bit
                 MOVE    R1, R8                  ; Return MSB of new seed
                 DECRB
                 RET
-
