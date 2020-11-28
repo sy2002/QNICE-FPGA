@@ -80,6 +80,21 @@ VGA$MOVE_TO_XY          INCRB
                         RET
 ;
 ;***************************************************************************************
+;* VGA$GET_XY
+;*
+;* R8:  X-coordinate (0 .. 79)
+;* R9:  Y-coordinate (0 .. 39)
+;*
+;* Returns the monitor-internal cursor coordinates
+;***************************************************************************************
+;
+VGA$GET_XY              MOVE    _VGA$X, R8
+                        MOVE    @R8, R8
+                        MOVE    _VGA$Y, R9
+                        MOVE    @R9, R9
+                        RET
+;
+;***************************************************************************************
 ;* VGA$CHAR_AT_XY
 ;*
 ;* R8:  Contains character to be printed
