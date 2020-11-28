@@ -2,7 +2,7 @@
 **  QNICE assembler: This program reads QNICE assembler code from a file and generates, as expected from an assembler :-), 
 ** valid machine code based on this input.
 **
-** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016, JUN-2016, JUL-2020, SEP-2020
+** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016, JUN-2016, JUL-2020, SEP-2020, NOV-2020
 **
 ** Known bugs:
 **
@@ -218,11 +218,13 @@ char *tokenize(char *string, char *delimiters) {
 }
 
 /*
-** Expand all tabs by blanks, assuming that tab stops occur every eight columns.
+**  Expand all tabs by blanks, assuming that tab stops occur every eight columns and do some other magic with respect
+** to the display of comments. This once was a simple expand_tabs() function but it mutated into something pretty 
+** horrible which is now reflected by its new function name transmogrify()...
 */
-void expand_tabs(char *dst, char *src) {
+void transmogrify(char *dst, char *src) {
   int i, non_space_found;
-  char label[STRING_LENGTH], rest[STRING_LENGTH], scratch[STRING_LENGTH], *p;
+  char label[STRING_LENGTH], rest[STRING_LENGTH], scratch[STRING_LENGTH], comment[STRING_LENGTH], *p;
 
   for (i = 0; i < STRING_LENGTH; i++)
     label[i] = rest[i] = scratch[i] = (char) 0;
@@ -244,12 +246,12 @@ void expand_tabs(char *dst, char *src) {
   dst  = p;
 
   //  Format labels etc. nicely. The following code is pretty ugly and this should have been done
-  // long before we come to expand_tabs(...) but I did not feel brave enough to change it in the 
+  // long before we come to transmogrify(...) but I did not feel brave enough to change it in the 
   // depth of the assembler, eventually causing this kludge:
   strcpy(scratch, dst);
-  if (*scratch && *scratch != ' ' && *scratch != ';') { // If a line starts with a non-space character it starts with a label
-    i = 0;
-    while (scratch[i] && scratch[i] != ' ')             // Look for end of label
+  if (*scratch && *scratch != ' ' && *scratch != COMMENT_CHAR) {    // If a line starts with a non-space/non-comment character 
+    i = 0;                                                          //  it starts with a label
+    while (scratch[i] && scratch[i] != ' ')                         // Look for end of label
       i++;
     scratch[i] = (char) 0;
     strcpy(label, scratch);
@@ -260,8 +262,8 @@ void expand_tabs(char *dst, char *src) {
       i++;
     strcpy(rest, p + i);
 
-    sprintf(dst, "%-24s    %s", label, rest);           // Beware of hardcoded length of labels
-  } else if (*scratch && *scratch == ' ') {             // Line starts with a blank, so let's expand these...
+    sprintf(dst, "%-24s    %s", label, rest);                       // Beware of hardcoded length of labels
+  } else if (*scratch && *scratch == ' ') {                         // Line starts with a blank, so let's expand these...
     i = 0;
     while (scratch[i] == ' ')
       i++;
@@ -270,15 +272,17 @@ void expand_tabs(char *dst, char *src) {
 
   // Take care of comments at the end of lines...
   strcpy(scratch, dst);
-  i = non_space_found = 0;
-  while (scratch[i] && scratch[i] != ';') 
-    if (scratch[i++] != ' ')
-      non_space_found = 1;
+  if (!strchr(scratch, '"')) {                                      // If there is a string, just skipt the nice
+    i = non_space_found = 0;                                        // formatting of comments as this is really
+    while (scratch[i] && scratch[i] != COMMENT_CHAR)                // ugly and interferes badly with ';' within
+      if (scratch[i++] != ' ')                                      // a string.
+        non_space_found = 1;
 
-  if (i > 0 && scratch[i] == ';' && non_space_found) {  // There is a comment and it is not at the start of the line
-    strcpy(label, scratch + i);                         // Remember the comment (not really a label, sorry for the variable)
-    scratch[i - 1] = (char) 0;
-    sprintf(dst, "%-60s %s", scratch, label);
+    if (i > 0 && scratch[i] == COMMENT_CHAR && non_space_found) {   // There is a comment and it is not at the start of the line
+      strcpy(comment, scratch + i);                                 // Remember the comment 
+      scratch[i - 1] = (char) 0;
+      sprintf(dst, "%-60s %s", scratch, comment);
+    }
   }
 }
 
@@ -580,7 +584,7 @@ int decode_operand(char *operand, int *op_code) {
 int assemble() {
   int opcode, type, line_counter, address = 0, i, j, error_counter = 0, number_of_operands, negate, flag, value, size,
     special_char, org_found = 0, retval, error, shadow_register;
-  char line[STRING_LENGTH], label[STRING_LENGTH], *p, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
+  char line[STRING_LENGTH], label[STRING_LENGTH], *p, *q, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
   data_structure *entry;
 
   /* First pass: */
@@ -590,12 +594,15 @@ int assemble() {
   for (line_counter = 1, entry = gbl$data; entry; entry = entry->next, line_counter++) {
     strcpy(line, entry->source);           /* Get a local copy of the line and clean it up */
     entry->state = STATE$NOTHING_YET_DONE; /* Still a lot to do */
-    if ((p = strchr(line, COMMENT_CHAR)))  /* Remove everything after the start of a comment */
-      *p = (char) 0;
+    p = strchr(line, COMMENT_CHAR);
+    q = strchr(line, '"');
+    if ((!q && p) || (q && p && p < q)) // Remove everything following a ';' unless there is a double quote in front of it 
+      *p = (char) 0;                    // (in this case it's part of a string).
+
     remove_leading_blanks(line);
     remove_trailing_blanks(line);
     remove_tabs(line);
-    
+
     if (!strlen(line)) /* Skip empty lines */
       continue;
 
@@ -1211,7 +1218,7 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
     if (entry->number_of_words == 2) /* Many instructions require two words, but should be displayed in a single line */
       sprintf(second_word, "%04X", entry->data[1] & 0xffff);
 
-    expand_tabs(line, entry->source);
+    transmogrify(line, entry->source);
     fprintf(listing_handle, "%06d  %4s  %4s  %4s  %s\n", ++line_counter, address_string, data_string, second_word, line);
     if (entry->address != -1 && entry->opcode != NO_OPCODE && *data_string) /* Write binary data */
       fprintf(output_handle, "0x%4s 0x%4s\n", address_string, data_string);
