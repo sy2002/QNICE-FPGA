@@ -223,7 +223,7 @@ char *tokenize(char *string, char *delimiters) {
 ** horrible which is now reflected by its new function name transmogrify()...
 */
 void transmogrify(char *dst, char *src) {
-  int i, non_space_found, string_found;
+  int i, non_space_found;
   char label[STRING_LENGTH], rest[STRING_LENGTH], scratch[STRING_LENGTH], comment[STRING_LENGTH], *p;
 
   for (i = 0; i < STRING_LENGTH; i++)
