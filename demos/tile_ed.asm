@@ -1,5 +1,6 @@
 ; TileEd is the ultimate "text mode sprite" (aka "tile") editor
-; it was originally developed as a tool to develop "qtris.asm"
+;
+; It was originally developed as a tool to develop "qtris.asm".
 ;
 ; Uses VGA to display all 256 characters of the font (based on font.asm) on
 ; the left side of the screen. On the right side of the screen, there is a
@@ -8,14 +9,19 @@
 ;
 ; Using F1 on the USB keyboard, you can jump between the character palette
 ; and the tile and using SPACE on the USB keyboard, you can "paint" characters
-; into the tile box. As soon as you press F12, the program outputs .DW
-; statements via UART that can be copy/pasted into QNICE assmebler code.
+; into the tile box.
 ;
-; You can also work in multicolor and edit the font itself using F7 and change
-; the palette using F9.
+; You can also work in multicolor and edit the font itself using F7 and
+; edit the palette using F9.
 ;
-; TileEd ignores STDIN and STDOUT settings of the monitor: the .DW statements
-; always go to the UART and the other input/ouput is done via keyboard/VGA.
+; Use F12 to enter the load/save/quit menu: Your work is being saved as an
+; ASCII stream of .DW and .EQU statements separated by comments to make the
+; output more readable. Save the output to a textfile so that you can load
+; it again to TileEd using your terminal program. Additionally, the output is
+; meant to be directly copy/pasted or included into QNICE assembler code.
+;
+; TileEd ignores STDIN and STDOUT settings of the monitor: The load/save data
+; always goes to the UART and the other input/ouput is done via keyboard/VGA.
 ; This is also why the standard IO monitor functions such as "getc", "putc",
 ; "puts", etc. cannot be used inside this program and are replaced by local
 ; versions.
@@ -213,8 +219,8 @@ _WFK_FONTED     RSUB    FONT_ED, 1              ; switch to font editor
                 MOVE    0, R8                   ; R8=0: default workspace
                 RSUB    DRAW_WORKSPACE, 1       ; the rest of the workspace                
                 RBRA    MAIN_LOOP, 1
-_WFK_CHK_F12    CMP     KBD$F12, R8             ; F12 = quit
-                RBRA    SAVE_DATA, Z
+_WFK_CHK_F12    CMP     KBD$F12, R8             ; F12 = load/save/quit
+                RBRA    FILE_MENU, Z
                 CMP     KBD$SPACE, R8           ; SPACE = draw character
                 RBRA    DRAW_CHAR, Z
                 CMP     KBD$CTRL_C, R8          ; CTRL+C: COPY
@@ -405,60 +411,6 @@ _CLEAR_NEXT_X   MOVE    KBD$SPACE, @R2
                 RBRA    _CLEAR_NEXT_Y, !N
                 RBRA    MAIN_LOOP, 1
 
-                ; output .dw XX, YY, ZZ, ... statements containing the
-                ; data painted in the tile window to the UART
-SAVE_DATA       MOVE    TILE_WS_X_MAX, R9
-                MOVE    TILE_WS_Y_MAX, R10
-                MOVE    TILE_WS_Y, R8
-                MOVE    @R8, @R1
-
-_SAVE_NEXT_Y    MOVE    0x000D, R8              ; print CR
-                RSUB    UART_PUTCHAR, 1
-                MOVE    0x000A, R8              ; print LF
-                RSUB    UART_PUTCHAR, 1
-                MOVE    0x002E, R8              ; print "."
-                RSUB    UART_PUTCHAR, 1
-                MOVE    0x0044, R8              ; print "D"
-                RSUB    UART_PUTCHAR, 1
-                MOVE    0x0057, R8              ; print "W"
-                RSUB    UART_PUTCHAR, 1
-                MOVE    0x0020, R8              ; print " "
-                RSUB    UART_PUTCHAR, 1
-                MOVE    TILE_WS_X, R8           ; reset column (hw x cursor)
-                MOVE    @R8, @R0
-
-_SAVE_NEXT_X    MOVE    0x30, R8                ; print "0"
-                RSUB    UART_PUTCHAR, 1
-                MOVE    0x78, R8                ; print "x"
-                RSUB    UART_PUTCHAR, 1
-                MOVE    @R2, R8                 ; read tile data from VRAM
-                AND     0x00F0, R8              ; extract high nibble ...
-                AND     0xFFFB, SR              ; clear C (shift in '0')                
-                SHR     4, R8
-                MOVE    HEX_DIGITS, R11         ; ... convert it to hex ...
-                ADD     R8, R11
-                MOVE    @R11, R8                
-                RSUB    UART_PUTCHAR, 1         ; ... and output it to UART
-                MOVE    @R2, R8
-                AND     0x000F, R8              ; extract low nibble and ditto
-                MOVE    HEX_DIGITS, R11
-                ADD     R8, R11
-                MOVE    @R11, R8
-                RSUB    UART_PUTCHAR, 1
-                ADD     1, @R0
-                CMP     @R0, @R9                ; reached maximum x position?
-                RBRA    _SAVE_NEXT_XC, !N       ; no: print a ", " and go on
-                ADD     1, @R1                  ; yes: increase y position
-                CMP     @R1, @R10               ; reached maximum y position?
-                RBRA    _SAVE_NEXT_Y, !N        ; no: next line
-                RBRA    END, 1                  ; yes: end TileEd
-
-_SAVE_NEXT_XC   MOVE    0x002C, R8              ; print ","
-                RSUB    UART_PUTCHAR, 1
-                MOVE    0x0020, R8              ; print " "
-                RSUB    UART_PUTCHAR, 1
-                RBRA    _SAVE_NEXT_X, 1
-
                 ; change the size of the tile editor
                 ; the user can enter two new values or press ESC to stick
                 ; to the old values (in the latter case: no reset is
@@ -532,12 +484,11 @@ END             SYSCALL(vga_init, 1)            ; also activates default font
 ; Various string constants
 ; ****************************************************************************
 
-HEX_DIGITS      .ASCII_P "0123456789ABCDEF"
-
 STR_HELLO       .ASCII_W "TileEd - Textmode Sprite Editor  V2.0  by sy2002 in December 2020"
 STR_NOSTART     .ASCII_W "Either TILE_DX or TILE_DY is larger than the allowed maximum. TileEd halted.\n"
-STR_HELP_MAIN   .ASCII_P "F1: Sprite F3: Size F5: Clr F7: Font F9: Pal F12: Output SPACE: Paint CRSR: Nav `"
-                .ASCII_W "XX         XX       XX      XX       XX      XXX         XXXXX        XXXX"
+
+STR_HELP_MAIN   .ASCII_P "F1: Sprite F3: Size F5: Clr F7: Font F9: Pal F12: File SPACE: Paint CRSR: Nav   `"
+                .ASCII_W "XX         XX       XX      XX       XX      XXX       XXXXX        XXXX"
 STR_HELP_FONT   .ASCII_P "F1: Char/Sprite F5: Clear F7: Back SPACE: Paint CRSR: Nav a..p & A..P: Color    `"
                 .ASCII_W "XX              XX        XX       XXXXX        XXXX      X  X   X  X"
 STR_HELP_PAL    .ASCII_P "1|2 Red 3|4 Green 5|6 Blue F1: 24-bit F3: 15-bit F5|F7|F9 R|G|B Values F11: Back`"
@@ -564,7 +515,25 @@ STR_PED_EDIT    .ASCII_W "New value for "
 STR_PED_RED     .ASCII_W "red: "
 STR_PED_GREEN   .ASCII_W "green: "
 STR_PED_BLUE    .ASCII_W "blue: "
+STR_FILE_PRJ    .ASCII_W "Project description: "
+STR_FILE_ELM    .ASCII_W "Element identifier: "
+STR_FILE_ELMCMT .ASCII_W "Element comment: "
 
+CHR_LS_CMT      .EQU 0x3B                       ; ASCII code of semicolon
+CHR_LS_COLON    .EQU 0x3A                       ; ASCII code of colon (:)
+STR_LS_START0   .ASCII_W " =======================================================================\n"
+STR_LS_START2   .ASCII_W " -----------------------------------------------------------------------\n"
+STR_LS_START3   .ASCII_W " DO NOT MODIFY! Autogenerated with TileEd V2.0"
+STR_LS_SPACE    .ASCII_W " "
+STR_LS_NEWLINE  .ASCII_W "\n"
+STR_LS_PAL      .ASCII_W "PALETTE"
+STR_LS_FONT     .ASCII_W "FONT"
+STR_LS_TILE     .ASCII_W "TILE"
+STR_LS_EQU      .ASCII_W ".EQU"
+STR_LS_DW       .ASCII_W ".DW"
+STR_LS_E_ILLID  .ASCII_W "Illegal element identifier: Use [A..Z], [0..9], _ <Enter to continue>"
+
+HEX_DIGITS      .ASCII_P "0123456789ABCDEF"
 
 ; ****************************************************************************
 ; FONT_ED
@@ -991,7 +960,6 @@ _FONTED_FGBG1   MOVE    CHR_PAL_SEL_B, R9       ; R9 = `A`
 _FONTED_FGBG2   SYSCALL(leave, 1)
                 RET
 
-
 ; ****************************************************************************
 ; PAL_ED
 ;    Main routine for palette editing: Not meant to be called via RSUB.
@@ -1391,6 +1359,177 @@ _PED_EDIT       .DW     KBD$F1, STR_RGB24,      6, 0xFFFF,      0xFFFF
 _PED_SCRATCH    .BLOCK  2
 
 ; ****************************************************************************
+; FILE_MENU
+;    Load or save data or quit
+; ****************************************************************************
+
+FILE_MENU       MOVE    CHR_LS_CMT, R8          ; print file header: intro
+                RSUB    UART_PUTCHAR, 1
+                MOVE    STR_LS_START0, R8
+                RSUB    UART_PUTS, 1
+                RSUB    _FM_CMTSPACE, 1
+
+                MOVE    STR_FILE_PRJ, R8        ; get project name and ...
+                MOVE    INPUTSCRATCH, R9        ; ... add it to the output
+                MOVE    INPUTSCRATCH_N, R10
+                RSUB    _FM_INPUT, 1
+                MOVE    R9, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_NEWLINE, R8
+                RSUB    UART_PUTS, 1
+                RSUB    _FM_CMTSPACE, 1
+                
+_FM_INP_ID      MOVE    STR_FILE_ELM, R8        ; get element id
+                RSUB    _FM_INPUT, 1          
+                MOVE    R9, R8
+                RSUB    _FM_CHKID, 1            ; legal element id?
+                RSUB    _FM_INP_IDLEGAL, C      ; yes   
+                MOVE    STR_LS_E_ILLID, R8
+                RSUB    _FM_PLL, 1
+_FM_INP_ID_EL   RSUB    KBD_GETCHAR, 1
+                CMP     KBD$ENTER, R8
+                RBRA    _FM_INP_ID_EL, !Z
+                RBRA    _FM_INP_ID, 1
+
+_FM_INP_IDLEGAL RSUB    UART_PUTS, 1
+                HALT
+
+; Check if the identifier is legal, i.e. characters, numbers, underscore
+;   R8: pointer to identifier
+;   Carry flag: 0 = illegal, 1 = legal
+_FM_CHKID       AND     0xFFFB, SR              ; clear carry
+                INCRB
+                DECRB
+                RET
+
+; Output a comment and a space
+_FM_CMTSPACE    INCRB
+                MOVE    R8, R0
+                MOVE    CHR_LS_CMT, R8
+                RSUB    UART_PUTCHAR, 1
+                MOVE    STR_LS_SPACE, R8
+                RSUB    UART_PUTS, 1
+                MOVE    R0, R8
+                DECRB
+                RET
+
+; Print a string to the last line of the screen
+;   R8: pointer to string
+;   R11: returns x-pos behind message
+_FM_PLL         INCRB
+                MOVE    R8, R0
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    0, R9                   ; x-pos = first column
+                MOVE    39, R10                 ; y-pos = last line of screen              
+                MOVE    STR_CLR_LINE, R8        ; clear last line
+                RSUB    PRINT_STR_AT, 1
+                MOVE    R0, R8                  ; print prompt
+                RSUB    PRINT_STR_AT, 1
+                MOVE    R0, R8
+                MOVE    R1, R9
+                MOVE    R2, R10
+                DECRB
+                RET
+
+; Show prompt and input data via keyboard incl. backspace support
+;   R8: prompt
+;   R9: input scratch buffer (zero terminator will be added)
+;  R10: size of input scratch buffer (including zero terminator)
+_FM_INPUT       SYSCALL(enter, 1)
+                MOVE    R8, R0                  ; R0 = prompt
+                MOVE    R9, R1                  ; R1 = input scratch buffer
+                MOVE    R10, R2                 ; R2 = size of input scr. buf.
+                SUB     1, R2                   ; leave space for 0-terminator
+                RSUB    _FM_PLL, 1              ; print prompt from @R8
+                MOVE    R11, R8                 ; x-pos = behind the message
+                MOVE    39, R9
+                SYSCALL(vga_moveto, 1)
+                XOR     R4, R4                  ; char counter
+_FM_INPUT_LOOP  RSUB    KBD_GETCHAR, 1
+                CMP     KBD$ENTER, R8           ; ENTER = input done
+                RBRA    _FM_INPUT_RET, Z
+                CMP     KBD$BACKSPACE, R8       ; if no backspace ..
+                RBRA    _FM_IL_NBS, !Z          ; .. continue
+                CMP     0, R4                   ; handle backspace: anything..
+                RBRA    _FM_INPUT_LOOP, Z       ; ..there already? no!
+                SUB     1, R1                   ; yes: handle backspace:
+                SUB     1, R4                   ; decrement scr. buf. ptr, ..
+                SYSCALL(vga_getxy, 1)           ; ..char counter & cursor pos
+                SUB     1, R8
+                MOVE    R8, R5
+                SYSCALL(vga_moveto, 1)
+                MOVE    STR_LS_SPACE, R8
+                RSUB    LOCAL_PUTS, 1
+                MOVE    R5, R8
+                SYSCALL(vga_moveto, 1)
+                RBRA    _FM_INPUT_LOOP, 1
+_FM_IL_NBS      CMP     R4, R2                  ; buffer full?
+                RBRA    _FM_INPUT_LOOP, Z       ; ignore char
+                RSUB    LOCAL_PUTC, 1
+                MOVE    R8, @R1++               ; store in scratch buffer
+                ADD     1, R4                   ; character counter
+                RBRA    _FM_INPUT_LOOP, 1
+_FM_INPUT_RET   MOVE    0, @R1                  ; add zero terminator
+                SYSCALL(leave, 1)
+                RET                
+
+                ; output .DW XX, YY, ZZ, ... statements containing the
+                ; data painted in the tile window to the UART
+SAVE_DATA       MOVE    TILE_WS_X_MAX, R9
+                MOVE    TILE_WS_Y_MAX, R10
+                MOVE    TILE_WS_Y, R8
+                MOVE    @R8, @R1
+
+_SAVE_NEXT_Y    MOVE    0x000D, R8              ; print CR
+                RSUB    UART_PUTCHAR, 1
+                MOVE    0x000A, R8              ; print LF
+                RSUB    UART_PUTCHAR, 1
+                MOVE    0x002E, R8              ; print "."
+                RSUB    UART_PUTCHAR, 1
+                MOVE    0x0044, R8              ; print "D"
+                RSUB    UART_PUTCHAR, 1
+                MOVE    0x0057, R8              ; print "W"
+                RSUB    UART_PUTCHAR, 1
+                MOVE    0x0020, R8              ; print " "
+                RSUB    UART_PUTCHAR, 1
+                MOVE    TILE_WS_X, R8           ; reset column (hw x cursor)
+                MOVE    @R8, @R0
+
+_SAVE_NEXT_X    MOVE    0x30, R8                ; print "0"
+                RSUB    UART_PUTCHAR, 1
+                MOVE    0x78, R8                ; print "x"
+                RSUB    UART_PUTCHAR, 1
+                MOVE    @R2, R8                 ; read tile data from VRAM
+                AND     0x00F0, R8              ; extract high nibble ...
+                AND     0xFFFB, SR              ; clear C (shift in '0')                
+                SHR     4, R8
+                MOVE    HEX_DIGITS, R11         ; ... convert it to hex ...
+                ADD     R8, R11
+                MOVE    @R11, R8                
+                RSUB    UART_PUTCHAR, 1         ; ... and output it to UART
+                MOVE    @R2, R8
+                AND     0x000F, R8              ; extract low nibble and ditto
+                MOVE    HEX_DIGITS, R11
+                ADD     R8, R11
+                MOVE    @R11, R8
+                RSUB    UART_PUTCHAR, 1
+                ADD     1, @R0
+                CMP     @R0, @R9                ; reached maximum x position?
+                RBRA    _SAVE_NEXT_XC, !N       ; no: print a ", " and go on
+                ADD     1, @R1                  ; yes: increase y position
+                CMP     @R1, @R10               ; reached maximum y position?
+                RBRA    _SAVE_NEXT_Y, !N        ; no: next line
+                RBRA    END, 1                  ; yes: end TileEd
+
+_SAVE_NEXT_XC   MOVE    0x002C, R8              ; print ","
+                RSUB    UART_PUTCHAR, 1
+                MOVE    0x0020, R8              ; print " "
+                RSUB    UART_PUTCHAR, 1
+                RBRA    _SAVE_NEXT_X, 1
+
+
+; ****************************************************************************
 ; PRINT_24BIT_RGB
 ;    Print 24-bit RGB version of the 15-bit version stored in R8
 ; ****************************************************************************
@@ -1528,19 +1667,36 @@ _KG2DGN_END     MOVE    R4, R8
                 RET
 
 ; ****************************************************************************
+; UART_PUTS
+;   Write a string to the UART, no matter where STDOUT points to.
+;   R8: pointer to string
+; ****************************************************************************
+
+UART_PUTS       INCRB
+                MOVE    R8, R0
+                MOVE    R8, R1
+_UARTPUTS_LOOP  MOVE    @R0++, R8
+                RBRA    _UARTPUTS_RET, Z
+                RSUB    UART_PUTCHAR, 1
+                RBRA    _UARTPUTS_LOOP, 1
+_UARTPUTS_RET   MOVE    R1, R8
+                DECRB
+                RET
+
+; ****************************************************************************
 ; UART_PUTCHAR
 ;   Write a character to the UART, no matter where STDOUT points to.
 ;   R8: character to be sent
 ; ****************************************************************************
 
-UART_PUTCHAR    INCRB                       ; Get a new register page
-                MOVE IO$UART_SRA, R0        ; R0: address of status register                
-                MOVE IO$UART_THRA, R1       ; R1: address of transmit register
-_UART_PUTC_WAIT MOVE @R0, R2                ; read status register
-                AND 0x0002, R2              ; ready to transmit?
-                RBRA _UART_PUTC_WAIT, Z     ; loop until ready
-                MOVE R8, @R1                ; Print character
-                DECRB                       ; Restore the old page
+UART_PUTCHAR    INCRB                           ; Get a new register page
+                MOVE    IO$UART_SRA, R0         ; R0: address of status register                
+                MOVE    IO$UART_THRA, R1        ; R1: address of transmit register
+_UART_PUTC_WAIT MOVE    @R0, R2                 ; read status register
+                AND     0x0002, R2              ; ready to transmit?
+                RBRA    _UART_PUTC_WAIT, Z      ; loop until ready
+                MOVE    R8, @R1                 ; Print character
+                DECRB                           ; Restore the old page
                 RET                
 
 ; ****************************************************************************
@@ -1898,6 +2054,8 @@ FONT_ED_CX      .BLOCK 1
 FONT_ED_CY      .BLOCK 1
 
 CLIPBOARD       .BLOCK 12                       ; copy/paste CTRL+C/CTRL+V
+INPUTSCRATCH    .BLOCK 50                       ; string input scratch buffer
+INPUTSCRATCH_N  .EQU 50
 
 ; workspace boundaries in absolute screen coordinates: palette and tile
 PAL_WS_X        .BLOCK 1
