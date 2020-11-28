@@ -2,7 +2,7 @@
 **  QNICE assembler: This program reads QNICE assembler code from a file and generates, as expected from an assembler :-), 
 ** valid machine code based on this input.
 **
-** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016, JUN-2016, JUL-2020, SEP-2020, NOV-2020
+** B. Ulmann, JUN-2007, DEC-2007, APR-2008, AUG-2015, DEC-2015, JAN-2016, MAY-2016, JUN-2016, JUL-2020
 **
 ** Known bugs:
 **
@@ -38,7 +38,6 @@
 #define INT   2
 #define INCRB 3
 #define DECRB 4
-#define EXC   5
 
 #define NO_OPCODE         -1 /* No opcode found (just a label), do not emit an output line */
 
@@ -59,23 +58,23 @@
 #define PRINT_ERROR printf("assemble: %s\n", entry->error_text);
 
 typedef struct _data_entry {
-  char source[STRING_LENGTH],       /* Original source line for printout */
-    label[STRING_LENGTH],           /* Name of a label if there was one */
-    mnemonic[STRING_LENGTH],        /* Undecoded mnemonic */
-    src_op[STRING_LENGTH],          /* Source operand */
-    dest_op[STRING_LENGTH],         /* Destination operand */
-    dw_data[STRING_LENGTH],         /* Arguments of a .DW-directive */
-    error_text[2 * STRING_LENGTH];  /* Text of error message if something went wrong during assembly */
-  int address,                      /* Memory address for this instruction/directive */
-    export,                         /* Is the label to be exported? */
-    number_of_words,                /* How many words of data are necessary for this line? */
-    *data,                          /* Pointer to a list of number_of_words-ints holding the resulting data */
-    opcode, opcode_type,            /* Which opcode and which type* */
-    src_op_type,                    /* If the source operand is a constant, it will be stored here */
-    dest_op_type,                   /* The same holds true for the destination */
-    src_op_code,                    /* The six bits describing the first operand */
-    dest_op_code,                   /* The six bits describing the second operand */
-    state;                          /* STATE$FINISHED, STATE$LABELS_MISSING */
+  char source[STRING_LENGTH],  /* Original source line for printout */
+    label[STRING_LENGTH],      /* Name of a label if there was one */
+    mnemonic[STRING_LENGTH],   /* Undecoded mnemonic */
+    src_op[STRING_LENGTH],     /* Source operand */
+    dest_op[STRING_LENGTH],    /* Destination operand */
+    dw_data[STRING_LENGTH],    /* Arguments of a .DW-directive */
+    error_text[STRING_LENGTH]; /* Text of error message if something went wrong during assembly */
+  int address,                 /* Memory address for this instruction/directive */
+    export,                    /* Is the label to be exported? */
+    number_of_words,           /* How many words of data are necessary for this line? */
+    *data,                     /* Pointer to a list of number_of_words-ints holding the resulting data */
+    opcode, opcode_type,       /* Which opcode and which type* */
+    src_op_type,               /* If the source operand is a constant, it will be stored here */
+    dest_op_type,              /* The same holds true for the destination */
+    src_op_code,               /* The six bits describing the first operand */
+    dest_op_code,              /* The six bits describing the second operand */
+    state;                     /* STATE$FINISHED, STATE$LABELS_MISSING */
   struct _data_entry *next;
 } data_structure;
 
@@ -91,6 +90,27 @@ typedef struct _equ_entry {
 
 data_structure *gbl$data = 0;
 equ_structure  *gbl$equs = 0;
+
+/*
+** Expand all tabs by blanks, assuming that tab stops occur every eight columns.
+*/
+void expand_tabs(char *dst, char *src) {
+  int i;
+
+  i = 0;
+  while (*src) {
+    i++;
+    if (*src != '\t')
+      *dst++ = *src++;
+    else {
+      *dst++ = ' ';
+      for ( ; (i % 8); i++, *dst++ = ' ');
+      src++;
+    }
+  }
+
+  *dst = (char) 0;
+}
 
 /*
 ** Convert a string to uppercase.
@@ -139,7 +159,7 @@ int translate_mnemonic(char *string, int *opcode, int *type) {
   int i;
   static char *normal_mnemonics[] = {"MOVE", "ADD", "ADDC", "SUB", "SUBC", "SHL", "SHR", "SWAP", 
                               "NOT", "AND", "OR", "XOR", "CMP", 0},
-    *control_mnemonics[] = {"HALT", "RTI", "INT", "INCRB", "DECRB", "EXC", 0},
+    *control_mnemonics[] = {"HALT", "RTI", "INT", "INCRB", "DECRB", 0},
     *branch_mnemonics[] = {"ABRA", "ASUB", "RBRA", "RSUB", 0},
     *directives[] = {".ORG", ".ASCII_W", ".ASCII_P", ".EQU", ".BLOCK", ".DW", 0};
 
@@ -215,75 +235,6 @@ char *tokenize(char *string, char *delimiters) {
   }
 
   return NULL;
-}
-
-/*
-**  Expand all tabs by blanks, assuming that tab stops occur every eight columns and do some other magic with respect
-** to the display of comments. This once was a simple expand_tabs() function but it mutated into something pretty 
-** horrible which is now reflected by its new function name transmogrify()...
-*/
-void transmogrify(char *dst, char *src) {
-  int i, non_space_found;
-  char label[STRING_LENGTH], rest[STRING_LENGTH], scratch[STRING_LENGTH], comment[STRING_LENGTH], *p;
-
-  for (i = 0; i < STRING_LENGTH; i++)
-    label[i] = rest[i] = scratch[i] = (char) 0;
-
-  p = dst;  // Remember the start of the destination string
-  i = 0;
-  while (*src) {
-    i++;
-    if (*src != '\t')
-      *dst++ = *src++;
-    else {
-      *dst++ = ' ';
-      for ( ; (i % 8); i++, *dst++ = ' ');
-      src++;
-    }
-  }
-
-  *dst = (char) 0;
-  dst  = p;
-
-  //  Format labels etc. nicely. The following code is pretty ugly and this should have been done
-  // long before we come to transmogrify(...) but I did not feel brave enough to change it in the 
-  // depth of the assembler, eventually causing this kludge:
-  strcpy(scratch, dst);
-  if (*scratch && *scratch != ' ' && *scratch != COMMENT_CHAR) {    // If a line starts with a non-space/non-comment character 
-    i = 0;                                                          //  it starts with a label
-    while (scratch[i] && scratch[i] != ' ')                         // Look for end of label
-      i++;
-    scratch[i] = (char) 0;
-    strcpy(label, scratch);
-    p = scratch + i + 1;
-
-    i = 0;
-    while (p[i] && p[i] == ' ')
-      i++;
-    strcpy(rest, p + i);
-
-    sprintf(dst, "%-24s    %s", label, rest);                       // Beware of hardcoded length of labels
-  } else if (*scratch && *scratch == ' ') {                         // Line starts with a blank, so let's expand these...
-    i = 0;
-    while (scratch[i] == ' ')
-      i++;
-    sprintf(dst, "                            %s", scratch + i);    // Also hardcoded 24 + 4 spaces!
-  }
-
-  // Take care of comments at the end of lines...
-  strcpy(scratch, dst);
-  if (!strchr(scratch, '"')) {                                      // If there is a string, just skipt the nice
-    i = non_space_found = 0;                                        // formatting of comments as this is really
-    while (scratch[i] && scratch[i] != COMMENT_CHAR)                // ugly and interferes badly with ';' within
-      if (scratch[i++] != ' ')                                      // a string.
-        non_space_found = 1;
-
-    if (i > 0 && scratch[i] == COMMENT_CHAR && non_space_found) {   // There is a comment and it is not at the start of the line
-      strcpy(comment, scratch + i);                                 // Remember the comment 
-      scratch[i - 1] = (char) 0;
-      sprintf(dst, "%-60s %s", scratch, comment);
-    }
-  }
 }
 
 /*
@@ -583,8 +534,8 @@ int decode_operand(char *operand, int *op_code) {
 */
 int assemble() {
   int opcode, type, line_counter, address = 0, i, j, error_counter = 0, number_of_operands, negate, flag, value, size,
-    special_char, org_found = 0, retval, error, shadow_register;
-  char line[STRING_LENGTH], label[STRING_LENGTH], *p, *q, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
+    special_char, org_found = 0, retval, error;
+  char line[STRING_LENGTH], label[STRING_LENGTH], *p, *delimiters = " ,", *token, *sr_bits = "1XCZNVIM";
   data_structure *entry;
 
   /* First pass: */
@@ -594,15 +545,12 @@ int assemble() {
   for (line_counter = 1, entry = gbl$data; entry; entry = entry->next, line_counter++) {
     strcpy(line, entry->source);           /* Get a local copy of the line and clean it up */
     entry->state = STATE$NOTHING_YET_DONE; /* Still a lot to do */
-    p = strchr(line, COMMENT_CHAR);
-    q = strchr(line, '"');
-    if ((!q && p) || (q && p && p < q)) // Remove everything following a ';' unless there is a double quote in front of it 
-      *p = (char) 0;                    // (in this case it's part of a string).
-
+    if ((p = strchr(line, COMMENT_CHAR)))  /* Remove everything after the start of a comment */
+      *p = (char) 0;
     remove_leading_blanks(line);
     remove_trailing_blanks(line);
     remove_tabs(line);
-
+    
     if (!strlen(line)) /* Skip empty lines */
       continue;
 
@@ -614,8 +562,7 @@ int assemble() {
       strcpy(entry->mnemonic, token);
     else { /* If the first token is neither a mnemonic nor an opcode, assume it is a label */
       if (entry->source[0] == ' ' || entry->source[0] == '\t') {    // Whatever it is, it did not start in column 1 and is thus not a label!
-        sprintf(entry->error_text, "Line %d: No valid mnemonic/no label (does not start in column 1)\n\
-Offending line:\n%s\n", line_counter, entry->source);
+        sprintf(entry->error_text, "Line %d: No valid mnemonic/no label (does not start in column 1)", line_counter);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -627,7 +574,7 @@ Offending line:\n%s\n", line_counter, entry->source);
       }
 
       if (find_label(label, &i) != -1) { /* Do we already have a lable of that name? */
-        sprintf(entry->error_text, "Line %d: duplicate label >>%s<<.\nOffending line:\n%s\n", line_counter, label, entry->source);
+        sprintf(entry->error_text, "Line %d: duplicate label >>%s<<.", line_counter, label);
         PRINT_ERROR;
         error_counter++;
       }
@@ -638,7 +585,7 @@ Offending line:\n%s\n", line_counter, entry->source);
         /* If the token is empty, we just found a label on a single line. If it is not empty and could not
            be converted into a valid opcode, it is just an error. */
         if (token) {
-          sprintf(entry->error_text, "Line %d: Unknown token >>%s<<.\nOffending line:\n%s\n", line_counter, token, entry->source);
+          sprintf(entry->error_text, "Line %d: Unknown token >>%s<<.", line_counter, token);
           PRINT_ERROR;
           error_counter++;
         }
@@ -664,8 +611,7 @@ Offending line:\n%s\n", line_counter, entry->source);
         entry->address = -1;
         address = str2int(token, &error) - 1; /* - 1 since the address will be incremented later */
         if (error) {
-          sprintf(entry->error_text, "Line %d: ERROR: .ORG with illegal address >>%s<<\nOffending line:\n%s\n", 
-                  line_counter, token, entry->source);
+          sprintf(entry->error_text, "Line %d: ERROR: .ORG with illegal address >>%s<<\n", line_counter, token);
           PRINT_ERROR;
           error_counter++;
         }
@@ -715,8 +661,7 @@ Offending line:\n%s\n", line_counter, entry->source);
 
         remove_leading_blanks(p);
         if (*p++ != '"') { /* No double quote found! */
-          sprintf(entry->error_text, "Line %d: Did not find opening double quote!\nOffending line:\n%s\n", 
-                  line_counter, entry->source);
+          sprintf(entry->error_text, "Line %d: Did not find opening double quote!", line_counter);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -727,24 +672,23 @@ Offending line:\n%s\n", line_counter, entry->source);
           return -1;
         }
         
-        for (special_char = i = j = 0; i < strlen(p) && *(p + j) != '"'; i++, j++, address++) {
-          if (*(p + j) == '\\')
+        for (special_char = i = 0; i < strlen(p) && *(p + i) != '"'; i++, address++) {
+          if (*(p + i) == '\\')
             special_char = 1;
-          else if (special_char && *(p + j) == 'n') {
+          else if (special_char && *(p + i) == 'n') {
             *(entry->data + i - 1) = (char) 13;
             *(entry->data + i)     = (char) 10;
             special_char = 0;
-          }  else if (special_char && *(p + j) == 't') {
+          } else if (special_char && *(p + i) == 't') {
             *(entry->data + i - 1) = (char) 9;
-            i--;                            // Do not forget to decrement i so that is no gap in entry->data!
-            address--;
+            *(entry->data + i) = ' ';
             special_char = 0;
-          } else if (special_char && *(p + j) != 'n' && special_char && *(p + j) != 't') {
-            *(entry->data + i - 1) = *(p + j - 1);
-            *(entry->data + i)     = *(p + j);
+          } else if (special_char && *(p + i) != 'n' && special_char && *(p + i) != 't') {
+            *(entry->data + i - 1) = *(p + i - 1);
+            *(entry->data + i)     = *(p + i);
           } else {
             special_char = 0;
-            *(entry->data + i) = 0xff & *(p + j);
+            *(entry->data + i) = 0xff & *(p + i);
           }
         }
 
@@ -753,7 +697,7 @@ Offending line:\n%s\n", line_counter, entry->source);
           address++;
         }
 
-        if (*(p + j) != '"') {
+        if (*(p + i) != '"') {
           sprintf(entry->error_text, "Line %d: WARNING - Did not find closing double quote!", line_counter);
           PRINT_ERROR;
         }
@@ -768,8 +712,7 @@ Offending line:\n%s\n", line_counter, entry->source);
         if (search_equ_list(token, &size)) { /* Returns -1 if nothing is found */
           size = str2int(token, &error); 
           if (error) {
-            sprintf(entry->error_text, "Line %d: ERROR: .BLOCK with illegal size >>%s<<\nOffending line:\n%s\n", 
-                    line_counter, token, entry->source);
+            sprintf(entry->error_text, "Line %d: ERROR: .BLOCK with illegal size >>%s<<\n", line_counter, token);
             PRINT_ERROR;
             error_counter++;
           }
@@ -800,8 +743,7 @@ Offending line:\n%s\n", line_counter, entry->source);
 
         if ((retval = insert_into_equ_list(entry->label, str2int(token, &error)))) {
           if (error) {
-            sprintf(entry->error_text, "Line %d: ERROR: .EQU with illegal size >>%s<<\nOffending line:\n%s\n", 
-                    line_counter, token, entry->source);
+            sprintf(entry->error_text, "Line %d: ERROR: .EQU with illegal size >>%s<<\n", line_counter, token);
             PRINT_ERROR;
             error_counter++;
           }
@@ -810,19 +752,17 @@ Offending line:\n%s\n", line_counter, entry->source);
           **  Design bug: Since an EQU does not get a corresponding code entry, the following
           ** error message will only printed to stdout but not occur in the resulting listing!
           */
-          if (retval == 1) {
-            sprintf(entry->error_text, "Line %d: Duplicate equ-entry '%s'.\nOffending line:\n%s\n", 
-                   line_counter, entry->label, entry->source);
-            PRINT_ERROR;
-//          error_counter++;
-          }
+          if (retval == 1)
+            sprintf(entry->error_text, "Line %d: Duplicate equ-entry '%s'.", line_counter, entry->label);
+
+          PRINT_ERROR;
+          error_counter++;
         }
 	    *(entry->label) = (char) 0;
         entry->state = STATE$FINISHED;
         entry->address = -1;
       } else {
-        sprintf(entry->error_text, "Line %d: Unknown directive >>%s<<. Very strange!\nOffending line:\n%s\n", 
-                line_counter, entry->mnemonic, entry->source);
+        sprintf(entry->error_text, "Line %d: Unknown directive >>%s<<. Very strange!", line_counter, entry->mnemonic);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -833,8 +773,7 @@ Offending line:\n%s\n", line_counter, entry->source);
 
       if (number_of_operands) { /* Read operands. */
         if (!(token = tokenize((char *) 0, delimiters))) {
-          sprintf(entry->error_text, "Line %d: No first operand found! (%s).\nOffending line:\n%s\n", 
-                  line_counter, entry->source, entry->source);
+          sprintf(entry->error_text, "Line %d: No first operand found! (%s)", line_counter, entry->source);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -843,8 +782,7 @@ Offending line:\n%s\n", line_counter, entry->source);
         
         /* Determine type of first operand. */
         if ((entry->src_op_type = decode_operand(entry->src_op, &entry->src_op_code)) == OPERAND$ILLEGAL) {
-          sprintf(entry->error_text, "Line %d: Illegal first operand! (%s).\nOffending line:\n%s\n", 
-                  line_counter, entry->source, entry->source);
+          sprintf(entry->error_text, "Line %d: Illegal first operand! (%s)", line_counter, entry->source);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -857,8 +795,7 @@ Offending line:\n%s\n", line_counter, entry->source);
 
         if (number_of_operands > 1) {
           if (!(token = tokenize((char *) 0, delimiters))) {
-            sprintf(entry->error_text, "Line %d: No second operand found! (%s).\nOffending line:\n%s\n", 
-                    line_counter, entry->source, entry->source);
+            sprintf(entry->error_text, "Line %d: No second operand found! (%s)", line_counter, entry->source);
             PRINT_ERROR;
             error_counter++;
             continue;
@@ -867,8 +804,7 @@ Offending line:\n%s\n", line_counter, entry->source);
           
           /* Determine the type of the second operand. */
           if ((entry->dest_op_type = decode_operand(entry->dest_op, &entry->dest_op_code)) == OPERAND$ILLEGAL) {
-            sprintf(entry->error_text, "Line %d: Illegal second operand! (%s).\nOffending line:\n%s\n", 
-                    line_counter, entry->source, entry->source);
+            sprintf(entry->error_text, "Line %d: Illegal second operand! (%s)", line_counter, entry->source);
             PRINT_ERROR;
             error_counter++;
             continue;
@@ -898,8 +834,7 @@ Offending line:\n%s\n", line_counter, entry->source);
       if (entry->src_op_type == OPERAND$CONSTANT) {
         *(entry->data + i++) = str2int(entry->src_op, &error) & 0xffff;
         if (error) {
-          sprintf(entry->error_text, "Line %d: ERROR: Illegal source operand >>%s<<\nOffending line:\n%s\n", 
-                  line_counter, token, entry->source);
+          sprintf(entry->error_text, "Line %d: ERROR: Illegal source operand >>%s<<\n", line_counter, token);
           PRINT_ERROR;
           error_counter++;
         }
@@ -908,8 +843,7 @@ Offending line:\n%s\n", line_counter, entry->source);
       if (entry->dest_op_type == OPERAND$CONSTANT) {
         *(entry->data + i) = str2int(entry->dest_op, &error) & 0xffff;
         if (error) {
-          sprintf(entry->error_text, "Line %d: ERROR: Illegal destination operand >>%s<<\nOffending line:\n%s\n", 
-                  line_counter, token, entry->source);
+          sprintf(entry->error_text, "Line %d: ERROR: Illegal destination operand >>%s<<\n", line_counter, token);
           PRINT_ERROR;
           error_counter++;
         }
@@ -919,8 +853,7 @@ Offending line:\n%s\n", line_counter, entry->source);
 
       /* A branch always has two operands! */
       if (!(token = tokenize((char *) 0, delimiters))) {
-        sprintf(entry->error_text, "Line %d: No first branch operand found! (%s).\nOffending line:\n%s\n", 
-                line_counter, entry->source, entry->source);
+        sprintf(entry->error_text, "Line %d: No first branch operand found! (%s)", line_counter, entry->source);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -928,8 +861,7 @@ Offending line:\n%s\n", line_counter, entry->source);
       strcpy(entry->src_op, token);
 
       if (!(token = tokenize((char *) 0, delimiters))) {
-        sprintf(entry->error_text, "Line %d: No second branch operand found! (%s).\nOffending line:\n%s\n", 
-                line_counter, entry->source, entry->source);
+        sprintf(entry->error_text, "Line %d: No second branch operand found! (%s)", line_counter, entry->source);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -938,8 +870,7 @@ Offending line:\n%s\n", line_counter, entry->source);
 
       /* Now we have both operands of the branch and the branch itself as well. Decode the first operand. */
       if ((entry->src_op_type = decode_operand(entry->src_op, &entry->src_op_code)) == OPERAND$ILLEGAL) {
-        sprintf(entry->error_text, "Line %d: Illegal first operand! (%s).\nOffending line:\n%s\n", 
-                line_counter, entry->source, entry->source);
+        sprintf(entry->error_text, "Line %d: Illegal first operand! (%s)", line_counter, entry->source);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -966,8 +897,7 @@ Offending line:\n%s\n", line_counter, entry->source);
       }
           
       if (flag > 7) {
-        sprintf(entry->error_text, "Line %d: Illegal condition flag! (%s).\nOffending line:\n%s\n", 
-                line_counter, entry->source, entry->source);
+        sprintf(entry->error_text, "Line %d: Illegal condition flag! (%s)", line_counter, entry->source);
         PRINT_ERROR;
         error_counter++;
         continue;
@@ -981,8 +911,7 @@ Offending line:\n%s\n", line_counter, entry->source);
       if (entry->src_op_type == OPERAND$CONSTANT) { /* Labels are no constants in this context since they are unknown in advance */
         entry->data[1] = str2int(entry->src_op, &error) & 0xffff;
         if (error) {
-          sprintf(entry->error_text, "Line %d: ERROR: [1] Illegal constant operand >>%s<<.\nOffending line:\n%s\n", 
-                  line_counter, token, entry->source);
+          sprintf(entry->error_text, "Line %d: ERROR: [1] Illegal constant operand >>%s<<\n", line_counter, token);
           PRINT_ERROR;
           error_counter++;
         }
@@ -1005,9 +934,10 @@ Offending line:\n%s\n", line_counter, entry->source);
 
         entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6)); /* Basic structure of the instruction */
       } else if (entry->opcode == INT) {
+        entry->number_of_words = 1; /* At least one word is required for INT. */
+
         if (!token) { /* INT requires an additional token */
-          sprintf(entry->error_text, "Line %d: ERROR - no argument found!\nOffending line:\n%s\n", 
-                  line_counter, entry->source);
+          sprintf(entry->error_text, "Line %d: ERROR - no argument found!", line_counter);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -1021,14 +951,11 @@ Offending line:\n%s\n", line_counter, entry->source);
         /* Where should the INT jump to? */
         strcpy(entry->dest_op, token);
         if ((entry->dest_op_type = decode_operand(entry->dest_op, &entry->dest_op_code)) == OPERAND$ILLEGAL) {
-          sprintf(entry->error_text, "Line %d: Illegal destination operand!\nOffending line:\n%s\n", 
-                  line_counter, entry->source);
+          sprintf(entry->error_text, "Line %d: Illegal destination operand! (%s)", line_counter, entry->source);
           PRINT_ERROR;
           error_counter++;
           continue;
         }
-
-        entry->number_of_words = 1; /* At least one word is required for INT. */
 
         if (entry->dest_op_type == OPERAND$CONSTANT || entry->dest_op_type == OPERAND$LABEL_EQU) {
           entry->number_of_words++;
@@ -1040,76 +967,18 @@ Offending line:\n%s\n", line_counter, entry->source);
           return -1;
         }
 
-        entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6) | (entry->dest_op_code & 0x3f)) & 0xffff; 
+        entry->data[0] = (0xe000 | ((entry->opcode & 0x3f) << 6) | ((entry->dest_op_code) & 0x3f)) & 0xffff; 
         if (entry->dest_op_type == OPERAND$CONSTANT) { /* Labels are no constants in this context as they are unknown in advance */
           entry->data[1] = str2int(entry->dest_op, &error) & 0xffff;
           if (error) {
-            sprintf(entry->error_text, "Line %d: ERROR: [2] Illegal constant operand >>%s<<\nOffending line:\n%s\n", 
-                    line_counter, token, entry->source);
+            sprintf(entry->error_text, "Line %d: ERROR: [2] Illegal constant operand >>%s<<\n", line_counter, token);
             PRINT_ERROR;
             error_counter++;
           }
         }
-      } else if (entry->opcode == EXC) {
-        if (!token) { // The first token is a constant which deviates from all other instructions!
-          sprintf(entry->error_text, "Line %d: ERROR - no constant found for EXC!\nOffending line:\n%s\n", 
-                  line_counter, entry->source);
-          PRINT_ERROR;
-          error_counter++;
-          continue;
-        }
-
-        shadow_register = str2int(token, &error);
-        if (error) {
-          sprintf(entry->error_text, "Line %d: EXC constant could not be decoded!\nOffending line:\n%s\n", 
-                  line_counter, entry->source);
-          PRINT_ERROR;
-          continue;
-        }
-        if (shadow_register < 0 || shadow_register > 31) {
-          sprintf(entry->error_text, "Line %d: EXC constant out of range (0 .. 31)!\nOffending line:\n%s\n",
-                  line_counter, entry->source);
-          PRINT_ERROR;
-          continue;
-        }
-        strcpy(entry->src_op, token);
-        entry->src_op_code = (shadow_register & 0x1f) | 0x20;
-
-        if (!(token = tokenize((char *) 0, delimiters))) { // We need a second operands
-          sprintf(entry->error_text, "Line %d: No second operand for EXC found!\nOffending line:\n%s\n",
-                  line_counter, entry->source);
-          PRINT_ERROR;
-          continue;
-        }
-
-        strcpy(entry->dest_op, token);
-        if ((entry->dest_op_type = decode_operand(entry->dest_op, &entry->dest_op_code)) == OPERAND$ILLEGAL) {
-          sprintf(entry->error_text, "Line %d: Illegal destination operand!\nOffending line:\n%s\n", 
-                  line_counter, entry->source);
-          PRINT_ERROR;
-          error_counter++;
-          continue;
-        }
-
-        if ((entry->dest_op_type == OPERAND$CONSTANT || entry->dest_op_type == OPERAND$LABEL_EQU)) {
-          sprintf(entry->error_text, "Line %d: EXC with constant destination!\nOffending line:\n%s\n", 
-                  line_counter, entry->source);
-          PRINT_ERROR;
-          error_counter++;
-          continue;
-        }
-
-        entry->number_of_words = 1;
-        if (!(entry->data = (int *) malloc(entry->number_of_words * sizeof(int)))) {
-          printf("assemble: Out of memory, could not allocate %d words of memory!", (int) strlen(p));
-          return -1;
-        }
-
-        entry->data[0] = (0xe000 | 0x0800 | ((shadow_register & 0x1f) << 6) | (entry->dest_op_code & 0x3f)) & 0xffff;
       }
     } else {
-      sprintf(entry->error_text, "Line %d: Unknown opcode type %d! Very strange error!\nOffending line:\n%s\n", 
-              line_counter, entry->opcode_type, entry->source);
+      sprintf(entry->error_text, "Line %d: Unknown opcode type %d! Very strange error!", line_counter, entry->opcode_type);
       PRINT_ERROR;
       error_counter++;
     }
@@ -1126,8 +995,7 @@ Offending line:\n%s\n", line_counter, entry->source);
       value = 0;
       if (search_equ_list(entry->src_op, &value))
         if (find_label(entry->src_op, &value)) {
-          sprintf(entry->error_text, "Line %d: Unresolved label or equ >>%s<<!\nOffending line:\n%s\n", 
-                  line_counter, entry->src_op, entry->source);
+          sprintf(entry->error_text, "Line %d: Unresolved label or equ >>%s<<!", line_counter, entry->src_op);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -1143,8 +1011,7 @@ Offending line:\n%s\n", line_counter, entry->source);
       value = 0;
       if (search_equ_list(entry->dest_op, &value))
         if (find_label(entry->dest_op, &value)) {
-          sprintf(entry->error_text, "Line %d: Unresolved label or equ >>%s<<!\nOffending line:\n%s\n", 
-                  line_counter, entry->dest_op, entry->source);
+          sprintf(entry->error_text, "Line %d: Unresolved label or equ >>%s<<!", line_counter, entry->dest_op);
           PRINT_ERROR;
           error_counter++;
           continue;
@@ -1161,8 +1028,7 @@ Offending line:\n%s\n", line_counter, entry->source);
           if (find_label(token, &value)) { /* Also returns -1 if unsuccessful */
             value = str2int(token, &error); /* Neither a EQU nor a LABEL... */
             if (error) {
-              sprintf(entry->error_text, "Line %d: Illegal argument found in .DW directive: >>%s<<!\nOffending line:\n%s\n", 
-                      line_counter, token, entry->source);
+              sprintf(entry->error_text, "Line %d: Illegal argument found in .DW directive: >>%s<<!", line_counter, token);
               PRINT_ERROR;
               error_counter++;
               continue;
@@ -1218,7 +1084,7 @@ int write_result(char *output_file_name, char *listing_file_name, char *def_file
     if (entry->number_of_words == 2) /* Many instructions require two words, but should be displayed in a single line */
       sprintf(second_word, "%04X", entry->data[1] & 0xffff);
 
-    transmogrify(line, entry->source);
+    expand_tabs(line, entry->source);
     fprintf(listing_handle, "%06d  %4s  %4s  %4s  %s\n", ++line_counter, address_string, data_string, second_word, line);
     if (entry->address != -1 && entry->opcode != NO_OPCODE && *data_string) /* Write binary data */
       fprintf(output_handle, "0x%4s 0x%4s\n", address_string, data_string);
