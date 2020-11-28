@@ -16,13 +16,13 @@
 ;
 ; TileEd ignores STDIN and STDOUT settings of the monitor: the .DW statements
 ; always go to the UART and the other input/ouput is done via keyboard/VGA.
-; This is also why the standard IO monitor functions such as "getc", "putc",    <======= TODO TODO TODO
-; "puts", etc. cannot be used inside this program and are replaced by local     <======= TODO TODO TODO
+; This is also why the standard IO monitor functions such as "getc", "putc",
+; "puts", etc. cannot be used inside this program and are replaced by local
 ; versions.
 ;
 ; done by sy2002 in January 2016
-; enhanced by sy2002 in September to October 2020 to support character editing
-; for font graphics and palette editing and color
+; enhanced by sy2002 in September to December 2020 to support character
+; editing for font graphics and palette editing and color
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -534,7 +534,7 @@ END             SYSCALL(vga_init, 1)            ; also activates default font
 
 HEX_DIGITS      .ASCII_P "0123456789ABCDEF"
 
-STR_HELLO       .ASCII_W "TileEd - Textmode Sprite Editor  V2.0  by sy2002 in October 2020"
+STR_HELLO       .ASCII_W "TileEd - Textmode Sprite Editor  V2.0  by sy2002 in December 2020"
 STR_NOSTART     .ASCII_W "Either TILE_DX or TILE_DY is larger than the allowed maximum. TileEd halted.\n"
 STR_HELP_MAIN   .ASCII_P "F1: Sprite F3: Size F5: Clr F7: Font F9: Pal F12: Output SPACE: Paint CRSR: Nav `"
                 .ASCII_W "XX         XX       XX      XX       XX      XXX         XXXXX        XXXX"
@@ -1062,10 +1062,10 @@ _PED_KL         MOVE    _PED_SCRATCH, R8        ; init input scratch buffer
                 MOVE    11, R9
                 SYSCALL(vga_moveto, 1)
                 MOVE    STR_PED_ACTIVE, R8
-                SYSCALL(puts, 1)
+                RSUB    LOCAL_PUTS, 1
                 MOVE    SELECTED_PAL, R8
                 MOVE    @R8, R8
-                SYSCALL(putc, 1)
+                RSUB    LOCAL_PUTC, 1
 
                 MOVE    VGA$PALETTE_ADDR, R8
                 MOVE    R4, @R8++
@@ -1076,16 +1076,16 @@ _PED_KL         MOVE    _PED_SCRATCH, R8        ; init input scratch buffer
                 MOVE    13, R9
                 SYSCALL(vga_moveto, 1)
                 MOVE    STR_RGB24, R8
-                SYSCALL(puts, 1)
+                RSUB    LOCAL_PUTS, 1
                 MOVE    R5, R8
                 RSUB    PRINT_24BIT_RGB, 1                
                 MOVE    PAL_ED_X, R8            ; 15-bit RGB numeric
                 MOVE    15, R9
                 SYSCALL(vga_moveto, 1)
                 MOVE    STR_RGB15, R8
-                SYSCALL(puts, 1)     
+                RSUB    LOCAL_PUTS, 1
                 MOVE    R5, R8
-                SYSCALL(puthex, 1)
+                RSUB    LOCAL_PUTHEX, 1
 
                 ; show 2 hex nibbles per color plus a visual representation
                 MOVE    _PED_STRS, R12          ; LUT for strings for R, G, B
@@ -1095,7 +1095,7 @@ _PED_KL         MOVE    _PED_SCRATCH, R8        ; init input scratch buffer
 _PED_SHOWRGB_L  MOVE    PAL_ED_X, R8            ; x-pos for cursor
                 SYSCALL(vga_moveto, 1)
                 MOVE    @R12++, R8              ; print string for R, G or B
-                SYSCALL(puts, 1)
+                RSUB    LOCAL_PUTS, 1
                 MOVE    R5, R8                  ; 15-bit compound value
                 AND     @R11, R8                ; extract R, G or B
                 ADD     3, R11                  ; amount of SHR in LUT
@@ -1104,7 +1104,7 @@ _PED_SHOWRGB_L  MOVE    PAL_ED_X, R8            ; x-pos for cursor
                 RSUB    PRINT_2HEXNIBS, 1       ; print R8
                 MOVE    R8, @--SP               ; remember R8
                 MOVE    STR_METER, R8           ; clear old meter display by
-                SYSCALL(puts, 1)                ; printing [                ]
+                RSUB    LOCAL_PUTS, 1           ; printing [                ]
                 MOVE    @SP++, R8               ; R8 = R, G or B in 2 nibbles
                 AND     0xFFFB, SR              ; clear C (shift in '0')                
                 SHR     1, R8                   ; calculate the x-coordinate..
@@ -1112,7 +1112,7 @@ _PED_SHOWRGB_L  MOVE    PAL_ED_X, R8            ; x-pos for cursor
                 ADD     16, R8
                 SYSCALL(vga_moveto, 1)          ; .. and move the cursor ..
                 MOVE    CHR_DRAW_1, R8          ; .. and draw the visual
-                SYSCALL(putc, 1)    
+                RSUB    LOCAL_PUTC, 1
                 ADD     1, R9                   ; y-pos + 1
                 ADD     4, R11                  ; LUT: skip one row
                 SUB     1, R10                  ; iteration counter
@@ -1212,11 +1212,11 @@ _PED_FKF        MOVE    STR_HELP_EDIT, R8       ; numeric edit help text
                 MOVE    22, R9
                 SYSCALL(vga_moveto, 1)
                 MOVE    STR_PED_EDIT, R8
-                SYSCALL(puts, 1)
+                RSUB    LOCAL_PUTS, 1
 
                 ADD     1, R12                  ; LUT: string to be printed
                 MOVE    @R12++, R8              ; print dynamic edit string
-                SYSCALL(puts, 1)
+                RSUB    LOCAL_PUTS, 1
 
                 RSUB    CURSOR_ON, 1
                 MOVE    R4, R8                  ; R4=address of edited pal col
@@ -1271,7 +1271,7 @@ _PED_NIBBLE     CMP     R5, R1                  ; max amount of chars?
                 SUB     4, R6                   ; next nib: 4 bit pos to right
 
                 MOVE    R11, R8                 ; print nib
-                SYSCALL(putc, 1)
+                RSUB    LOCAL_PUTC, 1
 
                 RBRA    _PED_NEXTCHR, 1
 
@@ -1325,7 +1325,7 @@ _PED_NUM_END    RSUB    CURSOR_OFF, 1
                 MOVE    22, R9
                 SYSCALL(vga_moveto, 1)
                 MOVE    STR_CLR_LEFT, R8
-                SYSCALL(puts, 1)
+                RSUB    LOCAL_PUTS, 1
                 MOVE    STR_HELP_PAL, R8        ; print pal ed help
                 MOVE    0, R9
                 MOVE    39, R10
@@ -1438,9 +1438,9 @@ PRINT_2HEXNIBS  SYSCALL(enter, 1)
                 ADD     R0, R3                  ; char for lo-nibble
 
                 MOVE    @R2, R8
-                SYSCALL(putc, 1)
+                RSUB    LOCAL_PUTC, 1
                 MOVE    @R3, R8
-                SYSCALL(putc, 1)
+                RSUB    LOCAL_PUTC, 1
 
                 SYSCALL(leave, 1)
                 RET
@@ -1663,6 +1663,60 @@ _DRAW_WS_NX_LR  MOVE    0x0085, @R2             ; draw left "|"
                 RBRA    _DRAW_WS_NX_LR, !Z
 
                 DECRB
+                RET
+
+; ****************************************************************************
+; LOCAL_PUTHEX
+;   local version of puthex that always uses VGA, independent if the
+;   stdin/stdout settings; the vga_moveto syscall sets the relevant position
+;   R8: word
+; ****************************************************************************
+
+LOCAL_PUTHEX    SYSCALL(enter, 1)
+                SWAP    R8, R8
+                RSUB    PRINT_2HEXNIBS, 1
+                SWAP    R8, R8
+                RSUB    PRINT_2HEXNIBS, 1
+                SYSCALL(leave, 1)
+                RET
+
+; ****************************************************************************
+; LOCAL_PUTC
+;   local version of putc that always uses VGA, independent if the
+;   stdin/stdout settings; the vga_moveto syscall sets the relevant position
+;   R8: char
+; ****************************************************************************
+
+LOCAL_PUTC      SYSCALL(enter, 1)
+                SUB     1, SP
+                MOVE    0, @SP
+                SUB     1, SP
+                MOVE    R8, @SP
+                MOVE    SP, R8
+                RSUB    LOCAL_PUTS, 1
+                ADD     2, SP
+                SYSCALL(leave, 1)
+                RET
+
+; ****************************************************************************
+; LOCAL_PUTS
+;   local version of puts that always uses VGA, independent if the
+;   stdin/stdout settings; the vga_moveto syscall sets the relevant position
+;   R8: pointer to zero terminated string
+; ****************************************************************************
+
+LOCAL_PUTS      SYSCALL(enter, 1)
+                MOVE    R8, R0
+                SYSCALL(vga_getxy, 1)           ; get monitor-cursor-coords
+                MOVE    R9, R10                 ; y-coordinate
+                MOVE    R8, R9                  ; x-coordinate
+                MOVE    R0, R8                  ; pointer to string
+                RSUB    PRINT_STR_AT, 1
+                MOVE    R11, R8                 ; new x-coordinate w/o support
+                                                ; for wrap-arounds
+                MOVE    R10, R9                 ; current y-corrdinate
+                SYSCALL(vga_moveto, 1)
+                SYSCALL(leave, 1)
                 RET
 
 ; ****************************************************************************
