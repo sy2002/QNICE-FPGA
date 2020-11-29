@@ -1470,11 +1470,14 @@ int main_loop(char **argv) {
         start = str2int(tokenize(NULL, delimiters));
         stop  = str2int(tokenize(NULL, delimiters));
         *scratch = (char) 0;
-        for (i = start; i <= stop; i++) {
+        for (i = start; ; i++) {
           if (!((i - start) % 8)) { /* New row */
             scratch[16] = (char) 0;
-            printf("\t%s\n%04x: ", scratch, i);
+            printf("\t%s\n", scratch);
             j = 0;
+            if (i > stop)
+              break;
+            printf("%04x: ", i);
           }
 
           printf("%04x ", value = access_memory(i, READ_MEMORY, 0));
