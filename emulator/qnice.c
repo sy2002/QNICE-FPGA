@@ -138,7 +138,7 @@ int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$
     gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
     gbl$ctrl_c = FALSE, gbl$breakpoint = -1, gbl$cycle_counter_state = 0, gbl$eae_operand_0 = 0,
     gbl$eae_operand_1 = 0, gbl$eae_result_lo = 0, gbl$eae_result_hi = 0, gbl$eae_csr = 0,
-    gbl$error = FALSE;;
+    gbl$error = FALSE, gbl$nesting_depth = 0;
 
 unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
@@ -639,6 +639,7 @@ void reset_machine() {
   for (i = 0; i < NO_OF_ADDRESSING_MODES; i++)
     gbl$stat.addressing_modes[0][i] = gbl$stat.addressing_modes[1][i] = 0;
   gbl$stat.memory_accesses[0] = gbl$stat.memory_accesses[1] = 0;
+  gbl$nesting_depth = 0;
 
   /* Route use the USB keyboard emulation for stdin and VGA for stdout */
 #if defined(__EMSCRIPTEN__) || (defined(USE_VGA) && !defined(USE_UART))
@@ -958,6 +959,8 @@ int execute() {
       update_status_bits(destination, destination, destination, DO_NOT_MODIFY_CARRY | DO_NOT_MODIFY_OVERFLOW, 
                          NO_ADD_SUB_INSTRUCTION);
       write_destination(destination_mode, destination_regaddr, destination, FALSE);
+      if (instruction == 0x0DBC)    // RET-instruction, decrement depth counter
+        gbl$nesting_depth--;
       break;
     case 1: /* ADD */
       source_1 = read_source_operand(source_mode, source_regaddr, FALSE, FALSE);
@@ -1133,16 +1136,12 @@ int execute() {
       /* In mode @R++, we must increment the source register when the branch is taken.
        * We must always increment when it is the PC register.  */
       if (source_mode == 0x2 && (condition || source_regaddr == 0xf))
-      {
         write_register(source_regaddr, read_register(source_regaddr) + 1);
-      }
 
       /* In mode @--R, we must decrement the source register when the branch is taken.
        * We must always decrement when it is the PC register.  */
       if (source_mode == 0x3 && (condition || source_regaddr == 0xf))
-      {
         write_register(source_regaddr, read_register(source_regaddr) - 1);
-      }
 
       /* Now it is time to determine which branch resp. subroutine call type to execute if the condition is satisfied */
       if (condition) {
@@ -1154,6 +1153,7 @@ int execute() {
             write_register(SP, read_register(SP) - 1);
             access_memory(read_register(SP), WRITE_MEMORY, read_register(PC));
             write_register(PC, destination);
+            gbl$nesting_depth++;
             break;
           case 2: /* RBRA */
             write_register(PC, (read_register(PC) + destination) & 0xffff);
@@ -1162,6 +1162,7 @@ int execute() {
             write_register(SP, read_register(SP) - 1);
             access_memory(read_register(SP), WRITE_MEMORY, read_register(PC));
             write_register(PC, (read_register(PC) + destination) & 0xffff);
+            gbl$nesting_depth++;
             break;
         }
       }
@@ -1299,7 +1300,7 @@ void dump_registers() {
 
     printf("%04x ", gbl$shadow_register[i]);
   }
-  printf("\n\n");
+  printf("\n\nNesting depth: %d\n\n", gbl$nesting_depth);
 }
 
 void print_statistics() {
