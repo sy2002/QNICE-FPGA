@@ -18,10 +18,12 @@
 **                          addresses are displayed as absolute values, too.
 **                          Somehow the INT instruction does not work... Fixed...
 **                          The INT instruction is no longer affected by disabling interrupts now.
+**            xx-DEC-2020   Fixed the dump routine which did not always print the ASCII equivalents 
+**                          of memory contents, added SO command
 **
 ** The following defines are available:
 **
-**   USE_IDE         (currently always undefined)
+**   USE_IDE        (currently always undefined)
 **   USE_SD
 **   USE_UART
 **   USE_VGA
@@ -134,11 +136,23 @@ typedef struct statistic_data {
     memory_accesses[2];                                         /* 0 -> read, 1 -> write */
 } statistic_data;
 
-int gbl$memory[MEMORY_SIZE], gbl$registers[REGMEM_SIZE], gbl$debug = FALSE, gbl$verbose = FALSE,
-    gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, gbl$gather_statistics = FALSE, 
-    gbl$ctrl_c = FALSE, gbl$breakpoint = -1, gbl$cycle_counter_state = 0, gbl$eae_operand_0 = 0,
-    gbl$eae_operand_1 = 0, gbl$eae_result_lo = 0, gbl$eae_result_hi = 0, gbl$eae_csr = 0,
-    gbl$error = FALSE, gbl$nesting_depth = 0;
+int gbl$memory[MEMORY_SIZE],        // Main memory
+    gbl$registers[REGMEM_SIZE],     // Register space
+    gbl$normal_operands[] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, 
+    gbl$gather_statistics = FALSE,  // Gather statistical data if TRUE.
+    gbl$ctrl_c = FALSE,             // CTRL-C pressed?
+    gbl$breakpoint = -1, 
+    gbl$cycle_counter_state = 0,    // Counter for simulated CPU cycles.
+    gbl$eae_operand_0 = 0,          // Special memory locations/variables for the extended arithmetic element emulation.
+    gbl$eae_operand_1 = 0, 
+    gbl$eae_result_lo = 0, 
+    gbl$eae_result_hi = 0, 
+    gbl$eae_csr = 0,
+    gbl$error = FALSE, 
+    gbl$debug = FALSE,              // Control debug output.
+    gbl$verbose = FALSE,            // Print (very) verbose debugging messages if this is set to TRUE.
+    gbl$nesting_depth = 0,          // Current depth of subroutine nesting.
+    gbl$so_nesting_depth = -1;      // This is used by the SO command (step over). A value of -1 denotes that SO is not active.
 
 unsigned long long gbl$cycle_counter = 0l; /* This cycle counter is effectively an instruction counter... */
 
@@ -168,6 +182,7 @@ char* gbl$commands[] = {
     "SET ",
     "SAVE ",
     "SB ",
+    "SO ",
     "STAT ",
     "STEP ",
     "SWITCH ",
@@ -1227,7 +1242,15 @@ int mips_adjustment_thread(void* param) {
 }
 #endif
 
+//  run() actually executes a program. It also takes care of the step-over command "SO". Therefore the two global variables
+// gbl$nesting_depth (current depth of subroutine nesting) and gbl$so_nesting_depth (nesting depth at the moment of invoking 
+// the SO command) are used. If gbl$current_nesting_depth == -1 then run() just behaves like a "normal" run() call should. 
+// If the current nesting depth is != -1 then run() continues program execution until gbl$nesting_depth exceeds the value of
+// gbl$so_nesting_depth by at least one. When gbl$nesting_depth drops again to the value of gbl$so_nesting_depth, run() is
+// terminated and returns.
 void run() {
+  int so_triggered = FALSE;
+
   for (unsigned int i = gbl$last_addresses_pointer = 0; i < MAX_LAST_ADDRESSES; gbl$last_addresses[i++] = 0);
 
   if (gbl$initial_run)
@@ -1259,6 +1282,13 @@ void run() {
         clock_gettime(CLOCK_REALTIME, &tstart);
       }
 #endif
+    if (gbl$so_nesting_depth != -1) {               // Take care of step-over.
+      if (gbl$nesting_depth > gbl$so_nesting_depth) // We reached the threshold, which is remembered here.
+        so_triggered = TRUE;
+
+      if (so_triggered && gbl$nesting_depth == gbl$so_nesting_depth)
+        break;
+    }
   }
 
   gbl$cpu_running = false;
@@ -1550,6 +1580,10 @@ int main_loop(char **argv) {
         if ((token = tokenize(NULL, delimiters)))
           write_register(PC, str2int(token));
         execute();
+      } else if (!strcmp(token, "SO")) {            // Step over a subroutine, i.e. run until the global nesting counter 
+        gbl$so_nesting_depth = gbl$nesting_depth;   // increases at least by one and then drops back to the current value.
+        run();
+        gbl$so_nesting_depth = -1;                  // This value is used to denote that we are not in SO-mode.
       } else if (!strcmp(token, "SWITCH")) {
         if ((token = tokenize(NULL, delimiters)))
           access_memory(IO_SWITCH_REG, WRITE_MEMORY, str2int(token));
