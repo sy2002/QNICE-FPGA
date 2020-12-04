@@ -1286,7 +1286,7 @@ void run() {
       if (gbl$nesting_depth > gbl$so_nesting_depth) // We reached the threshold, which is remembered here.
         so_triggered = TRUE;
 
-      if (so_triggered && gbl$nesting_depth == gbl$so_nesting_depth)
+      if ((so_triggered && gbl$nesting_depth == gbl$so_nesting_depth) || (gbl$nesting_depth < gbl$so_nesting_depth))
         break;
     }
   }
