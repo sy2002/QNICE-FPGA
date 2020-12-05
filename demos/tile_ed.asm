@@ -1374,6 +1374,26 @@ _PED_SCRATCH    .BLOCK  2
 ; ****************************************************************************
 
 FILE_MENU       SYSCALL(enter, 1)
+
+                ; do a before/after stack check!
+                RSUB    _FM_SAVE, 1           
+                SYSCALL(leave, 1)
+                ; not called via RSUB, so do an RBRA to return to main!
+                HALT
+
+_FM_ELMID       .BLOCK 21                       ; element id
+_FM_ELMID_N     .EQU 21                         ; maximum length of element id
+
+; ----------------------------------------------------------------------------
+; Save data for FILE_MENU
+; ----------------------------------------------------------------------------
+
+_FM_SAVE        SYSCALL(enter, 1)
+
+                ; ------------------------------------------------------------
+                ; Let the user enter project details and output the header
+                ; ------------------------------------------------------------
+
                 MOVE    STR_LS_START0, R8       ; output header intro
                 RSUB    UART_PUTS, 1
                 RSUB    _FM_CMTSPACE, 1
@@ -1395,7 +1415,7 @@ _FM_INP_ID      MOVE    STR_FILE_ELM, R8        ; get element id
                 MOVE    R9, R8
                 SYSCALL(str2upper, 1)           ; id is in capital letters
                 RSUB    _FM_CHKID, 1            ; legal element id?
-                RSUB    _FM_INP_IDLEGAL, C      ; yes   
+                RBRA    _FM_INP_IDLEGAL, C      ; yes   
                 MOVE    STR_LS_E_ILLID, R8
                 RSUB    _FM_PLL, 1
 _FM_INP_ID_EL   RSUB    KBD_GETCHAR, 1
@@ -1419,7 +1439,7 @@ _FM_INP_IDLEGAL RSUB    UART_PUTS, 1            ; output element id
                 MOVE    STR_LS_NEWLINE, R8
                 RSUB    UART_PUTS, 1
 
-                MOVE    STR_LS_START1, R8       ; output header outtro
+                MOVE    STR_LS_START1, R8       ; output header outro
                 RSUB    UART_PUTS, 1
                 MOVE    STR_LS_START2, R8
                 RSUB    UART_PUTS, 1
@@ -1434,7 +1454,30 @@ _FM_INP_IDLEGAL RSUB    UART_PUTS, 1            ; output element id
                 ; Output palette data
                 ; ------------------------------------------------------------
 
-                MOVE    STR_LS_START1, R8       ; output palette header
+                ; put changes of foreground palette (fg pal) on the stack
+                XOR     R10, R10                ; R10 = 0 means fg pal
+                RSUB    _FM_GETCHGPAL, 1        ; (changes R12)
+                MOVE    R9, R0                  ; R0: used to restore the SP
+                MOVE    R8, R1                  ; R1: start address of info
+                                                ; record about fg pal changes
+
+                ; put changes of background palette (bg pal) on the stack
+                MOVE    1, R10                  ; R10 = 1 means bg pal
+                RSUB    _FM_GETCHGPAL, 1        ; (changes R12)
+                MOVE    R9, R2                  ; R2: used to restore the SP
+                MOVE    R8, R3                  ; R3: start address of info
+                                                ; record about bg pal changes
+
+                ; if nothing is changed in fg and bg then return
+                CMP     0, @R1                  
+                RBRA    _FMS_SAVEPAL, !Z        ; # of fg changes is not 0
+                CMP     0, @R3
+                RBRA    _FMS_SAVEPAL, !Z        ; # of bg changes is not 0
+                ADD     R0, SP                  ; if both are 0: restore the..
+                ADD     R2, SP                  ; .. SP and return
+                RET
+
+_FMS_SAVEPAL    MOVE    STR_LS_START1, R8       ; output palette header
                 RSUB    UART_PUTS, 1
                 RSUB    _FM_CMTSPACE, 1
                 MOVE    _FM_ELMID, R8
@@ -1452,85 +1495,36 @@ _FM_INP_IDLEGAL RSUB    UART_PUTS, 1            ; output element id
                 MOVE    STR_LS_NEWLINE, R8
                 RSUB    UART_PUTS, 1
 
-                MOVE    _FM_ELMID, R8           ; output palette metadata
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_PAL_LFN, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_SPACE2, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_EQU, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_SPACE, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_HEX_PREF, R8
-                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_PAL_LFN, R8      ; save foreground pal data
+                MOVE    STR_LS_PAL_LF, R9
+                MOVE    R1, R10
+                RSUB    _FMS_SP_F_OR_B, 1
 
-                XOR     R10, R10                ; receive changes of fg pal.
-                RSUB    _FM_GETCHGPAL, 1        ; (changes R12)
-                MOVE    R9, R0                  ; R0: used to restore the SP
-                MOVE    R8, R1                  ; R1: used to restore R8
-                                                ; R1: start address of info
-                                                ; record about pal changes
+                MOVE    STR_LS_PAL_LBN, R8      ; save background pal data
+                MOVE    STR_LS_PAL_LB, R9
+                MOVE    R3, R10
+                RSUB    _FMS_SP_F_OR_B, 1
 
-                MOVE    @R8, R8                 ; output amount of changed..      
-                MOVE    INPUTSCRATCH, R9        ; palette entries
-                RSUB    WORD2HEXSTR, 1
-                MOVE    R9, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_NEWLINE, R8
-                RSUB    UART_PUTS, 1
+                ; restore SP
+                ADD     R0, SP
+                ADD     R2, SP
 
-                MOVE    @R1++, R3               ; R3: amount of changes
-                CMP     0, R3                   ; are there any pal. changes?
-                RBRA    _FM_S_FONT, Z           ; no: go on with font
-
-                MOVE    _FM_ELMID, R8           ; output palette data
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_PAL_LF, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_SPACE3, R8
-                RSUB    UART_PUTS, 1
-_FM_S_PAL_LOOP  MOVE    STR_LS_DW, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_SPACE, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_HEX_PREF, R8
-                RSUB    UART_PUTS, 1
-                MOVE    @R1++, R8               ; palette index
-                MOVE    INPUTSCRATCH, R9
-                RSUB    WORD2HEXSTR, 1
-                MOVE    R9, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_COMMASPC, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_HEX_PREF, R8
-                RSUB    UART_PUTS, 1
-                MOVE    @R1++, R8               ; 15-bit palette color data
-                RSUB    WORD2HEXSTR, 1
-                MOVE    R9, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_NEWLINE, R8
-                RSUB    UART_PUTS, 1
-                SUB     1, R3
-                RBRA    _FM_S_FONT, Z           ; no more palette data
-                MOVE    _FM_ELMID, R8           ; use spaces to align:
-                SYSCALL(strlen, 1)              ; len of element id plus
-                ADD     LEN_LS_PAL_COL, R9      ; fixed len
-                MOVE    R9, R8
-                RSUB    _FM_SPACES, 1
-                RBRA    _FM_S_PAL_LOOP, 1
-
-_FM_S_FONT      ADD     R0, SP                  ; restore SP
-
-                ; TODO: do another before/after stack check
+                ; ------------------------------------------------------------
+                ; Output font data
+                ; ------------------------------------------------------------
 
                 HALT
+
+                ; TODO: do another before/after stack check also checking:
+                ; 1 more more at both: fg and bg
+                ; 1/0 and 0/1 combination at fg/bg
+
                 SYSCALL(leave, 1)
-                ; not called via RSUB, so do an RBRA to return to main!
+                RET
 
-_FM_ELMID       .BLOCK 21
-_FM_ELMID_N     .EQU 21
-
+; ----------------------------------------------------------------------------
+; Helper functions for FILE_MENU
+; ----------------------------------------------------------------------------
 
 ; Output amount of spaces given in R8 to UART
 _FM_SPACES      INCRB
@@ -1546,8 +1540,81 @@ _FM_SPACES_RET  MOVE    R1, R8
                 DECRB
                 RET
 
+; Output palette data
+; R8 = string ptr to number of elements (fg or bg)
+; R9 = string ptr to data block (fg or bg)
+; R10 = ptr to data structure that contains the to-be-output palette data
+_FMS_SP_F_OR_B  INCRB   
+                MOVE    R8, R0                  ; R0 = string ptr # of elmnts
+                MOVE    R9, R1                  ; R1 = string ptr to dta block
+                MOVE    R10, R2                 ; R2 = ptr to data records
+
+                MOVE    _FM_ELMID, R8           ; output palette metadata
+                RSUB    UART_PUTS, 1
+                MOVE    R0, R8                  ; R0 = string ptr # of elmnts
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_SPACE2, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_EQU, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_SPACE, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_HEX_PREF, R8
+                RSUB    UART_PUTS, 1
+
+                MOVE    @R2, R8                 ; output amount of changed..      
+                MOVE    INPUTSCRATCH, R9        ; palette entries
+                RSUB    WORD2HEXSTR, 1
+                MOVE    R9, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_NEWLINE, R8
+                RSUB    UART_PUTS, 1
+
+                MOVE    @R2++, R3               ; R3: loop var: amount of chgs
+                CMP     0, R3                   ; are there any pal. changes?
+                RBRA    _FMS_SPFOB_RET, Z       ; no: return
+
+                MOVE    _FM_ELMID, R8           ; output palette data
+                RSUB    UART_PUTS, 1
+                MOVE    R1, R8                  ; R1 = string ptr to dta block
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_SPACE3, R8
+                RSUB    UART_PUTS, 1
+_FM_S_PAL_LOOP  MOVE    STR_LS_DW, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_SPACE, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_HEX_PREF, R8
+                RSUB    UART_PUTS, 1
+                MOVE    @R2++, R8               ; palette index
+                MOVE    INPUTSCRATCH, R9
+                RSUB    WORD2HEXSTR, 1
+                MOVE    R9, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_COMMASPC, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_HEX_PREF, R8
+                RSUB    UART_PUTS, 1
+                MOVE    @R2++, R8               ; 15-bit palette color data
+                RSUB    WORD2HEXSTR, 1
+                MOVE    R9, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_NEWLINE, R8
+                RSUB    UART_PUTS, 1
+                SUB     1, R3                   ; R3: loop var: amount of chgs
+                RBRA    _FMS_SPFOB_RET, Z       ; no more palette data
+                MOVE    _FM_ELMID, R8           ; use spaces to align:
+                SYSCALL(strlen, 1)              ; len of element id plus
+                ADD     LEN_LS_PAL_COL, R9      ; fixed len
+                MOVE    R9, R8
+                RSUB    _FM_SPACES, 1
+                RBRA    _FM_S_PAL_LOOP, 1
+
+_FMS_SPFOB_RET  DECRB
+                RET
+
 ; Check, which foreground or background palette entries changed in comparison
-; to the default palette. Return a pointer in R8 to a record set on the stack
+; to the default palette. Return a pointer to a record set on the stack
 ; that is having the following structure:
 ; <amount of changed palette colors>
 ; <palette index 1><color data for index 1>
@@ -1571,13 +1638,16 @@ _FM_GCP_START   MOVE    33, R9                  ; (palsize 16 * 2 values)
                                                 ; +1: size of change amount
                 SUB     R9, SP
                 ADD     1, R9                   ; +1: size of return address
+                                                ; because we are not returning
+                                                ; from here using RET but by
+                                                ; using our own "manual" way
                 MOVE    SP, R8
                 MOVE    R8, R0                  ; R0 = data record pointer
                 ADD     1, R0                   ; leave space for # of changes
 
                 MOVE    VGA$PALETTE_ADDR, R1
                 MOVE    VGA$PALETTE_DATA, R2
-                XOR     R10, R3                 ; R10 = start idx std pal
+                MOVE     R10, R3                ; R10 = start idx std pal
                 MOVE    R11, R4                 ; R11 = start idx custom pal
                 XOR     R7, R7                  ; R7 = pal changes amount
 
