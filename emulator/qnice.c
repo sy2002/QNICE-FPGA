@@ -1500,6 +1500,8 @@ int main_loop(char **argv) {
       else if (!strcmp(token, "DUMP")) {
         start = str2int(tokenize(NULL, delimiters));
         stop  = str2int(tokenize(NULL, delimiters));
+        if (!stop)
+            stop = start + 1;
         *scratch = (char) 0;
         for (i = start; ; i++) {
           if (!((i - start) % 8)) { /* New row */
@@ -1636,8 +1638,8 @@ CB                             Clear Breakpoint\n\
 DEBUG                          Toggle debug mode (for development only)\n\
 DETACH                         Detach a disk image file\n\
 DIS  <START>, <STOP>           Disassemble a memory region\n\
-DUMP <START>, <STOP>           Dump a memory area, START and STOP can be\n\
-                               hexadecimal or plain decimal\n\
+DUMP <START>[, <STOP>]         Dump a memory area, START and STOP can be plain decimal\n\
+                               or hexadecimal. Show 8 words, if STOP is omitted.\n\
 LOAD <FILENAME>                Loads a binary file into main memory\n");
 #if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
         printf("\
