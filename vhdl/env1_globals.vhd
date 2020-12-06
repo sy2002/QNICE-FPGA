@@ -49,7 +49,7 @@ constant VGA_RAM_SIZE          : natural  := 64000;
 constant UART_FIFO_SIZE        : natural  := 32; -- size of the UART's FIFO buffer in bytes
 constant UART_BAUDRATE_DEFAULT : natural  := 115200;  -- Set upon reset when switch(3) = OFF
 constant UART_BAUDRATE_FAST    : natural  := 1000000; -- Set upon reset when switch(3) = ON
-constant UART_BAUDRATE_MAX     : natural  := SYSTEM_SPEED/16; -- Set upon reset when switch(3) = ON
+constant UART_BAUDRATE_MAX     : natural  := SYSTEM_SPEED/16; -- Maximum baudrate that the system can handle
 
 -- Amount of CPU cycles, that the reset signal shall be active
 constant RESET_DURATION        : natural  := 16;
