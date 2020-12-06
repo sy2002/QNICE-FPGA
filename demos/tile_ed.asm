@@ -536,10 +536,12 @@ STR_LS_PAL_LF   .ASCII_W "_PAL_F"
 STR_LS_PAL_LBN  .ASCII_W "_PAL_BN"
 STR_LS_PAL_LB   .ASCII_W "_PAL_B"
 STR_LS_FONT     .ASCII_W "FONT"
+STR_LS_FONT_LN  .ASCII_W "_FONT_N"
+STR_LS_FONT_L   .ASCII_W "_FONT_"
 STR_LS_TILE     .ASCII_W "TILE"
 STR_LS_HEX_PREF .ASCII_W "0x"
-STR_LS_EQU      .ASCII_W ".EQU"
-STR_LS_DW       .ASCII_W ".DW"
+STR_LS_EQU      .ASCII_W ".EQU "
+STR_LS_DW       .ASCII_W ".DW "
 STR_LS_E_ILLID  .ASCII_W "Illegal element identifier: Use [A..Z], [0..9], _ <Enter to continue>"
 
 HEX_DIGITS      .ASCII_P "0123456789ABCDEF"
@@ -1445,10 +1447,6 @@ _FM_INP_IDLEGAL RSUB    UART_PUTS, 1            ; output element id
                 RSUB    UART_PUTS, 1
                 MOVE    STR_LS_START0, R8
                 RSUB    UART_PUTS, 1
-                MOVE    STR_LS_CMT, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_NEWLINE, R8
-                RSUB    UART_PUTS, 1
 
                 ; ------------------------------------------------------------
                 ; Output palette data
@@ -1473,27 +1471,12 @@ _FM_INP_IDLEGAL RSUB    UART_PUTS, 1            ; output element id
                 RBRA    _FMS_SAVEPAL, !Z        ; # of fg changes is not 0
                 CMP     0, @R3
                 RBRA    _FMS_SAVEPAL, !Z        ; # of bg changes is not 0
-                ADD     R0, SP                  ; if both are 0: restore the..
-                ADD     R2, SP                  ; .. SP and return
-                RET
 
-_FMS_SAVEPAL    MOVE    STR_LS_START1, R8       ; output palette header
-                RSUB    UART_PUTS, 1
-                RSUB    _FM_CMTSPACE, 1
-                MOVE    _FM_ELMID, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_SPACE, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_PAL, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_NEWLINE, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_START1, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_CMT, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_NEWLINE, R8
-                RSUB    UART_PUTS, 1
+                ; if both 0: restore SP & continue with the font save routine
+                RBRA    _FMS_ENDSAVEPAL, 1      
+
+_FMS_SAVEPAL    MOVE    STR_LS_PAL, R8          ; output palette header
+                RSUB    _FMS_HEADER_OUT, 1
 
                 MOVE    STR_LS_PAL_LFN, R8      ; save foreground pal data
                 MOVE    STR_LS_PAL_LF, R9
@@ -1506,25 +1489,95 @@ _FMS_SAVEPAL    MOVE    STR_LS_START1, R8       ; output palette header
                 RSUB    _FMS_SP_F_OR_B, 1
 
                 ; restore SP
-                ADD     R0, SP
+_FMS_ENDSAVEPAL ADD     R0, SP
                 ADD     R2, SP
 
                 ; ------------------------------------------------------------
                 ; Output font data
                 ; ------------------------------------------------------------
 
-                HALT
+                ; put font changes on the stack
+                RSUB    _FM_GETCHGFONT, 1       ; (changes R12)
+                MOVE    R9, R0                  ; R0: used to restore the SP
+                MOVE    R8, R1                  ; R1: start address of info
+                                                ; record about font changes
+                CMP     0, @R1
+                RBRA    _FMS_SAVEFONT, !Z       ; # of font changes is not 0
+                ADD     R0, SP                  ; else restore SP and leave
+                RET
 
-                ; TODO: do another before/after stack check also checking:
-                ; 1 more more at both: fg and bg
-                ; 1/0 and 0/1 combination at fg/bg
+_FMS_SAVEFONT   MOVE    @R1++, R7               ; R7 = # of changed chars
+                MOVE    STR_LS_FONT, R8         ; output font header
+                RSUB    _FMS_HEADER_OUT, 1
+                MOVE    STR_LS_FONT_LN, R8      ; output font metadata
+                MOVE    R7, R9
+                RSUB    _FMS_META_OUT, 1
+
+                MOVE    VGA$FONT_ADDR, R2
+                MOVE    VGA$FONT_DATA, R3
+
+_FMS_S_F_LOOP   MOVE    @R1++, R4               ; R4: index of changed char
+                MOVE    R4, R8
+                MOVE    12, R9                  ; 12 words per char
+                SYSCALL(mulu, 1)                
+                ADD     VGA$FONT_OFFS_USER, R10 ; R10: address of changed char
+
+                ; output the label and ".DW"
+                MOVE    _FM_ELMID, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_FONT_L, R8
+                RSUB    UART_PUTS, 1
+                MOVE    R4, R8                  ; R4: index of changed char
+                MOVE    INPUTSCRATCH, R9
+                RSUB    WORD2HEXSTR, 1
+                ADD     2, R9                   ; only last 2 nibbles
+                MOVE    R9, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_SPACE, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_DW, R8
+                RSUB    UART_PUTS, 1
+
+                ; output the 12 words of the changed char
+                XOR     R5, R5                  ; R5: loop counter
+_FMS_S_F_LOOP2  MOVE    R10, @R2                ; read changed word ...
+                MOVE    @R3, R8                 ; ... into R8 so that it ...
+                RSUB    _FMS_HEX_OUT, 1         ; ... be output as hex
+                ADD     1, R10                  ; next address inside this chr
+                ADD     1, R5
+                CMP     12, R5                  ; done?
+                RBRA    _FMS_S_F_CONT, Z        ; yes
+                MOVE    STR_LS_COMMASPC, R8     ; add a ", "
+                RSUB    UART_PUTS, 1
+                RBRA    _FMS_S_F_LOOP2, 1       ; next word within this char
+
+                ; next changed char, if any
+_FMS_S_F_CONT   MOVE    STR_LS_NEWLINE, R8
+                RSUB    UART_PUTS, 1
+                SUB     1, R7
+                RBRA    _FMS_S_F_LOOP, !Z
+
+                ; restore SP
+                ADD     R0, SP
+                HALT
 
                 SYSCALL(leave, 1)
                 RET
 
 ; ----------------------------------------------------------------------------
-; Helper functions for FILE_MENU
+; Output helper functions for the SAVE function in FILE_MENU
 ; ----------------------------------------------------------------------------
+
+; Output a comment and a space
+_FM_CMTSPACE    INCRB
+                MOVE    R8, R0
+                MOVE    STR_LS_CMT, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_SPACE, R8
+                RSUB    UART_PUTS, 1
+                MOVE    R0, R8
+                DECRB
+                RET
 
 ; Output amount of spaces given in R8 to UART
 _FM_SPACES      INCRB
@@ -1540,6 +1593,149 @@ _FM_SPACES_RET  MOVE    R1, R8
                 DECRB
                 RET
 
+; Output "0x" and then the value given in R8 in hexadecimal
+_FMS_HEX_OUT    INCRB
+                MOVE    R8, R0
+                MOVE    STR_LS_HEX_PREF, R8
+                RSUB    UART_PUTS, 1
+                MOVE    R0, R8
+                MOVE    INPUTSCRATCH, R9
+                RSUB    WORD2HEXSTR, 1
+                MOVE    R9, R8
+                RSUB    UART_PUTS, 1
+                DECRB
+                RET
+
+; Output the header for the entity given by the string pointer in R8
+_FMS_HEADER_OUT INCRB
+                MOVE    R8, R0
+                MOVE    STR_LS_CMT, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_NEWLINE, R8
+                RSUB    UART_PUTS, 1                
+                MOVE    STR_LS_START1, R8
+                RSUB    UART_PUTS, 1
+                RSUB    _FM_CMTSPACE, 1
+                MOVE    _FM_ELMID, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_SPACE, R8
+                RSUB    UART_PUTS, 1
+                MOVE    R0, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_NEWLINE, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_START1, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_CMT, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_NEWLINE, R8
+                RSUB    UART_PUTS, 1
+                DECRB
+                RET
+
+; Output the label, the .EQU and the 0x prefix for the # of something;
+; then convert R9 to hex and output it, too
+; R8: String pointer to "something" 
+; R9: The actual amount to be converted to hex and to be output
+_FMS_META_OUT   INCRB
+                MOVE    R8, R0
+                MOVE    _FM_ELMID, R8           
+                RSUB    UART_PUTS, 1
+                MOVE    R0, R8                  
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_SPACE2, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_EQU, R8
+                RSUB    UART_PUTS, 1
+                MOVE    R9, R8
+                RSUB    _FMS_HEX_OUT, 1
+                MOVE    STR_LS_NEWLINE, R8
+                RSUB    UART_PUTS, 1
+                DECRB
+                RET
+
+; ----------------------------------------------------------------------------
+; Data output helper function for the SAVE function in FILE_MENU
+; ----------------------------------------------------------------------------
+
+; Check, which characters of the font changed in comparison to the default
+; font. Return a pointer to a record set on the stack that is having the
+; following structure:
+; <amount of changed characters>
+; <changed character index 0>
+; <... ditto 1 .. n ...>
+;   R8: pointer to record set on the stack
+;   R9: amount to be added to the stack for restoring it
+_FM_GETCHGFONT  INCRB
+
+                MOVE    257, R9                 ; up to 256 index
+                                                ; +1: size of change amount
+                SUB     R9, SP                  ; reserve space on stack
+                ADD     1, R9                   ; +1: size of return address
+                                                ; because we are not returning
+                                                ; from here using RET but by
+                                                ; using our own "manual" way
+                MOVE    SP, R8
+                MOVE    R8, R0                  ; R0 = data record pointer
+                ADD     1, R0                   ; leave space for # of changes
+
+                MOVE    VGA$FONT_ADDR, R1
+                MOVE    VGA$FONT_DATA, R2
+                XOR     R3, R3                  ; R3 = start idx system font
+                MOVE    VGA$FONT_OFFS_USER, R4  ; R4 = start idx custom font
+                XOR     R7, R7                  ; R7 = font changes amount
+                MOVE    3072, R12               ; R12 = amount of words to chk
+
+_FM_GCF_LOOP    MOVE    R3, @R1                 ; addr of std value of font
+                MOVE    @R2, R5                 ; R5 = std. val at index R3
+                MOVE    R4, @R1                 ; addr of custom val. of font
+                MOVE    @R2, R6                 ; R6 = custom val. at idx R4
+
+                CMP     R5, R6                  ; changed font value?
+                RBRA    _FM_GCF_NEXT, Z         ; no: next value
+
+                ADD     1, R7                   ; increase amount of changes
+
+                ; we need to find out, which character index the current
+                ; data chunk refers to by dividing the current address of the
+                ; standard value off the font by 12. And then we need to skip
+                ; the rest of the current data of the char by calculating:
+                ; new_address = current_address + (12 - (address % 12))
+                ; We skip, because a single changed word within a character
+                ; is enough so that the whole character needs to be stored.
+                MOVE    R8, @--SP
+                MOVE    R9, @--SP
+                MOVE    R10, @--SP
+                MOVE    R11, @--SP
+
+                MOVE    R3, R8                  ; R10 = R3 / 12
+                MOVE    12, R9                  ; R11 = R3 % 12
+                SYSCALL(divu, 1)
+                MOVE    R10, @R0++              ; store index of changed char
+                MOVE    12, R10                 ; R10 = 12 - (R3 % 12)
+                SUB     R11, R10
+                ADD     R10, R3                 ; next index: standard font
+                ADD     R10, R4                 ; next index: custom font
+
+                MOVE    @SP++, R11
+                MOVE    @SP++, R10
+                MOVE    @SP++, R9
+                MOVE    @SP++, R8
+                RBRA    _FM_GCF_NEXT2, 1
+
+_FM_GCF_NEXT    ADD     1, R3                   ; next index: standard font
+                ADD     1, R4                   ; next index: custom font
+_FM_GCF_NEXT2   CMP     R12, R3                 ; font done?
+                RBRA    _FM_GCF_LOOP, !Z        ; no: loop
+
+                MOVE    R7, @R8                 ; store # of pal changes
+                DECRB
+
+                MOVE    R8, R12                 ; find return address on stack                 
+                ADD     R9, R12
+                SUB     1, R12
+                ABRA    @R12, 1                 ; perform manual RET
+
 ; Output palette data
 ; R8 = string ptr to number of elements (fg or bg)
 ; R9 = string ptr to data block (fg or bg)
@@ -1549,26 +1745,9 @@ _FMS_SP_F_OR_B  INCRB
                 MOVE    R9, R1                  ; R1 = string ptr to dta block
                 MOVE    R10, R2                 ; R2 = ptr to data records
 
-                MOVE    _FM_ELMID, R8           ; output palette metadata
-                RSUB    UART_PUTS, 1
                 MOVE    R0, R8                  ; R0 = string ptr # of elmnts
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_SPACE2, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_EQU, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_SPACE, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_HEX_PREF, R8
-                RSUB    UART_PUTS, 1
-
-                MOVE    @R2, R8                 ; output amount of changed..      
-                MOVE    INPUTSCRATCH, R9        ; palette entries
-                RSUB    WORD2HEXSTR, 1
-                MOVE    R9, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_NEWLINE, R8
-                RSUB    UART_PUTS, 1
+                MOVE    @R2, R9                 ; @R2 = # changed pal entries
+                RSUB    _FMS_META_OUT, 1        ; output palette metadata
 
                 MOVE    @R2++, R3               ; R3: loop var: amount of chgs
                 CMP     0, R3                   ; are there any pal. changes?
@@ -1582,23 +1761,12 @@ _FMS_SP_F_OR_B  INCRB
                 RSUB    UART_PUTS, 1
 _FM_S_PAL_LOOP  MOVE    STR_LS_DW, R8
                 RSUB    UART_PUTS, 1
-                MOVE    STR_LS_SPACE, R8
+                MOVE    @R2++, R8               ; output palette index
+                RSUB    _FMS_HEX_OUT, 1        
+                MOVE    STR_LS_COMMASPC, R8     ; add ", "
                 RSUB    UART_PUTS, 1
-                MOVE    STR_LS_HEX_PREF, R8
-                RSUB    UART_PUTS, 1
-                MOVE    @R2++, R8               ; palette index
-                MOVE    INPUTSCRATCH, R9
-                RSUB    WORD2HEXSTR, 1
-                MOVE    R9, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_COMMASPC, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_HEX_PREF, R8
-                RSUB    UART_PUTS, 1
-                MOVE    @R2++, R8               ; 15-bit palette color data
-                RSUB    WORD2HEXSTR, 1
-                MOVE    R9, R8
-                RSUB    UART_PUTS, 1
+                MOVE    @R2++, R8               ; output 15-bit pal col data
+                RSUB    _FMS_HEX_OUT, 1
                 MOVE    STR_LS_NEWLINE, R8
                 RSUB    UART_PUTS, 1
                 SUB     1, R3                   ; R3: loop var: amount of chgs
@@ -1617,8 +1785,8 @@ _FMS_SPFOB_RET  DECRB
 ; to the default palette. Return a pointer to a record set on the stack
 ; that is having the following structure:
 ; <amount of changed palette colors>
-; <palette index 1><color data for index 1>
-; <... ditto 2 .. n ...>
+; <palette index 0><color data for index 0>
+; <... ditto 1 .. n ...>
 ;   R8: pointer to record set on the stack
 ;   R9: amount to be added to the stack for restoring it
 ;  R10: toggle switch: 0 = foreground palette; 1 = background palette
@@ -1647,7 +1815,7 @@ _FM_GCP_START   MOVE    33, R9                  ; (palsize 16 * 2 values)
 
                 MOVE    VGA$PALETTE_ADDR, R1
                 MOVE    VGA$PALETTE_DATA, R2
-                MOVE     R10, R3                ; R10 = start idx std pal
+                MOVE    R10, R3                 ; R10 = start idx std pal
                 MOVE    R11, R4                 ; R11 = start idx custom pal
                 XOR     R7, R7                  ; R7 = pal changes amount
 
@@ -1674,49 +1842,9 @@ _FM_GCP_NEXT    ADD     1, R3                   ; next index: standard pal
                 SUB     1, R12
                 ABRA    @R12, 1                 ; perform manual RET
 
-; Check if the identifier is legal, i.e. at least one legal character long
-; Legal characters are: characters, numbers, underscore
-;   R8: pointer to identifier
-;   Carry flag: 0 = illegal, 1 = legal
-_FM_CHKID       INCRB
-                MOVE    R8, R0                  ; save R8
-                MOVE    R0, R1
-                MOVE    R9, R2
-                SYSCALL(strlen, 1)              ; 0 characters are illegal
-                CMP     0, R9
-                RBRA    _FM_CHKID_ILL, Z
-_FM_CHKID_LOOP  MOVE    @R1++, R8
-                RBRA    _FM_CHKID_LEGAL, Z      ; end of string reached                
-                MOVE    'A', R9                 ; check [A..Z]
-                MOVE    'Z', R10
-                ADD     1, R10
-                SYSCALL(in_range_u, 1)
-                RBRA    _FM_CHKID_LOOP, C
-                MOVE    '0', R9                 ; check [0..9]
-                MOVE    '9', R10
-                ADD     1, R10
-                SYSCALL(in_range_u, 1)
-                RBRA    _FM_CHKID_LOOP, C
-                CMP     '_', R8                 ; check underscore _
-                RBRA    _FM_CHKID_LOOP, Z
-_FM_CHKID_ILL   AND     0xFFFB, SR              ; illegal char: clear carry ..
-                RBRA    _FM_CHKID_RET, 1        ; .. and return
-_FM_CHKID_LEGAL OR      4, SR                   ; everything legal: set carry
-_FM_CHKID_RET   MOVE    R0, R8                  ; restore R8
-                MOVE    R2, R9                  ; restore R9
-                DECRB
-                RET
-
-; Output a comment and a space
-_FM_CMTSPACE    INCRB
-                MOVE    R8, R0
-                MOVE    STR_LS_CMT, R8
-                RSUB    UART_PUTS, 1
-                MOVE    STR_LS_SPACE, R8
-                RSUB    UART_PUTS, 1
-                MOVE    R0, R8
-                DECRB
-                RET
+; ----------------------------------------------------------------------------
+; User-interface helper functions for FILE_MENU
+; ----------------------------------------------------------------------------
 
 ; Print a string to the last line of the screen
 ;   R8: pointer to string
@@ -1777,7 +1905,40 @@ _FM_IL_NBS      CMP     R4, R2                  ; buffer full?
                 RBRA    _FM_INPUT_LOOP, 1
 _FM_INPUT_RET   MOVE    0, @R1                  ; add zero terminator
                 SYSCALL(leave, 1)
-                RET                
+                RET
+
+; Check if the identifier is legal, i.e. at least one legal character long
+; Legal characters are: characters, numbers, underscore
+;   R8: pointer to identifier
+;   Carry flag: 0 = illegal, 1 = legal
+_FM_CHKID       INCRB
+                MOVE    R8, R0                  ; save R8
+                MOVE    R0, R1
+                MOVE    R9, R2
+                SYSCALL(strlen, 1)              ; 0 characters are illegal
+                CMP     0, R9
+                RBRA    _FM_CHKID_ILL, Z
+_FM_CHKID_LOOP  MOVE    @R1++, R8
+                RBRA    _FM_CHKID_LEGAL, Z      ; end of string reached                
+                MOVE    'A', R9                 ; check [A..Z]
+                MOVE    'Z', R10
+                ADD     1, R10
+                SYSCALL(in_range_u, 1)
+                RBRA    _FM_CHKID_LOOP, C
+                MOVE    '0', R9                 ; check [0..9]
+                MOVE    '9', R10
+                ADD     1, R10
+                SYSCALL(in_range_u, 1)
+                RBRA    _FM_CHKID_LOOP, C
+                CMP     '_', R8                 ; check underscore _
+                RBRA    _FM_CHKID_LOOP, Z
+_FM_CHKID_ILL   AND     0xFFFB, SR              ; illegal char: clear carry ..
+                RBRA    _FM_CHKID_RET, 1        ; .. and return
+_FM_CHKID_LEGAL OR      4, SR                   ; everything legal: set carry
+_FM_CHKID_RET   MOVE    R0, R8                  ; restore R8
+                MOVE    R2, R9                  ; restore R9
+                DECRB
+                RET
 
 ; ****************************************************************************
 ; PRINT_24BIT_RGB
