@@ -124,7 +124,7 @@ end component;
 
 -- connectivity for the MEGA65 hardware keyboard controller
 signal matrix_col          : std_logic_vector(7 downto 0);
-signal matrix_col_idx      : integer range 0 to 8 := 0;
+signal matrix_col_idx      : integer range 0 to 9 := 0;
 signal key_delete          : std_logic;
 signal key_return          : std_logic;
 signal key_fast            : std_logic;
