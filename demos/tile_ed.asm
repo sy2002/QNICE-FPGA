@@ -27,7 +27,7 @@
 ; versions.
 ;
 ; done by sy2002 in January 2016
-; enhanced by sy2002 in September to December 2020 to support character
+; enhanced by sy2002 in September 2020 to January 2021 to support character
 ; editing for font graphics and palette editing and color
 
 #include "../dist_kit/sysdef.asm"
@@ -539,6 +539,10 @@ STR_LS_FONT     .ASCII_W "FONT"
 STR_LS_FONT_LN  .ASCII_W "_FONT_N"
 STR_LS_FONT_L   .ASCII_W "_FONT_"
 STR_LS_TILE     .ASCII_W "TILE"
+STR_LS_TILE_DX  .ASCII_W "_TILE_DX"
+STR_LS_TILE_DY  .ASCII_W "_TILE_DY"
+STR_LS_TILE_DAT .ASCII_W "_TILE"
+LEN_LS_TILE_DAT .EQU 5                  ; amount of spaces to be added after STR_LS_TILE_DAT
 STR_LS_HEX_PREF .ASCII_W "0x"
 STR_LS_EQU      .ASCII_W ".EQU "
 STR_LS_DW       .ASCII_W ".DW "
@@ -1502,11 +1506,9 @@ _FMS_ENDSAVEPAL ADD     R0, SP
                 MOVE    R8, R1                  ; R1: start address of info
                                                 ; record about font changes
                 CMP     0, @R1
-                RBRA    _FMS_SAVEFONT, !Z       ; # of font changes is not 0
-                ADD     R0, SP                  ; else restore SP and leave
-                RET
+                RBRA    _FMS_ENDSAVEFNT, Z      ; # of font changes is 0
 
-_FMS_SAVEFONT   MOVE    @R1++, R7               ; R7 = # of changed chars
+                MOVE    @R1++, R7               ; R7 = # of changed chars
                 MOVE    STR_LS_FONT, R8         ; output font header
                 RSUB    _FMS_HEADER_OUT, 1
                 MOVE    STR_LS_FONT_LN, R8      ; output font metadata
@@ -1558,7 +1560,37 @@ _FMS_S_F_CONT   MOVE    STR_LS_NEWLINE, R8
                 RBRA    _FMS_S_F_LOOP, !Z
 
                 ; restore SP
-                ADD     R0, SP
+_FMS_ENDSAVEFNT ADD     R0, SP
+
+                ; ------------------------------------------------------------
+                ; Output tile data
+                ; ------------------------------------------------------------
+
+                ; output metadata
+                MOVE    STR_LS_TILE, R8         ; output font header
+                RSUB    _FMS_HEADER_OUT, 1
+                MOVE    STR_LS_TILE_DX, R8
+                MOVE    TILE_DX, R9
+                MOVE    @R9, R9                 ; R9, R0 = amount of columns
+                MOVE    R9, R0
+                RSUB    _FMS_META_OUT, 1
+                MOVE    STR_LS_TILE_DY, R8
+                MOVE    TILE_DY, R9
+                MOVE    @R9, R9                 ; R9 = loopvar amount of rows
+                RSUB    _FMS_META_OUT, 1
+                MOVE    _FM_ELMID, R8           ; print elmt ID & tile keywrd
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_TILE_DAT, R8
+                RSUB    UART_PUTS, 1
+                MOVE    LEN_LS_TILE_DAT, R8
+                RSUB    _FM_SPACES, 1
+
+                ; output the tile
+                MOVE    STR_LS_DW, R8
+                RSUB    UART_PUTS, 1
+                MOVE    R0, R1                  ; R1 = loopvar columns
+                
+                                
                 HALT
 
                 SYSCALL(leave, 1)
