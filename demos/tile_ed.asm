@@ -120,6 +120,7 @@ LRU_INIT_LOOP   MOVE    0, @R0++
                 MOVE    FONT_ED_CY, R0
                 MOVE    CHAR_ED_Y, @R0
                 ADD     1, @R0
+                RSUB    CURSOR_ON, 1
 
                 ; set up the screen and calculate the *_WS_* variables
 TILE_ED_RESET   SYSCALL(vga_cls, 1)             ; clear screen
@@ -1576,7 +1577,8 @@ _FMS_ENDSAVEFNT ADD     R0, SP
                 RSUB    _FMS_META_OUT, 1
                 MOVE    STR_LS_TILE_DY, R8
                 MOVE    TILE_DY, R9
-                MOVE    @R9, R9                 ; R9 = loopvar amount of rows
+                MOVE    @R9, R4                 ; R4 = loopvar amount of rows
+                MOVE    R4, R9
                 RSUB    _FMS_META_OUT, 1
                 MOVE    _FM_ELMID, R8           ; print elmt ID & tile keywrd
                 RSUB    UART_PUTS, 1
@@ -1585,14 +1587,48 @@ _FMS_ENDSAVEFNT ADD     R0, SP
                 MOVE    LEN_LS_TILE_DAT, R8
                 RSUB    _FM_SPACES, 1
 
+                ; we use the video RAM to store the tile, so we need to use
+                ; the cursor and "read-under-the-cursor" VGA mechanisms
+                RSUB    CURSOR_OFF, 1
+                MOVE    VGA$CR_X, R5
+                MOVE    VGA$CR_Y, R6
+                MOVE    VGA$CHAR, R7
+                MOVE    TILE_WS_Y, R2
+                MOVE    @R2, @R6
+
                 ; output the tile
-                MOVE    STR_LS_DW, R8
+_FMS_S_T_LOOP3  MOVE    STR_LS_DW, R8
                 RSUB    UART_PUTS, 1
                 MOVE    R0, R1                  ; R1 = loopvar columns
-                
-                                
-                HALT
+                MOVE    TILE_WS_X, R2           ; start reading at the right..
+                MOVE    @R2, @R5                ; .. x-position on the screen
+_FMS_S_T_LOOP1  MOVE    @R7, R8                 ; read tile data
+                RSUB    _FMS_HEX_OUT, 1         ; output it as 0x0000 hex
+                ADD     1, @R5                  ; next column on screen
+                SUB     1, R1                   ; one less column to process
+                RBRA    _FMS_S_T_LOOP2, Z       ; done with this column?
+                MOVE    STR_LS_COMMASPC, R8     ; no: add a comma and a space
+                RSUB    UART_PUTS, 1            ; output it
+                RBRA    _FMS_S_T_LOOP1, 1       ; and go to the next column
+_FMS_S_T_LOOP2  MOVE    STR_LS_NEWLINE, R8      ; next column: output a newln
+                RSUB    UART_PUTS, 1
+                SUB     1, R4                   ; one less row to process
+                RBRA    _FMS_S_T_DONE, Z        ; done with all rows?
+                ADD     1, @R6                  ; np: inc y-position on screen
+                MOVE    _FM_ELMID, R8           ; use spaces to align the ..
+                SYSCALL(strlen, 1)              ; .. next .DW statement ..
+                MOVE    R9, R10                 ; .. according to the ..
+                MOVE    STR_LS_TILE_DAT, R8     ; .. variable length of the ..
+                SYSCALL(strlen, 1)              ; .. element id plus the ..
+                ADD     R9, R10                 ; .. static length of the ..
+                ADD     LEN_LS_TILE_DAT, R10    ; .. other strings
+                MOVE    R10, R8
+                RSUB    _FM_SPACES, 1
+                RBRA    _FMS_S_T_LOOP3, 1
 
+_FMS_S_T_DONE   HALT ; TODO: Stack check at the return point
+
+                RSUB    CURSOR_ON, 1
                 SYSCALL(leave, 1)
                 RET
 
