@@ -500,6 +500,15 @@ STR_HELP_EDIT   .ASCII_P "0..9 and a..f: Hexadecimal input ENTER: Change value E
                 .ASCII_W "X  X     X  X                    XXXXX               XXX"
 STR_MENU_FILE   .ASCII_P "F1: LOAD via serial input   F3: SAVE via serial output   F5: EXIT   F7: Back    `"
                 .ASCII_W "XX                          XX                           XX         XX"
+STR_HELP_L_SCR  .ASCII_P "Transmit TileEd data file via serial input now. CTRL-E on serial terminates.    `"
+                .ASCII_W "                                                XXXXXX"
+STR_HELP_L_UART .ASCII_W "Transmit TileEd data file via serial input now. CTRL-E on serial terminates.\n"
+
+STR_ERR_L_SCR   .ASCII_P "LOAD ERROR (ESC to continue):                                                   `"
+                .ASCII_W "            XXX"
+STR_ERR_LSCR_X  .EQU 30                 ; x-position of error string after STR_ERR_L_SCR
+STR_ERR_L_UART  .ASCII_W "LOAD ERROR: "
+STR_ERR_LINE    .ASCII_W "Line too long"
 
 STR_CLR_LEFT    .ASCII_W "                                   "
 STR_CLR_LINE    .ASCII_W "                                                                                "
@@ -1421,9 +1430,77 @@ _FM_ELMID_N     .EQU 21                         ; maximum length of element id
 
 ; ----------------------------------------------------------------------------
 ; Load data for FILE_MENU
+; Accepts CR, LF and CR/LF as line ending
 ; ----------------------------------------------------------------------------
 
-_FM_LOAD        RET
+_FM_LOAD        SYSCALL(enter, 1)                
+
+                ; display help/info text on screen as well as on UART
+                MOVE    STR_HELP_L_SCR, R8
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
+                MOVE    STR_HELP_L_UART, R8
+                RSUB    UART_PUTS, 1
+
+                XOR     R0, R0                  ; R0: # chars in current line
+                XOR     R1, R1                  ; R1: was last char a CR?
+_FM_LOAD_LOOP   RSUB    UART_GETCHAR, 1
+
+                CMP     KBD$CTRL_E, R8          ; end loading via CTRL+E
+                RBRA    _FM_LOAD_END, Z
+
+                ; read one line
+                ADD     1, R0
+                CMP     R0, SERIALBUFFER_N      ; R0>SERIAL* (line too long)?
+                RBRA    _FM_LL_1, !N            ; no: continue to read line
+                MOVE    STR_ERR_LINE, R8        ; yes: show error and quit
+                RSUB    _PRINT_ERROR, 1
+                RBRA    _FM_LOAD_END, 1
+                                
+_FM_LL_1        NOP
+
+                RBRA    _FM_LOAD_LOOP, 1
+
+_FM_LOAD_END    SYSCALL(leave, 1)
+                RET
+
+; ----------------------------------------------------------------------------
+; Helper functions for the LOAD function in FILE_MENU
+; ----------------------------------------------------------------------------
+
+; Output the error to UART and to the bottom line of the screen by
+; concatenating STR_ERR_L_* with the actual error message
+; Wait for ESC to be pressed on the PS2/USB keyboard
+; R8: Error message
+_PRINT_ERROR    INCRB
+                MOVE    R8, R0
+
+                ; print error message on screen
+                MOVE    STR_ERR_L_SCR, R8
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
+                MOVE    R0, R8                
+                MOVE    STR_ERR_LSCR_X, R9
+                RSUB    PRINT_STR_AT, 1
+
+                ; print error message on UART
+                MOVE    STR_ERR_L_UART, R8
+                RSUB    UART_PUTS, 1
+                MOVE    R0, R8
+                RSUB    UART_PUTS, 1
+                MOVE    STR_LS_NEWLINE, R8
+                RSUB    UART_PUTS, 1
+
+                ; wait for ESC on PS2/USB and then exit
+_P_ERR_WAIT     RSUB    KBD_GETCHAR, 1
+                CMP     KBD$ESC, R8
+                RBRA    _P_ERR_RET, Z
+                RBRA    _P_ERR_WAIT, 1
+
+_P_ERR_RET      DECRB
+                RET
 
 ; ----------------------------------------------------------------------------
 ; Save data for FILE_MENU
@@ -2215,6 +2292,22 @@ _KG2DGN_END     MOVE    R4, R8
                 RET
 
 ; ****************************************************************************
+; UART_GETCHAR
+;   Read a character from the UART blocking, no matter where STDIN points to.
+;   R8: character
+; ****************************************************************************
+
+UART_GETCHAR    INCRB
+                MOVE    IO$UART_SRA, R0         ; R0: status register address 
+                MOVE    IO$UART_RHRA, R1        ; R1: receiver reg. address
+_UART_GETC_L    MOVE    @R0, R2                 ; read status register
+                AND     0x0001, R2              ; only bit 0 is of interest
+                RBRA    _UART_GETC_L, Z         ; loop until char received
+                MOVE    @R1, R8                 ; get the character
+                DECRB
+                RET
+
+; ****************************************************************************
 ; UART_PUTS
 ;   Write a string to the UART, no matter where STDOUT points to.
 ;   R8: pointer to string
@@ -2463,7 +2556,7 @@ _PRINT_STR_INV2 ADD     1, R3
                 CMP     0, @R3
                 RBRA    _PRINT_STR_INV1, !Z
 
-_PRINT_STR_END  MOVE R4, R11
+_PRINT_STR_END  MOVE    R4, R11
                 DECRB
                 RET
 
