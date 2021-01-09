@@ -116,6 +116,8 @@ shr32!          RBRA    MTH$SHR32, 1
 srand!          RBRA    MTH$SRAND, 1
 rand!           RBRA    MTH$RAND, 1
 vga_getxy!      RBRA    VGA$GET_XY, 1
+strcpy!         RBRA    STR$CPY, 1
+strstr!         RBRA    STR$STRSTR, 1
 ;
 ;  The actual monitor code starts here:
 ;
