@@ -87,11 +87,13 @@ TILE_ED_HALT    MOVE    STR_NOSTART, R8
                 SYSCALL(puts, 1)
                 SYSCALL(exit, 1)
 
-                ; move initial tile size to the global variables storing them
-TILE_ED_START   MOVE    TILE_DX, R0
-                MOVE    TILE_DX_INIT, @R0
-                MOVE    TILE_DY, R0
+                ; initialize global variables
+TILE_ED_START   MOVE    TILE_DX, R0             ; move initial tile size to .. 
+                MOVE    TILE_DX_INIT, @R0       ; .. the global variables ..
+                MOVE    TILE_DY, R0             ; .. that are storing them
                 MOVE    TILE_DY_INIT, @R0
+                MOVE    LAST_CHR_WAS_CR, R0     ; init CR/LF detector
+                MOVE    0, @R0
 
                 ; copy font and palette to RAM and activate the RAM
                 MOVE    1, R8
@@ -509,6 +511,7 @@ STR_ERR_L_SCR   .ASCII_P "LOAD ERROR (ESC to continue):                         
 STR_ERR_LSCR_X  .EQU 30                 ; x-position of error string after STR_ERR_L_SCR
 STR_ERR_L_UART  .ASCII_W "LOAD ERROR: "
 STR_ERR_LINE    .ASCII_W "Line too long"
+STR_ERR_ILLEGAL .ASCII_W "Illegal file format"
 
 STR_CLR_LEFT    .ASCII_W "                                   "
 STR_CLR_LINE    .ASCII_W "                                                                                "
@@ -1443,24 +1446,82 @@ _FM_LOAD        SYSCALL(enter, 1)
                 MOVE    STR_HELP_L_UART, R8
                 RSUB    UART_PUTS, 1
 
-                XOR     R0, R0                  ; R0: # chars in current line
+_FM_LOAD_NEXTLN XOR     R0, R0                  ; R0: # chars in current line
                 XOR     R1, R1                  ; R1: was last char a CR?
-_FM_LOAD_LOOP   RSUB    UART_GETCHAR, 1
+                MOVE    SERIALBUFFER, R3        ; R3: line writing pointer
 
-                CMP     KBD$CTRL_E, R8          ; end loading via CTRL+E
+_FM_LOAD_LOOP   RSUB    UART_GETCHAR, 1         ; read char from UART
+                RSUB    UART_PUTCHAR, 1         ; mirror input on UART
+                
+                ; CR/LF support
+                CMP     LAST_CHR_WAS_CR, 1      ; last char was a CR?
+                RBRA    _FM_LL_1, !Z            ; no: go on
+                MOVE    LAST_CHR_WAS_CR, R2     ; yes: reset CR flag
+                MOVE    0, @R2
+                CMP     CHR$LF, R8              ; CR/LF?
+                RBRA    _FM_LOAD_LOOP, Z        ; yes: ignore LF, next char
+
+_FM_LL_1        CMP     KBD$CTRL_E, R8          ; end loading via CTRL+E
                 RBRA    _FM_LOAD_END, Z
 
                 ; read one line
                 ADD     1, R0
                 CMP     R0, SERIALBUFFER_N      ; R0>SERIAL* (line too long)?
-                RBRA    _FM_LL_1, !N            ; no: continue to read line
+                RBRA    _FM_LL_2, !N            ; no: continue to read line
                 MOVE    STR_ERR_LINE, R8        ; yes: show error and quit
                 RSUB    _PRINT_ERROR, 1
                 RBRA    _FM_LOAD_END, 1
-                                
-_FM_LL_1        NOP
+_FM_LL_2        CMP     CHR$CR, R8              ; line end via CR?
+                RBRA    _FM_LL_3, !Z            ; no: check for LF
+                MOVE    LAST_CHR_WAS_CR, R2     ; yes: set flag
+                MOVE    1, @R2
+                RBRA    _FM_LL_PROCESS, 1       ; begin processing line
+_FM_LL_3        CMP     CHR$LF, R8              ; line end via LF?
+                RBRA    _FM_LL_PROCESS, Z       ; yes: begin processing line
+                MOVE    R8, @R3++               ; no: store char in curr. line
+                RBRA    _FM_LOAD_LOOP, 1        ; next char
 
-                RBRA    _FM_LOAD_LOOP, 1
+                ; process the line:
+                ;    1. string length > 0?
+                ;    2. upstring
+                ;    3. remove leading and trailing spaces
+                ;    4. ignore everything after a comment: replace ; by 0
+                ;    5. did we replace at the very first character? ignore ln!
+_FM_LL_PROCESS  MOVE    0, @R3                  ; zero terminate line string
+                MOVE    SERIALBUFFER, R8
+                SYSCALL(str2upper, 1)
+_FM_LLP_LS      CMP     @R8, CHR$SPACE          ; leading space?
+                RBRA    _FM_LLP_TS, !Z          ; no: check for trailing
+                ADD     1, R8                   ; R8: adjusted beginning of ln
+                RBRA    _FM_LLP_LS, 1
+_FM_LLP_TS      SYSCALL(strlen, 1)              ; check or trailing spaces..
+                MOVE    R8, R0                  ; .. by crawling backwards
+                ADD     R9, R0
+_FM_LLP_TS2     CMP     @--R0, CHR$SPACE        ; trailing space?
+                RBRA    _FM_LLP_CC, !Z          ; no: check for comments
+                MOVE    0, @R0                  ; yes: terminate string and..
+                RBRA    _FM_LLP_TS2, 1          ; ..continue to look for more
+_FM_LLP_CC      MOVE    R8, R0                  ; R0: start of line
+                MOVE    0x003B, R8              ; search for ';'
+                MOVE    R0, R9                  ; search in current line
+                SYSCALL(strchr, 1)
+                CMP     0, R10                  ; did we find a ';'?
+                RBRA    _FM_LL_CHECK, Z         ; no: start checking line
+                MOVE    0, @R10                 ; yes: end string at ';'
+                CMP     R10, R0                 ; did we replace at the very..
+                RBRA    _FM_LOAD_NEXTLN, Z      ; ..first char? yes: ignore ln
+
+                ; when we arrive here, the line contains something
+                ; interessting; we can now check for three different tokens
+                ; that signal a certain type of data that follows the token: 
+                ; 1. STR_LS_PAL_LFN: palette data
+                ; 2. STR_LS_FONT_LN: font data
+                ; 3. STR_LS_TILE_DX: tile data
+_FM_LL_CHECK    MOVE    R0, R8                  ; check for palette data
+                MOVE    STR_LS_PAL_LFN, R9
+                SYSCALL(strstr, 1)
+                CMP     0, R10
+                RBRA    _FM_L_PAL, !Z
 
 _FM_LOAD_END    SYSCALL(leave, 1)
                 RET
@@ -1468,6 +1529,44 @@ _FM_LOAD_END    SYSCALL(leave, 1)
 ; ----------------------------------------------------------------------------
 ; Helper functions for the LOAD function in FILE_MENU
 ; ----------------------------------------------------------------------------
+
+; Load palette data
+; meant to return to the main function via RBRA
+_FM_L_PAL       RSUB    _FM_L_EQU, 1            ; extract # of FG pal changes
+                RBRA    _FM_L_PAL_1, !C         ; no error
+                MOVE    STR_ERR_ILLEGAL, R8     ; output error and end loading
+                RSUB    _PRINT_ERROR, 1
+                RBRA    _FM_LOAD_END, 1         ; no RET; we entered via RBRA
+
+_FM_L_PAL_1     MOVE    R9, R0                  ; R0 = # of FG pal changes
+                RBRA    _FM_L_PAL_2, Z          ; none: continue to BG pal
+
+
+_FM_L_PAL_2     HALT
+                
+                RBRA    _FM_LOAD_NEXTLN, 1      ; no RET; we entered via RBRA 
+
+
+; Seach for ".EQU 0x0000" style data in string, extract hex val and return it
+; R8: string
+; R9: return value
+; C-Flag = 1 means error
+_FM_L_EQU       INCRB
+                MOVE    R8, R0 
+                MOVE    STR_LS_EQU, R9          ; search for ".EQU "
+                SYSCALL(strstr, 1)
+                CMP     R10, 0                  ; not found? ..
+                RBRA    _FM_L_EQU_ERR, Z        ; .. then error
+
+                ADD     7, R10                  ; R10: first hex nibble
+                MOVE    R10, R8
+                RSUB    HEXSTR2WORD, 1
+                RBRA    _FM_L_EQU_RET, 1        ; carry is set by HEXSTR2WORD
+
+_FM_L_EQU_ERR   OR      0x0004, SR              ; Set carry bit means error
+_FM_L_EQU_RET   MOVE    R0, R8
+                DECRB
+                RET
 
 ; Output the error to UART and to the bottom line of the screen by
 ; concatenating STR_ERR_L_* with the actual error message
@@ -2174,6 +2273,43 @@ PRINT_2HEXNIBS  SYSCALL(enter, 1)
                 RET
 
 ; ****************************************************************************
+; HEXSTR2WORD
+;    Convert a 4 char all-caps hex string into a word
+;    R8: pointer to 4 char all-caps hex string
+;    R9: result
+;    C=0: no error  C=1: error
+; ****************************************************************************
+
+HEXSTR2WORD     INCRB
+
+                MOVE    R8, R7
+                XOR     R0, R0                  ; R0 adds up to the result
+                MOVE    12, R1                  ; amount of SHL
+                MOVE    R8, R2
+                MOVE    HEX_DIGITS, R9
+
+_HEXSTR2WORD_L  MOVE    @R8, R8
+                SYSCALL(strchr, 1)              ; determine numeric value of..
+                CMP     0, R10                  ; ..nibble
+                RBRA    _HEXSTR2WORD_E, Z       ; digit not found
+                SUB     R9, R10                 ; R10 = current nibble
+                AND     0xFFFD, SR              ; Clear X bit
+                SHL     R1, R10                 ; correct bit pos. of nibble
+                ADD     R10, R0                 ; R0 = R0 + current nibble
+                ADD     1, R2                   ; proceed to next nib
+                MOVE    R2, R8                
+                SUB     4, R1                   ; next nib has lower bit pos
+                RBRA    _HEXSTR2WORD_L, !N
+                MOVE    R0, R9                  ; R9 = return value
+                AND     0xFFFB, SR              ; clear carry bit = all OK
+                RBRA    _HEXSTR2WORD_R, 1
+
+_HEXSTR2WORD_E  OR      0x0004, SR              ; set carry bit = error
+_HEXSTR2WORD_R  MOVE    R7, R8
+                DECRB
+                RET
+
+; ****************************************************************************
 ; WORD2HEXSTR
 ;    Convert a word into its hexadecimal zero-terminated string representation
 ;    R8: word
@@ -2707,6 +2843,11 @@ TILE_WS_X       .BLOCK 1
 TILE_WS_Y       .BLOCK 1
 TILE_WS_X_MAX   .BLOCK 1
 TILE_WS_Y_MAX   .BLOCK 1
+
+; for supporting CR/LF while reading, we use a global flag that remembers
+; between function calls: was the last character that we read via serial in
+; a CR? If yes, ignore an LF that might follow directly after
+LAST_CHR_WAS_CR .BLOCK 1
 
 ; table to store the last recently used fg/bg color combination per character
 LRU_FGBG        .BLOCK 256
