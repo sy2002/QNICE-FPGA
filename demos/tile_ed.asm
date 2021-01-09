@@ -27,8 +27,10 @@
 ; versions.
 ;
 ; done by sy2002 in January 2016
+;
 ; enhanced by sy2002 in September 2020 to January 2021 to support character
-; editing for font graphics and palette editing and color
+; editing for font graphics and palette editing and color and the ability
+; to not only "save" (output) the results but also to "load" results
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -496,6 +498,9 @@ STR_HELP_PAL    .ASCII_P "1|2 Red 3|4 Green 5|6 Blue F1: 24-bit F3: 15-bit F5|F7
                 .ASCII_W "X X     X X       X X      XX         XX         XX XX XX              XXX"
 STR_HELP_EDIT   .ASCII_P "0..9 and a..f: Hexadecimal input ENTER: Change value ESC: Cancel                `"
                 .ASCII_W "X  X     X  X                    XXXXX               XXX"
+STR_MENU_FILE   .ASCII_P "F1: LOAD via serial input   F3: SAVE via serial output   F5: EXIT   F7: Back    `"
+                .ASCII_W "XX                          XX                           XX         XX"
+
 STR_CLR_LEFT    .ASCII_W "                                   "
 STR_CLR_LINE    .ASCII_W "                                                                                "
 STR_CHG_SIZE_X  .ASCII_W "Enter new width (1..43): "
@@ -1327,7 +1332,6 @@ _PED_END        RSUB    CURSOR_ON, 1
                 MOVE    0, R9
                 MOVE    39, R10
                 RSUB    PRINT_STR_AT, 1
-                MOVE    STR_HELP_MAIN, R8
 
                 SYSCALL(leave, 1)
                 RBRA    MAIN_LOOP, 1            ; we came here by RBRA
@@ -1382,20 +1386,51 @@ _PED_SCRATCH    .BLOCK  2
 
 FILE_MENU       SYSCALL(enter, 1)
 
-                ; do a before/after stack check!
-                RSUB    _FM_SAVE, 1           
+                RSUB    CURSOR_OFF, 1
+                MOVE    STR_MENU_FILE, R8       ; display file menu
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
+
+_FM_MENULOOP    RSUB    KBD_GETCHAR, 1
+                CMP     KBD$F1, R8              ; load via serial input
+                RBRA    _FM_M_LOAD, Z
+                CMP     KBD$F3, R8              ; save via seria output
+                RBRA    _FM_M_SAVE, Z
+                CMP     KBD$F5, R8              ; exit program
+                RBRA    END, Z
+                CMP     KBD$F7, R8              ; back to main editing loop
+                RBRA    _FM_BACK, Z
+                RBRA    _FM_MENULOOP, 1
+
+_FM_M_LOAD      RSUB    _FM_LOAD, 1
+                RBRA    _FM_BACK, 1
+
+_FM_M_SAVE      RSUB    _FM_SAVE, 1
+
+_FM_BACK        RSUB    CURSOR_ON, 1
+                MOVE    STR_HELP_MAIN, R8       ; print main help
+                MOVE    0, R9
+                MOVE    39, R10
+                RSUB    PRINT_STR_AT, 1
                 SYSCALL(leave, 1)
-                ; not called via RSUB, so do an RBRA to return to main!
-                HALT
+                RBRA    MAIN_LOOP, 1            ; we came here by RBRA
 
 _FM_ELMID       .BLOCK 21                       ; element id
 _FM_ELMID_N     .EQU 21                         ; maximum length of element id
+
+; ----------------------------------------------------------------------------
+; Load data for FILE_MENU
+; ----------------------------------------------------------------------------
+
+_FM_LOAD        RET
 
 ; ----------------------------------------------------------------------------
 ; Save data for FILE_MENU
 ; ----------------------------------------------------------------------------
 
 _FM_SAVE        SYSCALL(enter, 1)
+                RSUB    CURSOR_ON, 1
 
                 ; ------------------------------------------------------------
                 ; Let the user enter project details and output the header
@@ -1603,7 +1638,7 @@ _FMS_S_T_LOOP3  MOVE    STR_LS_DW, R8
                 MOVE    TILE_WS_X, R2           ; start reading at the right..
                 MOVE    @R2, @R5                ; .. x-position on the screen
 _FMS_S_T_LOOP1  MOVE    @R7, R8                 ; read tile data
-                RSUB    _FMS_HEX_OUT, 1         ; output it as 0x0000 hex
+                RSUB    _FMS_HEX_OUT, 1         ; output in "0x0000" hex fmt
                 ADD     1, @R5                  ; next column on screen
                 SUB     1, R1                   ; one less column to process
                 RBRA    _FMS_S_T_LOOP2, Z       ; done with this column?
@@ -1626,9 +1661,7 @@ _FMS_S_T_LOOP2  MOVE    STR_LS_NEWLINE, R8      ; next column: output a newln
                 RSUB    _FM_SPACES, 1
                 RBRA    _FMS_S_T_LOOP3, 1
 
-_FMS_S_T_DONE   HALT ; TODO: Stack check at the return point
-
-                RSUB    CURSOR_ON, 1
+_FMS_S_T_DONE   RSUB    CURSOR_ON, 1
                 SYSCALL(leave, 1)
                 RET
 
@@ -2584,3 +2617,8 @@ TILE_WS_Y_MAX   .BLOCK 1
 
 ; table to store the last recently used fg/bg color combination per character
 LRU_FGBG        .BLOCK 256
+
+; open ended buffer for reading data from the serial input
+; needs to be the last variable as it is treated as variable size storage
+SERIALBUFFER_N  .EQU 2048                       ; maximum size of one line
+SERIALBUFFER    .BLOCK 1
