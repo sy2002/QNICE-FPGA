@@ -1433,7 +1433,7 @@ _FM_ELMID_N     .EQU 21                         ; maximum length of element id
 
 ; ----------------------------------------------------------------------------
 ; Load data for FILE_MENU
-; Accepts CR, LF and CR/LF as line ending
+; Accepts CR, LF and CR/LF as line ending. CTRL+E ends loading.
 ; ----------------------------------------------------------------------------
 
 _FM_LOAD        SYSCALL(enter, 1)                
@@ -1446,6 +1446,42 @@ _FM_LOAD        SYSCALL(enter, 1)
                 MOVE    STR_HELP_L_UART, R8
                 RSUB    UART_PUTS, 1
 
+                ; read next meaningful line (without comments) and prepare
+                ; it for processing: upstring, stripping whitespcs, comments
+_FM_L_CONTINUE  RSUB    _FM_READLN, 1
+                RBRA    _FM_LOAD_END, X         ; CTRL+E ends loading
+                CMP     0, R9                   ; any errors?
+                RBRA    _FM_LL_CHECK, Z         ; no: proceed
+                MOVE    R9, R8                  ; yes: print err., end loading
+                RSUB    _PRINT_ERROR, 1
+                RBRA    _FM_LOAD_END, 1
+
+                ; when we arrive here, the line in R8 contains something
+                ; interessting; we can now check for three different tokens
+                ; that signal a certain type of data that follows the token: 
+                ; 1. STR_LS_PAL_LFN: palette data
+                ; 2. STR_LS_FONT_LN: font data
+                ; 3. STR_LS_TILE_DX: tile data
+_FM_LL_CHECK    MOVE    STR_LS_PAL_LFN, R9      ; check for palette data
+                SYSCALL(strstr, 1)
+                CMP     0, R10
+                RBRA    _FM_L_PAL, !Z           ; returns also via RBRA
+
+_FM_LOAD_END    SYSCALL(leave, 1)
+                RET
+
+; ----------------------------------------------------------------------------
+; Helper functions for the LOAD function in FILE_MENU
+; ----------------------------------------------------------------------------
+
+; read next meaningful line (without comments) and prepare
+; it for processing: upstring, stripping whitespcs, comments
+; R8: returns pointer to string (current line)
+; R9: 0 = no errors, otherwise pointer to error string
+; X-Flag: 0 = continue   1 = end loading due to CTRL + E
+_FM_READLN      INCRB
+                AND     0xFFFD, SR              ; clr X bit: continue loading
+
 _FM_LOAD_NEXTLN XOR     R0, R0                  ; R0: # chars in current line
                 XOR     R1, R1                  ; R1: was last char a CR?
                 MOVE    SERIALBUFFER, R3        ; R3: line writing pointer
@@ -1454,23 +1490,22 @@ _FM_LOAD_LOOP   RSUB    UART_GETCHAR, 1         ; read char from UART
                 RSUB    UART_PUTCHAR, 1         ; mirror input on UART
                 
                 ; CR/LF support
-                CMP     LAST_CHR_WAS_CR, 1      ; last char was a CR?
+                MOVE    LAST_CHR_WAS_CR, R2
+                CMP     @R2, 1                  ; last char was a CR?
                 RBRA    _FM_LL_1, !Z            ; no: go on
-                MOVE    LAST_CHR_WAS_CR, R2     ; yes: reset CR flag
-                MOVE    0, @R2
+                MOVE    0, @R2                  ; yes: reset CR flag
                 CMP     CHR$LF, R8              ; CR/LF?
                 RBRA    _FM_LOAD_LOOP, Z        ; yes: ignore LF, next char
 
 _FM_LL_1        CMP     KBD$CTRL_E, R8          ; end loading via CTRL+E
-                RBRA    _FM_LOAD_END, Z
+                RBRA    _FM_READLN_EXIT, Z
 
                 ; read one line
                 ADD     1, R0
                 CMP     R0, SERIALBUFFER_N      ; R0>SERIAL* (line too long)?
                 RBRA    _FM_LL_2, !N            ; no: continue to read line
-                MOVE    STR_ERR_LINE, R8        ; yes: show error and quit
-                RSUB    _PRINT_ERROR, 1
-                RBRA    _FM_LOAD_END, 1
+                MOVE    STR_ERR_LINE, R9        ; yes: report error and quit
+                RBRA    _FM_READLN_RET, 1
 _FM_LL_2        CMP     CHR$CR, R8              ; line end via CR?
                 RBRA    _FM_LL_3, !Z            ; no: check for LF
                 MOVE    LAST_CHR_WAS_CR, R2     ; yes: set flag
@@ -1506,51 +1541,103 @@ _FM_LLP_CC      MOVE    R8, R0                  ; R0: start of line
                 MOVE    R0, R9                  ; search in current line
                 SYSCALL(strchr, 1)
                 CMP     0, R10                  ; did we find a ';'?
-                RBRA    _FM_LL_CHECK, Z         ; no: start checking line
+                RBRA    _FM_LL_LINEOK, Z        ; no: return line
                 MOVE    0, @R10                 ; yes: end string at ';'
                 CMP     R10, R0                 ; did we replace at the very..
                 RBRA    _FM_LOAD_NEXTLN, Z      ; ..first char? yes: ignore ln
 
-                ; when we arrive here, the line contains something
-                ; interessting; we can now check for three different tokens
-                ; that signal a certain type of data that follows the token: 
-                ; 1. STR_LS_PAL_LFN: palette data
-                ; 2. STR_LS_FONT_LN: font data
-                ; 3. STR_LS_TILE_DX: tile data
-_FM_LL_CHECK    MOVE    R0, R8                  ; check for palette data
-                MOVE    STR_LS_PAL_LFN, R9
-                SYSCALL(strstr, 1)
-                CMP     0, R10
-                RBRA    _FM_L_PAL, !Z
+_FM_LL_LINEOK   MOVE    R0, R8                  ; return line
+                XOR     R9, R9                  ; no errors
+                RBRA    _FM_READLN_RET, 1
 
-_FM_LOAD_END    SYSCALL(leave, 1)
+_FM_READLN_EXIT OR      0x0002, SR              ; set x bit = end loading
+_FM_READLN_RET  DECRB
                 RET
-
-; ----------------------------------------------------------------------------
-; Helper functions for the LOAD function in FILE_MENU
-; ----------------------------------------------------------------------------
 
 ; Load palette data
 ; meant to return to the main function via RBRA
 _FM_L_PAL       RSUB    _FM_L_EQU, 1            ; extract # of FG pal changes
                 RBRA    _FM_L_PAL_1, !C         ; no error
-                MOVE    STR_ERR_ILLEGAL, R8     ; output error and end loading
+_FM_L_PAL_E     MOVE    STR_ERR_ILLEGAL, R8     ; output error and end loading
                 RSUB    _PRINT_ERROR, 1
                 RBRA    _FM_LOAD_END, 1         ; no RET; we entered via RBRA
 
 _FM_L_PAL_1     MOVE    R9, R0                  ; R0 = # of FG pal changes
-                RBRA    _FM_L_PAL_2, Z          ; none: continue to BG pal
+                RBRA    _FM_L_PAL_3, Z          ; none: continue to BG pal
+                RSUB    _FM_READLN, 1           ; read next line
+                MOVE    STR_LS_PAL_LF, R9
+                SYSCALL(strstr, 1)
+                CMP     R10, 0                  ; STR_LS_PAL_LF token found?
+                RBRA    _FM_L_PAL_2, !Z         ; yes
+                RBRA    _FM_L_PAL_E, 1          ; no: error
 
+_FM_L_PAL_2     RSUB    _FM_L_DW, 1             ; extract .DW dta in curr. ln.
+                RBRA    _FM_L_PAL_E, C          ; in case of error: exit
 
-_FM_L_PAL_2     HALT
-                
-                RBRA    _FM_LOAD_NEXTLN, 1      ; no RET; we entered via RBRA 
+                ; extract both fg pal changes of the current line and
+                ; store them into the palette
+                ; R8 = amount of strings (if not 2, then error)
+                ; R9 = R2 = what needs to be added to restore the stack
+                MOVE    R9, R2                  ; for restoring the stack
+_FM_L_PAL_3     CMP     R8, 2                   ; two data points available?
+                RBRA    _FM_L_PAL_4, Z          ; yes: proceed
+_FM_L_PAL_SRE   ADD     R2, SP                  ; no: restore stack and exit
+                ADD     1, SP                   ; because of the emulated RET
+                RBRA    _FM_L_PAL_E, 1
+_FM_L_PAL_4     MOVE    SP, R1
+_FM_L_PAL_5     MOVE    @R1++, R4               ; R4 = length of first string
+                MOVE    R1, R8
+                RSUB    HEXSTR2WORD, 1          ; convert first number
+                RBRA    _FM_L_PAL_SRE, C        ; error: restore stack & exit
+                MOVE    R9, R6                  ; R6 = address of FG pal entry
+                ADD     R4, R1                  ; next string
+                MOVE    @R1++, R4               ; R4 = length of second string
+                MOVE    R1, R8
+                RSUB    HEXSTR2WORD, 1          ; convert second number
+                RBRA    _FM_L_PAL_SRE, C        ; error: restoer stack & exit
+                MOVE    R9, R7                  ; R7 = actual FG pal value
+                MOVE    VGA$PALETTE_ADDR, R8    ; store address/value pair..
+                MOVE    R6, @R8++               ; ..in palette memory
+                MOVE    R7, @R8
 
+                ADD     R2, SP                  ; restore stack and do not..
+                ADD     1, SP                   ; ..forget +1 due to emul. RET
+                RBRA    _FM_L_CONTINUE, 1       ; no RET; we entered via RBRA 
+
+; Search for ".DW <two or more 0x0000 style hex numbers>" and return them
+; on the stack in the format of split/STR$SPLIT
+; input  R8: string (current line) 
+; output SP: stack pointer pointer to the first string
+;        R8: amount of strings
+;        R9: amount of words to add to the stack pointer to restore it
+;       R12: undefined
+; C-Flag = 1 means error   0 means OK
+_FM_L_DW        INCRB
+                MOVE    STR_LS_DW, R9           ; search for ".DW "
+                SYSCALL(strstr, 1)
+                CMP     R10, 0                  ; not found? ..
+                RBRA    _FM_L_DW_ERR, Z         ; .. then error
+
+                ; extract all numbers by using the "x" in "0x0000" to
+                ; separate the string (the "x" is in uppercase "X")
+                ADD     5, R10                  ; move behind the first "X"
+                MOVE    R10, R8
+                MOVE    'X', R9                 ; upper case separator
+                SYSCALL(split, 1)                
+                AND     0xFFFB, SR              ; clear carry = no error
+                RBRA    _FM_L_DW_RET, 1
+
+_FM_L_DW_ERR    OR      0x0004, SR              ; set carry bit = error                
+_FM_L_DW_RET    DECRB
+                ; RET needs to be emulated due to the changed stack
+                MOVE    SP, R12
+                ADD     R9, R12
+                ABRA    @R12, 1
 
 ; Seach for ".EQU 0x0000" style data in string, extract hex val and return it
 ; R8: string
 ; R9: return value
-; C-Flag = 1 means error
+; C-Flag = 1 means error   0 means OK
 _FM_L_EQU       INCRB
                 MOVE    R8, R0 
                 MOVE    STR_LS_EQU, R9          ; search for ".EQU "
@@ -1563,7 +1650,7 @@ _FM_L_EQU       INCRB
                 RSUB    HEXSTR2WORD, 1
                 RBRA    _FM_L_EQU_RET, 1        ; carry is set by HEXSTR2WORD
 
-_FM_L_EQU_ERR   OR      0x0004, SR              ; Set carry bit means error
+_FM_L_EQU_ERR   OR      0x0004, SR              ; set carry bit means error
 _FM_L_EQU_RET   MOVE    R0, R8
                 DECRB
                 RET
@@ -2293,7 +2380,7 @@ _HEXSTR2WORD_L  MOVE    @R8, R8
                 CMP     0, R10                  ; ..nibble
                 RBRA    _HEXSTR2WORD_E, Z       ; digit not found
                 SUB     R9, R10                 ; R10 = current nibble
-                AND     0xFFFD, SR              ; Clear X bit
+                AND     0xFFFD, SR              ; clear X bit
                 SHL     R1, R10                 ; correct bit pos. of nibble
                 ADD     R10, R0                 ; R0 = R0 + current nibble
                 ADD     1, R2                   ; proceed to next nib
