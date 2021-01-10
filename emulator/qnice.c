@@ -1652,7 +1652,8 @@ RDUMP                          Print a register dump\n\
 RUN [<ADDR>]                   Run a program beginning at ADDR\n\
 SET <REG | ADDR> <VALUE>       Either set a register or a memory cell\n\
 SAVE <FILENAME> <START> <STOP> Create a loadable binary file\n\
-SB <ADDR>                      Set breakpoint to an address\n");
+SB <ADDR>                      Set breakpoint to an address\n\
+SO                             Step over subroutine\n");
 #if defined(USE_VGA) && defined(USE_UART) && !defined(__EMSCRIPTEN__)
         printf("\
 SPEEDSTATS [ON | OFF]          Set the display of MIPS and FPS in VGA window\n");
