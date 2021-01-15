@@ -52,7 +52,7 @@ _DBG$DISASM_CTRL    MOVE    R1, R2              ; Determine the type of control 
                     AND     0x0800, R2          ; If bit 11 is set it is an EXC instruction
                     RBRA    _DBG$DISASM_NO_EXC, Z
                     MOVE    _DBG$EXC_MNEMONIC, R8
-                    RSUB    IO$PUTS, 1          ; Print the mnemonice
+                    RSUB    IO$PUTS, 1          ; Print the mnemonic
                     MOVE    ' ', R8
                     RSUB    IO$PUTCHAR, 1       ; ...and a delimiter
                     MOVE    R1, R8              ; Refetch the instruction
