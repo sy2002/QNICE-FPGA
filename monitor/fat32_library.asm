@@ -1178,7 +1178,7 @@ _F32_FS_RET     MOVE    R0, R8                      ; restore R8 and R10
 ;* INPUT:  R8  points to a valid device handle
 ;*         R9  points to a zero terminated directory string (path)
 ;*         R10 separator char (if zero, then "/" will be used)
-;* OUTPUT: R8  still points to the directory handle
+;* OUTPUT: R8  still points to the device handle
 ;*         R9  0, if OK, otherwise error code
 ;*****************************************************************************
 ;
