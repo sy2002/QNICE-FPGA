@@ -25,14 +25,28 @@ TODO: <WASM emulator Website needs to name the new speed, and for better
 WIP MONITOR: New SYSCALLs: in_range_u and in_range_s: checks if the parameter
   is within a given range (unsigned or signed)
   WIP/TODO: signed is still missing
+  strstr, strcyp
+
+WIP ASSEMBLER: Better error messages that lead to an easier spotting
+of the errors
 
 WIP EMULATOR: Supports new VGA features
 
 * EMULATOR: More convenient command line editing, which supports cursor keys,
   command history and TAB completion of command names
+  
+* EMULATOR: Step-over capability in debugger
 
 * EMULATOR: Adjusted the standard emulation speed to 13.21 MIPS because this
   is the average Q-TRIS performance. 
+  
+* VBCC: <TODO describe; updated to new version, issue 100, and others>
+  
+* SYSINFO: <TODO describe the concept, that the hardware is now able
+to describe itself>
+  
+* DOCUMENTATION: Completely restructured, added convenient table-of-contents
+  in doc/README.md
 
 WIP * TILE_ED: Version 2.0 which supports multicolor mode, font & palette editing
 
