@@ -25,7 +25,7 @@ TODO: <WASM emulator Website needs to name the new speed, and for better
 WIP MONITOR: New SYSCALLs: in_range_u and in_range_s: checks if the parameter
   is within a given range (unsigned or signed)
   WIP/TODO: signed is still missing
-  strstr, strcyp
+  strstr, strcpy
 
 WIP ASSEMBLER: Better error messages that lead to an easier spotting
 of the errors
