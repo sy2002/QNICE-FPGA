@@ -1,0 +1,26 @@
+Thema INCRB:
+
+Durchdenken:
+
+INCRB und direkt danach HW Int: Dann würde SR nicht mehr gespeichert werden ?
+Benötigt das nun reg_force_shadowing via fsm_force_shadowing an für 1 Zyklus und
+ggf. während INCRB und während wait-for-ISR shadow_spr auf 1
+(falls shadow_spr nur dann wirkt wenn Int aus, dann ist ja nach einer Runde Force Shadowing alles OK)
+
+Software-Interrupt scheint OK, aber nochmals sicherheitshalber durchdenken:
+Macht es dem SWI etwas aus, wenn das forcierte Schreiben wegen o.g. Situation angeschaltet wird?
+
+Thema Warum move OxF000 doch nötig ist
+
+Int Routine nutzt Monitor Funktionen oder called eine andere Funktion, während das Programm mit -Speed compiliert ist
+
+Lösung: Compiler fügt ein (wird wohl auf absehbare Zeit nicht passieren)
+
+=> Monitor Lib Funktion qmon_setqb(unsigned int reg_bank_no = 0xF0), die als Default aufgerufen werden kann. Sie sollte das übergebene Wort so schneiden, dass nur das Low Byte relevant ist 
+
+So oder so: Best Practices Doku erweitern und in der Git Issue erwähnen
+
+Alle int enabled C Programme durchsuchen und an die Best Practices anpassen
+Alle int enabled ASM Programme durchsuchen und ebenfalls anpassen
+
+Und Timing Part Usage erwähnen
