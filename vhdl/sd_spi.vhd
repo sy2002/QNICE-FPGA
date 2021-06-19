@@ -147,9 +147,9 @@ generic (
    -- WARNING: Just changing the clockRate generics does not make this design automatically work
    -- with another clock rate. You also need to adjust "slowClockDivider" and you need to know
    -- what you're doing. For the time being, it is best to supply either 25MHz or 50MHz to this controller
-	clockRate : integer := 50000000;		-- Incoming clock is 25MHz (can change this to 2000 to test Write Timeout)
+	clockRate : integer := 25000000;		-- Incoming clock is 25MHz (can change this to 2000 to test Write Timeout)
    
-	slowClockDivider : integer := 128;	-- For a 50MHz clock, slow clock for startup is 50/128 = 390kHz
+	slowClockDivider : integer := 64;	-- For a 25MHz clock, slow clock for startup is 25/64 = 390kHz
 	R1_TIMEOUT : integer := 64;         -- Number of bytes to wait before giving up on receiving R1 response
 	WRITE_TIMEOUT : integer range 0 to 999 := 500; -- Number of ms to wait before giving up on write completing
    RESET_TICKS : integer := 64;        -- Number of half clock cycles being pulsed before lowing sd_busy in IDLE2
