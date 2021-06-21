@@ -1,3 +1,27 @@
+Version 1.61    XXXXXXXXX, XX, 2021
+===================================
+
+OPEN PARTS OF 1.61:
+
+! TODO Don't forget to update the project files and to support all QNICE
+  hardware targets before releasing V1.61 and don't forget to walk through
+  https://github.com/sy2002/QNICE-FPGA/blob/develop/doc/how-to-release.md.
+  Depending on what we changed, it might be OK to leave the WASM demo
+  at V1.6.
+
+?? WIP: SD CARD ??
+The mission is: Stabilize it, make it much more robust.
+Either the "fix" from commit #2460a7e did the trick by reducing the speed from
+50 MHz to 25 MHz (though I doubt it, but let's see). In this case we need to
+add something like this to the XDC (and the ISE equivalent)
+## Clock divider sdcardclk that creates the 25 MHz used by sd_spi.vhd
+create_generated_clock -name sdcardclk -source [get_pins */clk_gen/i_clk_gb_qnice/CLKOUT1] -divide_by 2 [get_pins MEGA65/QNICE_SOC/sd_card/Slow_Clock_25MHz_reg/Q]
+
+DONE PARTS OF 1.61:
+
+* TOOLCHAIN: Merged-back assembler from V1.7 branch: This assembler gives much
+  more meaningful error messages.
+
 Version 1.6     September, 7 2020
 =================================
 
