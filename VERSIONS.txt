@@ -11,11 +11,13 @@ OPEN PARTS OF 1.61:
 
 ?? WIP: SD CARD ??
 The mission is: Stabilize it, make it much more robust.
-Either the "fix" from commit #2460a7e did the trick by reducing the speed from
-50 MHz to 25 MHz (though I doubt it, but let's see). In this case we need to
-add something like this to the XDC (and the ISE equivalent)
+a) Either the "fix" from commit #2460a7e did the trick by reducing the speed
+from 50 MHz to 25 MHz (though I doubt it, but let's see). In this case we need
+to add something like this to the XDC (and the ISE equivalent)
 ## Clock divider sdcardclk that creates the 25 MHz used by sd_spi.vhd
 create_generated_clock -name sdcardclk -source [get_pins */clk_gen/i_clk_gb_qnice/CLKOUT1] -divide_by 2 [get_pins MEGA65/QNICE_SOC/sd_card/Slow_Clock_25MHz_reg/Q]
+b) Or: We need to refactor / redo the SD card part; maybe use the one from
+Paul - or something from opencores.org
 
 DONE PARTS OF 1.61:
 
