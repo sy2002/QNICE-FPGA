@@ -4,7 +4,7 @@
 ;;
 ;; 29-AUG-2015      Bernd Ulmann    Initial version
 ;; 25-JUL-2020      Bernd Ulmann    Added support for HALT, RTI, and INT
-;; 07-AUG-2020      Bernd Ulmann    RBRA/RSUB now displays the absolut destination addr.
+;; 07-AUG-2020      Bernd Ulmann    RBRA/RSUB now displays the absolute destination addr.
 ;; 20-SEP-2020      Bernd Ulmann    Take care of the new EXC instruction
 ;;=======================================================================================
 ;;
