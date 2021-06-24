@@ -321,8 +321,6 @@ QMON$M_MAYBE_S  CMP     'S', R8
 _QMON$MS_LOOP   RSUB    DBG$DISASM, 1           ; Disassemble one instruction at 
                                                 ; addr. R8 - this increments R8!
                 CMP     R8, R9                  ; End reached?
-;                RBRA    _QMON$MS_LOOP, !N       ; No, next instruction
-;                RBRA    QMON$MAIN_LOOP, 1
                 RBRA    QMON$MAIN_LOOP, N
                 RBRA    QMON$MAIN_LOOP, V
                 RBRA    _QMON$MS_LOOP, 1        ; No, next instruction
