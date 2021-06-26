@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>fileTypes</key>
+	<array>
+		<string>asm</string>
+		<string>lis</string>
+	</array>
+	<key>name</key>
+	<string>QNICE</string>
+	<key>patterns</key>
+	<array>
+		<dict>
+			<key>comment</key>
+			<string>General purpose register set</string>
+			<key>match</key>
+			<string>(?i)\br(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15)\b</string>
+			<key>name</key>
+			<string>storage.type.asm</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Special purpose registers</string>
+			<key>match</key>
+			<string>(?i)\b(pc|sr|sp|shpc|shsr|shsp)\b</string>
+			<key>name</key>
+			<string>storage.type.asm</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>QNICE instructions</string>
+			<key>match</key>
+			<string>(?i)\b(move|add|adc||sub|subc|shl|shr|swap|not|and|or|xor|cmp|halt|rti|int|incrb|decrb|exc|abra|asub|rbra|rsub|ret|syscall|nop)\b</string>
+			<key>name</key>
+			<string>support.type</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>QNICE assmbler directives</string>
+			<key>match</key>
+			<string>(?i)(^|\s)\.\b(org|equ|ascii_p|ascii_w|dw)\b</string>
+			<key>name</key>
+			<string>constant.character.asm</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>QNICE preprocessor directives</string>
+			<key>match</key>
+			<string>(?i)(^|\s)\#\b(include|define|undef|ifdef|ifndef|else)\b</string>
+			<key>name</key>
+			<string>constant.character.asm</string>
+		</dict>		
+		<dict>
+			<key>comment</key>
+			<string>Comment line</string>
+			<key>match</key>
+			<string>(//|;)(\s|\S)*</string>
+			<key>name</key>
+			<string>comment.line.asm</string>
+		</dict>
+		<dict>
+			<key>begin</key>
+			<string>(/\*)</string>
+			<key>comment</key>
+			<string>C-style comment block (AVR ASM 2.0 only)</string>
+			<key>end</key>
+			<string>(\*/)</string>
+			<key>name</key>
+			<string>comment.block.asm</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Single-line string</string>
+			<key>match</key>
+			<string>(^|\s)"[\w\s\W]*"($|\s)</string>
+			<key>name</key>
+			<string>string.asm</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Single-line string</string>
+			<key>match</key>
+			<string>(^|\s)\'[\w\s\W]*\'($|\s)</string>
+			<key>name</key>
+			<string>string.asm</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Hex number constant</string>
+			<key>match</key>
+			<string>(?i)\b(0x(\d|[A-F])+)\b</string>
+			<key>name</key>
+			<string>constant.numeric.asm</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Oct number constant</string>
+			<key>match</key>
+			<string>\b(0[0-7]+)\b</string>
+			<key>name</key>
+			<string>constant.numeric.asm</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Bin number constant</string>
+			<key>match</key>
+			<string>\b(0b(0|1)+)\b</string>
+			<key>name</key>
+			<string>constant.numeric.asm</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Dec number constant</string>
+			<key>match</key>
+			<string>\b(0|[1-9]\d+)\b</string>
+			<key>name</key>
+			<string>constant.numeric.asm</string>
+		</dict>
+	</array>
+	<key>scopeName</key>
+	<string>source.asm</string>
+	<key>uuid</key>
+	<string>fb781474-d6c6-11eb-b8bc-0242ac130003</string>
+</dict>
+</plist>
