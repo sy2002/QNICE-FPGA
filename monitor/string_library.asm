@@ -333,3 +333,23 @@ _STR$H2D_DONE   MOVE    R0, R8                  ; restore original values
                 MOVE    R4, R12                 ; return digit counter             
                 DECRB
                 RET
+;
+;*******************************************************************************
+;* STR$DEC2BIN converts a string containing a decimal number into a binary
+;* value. The string is pointed to by R8, R9 will contain the result upon exit.
+;*******************************************************************************
+;
+STR$DEC2BIN             INCRB
+                        XOR     R9, R9              ; Clear R9
+_STR$DEC2BIN_CONVERT    MOVE    @R8++, R2           ; Get one decimal digit
+                        RBRA    _STR$DEC2BIN_EXIT, Z
+                        SUB     0x0030, R2
+                        ADD     R9, R9              ; Multiply R9 by 10
+                        MOVE    R9, R1              ; R1 = 2 * R9
+                        ADD     R9, R9
+                        ADD     R9, R9
+                        ADD     R1, R9              ; R9 = 10 * R9
+                        ADD     R2, R9              ; Add current digit
+                        RBRA    _STR$DEC2BIN_CONVERT, !Z
+_STR$DEC2BIN_EXIT       DECRB
+                        RET
