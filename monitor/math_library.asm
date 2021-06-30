@@ -430,7 +430,7 @@ MTH$SRAND       INCRB
 ;* The seed is updated using the following calculation:
 ;*
 ;* X~ = a*X mod n,
-;* where a = 48271 and n = 2^31-1.
+;* where a = 48271 and n = 2**31-1.
 ;*
 ;* This is known as the Park-Miller Random Number Generator.
 ;*
