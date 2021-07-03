@@ -47,7 +47,7 @@
 			<key>comment</key>
 			<string>QNICE preprocessor directives</string>
 			<key>match</key>
-			<string>(?i)(^|\s)\#\b(include|define|undef|ifdef|ifndef|else)\b</string>
+			<string>(?i)(^|\s)\#\b(include|define|undef|ifdef|ifndef|else|endif)\b</string>
 			<key>name</key>
 			<string>constant.character.asm</string>
 		</dict>		
