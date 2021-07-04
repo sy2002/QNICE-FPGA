@@ -173,15 +173,15 @@ begin
       end if;
    end process;
    
-   handle_reading : process(clk, reset, reset_reading, uart_en, uart_we, uart_reg)
+   handle_reading : process(clk)
    begin
-      if reset = '1' or reset_reading = '1' then
-         reading <= '0';
-      else
-         if rising_edge(clk) then
-            if uart_en = '1' and uart_we = '0' and uart_reg = "10" then
-               reading <= '1';
-            end if;
+      if rising_edge(clk) then
+         if uart_en = '1' and uart_we = '0' and uart_reg = "10" then
+            reading <= '1';
+         end if;
+
+         if reset = '1' or reset_reading = '1' then
+            reading <= '0';
          end if;
       end if;
    end process;
@@ -205,30 +205,30 @@ begin
       end if;
    end process;
    
-   write_registers : process(clk, reset)
+   write_registers : process(clk)
    begin
-      if reset = '1' then
-         byte_tx_data <= (others => '0');
-      else
-         if rising_edge(clk) then
-            -- register 3: send (aka write) register
-            if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
-               byte_tx_data <= cpu_data_in(7 downto 0);
-            end if;
+      if rising_edge(clk) then
+         -- register 3: send (aka write) register
+         if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
+            byte_tx_data <= cpu_data_in(7 downto 0);
+         end if;
+
+         if reset = '1' then
+            byte_tx_data <= (others => '0');
          end if;
       end if;
    end process;
 
-   handle_tx_ready : process(clk, reset, reset_byte_tx_ready)
+   handle_tx_ready : process(clk)
    begin
-      if reset = '1' or reset_byte_tx_ready = '1' then
-         byte_tx_ready <= '0';
-      else
-         if rising_edge(clk) then
-            -- tx_ready listens to write operations to register 3
-            if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
-               byte_tx_ready <= '1';
-            end if;
+      if rising_edge(clk) then
+         -- tx_ready listens to write operations to register 3
+         if uart_en = '1' and uart_we = '1' and uart_reg = "11" then
+            byte_tx_ready <= '1';
+         end if;
+
+         if reset = '1' or reset_byte_tx_ready = '1' then
+            byte_tx_ready <= '0';
          end if;
       end if;
    end process;
