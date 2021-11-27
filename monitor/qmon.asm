@@ -103,6 +103,11 @@ f32_fseek!      RBRA    FAT32$FILE_SEEK, 1
 gets_s!         RBRA    IO$GETS_S, 1
 gets_slf!       RBRA    IO$GETS_SLF, 1
 vga_init!       RBRA    VGA$INIT, 1
+in_range_u!     RBRA    MTH$IN_RANGE_U, 1
+enter!          RBRA    MISC$ENTER, 1
+leave!          RBRA    MISC$LEAVE, 1
+strcpy!         RBRA    STR$CPY, 1
+strstr!         RBRA    STR$STRSTR, 1
 ;
 ;  The actual monitor code starts here:
 ;

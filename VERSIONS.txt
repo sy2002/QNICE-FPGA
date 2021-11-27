@@ -21,6 +21,14 @@ Paul - or something from opencores.org
 
 DONE PARTS OF 1.61:
 
+* Standard Libraries: Merged the following new functions from V1.7:
+    MISC$ENTER
+    MISC$LEAVE
+    MTH$IN_RANGE_U
+    STR$CPY
+    STR$STR
+* Standard Libraries: Merged the following modified functions from V1.7:
+    STR$STRCHR
 * TOOLCHAIN: Merged-back assembler from V1.7 branch: This assembler gives much
   more meaningful error messages.
 

@@ -119,6 +119,50 @@ _STR$CMP_EXIT   DECRB                       ; Restore previous register page
                 RET
 ;
 ;***************************************************************************************
+;* STR$CPY copies a zero-terminated string to a destination
+;*
+;* R8: Pointer to the string to be copied
+;* R9: Pointer to the destination
+;***************************************************************************************
+;
+STR$CPY             INCRB
+                    MOVE    R8, R0
+                    MOVE    R9, R1
+_STR$CPY_LOOP       MOVE    @R0++, @R1++
+                    RBRA    _STR$CPY_LOOP, !Z
+                    DECRB
+                    RET
+;
+;***************************************************************************************
+;* STR$STRSTR finds the first occurence of the substring in the string
+;*
+;* R8: Pointer to the string to be searched
+;* R9: Pointer to the substring to be found
+;* R10: Zero, if substring is not found else pointer to first occurence
+;***************************************************************************************
+;
+STR$STRSTR          INCRB
+                    MOVE    R8, R0                  ; current search ptr inside string
+                    MOVE    R0, R1                  ; potential start point of substring
+_STR$STRSTR_NEXT    MOVE    R9, R2                  ; current search ptr inside substring
+_STR$STRSTR_ITER    CMP     @R0++, @R2++            ; are the two actual chars idendical?                    
+                    RBRA    _STR$STRSTR_ID, Z       ; yes
+                    ADD     1, R1                   ; no: start +1 in source string and ..
+                    MOVE    R1, R0                  ; .. try again, unless we reached ..
+                    CMP     @R0, 0                  ; .. the end of the source string
+                    RBRA    _STR$STRSTR_NEXT, !Z
+                    MOVE    0, R10
+                    RBRA    _STR$STRSTR_RET, 1
+
+_STR$STRSTR_ID      CMP     @R2, 0                  ; did we reach the end of the substring?
+                    RBRA    _STR$STRSTR_FOUND, Z    ; yes: substring was found
+                    RBRA    _STR$STRSTR_ITER, 1
+
+_STR$STRSTR_FOUND   MOVE    R1, R10
+_STR$STRSTR_RET     DECRB
+                    RET
+;
+;***************************************************************************************
 ;* STR$STRCHR seaches for the first occurrence of the character stored in R8 in a 
 ;* string pointed to by R9.
 ;*
@@ -134,14 +178,12 @@ _STR$CMP_EXIT   DECRB                       ; Restore previous register page
 STR$STRCHR          INCRB
                     MOVE    R9, R0
                     XOR     R10, R10
-_STR$STRCHR_LOOP    CMP     0x0000, @R0         ; while (*string)
+_STR$STRCHR_LOOP    CMP     R10, @R0            ; while (*string)
                     RBRA    _STR$STRCHR_EXIT, Z
-                    CMP     R8, @R0             ; if (*string == R8)
-                    RBRA    _STR$STRCHR_NEXT, !Z
+                    CMP     R8, @R0++           ; if (*string == R8)
+                    RBRA    _STR$STRCHR_LOOP, !Z
                     MOVE    R0, R10
-                    RBRA    _STR$STRCHR_EXIT, 1
-_STR$STRCHR_NEXT    ADD     0x0001, R0          ; string++
-                    RBRA    _STR$STRCHR_LOOP, 1
+                    SUB     0x0001, R10
 _STR$STRCHR_EXIT    DECRB
                     RET
 ;

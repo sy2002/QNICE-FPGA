@@ -78,7 +78,7 @@ _MTH$DIVS_BUSY  MOVE    @R0, R1             ; Test busy bit
 ;******************************************************************************
 ;*
 ;* MTH$DIVU performs an unsigned 16 / 16 division of the form 
-;* R11 = R8 % R9 and R10 = (int) (R8 / 9)
+;* R11 = R8 % R9 and R10 = (int) (R8 / R9)
 ;*
 ;******************************************************************************
 ;
@@ -284,3 +284,23 @@ _MTH$DIVU32_END MOVE    R1, R9                  ; hi Q
 
                 DECRB
                 RET
+;
+;******************************************************************************
+;*
+;* MTH$IN_RANGE_U    returns C=1 if R9 <= R8 < R10 else C=0
+;*                   R8, R9, R10 treated as unsigned
+;*
+;******************************************************************************
+;
+MTH$IN_RANGE_U  INCRB
+                CMP     R9, R8
+                RBRA    _MTH$IRU_3, N           ; Not in range
+_MTH$IRU_1      CMP     R10, R8
+                RBRA    _MTH$IRU_3, !N          ; Not in range
+_MTH$IRU_2      OR      0x0004, SR              ; Set carry bit
+                DECRB
+                RET
+_MTH$IRU_3      AND     0xFFFB, SR              ; Clear carry bit
+                DECRB
+                RET
+
