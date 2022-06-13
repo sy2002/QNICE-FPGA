@@ -71,6 +71,11 @@ architecture synthesis of sdcard_wrapper is
    signal resp_error   : std_logic;
    signal dat_ready    : std_logic;
 
+   signal cmd_debug    : std_logic_vector(7 downto 0);
+
+   attribute mark_debug              : boolean;
+   attribute mark_debug of cmd_debug : signal is true;
+
 begin
 
    ----------------------------------
@@ -104,6 +109,14 @@ begin
          dat_ready_i         => dat_ready
       ); -- i_sdcard_ctrl
 
+   i_sdcard_debug : entity work.sdcard_debug
+      port map (
+         clk_i   => avm_clk_i,
+         rst_i   => avm_rst_i,
+         data_i  => to_stdlogicvector(cmd_index, 8),
+         valid_i => cmd_valid and cmd_ready,
+         data_o  => cmd_debug
+      ); -- i_sdcard_debug
 
    ----------------------------------
    -- Instantiate CMD controller
