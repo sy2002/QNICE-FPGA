@@ -3,12 +3,19 @@
 ;; The collection of FAT32 related constants and functions starts here
 ;;=============================================================================
 ;
+; IMPORTANT: This library relies on an underlying hardware abstraction such as
+; sd_library.asm which provides access to the data of the physical media using
+; a 512-byte block addressing: Block address #0 means 0..511, block address #1
+; means 512..1023, block address #2 means 1024..1.535, etc.
+; The semantics of a 512 block address is hardcoded, i.e. this library cannot
+; work with other block sizes than 512 bytes.
+;
 ;
 ; INTERNAL CONSTANTS FOR PARSING MBR and FAT32
 ; (not meant to be published in sysdef.asm)
 ;
-FAT32$MBR_LO            .EQU    0x0000                  ; low byte of MBRs position (linear addressing)
-FAT32$MBR_HI            .EQU    0x0000                  ; high byte of MBRs position (linear addressing)
+FAT32$MBR_LO            .EQU    0x0000                  ; low byte of MBRs position (logical block address, 512 byte block size)
+FAT32$MBR_HI            .EQU    0x0000                  ; high byte of MBRs position (ditto)
 FAT32$MBR_MAGIC         .EQU    0xAA55                  ; magic word at address #510 (decoded to big endian, stored as 0x55AA)
 FAT32$MBR_MAGIC_ADDR    .EQU    0x01FE                  ; absolute address of magic bytes
 FAT32$MBR_PARTTBL_START .EQU    0x01BE                  ; absolute start address of the partition table
@@ -245,26 +252,7 @@ _F32_MNT_TCOK   MOVE    R0, R8                      ; device handle
                 MOVE    R11, @R1                    ; store it in device hndl
 
 ;                ; Go to the first 512 byte sector of the file system (FS)
-;                ; and read it. For doing so, a 2 x 32bit multiplication
-;                ; needs to be utilized, because the FS start LBA
-;                ; FAT32$DEV_FS_LO / FAT32$DEV_FS_HI is 32bit and this needs
-;                ; to be multiplied by FAT32$SECTOR_SIZE (512) to obtain
-;                ; the linar address. But the upper two words of the 64bit
-;                ; result value need to be zero, otherwise the medium is too
-;                ; large to be handled by this FAT32 implementation
-;                MOVE    R10, R8
-;                MOVE    R11, R9
-;                MOVE    FAT32$SECTOR_SIZE, R10
-;                MOVE    0, R11
-;                RSUB    MULU32, 1
-;                CMP     0, R11
-;                RBRA    _F32_MNT_SERR, !Z
-;                CMP     0, R10
-;                RBRA    _F32_MNT_SERR, !Z
-;                RBRA    _F32_MNT_DVID, 1
-;_F32_MNT_SERR   MOVE    FAT32$ERR_SIZE, R9
-;                RBRA    _F32_MNT_END, 1
-
+;                ; and read it.
 
                 MOVE    R10, R8                     ; LBA lo of 1st 512b sect.
                 MOVE    R11, R9                     ; LBA hi of 1st 512b sect.
@@ -1021,7 +1009,7 @@ FAT32$FILE_RB   INCRB
                 MOVE    FAT32$EOF, R10              ; return EOF
                 RBRA    _F32_FRB_RET, 1
 
-                ; follow the FAT cluster chain and adjust cluster/sector/index
+                ; follow the FAT cluster chain and adjust cluster/sector/index
                 ; within the handle, if necessary; that means that also
                 ; new sectors will be read, if necessary
 _F32_FRB_START  RSUB    FAT32$READ_FDH, 1
@@ -1385,11 +1373,9 @@ _F32_PDE_PDPS   RSUB    IO$PUTS, 1                  ; print decimal
 ;
 FAT32$CALL_DEV  INCRB
 
-                MOVE    R11, R0                 ; compute function address
+                MOVE    R11, R0                 ; compute function ptr address
                 ADD     R10, R0
-                MOVE    _F32$CDEVEND, @--SP     ; compute return address
-
-                MOVE    @R0, PC                 ; perform function call
+                ASUB    @R0, 1                  ; perform function call
 
 _F32$CDEVEND    DECRB
                 RET
@@ -1797,7 +1783,7 @@ _F32_RFDH_STRT2 MOVE    R1, R2
                 ; 2. retrieve the current cluster
                 ; 3. calculate the 32bit sector offset (LBA)
                 ; 4. retrieve FAT start address (LBA) and add offset from (3)
-                ; 5. calculate linear address of sector and load it
+                ; 5. load sector
                 ; 6. retrieve and resolve the FAT32 cluster pointer, save the
                 ;    new one back to the directory handle and load the
                 ;    sector 0 within this cluster
@@ -1840,20 +1826,6 @@ _F32_RFDH_INCC  MOVE    R1, R2
                 MOVE    @R3, R3
                 ADD     R2, R8
                 ADDC    R3, R9
-
-;                ; calculate linear address of sector by multiplying the
-;                ; LBA address in R9|R8 by 512 and load it
-;                ; if the result is larger than 32bit, then we have an error
-;                MOVE    512, R10
-;                XOR     R11, R11
-;                RSUB    MULU32, 1                   ; mult. result = R11..R8
-;                CMP     R11, 0                      ; result > 48bit?
-;                RBRA    _F32_RFDH_INCC2, Z          ; no: go on checking
-;                RBRA    _F32_RFDH_INCCE, 1
-;_F32_RFDH_INCC2 CMP     R10, 0                      ; result > 32bit?
-;                RBRA    _F32_RFDH_INCC3, Z          ; no: go on
-;_F32_RFDH_INCCE MOVE    FAT32$ERR_SIZE, R9          ; return size error
-;                RBRA    _F32_RFDH_END, 1
 
                 ; remember, that the current FDH was responsible for filling
                 ; the hardware buffer
@@ -1983,17 +1955,6 @@ _F32_RSIC_C2    MOVE    R8, R0                      ; save device handle
                 RBRA    _F32_RSIC_C3, Z
                 MOVE    FAT32$ERR_SIZE, R9
                 RBRA    _F32_RSIC_END, 1
-
-;                ; linear address = lba_addr * 512
-;_F32_RSIC_C3    MOVE    FAT32$SECTOR_SIZE, R10
-;                MOVE    0, R11
-;                RSUB    MULU32, 1
-;                CMP     0, R11                      ; too large?
-;                RBRA    _F32_RSIC_C4, Z
-;                CMP     0, R10
-;                RBRA    _F32_RSIC_C4, Z
-;                MOVE    FAT32$ERR_SIZE, R9
-;                RBRA    _F32_RSIC_END, 1
 
                 ; read sector into internal buffer
 _F32_RSIC_C3    MOVE    FAT32$DEV_BLOCK_READ, R10

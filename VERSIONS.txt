@@ -44,6 +44,7 @@ List of changes:
 
 * Fixed the emulator's SD card writing mechanism
 * sd_library.asm: Added SD$WRITE_BLOCK and SD$WRITE_BYTE
+WIP fat32_library.asm: X, Y, Z
 
 Made QNICE a nicer to work with system for MiSTer2MEGA65
 --------------------------------------------------------
