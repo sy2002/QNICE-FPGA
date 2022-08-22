@@ -2,6 +2,7 @@
 ** SD-card emulator.
 **
 ** 28-DEC-2016, B. Ulmann fecit
+** 22-AUG-2022, sy2002 fixed SD card writing
 */
 
 #include "sd.h"
@@ -40,7 +41,7 @@ void sd_attach(char *filename)
   if (image) /* If there is already an image attached, detach it first. */
     sd_detach();
 
-  if (!(image = fopen(filename, "rb")))
+  if (!(image = fopen(filename, "r+b")))
   {
     printf("Unable to attach SD-card image file >>%s<<!\n", filename);
     return;
@@ -50,7 +51,12 @@ void sd_attach(char *filename)
 void sd_detach()
 {
   if (image)
+  {
     fclose(image);
+#ifdef DEBUG
+    printf("sd_detach: fclose()\n");
+#endif    
+  }
   image = 0;
   memset(sd_data, 0, SD_SECTOR_SIZE);
 }
@@ -95,11 +101,12 @@ void sd_write_register(unsigned int address, unsigned int value)
         block_start_address = ((sd_addr_lo & 0xffff) | ((sd_addr_hi & 0xfff) << 16)) * SD_SECTOR_SIZE;
 #ifdef DEBUG
         printf("SD: Write block %08X.\n", block_start_address);
+        dump_sd_buffer();
 #endif
         if (image)
         {
-          fwrite(sd_data, SD_SECTOR_SIZE, 1, image);
           fseek(image, block_start_address, SEEK_SET);
+          fwrite(sd_data, SD_SECTOR_SIZE, 1, image);
         }
       }
       break;
