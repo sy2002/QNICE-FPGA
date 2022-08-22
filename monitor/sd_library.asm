@@ -23,8 +23,8 @@ SD$RESET        INCRB
 ;* INPUT:  R8/R9 = LO/HI words of the 32-bit block address
 ;* OUTPUT: R8 = 0 (no error), or error code
 ;*
-;* The read data is stored inside 512 byte buffer of the the SD controller 
-;* memory that can then be accessed via SD$READ_BYTE.
+;* The read data is stored inside the 512 byte buffer of the the SD controller 
+;* that can then be accessed via SD$READ_BYTE/SD$WRITE_BYTE.
 ;*
 ;* IMPORTANT: 512-byte block addressing is used always, i.e. independent of
 ;* the SD Card type. Address #0 means 0..511, address #1 means 512..1023, ..
@@ -52,11 +52,33 @@ _SD$RB_END      DECRB
 ;*****************************************************************************
 ;* SD$WRITE_BLOCK writes a 512 byte block to the SD Card
 ;*
-;* @TODO: Implement and document
+;* INPUT:  R8/R9 = LO/HI words of the 32-bit block address
+;* OUTPUT: R8 = 0 (no error), or error code
+;*
+;* The data to be written is stored inside the 512 byte buffer of the the
+;* SD controller that can then be accessed via SSD$READ_BYTE/SD$WRITE_BYTE.
+;*
+;* IMPORTANT: 512-byte block addressing is used always, i.e. independent of
+;* the SD Card type. Address #0 means 0..511, address #1 means 512..1023, ..
 ;*****************************************************************************
 ;
 SD$WRITE_BLOCK  INCRB
-                DECRB
+
+                MOVE    R8, R1                  ; save R8 due to WAIT_BUSY
+
+                RSUB    SD$WAIT_BUSY, 1         ; wait to be ready
+                CMP     R8, 0                   ; error?
+                RBRA    _SD$WB_END, !Z          ; yes: return
+
+                MOVE    IO$SD_ADDR_LO, R0       ; lo word of 32-bit address
+                MOVE    R1, @R0
+                MOVE    IO$SD_ADDR_HI, R0       ; hi word of 32-bit address
+                MOVE    R9, @R0
+                MOVE    IO$SD_CSR, R0
+                MOVE    SD$CMD_WRITE, @R0       ; issue block write command
+                RSUB    SD$WAIT_BUSY, 1         ; wait until finished
+
+_SD$WB_END      DECRB
                 RET
 ;
 ;*****************************************************************************
@@ -81,10 +103,20 @@ SD$READ_BYTE    INCRB
 ;*****************************************************************************
 ;* SD$WRITE_BYTE writes a byte to the write memory buffer of the controller
 ;*
-;* @TODO: Implement and document
+;* INPUT:  R8 = address between 0 .. 511
+;*         R9 = byte to be written
+;* OUTPUT: none
+;*
+;* No boundary checks are performed.
 ;*****************************************************************************
 ;
 SD$WRITE_BYTE   INCRB
+
+                MOVE    IO$SD_DATA_POS, R0
+                MOVE    R8, @R0
+                MOVE    IO$SD_DATA, R0
+                MOVE    R9, @R0
+
                 DECRB
                 RET
 ;
