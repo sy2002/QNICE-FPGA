@@ -34,8 +34,6 @@
 #include <stdlib.h>
 #include "ide_simulation.h"
 
-#undef DEBUG
-
 /*	A 32MB Compact Flash Card (CF) is defined because available memory is limited.
 *   The numbers for CHS are from the SanDisc CF specifiction. CFs from other vendors may 
 *   have a diffrent partitioning. */

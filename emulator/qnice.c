@@ -25,7 +25,6 @@
 ** are defining these. The emscripten environment is automatically defining __EMSCRIPTEN__.
 */
 
-#undef USE_IDE
 #define OLD_V_LOGIC
 
 #include <ctype.h>

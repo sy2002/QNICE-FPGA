@@ -44,7 +44,7 @@ fi
 
 FILES="qnice.c fifo.c sd.c vga.c"
 DEF_SWITCHES="-DUSE_SD -DUSE_VGA"
-UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART -UUSE_TIMER"
+UNDEF_SWITCHES="-UUSE_IDE -UUSE_UART -UUSE_TIMER -UDEBUG"
 PRELOAD_FILES="--preload-file monitor.out"
 
 if [ "$1" == "DEVELOP-RELEASE" ]; then

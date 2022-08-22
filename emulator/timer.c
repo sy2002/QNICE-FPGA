@@ -13,8 +13,6 @@
 **  In order to activate one of the (currently) four timers all of its three registers must be different from zero!
 */
 
-#undef DEBUG
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

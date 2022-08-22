@@ -9,7 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#undef DEBUG
 #define VERBOSE
 
 FILE *image = (FILE *) 0;
