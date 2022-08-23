@@ -50,6 +50,8 @@ List of changes:
 * fat32_library.asm: Added FAT32$FLUSH, FAT32$CLOSE, FAT32$WRITE_B, FAT32$WB
                      Refactored original FAT32$READ_SIC into FAT32$RW_SIC
                      Refactored original FAT32$FILE_RB into FAT32$FILE_RWB
+* fat32_file_wb.asm: New test programs
+* qmon.h & qmon.c: Added fat32_write_file, fat32_flush_file, fat32_close_file
 
 Made QNICE a nicer to work with system for MiSTer2MEGA65
 --------------------------------------------------------

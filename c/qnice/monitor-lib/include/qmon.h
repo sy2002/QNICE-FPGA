@@ -119,4 +119,12 @@ int fat32_write_file(fat32_file_handle f_handle, unsigned int data);
    any other error code. */
 int fat32_seek_file(fat32_file_handle f_handle, unsigned long seek_pos);
 
+/* Writes the 512-byte sector buffer to the physical medium.
+   Returns 0, if OK, error code otherwise */
+int fat32_flush_file(fat32_file_handle f_handle);
+
+/* Closes file and writes unwritten changes to disk.
+   Returns 0, if OK, error code otherwise */
+int fat32_close_file(fat32_file_handle f_handle);
+
 #endif

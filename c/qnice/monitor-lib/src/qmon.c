@@ -138,3 +138,20 @@ int fat32_seek_file(fat32_file_handle f_handle, unsigned long seek_pos)
     return def_fat32_seek_file(f_handle, seek_pos);
 }
 
+int def_fat32_flush_file(fat32_file_handle f_handle) =
+  "          ASUB     " M2S(QMON_EP_F32_FFLUSH) ", 1\n"   //call FAT32$FLUSH in monitor
+  "          MOVE     R9, R8\n";                          //return 0 or EOF or error code
+
+int fat32_flush_file(fat32_file_handle f_handle)
+{
+    return def_fat32_flush_file(f_handle);
+}
+
+int def_fat32_close_file(fat32_file_handle f_handle) =
+  "          ASUB     " M2S(QMON_EP_F32_FCLOSE) ", 1\n"   //call FAT32$CLOSE in monitor
+  "          MOVE     R9, R8\n";                          //return 0 or EOF or error code
+
+int fat32_close_file(fat32_file_handle f_handle)
+{
+    return def_fat32_close_file(f_handle);
+}
