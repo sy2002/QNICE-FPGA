@@ -5,6 +5,7 @@
     within C programs and within the C standard library.
 
     done by sy2002 in October 2016
+    enhanced by sy2002 in August 2022: fat32_read_file
 */
 
 #include "qmon.h"
@@ -114,6 +115,15 @@ int def_fat32_read_file(fat32_file_handle f_handle, int* result) =
 int fat32_read_file(fat32_file_handle f_handle, int* result)
 {
     return def_fat32_read_file(f_handle, result);
+}
+
+int def_fat32_write_file(fat32_file_handle f_handle, unsigned int data) =
+  "          ASUB     " M2S(QMON_EP_F32_FWRITE) ", 1\n"   //call FAT32$FILE_WB in monitor
+  "          MOVE     R9, R8\n";                          //return 0 or EOF or error code
+
+int fat32_write_file(fat32_file_handle f_handle, unsigned int data)
+{
+    return def_fat32_write_file(f_handle, data);
 }
 
 int def_fat32_seek_file(fat32_file_handle f_handle, unsigned long seek_pos) = 

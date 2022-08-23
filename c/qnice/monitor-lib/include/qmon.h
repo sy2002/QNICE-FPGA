@@ -5,6 +5,7 @@
     within C programs and within the C standard library.
 
     done by sy2002 in October 2016
+    enhanced by sy2002 in August 2022: fat32_read_file
 */
 
 #ifndef _QMON_H
@@ -48,10 +49,6 @@ typedef int (*_qmon_fp)();
        5test<zero terminator> 
    and the function returns 3. */   
 int qmon_split_str(char* input, char separator, char** output);
-
-/* ========================================================================
-   XYZ FUNCTIONS
-   ======================================================================== */
 
 /* ========================================================================
     FAT32 IMPLEMENTATION
@@ -107,10 +104,15 @@ void fat32_print_dir_entry(fat32_dir_entry d_entry, int attribs);
    fill be filled. */
 int fat32_open_file(fat32_device_handle dev_handle, fat32_file_handle f_handle, char* name);
 
-/* Read one byte from a file into the low byte of result, increase internal
+/* Read one byte from a file into the low byte of "*result", increase internal
    read pointer. Returns 0 if OK, FAT32_EOF on end of file or any other
    error code. */
 int fat32_read_file(fat32_file_handle f_handle, int* result);
+
+/* Write low byte in "data" to file at the current seek position and increase
+   internal write pointer. Returns 0 if OK, FAT32_EOF on end of file or any
+   other error code. */
+int fat32_write_file(fat32_file_handle f_handle, unsigned int data);
 
 /* Seek to a read position within the file. Returns 0, if OK,
    FAT23_ERR_SEEKTOOLARGE, if the seek would exceed the file or
