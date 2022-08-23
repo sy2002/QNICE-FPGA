@@ -63,7 +63,6 @@ FAT32$FE_LE_C1_5        .EQU    0x0001                  ; long filename: charact
 FAT32$FE_LE_C6_11       .EQU    0x000E                  ; long filename: characters 6 .. 11
 FAT32$FE_LE_C12_13      .EQU    0x001C                  ; long filename: characters 12 .. 13
 
-
 FAT32$INT_LONG_NAME     .EQU    0x000F                  ; internal flag used to filter for long file names
 FAT32$INT_LONG_MASK     .EQU    0x003F                  ; internal mask for filtering long file file and directory names
 
@@ -422,6 +421,12 @@ _F32_MNT_SERR   MOVE    FAT32$ERR_SIZE, R9
 ;
 FAT32$DIR_OPEN  INCRB
 
+                MOVE    R10, R0
+                MOVE    R11, R1
+                MOVE    R12, R2
+
+                INCRB
+
                 MOVE    R9, R0                      ; save device handle
                 ADD     FAT32$FDH_DEVICE, R0
                 MOVE    R8, @R0
@@ -445,6 +450,10 @@ FAT32$DIR_OPEN  INCRB
 
                 MOVE    R9, R0                      ; start with index 0
                 ADD     FAT32$FDH_INDEX, R0
+                MOVE    0, @R0
+
+                MOVE    R9, R0                      ; clear flags
+                ADD     FAT32$FDH_FLAGS, R0
                 MOVE    0, @R0 
 
                 MOVE    R9, R0                      ; remember dir. handle
@@ -458,9 +467,16 @@ FAT32$DIR_OPEN  INCRB
                 MOVE    R2, R9                      ; low word of cluster
                 MOVE    R3, R10                     ; high word of cluster
                 MOVE    0, R11                      ; sector
-                RSUB    FAT32$READ_SIC, 1           ; R9 contains OK or error
+                XOR     R12, R12                    ; R12=0: read sector
+                RSUB    FAT32$RW_SIC, 1             ; R9 contains OK or error
 
                 MOVE    R0, R8                      ; return dir. handle
+
+                DECRB
+
+                MOVE    R0, R10
+                MOVE    R1, R11
+                MOVE    R2, R12
 
                 DECRB
                 RET
@@ -916,7 +932,7 @@ _F32_DLST_END   DECRB                               ; restore R8, R9, R12
 ;*             (use FAT32$FDH_STRUCT_SIZE to reserve the memory)
 ;*         R10 points to a zero terminated filename string (path)
 ;*         R11 separator char (if zero, then "/" will be used)
-;* OUTPUT: R8  still points to the same handle
+;* OUTPUT: R8  still points to the same device handle
 ;*         R9  points to the same address but this is now a valid/filled hndl
 ;*         R10 0, if OK, otherwise error code
 ;*****************************************************************************
@@ -926,7 +942,14 @@ FAT32$FILE_OPEN INCRB
                 ; save original registers
                 MOVE    R9, R0                      ; R0 = file handle struct
                 MOVE    R11, R1
+                MOVE    R12, R7
 
+                ; clear flags inside file handle
+                MOVE    R0, R2
+                ADD     FAT32$FDH_FLAGS, R2
+                MOVE    0, @R2
+
+                ; open the file by populating the file handle
                 MOVE    R0, R11                     ; passing a non zero value
                                                     ; means: operation mode
                                                     ; is set to file open
@@ -956,9 +979,10 @@ FAT32$FILE_OPEN INCRB
                 MOVE    0, R10                      ; no errors
                 RBRA    _F32_FO_RET, 1              ; filesize is 0: return
 
-                ; filesize is > 0, so read the first 512 byte sector of the file into the
-                ; the internal buffer                
-_F32_FO_READ    RSUB    FAT32$READ_SIC, 1           ; read data
+                ; filesize is > 0, so read the first 512 byte sector of the
+                ; file into the the internal buffer                
+_F32_FO_READ    XOR     R12, R12                    ; R12=0: read sector
+                RSUB    FAT32$RW_SIC, 1             ; read data
                 MOVE    R9, R10                     ; return OK or err. in R10
 
                 ; remember FDH that was responsible for filling the HW buffer
@@ -968,6 +992,7 @@ _F32_FO_READ    RSUB    FAT32$READ_SIC, 1           ; read data
 
 _F32_FO_RET     MOVE    R0, R9                      ; restore org. registers
                 MOVE    R1, R11
+                MOVE    R7, R12
 
                 DECRB
                 RET
@@ -995,13 +1020,13 @@ FAT32$FILE_RB   INCRB
                 ; rely on the FAT last cluster marker, because a file can be
                 ; obviously smaller than a cluster)
                 MOVE    R8, R0
-                ADD     FAT32$FDH_READ_LO, R0
+                ADD     FAT32$FDH_ACCESS_LO, R0
                 MOVE    R8, R1
                 ADD     FAT32$FDH_SIZE_LO, R1
                 CMP     @R0, @R1
                 RBRA    _F32_FRB_START, !Z
                 MOVE    R8, R0
-                ADD     FAT32$FDH_READ_HI, R0
+                ADD     FAT32$FDH_ACCESS_HI, R0
                 MOVE    R8, R1
                 ADD     FAT32$FDH_SIZE_HI, R1
                 CMP     @R0, @R1
@@ -1034,9 +1059,9 @@ _F32_FRB_START  RSUB    FAT32$READ_FDH, 1
                 ADD     FAT32$FDH_INDEX, R0
                 ADD     1, @R0                      ; increase index by 1
                 MOVE    R8, R0
-                ADD     FAT32$FDH_READ_LO, R0
+                ADD     FAT32$FDH_ACCESS_LO, R0
                 MOVE    R8, R1
-                ADD     FAT32$FDH_READ_HI, R1
+                ADD     FAT32$FDH_ACCESS_HI, R1
                 ADD     1, @R0                      ; 32bit add 1 to read size
                 ADDC    0, @R1
 
@@ -1118,9 +1143,9 @@ _F32_FS_IPUSH   SUB     1, R4                       ; 32bit sub 1 from R5|R4
                 RBRA    _F32_FS_IPUSH2, Z           ; no: continue
                 RBRA    _F32_FS_RET, 1              ; yes: quit
 _F32_FS_IPUSH2  MOVE    R0, R6                      ; 32bit add the amount ..
-                ADD     FAT32$FDH_READ_LO, R6       ; .. of read bytes to ..
+                ADD     FAT32$FDH_ACCESS_LO, R6     ; .. of read bytes to ..
                 MOVE    R0, R7                      ; .. the file handle
-                ADD     FAT32$FDH_READ_HI, R7
+                ADD     FAT32$FDH_ACCESS_HI, R7
                 ADD     FAT32$SECTOR_SIZE, @R6
                 ADDC    0, @R7
                 RBRA    _F32_FS_LOOP, 1             ; next iteration
@@ -1130,9 +1155,9 @@ _F32_FS_INDEX   MOVE    R0, R6
                 ADD     FAT32$FDH_INDEX, R6
                 MOVE    R10, @R6                    ; set index to modulo
                 MOVE    R0, R6                      ; 32bit add the amount ..
-                ADD     FAT32$FDH_READ_LO, R6       ; .. of read bytes to ..
+                ADD     FAT32$FDH_ACCESS_LO, R6     ; .. of read bytes to ..
                 MOVE    R0, R7                      ; .. the file handle
-                ADD     FAT32$FDH_READ_HI, R7
+                ADD     FAT32$FDH_ACCESS_HI, R7
                 ADD     R10, @R6
                 ADDC    0, @R7                
                 MOVE    0, R9                       ; no error
@@ -1163,7 +1188,7 @@ _F32_FS_RET     MOVE    R0, R8                      ; restore R8 and R10
 ;* INPUT:  R8  points to a valid device handle
 ;*         R9  points to a zero terminated directory string (path)
 ;*         R10 separator char (if zero, then "/" will be used)
-;* OUTPUT: R8  still points to the directory handle
+;* OUTPUT: R8  still points to the device handle
 ;*         R9  0, if OK, otherwise error code
 ;*****************************************************************************
 ;
@@ -1383,7 +1408,7 @@ _F32$CDEVEND    DECRB
 ;*****************************************************************************
 ;* FAT32$CD_OR_OF changes the current directory or opens a file
 ;*
-;* This is an internal help function, because changing a directory and
+;* This is an internal helper function, because changing a directory and
 ;* opening a file requires very similar actions. See the documentation for
 ;* FAT32$CD and FAT32$FILE_OPEN for details.
 ;*
@@ -1392,7 +1417,7 @@ _F32$CDEVEND    DECRB
 ;*         R10 separator char (if zero, then "/" will be used)
 ;*         R11 operation mode: 0 = FAT32$CD, otherwise FAT32$FILE_OPEN
 ;*             in the latter case, R11 points to the file handle structure
-;*             that will be filled by FAT32$CDOF.
+;*             that will be filled by FAT32$CD_OR_OF.
 ;* OUTPUT: R9  0, if OK, otherwise error code
 ;*         all other registers remain unchanged
 ;*****************************************************************************
@@ -1556,10 +1581,10 @@ _F32_DF_NXSG5   MOVE    R6, R7                  ; R7 = dir. entry name
                 ADD     FAT32$FDH_INDEX, R7     
                 MOVE    R8, @R7                 ; set the start index to 0
                 MOVE    R12, R7
-                ADD     FAT32$FDH_READ_LO, R7
+                ADD     FAT32$FDH_ACCESS_LO, R7
                 MOVE    R8, @R7                 ; already read size LO = 0
                 MOVE    R12, R7
-                ADD     FAT32$FDH_READ_HI , R7
+                ADD     FAT32$FDH_ACCESS_HI , R7
                 MOVE    R8, @R7                 ; already read size HI = 0
                 RBRA    _F32_DF_SUCCESS, 1      ; return a success
 
@@ -1724,7 +1749,8 @@ _F32_RFDH_START MOVE    R0, R2
                 ADD     FAT32$FDH_SECTOR, R2
                 MOVE    @R2, R11
                 MOVE    R0, R8
-                RSUB    FAT32$READ_SIC, 1           ; re-read hardware buffer
+                XOR     R12, R12                    ; R12=0: read
+                RSUB    FAT32$RW_SIC, 1             ; re-read hardware buffer
 
                 MOVE    R0, R2                     
                 ADD     FAT32$DEV_BUFFERED_FDH, R2
@@ -1769,7 +1795,8 @@ _F32_RFDH_STRT2 MOVE    R1, R2
                 ADD     FAT32$FDH_CLUSTER_HI, R2
                 MOVE    @R2, R10                    ; HI word of cluster
                 MOVE    R4, R11                     ; sector number
-                RSUB    FAT32$READ_SIC, 1           ; read sector in cluster
+                XOR     R12, R12                    ; R12=0: read
+                RSUB    FAT32$RW_SIC, 1             ; read sector in cluster
 
                 ; remember the FDH responsible for filling the HW buffer
                 MOVE    R0, R10
@@ -1859,7 +1886,8 @@ _F32_RFDH_INCC4 MOVE    R0, R8                      ; R8 = device handle
                 MOVE    R10, R9                     ; R9 = cluster low word
                 MOVE    R11, R10                    ; R10 = cluster high word
                 XOR     R11, R11                    ; R11 = sector 0
-                RSUB    FAT32$READ_SIC, 1           ; load data sector; the
+                XOR     R12, R12                    ; R12=0: read
+                RSUB    FAT32$RW_SIC, 1             ; load data sector; the
                                                     ; FAT32$DEV_BUFFERED_FDH
                                                     ; has already been
                                                     ; remembered above (see
@@ -1882,22 +1910,29 @@ _F32_RFDH_END   DECRB
                 RET
 ;
 ;*****************************************************************************
-;* FAT32$READ_SIC reads a sector within a cluster
+;* FAT32$RW_SIC reads or writes a sector within a cluster
+;*
+;* The sector is stored to / read from the 512-byte sector buffer that is part
+;* of the physical media abstraction layer.
 ;*
 ;* INPUT:   R8:  device handle
 ;*          R9:  LO word of cluster
 ;*          R10: HI word of cluster
 ;*          R11: sector within cluster
+;*          R12: 0=read / 1=write
 ;* OUTPUT:  R8:  device handle
 ;           R9:  0, if OK, otherweise error code
 ;*****************************************************************************
 ;
-FAT32$READ_SIC  INCRB
+FAT32$RW_SIC    INCRB
 
                 MOVE    R10, R0
                 MOVE    R11, R1
+                MOVE    R12, R2
 
                 INCRB
+
+                MOVE    R12, R7                     ; remember R/W mode
 
                 ; if sector within cluster is larger than the amount of
                 ; clusters per sector then exit with an error message
@@ -1956,9 +1991,14 @@ _F32_RSIC_C2    MOVE    R8, R0                      ; save device handle
                 MOVE    FAT32$ERR_SIZE, R9
                 RBRA    _F32_RSIC_END, 1
 
-                ; read sector into internal buffer
+                ; read/write sector into/from internal buffer
 _F32_RSIC_C3    MOVE    FAT32$DEV_BLOCK_READ, R10
-                MOVE    R0, R11
+                CMP     1, R7                       ; write instead of read?
+                RBRA    _F32_RSIC_C4, !Z            ; no: read! (R10 stays)
+                MOVE    FAT32$DEV_BLOCK_WRITE, R10  ; yes: write
+
+                                                    ; R8/R9: lo/hi of LBA
+_F32_RSIC_C4    MOVE    R0, R11                     ; R11: device handle
                 RSUB    FAT32$CALL_DEV, 1
                 MOVE    R8, R9
                 MOVE    R0, R8
@@ -1967,6 +2007,7 @@ _F32_RSIC_END   DECRB
                 
                 MOVE    R0, R10
                 MOVE    R1, R11
+                MOVE    R2, R12
 
                 DECRB
                 RET
@@ -2091,5 +2132,74 @@ FAT32$READ_DW   INCRB
                 MOVE    R1, R10
 
                 MOVE    R0, R9
+                DECRB
+                RET
+;
+;*****************************************************************************
+;* FAT32$FLUSH writes the 512-byte sector buffer to the physical medium
+;*
+;* Only flushes the buffer, if the FAT32$FDHF_DIRTY flag is set and clears the
+;* flag after successfully writing to the physical medium.
+;*
+;* INPUT:  R8: pointer to file- or directory handle (FDH)
+;* OUTPUT: R8: unchanged pointer to FDH
+;*         R9: 0, if OK, otherwise error code
+;*****************************************************************************
+;
+FAT32$FLUSH     INCRB
+
+                MOVE    R8, R0
+                MOVE    R10, R1
+                MOVE    R11, R2
+                MOVE    R12, R3
+
+                INCRB
+
+                XOR     R9, R9                  ; default = OK
+
+                ; only flush if dirty flag is set
+                MOVE    R8, R0
+                ADD     FAT32$FDH_FLAGS, R0     ; R0: pointer to FDH flags
+                MOVE    @R0, R1
+                AND     FAT32$FDHF_DIRTY, R1
+                RBRA    _FAT32$FLUSH_R, Z       ; flag is not set: return
+
+                ; write to physical medium
+                MOVE    R8, R2                  ; R2: FDH
+                ADD     FAT32$FDH_DEVICE, R8
+                MOVE    @R8, R8                 ; R8: device handle
+
+                MOVE    R2, R9                  ; R9: LO word of cluster
+                ADD     FAT32$FDH_CLUSTER_LO, R9
+                MOVE    @R9, R9
+
+                MOVE    R2, R10                 ; R10: HI word of cluster
+                ADD     FAT32$FDH_CLUSTER_HI, R10
+                MOVE    @R10, R10
+
+                MOVE    R2, R11                 ; R11: sector within cluster
+                ADD     FAT32$FDH_SECTOR, R11
+                MOVE    @R11, R11
+
+                MOVE    1, R12                  ; R12=1: write
+                RSUB    FAT32$RW_SIC, 1         ; perform write operation
+                                                ; R9 contains 0 or error
+
+                ; do not clear dirty flag, if there was an error
+                CMP     0, R9
+                RBRA    _FAT32$FLUSH_R, !Z
+
+                ; clear dirty flag after flushing the buffer
+                MOVE    FAT32$FDHF_DIRTY, R1    ; R1 = dirty flag
+                NOT     R1, R1                  ; R1 = bitmask to clear flag
+                AND     R1, @R0                 ; clear dirty flag
+
+_FAT32$FLUSH_R  DECRB
+
+                MOVE    R0, R8
+                MOVE    R1, R10
+                MOVE    R2, R11
+                MOVE    R3, R12
+
                 DECRB
                 RET

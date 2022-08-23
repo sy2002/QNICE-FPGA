@@ -329,10 +329,15 @@ FAT32$FDH_SECTOR        .EQU    0x0003                  ; current sector
 FAT32$FDH_INDEX         .EQU    0x0004                  ; current byte index within current sector
 FAT32$FDH_SIZE_LO       .EQU    0x0005                  ; only in case FDH is a file: low word of file size, otherwise undefined
 FAT32$FDH_SIZE_HI       .EQU    0x0006                  ; only in case FDH is a file: high word of file size, otherwise undefined
-FAT32$FDH_READ_LO       .EQU    0x0007                  ; only in case FDH is a file: low word of already read amount of bytes
-FAT32$FDH_READ_HI       .EQU    0x0008                  ; only in case FDH is a file: high word of already read amount of bytes
+FAT32$FDH_ACCESS_LO     .EQU    0x0007                  ; only in case FDH is a file: low word of already read/written amount of bytes
+FAT32$FDH_ACCESS_HI     .EQU    0x0008                  ; only in case FDH is a file: high word of already read/written amount of bytes
+FAT32$FDH_FLAGS         .EQU    0x0009                  ; status flags
 
-FAT32$FDH_STRUCT_SIZE   .EQU    0x0009                  ; size of the directory handle structure
+FAT32$FDH_STRUCT_SIZE   .EQU    0x000A                  ; size of the directory handle structure
+
+; Flags used by FAT32$FDH_FLAGS
+
+FAT32$FDHF_DIRTY        .EQU    0x0001                  ; bit 0: sector buffer is dirty due to a write access
 
 ; FILE ATTRIBUTES
 

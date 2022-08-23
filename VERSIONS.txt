@@ -43,8 +43,12 @@ write to floppy- and hard-disks (i.e. writing to the disk image files).
 List of changes:
 
 * Fixed the emulator's SD card writing mechanism
+* SD card, UART & EAE: Improved VHDL: Convert async. reset to synchronous
+* sysdef.asm: renamed FAT32$FDH_READ_LO and -HI in FAT32$FDH_ACCESS_LO and -HI
+              enhanced FDH by new field: FAT32$FDH_FLAGS (+1 word RAM)
 * sd_library.asm: Added SD$WRITE_BLOCK and SD$WRITE_BYTE
-WIP fat32_library.asm: X, Y, Z
+WIP fat32_library.asm: Added FAT32$FLUSH
+                       Changed FAT32$READ_SIC into FAT32$RW_SIC
 
 Made QNICE a nicer to work with system for MiSTer2MEGA65
 --------------------------------------------------------
