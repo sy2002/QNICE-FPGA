@@ -1680,21 +1680,24 @@ _F32_CDROOT     MOVE    R0, R6
                 RET                
 ;
 ;*****************************************************************************
-;* FAT32$READ_FDH fills the read buffer according to the current index in FDH
+;* FAT32$READ_FDH fills the sector buffer according to current index in FDH
 ;*
 ;* If the index within FDH is < FAT32$SECTOR_SIZE (512), then it is assumed,
 ;* that no read operation needs to be performed, i.e. another function has
-;* already filled the 512-byte read-buffer. Otherwise, the sector is
+;* already filled the 512-byte sector-buffer. Otherwise, the sector is
 ;* increased (and the index is reset to 0) and if necessary also the cluster
 ;* is increased (and the sector is reset to 0). The new index, sector and
 ;* cluster values are stored within the FDH (file and directory handle).
 ;* In case of an increased index or sector or cluster value, the 512-byte
-;* read-buffer is re-read for subsequent read accesses.
+;* sector-buffer is re-read for subsequent read/write accesses.
 ;*
 ;* The above-mentioned "assumed that no read operation needs to be performed"
 ;* is only true, if the FDH, which was originally responsible for filling the
 ;* hardware buffer is the same, as the one who is currently active. This is
 ;* checked by evaluating FAT32$DEV_BUFFERED_FDH.
+;*
+;* Writing to the physical medium is performed by flushing the sector buffer
+;* at the right moments.
 ;*
 ;* INPUT:  R8: FDH
 ;* OUTPUT: R8: FDH
@@ -1714,10 +1717,10 @@ FAT32$READ_FDH  INCRB
                 MOVE    R8, R1                      ; R1 = FDH
 
                 ; @TODO: as soon as this function is generalized to also
-                ; be able to write / append, then also files with an initial
+                ; be able to append, then also files with an initial
                 ; size of zero (1st clst. = 0) must be allowed to be appended
 
-                ; if the first cluster = 0 then we try to read from an
+                ; if the first cluster = 0 then we try to access an
                 ; illegal cluster, therefore exit with an error message
                 XOR     R3, R3 
                 MOVE    R1, R2
@@ -1732,12 +1735,20 @@ FAT32$READ_FDH  INCRB
                 RBRA    _F32_RFDH_END, 1
 
                 ; if the current FDH (R1) is not equal to the one, which
-                ; filled the 512 byte hardware buffer, then we need to
-                ; re-read the 512 byte hardware buffer again
+                ; filled the 512 byte sector buffer, then we need to
+                ; flush the current sector buffer using the FDH of the
+                ; current owner and then re-read the 512 byte sector buffer
+                ; and mark our current FDH as owner
 _F32_RFDH_START MOVE    R0, R2
                 ADD     FAT32$DEV_BUFFERED_FDH, R2
-                CMP     R1, @R2
+                MOVE    @R2, R2
+                CMP     R1, R2
                 RBRA    _F32_RFDH_STRT2, Z          ; cur. FDH == responsible
+
+                MOVE    R2, R8                      ; flush owners sect. buf.
+                RSUB    FAT32$FLUSH, 1
+                CMP     0, R9
+                RBRA    _F32_RFDH_END, !Z           ; error? then return it
 
                 MOVE    R1, R2
                 ADD     FAT32$FDH_CLUSTER_LO, R2
@@ -1760,12 +1771,18 @@ _F32_RFDH_START MOVE    R0, R2
                 RBRA    _F32_RFDH_END, !Z           ; exit on error
 
                 ; if the current "to-be-read" index equals 512, then
-                ; we need to read the next sector within the cluster
+                ; we need to flush the current sector buffer and then
+                ; read the next sector within the cluster
 _F32_RFDH_STRT2 MOVE    R1, R2
                 ADD     FAT32$FDH_INDEX, R2
                 MOVE    @R2, R3                     ; R3 = "to-be-read" index
                 CMP     R3, FAT32$SECTOR_SIZE
                 RBRA    _F32_RFDH_CISS, !Z
+
+                MOVE    R1, R8                      ; flush our sector buffer
+                RSUB    FAT32$FLUSH, 1
+                CMP     0, R9
+                RBRA    _F32_RFDH_END, !Z           ; error? then return it                
 
                 ; reset the index and increase the sector
                 ; if the sector is larger than the sectors per cluster, then
@@ -2202,4 +2219,37 @@ _FAT32$FLUSH_R  DECRB
                 MOVE    R3, R12
 
                 DECRB
+                RET
+;
+;*****************************************************************************
+;* FAT32$CLOSE closes file and writes unwritten changes to disk
+;*
+;* Flushes the 512-byte sector-write buffer and sets all fields of the FDH
+;* to zero.
+;*
+;* INPUT:  R8: pointer to file- or directory handle (FDH)
+;* OUTPUT: R8: unchanged pointer to FDH, which is now uninitialized and can
+;              be re-used for another file
+;*         R9: 0, if OK, otherwise error code
+;*****************************************************************************
+;
+FAT32$CLOSE     INCRB
+
+                RSUB    FAT32$FLUSH, 1
+
+                ; leave on error (do not clear the FDH)
+                CMP     0, R9
+                RBRA    _FAT32$CLOSE_R, !Z
+
+                ; clear the FDH
+                MOVE    R10, R0                 ; remember R10, leave unchgd
+
+                MOVE    FAT32$FDH_STRUCT_SIZE, R9
+                XOR     R10, R10
+                RSUB    MEM$FILL, 1
+                XOR     R9, R9                  ; R9 was 0 in the first place
+
+                MOVE    R0, R10                 ; restore R10
+
+_FAT32$CLOSE_R  DECRB
                 RET
