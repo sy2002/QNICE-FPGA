@@ -1001,8 +1001,8 @@ _F32_FO_RET     MOVE    R0, R9                      ; restore org. registers
 ;* FAT32$FILE_RB reads one byte from an open file
 ;*
 ;* The read operation takes place at the current internal "seek position"
-;* within the file, i.e. subsequent calls to FILE_RB will result in reading
-;* byte per byte.
+;* aka "access position" within the file, i.e. subsequent calls to FILE_RB
+;* will result in reading byte per byte.
 ;*
 ;* INPUT:  R8  points to a valid file handle
 ;* OUTPUT: R8  still points to the file handle
@@ -1013,12 +1013,66 @@ _F32_FO_RET     MOVE    R0, R9                      ; restore org. registers
 ;*             any other error code in case of an error
 ;*****************************************************************************
 ;
-FAT32$FILE_RB   INCRB
+FAT32$FILE_RB   XOR     R9, R9                      ; R9=0: read
+                RSUB    FAT32$FILE_RWB, 1
+                RET
+;
+;*****************************************************************************
+;* FAT32$FILE_WB writes one byte to an open file
+;*
+;* The write operation takes place at the current internal "seek position"
+;* aka "access position" within the file, i.e. subsequent calls to FILE_WB
+;* will result in writing byte per byte.
+;*
+;* INPUT:  R8  points to a valid file handle
+;*         R9  byte to be written
+;* OUTPUT: R8  still points to the file handle
+;*         R9  0, if the read operation succeeded
+;*             FAT32$EOF, if the end of file has been reached; in this case
+;*                        the value of R9 is 0 (means "undefined" here)
+;*             any other error code in case of an error
+;*****************************************************************************
+;
+FAT32$FILE_WB   INCRB
+                MOVE    R10, R0
 
-                ; check for eof by comparing the already read amount of bytes
-                ; with the filesize (we need to do this, because we cannot
-                ; rely on the FAT last cluster marker, because a file can be
-                ; obviously smaller than a cluster)
+                MOVE    R9, R10                     ; R10: byte to be written
+                MOVE    1, R9                       ; R9=1: write
+                RSUB    FAT32$FILE_RWB, 1
+                MOVE    R10, R9                     ; R10: return value
+
+                MOVE    R0, R10
+                DECRB
+                RET            
+;
+;*****************************************************************************
+;* FAT32$FILE_RWB reads or writes one byte from an open file
+;*
+;* The read or write operation takes place at the current internal
+;* "seek position" aka "access position" within the file, i.e. subsequent
+;* calls to FILE_RWB will result in reading/writing byte per byte.
+;*
+;* INPUT:  R8  points to a valid file handle
+;*         R9  0=read / 1=write
+;*         R10 only of R9=1: byte to be written
+;* OUTPUT: R8  still points to the file handle
+;*         R9  low byte = currently read byte; high byte = 0
+;*         R10 0, if the read operation succeeded
+;*             FAT32$EOF, if the end of file has been reached; in this case
+;*                        the value of R9 is 0 (means "undefined" here)
+;*             any other error code in case of an error
+;*****************************************************************************
+;
+FAT32$FILE_RWB  INCRB
+                
+                MOVE    R9, R5                      ; R5: read/write mode
+                MOVE    R10, R6                     ; R6: byte to be written
+
+                ; check for eof by comparing the already accessed amount of
+                ; bytes with the filesize (we need to do this, because we
+                ; cannot rely on the FAT last cluster marker, because a file
+                ; can be obviously smaller than a cluster)
+                ; additionally: in write-mode right now we cannot append bytes
                 MOVE    R8, R0
                 ADD     FAT32$FDH_ACCESS_LO, R0
                 MOVE    R8, R1
@@ -1035,26 +1089,40 @@ FAT32$FILE_RB   INCRB
                 RBRA    _F32_FRB_RET, 1
 
                 ; follow the FAT cluster chain and adjust cluster/sector/index
-                ; within the handle, if necessary; that means that also
-                ; new sectors will be read, if necessary
+                ; within the handle, if necessary; that means that also,
+                ; if neccessary, a new sector will be read and/or an existing
+                ; sector buffer will be flushed
 _F32_FRB_START  RSUB    FAT32$READ_FDH, 1
                 MOVE    R9, R10                     ; R10 is the return value
                 RBRA    _F32_FRB_RET, !Z            ; return on error
 
-                ; read the byte
                 MOVE    R8, R7                      ; save original R8
                 ADD     FAT32$FDH_DEVICE, R8
                 MOVE    @R8, R8                     ; retrieve device handle
                 MOVE    R7, R9
                 ADD     FAT32$FDH_INDEX, R9
-                MOVE    @R9, R9                     ; retrieve the read index
-                RSUB    FAT32$READ_B, 1             ; read one byte
-                MOVE    R7, R8                      ; restore original R8
+                MOVE    @R9, R9                     ; R9: access index
+
+                CMP     0, R5                       ; read?
+                RBRA    _F32_FRB_RB, Z              ; yes
+
+                ; write the byte and set dirty flag for current sector buffer
+                MOVE    R6, R10                     ; R10: byte to be written
+                RSUB    FAT32$WRITE_B, 1            ; write one byte
+                MOVE    R7, R2                      ; R2: FDH
+                ADD     FAT32$FDH_FLAGS, R2
+                OR      FAT32$FDHF_DIRTY, @R2       ; set dirty flag
+                RBRA    _F32_FRB_INC, 1
+
+                ; read the byte
+_F32_FRB_RB     RSUB    FAT32$READ_B, 1             ; read one byte  
                 MOVE    R10, R9                     ; R9 = read byte = retval
+
+_F32_FRB_INC    MOVE    R7, R8                      ; restore original R8
                 MOVE    0, R10                      ; R10 = 0 = no error
 
-                ; increase the index and the read size as we just successfully
-                ; did read read one byte
+                ; increase the index and the access pointer as we just
+                ; successfully did read/write one byte
                 MOVE    R8, R0
                 ADD     FAT32$FDH_INDEX, R0
                 ADD     1, @R0                      ; increase index by 1
@@ -2094,7 +2162,40 @@ FAT32$READ_B    INCRB
 
                 DECRB
                 RET
-;                
+;
+;*****************************************************************************
+;* FAT32$WRITE_B writes a byte to the current sector buffer
+;*
+;* INPUT:  R8:  pointer to mount data structure (device handle)
+;*         R9:  address (0 .. 511)
+;*         R10: byte to be written
+;* OUTPUT: none, registers unchanged
+;*****************************************************************************
+;
+FAT32$WRITE_B   INCRB
+
+                MOVE    R8, R0
+                MOVE    R9, R1
+                MOVE    R10, R2
+                MOVE    R11, R3
+                MOVE    R12, R4
+
+
+                MOVE    R8, R11                 ; mount data structure
+                MOVE    R9, R8                  ; write address
+                MOVE    R10, R9                 ; byte to be written
+                MOVE    FAT32$DEV_BYTE_WRITE, R10
+                RSUB    FAT32$CALL_DEV, 1
+
+                MOVE    R0, R8
+                MOVE    R1, R9
+                MOVE    R2, R10
+                MOVE    R3, R11
+                MOVE    R4, R12
+
+                DECRB
+                RET
+;
 ;*****************************************************************************
 ;* FAT32$READ_W reads a word from the current sector buffer
 ;*
