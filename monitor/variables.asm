@@ -8,6 +8,10 @@
 ;; below the IO-page which itself starts on 0xFF00. So the address after the .ORG
 ;; directive is crucial and has to be adapted manually since the assembler is (as of
 ;; now) unable to perform address arithmetic!
+;;
+;; The calculation is done like this:
+;;      0xFF00 (start of IO-page) minus sizeof(all variables here)
+;;      0xFF00 minus 18 (0x12) - 1 - 1 - 1 = 0xFEEB
 ;;=========================================================================================
 ;
             .ORG    0xFEEB

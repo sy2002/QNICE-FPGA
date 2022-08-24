@@ -968,6 +968,15 @@ FAT32$FILE_OPEN INCRB
                 MOVE    @R2, R10                    ; R10 = cluster hi
                 XOR     R11, R11                    ; R11 = sector = 0
 
+                ; remember the first cluster for being able to seek a file
+                ; from the beginning
+                MOVE    R0, R2
+                ADD     FAT32$FDH_START_CLUS_LO, R2
+                MOVE    R9, @R2
+                MOVE    R0, R2
+                ADD     FAT32$FDH_START_CLUS_HI, R2
+                MOVE    R10, @R2
+
                 ; special case: if the first cluster is zero, than we
                 ; have a file of filesize zero; we can open it, and we can
                 ; write to it, but if we would try to read from it, we would
@@ -1137,7 +1146,9 @@ _F32_FRB_RET    DECRB
                 RET
 ;
 ;*****************************************************************************
-;* FAT32$FILE_SEEK positions the read/write pointer within an open file
+;* FAT32$FILE_SEEK position of the read/write pointer within an open file
+;*
+;* Currently, seeking is always relative to the start of the file.
 ;*
 ;* INPUT:  R8  points to a valid file handle
 ;*         R9  LO word of seek position
@@ -1177,12 +1188,56 @@ _F32_FS_CHKSIZ  MOVE    R0, R4
                 MOVE    FAT23$ERR_SEEKTOOLARGE, R9
                 RBRA    _F32_FS_RET, 1
 
-                ; 1. divide the 32bit seek position by 512
-                ; 2. push the index forward <quotient> times and then
-                ; 3. set the the new index to the <modulo>
+                ; 1. restore cluster/sector/etc. to the beginning of the file
+                ; 2. divide the 32bit seek position by 512
+                ; 3. push the index forward <quotient> times
+                ;    (this equals following the potentially fragmented cluster
+                ;    struct. of the file just like if we would be reading it)
+                ; 4. set the the new index to the <modulo>
+
+                ; restore the current cluster/sector and the other state
+                ; variables in the FDH to the beginning of the file
+                ;
+                ; before we do this, we need to flush the 512 byte sector
+                ; buffer using the file handle of the owner of the buffer
+                ;
+                ; @TODO: Make this configurable in future, so that we
+                ; can support the three seek-modes that for example the
+                ; C fseek function supports)
+_F32_FS_START   MOVE    R0, R8                      ; R8 = current FDH
+                ADD     FAT32$FDH_DEVICE, R8
+                MOVE    @R8, R8                     ; R8 = device handle
+                ADD     FAT32$DEV_BUFFERED_FDH, R8
+                MOVE    @R8, R8                     ; R8 = FDH of buf. owner
+                RSUB    FAT32$FLUSH, 1              ; flush sector buffer
+                CMP     0, R9                       ; error?
+                RBRA    _F32_FS_RET, !Z             ; yes: end
+
+                MOVE    R0, R8
+                ADD     FAT32$FDH_START_CLUS_LO, R8
+                MOVE    R0, R9
+                ADD     FAT32$FDH_CLUSTER_LO, R9
+                MOVE    @R8, @R9
+                MOVE    R0, R8
+                ADD     FAT32$FDH_START_CLUS_HI, R8
+                MOVE    R0, R9
+                ADD     FAT32$FDH_CLUSTER_HI, R9
+                MOVE    @R8, @R9
+                MOVE    R0, R8
+                ADD     FAT32$FDH_SECTOR, R8
+                MOVE    0, @R8
+                MOVE    R0, R8
+                ADD     FAT32$FDH_INDEX, R8
+                MOVE    0, @R8
+                MOVE    R0, R8
+                ADD     FAT32$FDH_ACCESS_LO, R8
+                MOVE    0, @R8
+                MOVE    R0, R8
+                ADD     FAT32$FDH_ACCESS_HI, R8
+                MOVE    0, @R8
 
                 ; divide the 32bit seek position by 512
-_F32_FS_START   MOVE    R1, R8                      ; R9|R8 = HI|LO dividend
+                MOVE    R1, R8                      ; R9|R8 = HI|LO dividend
                 MOVE    R2, R9
                 MOVE    FAT32$SECTOR_SIZE, R10      ; R11|R10 = HI|LO divisor
                 XOR     R11, R11

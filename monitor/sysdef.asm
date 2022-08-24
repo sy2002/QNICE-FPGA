@@ -327,13 +327,15 @@ FAT32$FDH_CLUSTER_LO    .EQU    0x0001                  ; current cluster (low w
 FAT32$FDH_CLUSTER_HI    .EQU    0x0002                  ; current cluster (high word)
 FAT32$FDH_SECTOR        .EQU    0x0003                  ; current sector
 FAT32$FDH_INDEX         .EQU    0x0004                  ; current byte index within current sector
-FAT32$FDH_SIZE_LO       .EQU    0x0005                  ; only in case FDH is a file: low word of file size, otherwise undefined
-FAT32$FDH_SIZE_HI       .EQU    0x0006                  ; only in case FDH is a file: high word of file size, otherwise undefined
-FAT32$FDH_ACCESS_LO     .EQU    0x0007                  ; only in case FDH is a file: low word of already read/written amount of bytes
-FAT32$FDH_ACCESS_HI     .EQU    0x0008                  ; only in case FDH is a file: high word of already read/written amount of bytes
-FAT32$FDH_FLAGS         .EQU    0x0009                  ; status flags
+FAT32$FDH_SIZE_LO       .EQU    0x0005                  ; only if FDH is a file: low word of file size, otherwise undefined
+FAT32$FDH_SIZE_HI       .EQU    0x0006                  ; only if FDH is a file: high word of file size, otherwise undefined
+FAT32$FDH_ACCESS_LO     .EQU    0x0007                  ; only if FDH is a file: low word of already read/written amount of bytes
+FAT32$FDH_ACCESS_HI     .EQU    0x0008                  ; only if FDH is a file: high word of already read/written amount of bytes
+FAT32$FDH_START_CLUS_LO .EQU    0x0009                  ; only if FDH is a file: start of file: cluster (low word)
+FAT32$FDH_START_CLUS_HI .EQU    0x000A                  ; only if FDH is a file: start of file: cluster (high word)
+FAT32$FDH_FLAGS         .EQU    0x000B                  ; status flags
 
-FAT32$FDH_STRUCT_SIZE   .EQU    0x000A                  ; size of the directory handle structure
+FAT32$FDH_STRUCT_SIZE   .EQU    0x000C                  ; size of the directory handle structure
 
 ; Flags used by FAT32$FDH_FLAGS
 

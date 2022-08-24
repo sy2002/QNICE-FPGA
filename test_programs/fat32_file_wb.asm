@@ -46,17 +46,54 @@ FOPEN_OK        MOVE    R9, R8                  ; R8: file handle
 LOOP            MOVE    R0, R9
                 SYSCALL(f32_fwrite, 1)          ; write byte
                 CMP     FAT32$EOF, R9           ; end of file?
-                RBRA    END, Z                  ; yes
+                RBRA    NEXT, Z                 ; yes: next test
+                CMP     0, R9                   ; everything OK?
+                RBRA    LOOP_1, Z               ; yes
 
-                ADD     1, R0                   ; next byte
+                MOVE    STR_ERR_WRITE1, R8
+                RBRA    ERR_END1, 1
+
+LOOP_1          ADD     1, R0                   ; next byte
                 RBRA    LOOP, 1
+
+                ; seek to some hardcoded positions and write some hardcoded
+                ; values (you need to make sure that the test file is large
+                ; enough)
+NEXT            MOVE    SEEKTEST_COUNT, R0
+                MOVE    @R0, R0
+                MOVE    SEEKTEST, R1
+
+NEXT_0          MOVE    @R1++, R9
+                XOR     R10, R10
+                SYSCALL(f32_fseek, 1)
+                CMP     0, R9
+                RBRA    NEXT_1, Z
+
+                MOVE    STR_ERR_SEEK, R8
+                RBRA    ERR_END1, 1
+
+NEXT_1          MOVE    @R1++, R9
+                SYSCALL(f32_fwrite, 1)
+                CMP     0, R9
+                RBRA    NEXT_2, Z
+
+                MOVE    STR_ERR_WRITE2, R8
+                RBRA    ERR_END1, 1
+
+NEXT_2          SUB     1,  R0
+                RBRA    NEXT_0, !Z           
 
                 ; it is important to close the file (handle is still in R8)
                 ; because during file close, the sector buffer is being
                 ; flushed and potentially remaining bytes are written
 END             SYSCALL(f32_fclose, 1)
+                CMP     0, R9
+                RBRA    DONE, Z
 
-                MOVE    STR_DONE, R8
+                MOVE    STR_ERR_CLOSE, R8
+                RBRA    ERR_END1, 1
+
+DONE            MOVE    STR_DONE, R8
                 SYSCALL(puts, 1)
                 SYSCALL(exit, 1)
 
@@ -73,5 +110,14 @@ STR_TITLE       .ASCII_P "Simple FAT32$FILE_WB test - "
                 .ASCII_W "done by sy2002 in August 2022\n"
 STR_FNF         .ASCII_W "File not found. Please check STR_TEST_FILE."
 STR_ERR_MNT     .ASCII_W "Error mounting SD-card and/or file system: "
-STR_ERR_GENERIC .ASCII_W "Error: "
+STR_ERR_WRITE1  .ASCII_W "Write #1 error: "
+STR_ERR_WRITE2  .ASCII_W "Write #2 error: "
+STR_ERR_SEEK    .ASCII_W "Seek error: "
+STR_ERR_CLOSE   .ASCII_W "Close error: "
 STR_DONE        .ASCII_W "Done.\n\n"
+
+                ; seek positions and values
+SEEKTEST_COUNT  .DW 3                
+SEEKTEST        .DW   23, 0x0023
+                .DW 1025, 0x0009
+                .DW 3050, 0x0076

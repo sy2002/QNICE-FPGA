@@ -5,6 +5,8 @@
 ; November 2016 .. December 2016: enhanced by new test case and fixed
 ; "read multiple files in parallel" bug, so that for example the test program
 ; c/test_programs/fread_basic.c works
+;
+; adjusted to new sysdef.asm naming conventions in August 2022
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -2047,13 +2049,13 @@ FAT32$FILE_RB   INCRB
                 ; rely on the FAT last cluster marker, because a file can be
                 ; obviously smaller than a cluster)
                 MOVE    R8, R0
-                ADD     FAT32$FDH_READ_LO, R0
+                ADD     FAT32$FDH_ACCESS_LO, R0
                 MOVE    R8, R1
                 ADD     FAT32$FDH_SIZE_LO, R1
                 CMP     @R0, @R1
                 RBRA    _F32_FRB_START, !Z
                 MOVE    R8, R0
-                ADD     FAT32$FDH_READ_HI, R0
+                ADD     FAT32$FDH_ACCESS_HI, R0
                 MOVE    R8, R1
                 ADD     FAT32$FDH_SIZE_HI, R1
                 CMP     @R0, @R1
@@ -2086,9 +2088,9 @@ _F32_FRB_START  RSUB    FAT32$READ_FDH, 1
                 ADD     FAT32$FDH_INDEX, R0
                 ADD     1, @R0                      ; increase index by 1
                 MOVE    R8, R0
-                ADD     FAT32$FDH_READ_LO, R0
+                ADD     FAT32$FDH_ACCESS_LO, R0
                 MOVE    R8, R1
-                ADD     FAT32$FDH_READ_HI, R1
+                ADD     FAT32$FDH_ACCESS_HI, R1
                 ADD     1, @R0                      ; 32bit add 1 to read size
                 ADDC    0, @R1
 
@@ -2170,9 +2172,9 @@ _F32_FS_IPUSH   SUB     1, R4                       ; 32bit sub 1 from R5|R4
                 RBRA    _F32_FS_IPUSH2, Z           ; no: continue
                 RBRA    _F32_FS_RET, 1              ; yes: quit
 _F32_FS_IPUSH2  MOVE    R0, R6                      ; 32bit add the amount ..
-                ADD     FAT32$FDH_READ_LO, R6       ; .. of read bytes to ..
+                ADD     FAT32$FDH_ACCESS_LO, R6     ; .. of read bytes to ..
                 MOVE    R0, R7                      ; .. the file handle
-                ADD     FAT32$FDH_READ_HI, R7
+                ADD     FAT32$FDH_ACCESS_HI, R7
                 ADD     FAT32$SECTOR_SIZE, @R6
                 ADDC    0, @R7
                 RBRA    _F32_FS_LOOP, 1             ; next iteration
@@ -2182,9 +2184,9 @@ _F32_FS_INDEX   MOVE    R0, R6
                 ADD     FAT32$FDH_INDEX, R6
                 MOVE    R10, @R6                    ; set index to modulo
                 MOVE    R0, R6                      ; 32bit add the amount ..
-                ADD     FAT32$FDH_READ_LO, R6       ; .. of read bytes to ..
+                ADD     FAT32$FDH_ACCESS_LO, R6     ; .. of read bytes to ..
                 MOVE    R0, R7                      ; .. the file handle
-                ADD     FAT32$FDH_READ_HI, R7
+                ADD     FAT32$FDH_ACCESS_HI, R7
                 ADD     R10, @R6
                 ADDC    0, @R7                
                 MOVE    0, R9                       ; no error
@@ -2610,10 +2612,10 @@ _F32_DF_NXSG5   MOVE    R6, R7                  ; R7 = dir. entry name
                 ADD     FAT32$FDH_INDEX, R7     
                 MOVE    R8, @R7                 ; set the start index to 0
                 MOVE    R12, R7
-                ADD     FAT32$FDH_READ_LO, R7
+                ADD     FAT32$FDH_ACCESS_LO, R7
                 MOVE    R8, @R7                 ; already read size LO = 0
                 MOVE    R12, R7
-                ADD     FAT32$FDH_READ_HI , R7
+                ADD     FAT32$FDH_ACCESS_HI , R7
                 MOVE    R8, @R7                 ; already read size HI = 0
                 RBRA    _F32_DF_SUCCESS, 1      ; return a success
 

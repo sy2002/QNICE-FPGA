@@ -43,15 +43,34 @@ write to floppy- and hard-disks (i.e. writing to the disk image files).
 List of changes:
 
 * Fixed the emulator's SD card writing mechanism
-* SD card, UART & EAE: Improved VHDL: Convert async. reset to synchronous
+
 * sysdef.asm: renamed FAT32$FDH_READ_LO and -HI in FAT32$FDH_ACCESS_LO and -HI
-              enhanced FDH by new field: FAT32$FDH_FLAGS (+1 word RAM)
+              enhanced FDH by new fields: FAT32$FDH_FLAGS (+1 word RAM) plus
+              FAT32$FDH_START_CLUS_LO & _HI to store the start position (first
+              cluster) of the file for being able to seek from the start
 * sd_library.asm: Added SD$WRITE_BLOCK and SD$WRITE_BYTE
 * fat32_library.asm: Added FAT32$FLUSH, FAT32$CLOSE, FAT32$WRITE_B, FAT32$WB
                      Refactored original FAT32$READ_SIC into FAT32$RW_SIC
                      Refactored original FAT32$FILE_RB into FAT32$FILE_RWB
+                     Changed semantics of FAT32$FILE_SEEK: Seeking is now
+                     relative to the start of the file versus relative to the
+                     current access position. It is not too hard to make this
+                     configurable (as in C's fseek routine), but for now,
+                     relative to the start of a file is good enough for our
+                     purposes. The changed semantics do not hurt: A grep of
+                     the whole existing QNICE code base, including M2M
+                     revealed that FAT32$FILE_SEEK was always used directly
+                     after opening a file, which is identical to the new
+                     semantics.
 * fat32_file_wb.asm: New test programs
 * qmon.h & qmon.c: Added fat32_write_file, fat32_flush_file, fat32_close_file
+
+Improved robustness
+-------------------
+
+* SD card, UART & EAE: Improved VHDL: Convert async. reset to synchronous
+
+@TODO see "?? WIP: SD CARD ??" above: final result needs to be copied here
 
 Made QNICE a nicer to work with system for MiSTer2MEGA65
 --------------------------------------------------------
