@@ -62,8 +62,14 @@ List of changes:
                      revealed that FAT32$FILE_SEEK was always used directly
                      after opening a file, which is identical to the new
                      semantics.
-* fat32_file_wb.asm: New test programs
-* qmon.h & qmon.c: Added fat32_write_file, fat32_flush_file, fat32_close_file
+* fat32_file_wb.asm: New test program
+* qmon.h & qmon.c: Added fat32_write_file, fat32_seek_file, fat32_flush_file,
+                   fat32_close_file
+* C: Ensured that fwrite works in mode "r+" and "rb+" and ensured that
+     fseek works in the mode SEEK_SET. This lead to changes/enhancements in
+     vclib: __close.c, __open.c, __seek.c, __write.c, fclose.c
+     New libvc.a and new qmon.a
+* New C test program in c/test_programs called fwrite.c
 
 Improved robustness
 -------------------

@@ -5,6 +5,7 @@
     of characters written.
 
     done by sy2002 in November 2016
+    enhanced by sy2002 in August 2022
 */
 
 #include <stdio.h>
@@ -30,7 +31,24 @@ size_t __write(int h, const char* p, size_t l)
     //write to a file
     else
     {
+        int retval;
+        size_t bytes_written = 0;
+        fat32_file_handle* file_handle = (fat32_file_handle*) h;
 
+        while (bytes_written < l)
+        {
+            retval = fat32_write_file(*file_handle, *p);
+            if (retval == 0)
+            {
+                p++;
+                bytes_written++;
+            }
+            else if (retval == FAT32_EOF)
+                break;
+            else
+                return -1;
+        }
+
+        return bytes_written;
     }
 }
-

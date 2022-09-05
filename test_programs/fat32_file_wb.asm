@@ -1,7 +1,12 @@
 ;
 ; First test of the simplified FAT32 writing routine that was done
-; in August 2022 and that allows to modifying the bytes of an existing
+; in August 2022 and that allows to modify the bytes of an existing
 ; file without appending or deleting data and without creating new files.
+;
+; This program overwrites all bytes of the file specified by STR_TEST_FILE.
+; The pattern is: Address of the byte within the file modulo 256.
+; After this write operation, the bytes at the addresses specified in
+; column 1 of SEEKTEST are overwritten with the bytes specified in column 2.
 ;
 ; done in August 2022 by sy2002
 

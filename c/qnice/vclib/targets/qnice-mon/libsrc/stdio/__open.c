@@ -4,6 +4,7 @@
     fopen syntax and semantics); returns -1 on error.
 
     done by sy2002 in November 2016
+    enhanced by sy2002 in August 2022
 */
 
 
@@ -17,10 +18,24 @@ int __open(const char* name, const char* mode)
 {
     int res;
 
-    /* currently, we only support read-only files, so the only
-       valid mode is "r", "r+" and all others are invalid */
-    if (*mode == 'r' && *(++mode) == 0)
+    /* Currently, we only support read and read/update files.
+       These modes are valid: r, rb, r+, rb+
+       The underlying vclib does not support "r+b" (which should be equivalent
+       to "rb+"), but only "rb+" itself.
+       The system is differntiating between binary and text mode.
+    */
+    if (*mode == 'r')
     {
+        char mode1 = *(mode + 1)
+        char mode2 = *(mode + 2)
+        char mode3 = *(mode + 3)
+
+        if !( mode1 == 0 ||                                  /* mode == "r"   */
+             (mode1 == 'b' && mode2 == 0) ||                 /* mode == "rb"  */
+             (mode1 == '+' && mode2 == 0) ||                 /* mode == "r+"  */
+             (mode1 == 'b' && mode2 == '+' && mode3 == 0))   /* mode == "rb+" */
+                return -1; //illegal mode
+
         /* If this is the first call to __open, then create a device handle
            first. Currently, we only support SD cards, so we hardcoded 
            try to mount the first partition of the SD card as FAT32 device */

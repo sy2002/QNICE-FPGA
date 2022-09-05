@@ -5,7 +5,7 @@
     within C programs and within the C standard library.
 
     done by sy2002 in October 2016
-    enhanced by sy2002 in August 2022: fat32_read_file
+    enhanced by sy2002 in August 2022
 */
 
 #ifndef _QMON_H
