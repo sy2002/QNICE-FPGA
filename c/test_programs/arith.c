@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-main()
+int main()
 {
   long x,y;
   unsigned long a,b;
@@ -52,6 +52,6 @@ main()
   if(a<=b) puts("<="); else puts(">");
   if(a>b) puts(">"); else puts("<=");
 
-  exit(0);
+  return 0;
 }
 

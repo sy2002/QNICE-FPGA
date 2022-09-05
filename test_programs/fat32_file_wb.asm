@@ -8,7 +8,7 @@
 ; After this write operation, the bytes at the addresses specified in
 ; column 1 of SEEKTEST are overwritten with the bytes specified in column 2.
 ;
-; done in August 2022 by sy2002
+; done in August & September 2022 by sy2002
 
 #include "../dist_kit/sysdef.asm"
 #include "../dist_kit/monitor.def"
@@ -43,9 +43,26 @@ MOUNT_OK        MOVE    HANDLE_FILE, R9         ; file hdl; R8: still dev hdl
                 SYSCALL(puts, 1)
                 RBRA    ERR_END2, 1
 
+                ; print file size from file handle
+FOPEN_OK        MOVE    STR_SIZE, R8
+                SYSCALL(puts, 1)
+                MOVE    R9, R8
+                ADD     FAT32$FDH_SIZE_HI, R8
+                MOVE    @R8, R8
+                SYSCALL(puthex, 1)
+                MOVE    R9, R8
+                ADD     FAT32$FDH_SIZE_LO, R8
+                MOVE    @R8, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                ; 32-bit filepos: hi=R3, lo=R2
+                XOR     R2, R2
+                XOR     R3, R3
+
                 ; we will overwrite each byte of the test file with the ever
                 ; increasing low byte of R0
-FOPEN_OK        MOVE    R9, R8                  ; R8: file handle
+                MOVE    R9, R8                  ; R8: file handle
                 XOR     R0, R0                  ; R0: start with zero
 
 LOOP            MOVE    R0, R9
@@ -59,12 +76,26 @@ LOOP            MOVE    R0, R9
                 RBRA    ERR_END1, 1
 
 LOOP_1          ADD     1, R0                   ; next byte
+
+                ADD     1, R2                   ; filepos (lo) + 1
+                ADDC    0, R3                   ; filepos (hi), 32-bit add
+
                 RBRA    LOOP, 1
+
+
+                ; remember the access values of the file handle that
+                ; represent "file end"
+NEXT            MOVE    R8, R4
+                ADD     FAT32$FDH_ACCESS_LO, R4
+                MOVE    @R4, R4
+                MOVE    R8, R5
+                ADD     FAT32$FDH_ACCESS_HI, R5
+                MOVE    @R5, R5                
 
                 ; seek to some hardcoded positions and write some hardcoded
                 ; values (you need to make sure that the test file is large
                 ; enough)
-NEXT            MOVE    SEEKTEST_COUNT, R0
+                MOVE    SEEKTEST_COUNT, R0
                 MOVE    @R0, R0
                 MOVE    SEEKTEST, R1
 
@@ -86,19 +117,37 @@ NEXT_1          MOVE    @R1++, R9
                 RBRA    ERR_END1, 1
 
 NEXT_2          SUB     1,  R0
-                RBRA    NEXT_0, !Z           
+                RBRA    NEXT_0, !Z
 
                 ; it is important to close the file (handle is still in R8)
                 ; because during file close, the sector buffer is being
                 ; flushed and potentially remaining bytes are written
-END             SYSCALL(f32_fclose, 1)
+                SYSCALL(f32_fclose, 1)
                 CMP     0, R9
                 RBRA    DONE, Z
 
                 MOVE    STR_ERR_CLOSE, R8
                 RBRA    ERR_END1, 1
 
-DONE            MOVE    STR_DONE, R8
+                ; output 32-bit filepos that we counted by "ourselves" plus
+                ; the access pointer from the file handle; these two and also
+                ; the file size need to be the same value
+DONE            MOVE    STR_FILEPOS, R8
+                SYSCALL(puts, 1)
+                MOVE    R3, R8                  ; R3/R2 = hi/lo filepos
+                SYSCALL(puthex, 1)
+                MOVE    R2, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+                MOVE    STR_ACCESS, R8
+                SYSCALL(puts, 1)
+                MOVE    R5, R8                  ; R5/R4 = hi/lo access ptr
+                SYSCALL(puthex, 1)
+                MOVE    R4, R8
+                SYSCALL(puthex, 1)
+                SYSCALL(crlf, 1)
+
+                MOVE    STR_DONE, R8
                 SYSCALL(puts, 1)
                 SYSCALL(exit, 1)
 
@@ -120,6 +169,9 @@ STR_ERR_WRITE2  .ASCII_W "Write #2 error: "
 STR_ERR_SEEK    .ASCII_W "Seek error: "
 STR_ERR_CLOSE   .ASCII_W "Close error: "
 STR_DONE        .ASCII_W "Done.\n\n"
+STR_SIZE        .ASCII_W "Filesize: "
+STR_FILEPOS     .ASCII_W "Filepos:  "
+STR_ACCESS      .ASCII_W "Access:   "
 
                 ; seek positions and values
 SEEKTEST_COUNT  .DW 3                

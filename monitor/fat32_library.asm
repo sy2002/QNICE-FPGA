@@ -1164,19 +1164,11 @@ FAT32$FILE_SEEK INCRB
                 MOVE    R10, R2
                 MOVE    R11, R3
 
-                ; if the seek position is zero, then skip the function
-                CMP     0, R1
-                RBRA    _F32_FS_CHKSIZ, !Z
-                CMP     0, R2
-                RBRA    _F32_FS_CHKSIZ, !Z
-                MOVE    0, R9                       ; no error
-                RBRA    _F32_FS_RET, 1
-
                 ; if the seek position is larger than the file size,
                 ; then skip the function;
                 ; the 32bit compare is done via a 32bit sub and then
                 ; checking for a negative result via the carry flag
-_F32_FS_CHKSIZ  MOVE    R0, R4
+                MOVE    R0, R4
                 ADD     FAT32$FDH_SIZE_LO, R4
                 MOVE    @R4, R4                     ; file size LO
                 MOVE    R0, R5
@@ -1243,11 +1235,62 @@ _F32_FS_START   MOVE    R0, R8                      ; R8 = current FDH
                 XOR     R11, R11
                 RSUB    MTH$DIVU32, 1
 
+                ; result of division: R9|R8   = HI|LO integer result
+                ;                     R11|R10 = HI|LO modulo
+                ;
+                ; R11 is always 0, since since we only support 512-byte sector
+                ; sizes
+                ;
+                ; special case: if R9 == R8 == 0, then we are at the very
+                ; first sector of the file and FAT32$READ_FDH will not be
+                ; called; therefore we need to fill the 512-byte sector buffer
+                ; "manually" and claim ownership
+                CMP     0, R9
+                RBRA    _F32_FS_SPECC1, Z
+                RBRA    _F32_FS_LPREP, 1
+_F32_FS_SPECC1  CMP     0, R8
+                RBRA    _F32_FS_LPREP, !Z
+
+                MOVE    R0, R8                      ; R8 = FDH
+
+                INCRB
+                MOVE    R10, R0                     ; remember R10..R12
+                MOVE    R11, R1
+                MOVE    R12, R2
+
+                MOVE    R8, R7                      ; R7 = remember FDH
+                MOVE    R8, R9                      ; FAT32$RW_SIC parameters
+                ADD     FAT32$FDH_CLUSTER_LO, R9
+                MOVE    @R9, R9
+                MOVE    R8, R10
+                ADD     FAT32$FDH_CLUSTER_HI, R10
+                MOVE    @R10, R10
+                XOR     R11, R11                    ; R11 = sector in cluster
+                XOR     R12, R12                    ; R12 = 0: read
+                ADD     FAT32$FDH_DEVICE, R8
+                MOVE    @R8, R8                     ; R8 = device handle
+                RSUB    FAT32$RW_SIC, 1
+                CMP     0, R9                       ; all OK?
+                RBRA    _F32_FS_SPECC2, Z           ; yes
+
+                DECRB                               ; no: return error
+                RBRA    _F32_FS_RET, 1
+
+                ; claim ownership of 512-byte buffer
+_F32_FS_SPECC2  ADD     FAT32$DEV_BUFFERED_FDH, R8  ; R8 = still device handle
+                MOVE    R7, @R8                     ; R7 = FDH
+
+                MOVE    R0, R10                     ; restore R10..R12
+                MOVE    R1, R11
+                MOVE    R2, R12
+                DECRB
+                RBRA    _F32_FS_INDEX, 1            ; R10 contains index
+
                 ; push the index forward R9|R8 = <quotient> times
                 ; pushing is done by setting the index to the sector size
                 ; (which is normally 512) and then using FAT32$READ_FDH
-                MOVE    R8, R4                      ; R5|R4 = HI|LO of the ..
-                MOVE    R9, R5                      ; 32bit amount to push
+_F32_FS_LPREP   MOVE    R8, R4                      ; R5|R4 = HI|LO of the ..
+                MOVE    R9, R5                      ; 32bit amount to push                
 
 _F32_FS_LOOP    CMP     R4, 0                       ; still anything to push?
                 RBRA    _F32_FS_IPUSH, !Z

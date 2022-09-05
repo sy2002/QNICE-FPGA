@@ -22,7 +22,7 @@ int __open(const char* name, const char* mode)
        These modes are valid: r, rb, r+, rb+
        The underlying vclib does not support "r+b" (which should be equivalent
        to "rb+"), but only "rb+" itself.
-       The system is differntiating between binary and text mode.
+       The system is differentiating between binary and text mode.
     */
     if (*mode == 'r')
     {
