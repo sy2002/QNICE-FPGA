@@ -49,6 +49,16 @@ int qmon_split_str(char* input, char separator, char** output)
     FAT32 IMPLEMENTATION
    ======================================================================== */
 
+unsigned long fsize(FILE* fileptr)
+{
+    /* the system is little endian and within the file handle the file size
+       is stored in little endian, too; so we simply need to de-reference
+       the appropriate address in memory as an unsigned long */
+    int* ptr = (int*) fileptr->filehandle;
+    long* filesize = (long*) (ptr + FAT32_FDH_SIZE_LO);
+    return (unsigned long) *filesize;
+}
+
 int def_fat32_mount_sd(fat32_device_handle dev_handle, int partition) =
   "          ASUB     " M2S(QMON_EP_F32_MNT_SD) ", 1\n"     //call FAT32$MOUNT_SD in monitor
   "          MOVE     R9, R8\n";                            //return 0 or error code

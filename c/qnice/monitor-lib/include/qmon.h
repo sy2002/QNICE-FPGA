@@ -11,6 +11,8 @@
 #ifndef _QMON_H
 #define _QMON_H
 
+#include <stdio.h>
+
 #include "qmon-ep.h"
 #include "sysdef.h"
 
@@ -66,6 +68,9 @@ int qmon_split_str(char* input, char separator, char** output);
     FAT32 on another hardware, then write a wrapper for QMON_EP_F32_MNT
     which calls FAT32$MOUNT in monitor/fat32_library.asm.
    ======================================================================== */
+
+/* Non C standard function to determine the size of a file */
+unsigned long fsize(FILE* fileptr);
 
 typedef unsigned int fat32_device_handle[FAT32_DEV_STRUCT_SIZE];
 typedef unsigned int fat32_file_handle[FAT32_FDH_STRUCT_SIZE];
