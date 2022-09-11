@@ -28,6 +28,9 @@ DONE/WIP PARTS OF 1.61:
 WIP Ability to write on SD cards
     ----------------------------
 
+TODO: Enhance fwrite unit test to write/read-back 3-files in parallel
+      Implement seek performance improvement
+
 Introduced a very basic means of writing to the SD card using the FAT32
 library: You are able to change (as in "update") the bytes of an already
 existing file.

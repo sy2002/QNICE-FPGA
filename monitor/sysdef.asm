@@ -270,6 +270,7 @@ SD$ERR_WRITE_PROTECT    .EQU    0x0005                  ; SD Card Write Protect 
 SD$ERR_CARD_UNUSABLE    .EQU    0x0006                  ; Unusable SD card
 SD$ERR_NO_CARD          .EQU    0x0007                  ; No SD card (no response from CMD0)
 SD$ERR_READ_TIMEOUT     .EQU    0x0008                  ; Timeout while trying to receive the read start token "FE"
+SD$ERR_READWRITEJAM     .EQU    0xEE21                  ; Trying to write while pending read or trying to read while pending write
 SD$ERR_TIMEOUT          .EQU    0xEEFF                  ; General timeout
 
 SD$CT_SD_V1             .EQU    0x0001                  ; Card type: SD Version 1

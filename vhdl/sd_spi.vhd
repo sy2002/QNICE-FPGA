@@ -39,6 +39,8 @@
 --		Revision 1.03 2014-09-28 Improve write handshaking
 --		Revision 1.04 2014-09-29 Streamline aborted read transfers
 --    Revision 1.10 2016-08-15 Now works with more SDHC cards (done by sy2002)
+--    Revision 1.20 2022-09-11 Writing works with more SDHC cards and uses the weird
+--                             brute force work-around from 2016 (done by sy2002)
 --
 --    Initial Release
 --
@@ -323,6 +325,17 @@ signal original_state, new_original_state : states;
 signal state_retry_count, new_state_retry_count : unsigned(7 downto 0);
 signal is_in_reset_cycle, new_is_in_reset_cycle : std_logic;
 signal start_token_timeout, new_start_token_timeout: unsigned(15 downto 0);
+
+-- TEMP/DEBUG 
+--attribute MARK_DEBUG : string;
+--attribute MARK_DEBUG of state                : signal is "TRUE";
+--attribute MARK_DEBUG of new_state            : signal is "TRUE";
+--attribute MARK_DEBUG of return_state         : signal is "TRUE";
+--attribute MARK_DEBUG of new_return_state     : signal is "TRUE";
+--attribute MARK_DEBUG of sr_return_state      : signal is "TRUE";
+--attribute MARK_DEBUG of new_sr_return_state  : signal is "TRUE";
+--attribute MARK_DEBUG of new_error            : signal is "TRUE";
+--attribute MARK_DEBUG of new_error_code       : signal is "TRUE";
 
 begin
 	-- This process updates all the state variables from the values calculated
@@ -944,6 +957,7 @@ begin
 			new_return_state <= SET_ERASE_COUNT_CMD_2; set_return_state <= true;
 			new_cmd_out <= x"7700000000"; set_cmd_out <= true;
 			new_state <= SEND_CMD;
+			new_original_state <= SET_ERASE_COUNT_CMD;
 			
 		when SET_ERASE_COUNT_CMD_2 =>
 			-- Send ACMD23
@@ -956,6 +970,7 @@ begin
 			set_cmd_out <= true;
 			set_return_state <= true;
 			new_state <= SEND_CMD;
+	      new_original_state <= SET_ERASE_COUNT_CMD_2;
 		
 		when WRITE_BLOCK_CMD =>
 			-- Send CMD24 for single block write
@@ -967,6 +982,7 @@ begin
 			set_cmd_out <= true;
 			new_return_state <= WRITE_BLOCK_INIT; set_return_state <= true;
 			new_state <= SEND_CMD;
+			new_original_state <= WRITE_BLOCK_CMD;
 			
 		when WRITE_MULTIPLE_BLOCK_CMD =>
 			-- Send CMD25 for multiple write
@@ -978,6 +994,7 @@ begin
 			set_cmd_out <= true;
 			new_return_state <= WRITE_BLOCK_INIT; set_return_state <= true;
 			new_state <= SEND_CMD;
+			new_original_state <= WRITE_MULTIPLE_BLOCK_CMD;
 		
 		when WRITE_BLOCK_INIT =>
 			-- Check for response to write command, then send data token

@@ -60,11 +60,6 @@
   <FileSets Version="1" Minor="31">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/../../../../vhdl/sim/dev_int_globals.vhd">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <File Path="$PPRDIR/../../../../vhdl/tools.vhd">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -232,7 +227,7 @@
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../../../vhdl/sdcard.vhd">
-        <FileInfo>
+        <FileInfo SFType="VHDL2008">
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>

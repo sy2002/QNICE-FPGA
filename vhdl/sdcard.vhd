@@ -56,7 +56,7 @@ port (
 );
 end sdcard;
 
-architecture Behavioral of sdcard is
+architecture beh of sdcard is
 
 -- the actual SD Card controller that is wrapped by this state machine
 component sd_controller is
@@ -124,18 +124,15 @@ signal ram_data_o       : std_logic_vector(7 downto 0);
 signal buffer_ptr       : unsigned(15 downto 0);         -- pointer to 512 byte buffer
 signal current_byte     : std_logic_vector(7 downto 0);  -- byte read in the last read operation
 
-signal ram_we_duetosdc  : std_logic;                     -- write ram due to SD card reading
-signal ram_we_duetowrrg : std_logic;                     -- write to ram due to a write to register 3
-signal ram_di_duetosdc  : std_logic_vector(7 downto 0);  -- ram data in due to SD card reading
-signal ram_di_duetowrrg : std_logic_vector(7 downto 0);  -- ram data in due to a write to register 3
-signal ram_ai_duetosdc  : std_logic_vector(15 downto 0); -- ram write address due to SD card access
-signal ram_ai_duetowrrg : std_logic_vector(15 downto 0); -- ram write address due to write to register 3
-
 -- SD Card controller signals
 signal sd_sync_reset    : std_logic;
 signal sd_block_addr    : std_logic_vector(31 downto 0);
 signal sd_block_read    : std_logic;
+signal sd_block_write   : std_logic;
+signal sd_din           : std_logic_vector(7 downto 0);
 signal sd_dout          : std_logic_vector(7 downto 0);
+signal sd_din_valid     : std_logic;
+signal sd_din_taken     : std_logic;
 signal sd_dout_avail    : std_logic;
 signal sd_dout_taken    : std_logic;
 signal sd_error_flag    : std_logic;   
@@ -144,13 +141,17 @@ signal sd_busy_flag     : std_logic;
 signal sd_type          : std_logic_vector(1 downto 0);
 signal sd_fsm           : std_logic_vector(7 downto 0);
 
+signal ram_we_duetosdc  : std_logic;
+signal ram_di_duetosdc  : std_logic_vector(7 downto 0);
 
 -- fsm control signals
 signal fsm_sync_reset   : std_logic;
 signal fsm_block_read   : std_logic;
+signal fsm_block_write  : std_logic;
 signal fsm_block_addr   : std_logic_vector(31 downto 0);
 signal fsm_current_byte : std_logic_vector(7 downto 0);
 signal fsm_buffer_ptr   : unsigned(15 downto 0);
+signal fsm_internal_err : std_logic_vector(3 downto 0);
 
 -- flip/flops to save register values
 signal reg_addr_lo      : std_logic_vector(15 downto 0);
@@ -161,7 +162,7 @@ signal write_data       : std_logic_vector(1 downto 0);   -- mini "fsm" to store
 signal cmd_reset        : std_logic;   -- CSR opcode 0x0000
 signal cmd_read         : std_logic;   -- CSR opcode 0x0001
 signal cmd_write        : std_logic;   -- CSR opcode 0x0002
-
+signal internal_err     : std_logic_vector(3 downto 0);
 
 signal reset_cmd_reset  : std_logic;
 signal reset_cmd_read   : std_logic;
@@ -176,6 +177,7 @@ type sd_fsm_type is (
 
    sds_reset,
    
+   -- READ state transitions
    sds_read_start,   
    sds_read_wait_for_byte,
    sds_read_store_byte,
@@ -183,7 +185,10 @@ type sd_fsm_type is (
    sds_read_inc_ram_addr,
    sds_read_check_done,
    
-   sds_write,
+   -- WRITE state transitions
+   sds_write_start,
+   sds_write_ramwait,
+   sds_write_provide_byte,
    
    sds_std_seq
 );
@@ -193,6 +198,22 @@ signal sd_state_next    : sd_fsm_type;
 signal fsm_state_next   : sd_fsm_type;
 
 signal Slow_Clock_25MHz : std_logic;
+
+-- TEMP/DEBUG 
+--attribute MARK_DEBUG : string;
+--attribute MARK_DEBUG of sd_state       : signal is "TRUE";
+--attribute MARK_DEBUG of fsm_state_next : signal is "TRUE";
+--attribute MARK_DEBUG of sd_din         : signal is "TRUE";
+--attribute MARK_DEBUG of sd_block_write : signal is "TRUE";
+--attribute MARK_DEBUG of sd_din_valid   : signal is "TRUE";
+--attribute MARK_DEBUG of sd_din_taken   : signal is "TRUE";
+--attribute MARK_DEBUG of sd_busy_flag   : signal is "TRUE";
+--attribute MARK_DEBUG of cmd_write      : signal is "TRUE";
+--attribute MARK_DEBUG of reg_addr_lo    : signal is "TRUE";
+--attribute MARK_DEBUG of reg_addr_hi    : signal is "TRUE";
+--attribute MARK_DEBUG of reg_data_pos   : signal is "TRUE";
+--attribute MARK_DEBUG of reg_data       : signal is "TRUE";
+--attribute MARK_DEBUG of sd_fsm         : signal is "TRUE";
 
 begin
 
@@ -216,7 +237,6 @@ begin
       port map (
          -- general signals
          clk => Slow_Clock_25MHz,
---         clk => clk,
          reset => sd_sync_reset,
          addr => sd_block_addr,
          sd_busy => sd_busy_flag,
@@ -243,10 +263,12 @@ begin
          dout_taken => sd_dout_taken,
          
          -- writing
-         wr => '0',
+         wr => sd_block_write,
          wr_multiple => '0',
-         din => (others => '0'),
-         din_valid => '0',
+         din => sd_din,
+         din_valid => sd_din_valid,
+         din_taken => sd_din_taken,
+         
          erase_count => (others => '0')
       );     
       
@@ -259,56 +281,73 @@ begin
             sd_state <= fsm_state_next;
          end if;
          
-         sd_sync_reset <= fsm_sync_reset;
-         sd_block_read <= fsm_block_read;
-         sd_block_addr <= fsm_block_addr;
+         sd_sync_reset  <= fsm_sync_reset;
+         sd_block_read  <= fsm_block_read;
+         sd_block_write <= fsm_block_write;
+         sd_block_addr  <= fsm_block_addr;
          
-         current_byte  <= fsm_current_byte;
-         buffer_ptr    <= fsm_buffer_ptr;
+         current_byte   <= fsm_current_byte;
+         buffer_ptr     <= fsm_buffer_ptr;
+         internal_err   <= fsm_internal_err;
 
          if reset = '1' or cmd_reset = '1' then
-            sd_state <= sds_reset;
+            sd_state       <= sds_reset;
             
-            sd_sync_reset <= '0';
-            sd_block_read <= '0';
-            sd_block_addr <= (others => '0');
+            sd_sync_reset  <= '0';  -- will be set to '1' by state machine, which also handles reset ack
+            sd_block_read  <= '0';
+            sd_block_write <= '0';
+            sd_block_addr  <= (others => '0');
             
-            current_byte  <= (others => '0');
-            buffer_ptr    <= (others => '0');
+            current_byte   <= (others => '0');
+            buffer_ptr     <= (others => '0');
+            internal_err   <= (others => '0');
          end if;
       end if;
    end process;
    
-   fsm_output_decode : process(sd_state, sd_busy_flag, sd_error_flag, sd_fsm, sd_block_read,
-                               sd_block_addr, sd_dout, sd_dout_avail, buffer_ptr,
-                               current_byte, cmd_read, reg_addr_hi, reg_addr_lo)
+   fsm_output_decode : process(all)
    begin
-      fsm_sync_reset <= '0';
-      fsm_block_read <= sd_block_read;
-      fsm_block_addr <= sd_block_addr;
-      fsm_state_next <= sds_std_seq;
-      fsm_current_byte <= current_byte;
-      fsm_buffer_ptr <= buffer_ptr;
+      fsm_sync_reset    <= '0';
+      fsm_block_read    <= sd_block_read;
+      fsm_block_write   <= sd_block_write;
+      fsm_block_addr    <= sd_block_addr;
+      fsm_state_next    <= sds_std_seq;
+      fsm_current_byte  <= current_byte;
+      fsm_buffer_ptr    <= buffer_ptr;
+      fsm_internal_err  <= internal_err;
       
-      reset_cmd_reset <= '0';
-      reset_cmd_read <= '0';
-      reset_cmd_write <= '0';
+      reset_cmd_reset   <= '0';
+      reset_cmd_read    <= '0';
+      reset_cmd_write   <= '0';
       
-      sd_dout_taken <= '0';
+      sd_din            <= (others => '0');
+      sd_din_valid      <= '0';
+      sd_dout_taken     <= '0';
       
-      ram_we_duetosdc <= '0';
-      ram_di_duetosdc <= (others => '0');
+      ram_we_duetosdc   <= '0';
+      ram_di_duetosdc   <= (others => '0');
       
       case sd_state is
       
          when sds_idle =>
-            -- read command detected
-            if cmd_read = '1' then
-               -- for avoiding glitches, the address should be strobed before
-               -- the actual read command is issues
+            -- read and write in parallel leads to a blocking situation 
+            if cmd_read = '1' and cmd_write = '1' then
+               fsm_state_next    <= sds_error;
+               fsm_internal_err  <= x"1"; -- will turn into x"EE21", i.e. SD$ERR_READWRITEJAM
+            elsif cmd_read = '1' or cmd_write = '1' then
+               -- provide read/write block address to SD card controller
                fsm_block_addr <= reg_addr_hi & reg_addr_lo;
-               fsm_state_next <= sds_read_start;
+    
+               if cmd_read = '1' then
+                  fsm_state_next <= sds_read_start;                 
+               else
+                  fsm_state_next <= sds_write_start;
+               end if;
             end if;
+               
+         --------------------------------------------------------------------------------
+         -- READ state transitions
+         --------------------------------------------------------------------------------
                                     
          when sds_read_start =>
             reset_cmd_read <= '1';
@@ -358,6 +397,45 @@ begin
                fsm_block_read <= '0';
                fsm_state_next <= sds_busy;
             end if;
+            
+         --------------------------------------------------------------------------------
+         -- WRITE state transitions
+         --------------------------------------------------------------------------------
+
+         when sds_write_start =>
+            reset_cmd_write <= '1';
+
+            -- issue write command and wait until the controler signals busy
+            if sd_busy_flag = '0' then
+               fsm_state_next <= sds_write_start;
+               
+               -- issue read command and reset memory pointer
+               fsm_block_write <= '1';
+               fsm_buffer_ptr  <= (others => '0');
+            end if;
+            
+         when sds_write_ramwait =>
+            sd_din <= ram_data_o;
+            
+         when sds_write_provide_byte =>
+            sd_din <= ram_data_o;
+            sd_din_valid <= '1';  
+            
+            if sd_din_taken = '0' then
+               fsm_state_next <= sds_write_provide_byte;
+            else
+               sd_din_valid   <= '0';
+               fsm_buffer_ptr <= buffer_ptr + 1;
+               
+               if buffer_ptr = 511 then
+                  fsm_block_write <= '0';
+                  fsm_state_next  <= sds_busy;
+               end if;
+            end if;
+
+         --------------------------------------------------------------------------------
+         -- Busy, reset and error state transitions
+         --------------------------------------------------------------------------------
                                          
          when sds_busy =>
             if sd_busy_flag = '0' then
@@ -388,21 +466,27 @@ begin
    begin
       case sd_state is
          when sds_reset                => sd_state_next <= sds_busy;
+         
+         -- READ state transitions
          when sds_read_start           => sd_state_next <= sds_read_wait_for_byte;
          when sds_read_wait_for_byte   => sd_state_next <= sds_read_store_byte;
          when sds_read_store_byte      => sd_state_next <= sds_read_handshake;
          when sds_read_handshake       => sd_state_next <= sds_read_inc_ram_addr;
          when sds_read_inc_ram_addr    => sd_state_next <= sds_read_check_done;
          when sds_read_check_done      => sd_state_next <= sds_read_wait_for_byte;
+         
+         -- WRITE state transitions
+         when sds_write_start          => sd_state_next <= sds_write_ramwait;
+         when sds_write_ramwait        => sd_state_next <= sds_write_provide_byte;
+         when sds_write_provide_byte   => sd_state_next <= sds_write_ramwait;
+          
          when others                   => sd_state_next <= sd_state;
       end case;
    end process;
    
-   read_sdcard_registers : process(en, we, reg, reg_addr_lo, reg_addr_hi, reg_data_pos, reg_data, 
-                                   sd_state, sd_fsm, sd_busy_flag, sd_error_flag, sd_error_code, sd_type, ram_data_o)
+   read_sdcard_registers : process(all)
    variable is_busy : std_logic;
    variable is_error : std_logic;
-   variable state_number : std_logic_vector(3 downto 0);
    begin
       if sd_state = sds_error or sd_error_flag = '1' then
          is_error := '1';
@@ -415,30 +499,21 @@ begin
             is_busy := '0';
          end if;         
       end if;
-      
---      case sd_state is
---         when sds_idle => state_number := "0000";
---         when sds_busy => state_number := "0001";
---         when sds_error => state_number := "0010";
---         when sds_reset => state_number := "0011";
---         when sds_read_start => state_number := "0100";
---         when sds_read_wait_for_byte  => state_number := "0101";
---         when sds_read_store_byte => state_number := "0110";
---         when sds_read_inc_ram_addr => state_number := "0111";
---         when sds_read_check_done => state_number := "1000";
---         when others => state_number := "1111";
---      end case;
-     
+         
       if en = '1' and we = '0' then
          case reg is
             when "000" => data_out <= reg_addr_lo;
             when "001" => data_out <= reg_addr_hi;
---            when "010" => data_out <= std_logic_vector(buffer_ptr);
             when "010" => data_out <= reg_data_pos;
             when "011" => data_out <= "00000000" & ram_data_o;
---            when "100" => data_out <= x"EE" & "00000" & sd_error_code;
-            when "100" => data_out <= sd_fsm & sd_error_code;
---            when "101" => data_out <= is_busy & is_error & sd_type & "00000000" & state_number;
+            
+            when "100" =>
+               if internal_err = x"0" then
+                  data_out <= sd_fsm & sd_error_code;
+               else
+                  data_out <= x"EE2" & internal_err;
+               end if;
+            
             when "101" => data_out <= is_busy & is_error & sd_type & "000000000000";
             when others => data_out <= (others => '0');
          end case;
@@ -452,10 +527,10 @@ begin
       if falling_edge(clk) then
          if en = '1' and we = '1' then
             case reg is
-               when "000" => reg_addr_lo <= data_in;
-               when "001" => reg_addr_hi <= data_in;
+               when "000" => reg_addr_lo  <= data_in;
+               when "001" => reg_addr_hi  <= data_in;
                when "010" => reg_data_pos <= data_in;
-               when "011" => reg_data <= data_in(7 downto 0);
+               when "011" => reg_data     <= data_in(7 downto 0);
                when others => null;
             end case;
          end if;
@@ -503,32 +578,39 @@ begin
       end if;
    end process;
    
-   detect_cmd_read : process(clk)
+   detect_cmd_read_and_write : process(clk)
    begin
       if falling_edge(clk) then
-         if en = '1' and we = '1' then
-            if reg = "101" and data_in = x"0001" then
+         if en = '1' and we = '1' and reg = "101" then
+            if data_in = x"0001" then
                cmd_read <= '1';
+            elsif data_in = x"0002" then
+               cmd_write <= '1';
             end if;
          end if;
 
          if reset = '1' or reset_cmd_read = '1' then
             cmd_read <= '0';
          end if;
+         
+         if reset = '1' or reset_cmd_write = '1' then
+            cmd_write <= '0';
+         end if;
       end if;
    end process;
       
-   decide_ram_data_i_and_ram_we : process(sd_state, ram_we_duetosdc, ram_we_duetowrrg,
-                                          ram_di_duetosdc, ram_di_duetowrrg, ram_ai_duetosdc, ram_ai_duetowrrg)
+   decide_ram_data_i_and_ram_we : process(all)
    begin
       if sd_state = sds_idle then
-         ram_we <= ram_we_duetowrrg;
-         ram_addr_i <= ram_ai_duetowrrg;
-         ram_data_i <= ram_di_duetowrrg;
+         ram_we      <= write_data(0) or write_data(1);
+         ram_addr_i  <= reg_data_pos;
+         ram_addr_o  <= reg_data_pos;
+         ram_data_i  <= reg_data;
       else
-         ram_we <= ram_we_duetosdc;
-         ram_addr_i <= ram_ai_duetosdc;
-         ram_data_i <= ram_di_duetosdc;
+         ram_we      <= ram_we_duetosdc;
+         ram_addr_i  <= std_logic_vector(buffer_ptr);
+         ram_addr_o  <= std_logic_vector(buffer_ptr);
+         ram_data_i  <= ram_di_duetosdc;
       end if;
    end process;
    
@@ -542,11 +624,5 @@ begin
          end if;
       end if;
    end process;
-   
-   ram_we_duetowrrg <= write_data(0) or write_data(1);
-   ram_ai_duetowrrg <= reg_data_pos;
-   ram_di_duetowrrg <= reg_data;
-   ram_ai_duetosdc <= std_logic_vector(buffer_ptr);
-   ram_addr_o <= std_logic_vector(reg_data_pos);   
-   
-end Behavioral;
+      
+end beh;
