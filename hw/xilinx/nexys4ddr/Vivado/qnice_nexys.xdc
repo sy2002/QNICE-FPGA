@@ -116,3 +116,8 @@ set_property -dict {PACKAGE_PIN E1  IOSTANDARD LVCMOS33} [get_ports {SD_DAT[1]}]
 set_property -dict {PACKAGE_PIN F1  IOSTANDARD LVCMOS33} [get_ports {SD_DAT[2]}]
 set_property -dict {PACKAGE_PIN D2  IOSTANDARD LVCMOS33} [get_ports {SD_DAT[3]}]
 #set_property -dict {PACKAGE_PIN A1  IOSTANDARD LVCMOS33} [get_ports SD_CD]          
+
+# Place SD controller close to I/O pins
+create_pblock pblock_sdctl
+add_cells_to_pblock pblock_sdctl [get_cells [list sd_card/sdctl]]
+resize_pblock pblock_sdctl -add {SLICE_X75Y110:SLICE_X88Y132}
