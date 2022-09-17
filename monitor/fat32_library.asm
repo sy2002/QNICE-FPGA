@@ -523,7 +523,8 @@ FAT32$DIR_LIST  INCRB                               ; if referenced in
                 ; make sure that the 512-byte read-buffer contains the
                 ; sector that is needed, and in parallel update the file and
                 ; directory handle, if necessary
-_F32_DLST_SKIP  RSUB    FAT32$READ_FDH, 1
+_F32_DLST_SKIP  XOR     R9, R9                      ; R9 = 0: standard op.
+                RSUB    FAT32$READ_FDH, 1
                 CMP     R9, 0
                 RBRA    _F32_DLST_C1, Z
                 MOVE    0, R10
@@ -662,6 +663,7 @@ _F32_DLST_LN5   RSUB    FAT32$READ_B, 1
                 ADD     FAT32$FE_SIZE, R4           ; update idx: next record
                 MOVE    R4, @R3                     ; store it to FDH
                 MOVE    R1, R8                      ; R8 = FDH
+                XOR     R9, R9                      ; R9 = 0: standard op.
                 RSUB    FAT32$READ_FDH, 1
                 MOVE    @R3, R4                     ; re-read due to READ_FDH
                 CMP     0, R9                       ; check for error
@@ -1101,7 +1103,8 @@ FAT32$FILE_RWB  INCRB
                 ; within the handle, if necessary; that means that also,
                 ; if neccessary, a new sector will be read and/or an existing
                 ; sector buffer will be flushed
-_F32_FRB_START  RSUB    FAT32$READ_FDH, 1
+_F32_FRB_START  XOR     R9, R9                      ; R9 = 0: standard op.
+                RSUB    FAT32$READ_FDH, 1
                 MOVE    R9, R10                     ; R10 is the return value
                 RBRA    _F32_FRB_RET, !Z            ; return on error
 
@@ -1304,6 +1307,7 @@ _F32_FS_IPUSH   SUB     1, R4                       ; 32bit sub 1 from R5|R4
                 ADD     FAT32$FDH_INDEX, R6
                 MOVE    FAT32$SECTOR_SIZE, @R6      ; set index to push mode
                 MOVE    R0, R8
+                MOVE    1, R9                       ; R9=1: "seek mode"
                 RSUB    FAT32$READ_FDH, 1
                 CMP     0, R9                       ; error?
                 RBRA    _F32_FS_IPUSH2, Z           ; no: continue
@@ -1325,8 +1329,25 @@ _F32_FS_INDEX   MOVE    R0, R6
                 MOVE    R0, R7                      ; .. the file handle
                 ADD     FAT32$FDH_ACCESS_HI, R7
                 ADD     R10, @R6
-                ADDC    0, @R7                
-                MOVE    0, R9                       ; no error
+                ADDC    0, @R7
+
+                ; since FAT32$READ_FDH did not read due to seek mode, we
+                ; need to read manually here; but the ownership of the sector
+                ; buffer is correctly set thanks to FAT32$READ_FDH
+                MOVE    R0, R6
+                ADD     FAT32$FDH_DEVICE, R6
+                MOVE    @R6, R8                     ; R8: device handle
+                MOVE    R0, R6
+                ADD     FAT32$FDH_CLUSTER_LO, R6
+                MOVE    @R6, R9                     ; R9: lo word of cluster
+                MOVE    R0, R6
+                ADD     FAT32$FDH_CLUSTER_HI, R6
+                MOVE    @R6, R10                    ; R10: hi word of cluster
+                MOVE    R0, R6
+                ADD     FAT32$FDH_SECTOR, R6
+                MOVE    @R6, R11                    ; R11: sector in cluster
+                XOR     R12, R12                    ; R12 = 0: read
+                RSUB    FAT32$RW_SIC, 1             ; R9 contains 0 or error
 
 _F32_FS_RET     MOVE    R0, R8                      ; restore R8 and R10
                 MOVE    R2, R10
@@ -1866,6 +1887,7 @@ _F32_CDROOT     MOVE    R0, R6
 ;* at the right moments.
 ;*
 ;* INPUT:  R8: FDH
+;*         R9: 0=standard operation / 1=seek-mode (do not read data)
 ;* OUTPUT: R8: FDH
 ;*         R9: 0, if OK, otherwise error code
 ;*****************************************************************************
@@ -1876,6 +1898,8 @@ FAT32$READ_FDH  INCRB
                 MOVE    R11, R2
                 MOVE    R12, R3
                 INCRB
+
+                MOVE    R9, R7                      ; R7 = operation mode
 
                 MOVE    R8, R0
                 ADD     FAT32$FDH_DEVICE, R0
@@ -1927,9 +1951,13 @@ _F32_RFDH_START MOVE    R0, R2
                 MOVE    @R2, R11
                 MOVE    R0, R8
                 XOR     R12, R12                    ; R12=0: read
+                CMP     0, R7                       ; standard mode?
+                RBRA    _F32_RFDH_SKP1A, !Z         ; no: skip re-read buf.
                 RSUB    FAT32$RW_SIC, 1             ; re-read hardware buffer
+                RBRA    _F32_RFDH_SKP1B, 1
 
-                MOVE    R0, R2                     
+_F32_RFDH_SKP1A XOR     R9, R9  
+_F32_RFDH_SKP1B MOVE    R0, R2                     
                 ADD     FAT32$DEV_BUFFERED_FDH, R2
                 MOVE    R1, @R2                     ; remember responsible FDH
 
@@ -1979,10 +2007,14 @@ _F32_RFDH_STRT2 MOVE    R1, R2
                 MOVE    @R2, R10                    ; HI word of cluster
                 MOVE    R4, R11                     ; sector number
                 XOR     R12, R12                    ; R12=0: read
+                CMP     0, R7                       ; standard mode?
+                RBRA    _F32_RFDH_SKP2A, !Z         ; no: skip re-read buf.            
                 RSUB    FAT32$RW_SIC, 1             ; read sector in cluster
+                RBRA    _F32_RFDH_SKP2B, 1
 
                 ; remember the FDH responsible for filling the HW buffer
-                MOVE    R0, R10
+_F32_RFDH_SKP2A XOR     R9, R9                
+_F32_RFDH_SKP2B MOVE    R0, R10
                 ADD     FAT32$DEV_BUFFERED_FDH, R10
                 MOVE    R1, @R10
 
@@ -2070,12 +2102,15 @@ _F32_RFDH_INCC4 MOVE    R0, R8                      ; R8 = device handle
                 MOVE    R11, R10                    ; R10 = cluster high word
                 XOR     R11, R11                    ; R11 = sector 0
                 XOR     R12, R12                    ; R12=0: read
+                CMP     0, R7                       ; standard mode?
+                RBRA    _F32_RFDH_SKP3A, !Z         ; no: skip re-read buf.                        
                 RSUB    FAT32$RW_SIC, 1             ; load data sector; the
-                                                    ; FAT32$DEV_BUFFERED_FDH
+                RBRA    _F32_RFDH_SKP3B, 1          ; FAT32$DEV_BUFFERED_FDH
                                                     ; has already been
                                                     ; remembered above (see
                                                     ; label _F32_RFDH_INCC3)
-                RBRA    _F32_RFDH_END, 1
+_F32_RFDH_SKP3A XOR     R9, R9
+_F32_RFDH_SKP3B RBRA    _F32_RFDH_END, 1
 
                 ; check for access beyond the sector size (means illegal hndl)                
 _F32_RFDH_CISS  CMP     R3, FAT32$SECTOR_SIZE
