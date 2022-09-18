@@ -31,7 +31,7 @@
 			<key>comment</key>
 			<string>QNICE instructions</string>
 			<key>match</key>
-			<string>(?i)\b(move|add|adc||sub|subc|shl|shr|swap|not|and|or|xor|cmp|halt|rti|int|incrb|decrb|exc|abra|asub|rbra|rsub|ret|syscall|nop)\b</string>
+			<string>(?i)\b(move|add|addc||sub|subc|shl|shr|swap|not|and|or|xor|cmp|halt|rti|int|incrb|decrb|exc|abra|asub|rbra|rsub|ret|syscall|nop)\b</string>
 			<key>name</key>
 			<string>support.type</string>
 		</dict>
