@@ -1,4 +1,4 @@
-Version 1.61    XXXXXXXXX, XX, 2021
+Version 1.61    XXXXXXXXX, XX, YYYY
 ===================================
 
 Version 1.61 is a release meant to empower the MiSTer2MEGA65 project. Instead
@@ -9,7 +9,8 @@ OPEN PARTS OF 1.61:
 
 ! Documentation update?
 
-! TODO Don't forget to update the project files and to support all QNICE
+! Make QNICE runable stand-alone:
+  TODO Don't forget to update the project files and to support all QNICE
   hardware targets before releasing V1.61 and don't forget to walk through
   https://github.com/sy2002/QNICE-FPGA/blob/develop/doc/how-to-release.md.
   Depending on what we changed, it might be OK to leave the WASM demo
@@ -25,11 +26,8 @@ create_generated_clock -name sdcardclk -source [get_pins */clk_gen/i_clk_gb_qnic
 
 DONE/WIP PARTS OF 1.61:
 
-WIP Ability to write on SD cards
-    ----------------------------
-
-TODO: Enhance fwrite unit test to write/read-back 3-files in parallel
-      Implement seek performance improvement
+Ability to write on SD cards
+----------------------------
 
 Introduced a very basic means of writing to the SD card using the FAT32
 library: You are able to change (as in "update") the bytes of an already
@@ -82,7 +80,8 @@ List of changes:
 Improved robustness
 -------------------
 
-* SD card, UART & EAE: Improved VHDL: Convert async. reset to synchronous
+* SD card, Cycle Counter, UART & EAE: Improved VHDL: Convert async. reset to
+  synchronous and to consistent falling edge handling
 
 @TODO see "?? WIP: SD CARD ??" above: final result needs to be copied here
 
@@ -101,6 +100,7 @@ Made QNICE a nicer to work with system for MiSTer2MEGA65
 
 * TOOLCHAIN: Merged-back assembler from V1.7 branch: This assembler gives much
   more meaningful error messages.
+
 
 Version 1.6     September, 7 2020
 =================================
