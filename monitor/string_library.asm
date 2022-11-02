@@ -188,6 +188,34 @@ _STR$STRCHR_EXIT    DECRB
                     RET
 ;
 ;***************************************************************************************
+;* STR$RPLCHR replaces all characters specified by R8 by the character specified  by R9
+;* in the string pointed to by R10.
+;*
+;* R8:  Character to be searched and replaced
+;* R9:  Character that is used to replace
+;* R10: Pointer to the string
+;*
+;* All register contents are preserved
+;***************************************************************************************
+;
+STR$RPLCHR          INCRB
+                    MOVE    R9, R0
+                    MOVE    R10, R1
+                    MOVE    R1, R9
+
+_STR$RPLCHR_NEXT    RSUB    STR$STRCHR, 1
+                    CMP     0, R10
+                    RBRA    _STR$RPLCHR_RET, Z
+
+                    MOVE    R0, @R10            ; Replace character
+                    RBRA    _STR$RPLCHR_NEXT, 1 ; Try to find one more R8 char
+
+_STR$RPLCHR_RET     MOVE    R0, R9
+                    MOVE    R1, R10
+                    DECRB
+                    RET
+;
+;***************************************************************************************
 ;* STR$SPLIT splits a string into substrings using a delimiter char
 ;*
 ;* Returns the substrings on the stack, i.e. after being done, you need to

@@ -19,8 +19,9 @@
 ;;  DEC-2016:    Completely redone string input: gets, gets_s, gets_slf, gets_core (by sy2002)
 ;;               Added file system support: mount, browse, load/run (by sy2002)
 ;;  AUG-2020:    Support for new ISA, improved disassembly of relative branches (by vaxman)
-;;  AUG-2021:    Support for writing to files on FAT32 file systems (updating existing files only)
+;;  AUG-2022:    Support for writing to files on FAT32 file systems (updating existing files only)
 ;;               f32_fwrite, f32_fflush, f32_fclose (by sy2002)
+;;  NOV-2022:    Added string function called strrplchr to search/replace chars (by sy2002)
 ;;
 ;;
 ;; Bits and pieces:
@@ -113,6 +114,7 @@ strstr!         RBRA    STR$STRSTR, 1
 f32_fwrite!     RBRA    FAT32$FILE_WB, 1
 f32_fflush!     RBRA    FAT32$FLUSH, 1
 f32_fclose!     RBRA    FAT32$CLOSE, 1
+strrplchr!      RBRA    STR$RPLCHR, 1
 ;
 ;  The actual monitor code starts here:
 ;
