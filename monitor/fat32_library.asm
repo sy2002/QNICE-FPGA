@@ -250,8 +250,8 @@ _F32_MNT_TCOK   MOVE    R0, R8                      ; device handle
                 ADD     FAT32$DEV_FS_HI, R1         ; FS start LBA low word
                 MOVE    R11, @R1                    ; store it in device hndl
 
-;                ; Go to the first 512 byte sector of the file system (FS)
-;                ; and read it.
+                ; Go to the first 512 byte sector of the file system (FS)
+                ; and read it.
 
                 MOVE    R10, R8                     ; LBA lo of 1st 512b sect.
                 MOVE    R11, R9                     ; LBA hi of 1st 512b sect.
@@ -959,10 +959,15 @@ FAT32$FILE_OPEN INCRB
                 MOVE    R1, R10                     ; R10: separator char
                 RSUB    FAT32$CD_OR_OF, 1           ; open file
                 MOVE    R9, R10                     ; return OK or err. in R10
-                RBRA    _F32_FO_RET, !Z             ; leave on error
+                RBRA    _F32_FO_1STCL, Z            ; no error: continue
+
+                ; set FAT32$DEV_BUFFERED_FDH to zero due to the error, i.e.
+                ; we do not have a valid owner of the buffer
+                XOR     R0, R0
+                RBRA    _F32_FO_RET, 1
 
                 ; retrieve the first cluster of the file
-                MOVE    R0, R2
+_F32_FO_1STCL   MOVE    R0, R2
                 ADD     FAT32$FDH_CLUSTER_LO, R2
                 MOVE    @R2, R9                     ; R9 = cluster lo
                 MOVE    R0, R2
@@ -997,11 +1002,11 @@ _F32_FO_READ    XOR     R12, R12                    ; R12=0: read sector
                 MOVE    R9, R10                     ; return OK or err. in R10
 
                 ; remember FDH that was responsible for filling the HW buffer
-                MOVE    R8, R9
+_F32_FO_RET     MOVE    R8, R9
                 ADD     FAT32$DEV_BUFFERED_FDH, R9
                 MOVE    R0, @R9
 
-_F32_FO_RET     MOVE    R0, R9                      ; restore org. registers
+                MOVE    R0, R9                      ; restore org. registers
                 MOVE    R1, R11
                 MOVE    R7, R12
 
@@ -1773,6 +1778,9 @@ _F32_DF_NXSG5   MOVE    R6, R7                  ; R7 = dir. entry name
                 MOVE    R12, R7
                 ADD     FAT32$FDH_ACCESS_HI , R7
                 MOVE    R8, @R7                 ; already read size HI = 0
+                MOVE    R12, R7
+                ADD     FAT32$FDH_FLAGS, R7
+                MOVE    0, @R7                  ; no dirty flag
                 RBRA    _F32_DF_SUCCESS, 1      ; return a success
 
                 ; change the directory by setting AD within the device handle
@@ -2399,6 +2407,11 @@ FAT32$READ_DW   INCRB
 ;
 FAT32$FLUSH     INCRB
 
+                ; Due the FAT32$DEV_BUFFERED_FDH system, there are situations
+                ; where FLUSH is called with R8 = 0. Do nothing in this case.
+                CMP     0, R8
+                RBRA    _FAT32$FLUSH_Z, Z
+
                 MOVE    R8, R0
                 MOVE    R10, R1
                 MOVE    R11, R2
@@ -2452,7 +2465,7 @@ _FAT32$FLUSH_R  DECRB
                 MOVE    R2, R11
                 MOVE    R3, R12
 
-                DECRB
+_FAT32$FLUSH_Z  DECRB
                 RET
 ;
 ;*****************************************************************************
