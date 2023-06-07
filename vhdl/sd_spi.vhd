@@ -326,17 +326,6 @@ signal state_retry_count, new_state_retry_count : unsigned(7 downto 0);
 signal is_in_reset_cycle, new_is_in_reset_cycle : std_logic;
 signal start_token_timeout, new_start_token_timeout: unsigned(15 downto 0);
 
--- TEMP/DEBUG 
---attribute MARK_DEBUG : string;
---attribute MARK_DEBUG of state                : signal is "TRUE";
---attribute MARK_DEBUG of new_state            : signal is "TRUE";
---attribute MARK_DEBUG of return_state         : signal is "TRUE";
---attribute MARK_DEBUG of new_return_state     : signal is "TRUE";
---attribute MARK_DEBUG of sr_return_state      : signal is "TRUE";
---attribute MARK_DEBUG of new_sr_return_state  : signal is "TRUE";
---attribute MARK_DEBUG of new_error            : signal is "TRUE";
---attribute MARK_DEBUG of new_error_code       : signal is "TRUE";
-
 begin
 	-- This process updates all the state variables from the values calculated
 	-- by the calcStateVariables process

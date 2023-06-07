@@ -199,22 +199,6 @@ signal fsm_state_next   : sd_fsm_type;
 
 signal Slow_Clock_25MHz : std_logic;
 
--- TEMP/DEBUG 
---attribute MARK_DEBUG : string;
---attribute MARK_DEBUG of sd_state       : signal is "TRUE";
---attribute MARK_DEBUG of fsm_state_next : signal is "TRUE";
---attribute MARK_DEBUG of sd_din         : signal is "TRUE";
---attribute MARK_DEBUG of sd_block_write : signal is "TRUE";
---attribute MARK_DEBUG of sd_din_valid   : signal is "TRUE";
---attribute MARK_DEBUG of sd_din_taken   : signal is "TRUE";
---attribute MARK_DEBUG of sd_busy_flag   : signal is "TRUE";
---attribute MARK_DEBUG of cmd_write      : signal is "TRUE";
---attribute MARK_DEBUG of reg_addr_lo    : signal is "TRUE";
---attribute MARK_DEBUG of reg_addr_hi    : signal is "TRUE";
---attribute MARK_DEBUG of reg_data_pos   : signal is "TRUE";
---attribute MARK_DEBUG of reg_data       : signal is "TRUE";
---attribute MARK_DEBUG of sd_fsm         : signal is "TRUE";
-
 begin
 
    -- 512 byte buffer RAM (SD card is configured to read/write 512 byte blocks)
