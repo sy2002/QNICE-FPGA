@@ -83,6 +83,15 @@ Improved robustness
 * SD card, Cycle Counter, UART & EAE: Improved VHDL: Convert async. reset to
   synchronous and to consistent falling edge handling
 
+* Bugfix: Fixed device-handle and stack corruption: If the same DEVICE handle
+  was used multiple times in a row for f32_fopen calls that returned errors
+  (e.g. due to file not found), then - independent from the FILE handle
+  in use - the FAT32$DEV_BUFFERED_FDH contained a pointer to a temporary file
+  handle that happened to have a stack address. The result: This very stack
+  address was overwritten sometimes (which lead to stack corruptions) and the
+  invalid "owner" of the 512-byte hardware buffer stored in
+  FAT32$DEV_BUFFERED_FDH generated errors, for example in FAT32$RW_SIC.
+
 @TODO see "?? WIP: SD CARD ??" above: final result needs to be copied here
 
 Made QNICE a nicer to work with system for MiSTer2MEGA65
@@ -98,11 +107,14 @@ Made QNICE a nicer to work with system for MiSTer2MEGA65
 * Standard Libraries: Merged the following modified functions from V1.7:
     STR$STRCHR
 
+* Standard Libraries: Added the following new functions:
+    STR$RPLCHR
+
 * TOOLCHAIN: Merged-back assembler from V1.7 branch: This assembler gives much
   more meaningful error messages.
 
 
-Version 1.6     September, 7 2020
+Version 1.6     September 7, 2020
 =================================
 
 * ISA: QNICE Instruction Set Architecture updated to version 1.6. The changes
@@ -204,7 +216,7 @@ Version 1.6     September, 7 2020
   - vhdl/hw/MEGA65/README.md
 
 
-Version 1.5     March, 22 2020
+Version 1.5     March 22, 2020
 ==============================
 
 This version greatly enhances the capabilities and the stability of the
@@ -214,7 +226,7 @@ emulator. Detailed description: emulator/README.md
 * qnice-wasm: WebAssembly/WebGL version that runs in the web browser
 
 
-Version 1.41    December, 30 2016
+Version 1.41    December 30, 2016
 =================================
 
 * CPU: Fixed a bug which prevented things like ADD @--R4, R4 from working
@@ -228,7 +240,7 @@ Version 1.41    December, 30 2016
 * Fixed a bunch of typos in various places and improved the documentation.
 
 
-Version 1.4    December, 26 2016
+Version 1.4    December 26, 2016
 ================================
 
 1. Hardware read-only support for SD Cards. Make sure to read the hints and
@@ -276,7 +288,7 @@ Version 1.4    December, 26 2016
    * String Library (Monitor): chr2lower, split, h2dstr
 
 
-Version 1.3    May, 6 2016
+Version 1.3    May 6, 2016
 ==========================
 
 * CPU: Significant speed improvement by removing old tristate driver:
@@ -303,7 +315,7 @@ Version 1.3    May, 6 2016
 * DOCUMENTATION: Added a programming card.
 
 
-Version 1.21   February, 13 2016
+Version 1.21   February 13, 2016
 ================================
 
 * Fixed predecrement CPU bug
@@ -313,7 +325,7 @@ Version 1.21   February, 13 2016
   autostart bitstream for the Digilent Nexys 4 DDR in dist_kit/q-tris.bit
 
 
-Version 1.2  January, 10 2016
+Version 1.2  January 10, 2016
 =============================
 
 * UART: 115.200 baud, 8-N-1, CTS from now on
@@ -330,7 +342,7 @@ Version 1.2  January, 10 2016
 * ASSEMBLER: bugfixes and .DW now supports .EQUs and labels as arguments
 
 
-Version 1.1  December, 30 2015
+Version 1.1  December 30, 2015
 ==============================
 
 By default, version 1.1 behaves like version 1.0, i.e. input/output is done
@@ -342,7 +354,7 @@ monitor (80x40 characters):
 * VGA support: enable via SW1
 
 
-Version 1.0  August, 30 2015
+Version 1.0  August 30, 2015
 ============================
 
 Classic "Environment 1" (aka env1), inspired by the classic
