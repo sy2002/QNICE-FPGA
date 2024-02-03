@@ -65,6 +65,7 @@ FAT32$FE_LE_C12_13      .EQU    0x001C                  ; long filename: charact
 
 FAT32$INT_LONG_NAME     .EQU    0x000F                  ; internal flag used to filter for long file names
 FAT32$INT_LONG_MASK     .EQU    0x003F                  ; internal mask for filtering long file file and directory names
+FAT32$INT_DOT           .EQU    0x002E                  ; ASCII code of the "." dot character
 
 FAT32$PRINT_DE_DIR_Y    .ASCII_W "<DIR> "
 FAT32$PRINT_DE_DIR_N    .ASCII_W "      "
@@ -577,7 +578,7 @@ _F32_DLST_C4    MOVE    R2, R5                      ; dir. entry struct.
                 MOVE    R10, R7
                 AND     FAT32$INT_LONG_MASK, R7
                 CMP     R7, FAT32$INT_LONG_NAME
-                RBRA    _F32_DLST_SN1, !Z           ; no: short name
+                RBRA    _F32_DLST_SN1A, !Z          ; no: short name
 
                 ; long name: last entry starts with bit 6 set, if not
                 ; then skip all long name entries until the next short
@@ -738,16 +739,69 @@ _F32_DLST_LN8   RSUB    FAT32$READ_B, 1             ; read char to R10
                 RBRA    _F32_DLST_VITAL, 1
 
                 ; short name: apply attribute filter
-_F32_DLST_SN1   DECRB
-                MOVE    R2, R8                      ; §R2 = attrib filter
+_F32_DLST_SN1A  DECRB
+                MOVE    R2, @--SP                   ; §R2 = attrib filter
+                MOVE    R1, @--SP                   ; §R1 = dir. entry struct.
                 INCRB
+
+                ; Apple macOS challange: It seems that in some macOS version
+                ; between 11.6.8 and 14.3 Apple changed the way how the
+                ; special files "." and ".." are treated on FAT32 formatted
+                ; SD Cards: macOS sets the flag FAT32$FA_HIDDEN for these
+                ; files. The attribute filter then "rightfully so" filters
+                ; these files which prevents users from going up one
+                ; directory by using ".." once they entered a subdirectory.
+                ;
+                ; Workaround:
+                ; 
+                ; Since we only know the first character of the short name
+                ; at this point, we check for a hidden directory that starts
+                ; with a dot "." which means that the attribute needs to be
+                ; FAT32$FA_DIR + FAT32$FA_HIDDEN. If so, then we are not
+                ; filtering this very directory.
+                ;
+                ; @TODO: This workaround is incomplete, because if there would
+                ; be a folder that would be for example called ".hidden" and
+                ; if this folder would have the flags FAT32$FA_DIR and
+                ; FAT32$FA_HIDDEN, then we would show this folder, i.e. not
+                ; applying the attribute filter in several cases, for example
+                ; in case of the filter being FAT32$FA_DEFAULT. Experiments
+                ; performed on macOS 11.6.8 and on Windows 8 have shown: As a
+                ; user, you cannot create such a folder. The Windows Explorer
+                ; and the macOS Finder prevent you from creating any
+                ; ".something" folders and if you use the macOS Terminal to
+                ; create one, then macOS automatically also sets the
+                ; FAT32$FA_SYSTEM flag additionally to FAT32$FA_DIR and
+                ; FAT32$FA_HIDDEN which means that the workaround is not
+                ; impacting these kind of folders negatively and therefore it
+                ; seems to be "good enough for now". Yet, we might want to
+                ; improve this in future.
+                ;
+                ; Details: https://github.com/MJoergen/C64MEGA65/issues/111
+                MOVE    FAT32$FA_DIR, R8
+                ADD     FAT32$FA_HIDDEN, R8
+                CMP     R8, R10                     ; hidden directory?
+                RBRA    _F32_DLST_SN1B, !Z          ; no: proceed normally
+                MOVE    @SP++, R8                   ; get dir. entry struct
+                ADD     FAT32$DE_NAME, R8           ; pointer to first char
+                CMP     FAT32$INT_DOT, @R8          ; "dot" folder?
+                RBRA    _F32_DLST_SN1C, !Z          ; no: proceed normally
+                MOVE    @SP++, R8                   ; ignore attrib filter
+                RBRA    _F32_DLST_SN1D, 1           ; yes: do not filter, yet
+
+_F32_DLST_SN1B  MOVE    @SP++, R8                   ; ignore dir. entry strct.
+_F32_DLST_SN1C  MOVE    @SP++, R8                   ; get attrib filter
+
+                ; This code is the continuation of:
+                ; "short name: apply attribute filter"
+                ; after the Apple/macOS workaround
                 NOT     R8, R8                      ; the attribs not set..
                 AND     R8, R10                     ; ..shall be filtered out
                 RBRA    _F32_DLST_DS, !Z            ; so skip if != 0
 
                 ; short name: find out if the file name and/or the extension
                 ; shall be displayed as lower case characters
-                MOVE    R0, R8                      ; R8 = device handle
+_F32_DLST_SN1D  MOVE    R0, R8                      ; R8 = device handle
                 MOVE    R4, R9                      ; R9 = index to be read
                 ADD     FAT32$FE_DISPLAYCASE, R9
                 RSUB    FAT32$READ_B, 1             ; R10 = read flags
