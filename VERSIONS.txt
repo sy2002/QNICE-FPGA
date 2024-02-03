@@ -92,6 +92,15 @@ Improved robustness
   invalid "owner" of the 512-byte hardware buffer stored in
   FAT32$DEV_BUFFERED_FDH generated errors, for example in FAT32$RW_SIC.
 
+* Workaround for Apple macOS challange: It seems that in some macOS version
+  between 11.6.8 and 14.3 Apple changed the way how the special files "." and
+  ".." are treated on FAT32 formatted SD Cards: macOS sets the flag
+  FAT32$FA_HIDDEN for these files. The attribute filter then "rightfully so"
+  filters these files which prevents users from going up one directory by
+  using ".." once they entered a subdirectory. V1.61 implements a "good enough
+  for now" workaround that should be improved in future. Details on this issue
+  can be found here: https://github.com/MJoergen/C64MEGA65/issues/111
+
 @TODO see "?? WIP: SD CARD ??" above: final result needs to be copied here
 
 Made QNICE a nicer to work with system for MiSTer2MEGA65
