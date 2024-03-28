@@ -560,7 +560,7 @@
      \item A normal subroutine for QNICE will use {\tt R13} as stack pointer
       for storing the return address, {\tt R14} to control the register bank,
       {\tt R8}\dots{\tt R12} for passing arguments to the routine and
-      {\tt R0}\dots{\tt R7} as working registers for the subrouine itself.
+      {\tt R0}\dots{\tt R7} as working registers for the subroutine itself.
     \end{itemize}
    \end{frame}
 %
@@ -620,7 +620,7 @@
        release the data bus. The CPU then jumps to this address.
      \end{description}
     \item A software interrupt is triggered by \texttt{INT <dst op>}.
-     The source operand contains the address of the ISR.
+     The destination operand contains the address of the ISR.
     \item To return from an interrupt the instruction \texttt{RTI} is
      used.
    \end{itemize}
