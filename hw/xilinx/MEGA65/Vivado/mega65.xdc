@@ -14,8 +14,8 @@ set_clock_groups -asynchronous \
 ## EAE's combinatorial division networks take longer than
 ## the regular clock period, so we specify a multicycle path
 ## see also the comments in EAE.vhd and explanations in UG903/chapter 5/Multicycle Paths as well as ug911/page 25
-set_multicycle_path -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells {eae_inst/res_reg[*]}] -setup 3
-set_multicycle_path -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells {eae_inst/res_reg[*]}] -hold 2
+set_multicycle_path -from [get_cells -include_replicated {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells -include_replicated {eae_inst/res_reg[*]}] -setup 3
+set_multicycle_path -from [get_cells -include_replicated {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells -include_replicated {eae_inst/res_reg[*]}] -hold 2
 
 ## The following set_max delay works fine, too at 50 MHz main clock and is an alternative to the multicycle path
 #set_max_delay -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells {eae_inst/res_reg[*]}] 34.000
