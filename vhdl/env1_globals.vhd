@@ -77,8 +77,8 @@ constant SYSINFO_HW_DE10NANO     : std_logic_vector(15 downto 0) := X"0030"; -- 
 
 constant SYSINFO_HW_PLATFORM     : std_logic_vector(15 downto 0) := SYSINFO_HW_NEXYS_4DDR;
 
-end env1_globals;
+end package env1_globals;
 
 package body env1_globals is
-end env1_globals;
+end package body env1_globals;
 

@@ -56,7 +56,7 @@ port (
    SD_MISO     : in std_logic;
    SD_DAT      : out std_logic_vector(3 downto 1)
 ); 
-end env1;
+end entity env1;
 
 architecture beh of env1 is
 
@@ -131,10 +131,11 @@ signal sys_en                 : std_logic;
 signal sys_we                 : std_logic;
 signal sys_reg                : std_logic_vector(0 downto 0);
 signal sys_data_out           : std_logic_vector(15 downto 0);
-signal reset_ctl              : std_logic;
 
--- VGA color output
+-- VGA control signals
 signal vga_color              : std_logic_vector(14 downto 0);
+signal vga_hsync              : std_logic;
+signal vga_vsync              : std_logic;
 
 -- Main system clock (CPU & memory & I/O devices)
 signal SLOW_CLOCK             : std_logic := '0';
@@ -148,6 +149,8 @@ signal clk25MHz               : std_logic := '0';
 -- MMCME related signals
 signal clk_fb_main            : std_logic;
 signal pll_locked_main        : std_logic;
+
+signal reset_ctl              : std_logic;
 
 -- enable displaying of address bus on system halt, if switch 2 is on
 signal i_til_reg0_enable      : std_logic;
@@ -253,8 +256,8 @@ begin
          cpu_grant_n_o => vga_igrant_n,
 
          vga_clk_i     => clk25MHz,
-         vga_hsync_o   => VGA_HS,
-         vga_vsync_o   => VGA_VS,
+         vga_hsync_o   => vga_hsync,
+         vga_vsync_o   => vga_vsync,
          vga_color_o   => vga_color,
          vga_data_en_o => open
       ); -- i_vga_multicolor
@@ -264,6 +267,8 @@ begin
    VGA_RED   <= vga_color(14 downto 11);
    VGA_GREEN <= vga_color(9 downto 6);
    VGA_BLUE  <= vga_color(4 downto 1);
+   VGA_HS    <= vga_hsync;
+   VGA_VS    <= vga_vsync;
 
    -- TIL display emulation (4 digits)
    til_leds : entity work.til_display
@@ -318,8 +323,8 @@ begin
          reset => reset_ctl,
          int_n_out => vga_int_n,
          grant_n_in => vga_igrant_n,
-         int_n_in => '1',
-         grant_n_out => open,
+         int_n_in => '1',        -- no more devices to in Daisy Chain: 1=no interrupt
+         grant_n_out => open,    -- ditto: open=grant goes nowhere
          en => tin_en,
          we => tin_we,
          reg => tin_reg,
@@ -476,7 +481,7 @@ begin
          hram_cpu_ws => '0'    
       );
    
-   -- handle the toggle switches
+   -- emulate the toggle switches as described in doc/README.md
    switch_driver : process(switch_reg_enable, SWITCHES)
    begin
       if switch_reg_enable = '1' then
@@ -508,5 +513,5 @@ begin
           
    -- pull DAT1, DAT2 and DAT3 to GND (Nexys' pull-ups by default pull to VDD)
    SD_DAT <= "000";
-end beh;
+end architecture beh;
 
