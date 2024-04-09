@@ -38,21 +38,24 @@ use ieee.numeric_std.all;
 
 entity sdcard is
 port (
-   clk      : in  std_logic;         -- system clock
-   reset    : in  std_logic;         -- async reset
+   clk           : in  std_logic;         -- system clock
+   reset         : in  std_logic;         -- async reset
 
    -- registers
-   en       : in  std_logic;         -- enable for reading from or writing to the bus
-   we       : in  std_logic;         -- write to the registers via system's data bus
-   reg      : in  std_logic_vector(2 downto 0);      -- register selector
-   data_in  : in  std_logic_vector(15 downto 0);  -- system's data bus
-   data_out : out std_logic_vector(15 downto 0);  -- system's data bus
+   en            : in  std_logic;         -- enable for reading from or writing to the bus
+   we            : in  std_logic;         -- write to the registers via system's data bus
+   reg           : in  std_logic_vector(2 downto 0);      -- register selector
+   data_in       : in  std_logic_vector(15 downto 0);  -- system's data bus
+   data_out      : out std_logic_vector(15 downto 0);  -- system's data bus
 
    -- hardware interface
-   sd_reset : out std_logic;
-   sd_clk   : out std_logic;
-   sd_mosi  : out std_logic;
-   sd_miso  : in  std_logic
+   sd_clk_o      : out std_logic;
+   sd_cmd_out_o  : out std_logic;
+   sd_cmd_in_i   : in  std_logic;
+   sd_cmd_oe_n_o : out std_logic;
+   sd_dat_out_o  : out std_logic_vector(3 downto 0);
+   sd_dat_in_i   : in  std_logic_vector(3 downto 0);
+   sd_dat_oe_n_o : out std_logic
 );
 end sdcard;
 
@@ -216,44 +219,33 @@ begin
       ); -- buffer_ram
 
    -- SD Card Controller
-   sdctl : sd_controller
-      port map (
-         -- general signals
-         clk             => slow_clock_25mhz,
-         reset           => sd_sync_reset,
-         addr            => sd_block_addr,
-         sd_busy         => sd_busy_flag,
-         sd_error        => sd_error_flag,
-         sd_error_code   => sd_error_code,
-         sd_type         => sd_type,
-         sd_fsm          => sd_fsm,
-
-         -- hardware interface
-         cs              => sd_reset,
-         sclk            => sd_clk,
-         mosi            => sd_mosi,
-         miso            => sd_miso,
-
-         -- hardware socket settings
-         card_present    => '1',
-         card_write_prot => '0',
-
-         -- reading
-         rd              => sd_block_read,
-         rd_multiple     => '0',
-         dout            => sd_dout,
-         dout_avail      => sd_dout_avail,
-         dout_taken      => sd_dout_taken,
-
-         -- writing
-         wr              => sd_block_write,
-         wr_multiple     => '0',
-         din             => sd_din,
-         din_valid       => sd_din_valid,
-         din_taken       => sd_din_taken,
-
-         erase_count     => (others => '0')
-      );
+   sdcard_wrapper_inst : entity work.sdcard_wrapper
+   port map (
+      clk_i         => clk, -- 50 MHz
+      rst_i         => reset,
+      wr_i          => sd_block_write,
+      wr_multi_i    => '0',
+      wr_erase_i    => (others => '0'),
+      wr_data_i     => sd_din,
+      wr_valid_i    => sd_din_valid,
+      wr_ready_o    => sd_din_taken,
+      rd_i          => sd_block_read,
+      rd_multi_i    => '0',
+      rd_data_o     => sd_dout,
+      rd_valid_o    => sd_dout_avail,
+      rd_ready_i    => sd_dout_taken,
+      busy_o        => sd_busy_flag,
+      lba_i         => sd_block_addr,
+      err_o         => sd_error_code,
+      -- SDCard device interface
+      sd_clk_o      => sd_clk_o,
+      sd_cmd_out_o  => sd_cmd_out_o,
+      sd_cmd_in_i   => sd_cmd_in_i,
+      sd_cmd_oe_n_o => sd_cmd_oe_n_o,
+      sd_dat_out_o  => sd_dat_out_o,
+      sd_dat_in_i   => sd_dat_in_i,
+      sd_dat_oe_n_o => sd_dat_oe_n_o
+   ); -- sdcard_wrapper_inst
 
    fsm_advance_state : process(clk)
    begin
