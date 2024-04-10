@@ -104,19 +104,19 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/sytargetcnt.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/hw/nexys4ddr/sytargetcnt.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/ps2_keyboard.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/hw/nexys4ddr/ps2_keyboard.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/nibble_to_cathode.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/hw/nexys4ddr/nibble_to_cathode.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -129,7 +129,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/env1_globals.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/hw/nexys4ddr/env1_globals.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -234,7 +234,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/ps2_keyboard_to_ascii.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/hw/nexys4ddr/ps2_keyboard_to_ascii.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -246,7 +246,7 @@
           <Attr Name="UsedIn" Val="synthesis"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/drive_7digits.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/hw/nexys4ddr/drive_7digits.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -278,7 +278,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/til_display.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/hw/nexys4ddr/til_display.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -297,7 +297,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/keyboard.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/hw/nexys4ddr/keyboard.vhd">
         <FileInfo>
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -397,7 +397,6 @@
       </File>
       <File Path="$PPRDIR/../../../../vhdl/mmio_mux.vhd">
         <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
