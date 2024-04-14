@@ -52,7 +52,8 @@ constant UART_FIFO_SIZE        : natural  := 32; -- size of the UART's FIFO buff
 -- Amount of CPU cycles, that the reset signal shall be active
 constant RESET_DURATION        : natural  := 16;
 
-end env1_globals;
+end package env1_globals;
 
 package body env1_globals is
-end env1_globals;
+end package body env1_globals;
+

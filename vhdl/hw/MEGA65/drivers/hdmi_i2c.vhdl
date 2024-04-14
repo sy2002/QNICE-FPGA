@@ -62,7 +62,6 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use ieee.numeric_std.all;
 use Std.TextIO.all;
-use work.debugtools.all;
 
 entity hdmi_i2c is
   generic ( clock_frequency : integer );
