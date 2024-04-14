@@ -5,6 +5,8 @@
 set_property -dict {PACKAGE_PIN V13 IOSTANDARD LVCMOS33} [get_ports CLK]
 create_clock -period 10.000 -name CLK [get_ports CLK]
 
+create_generated_clock -name Slow_Clock_25MHz -source [get_pins {clk_main/CLKOUT2}] -divide_by 2 [get_pins sd_card/Slow_Clock_25MHz_reg/Q]
+
 ## Make the general clocks and the pixelclock unrelated to other to avoid erroneous timing
 ## violations, and hopefully make everything synthesise faster
 set_clock_groups -asynchronous \
