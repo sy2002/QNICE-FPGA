@@ -17,7 +17,6 @@ use ieee.numeric_std.all;
 use Std.TextIO.all;
 
 use work.cache_row_type.all;
-use work.debugtools.all;
 
 entity hyperram is
   generic ( in_simulation : in boolean := false);

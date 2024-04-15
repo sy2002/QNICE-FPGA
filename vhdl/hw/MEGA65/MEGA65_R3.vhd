@@ -23,8 +23,8 @@ port (
 
    -- serial communication (rxd, txd only; rts/cts are not available)
    -- 115.200 baud, 8-N-1
-   UART_RXD    : in std_logic;                     -- receive data
-   UART_TXD    : out std_logic;                    -- send data
+   UART_RXD       : in std_logic;                     -- receive data
+   UART_TXD       : out std_logic;                    -- send data
 
    -- VGA
    VGA_RED        : out std_logic_vector(7 downto 0);
@@ -37,26 +37,6 @@ port (
    vdac_clk       : out std_logic;
    vdac_sync_n    : out std_logic;
    vdac_blank_n   : out std_logic;
-
-   -- HDMI via ADV7511
-   hdmi_vsync     : out std_logic;
-   hdmi_hsync     : out std_logic;
-   hdmired        : out std_logic_vector(7 downto 0);
-   hdmigreen      : out std_logic_vector(7 downto 0);
-   hdmiblue       : out std_logic_vector(7 downto 0);
-
-   hdmi_clk       : out std_logic;
-   hdmi_de        : out std_logic;                 -- high when valid pixels being output
-
-   hdmi_int       : in std_logic;                  -- interrupts by ADV7511
-   hdmi_spdif     : out std_logic := '0';          -- unused: GND
-   hdmi_scl       : inout std_logic;               -- I2C to/from ADV7511: serial clock
-   hdmi_sda       : inout std_logic;               -- I2C to/from ADV7511: serial data
-
-   -- TPD12S016 companion chip for ADV7511
-   --hpd_a          : inout std_logic;
-   ct_hpd         : out std_logic := '1';          -- assert to connect ADV7511 to the actual port
-   ls_oe          : out std_logic := '1';          -- ditto
 
    -- MEGA65 smart keyboard controller
    kb_io0         : out std_logic;                 -- clock to keyboard
@@ -293,24 +273,12 @@ begin
          B => vga_b,
          hsync => vga_hsync,
          vsync => vga_vsync,
-         hdmi_de => hdmi_de,
+         hdmi_de => open,
          en => vga_en,
          we => vga_we,
          reg => vga_reg,
          data_in => cpu_data_out,
          data_out => vga_data_out
-      );
-
-   -- I2C communication with the HDMI transcoder ADV7511
-   hdmi_i2c2: entity work.hdmi_i2c
-      generic map (
-         clock_frequency => 50000000
-      )
-      port map (
-         clock => SLOW_CLOCK,
-         hdmi_int => '1',
-         sda => hdmi_sda,
-         scl => hdmi_scl
       );
 
    -- special UART with FIFO that can be directly connected to the CPU bus
@@ -531,11 +499,6 @@ begin
          -- VGA horizontal and vertical sync
          VGA_HS      <= vga_hsync;
          VGA_VS      <= vga_vsync;
-
-         -- HDMI: color signal
-         hdmired     <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
-         hdmigreen   <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
-         hdmiblue    <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
       end if;
    end process;
 
@@ -548,11 +511,6 @@ begin
    -- invert the phase of the vdac_clk when use Vivado 2019.2. When using ISE 14.7, it works
    -- fine without the phase shift.
    vdac_clk <= not clk25MHz;
-
-   -- HDMI
-   hdmi_hsync  <= vga_hsync;
-   hdmi_vsync  <= vga_vsync;
-   hdmi_clk    <= clk25MHz;
 
    -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
    -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
