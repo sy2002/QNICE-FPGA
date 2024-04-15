@@ -32,10 +32,10 @@ process(clk)
     variable ram : ram_t;
 begin
     if falling_edge(clk) then
+        data_o <= to_stdlogicvector(ram(to_integer(address_o)));
         if (we = '1') then
             ram(to_integer(address_i)) := to_bitvector(data_i);
         end if;
-        data_o <= to_stdlogicvector(ram(to_integer(address_o)));
     end if;
 end process;
 

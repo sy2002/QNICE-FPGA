@@ -5,8 +5,6 @@
 set_property -dict {PACKAGE_PIN V13 IOSTANDARD LVCMOS33} [get_ports CLK]
 create_clock -period 10.000 -name CLK [get_ports CLK]
 
-create_generated_clock -name Slow_Clock_25MHz -source [get_pins {clk_main/CLKOUT2}] -divide_by 2 [get_pins sd_card/Slow_Clock_25MHz_reg/Q]
-
 ## Make the general clocks and the pixelclock unrelated to other to avoid erroneous timing
 ## violations, and hopefully make everything synthesise faster
 set_clock_groups -asynchronous \
@@ -70,10 +68,12 @@ set_property -dict {PACKAGE_PIN V10  IOSTANDARD LVCMOS33} [get_ports vdac_sync_n
 set_property -dict {PACKAGE_PIN W11  IOSTANDARD LVCMOS33} [get_ports vdac_blank_n]
 
 ## Micro SD Connector (this is the slot at the bottom side of the case under the cover)
-set_property -dict {PACKAGE_PIN B15  IOSTANDARD LVCMOS33} [get_ports SD_RESET]
-set_property -dict {PACKAGE_PIN B17  IOSTANDARD LVCMOS33} [get_ports SD_CLK]
-set_property -dict {PACKAGE_PIN B16  IOSTANDARD LVCMOS33} [get_ports SD_MOSI]
-set_property -dict {PACKAGE_PIN B18  IOSTANDARD LVCMOS33} [get_ports SD_MISO]
+set_property -dict {PACKAGE_PIN B17  IOSTANDARD LVCMOS33} [get_ports sd_clk_o]
+set_property -dict {PACKAGE_PIN B16  IOSTANDARD LVCMOS33 PULLUP true} [get_ports sd_cmd_io]
+set_property -dict {PACKAGE_PIN B18  IOSTANDARD LVCMOS33 PULLUP true} [get_ports sd_dat_io[0]]
+set_property -dict {PACKAGE_PIN C18  IOSTANDARD LVCMOS33 PULLUP true} [get_ports sd_dat_io[1]]
+set_property -dict {PACKAGE_PIN C19  IOSTANDARD LVCMOS33 PULLUP true} [get_ports sd_dat_io[2]]
+set_property -dict {PACKAGE_PIN B15  IOSTANDARD LVCMOS33 PULLUP true} [get_ports sd_dat_io[3]]
 
 ## HyperRAM (standard)
 set_property -dict {PACKAGE_PIN D22 IOSTANDARD LVCMOS33 PULLUP FALSE SLEW FAST DRIVE 16} [get_ports hr_clk_p]

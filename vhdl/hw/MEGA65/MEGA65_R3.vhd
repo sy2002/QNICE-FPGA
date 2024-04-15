@@ -44,10 +44,9 @@ port (
    kb_io2         : in std_logic;                  -- data input from keyboard
 
    -- SD Card
-   SD_RESET       : out std_logic;
-   SD_CLK         : out std_logic;
-   SD_MOSI        : out std_logic;
-   SD_MISO        : in std_logic;
+   sd_clk_o       : out std_logic;
+   sd_cmd_io      : inout std_logic;
+   sd_dat_io      : inout std_logic_vector(3 downto 0);
 
    -- Built-in HyperRAM
    hr_d           : inout unsigned(7 downto 0);    -- Data/Address
@@ -162,7 +161,15 @@ signal i_til_data_in          : std_logic_vector(15 downto 0);
 -- emulate the switches on the Nexys4 dev board to toggle VGA and PS/2
 signal SWITCHES               : std_logic_vector(15 downto 0);
 
+signal sd_cmd_out             : std_logic;
+signal sd_cmd_oe_n            : std_logic;
+signal sd_dat_out             : std_logic_vector(3 downto 0);
+signal sd_dat_oe_n            : std_logic;
+
 begin
+
+   sd_cmd_io <= sd_cmd_out when sd_cmd_oe_n = '0' else 'Z';
+   sd_dat_io <= sd_dat_out when sd_dat_oe_n = '0' else (others => 'Z');
 
    -- Merge data outputs from all devices into a single data input to the CPU.
    -- This requires that all devices output 0's when not selected.
@@ -386,10 +393,13 @@ begin
          reg => sd_reg,
          data_in => cpu_data_out,
          data_out => sd_data_out,
-         sd_reset => SD_RESET,
-         sd_clk => SD_CLK,
-         sd_mosi => SD_MOSI,
-         sd_miso => SD_MISO
+         sd_clk_o      => sd_clk_o,
+         sd_cmd_out_o  => sd_cmd_out,
+         sd_cmd_in_i   => sd_cmd_io,
+         sd_cmd_oe_n_o => sd_cmd_oe_n,
+         sd_dat_out_o  => sd_dat_out,
+         sd_dat_in_i   => sd_dat_io,
+         sd_dat_oe_n_o => sd_dat_oe_n
       );
 
    -- HyperRAM

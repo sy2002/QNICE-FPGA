@@ -61,61 +61,6 @@ end sdcard;
 
 architecture beh of sdcard is
 
--- the actual SD Card controller that is wrapped by this state machine
-component sd_controller is
-port (
-   cs              : out std_logic;            -- To SD card
-   mosi            : out std_logic;            -- To SD card
-   miso            : in  std_logic;            -- From SD card
-   sclk            : out std_logic;            -- To SD card
-   card_present    : in  std_logic;            -- From socket - can be fixed to '1' if no switch is present
-   card_write_prot : in  std_logic;            -- From socket - can be fixed to '0' if no switch is present, or '1' to make a Read-Only interface
-
-   rd              : in  std_logic;            -- Trigger single block read
-   rd_multiple     : in  std_logic;            -- Trigger multiple block read
-   dout            : out std_logic_vector(7 downto 0);  -- Data from SD card
-   dout_avail      : out std_logic;            -- Set when dout is valid
-   dout_taken      : in  std_logic;            -- Acknowledgement for dout
-
-   wr              : in  std_logic;            -- Trigger single block write
-   wr_multiple     : in  std_logic;            -- Trigger multiple block write
-   din             : in  std_logic_vector(7 downto 0);   -- Data to SD card
-   din_valid       : in  std_logic;            -- Set when din is valid
-   din_taken       : out std_logic;            -- Ackowledgement for din
-
-   addr            : in  std_logic_vector(31 downto 0);  -- Block address
-   erase_count     : in  std_logic_vector(7 downto 0);   -- For wr_multiple only
-
-   sd_error        : out std_logic;            -- '1' if an error occurs, reset on next RD or WR
-   sd_busy         : out std_logic;            -- '0' if a RD or WR can be accepted
-   sd_error_code   : out std_logic_vector(7 downto 0);  -- See above, 000=No error
-
-   reset           : in  std_logic;            -- System reset
-   clk             : in  std_logic;            -- twice the SPI clk (max 50MHz)
-
-   -- Optional debug outputs
-   sd_type         : out std_logic_vector(1 downto 0);  -- Card status (see above)
-   sd_fsm          : out std_logic_vector(7 downto 0) := "11111111" -- FSM state (see block at end of file)
-);
-end component sd_controller;
-
--- 8-bit BRAM with a 16-bit address bus
-component byte_bram is
-generic (
-   SIZE_BYTES : integer
-);
-port (
-   clk        : in std_logic;
-
-   we         : in std_logic;
-
-   address_i  : in std_logic_vector(15 downto 0);
-   address_o  : in std_logic_vector(15 downto 0);
-   data_i     : in std_logic_vector(7 downto 0);
-   data_o     : out std_logic_vector(7 downto 0)
-);
-end component byte_bram;
-
 -- RAM signals (512 byte buffer RAM)
 signal ram_we           : std_logic;
 signal ram_addr_i       : std_logic_vector(15 downto 0);
@@ -199,12 +144,11 @@ signal sd_state         : sd_fsm_type;
 signal sd_state_next    : sd_fsm_type;
 signal fsm_state_next   : sd_fsm_type;
 
-signal slow_clock_25mhz : std_logic;
 
 begin
 
    -- 512 byte buffer RAM (SD card is configured to read/write 512 byte blocks)
-   buffer_ram : byte_bram
+   buffer_ram : entity work.byte_bram
       generic map (
          SIZE_BYTES => 512
       )
@@ -283,8 +227,8 @@ begin
    fsm_output_decode : process(all)
    begin
       fsm_sync_reset   <= '0';
-      fsm_block_read   <= sd_block_read;
-      fsm_block_write  <= sd_block_write;
+      fsm_block_read   <= '0';
+      fsm_block_write  <= '0';
       fsm_block_addr   <= sd_block_addr;
       fsm_state_next   <= sds_std_seq;
       fsm_current_byte <= current_byte;
@@ -337,6 +281,7 @@ begin
             end if;
 
          when sds_read_wait_for_byte =>
+            sd_dout_taken <= '1';
             -- next byte available
             if sd_dout_avail = '1' then
                -- prepare to store the arrived byte
@@ -350,20 +295,12 @@ begin
             end if;
 
          when sds_read_store_byte =>
-            ram_we_duetosdc <= '1';
-            ram_di_duetosdc <= current_byte;
+            null;
 
          when sds_read_handshake =>
-            -- signal to the controller that we took the byte
-            sd_dout_taken <= '1';
-            -- wait for the controller to acknowledge that
-            -- by waiting until it drops sd_dout_avail
-            if sd_dout_avail = '1' then
-               fsm_state_next <= sds_read_handshake;
-            end if;
+            null;
 
          when sds_read_inc_ram_addr =>
-            sd_dout_taken <= '1'; -- two cycles due to 50MHz fsm vs. 25 MHz SD Controller
             fsm_buffer_ptr <= buffer_ptr + 1;
 
          when sds_read_check_done =>
@@ -586,17 +523,6 @@ begin
          ram_addr_i  <= std_logic_vector(buffer_ptr);
          ram_addr_o  <= std_logic_vector(buffer_ptr);
          ram_data_i  <= ram_di_duetosdc;
-      end if;
-   end process;
-
-   generate_Slow_Clock_25MHz : process(clk)
-   begin
-      if rising_edge(clk) then
-         slow_clock_25mhz <= not slow_clock_25mhz;
-
-         if reset = '1' or cmd_reset = '1' then
-            slow_clock_25mhz <= '0';
-         end if;
       end if;
    end process;
 
