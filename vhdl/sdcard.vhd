@@ -336,7 +336,6 @@ begin
             if sd_din_taken = '0' then
                fsm_state_next <= sds_write_provide_byte;
             else
-               sd_din_valid   <= '0';
                fsm_buffer_ptr <= buffer_ptr + 1;
 
                if buffer_ptr = 511 then
