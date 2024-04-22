@@ -17,12 +17,15 @@ OPEN PARTS OF 1.61:
   at V1.6.
 
 ?? WIP: SD CARD ??
-The mission is: Stabilize it, make it much more robust.
-a) Either the "fix" from commit #2460a7e did the trick by reducing the speed
-from 50 MHz to 25 MHz (though I doubt it, but let's see). In this case we need
-to add something like this to the XDC (and the ISE equivalent)
-## Clock divider sdcardclk that creates the 25 MHz used by sd_spi.vhd
-create_generated_clock -name sdcardclk -source [get_pins */clk_gen/i_clk_gb_qnice/CLKOUT1] -divide_by 2 [get_pins MEGA65/QNICE_SOC/sd_card/Slow_Clock_25MHz_reg/Q]
+MJoergen's new SD controller passed "F+D" in the monitor plus the hardcore
+testing suite "fwrite.c". Here are his comments:
+
+1. My SDCard repo is updated with the latest fixes.
+2. The QNICE repo is revived, so that V1.61 standalone builds and works on R3 (with old SD card controller).
+3. The QNICE repo has added a branch "mfj_new_sdcard" based off V1.61. Has been tested using your fwrite.c program.
+4. The M2M repo has added a branch "mfj_new_sdcard" using this new QNICE. Builds, but has not been tested.
+5. The M2M repo needs more work, because we need to support SPI mode on R3. This requires some work, and I'm not motivated for that right now. So I'll leave things as they are now, and go back to the VIC20 repo.
+6. As we talked about on our last call, I don't think the new SD card controller is ready for M2M v2.0, partly due to very limited testing, and partly due to lack of support for SPI mode on R3. But the work required is of limited scope, so we might conceivably make a M2M V2.1 in the future, using the new SD card controller.
 
 DONE/WIP PARTS OF 1.61:
 
