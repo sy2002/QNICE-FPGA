@@ -171,12 +171,7 @@ begin
          hr_rwds => hr_rwds,
          hr_reset => hr_reset,
          hr_clk_p => hr_clk_p,
-         hr2_d => hr2_d,
-         hr2_rwds => hr2_rwds,
-         hr2_reset => hr2_reset,
-         hr2_clk_p => hr2_clk_p,
-         hr_cs0 => hr_cs0,
-         hr_cs1 => hr_cs1
+         hr_cs0 => hr_cs0
       );
                         
    -- memory mapped i/o controller
