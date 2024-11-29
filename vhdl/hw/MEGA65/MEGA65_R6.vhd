@@ -410,7 +410,7 @@ begin
       generic map (
          GD_TIL => false,      -- no support for TIL leds on MEGA65
          GD_SWITCHES => true,  -- we emulate the switch register as described in doc/README.md
-         GD_HRAM => false       -- support HyperRAM
+         GD_HRAM => true       -- support HyperRAM
       )
       port map (
          HW_RESET => RESET_N,
