@@ -410,10 +410,10 @@ begin
       generic map (
          GD_TIL => false,      -- no support for TIL leds on MEGA65
          GD_SWITCHES => true,  -- we emulate the switch register as described in doc/README.md
-         GD_HRAM => true       -- support HyperRAM
+         GD_HRAM => false       -- support HyperRAM
       )
       port map (
-         HW_RESET => not RESET_N,
+         HW_RESET => RESET_N,
          CLK => SLOW_CLOCK,                  -- @TODO change debouncer bitsize when going to 100 MHz
          addr => cpu_addr,
          data_dir => cpu_data_dir,
