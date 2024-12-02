@@ -18,43 +18,200 @@ use UNISIM.VCOMPONENTS.ALL;
 
 entity MEGA65 is
 port (
-   CLK            : in std_logic;                  -- 100 MHz clock
-   RESET_N        : in std_logic;                  -- CPU reset button
+    CLK            : in std_logic;                  -- 100 MHz clock
+    RESET_N        : in std_logic;                  -- CPU reset button
+    
+    -- serial communication (rxd, txd only; rts/cts are not available)
+    -- 115.200 baud, 8-N-1
+    UART_RXD       : in std_logic;                     -- receive data
+    UART_TXD       : out std_logic;                    -- send data
+    
+    -- VGA
+    VGA_RED        : out std_logic_vector(7 downto 0);
+    VGA_GREEN      : out std_logic_vector(7 downto 0);
+    VGA_BLUE       : out std_logic_vector(7 downto 0);
+    VGA_HS         : out std_logic;
+    VGA_VS         : out std_logic;
+    
+    -- VDAC
+    vga_scl_io     : inout std_logic;
+    vga_sda_io     : inout std_logic;    
+    vdac_clk       : out std_logic;
+    vdac_sync_n    : out std_logic;
+    vdac_blank_n   : out std_logic;
+    vdac_psave_n_o : out std_logic;
 
-   -- serial communication (rxd, txd only; rts/cts are not available)
-   -- 115.200 baud, 8-N-1
-   UART_RXD       : in std_logic;                     -- receive data
-   UART_TXD       : out std_logic;                    -- send data
+    -- HDMI. U10 = PTN3363BSMP
+    -- I2C address 0x40
+    /*
+    tmds_data_p_o           : out   std_logic_vector(2 downto 0);
+    tmds_data_n_o           : out   std_logic_vector(2 downto 0);
+    tmds_clk_p_o            : out   std_logic;
+    tmds_clk_n_o            : out   std_logic;
+    hdmi_hiz_en_o           : out   std_logic; -- Connect to U10.HIZ_EN
+    hdmi_ls_oe_n_o          : out   std_logic; -- Connect to U10.OE#
+    hdmi_hpd_i              : in    std_logic; -- Connect to U10.HPD_SOURCE
+    hdmi_scl_io             : inout std_logic; -- Connect to U10.SCL_SOURCE
+    hdmi_sda_io             : inout std_logic; -- Connect to U10.SDA_SOURCE
+    */    
 
-   -- VGA
-   VGA_RED        : out std_logic_vector(7 downto 0);
-   VGA_GREEN      : out std_logic_vector(7 downto 0);
-   VGA_BLUE       : out std_logic_vector(7 downto 0);
-   VGA_HS         : out std_logic;
-   VGA_VS         : out std_logic;
+    -- MEGA65 smart keyboard controller
+    kb_io0         : out std_logic;                 -- clock to keyboard
+    kb_io1         : out std_logic;                 -- data output to keyboard
+    kb_io2         : in std_logic;                  -- data input from keyboard
+    kb_tck_o       : out   std_logic;
+    kb_tdo_i       : in    std_logic;
+    kb_tms_o       : out   std_logic;
+    kb_tdi_o       : out   std_logic;
+    kb_jtagen_o    : out   std_logic;
+    
+    -- SD Card
+    SD_RESET       : out    std_logic;
+    SD_CLK         : out    std_logic;
+    SD_MOSI        : out    std_logic;
+    SD_MISO        : in     std_logic;
+    sd_cd_i        : in     std_logic;
+    sd_d1_i        : in     std_logic;
+    sd_d2_i        : in     std_logic;
+    
+    -- SD Connector (this is the slot at the bottom side of the case under the cover)
+    sd2_reset_o             : out   std_logic;
+    sd2_clk_o               : out   std_logic;
+    sd2_mosi_o              : out   std_logic;
+    sd2_miso_i              : in    std_logic;
+    sd2_cd_i                : in    std_logic;
+    sd2_wp_i                : in    std_logic;
+    sd2_d1_i                : in    std_logic;
+    sd2_d2_i                : in    std_logic;
+    
+    -- Audio DAC. U37 = AK4432VT
+    -- I2C address 0x19
+    audio_mclk_o            : out   std_logic; -- Master Clock Input Pin,       12.288 MHz
+    audio_bick_o            : out   std_logic; -- Audio Serial Data Clock Pin,   3.072 MHz
+    audio_sdti_o            : out   std_logic; -- Audio Serial Data Input Pin,  16-bit LSB justified
+    audio_lrclk_o           : out   std_logic; -- Input Channel Clock Pin,      48.0 kHz
+    audio_pdn_n_o           : out   std_logic; -- Power-Down & Reset Pin
+    audio_i2cfil_o          : out   std_logic; -- I2C Interface Mode Select Pin
+    audio_scl_io            : inout std_logic; -- Control Data Clock Input Pin
+    audio_sda_io            : inout std_logic; -- Control Data Input/Output Pin
+    
+    -- Joysticks and Paddles
+    fa_up_n_i               : in    std_logic;
+    fa_down_n_i             : in    std_logic;
+    fa_left_n_i             : in    std_logic;
+    fa_right_n_i            : in    std_logic;
+    fa_fire_n_i             : in    std_logic;
+    fa_fire_n_o             : out   std_logic; -- 0: Drive pin low (output). 1: Leave pin floating (input)
+    fa_up_n_o               : out   std_logic;
+    fa_left_n_o             : out   std_logic;
+    fa_down_n_o             : out   std_logic;
+    fa_right_n_o            : out   std_logic;
+    fb_up_n_i               : in    std_logic;
+    fb_down_n_i             : in    std_logic;
+    fb_left_n_i             : in    std_logic;
+    fb_right_n_i            : in    std_logic;
+    fb_fire_n_i             : in    std_logic;
+    fb_up_n_o               : out   std_logic;
+    fb_down_n_o             : out   std_logic;
+    fb_fire_n_o             : out   std_logic;
+    fb_right_n_o            : out   std_logic;
+    fb_left_n_o             : out   std_logic;
+    
+    -- Joystick power supply
+    joystick_5v_disable_o   : out   std_logic; -- 1: Disable 5V power supply to joysticks
+    joystick_5v_powergood_i : in    std_logic;
+    
+    paddle_i                : in    std_logic_vector(3 downto 0);
+    paddle_drain_o          : out   std_logic;
+    
+    -- Built-in HyperRAM
+    hr_d           : inout unsigned(7 downto 0);    -- Data/Address
+    hr_rwds        : inout std_logic;               -- RW Data strobe
+    hr_reset       : out std_logic;                 -- Active low RESET line to HyperRAM
+    hr_clk_p       : out std_logic;
+    hr_cs0         : out std_logic;
+    
+    -- I2C bus
+    -- U32 = PCA9655EMTTXG. Address 0x40. I/O expander.
+    -- U12 = MP8869SGL-Z.   Address 0x61. DC/DC Converter.
+    -- U14 = MP8869SGL-Z.   Address 0x67. DC/DC Converter.
+    i2c_scl_io              : inout std_logic;
+    i2c_sda_io              : inout std_logic;
+    
+    -- CBM-488/IEC serial port
+    iec_reset_n_o           : out   std_logic;
+    iec_atn_n_o             : out   std_logic;
+    iec_clk_en_n_o          : out   std_logic;
+    iec_clk_n_i             : in    std_logic;
+    iec_clk_n_o             : out   std_logic;
+    iec_data_en_n_o         : out   std_logic;
+    iec_data_n_i            : in    std_logic;
+    iec_data_n_o            : out   std_logic;
+    iec_srq_en_n_o          : out   std_logic;
+    iec_srq_n_i             : in    std_logic;
+    iec_srq_n_o             : out   std_logic;
 
-   -- VDAC
-   vdac_clk       : out std_logic;
-   vdac_sync_n    : out std_logic;
-   vdac_blank_n   : out std_logic;
-
-   -- MEGA65 smart keyboard controller
-   kb_io0         : out std_logic;                 -- clock to keyboard
-   kb_io1         : out std_logic;                 -- data output to keyboard
-   kb_io2         : in std_logic;                  -- data input from keyboard
-
-   -- SD Card
-   SD_RESET       : out std_logic;
-   SD_CLK         : out std_logic;
-   SD_MOSI        : out std_logic;
-   SD_MISO        : in std_logic;
-
-   -- Built-in HyperRAM
-   hr_d           : inout unsigned(7 downto 0);    -- Data/Address
-   hr_rwds        : inout std_logic;               -- RW Data strobe
-   hr_reset       : out std_logic;                 -- Active low RESET line to HyperRAM
-   hr_clk_p       : out std_logic;
-   hr_cs0         : out std_logic
+    -- C64 Expansion Port (aka Cartridge Port)
+    cart_phi2_o             : out   std_logic;
+    cart_dotclock_o         : out   std_logic;
+    cart_dma_i              : in    std_logic;
+    cart_reset_oe_n_o       : out   std_logic;
+    cart_reset_io           : inout std_logic;
+    cart_game_oe_n_o        : out   std_logic;
+    cart_game_io            : inout std_logic;
+    cart_exrom_oe_n_o       : out   std_logic;
+    cart_exrom_io           : inout std_logic;
+    cart_nmi_oe_n_o         : out   std_logic;
+    cart_nmi_io             : inout std_logic;
+    cart_irq_oe_n_o         : out   std_logic;
+    cart_irq_io             : inout std_logic;
+    cart_ctrl_en_o          : out   std_logic;
+    cart_ctrl_dir_o         : out   std_logic; -- =1 means FPGA->Port, =0 means Port->FPGA
+    cart_ba_io              : inout std_logic;
+    cart_rw_io              : inout std_logic;
+    cart_io1_io             : inout std_logic;
+    cart_io2_io             : inout std_logic;
+    cart_romh_oe_n_o        : out   std_logic;
+    cart_romh_io            : inout std_logic;
+    cart_roml_oe_n_o        : out   std_logic;
+    cart_roml_io            : inout std_logic;
+    cart_en_o               : out   std_logic;
+    cart_addr_en_o          : out   std_logic;
+    cart_haddr_dir_o        : out   std_logic; -- =1 means FPGA->Port, =0 means Port->FPGA
+    cart_laddr_dir_o        : out   std_logic; -- =1 means FPGA->Port, =0 means Port->FPGA
+    cart_a_io               : inout unsigned(15 downto 0);
+    cart_data_en_o          : out   std_logic;
+    cart_data_dir_o         : out   std_logic; -- =1 means FPGA->Port, =0 means Port->FPGA
+    cart_d_io               : inout unsigned(7 downto 0);
+    
+    -- I2C bus for on-board peripherals
+    -- U36. 24AA025E48T. Address 0x50. 2K Serial EEPROM.
+    -- U38. RV-3032-C7.  Address 0x51. Real-Time Clock Module.
+    -- U39. 24LC128.     Address 0x56. 128K CMOS Serial EEPROM.
+    fpga_sda_io             : inout std_logic;
+    fpga_scl_io             : inout std_logic;
+    
+    -- Connected to J18
+    grove_sda_io            : inout std_logic;
+    grove_scl_io            : inout std_logic;
+    
+    -- On board LEDs
+    led_g_n_o               : out   std_logic;
+    led_r_n_o               : out   std_logic;
+    led_o                   : out   std_logic;
+    
+      -- SDRAM - 32M x 16 bit, 3.3V VCC. U44 = IS42S16320F-6BL
+      sdram_clk_o             : out   std_logic;
+      sdram_cke_o             : out   std_logic;
+      sdram_ras_n_o           : out   std_logic;
+      sdram_cas_n_o           : out   std_logic;
+      sdram_we_n_o            : out   std_logic;
+      sdram_cs_n_o            : out   std_logic;
+      sdram_ba_o              : out   std_logic_vector(1 downto 0);
+      sdram_a_o               : out   std_logic_vector(12 downto 0);
+      sdram_dqml_o            : out   std_logic;
+      sdram_dqmh_o            : out   std_logic;
+      sdram_dq_io             : inout std_logic_vector(15 downto 0)    
 );
 end entity MEGA65;
 

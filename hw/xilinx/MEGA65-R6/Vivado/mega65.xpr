@@ -298,9 +298,10 @@
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/MEGA65_R6.vhd">
-        <FileInfo>
+        <FileInfo SFType="VHDL2008">
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../../../vhdl/timer_module.vhd">
