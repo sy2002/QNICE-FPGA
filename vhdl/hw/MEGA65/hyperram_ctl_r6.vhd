@@ -39,12 +39,7 @@ port(
    hr_rwds     : inout std_logic;            -- RW Data strobe
    hr_reset    : out std_logic;              -- Active low RESET line to HyperRAM
    hr_clk_p    : out std_logic;
-   hr2_d       : inout unsigned(7 downto 0); -- Data/Address
-   hr2_rwds    : inout std_logic;            -- RW Data strobe
-   hr2_reset   : out std_logic;              -- Active low RESET line to HyperRAM
-   hr2_clk_p   : out std_logic;
-   hr_cs0      : out std_logic;
-   hr_cs1      : out std_logic
+   hr_cs0      : out std_logic
 );
 end hyperram_ctl;
 
@@ -79,12 +74,7 @@ component hyperram is
          hr_rwds : inout std_logic;
          hr_reset : out std_logic;
          hr_clk_p : out std_logic;
-         hr2_d : inout unsigned(7 downto 0);
-         hr2_rwds : inout std_logic;
-         hr2_reset : out std_logic;
-         hr2_clk_p : out std_logic;
-         hr_cs0 : out std_logic;
-         hr_cs1 : out std_logic
+         hr_cs0 : out std_logic
          );
 end component;
 
@@ -151,12 +141,7 @@ begin
       hr_rwds => hr_rwds,
       hr_reset => hr_reset,
       hr_clk_p => hr_clk_p,
-      hr2_d => hr2_d,
-      hr2_rwds => hr2_rwds,
-      hr2_reset => hr2_reset,
-      hr2_clk_p => hr2_clk_p,
-      hr_cs0 => hr_cs0,
-      hr_cs1 => hr_cs1
+      hr_cs0 => hr_cs0
    );
                
    fsm_advance_state : process(clk, reset)
