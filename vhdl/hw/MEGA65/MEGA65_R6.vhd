@@ -62,13 +62,13 @@ entity MEGA65 is
     kb_jtagen_o : out std_logic;
 
     -- SD Card
-    SD_RESET : out std_logic;
-    SD_CLK   : out std_logic;
-    SD_MOSI  : out std_logic;
-    SD_MISO  : in std_logic;
-    sd_cd_i  : in std_logic;
-    sd_d1_i  : in std_logic;
-    sd_d2_i  : in std_logic;
+    sd_reset_o : out std_logic;
+    sd_clk_o   : out std_logic;
+    sd_mosi_o  : out std_logic;
+    sd_miso_i  : in std_logic;
+    sd_cd_i    : in std_logic;
+    sd_d1_i    : in std_logic;
+    sd_d2_i    : in std_logic;
 
     -- SD Connector (this is the slot at the bottom side of the case under the cover)
     sd2_reset_o : out std_logic;
@@ -196,6 +196,23 @@ entity MEGA65 is
     led_r_n_o : out std_logic;
     led_o     : out std_logic;
 
+    -- Pmod Header
+    p1lo_io      : inout std_logic_vector(3 downto 0);
+    p1hi_io      : inout std_logic_vector(3 downto 0);
+    p2lo_io      : inout std_logic_vector(3 downto 0);
+    p2hi_io      : inout std_logic_vector(3 downto 0);
+    pmod1_en_o   : out std_logic;
+    pmod1_flag_i : in std_logic;
+    pmod2_en_o   : out std_logic;
+    pmod2_flag_i : in std_logic;
+
+    -- Quad SPI Flash. U5 = S25FL512SAGBHIS10
+    qspidb_io : inout std_logic_vector(3 downto 0);
+    qspicsn_o : out std_logic;
+
+    -- Debug.
+    dbg_11_io : inout std_logic;
+    
     -- SDRAM - 32M x 16 bit, 3.3V VCC. U44 = IS42S16320F-6BL
     sdram_clk_o   : out std_logic;
     sdram_cke_o   : out std_logic;
@@ -207,7 +224,37 @@ entity MEGA65 is
     sdram_a_o     : out std_logic_vector(12 downto 0);
     sdram_dqml_o  : out std_logic;
     sdram_dqmh_o  : out std_logic;
-    sdram_dq_io   : inout std_logic_vector(15 downto 0)
+    sdram_dq_io   : inout std_logic_vector(15 downto 0);
+
+    -- SMSC Ethernet PHY. U4 = KSZ8081RNDCA
+    eth_clock_o : out std_logic;
+    eth_led2_o  : out std_logic;
+    eth_mdc_o   : out std_logic;
+    eth_mdio_io : inout std_logic;
+    eth_reset_o : out std_logic;
+    eth_rxd_i   : in std_logic_vector(1 downto 0);
+    eth_rxdv_i  : in std_logic;
+    eth_rxer_i  : in std_logic;
+    eth_txd_o   : out std_logic_vector(1 downto 0);
+    eth_txen_o  : out std_logic;
+
+    -- FDC interface
+    f_density_o      : out std_logic;
+    f_diskchanged_i  : in std_logic;
+    f_index_i        : in std_logic;
+    f_motora_o       : out std_logic;
+    f_motorb_o       : out std_logic;
+    f_rdata_i        : in std_logic;
+    f_selecta_o      : out std_logic;
+    f_selectb_o      : out std_logic;
+    f_side1_o        : out std_logic;
+    f_stepdir_o      : out std_logic;
+    f_step_o         : out std_logic;
+    f_track0_i       : in std_logic;
+    f_wdata_o        : out std_logic;
+    f_wgate_o        : out std_logic;
+    f_writeprotect_i : in std_logic
+
   );
 end entity MEGA65;
 
@@ -289,14 +336,14 @@ architecture beh of MEGA65 is
   signal vga_vsync : std_logic;
 
   -- 50 MHz as long as we did not solve the timing issues of the register file
-  signal SLOW_CLOCK : std_logic := '0';
+  signal clk_50MHz       : std_logic := '0';
 
   -- Pixelclock and fast clock for HRAM
-  signal CLK1x           : std_logic; -- 100 MHz clock created by mmcme2 for congruent phase
-  signal CLK2x           : std_logic; -- 4x SLOW_CLOCK = 200 MHz
-  signal clk25MHz        : std_logic; -- 25.175 MHz pixelclock for 640x480 @ 60 Hz
-  signal pll_locked_main : std_logic;
+  signal clk_100MHz      : std_logic; -- 100 MHz clock created by mmcme2 for congruent phase
+  signal clk_200MHz      : std_logic; -- 4x clk_50MHz = 200 MHz
+  signal clk_pixel       : std_logic; -- 25.175 MHz pixelclock for 640x480 @ 60 Hz
   signal clk_fb_main     : std_logic;
+  signal pll_locked_main : std_logic;
 
   -- combined pre- and post pore reset
   signal reset_ctl : std_logic;
@@ -328,30 +375,84 @@ begin
 
   -- Due to a bug in the R5/R6 boards, the cartridge port needs to be enabled for joystick port 2 to work 
   cart_en_o <= '1';
- 
-  -- dummy HDMI differential output 
 
-  hdmi_hiz_en_o  <= 'L';
-  hdmi_ls_oe_n_o <= 'H';
+  -- Safe default values for not-used/unsupported ports 
+
+  vdac_psave_n_o <= '1';
+  hdmi_hiz_en_o  <= '0'; -- HDMI is 50 ohm terminated.
+  hdmi_ls_oe_n_o <= '1'; -- Disable HDMI output
   hdmi_scl_io    <= 'Z';
   hdmi_sda_io    <= 'Z';
+  dbg_11_io      <= 'Z';
+
+  eth_clock_o           <= '0';
+  eth_led2_o            <= '0';
+  eth_mdc_o             <= '0';
+  eth_mdio_io           <= 'Z';
+  eth_reset_o           <= '1';
+  eth_txd_o             <= (others => '0');
+  eth_txen_o            <= '0';
   
+  f_density_o           <= '1';
+  f_motora_o            <= '1';
+  f_motorb_o            <= '1';
+  f_selecta_o           <= '1';
+  f_selectb_o           <= '1';
+  f_side1_o             <= '1';
+  f_stepdir_o           <= '1';
+  f_step_o              <= '1';
+  f_wdata_o             <= '1';
+  f_wgate_o             <= '1';
+  
+  joystick_5v_disable_o <= '0'; -- Enable 5V power supply to joysticks
+  
+  led_g_n_o             <= '1'; -- Off
+  led_r_n_o             <= '1'; -- Off
+  led_o                 <= '0'; -- Off
+  
+  p1lo_io               <= (others => 'Z');
+  p1hi_io               <= (others => 'Z');
+  p2lo_io               <= (others => 'Z');
+  p2hi_io               <= (others => 'Z');
+  
+  pmod1_en_o            <= '0';
+  pmod2_en_o            <= '0';
+  
+  qspidb_io             <= (others => 'Z');
+  qspicsn_o             <= '1';
+  
+  sdram_clk_o           <= '0';
+  sdram_cke_o           <= '0';
+  sdram_ras_n_o         <= '1';
+  sdram_cas_n_o         <= '1';
+  sdram_we_n_o          <= '1';
+  sdram_cs_n_o          <= '1';
+  sdram_ba_o            <= (others => '0');
+  sdram_a_o             <= (others => '0');
+  sdram_dqml_o          <= '0';
+  sdram_dqmh_o          <= '0';
+  sdram_dq_io           <= (others => 'Z');
+
+  -- dummy HDMI differential output 
+
   tmds_data_obufds : for i in 0 to 2 generate
   begin
     tmds_data_obufds_bit : obufds
-      port map (
-        i   => 'L',
-        o   => tmds_data_p_o(i),
-        ob  => tmds_data_n_o(i)
-      );
+    port map
+    (
+      i  => 'L',
+      o  => tmds_data_p_o(i),
+      ob => tmds_data_n_o(i)
+    );
   end generate tmds_data_obufds;
 
   tmds_clk_obufds : obufds
-    port map (
-      i   => 'L',
-      o   => tmds_clk_p_o,
-      ob  => tmds_clk_n_o
-    );
+  port map
+  (
+    i  => 'L',
+    o  => tmds_clk_p_o,
+    ob => tmds_clk_n_o
+  );
 
   clk_main : mmcme2_base
   generic map
@@ -371,10 +472,10 @@ begin
     clkin1   => clk_i,
     clkfbin  => clk_fb_main,
     clkfbout => clk_fb_main,
-    clkout0  => clk25MHz, --  pixelclock
-    clkout1  => CLK1x, --  100 MHz
-    clkout2  => SLOW_CLOCK, --  50 MHz
-    clkout3  => CLK2x, --  200 MHz
+    clkout0  => clk_pixel, --  pixelclock
+    clkout1  => clk_100MHz, --  100 MHz
+    clkout2  => clk_50MHz, --  50 MHz
+    clkout3  => clk_200MHz, --  200 MHz
     locked   => pll_locked_main
   );
 
@@ -382,7 +483,7 @@ begin
   cpu : entity work.QNICE_CPU
     port map
     (
-      CLK            => SLOW_CLOCK,
+      CLK            => clk_50MHz,
       RESET          => reset_ctl,
       WAIT_FOR_DATA  => cpu_wait_for_data,
       ADDR           => cpu_addr,
@@ -403,7 +504,7 @@ begin
     )
     port map
     (
-      clk     => SLOW_CLOCK,
+      clk     => clk_50MHz,
       ce      => rom_enable,
       address => cpu_addr(14 downto 0),
       data    => rom_data_out,
@@ -414,7 +515,7 @@ begin
   ram : entity work.BRAM
     port map
     (
-      clk     => SLOW_CLOCK,
+      clk     => clk_50MHz,
       ce      => ram_enable,
       address => cpu_addr(14 downto 0),
       we      => cpu_data_dir,
@@ -432,7 +533,7 @@ begin
     )
     port map
     (
-      clk     => SLOW_CLOCK,
+      clk     => clk_50MHz,
       ce      => pore_rom_enable,
       address => cpu_addr(14 downto 0),
       data    => pore_rom_data_out,
@@ -444,8 +545,8 @@ begin
     port map
     (
       reset    => reset_ctl,
-      clk25MHz => clk25MHz,
-      clk50MHz => SLOW_CLOCK,
+      clk25MHz => clk_pixel,
+      clk50MHz => clk_50MHz,
       R        => vga_r,
       G        => vga_g,
       B        => vga_b,
@@ -466,7 +567,7 @@ begin
     )
     port map
     (
-      clk          => SLOW_CLOCK,
+      clk          => clk_50MHz,
       reset        => reset_ctl,
       rx           => uart_rxd_i,
       tx           => uart_txd_o,
@@ -487,7 +588,7 @@ begin
     )
     port map
     (
-      clk          => SLOW_CLOCK,
+      clk          => clk_50MHz,
       reset        => reset_ctl,
       kb_io0       => kb_io0_o,
       kb_io1       => kb_io1_o,
@@ -506,7 +607,7 @@ begin
     )
     port map
     (
-      clk         => SLOW_CLOCK,
+      clk         => clk_50MHz,
       reset       => reset_ctl,
       int_n_out   => cpu_int_n,
       grant_n_in  => cpu_igrant_n,
@@ -523,7 +624,7 @@ begin
   cyc : entity work.cycle_counter
     port map
     (
-      clk      => SLOW_CLOCK,
+      clk      => clk_50MHz,
       impulse  => '1',
       reset    => reset_ctl,
       en       => cyc_en,
@@ -537,7 +638,7 @@ begin
   ins : entity work.cycle_counter
     port map
     (
-      clk      => SLOW_CLOCK,
+      clk      => clk_50MHz,
       impulse  => cpu_ins_cnt_strobe,
       reset    => reset_ctl,
       en       => ins_en,
@@ -551,7 +652,7 @@ begin
   eae_inst : entity work.eae
     port map
     (
-      clk      => SLOW_CLOCK,
+      clk      => clk_50MHz,
       reset    => reset_ctl,
       en       => eae_en,
       we       => eae_we,
@@ -564,26 +665,26 @@ begin
   sd_card : entity work.sdcard
     port map
     (
-      clk      => SLOW_CLOCK,
+      clk      => clk_50MHz,
       reset    => reset_ctl,
       en       => sd_en,
       we       => sd_we,
       reg      => sd_reg,
       data_in  => cpu_data_out,
       data_out => sd_data_out,
-      sd_reset => SD_RESET,
-      sd_clk   => SD_CLK,
-      sd_mosi  => SD_MOSI,
-      sd_miso  => SD_MISO
+      sd_reset => sd_reset_o,
+      sd_clk   => sd_clk_o,
+      sd_mosi  => sd_mosi_o,
+      sd_miso  => sd_miso_i
     );
 
   -- HyperRAM
   HRAM : entity work.hyperram_ctl
     port map
     (
-      clk         => SLOW_CLOCK,
-      clk2x       => CLK1x,
-      clk4x       => CLK2x,
+      clk         => clk_50MHz,
+      clk2x       => clk_100MHz,
+      clk4x       => clk_200MHz,
       reset       => reset_ctl,
       hram_en     => hram_en,
       hram_we     => hram_we,
@@ -608,7 +709,7 @@ begin
     port map
     (
       HW_RESET          => reset_button_i,
-      CLK               => SLOW_CLOCK, -- @TODO change debouncer bitsize when going to 100 MHz
+      CLK               => clk_50MHz, -- @TODO change debouncer bitsize when going to 100 MHz
       addr              => cpu_addr,
       data_dir          => cpu_data_dir,
       data_valid        => cpu_data_valid,
@@ -670,9 +771,9 @@ begin
     end if;
   end process;
 
-  video_signal_latches : process (clk25MHz)
+  video_signal_latches : process (clk_pixel)
   begin
-    if rising_edge(clk25MHz) then
+    if rising_edge(clk_pixel) then
       -- VGA: wire the simplified color system of the VGA component to the VGA outputs
       vga_red_o   <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
       vga_green_o <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
@@ -692,7 +793,7 @@ begin
   -- As of the  time writing this (June 2020): it is absolutely unclear for me, why I need to
   -- invert the phase of the vdac_clk when use Vivado 2019.2. When using ISE 14.7, it works
   -- fine without the phase shift.
-  vdac_clk_o <= not clk25MHz;
+  vdac_clk_o <= not clk_pixel;
 
   -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
   -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
