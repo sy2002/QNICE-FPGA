@@ -79,8 +79,8 @@ set_property -dict {PACKAGE_PIN B13  IOSTANDARD LVCMOS33} [get_ports {kb_jtagen_
 # Micro SD Connector (external slot at back of the cover)
 set_property -dict {PACKAGE_PIN K1   IOSTANDARD LVCMOS33} [get_ports {sd_cd_i}];                # SD_CD
 set_property -dict {PACKAGE_PIN G2   IOSTANDARD LVCMOS33} [get_ports {sd_clk_o}];               # SD_CLK
-set_property -dict {PACKAGE_PIN H2   IOSTANDARD LVCMOS33} [get_ports {sd_mosi_o}];              # SD_D0
-set_property -dict {PACKAGE_PIN J2   IOSTANDARD LVCMOS33} [get_ports {sd_miso_i}];              # SD_CMD
+set_property -dict {PACKAGE_PIN H2   IOSTANDARD LVCMOS33} [get_ports {sd_miso_i}];              # SD_D0
+set_property -dict {PACKAGE_PIN J2   IOSTANDARD LVCMOS33} [get_ports {sd_mosi_o}];              # SD_CMD
 set_property -dict {PACKAGE_PIN K2   IOSTANDARD LVCMOS33} [get_ports {sd_reset_o}];             # SD_D3
 set_property -dict {PACKAGE_PIN H3   IOSTANDARD LVCMOS33} [get_ports {sd_d1_i}];                # SD_D1
 set_property -dict {PACKAGE_PIN J1   IOSTANDARD LVCMOS33} [get_ports {sd_d2_i}];                # SD_D2
@@ -232,7 +232,7 @@ set_property -dict {PACKAGE_PIN M18  IOSTANDARD LVCMOS33} [get_ports {fb_down_n_
 set_property -dict {PACKAGE_PIN N19  IOSTANDARD LVCMOS33} [get_ports {fb_fire_n_o}];            # DBG7 = FB_FIRE_O
 set_property -dict {PACKAGE_PIN E18  IOSTANDARD LVCMOS33} [get_ports {fb_right_n_o}];           # DBG8 = FB_RIGHT_O
 set_property -dict {PACKAGE_PIN M17  IOSTANDARD LVCMOS33} [get_ports {fb_left_n_o}];            # DBG9 = FB_LEFT_O
-#set_property -dict {PACKAGE_PIN G13  IOSTANDARD LVCMOS33} [get_ports {dbg_11_io}];              # DBG11
+set_property -dict {PACKAGE_PIN G13  IOSTANDARD LVCMOS33} [get_ports {dbg_11_io}];              # DBG11
 
 # SMSC Ethernet PHY. U4 = KSZ8081RNDCA
 set_property -dict {PACKAGE_PIN L4   IOSTANDARD LVCMOS33} [get_ports {eth_clock_o}];            # ETH_CLK
@@ -362,6 +362,30 @@ set_property -dict {PULLUP FALSE  SLEW FAST  DRIVE 16}    [get_ports {sdram_*}];
 
 
 ################################
+## TIMING CONSTRAINTS
+################################
+
+## External clock signal (100 MHz)
+create_clock -period 10.000 [get_ports clk_i]
+
+create_generated_clock -name Slow_Clock_25MHz -source [get_pins {clk_main/CLKOUT2}] -divide_by 2 [get_pins sd_card/Slow_Clock_25MHz_reg/Q]
+
+## Make the general clocks and the pixelclock unrelated to other to avoid erroneous timing
+## violations, and hopefully make everything synthesise faster
+set_clock_groups -asynchronous \
+     -group { clk_i clk_100MHz clk_200MHz clkfbin clk_50MHz } \
+     -group [get_clocks -of_objects [get_pins clk_main/CLKOUT0]]
+
+## EAE's combinatorial division networks take longer than
+## the regular clock period, so we specify a multicycle path
+## see also the comments in EAE.vhd and explanations in UG903/chapter 5/Multicycle Paths as well as ug911/page 25
+set_multicycle_path -from [get_cells -include_replicated {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells -include_replicated {eae_inst/res_reg[*]}] -setup 3
+set_multicycle_path -from [get_cells -include_replicated {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells -include_replicated {eae_inst/res_reg[*]}] -hold 2
+
+## The following set_max delay works fine, too at 50 MHz main clock and is an alternative to the multicycle path
+#set_max_delay -from [get_cells {{eae_inst/op0_reg[*]} {eae_inst/op1_reg[*]}}] -to [get_cells {eae_inst/res_reg[*]}] 34.000
+
+################################
 ## PLACEMENT CONSTRAINTS
 ################################
 
@@ -371,9 +395,9 @@ set_property -dict {PULLUP FALSE  SLEW FAST  DRIVE 16}    [get_ports {sdram_*}];
 #resize_pblock pblock_m65driver -add {SLICE_X0Y225:SLICE_X7Y243}
 
 # Place SD card controller in the middle between the left and right FPGA boundary because the output ports are at the opposide edges
-#create_pblock pblock_sdcard
-#add_cells_to_pblock pblock_sdcard [get_cells [list framework_inst/qnice_wrapper_inst/qnice_inst/sd_card]]
-#resize_pblock pblock_sdcard -add {SLICE_X66Y178:SLICE_X99Y193}
+create_pblock pblock_sdcard
+add_cells_to_pblock pblock_sdcard [get_cells [list sd_card]]
+resize_pblock pblock_sdcard -add {SLICE_X66Y178:SLICE_X99Y193}
 
 # Place phase-shifted VGA output registers near the actual output buffers
 #create_pblock pblock_vga
