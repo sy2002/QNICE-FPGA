@@ -335,13 +335,11 @@ architecture beh of MEGA65 is
   signal vga_hsync : std_logic;
   signal vga_vsync : std_logic;
 
-  -- 50 MHz as long as we did not solve the timing issues of the register file
-  signal clk_50MHz       : std_logic := '0';
-
   -- Pixelclock and fast clock for HRAM
+  signal clk_25MHz       : std_logic; -- 25 MHz pixelclock for 640x480 @ 60 Hz (within 1% tolerance)
+  signal clk_50MHz       : std_logic := '0'; -- 50 MHz clock. aiming for 100 MHz
   signal clk_100MHz      : std_logic; -- 100 MHz clock created by mmcme2 for congruent phase
   signal clk_200MHz      : std_logic; -- 4x clk_50MHz = 200 MHz
-  signal clk_pixel       : std_logic; -- 25.175 MHz pixelclock for 640x480 @ 60 Hz
   signal clk_fb_main     : std_logic;
   signal pll_locked_main : std_logic;
 
@@ -457,13 +455,13 @@ begin
   clk_main : mmcme2_base
   generic map
   (
-    clkin1_period    => 10.0, --   100 MHz (10 ns)
-    clkfbout_mult_f  => 8.0, --   800 MHz common multiply
-    divclk_divide    => 1, --   800 MHz /1 common divide to stay within 600MHz-1600MHz range
-    clkout0_divide_f => 31.75, --   Should be 25.175 MHz, but actual value is 25.197 MHz
-    clkout1_divide   => 8, --   100 MHz /8
-    clkout2_divide   => 16, --   50  MHz /16
-    clkout3_divide   => 4 --    200 MHz /4
+    clkin1_period    => 10.0, -- 100 MHz (10 ns)
+    clkfbout_mult_f  => 8.0,  -- 800 MHz common multiply
+    divclk_divide    => 1,    -- 800 MHz /1 common divide to stay within 600MHz-1600MHz range
+    clkout0_divide_f => 32.0, -- Should be 25.175 MHz, but 25MHz is within 1% tolerance range
+    clkout1_divide   => 8,    -- 100 MHz /8
+    clkout2_divide   => 16,   -- 50  MHz /16
+    clkout3_divide   => 4     -- 200 MHz /4
   )
   port map
   (
@@ -472,9 +470,9 @@ begin
     clkin1   => clk_i,
     clkfbin  => clk_fb_main,
     clkfbout => clk_fb_main,
-    clkout0  => clk_pixel, --  pixelclock
+    clkout0  => clk_25MHz,  --  pixelclock
     clkout1  => clk_100MHz, --  100 MHz
-    clkout2  => clk_50MHz, --  50 MHz
+    clkout2  => clk_50MHz,  --  50 MHz
     clkout3  => clk_200MHz, --  200 MHz
     locked   => pll_locked_main
   );
@@ -545,7 +543,7 @@ begin
     port map
     (
       reset    => reset_ctl,
-      clk25MHz => clk_pixel,
+      clk25MHz => clk_25MHz,
       clk50MHz => clk_50MHz,
       R        => vga_r,
       G        => vga_g,
@@ -771,9 +769,9 @@ begin
     end if;
   end process;
 
-  video_signal_latches : process (clk_pixel)
+  video_signal_latches : process (clk_25MHz)
   begin
-    if rising_edge(clk_pixel) then
+    if rising_edge(clk_25MHz) then
       -- VGA: wire the simplified color system of the VGA component to the VGA outputs
       vga_red_o   <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
       vga_green_o <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
@@ -793,7 +791,7 @@ begin
   -- As of the  time writing this (June 2020): it is absolutely unclear for me, why I need to
   -- invert the phase of the vdac_clk when use Vivado 2019.2. When using ISE 14.7, it works
   -- fine without the phase shift.
-  vdac_clk_o <= not clk_pixel;
+  vdac_clk_o <= clk_25MHz;
 
   -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
   -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
