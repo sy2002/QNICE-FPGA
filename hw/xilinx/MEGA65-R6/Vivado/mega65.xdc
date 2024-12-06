@@ -366,7 +366,7 @@ set_property -dict {PULLUP FALSE  SLEW FAST  DRIVE 16}    [get_ports {sdram_*}];
 ################################
 
 ## External clock signal (100 MHz)
-#create_clock -period 10.000 [get_ports clk_i]
+create_clock -period 10.000 [get_ports clk_i]
 
 create_generated_clock -name Slow_Clock_25MHz -source [get_pins {clk_main/CLKOUT2}] -divide_by 2 [get_pins sd_card/Slow_Clock_25MHz_reg/Q]
 

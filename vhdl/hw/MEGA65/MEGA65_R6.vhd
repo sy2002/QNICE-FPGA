@@ -341,8 +341,12 @@ architecture beh of MEGA65 is
   signal vga_r     : std_logic;
   signal vga_g     : std_logic;
   signal vga_b     : std_logic;
+  signal vga_red   : std_logic_vector(7 downto 0);
+  signal vga_green : std_logic_vector(7 downto 0);
+  signal vga_blue  : std_logic_vector(7 downto 0);
   signal vga_hsync : std_logic;
   signal vga_vsync : std_logic;
+  signal vga_clk   : std_logic; -- VGA pixel clock
 
   -- HDMI signals
   signal tmds_clk  : std_logic; -- HDMI pixel clock at 5x speed for TMDS @ 371.25 MHz
@@ -351,10 +355,8 @@ architecture beh of MEGA65 is
   signal hdmi_tmds : slv_9_0_t(0 to 2); -- parallel TMDS symbol stream x 3 channels
   signal hdmi_hs   : std_logic;
   signal hdmi_vs   : std_logic;
-  signal hdmi_de   : std_logic;
 
-  -- Various clocks
-  signal clk_pixel       : std_logic; -- 25 MHz pixelclock for 640x480 @ 60 Hz (within 1% tolerance)
+  -- Clocks and related signals
   signal clk_50MHz       : std_logic; -- 50 MHz clock. aiming for 100 MHz
   signal clk_100MHz      : std_logic; -- 100 MHz clock created by mmcme2 for congruent phase
   signal clk_200MHz      : std_logic; -- 4x clk_50MHz = 200 MHz
@@ -465,7 +467,7 @@ begin
     clkin1   => clk_i,
     clkfbin  => clk_fb_main,
     clkfbout => clk_fb_main,
-    clkout0  => clk_pixel, --  pixelclock
+    clkout0  => vga_clk,
     clkout1  => clk_100MHz, --  100 MHz
     clkout2  => clk_50MHz, --  50 MHz
     clkout3  => clk_200MHz, --  200 MHz
@@ -538,20 +540,25 @@ begin
     port map
     (
       reset    => reset_ctl,
-      clk25MHz => clk_pixel,
+      clk25MHz => vga_clk,
       clk50MHz => clk_50MHz,
       R        => vga_r,
       G        => vga_g,
       B        => vga_b,
       hsync    => vga_hsync,
       vsync    => vga_vsync,
-      hdmi_de  => hdmi_de,
+      hdmi_de  => open,
       en       => vga_en,
       we       => vga_we,
       reg      => vga_reg,
       data_in  => cpu_data_out,
       data_out => vga_data_out
     );
+
+  -- VGA: wire the simplified color system of the VGA component to the VGA outputs
+  vga_red   <= (others => vga_r);
+  vga_green <= (others => vga_g);
+  vga_blue  <= (others => vga_b);
 
   -- special UART with FIFO that can be directly connected to the CPU bus
   uart : entity work.bus_uart
@@ -764,29 +771,22 @@ begin
     end if;
   end process;
 
-  video_signal_latches : process (clk_pixel)
+  video_signal_latches : process (vga_clk)
   begin
-    if rising_edge(clk_pixel) then
-      -- VGA: wire the simplified color system of the VGA component to the VGA outputs
-      vga_red_o   <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
-      vga_green_o <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
-      vga_blue_o  <= vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b & vga_b;
-
-      -- VGA horizontal and vertical sync
-      vga_hs_o <= vga_hsync;
-      vga_vs_o <= vga_vsync;
+    -- latching values at different edge than sampling by dac eliminates blurring
+    if falling_edge(vga_clk) then
+      vga_red_o   <= vga_red;
+      vga_green_o <= vga_green;
+      vga_blue_o  <= vga_blue;
+      vga_hs_o    <= vga_hsync;
+      vga_vs_o    <= vga_vsync;
     end if;
   end process;
 
   -- make the VDAC output the image
   vdac_sync_n_o  <= '0';
   vdac_blank_n_o <= '1';
-
-  -- Fix of the Vivado induced "blurry VGA screen":
-  -- As of the  time writing this (June 2020): it is absolutely unclear for me, why I need to
-  -- invert the phase of the vdac_clk when use Vivado 2019.2. When using ISE 14.7, it works
-  -- fine without the phase shift.
-  vdac_clk_o <= not clk_pixel;
+  vdac_clk_o     <= vga_clk;
 
   -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
   -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
@@ -806,7 +806,7 @@ begin
     )
     port map
     (
-      rsti    => not reset_ctl,
+      rsti    => reset_ctl,
       clki    => clk_i,
       sel     => HDMI_VIDEO_MODE.CLK_SEL,
       rsto    => hdmi_rst,
@@ -814,32 +814,26 @@ begin
       clko_x5 => tmds_clk
     ); -- video_out_clock_inst
 
-  video2hdmi_inst : component xpm_cdc_array_single
+  vga_to_hdmi_cdc : component xpm_cdc_array_single
     generic map(
-      WIDTH => 27
+      WIDTH => 2
     )
     port map
     (
-      src_clk               => clk_pixel,
-      src_in(23 downto 0)   => vga_red_o & vga_green_o & vga_blue_o,
-      src_in(24)            => vga_hs_o,
-      src_in(25)            => vga_vs_o,
-      src_in(26)            => not vdac_blank_n_o,
-      dest_clk              => hdmi_clk,
-      dest_out(23 downto 0) => open,
-      dest_out(24)          => hdmi_hs,
-      dest_out(25)          => hdmi_vs,
-      dest_out(26)          => open
-    ); -- video2hdmi_inst
-
-    --  (hdmi_red, hdmi_green, hdmi_blue) <= unsigned(hdmi_color);
+      src_clk     => vga_clk,
+      src_in(0)   => vga_hsync,
+      src_in(1)   => vga_vsync,
+      dest_clk    => hdmi_clk,
+      dest_out(0) => hdmi_hs,
+      dest_out(1) => hdmi_vs
+    );
 
     hdmi_data_gen : for i in 0 to 2 generate
     begin
       hdmi_data_inst : entity work.serialiser_10to1_selectio
         port map
         (
-          rst    => not reset_ctl,
+          rst    => reset_ctl,
           clk    => hdmi_clk,
           clk_x5 => tmds_clk,
           d      => hdmi_tmds(i),
@@ -851,7 +845,7 @@ begin
     hdmi_clk_inst : entity work.serialiser_10to1_selectio
       port map
       (
-        rst    => not reset_ctl,
+        rst    => reset_ctl,
         clk    => hdmi_clk,
         clk_x5 => tmds_clk,
         d      => "0000011111",
@@ -870,14 +864,14 @@ begin
         vs_pol       => HDMI_VIDEO_MODE.V_POL,
         hs_pol       => HDMI_VIDEO_MODE.H_POL,
 
-        vga_rst => not reset_ctl,
-        vga_clk => vdac_clk_o,
-        vga_vs  => vga_vs_o,
-        vga_hs  => vga_hs_o,
-        vga_de  => hdmi_de,
-        vga_r   => vga_red_o,
-        vga_g   => vga_green_o,
-        vga_b   => vga_blue_o,
+        vga_rst => reset_ctl,
+        vga_clk => vga_clk,
+        vga_vs  => vga_vsync,
+        vga_hs  => vga_hsync,
+        vga_de  => '1',
+        vga_r   => vga_red,
+        vga_g   => vga_green,
+        vga_b   => vga_blue,
 
         -- PCM audio
         pcm_clk   => '1',
