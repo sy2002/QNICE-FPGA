@@ -11,10 +11,16 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+library work;
+use work.types_pkg.all;
+use work.video_modes_pkg.all;
+use work.env1_globals.all;
+
 library unisim;
 use unisim.vcomponents.all;
 
-use work.env1_globals.all;
+library xpm;
+use xpm.vcomponents.all;
 
 entity MEGA65 is
   port (
@@ -212,7 +218,7 @@ entity MEGA65 is
 
     -- Debug.
     dbg_11_io : inout std_logic;
-    
+
     -- SDRAM - 32M x 16 bit, 3.3V VCC. U44 = IS42S16320F-6BL
     sdram_clk_o   : out std_logic;
     sdram_cke_o   : out std_logic;
@@ -259,6 +265,8 @@ entity MEGA65 is
 end entity MEGA65;
 
 architecture beh of MEGA65 is
+
+  constant HDMI_VIDEO_MODE : video_modes_t := C_HDMI_640x480p_60;
 
   -- CPU control signals
   signal cpu_addr           : std_logic_vector(15 downto 0);
@@ -327,6 +335,7 @@ architecture beh of MEGA65 is
 
   signal reset_pre_pore  : std_logic;
   signal reset_post_pore : std_logic;
+  signal reset_ctl       : std_logic; -- combined pre- and post pore reset
 
   -- VGA control signals
   signal vga_r     : std_logic;
@@ -335,16 +344,22 @@ architecture beh of MEGA65 is
   signal vga_hsync : std_logic;
   signal vga_vsync : std_logic;
 
-  -- Pixelclock and fast clock for HRAM
-  signal clk_25MHz       : std_logic; -- 25 MHz pixelclock for 640x480 @ 60 Hz (within 1% tolerance)
-  signal clk_50MHz       : std_logic := '0'; -- 50 MHz clock. aiming for 100 MHz
+  -- HDMI signals
+  signal tmds_clk  : std_logic; -- HDMI pixel clock at 5x speed for TMDS @ 371.25 MHz
+  signal hdmi_clk  : std_logic; -- HDMI pixel clock at normal speed @ 74.25 MHz
+  signal hdmi_rst  : std_logic;
+  signal hdmi_tmds : slv_9_0_t(0 to 2); -- parallel TMDS symbol stream x 3 channels
+  signal hdmi_hs   : std_logic;
+  signal hdmi_vs   : std_logic;
+  signal hdmi_de   : std_logic;
+
+  -- Various clocks
+  signal clk_pixel       : std_logic; -- 25 MHz pixelclock for 640x480 @ 60 Hz (within 1% tolerance)
+  signal clk_50MHz       : std_logic; -- 50 MHz clock. aiming for 100 MHz
   signal clk_100MHz      : std_logic; -- 100 MHz clock created by mmcme2 for congruent phase
   signal clk_200MHz      : std_logic; -- 4x clk_50MHz = 200 MHz
   signal clk_fb_main     : std_logic;
   signal pll_locked_main : std_logic;
-
-  -- combined pre- and post pore reset
-  signal reset_ctl : std_logic;
 
   -- enable displaying of address bus on system halt, if switch 2 is on
   signal i_til_reg0_enable : std_logic;
@@ -378,90 +393,70 @@ begin
 
   vdac_psave_n_o <= '1';
   hdmi_hiz_en_o  <= '0'; -- HDMI is 50 ohm terminated.
-  hdmi_ls_oe_n_o <= '1'; -- Disable HDMI output
+  hdmi_ls_oe_n_o <= '0'; -- Disable HDMI output
   hdmi_scl_io    <= 'Z';
   hdmi_sda_io    <= 'Z';
-  dbg_11_io      <= 'Z';
 
-  eth_clock_o           <= '0';
-  eth_led2_o            <= '0';
-  eth_mdc_o             <= '0';
-  eth_mdio_io           <= 'Z';
-  eth_reset_o           <= '1';
-  eth_txd_o             <= (others => '0');
-  eth_txen_o            <= '0';
-  
-  f_density_o           <= '1';
-  f_motora_o            <= '1';
-  f_motorb_o            <= '1';
-  f_selecta_o           <= '1';
-  f_selectb_o           <= '1';
-  f_side1_o             <= '1';
-  f_stepdir_o           <= '1';
-  f_step_o              <= '1';
-  f_wdata_o             <= '1';
-  f_wgate_o             <= '1';
-  
+  dbg_11_io <= 'Z';
+
+  eth_clock_o <= '0';
+  eth_led2_o  <= '0';
+  eth_mdc_o   <= '0';
+  eth_mdio_io <= 'Z';
+  eth_reset_o <= '1';
+  eth_txd_o   <= (others => '0');
+  eth_txen_o  <= '0';
+
+  f_density_o <= '1';
+  f_motora_o  <= '1';
+  f_motorb_o  <= '1';
+  f_selecta_o <= '1';
+  f_selectb_o <= '1';
+  f_side1_o   <= '1';
+  f_stepdir_o <= '1';
+  f_step_o    <= '1';
+  f_wdata_o   <= '1';
+  f_wgate_o   <= '1';
+
   joystick_5v_disable_o <= '0'; -- Enable 5V power supply to joysticks
-  
-  led_g_n_o             <= '1'; -- Off
-  led_r_n_o             <= '1'; -- Off
-  led_o                 <= '0'; -- Off
-  
-  p1lo_io               <= (others => 'Z');
-  p1hi_io               <= (others => 'Z');
-  p2lo_io               <= (others => 'Z');
-  p2hi_io               <= (others => 'Z');
-  
-  pmod1_en_o            <= '0';
-  pmod2_en_o            <= '0';
-  
-  qspidb_io             <= (others => 'Z');
-  qspicsn_o             <= '1';
-  
-  sdram_clk_o           <= '0';
-  sdram_cke_o           <= '0';
-  sdram_ras_n_o         <= '1';
-  sdram_cas_n_o         <= '1';
-  sdram_we_n_o          <= '1';
-  sdram_cs_n_o          <= '1';
-  sdram_ba_o            <= (others => '0');
-  sdram_a_o             <= (others => '0');
-  sdram_dqml_o          <= '0';
-  sdram_dqmh_o          <= '0';
-  sdram_dq_io           <= (others => 'Z');
 
-  -- dummy HDMI differential output 
+  led_g_n_o <= '1'; -- Off
+  led_r_n_o <= '1'; -- Off
+  led_o     <= '0'; -- Off
 
-  tmds_data_obufds : for i in 0 to 2 generate
-  begin
-    tmds_data_obufds_bit : obufds
-    port map
-    (
-      i  => 'L',
-      o  => tmds_data_p_o(i),
-      ob => tmds_data_n_o(i)
-    );
-  end generate tmds_data_obufds;
+  p1lo_io <= (others => 'Z');
+  p1hi_io <= (others => 'Z');
+  p2lo_io <= (others => 'Z');
+  p2hi_io <= (others => 'Z');
 
-  tmds_clk_obufds : obufds
-  port map
-  (
-    i  => 'L',
-    o  => tmds_clk_p_o,
-    ob => tmds_clk_n_o
-  );
+  pmod1_en_o <= '0';
+  pmod2_en_o <= '0';
+
+  qspidb_io <= (others => 'Z');
+  qspicsn_o <= '1';
+
+  sdram_clk_o   <= '0';
+  sdram_cke_o   <= '0';
+  sdram_ras_n_o <= '1';
+  sdram_cas_n_o <= '1';
+  sdram_we_n_o  <= '1';
+  sdram_cs_n_o  <= '1';
+  sdram_ba_o    <= (others => '0');
+  sdram_a_o     <= (others => '0');
+  sdram_dqml_o  <= '0';
+  sdram_dqmh_o  <= '0';
+  sdram_dq_io   <= (others => 'Z');
 
   clk_main : mmcme2_base
   generic map
   (
     clkin1_period    => 10.0, -- 100 MHz (10 ns)
-    clkfbout_mult_f  => 8.0,  -- 800 MHz common multiply
-    divclk_divide    => 1,    -- 800 MHz /1 common divide to stay within 600MHz-1600MHz range
-    clkout0_divide_f => 32.0, -- Should be 25.175 MHz, but 25MHz is within 1% tolerance range
-    clkout1_divide   => 8,    -- 100 MHz /8
-    clkout2_divide   => 16,   -- 50  MHz /16
-    clkout3_divide   => 4     -- 200 MHz /4
+    clkfbout_mult_f  => 8.0, -- 800 MHz common multiply
+    divclk_divide    => 1, -- 800 MHz /1 common divide to stay within 600MHz-1600MHz range
+    clkout0_divide_f => 31.75, -- Should be 25.175 MHz, but 25MHz is within 1% tolerance range
+    clkout1_divide   => 8, -- 100 MHz /8
+    clkout2_divide   => 16, -- 50  MHz /16
+    clkout3_divide   => 4 -- 200 MHz /4
   )
   port map
   (
@@ -470,9 +465,9 @@ begin
     clkin1   => clk_i,
     clkfbin  => clk_fb_main,
     clkfbout => clk_fb_main,
-    clkout0  => clk_25MHz,  --  pixelclock
+    clkout0  => clk_pixel, --  pixelclock
     clkout1  => clk_100MHz, --  100 MHz
-    clkout2  => clk_50MHz,  --  50 MHz
+    clkout2  => clk_50MHz, --  50 MHz
     clkout3  => clk_200MHz, --  200 MHz
     locked   => pll_locked_main
   );
@@ -543,14 +538,14 @@ begin
     port map
     (
       reset    => reset_ctl,
-      clk25MHz => clk_25MHz,
+      clk25MHz => clk_pixel,
       clk50MHz => clk_50MHz,
       R        => vga_r,
       G        => vga_g,
       B        => vga_b,
       hsync    => vga_hsync,
       vsync    => vga_vsync,
-      hdmi_de  => open,
+      hdmi_de  => hdmi_de,
       en       => vga_en,
       we       => vga_we,
       reg      => vga_reg,
@@ -769,9 +764,9 @@ begin
     end if;
   end process;
 
-  video_signal_latches : process (clk_25MHz)
+  video_signal_latches : process (clk_pixel)
   begin
-    if rising_edge(clk_25MHz) then
+    if rising_edge(clk_pixel) then
       -- VGA: wire the simplified color system of the VGA component to the VGA outputs
       vga_red_o   <= vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r & vga_r;
       vga_green_o <= vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g & vga_g;
@@ -791,7 +786,7 @@ begin
   -- As of the  time writing this (June 2020): it is absolutely unclear for me, why I need to
   -- invert the phase of the vdac_clk when use Vivado 2019.2. When using ISE 14.7, it works
   -- fine without the phase shift.
-  vdac_clk_o <= clk_25MHz;
+  vdac_clk_o <= not clk_pixel;
 
   -- emulate the switches on the Nexys4 to toggle VGA and PS/2 keyboard
   -- bit #0: use UART as STDIN (0)  / use MEGA65 keyboard as STDIN (1)
@@ -802,4 +797,100 @@ begin
   reset_ctl <= '1' when (reset_pre_pore = '1' or reset_post_pore = '1' or pll_locked_main = '0') else
     '0';
 
-end architecture beh;
+  -- VGA to HDMI conversion --
+
+  -- reconfigurable MMCM: 25.2MHz, 27MHz, 74.25MHz or 148.5MHz
+  video_out_clock_inst : entity work.video_out_clock
+    generic map(
+      FREF => 100.0 -- Clock speed in MHz of the input clk_i
+    )
+    port map
+    (
+      rsti    => not reset_ctl,
+      clki    => clk_i,
+      sel     => HDMI_VIDEO_MODE.CLK_SEL,
+      rsto    => hdmi_rst,
+      clko    => hdmi_clk,
+      clko_x5 => tmds_clk
+    ); -- video_out_clock_inst
+
+  video2hdmi_inst : component xpm_cdc_array_single
+    generic map(
+      WIDTH => 27
+    )
+    port map
+    (
+      src_clk               => clk_pixel,
+      src_in(23 downto 0)   => vga_red_o & vga_green_o & vga_blue_o,
+      src_in(24)            => vga_hs_o,
+      src_in(25)            => vga_vs_o,
+      src_in(26)            => not vdac_blank_n_o,
+      dest_clk              => hdmi_clk,
+      dest_out(23 downto 0) => open,
+      dest_out(24)          => hdmi_hs,
+      dest_out(25)          => hdmi_vs,
+      dest_out(26)          => open
+    ); -- video2hdmi_inst
+
+    --  (hdmi_red, hdmi_green, hdmi_blue) <= unsigned(hdmi_color);
+
+    hdmi_data_gen : for i in 0 to 2 generate
+    begin
+      hdmi_data_inst : entity work.serialiser_10to1_selectio
+        port map
+        (
+          rst    => not reset_ctl,
+          clk    => hdmi_clk,
+          clk_x5 => tmds_clk,
+          d      => hdmi_tmds(i),
+          out_p  => tmds_data_p_o(i),
+          out_n  => tmds_data_n_o(i)
+        );
+    end generate hdmi_data_gen;
+
+    hdmi_clk_inst : entity work.serialiser_10to1_selectio
+      port map
+      (
+        rst    => not reset_ctl,
+        clk    => hdmi_clk,
+        clk_x5 => tmds_clk,
+        d      => "0000011111",
+        out_p  => tmds_clk_p_o,
+        out_n  => tmds_clk_n_o
+      ); -- hdmi_clk_inst
+
+    vga_to_hdmi_inst : entity work.vga_to_hdmi
+      port map
+      (
+        select_44100 => '0',
+        dvi          => '1',
+        vic          => std_logic_vector(to_unsigned(HDMI_VIDEO_MODE.CEA_CTA_VIC, 8)),
+        aspect       => HDMI_VIDEO_MODE.ASPECT,
+        pix_rep      => HDMI_VIDEO_MODE.PIXEL_REP,
+        vs_pol       => HDMI_VIDEO_MODE.V_POL,
+        hs_pol       => HDMI_VIDEO_MODE.H_POL,
+
+        vga_rst => not reset_ctl,
+        vga_clk => vdac_clk_o,
+        vga_vs  => vga_vs_o,
+        vga_hs  => vga_hs_o,
+        vga_de  => hdmi_de,
+        vga_r   => vga_red_o,
+        vga_g   => vga_green_o,
+        vga_b   => vga_blue_o,
+
+        -- PCM audio
+        pcm_clk   => '1',
+        pcm_rst   => '0',
+        pcm_clken => '0',
+        pcm_l => (others => '1'),
+        pcm_r => (others => '1'),
+        pcm_acr   => '1',
+        pcm_n => (others => '1'),
+        pcm_cts => (others => '1'),
+
+        -- TMDS output (parallel)
+        tmds => hdmi_tmds
+      ); -- vga_to_hdmi_inst
+
+  end architecture beh;
