@@ -453,7 +453,7 @@ begin
     clkin1_period    => 10.0, -- 100 MHz (10 ns)
     clkfbout_mult_f  => 8.0, -- 800 MHz common multiply
     divclk_divide    => 1, -- 800 MHz /1 common divide to stay within 600MHz-1600MHz range
-    clkout0_divide_f => 31.75, -- Should be 25.175 MHz, but 25MHz is within 1% tolerance range
+    clkout0_divide_f => 31.75, -- Should be 25.175 MHz, but 25.197 is close enough
     clkout1_divide   => 8, -- 100 MHz /8
     clkout2_divide   => 16, -- 50  MHz /16
     clkout3_divide   => 4 -- 200 MHz /4
