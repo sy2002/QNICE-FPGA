@@ -45,7 +45,6 @@
     <Option Name="SimulatorGccVersionActiveHdl" Val="9.3.0"/>
     <Option Name="TargetLanguage" Val="VHDL"/>
     <Option Name="BoardPart" Val=""/>
-    <Option Name="SourceMgmtMode" Val="DisplayOnly"/>
     <Option Name="ActiveSimSet" Val="sim_hram"/>
     <Option Name="DefaultLib" Val="xil_defaultlib"/>
     <Option Name="ProjectType" Val="Default"/>
@@ -93,7 +92,20 @@
   <FileSets Version="1" Minor="32">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1" RelGenDir="$PGENDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/sim/sim_hram_dbg_globals.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/EAE.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/types_pkg.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/video_modes_pkg.vhd">
         <FileInfo SFType="VHDL2008">
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -103,46 +115,6 @@
         <FileInfo SFType="VHDL2008">
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/mmio_mux.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/drivers/debugtools.vhdl">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/tools.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/vga/losr.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/vga/ctrm.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/drivers/kb_matrix_ram.vhdl">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../../../vhdl/cpu_constants.vhd">
@@ -152,152 +124,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/alu_shifter.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/vga/video_bram.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/vga/vga80x40.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/sd_spi.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/register_file.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/kbd_constants.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/drivers/mega65kbd_to_matrix.vhdl">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/drivers/matrix_to_ascii.vhdl">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/drivers/hyperram_r6.vhdl">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/fifo.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/debounce.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/byte_bram.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/basic_uart.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/alu.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/vga_textmode.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/sdcard.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-        </FileInfo>
-      </File>
       <File Path="$PPRDIR/../../../../vhdl/qnice_cpu.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/keyboard.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/hyperram_ctl_r6.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/EAE.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/cycle_counter.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="Library" Val="xil_defaultlib"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/bus_uart.vhd">
         <FileInfo SFType="VHDL2008">
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -318,7 +145,28 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/MEGA65_R6.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/vga_textmode.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/bus_uart.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/kbd_constants.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/keyboard.vhd">
         <FileInfo SFType="VHDL2008">
           <Attr Name="Library" Val="xil_defaultlib"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -331,31 +179,51 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/timer.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/cycle_counter.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/sdcard.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/hyperram_ctl_r6.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/tools.vhd">
         <FileInfo SFType="VHDL2008">
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/video_modes_pkg.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/mmio_mux.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/cdc_stable.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/video_out_clock.vhd">
         <FileInfo SFType="VHDL2008">
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/serialiser_10to1_selectio.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/types_pkg.vhd">
-        <FileInfo SFType="VHDL2008">
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/vga_to_hdmi.vhd">
         <FileInfo SFType="VHDL2008">
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -373,14 +241,145 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/video_out_clock.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/vga_to_hdmi.vhd">
         <FileInfo SFType="VHDL2008">
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/cdc_stable.vhd">
+      <File Path="$PPRDIR/../../../../vhdl/alu.vhd">
         <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/alu_shifter.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/basic_uart.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/byte_bram.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/vga/ctrm.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/debounce.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/fifo.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/drivers/hyperram_r6.vhdl">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/drivers/kb_matrix_ram.vhdl">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/vga/losr.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/drivers/matrix_to_ascii.vhdl">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/drivers/mega65kbd_to_matrix.vhdl">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/register_file.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/sd_spi.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/timer.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/vga/vga80x40.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/vga/video_bram.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/MEGA65_R6.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="Library" Val="xil_defaultlib"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/sim/sim_hram_dbg_globals.vhd">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../vhdl/hw/MEGA65/drivers/debugtools.vhdl">
+        <FileInfo SFType="VHDL2008">
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
