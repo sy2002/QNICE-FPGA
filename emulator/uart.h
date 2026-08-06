@@ -55,7 +55,7 @@ typedef struct uart
 #define RESET_OUTPUT_PORT 15
 
 //flag to ensure restoring a working terminal when closing the emulator by closing the SDL window
-enum uart_status_t {uart_undef, uart_init, uart_rundown} uart_status;
+enum uart_status_t {uart_undef, uart_init, uart_rundown};
 
 unsigned int uart_read_register(uart *, unsigned int);
 void uart_write_register(uart *, unsigned int, unsigned int);
